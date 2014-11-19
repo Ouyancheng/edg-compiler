@@ -2693,6 +2693,7 @@ set).
   rp->is_inline = flag;
 }  /* set_inline_flag */
 
+#if !NULL_POINTER_IS_ZERO
 
 void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
 /*
@@ -2712,6 +2713,7 @@ Initialize the fields of the specified decl-pos block.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* clear_decl_pos_block */
 
+#endif /* !NULL_POINTER_IS_ZERO */
 
 void f_add_element_position(an_element_position_kind  kind,
                             a_source_position         *pos,

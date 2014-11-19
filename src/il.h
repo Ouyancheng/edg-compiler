@@ -693,7 +693,12 @@ typedef struct a_decl_pos_block {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_decl_pos_block;
 
+#if NULL_POINTER_IS_ZERO
+#define clear_decl_pos_block(dpbp)                                           \
+  (memzero((char*)(dpbp), sizeof(a_decl_pos_block)))
+#else /* !NULL_POINTER_IS_ZERO */
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
+#endif /* NULL_POINTER_IS_ZERO */
 
 extern void f_add_element_position(an_element_position_kind  kind,
                                    a_source_position         *pos,
