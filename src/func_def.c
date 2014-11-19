@@ -336,6 +336,10 @@ current compilation.
   if (virtual_functions_needed_due_to_definition_of(routine)) {
     a_type_ptr class_type = parent_class_of(routine);
     require_definitions_of_virtual_functions_in_class(class_type);
+    if (routine->considered_decider_function_at_some_point &&
+        class_type->used_in_exception_or_rtti) {
+      force_definition_of_typeinfo_for(class_type);
+    }  /* if */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_due_to_definition_of */
 

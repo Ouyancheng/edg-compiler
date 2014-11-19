@@ -1,5 +1,18 @@
 Version 4.10
 
+11/18/14 [EDGcpfe/14331]
+Typeinfo structures and key/decider functions
+
+In classes with a key (or "decider") function, the front end now avoids
+emitting the associated typeinfo structures if that key/decider function is
+not defined.  Previously, those structures were forced in any translation
+units where exception handling or RTTI features required the existence of the
+structures.  That in turn could result in unneeded instantiations of virtual
+member functions, which in turn could trigger errors.
+
+
+Typeinfo functions
+
 11/17/14 [EDGcpfe/15633]
 IL representation for #ident and #pragma ident (IL CHANGE)
 

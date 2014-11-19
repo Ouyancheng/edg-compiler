@@ -13362,7 +13362,7 @@ meaningful.
 
 #endif /* DO_IL_LOWERING */
 
-static void force_definition_of_typeinfo_for(a_type_ptr type)
+void force_definition_of_typeinfo_for(a_type_ptr type)
 /*
 "type" is used in an exception or rtti context.  Do anything required to
 make sure that the typeinfo for the type is defined (somewhere, not
@@ -13377,6 +13377,21 @@ of virtual functions if type is a class.
       a_base_class_ptr            bcp;
       a_boolean                   require_virtuals = FALSE;
       check_assertion(ctsp != NULL);
+      /* Check if emitting the virtual table is determined by the decider
+         function. */
+      if (!type->variant.class_struct_union.is_template_class ||
+          type->variant.class_struct_union.is_specialized) {
+        /* If there is a decide function, it determines where the virtual
+           function table and typeinfo structures are emitted. */
+        a_routine_ptr decider = vtbl_decider_function_for_class(
+                                                     type, (a_boolean *)NULL);
+        if (decider != NULL && !routine_has_been_defined(decider)) {
+          /* There is a decider function and it hasn't (yet) been defined.
+             Don't emit the  virtual function table or virtual functions
+             right now. */
+          break;
+        }  /* if */
+      }  /* if */
 #if DO_IL_LOWERING
       /* If defining the typeinfo requires defining the vtable, force
          definition of the virtual functions to force the definition of the

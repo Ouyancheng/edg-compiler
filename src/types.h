@@ -1293,6 +1293,7 @@ extern a_boolean type_involves_specific_class_type(a_type_ptr  tp,
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
+extern void force_definition_of_typeinfo_for(a_type_ptr type);
 extern void set_used_in_exception_or_rtti_flag(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_vla_type_with_unspecified_bound(a_type_ptr tp);
 extern a_boolean is_variably_modified_type(a_type_ptr  tp);
