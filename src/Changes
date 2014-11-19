@@ -1,5 +1,13 @@
 Version 4.10
 
+11/19/14 [EDGcpfe/15710]
+Microsoft compatibility: Additional C++11 and C++14 features
+
+In Microsoft C++ mode with microsoft_version >= 1900, the front end now accepts
+the following features: thread local storage (C++11) and binary literals
+(C++14).  See also the Changes entry for EDGcpfe/15489.
+
+
 11/18/14 [EDGcpfe/14331]
 Typeinfo structures and key/decider functions
 

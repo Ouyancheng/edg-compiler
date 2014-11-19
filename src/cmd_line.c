@@ -2347,6 +2347,10 @@ by a command line option.
       if (auto_type_specifier_enabled) {
         decltype_auto_enabled = TRUE;
       }  /* if */
+      if (!option_kind_used[(int)optk_thread_local_storage]) {
+        std_thread_local_storage_specifier_enabled = TRUE;
+      }  /* if */
+      binary_literals_allowed = TRUE;
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
