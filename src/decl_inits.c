@@ -4859,18 +4859,27 @@ and not pointed to by the field (because it may be stored in function-scope
 memory).
 */
 {
-  an_init_state          *is = &dps->init_state;
-  an_init_component_ptr  icp_tree;
-  an_object_lifetime_ptr
-                         saved_curr_object_lifetime = curr_object_lifetime;
+  an_init_state           *is = &dps->init_state;
+  an_init_component_ptr   icp_tree;
+  a_memory_region_number  region_to_switch_back_to;
+  an_object_lifetime_ptr  saved_curr_object_lifetime = curr_object_lifetime;
 
   check_assertion(dps->is_init_capture && symbol_is(dps->sym, sk_field) &&
                   anything_cached(&dps->prescanned_initializer_cache) &&
                   scope_is(&scope_stack_top(), sck_class_struct_union));
-  /* The current scope is a class scope, and, consequently, the current object
-     lifetime is the global "static" lifetime.  However, the parent lifetime
-     for the initializer should be that of the expression in which the lambda
-     appeared.  Temporarily restore that lifetime. */
+  /* The current scope is the class scope of the closure, but the init-capture
+     initializer should be evaluated in the enclosing scope.  Temporarily
+     restore the memory region of the enclosing scope and the lifetime
+     associated with the expression in which the lambda appeared.  Also set
+     depth_innermost_function_scope and innermost_function_scope. */
+  switch_to_scope_region(depth_scope_stack-1, &region_to_switch_back_to);
+  if (scope_stack[depth_scope_stack-1].depth_innermost_function_scope !=
+                                                             NO_SCOPE_DEPTH) {
+    depth_innermost_function_scope =
+              scope_stack[depth_scope_stack-1].depth_innermost_function_scope;
+    innermost_function_scope = 
+                         scope_stack[depth_innermost_function_scope].il_scope;
+  }  /* if */
   curr_object_lifetime = scope_stack_top().saved_curr_object_lifetime;
   icp_tree = fetch_init_component_from_initializer_cache(
                                           &dps->prescanned_initializer_cache);
@@ -4912,6 +4921,9 @@ memory).
   lcp->captured.initializer = is->init_dip;
   free_init_component_list(icp_tree);
   curr_object_lifetime = saved_curr_object_lifetime;
+  innermost_function_scope = NULL;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  switch_back_to_original_region(region_to_switch_back_to);
 }  /* init_capture_initializer */
 
 

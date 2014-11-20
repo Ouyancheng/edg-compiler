@@ -1651,7 +1651,6 @@ capture described by lcp.  Return the field entry.
     check_assertion(!err);
   } else if (lcp->is_init_capture) {
     a_symbol_ptr            sym = decl_info.decl_state.sym;
-    a_memory_region_number  region_to_switch_back_to;
     /* Mark the declared field as being associated with an init-capture. */
     if (symbol_is(sym, sk_field)) {
       sym->variant.field.ptr->is_init_capture = TRUE;
@@ -1659,12 +1658,8 @@ capture described by lcp.  Return the field entry.
       expect_error();
     }  /* if */
     /* Process the initializer (which was prescanned when the init-capture was
-       scanned).   Be sure to do it in the original memory region: The current
-       region is for the file scope since we are defining the closure class. */
-    check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
-    switch_to_scope_region(depth_scope_stack-1, &region_to_switch_back_to);
+       scanned). */
     init_capture_initializer(lcp, &decl_info.decl_state);
-    switch_back_to_original_region(region_to_switch_back_to);
   } else {
     /* The field for an ordinary capture should be invisible to lookup.
        (That's not the case for init-capture fields.) */
