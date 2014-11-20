@@ -18913,8 +18913,9 @@ in *rcblock).
     ptr_delete_type = operand.type;
     if (template_case) {
       delete_type = type_of_unknown_templ_param_nontype;
-    } else if (!is_pointer_type(ptr_delete_type) &&
-               !(cli_or_cx_enabled && is_handle_type(ptr_delete_type))) {
+    } else if (!is_pointer_type(ptr_delete_type)
+               if_microsoft_extensions(
+                 && !(cli_or_cx_enabled && is_handle_type(ptr_delete_type)))) {
       /* The operand of a delete -- after conversions -- must be a pointer or,
          in C++/CLI mode, a handle. */
       error_in_operand(cli_or_cx_enabled ? ec_expr_not_pointer_nor_handle
