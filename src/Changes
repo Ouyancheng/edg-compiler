@@ -1,5 +1,28 @@
 Version 4.10
 
+11/19/14 [EDGcpfe/15712]
+Initialization of arrays of unspecified bounds with pack expansions
+
+When an array with unspecified bound is initialized with a brace-enclosed
+initializer containing a pack expansion, the front end previously counted that
+pack expansion as a single element during prototype instantiations and used
+that to set the adjusted type of the array.  The adjusted type for the array
+was thus misleading, and in the case of GNU C++-mode compound literals it
+resulted in incorrect output in the C++-generating back end.  For example:
+
+  template <int... N> void f() {
+    (int []){N...};  // This compound literal was previously rendered as
+  };                 // "(int [1]{(N)...}".
+  int main() {
+    f<>();
+    f<1, 2>();
+  }
+
+(The problem was less noticeable in other initialization contexts because they
+use a recorded "declared type" instead of the adjusted type for rendering
+purposes.)  This is now fixed.
+
+
 11/19/14 [EDGcpfe/11175,EDGcpfe/15715]
 Delete expressions with pointers to void
 

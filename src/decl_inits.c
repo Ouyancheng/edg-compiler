@@ -2040,8 +2040,11 @@ initialization).  *is describes the initialization as a whole.
     if (incomplete_array) {
       /* If appropriate, update the type of the constant and/or the type of
          the destination to reflect the actual number of initializer
-         elements. */
-      set_initialized_array_size(&atype, icount, /*unknown_dependent=*/FALSE);
+         elements.  In prototype instantiation contexts where a pack expansion
+         has been seen, assume the count is unknown. */
+      set_initialized_array_size(&atype, icount,
+                                 is->pack_expansion_handled &&
+                                   is_prototype_instantiation_context());
       if (*init_con != NULL) (*init_con)->type = atype;
       if (!is->non_top_level_aggregate) {
         /* An aggregate initializer for a top-level incomplete array type.
