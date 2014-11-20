@@ -27,7 +27,8 @@ purposes.)  This is now fixed.
 Delete expressions with pointers to void
 
 The front end now diagnoses delete expressions with operands of a pointer-to-
-void type (an error in strict C++11 mode, a warning otherwise).  For example:
+void type; an error is issued in strict C++11 mode (including strict C++14
+mode), a warning in other modes.  For example:
 
   void g(void *p) {
     delete p;  // Now elicits a warning or error.
