@@ -18905,29 +18905,6 @@ in *rcblock).
   }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-    /* The operand of a delete must be a pointer or, in C++/CLI mode, a
-       handle. */
-    if (!err && !template_case) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled) {
-        if (check_pointer_or_handle_operand(&operand,
-                                            ec_expr_not_pointer_nor_handle)) {
-          handle_type_case = is_handle_type(operand.type);
-        } else {
-          err = TRUE;
-        }  /* if */
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      if (!check_pointer_operand(&operand, ec_expr_not_object_pointer)) {
-        err = TRUE;
-      } else if (!is_pointer_to_object_type(operand.type)) {
-        pos_diagnostic((cpp11_mode && strict_ansi_mode) ? es_error
-                                                        : es_warning,
-                       ec_expr_not_object_pointer, &operand.position);
-        if (cpp11_mode && strict_ansi_mode) err = TRUE;
-      }  /* if */
-    }  /* if */
   } else if (is_error_operand(&operand)) {
     err = TRUE;
     normalize_error_operand(&operand);
@@ -18936,6 +18913,14 @@ in *rcblock).
     ptr_delete_type = operand.type;
     if (template_case) {
       delete_type = type_of_unknown_templ_param_nontype;
+    } else if (!is_pointer_type(ptr_delete_type) &&
+               !(cli_or_cx_enabled && is_handle_type(ptr_delete_type))) {
+      /* The operand of a delete -- after conversions -- must be a pointer or,
+         in C++/CLI mode, a handle. */
+      error_in_operand(cli_or_cx_enabled ? ec_expr_not_pointer_nor_handle
+                                         : ec_expr_not_object_pointer,
+                       &operand);
+      err = TRUE;
     } else {
       delete_type = type_pointed_to(ptr_delete_type);
       if (is_function_type(delete_type)) {
@@ -18954,6 +18939,17 @@ in *rcblock).
                      &operand, /*is_implicit_cast=*/TRUE);
         ptr_delete_type = operand.type;
         delete_type = type_pointed_to(ptr_delete_type);
+      } else if (is_void_type(delete_type)) {
+        /* Deleting an object through a "void*" type is an error.  Prior to
+           C++11 the standard was somewhat unclear about this, and existing
+           practice was to allow it.  We therefore only make it a hard error
+           in strict C++11 mode. */
+        if (cpp11_mode && strict_ansi_mode) {
+          error_in_operand(ec_expr_not_object_pointer, &operand);
+          err = TRUE;
+        } else {
+          pos_warning(ec_expr_not_object_pointer, &operand.position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
