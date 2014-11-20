@@ -9226,7 +9226,9 @@ enum a_storage_class_tag {
                            storage class in the source program will be
                            mapped to something else (extern or auto) when
                            that is possible, and the sc_unspecified value
-                           only remains for external definitions. */
+                           only remains for external definitions.  (This
+			   must be the first enumerator, because we rely
+			   on memzero producing this value.) */
   sc_extern,            /* External.  This implies a reference to something
                            defined in another compilation unit. */
   sc_static,            /* Static. */
