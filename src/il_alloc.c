@@ -4086,13 +4086,13 @@ is_alias is TRUE.
 {
   set_default_source_corresp(nsp->source_corresp);
   nsp->next = NULL;
+  nsp->is_namespace_alias = is_alias;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   nsp->proxy_class = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  nsp->is_namespace_alias = is_alias;
   nsp->is_inline = FALSE;
   nsp->named_in_strong_using = FALSE;
-  nsp->is_std = FALSE;
+  nsp->is_std = is_alias;
 #if BACK_END_IS_CP_GEN_BE
   nsp->shadowed_by_class = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
