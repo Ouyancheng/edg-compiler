@@ -1,5 +1,19 @@
 Version 4.10
 
+11/21/14 [EDGcpfe/15721]
+Abort on deduced trailing return type with invalid decltype(auto) specifier
+
+Trailing return types require that the associated function declarator be
+preceded with an "auto" specifier, not "decltype(auto)".  A bug in error
+recovery for cases that used "decltype(auto)" instead caused the front end
+to abort in deduce_auto_type (overload.c) if the trailing return type itself
+indicates a deduced return type.  For example:
+
+  decltype(auto) f()->decltype(auto) { return 42; }
+    // Previously triggered an internal error after issuing a (justified)
+    // error.
+
+
 11/19/14 [EDGcpfe/15712]
 Initialization of arrays of unspecified bounds with pack expansions
 

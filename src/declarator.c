@@ -2061,6 +2061,8 @@ routine is also called for the trailing return type of a lambda declarator.
   if (parameters_visible_late) make_param_syms_invisible(TRUE);
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
+    dps->auto_type_specifier_seen = FALSE;
+    dps->decltype_auto_specifier_seen = FALSE;
   } else {
     /* Replace the specifiers type (which was auto) and the type assembled
        so far (which should be the same as the specifiers type)  by the
