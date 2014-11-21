@@ -4255,7 +4255,7 @@ for information about the parameters.
                         (a_template_arg_ptr)NULL,
                         (a_template_decl_info_ptr)NULL,
                         (an_object_lifetime_ptr)NULL,
-                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        scope, (a_scope_pointers_block_ptr)NULL,
                         PS_IS_REACTIVATION);
 }  /* reactivate_local_context */
 
@@ -8200,6 +8200,7 @@ traverse its block and condition scopes and set their parent pointers.
   while (scope != NULL) {
     if (scope->kind == (a_scope_kind)sck_block ||
         scope->kind == (a_scope_kind)sck_condition) {
+      check_assertion(scope->parent == NULL || scope->parent == parent_scope);
       scope->parent = parent_scope;
       /* Recursively set the parents for all block and condition scopes nested
          in this one. */
