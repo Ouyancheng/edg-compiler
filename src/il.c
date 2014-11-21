@@ -7735,7 +7735,7 @@ caller is responsible for sorting that out.)
     if (ssep->kind == (a_scope_kind)sck_block) {
       a_scope_stack_entry_ptr	parent_ssep = previous_scope_of(ssep);
       /* Create the IL scope in a block scope. */
-      ensure_il_scope_exists(parent_ssep);
+      (void)ensure_il_scope_exists(parent_ssep);
       region_to_switch_back_to = curr_il_region_number;
       switch_il_region(ssep->il_memory_region);
       ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
