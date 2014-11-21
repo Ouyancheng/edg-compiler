@@ -18905,7 +18905,8 @@ in *rcblock).
   }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  } else if (is_error_operand(&operand)) {
+  }  /* if */
+  if (is_error_operand(&operand)) {
     err = TRUE;
     normalize_error_operand(&operand);
   }  /* if */
