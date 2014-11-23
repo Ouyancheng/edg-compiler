@@ -9444,6 +9444,11 @@ not influence subsequent processing.
          because we are in Microsoft mode. */
       is_microsoft_specialization_scope = !is_template;
       is_template = TRUE;
+    } else if (class_type->
+                       variant.class_struct_union.is_in_class_specialization) {
+      /* For in class specializations, is_template is set to make sure that
+         template parameters of enclosing templates will be visible. */
+      is_template = TRUE;
     }  /* if */
     if (is_microsoft_specialization_scope) {
       a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
