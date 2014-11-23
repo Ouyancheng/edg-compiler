@@ -1,5 +1,30 @@
 Version 4.10
 
+11/23/14 [EDGcpfe/15716]
+Avoid errors when looking for a template-based copy constructor
+
+A partial instantiation of a constructor template is sometimes needed
+to determine if a class has a copy constructor.  Such instantiations
+could sometimes result in errors from types that are instantiated
+as part of the determination.  The front end now discards earlier
+certain constructor templates that could not produce a copy constructor
+to avoid such errors.  Constructs similar to the example below are
+found in the g++ header files starting with g++ 4.9.
+
+
+  template <typename T> struct A {};
+  template <typename T> struct B {
+    typedef typename T::X X;
+  };
+  struct C {
+    C(C&&) {}
+    template <class T, class = A<typename B<T>::X>> C(T) {}
+  };
+  struct D {
+    C e;
+  };
+
+
 11/23/14 [EDGcpfe/15470]
 Microsoft compatibility: template parameters in in-class specializations
 
