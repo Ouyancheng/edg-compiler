@@ -3464,8 +3464,11 @@ only if customer code modifies the IL statement tree.
 /* Up until version 4.10, USE_PRAGMA_IDENT_IN_GENERATED_CODE could be used to
    determine how #ident and #pragma ident directives would be emitted in
    C- and C++-generating back ends.  They are now emitted using the same
-   format that appears in the source. */
+   format that appears in the source.  Give an error if the macro was defined
+   and has a value other than the previous default (which was FALSE). */
+#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
  #error -- the USE_PRAGMA_IDENT_IN_GENERATED_CODE macro has been eliminated
+#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 #endif /* ifdef USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 
 /*
