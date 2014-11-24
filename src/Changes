@@ -1,5 +1,28 @@
 Version 4.10
 
+11/24/14 [EDGcpfe/15611]
+Abort on GNU mem-initializer for array with destructors
+
+In GNU C++ mode, a mem-initializer for an array is not required to be "()" or
+a braced initializer (see the entry of 10/15/09 for EDGcpfe/10115).   When
+handling that extension, however, the front end could abort with an internal
+error in add_as_child_of_curr_object_lifetime if the array being copied
+requires destructions.  For example:
+
+  struct M {
+    M() {}
+    M(const M&) {}
+    ~M() {}
+  };
+  struct S {
+    S();
+    M m[1];
+  };
+  S::S(): m((M[1]){ M() }) {}  // Previously triggered an abort.
+
+This is now fixed.
+
+ 
 11/24/14 [EDGcpfe/15610]
 Unbounded loop on invalid initializer for a flexible array member
 

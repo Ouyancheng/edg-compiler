@@ -6171,24 +6171,26 @@ cases, array_type is NULL).
         pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
         braced_mem_initializer(ctor, array_type, cip);
         dip = cip->initializer;
-      } else if (array_type != NULL && !is_string_type(array_type)) {
-        /* Arrays can only be default- or value-initialized -- i.e., the
-           expression-list must be omitted.  The exception is a character
-           array, which can be initialized with a string literal.  GNU C++ is
-           more permissive and allows initialization with an expression of the
-           same array type if the elements of the array have a nontrivial copy
-           constructor. */
-        dip = scan_array_mem_initializer(cip);
       } else {
-        a_decl_parse_state  dps;
-        init_decl_parse_state(&dps);
-        dps.type = init_type;
-        dps.init_state.force_dynamic_init = TRUE;
-        expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
-                                /*fill_in_dtor=*/FALSE, &lparen_pos);
-        check_constexpr_ctor_init(ctor, &dps.init_state, &lparen_pos);
-        dip = dps.init_state.init_dip;
-        check_assertion(dip != NULL);
+        if (array_type != NULL && !is_string_type(array_type)) {
+          /* Arrays can only be default- or value-initialized -- i.e., the
+             expression-list must be omitted.  The exception is a character
+             array, which can be initialized with a string literal.  GNU C++ is
+             more permissive and allows initialization with an expression of
+             the same array type if the elements of the array have a nontrivial
+             copy constructor. */
+          dip = scan_array_mem_initializer(cip);
+        } else {
+          a_decl_parse_state  dps;
+          init_decl_parse_state(&dps);
+          dps.type = init_type;
+          dps.init_state.force_dynamic_init = TRUE;
+          expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
+                                  /*fill_in_dtor=*/FALSE, &lparen_pos);
+          check_constexpr_ctor_init(ctor, &dps.init_state, &lparen_pos);
+          dip = dps.init_state.init_dip;
+          check_assertion(dip != NULL);
+        }  /* if */
         /* If the initializer produced an object lifetime for the full
            expression, remove it temporarily from the object lifetime tree and
            restore it in the correct position later. */
@@ -7171,7 +7173,7 @@ initialized.  These are addressed in the course of the processing.
       }  /* if */
     }  /* if */
     dip = cip->initializer;
-    /* If this was an explicit specialization, check whether an object
+    /* If this was an explicit initialization, check whether an object
        lifetime needs to be restored to the IL. */
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
       /* Restore the object lifetime in the object lifetime tree now that we
