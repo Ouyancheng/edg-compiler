@@ -1391,9 +1391,10 @@ is a variable-length array.
 }  /* modify_init_entity_node */
 
 
-an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp,
-                                       a_boolean             result_is_lvalue,
-                                       a_boolean             using_as_dest)
+static an_expr_node_ptr make_init_entity_node(
+                                        an_init_pos_descr_ptr ipdp,
+                                        a_boolean             result_is_lvalue,
+                                        a_boolean             using_as_dest)
 /*
 Make an expression for the entity described by ipdp, and return
 a pointer to it.  If result_is_lvalue is TRUE, the expression will

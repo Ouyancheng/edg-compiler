@@ -14855,19 +14855,18 @@ each case.
        modifiers) and this case doesn't occur frequently. */
     an_expr_node_ptr      new_expr = NULL;
     an_init_pos_descr_ptr ipdp;
-    a_type_ptr            expr_type;
-    check_assertion(aggregate_this_stack != NULL &&
-                    is_pointer_type(expr->type));
-    expr_type = type_pointed_to(expr->type);
+    check_assertion(aggregate_this_stack != NULL);
     for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {
-      new_expr = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
-                                       /*using_as_dest=*/FALSE);
-      if (identical_types_ignoring_qualifiers(expr_type, new_expr->type)) {
+      new_expr = make_address_of_init_entity_node(ipdp,
+                                                  /*using_as_dest=*/FALSE);
+      if (identical_types_ignoring_qualifiers(type_pointed_to(new_expr->type),
+                                              type_pointed_to(expr->type))) {
         break;
       }  /* if */
     }  /* for */
     check_assertion(ipdp != NULL);
-    overwrite_node(expr, add_address_of_to_node(new_expr));
+    new_expr = add_cast_if_necessary(new_expr, expr->type);
+    overwrite_node(expr, new_expr);
   }  /* if */
 }  /* lower_param_ref */
 
