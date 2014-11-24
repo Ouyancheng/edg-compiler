@@ -1,5 +1,19 @@
 Version 4.10
 
+11/24/14 [EDGcpfe/15610]
+Unbounded loop on invalid initializer for a flexible array member
+
+In GNU C++ mode, certain invalid initializers for a flexible array member
+could result in an non-terminating loop in the front end.  For example:
+
+  struct S { int f[]; };
+  int x[] = { 1, 2, 3 };
+  S sx[] = { { f: x, }, 0 };  // The processing of the aggregate initializer
+                              // previously failed to terminate.
+
+This is now fixed.
+
+
 11/24/14 [EDGcpfe/15722]
 Issue with lowering of certain multi-dimensional arrays
 

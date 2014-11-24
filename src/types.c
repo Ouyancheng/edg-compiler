@@ -420,6 +420,23 @@ element type.  If the type is not an array type, FALSE is returned.
 }  /* is_incomplete_array_type */
 
 
+a_boolean is_flexible_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type could be the type of a flexible array member.
+This is very similar to is_incomplete_array_type, except that in GNU C++ mode
+a zero-length array is acceptable too.
+*/
+{
+  a_boolean	result;
+  tp = skip_typerefs(tp);
+  result = is_array(tp) &&
+           tp->variant.array.variant.number_of_elements == 0 &&
+           (gpp_mode || !tp->variant.array.bound_is_zero) &&
+           !has_unknown_specified_bound(tp);
+  return result;
+}  /* is_flexible_array_type */
+
+
 a_boolean class_type_has_body(a_type_ptr tp)
 /*
 Return TRUE if the indicated type (a struct, union, or class type) has a

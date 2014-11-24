@@ -2464,16 +2464,23 @@ position for which diagnostics should be issued.
 }  /* aggr_init_class_remainder_if_needed */
 
 
-static void check_flexible_array_init(an_init_component_ptr  icp,
-                                      a_field_ptr            fp,
-                                      an_init_state          *is)
+static a_boolean check_flexible_array_init(an_init_component_ptr  icp,
+                                           a_field_ptr            fp,
+                                           an_init_state          *is)
 /*
 icp is an aggregate initializer component for a flexible array member fp in an
 initialization described by *is.  Check if that situation is valid; if not,
-issue an error or set is->init_error to TRUE (depending on other flags in *is).
+issue an error or set is->init_error to TRUE (depending on other flags in *is),
+and return FALSE.  Otherwise, return TRUE.
 */
 {
-  if (microsoft_mode || (gcc_mode && is->static_lifetime_init)) {
+  a_boolean  result = TRUE;
+
+  if (gnu_mode && is_braced_init_component(icp) &&
+      icp->variant.braced.list == NULL) {
+    /* GCC appears to always permit a "{}" initializer for a flexible array
+       member. */
+  } else if (microsoft_mode || (gcc_mode && is->static_lifetime_init)) {
     a_type_ptr  etype = underlying_array_element_type(fp->type);
     etype = skip_typerefs(etype);
     if (!C_mode() && is_immediate_class_type(etype)) {
@@ -2481,6 +2488,7 @@ issue an error or set is->init_error to TRUE (depending on other flags in *is).
       if (has_nontrivial_destructor(cssp)) {
         /* Microsoft C++ allows the aggregate initialization of flexible array
            members only if they do not have nontrivial destructors. */
+        result = FALSE;
         if (is->no_diagnostics) {
           is->init_error = TRUE;
         } else {
@@ -2488,16 +2496,16 @@ issue an error or set is->init_error to TRUE (depending on other flags in *is).
                     init_component_pos(icp));
         }  /* if */
       }  /* if */
-    } else if (gcc_mode && is->non_top_level_aggregate &&
-               !(is_braced_init_component(icp) &&
-                 icp->variant.braced.list == NULL)) {
-      /* GNU C does not allow flexible array member initializers that are not
-         at the top level, except if the initializer is empty.  For example:
+    } else if (gcc_mode && is->non_top_level_aggregate) {
+      /* GCC does not allow flexible array member initializers that are not at
+         the top level, except if the initializer is empty (handled above).
+         For example:
            struct F { int n; int a[]; };
            struct T { struct F f; };
            T x1 = { { 1, {} } };     // Okay: non-top-level but empty.
            T x2 = { { 1, { 2 } } };  // Error.
       */
+      result = FALSE;
       if (is->no_diagnostics) {
         is->init_error = TRUE;
       } else {
@@ -2505,13 +2513,17 @@ issue an error or set is->init_error to TRUE (depending on other flags in *is).
                   init_component_pos(icp));
       }  /* if */
     }  /* if */
-  } else if (is->no_diagnostics) {
-    is->init_error = TRUE;
   } else {
-    pos_error(gcc_mode ? ec_cannot_init_auto_flexible_array_member
-                       : ec_cannot_initialize_flexible_array_member,
-              init_component_pos(icp));
+    result = FALSE;
+    if (is->no_diagnostics) {
+      is->init_error = TRUE;
+    } else {
+      pos_error(gcc_mode ? ec_cannot_init_auto_flexible_array_member
+                         : ec_cannot_initialize_flexible_array_member,
+                init_component_pos(icp));
+    }  /* if */
   }  /* if */
+  return result;
 }  /* check_flexible_array_init */
 
 
@@ -2547,12 +2559,20 @@ position is available).
       dtype = integer_type(skip_typerefs(dtype)->variant.integer.int_kind);
       ms_enum_bit_field = TRUE;
     }  /* if */
-  } else if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
-             is_incomplete_array_type(fp->type)) {
-    /* A flexible array member. */
-    check_flexible_array_init(icp, fp, is);
   }  /* if */
-  aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
+  if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
+      is_flexible_array_type(fp->type) &&
+      !check_flexible_array_init(icp, fp, is)) {
+    /* An invalid attempt to initialize a flexible array.  Make sure that we
+       move to the next initializer component (to avoid an infinite loop).
+       Either is->init_error has been set, or an error message has been
+       issued. */
+    check_assertion_or_expect_error(is->init_error);
+    *p_icp = icp->next;
+    elem_con = NULL;
+  } else {
+    aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
+  }  /* if */
   if (ms_enum_bit_field) {
     /* A Microsoft enum bit field being initialized with an integer.
        Implicitly cast the result back to the enumeration type.
@@ -2580,7 +2600,7 @@ position is available).
                                 init_component_pos(icp));
     }  /* if */
   }  /* if */
-  if (!is->check_validity_only) {
+  if (!is->check_validity_only && elem_con != NULL) {
     add_constant_to_aggregate(elem_con, aggr_con);
   }  /* if */
   if (class_type->kind == (a_type_kind)tk_union) {
@@ -2734,9 +2754,9 @@ specific position is available.
         a_constant_ptr  next_con;
         if (((*field)->next == NULL ||
              class_type->kind == (a_type_kind)tk_union) &&
-            is_incomplete_array_type((*field)->type)) {
+            is_flexible_array_type((*field)->type)) {
           /* A flexible array member. */
-          check_flexible_array_init(icp, *field, is);
+          (void)check_flexible_array_init(icp, *field, is);
         }  /* if */
         aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
         *field = (*field)->next;
