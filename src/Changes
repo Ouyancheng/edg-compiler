@@ -6,10 +6,11 @@ Avoid errors when looking for a template-based copy constructor
 A partial instantiation of a constructor template is sometimes needed
 to determine if a class has a copy constructor.  Such instantiations
 could sometimes result in errors from types that are instantiated
-as part of the determination.  The front end now discards earlier
-certain constructor templates that could not produce a copy constructor
-to avoid such errors.  Constructs similar to the example below are
-found in the g++ header files starting with g++ 4.9.
+as part of the determination.  In order to avoid such errors, the front
+end now detects certain constructor templates that could not produce a
+copy constructor and discards them earlier in the processing than it
+previously did.  Constructs similar to the example below are found in
+the g++ header files starting with g++ 4.9.
 
 
   template <typename T> struct A {};
