@@ -5004,9 +5004,9 @@ The routines invoked herein avoid unnecessary processing by setting flags
 in the constants that they've previously processed.
 */
 {
-  check_assertion(!constant->has_been_prelowered);
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_type_ptr  con_type = skip_typerefs(constant->type);
+    check_assertion(!constant->has_been_prelowered);
     if (is_immediate_class_type(con_type)) {
       prelower_class_type(con_type);
       /* Remove any initializers that the front end may have added for
