@@ -1056,6 +1056,16 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 
+
+/*
+Variable that controls whether backing expressions for constants should be
+inhibited in some cases (particularly, when implicitly converting a constant
+value to an arithmetic type).  This can be useful when dealing with very large
+aggregate initializers.
+*/
+EXTERN a_boolean
+		reduce_backing_expression_use;
+
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.

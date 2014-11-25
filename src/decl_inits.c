@@ -3437,9 +3437,11 @@ initializer, already copied and substituted.
   a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
   a_boolean              need_to_free_icp_tree = FALSE;
+  a_boolean              saved_reduce_backing_expression_use;
 
   check_assertion(rescan_aggr != NULL || curr_token == tok_lbrace ||
                   anything_cached(&dps->prescanned_initializer_cache));
+  saved_reduce_backing_expression_use = reduce_backing_expression_use;
   dtype = skip_typerefs(dtype);
   if (rescan_aggr != NULL) {
     /* Rescan.  The {...} is provided by the caller in init-component form. */
@@ -3450,6 +3452,13 @@ initializer, already copied and substituted.
        tree structure). */
     icp_tree = get_braced_init_list(is->elements_are_full_expressions, dps);
     need_to_free_icp_tree = TRUE;
+#if REDUCE_BACKING_EXPRESSION_USE
+    if (dps != NULL && dps->init_state.pending_elements) {
+      /* A relatively long initializer.  Disable backing expressions that only
+         represent a simple implicit conversion of a constant. */
+      reduce_backing_expression_use = TRUE;
+    }  /* if */
+#endif /* REDUCE_BACKING_EXPRESSION_USE */
   }  /* if */
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
@@ -3599,6 +3608,7 @@ initializer, already copied and substituted.
     }  /* if */
   }  /* if */
   is->no_diagnostics = saved_no_diagnostics;
+  reduce_backing_expression_use = saved_reduce_backing_expression_use;
 }  /* braced_initializer */
 
 

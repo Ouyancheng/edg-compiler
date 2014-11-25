@@ -1201,6 +1201,24 @@ in the IL.  If FALSE, only the selected expression is represented.
 #endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
 
 /*
+Flag that is TRUE if the use of backing expression for constants should be
+tempered in large aggregate initializers.  In particular, if the backing
+expression only represents an implicit conversion of an arithmetic value,
+no backing expression is recorded when this flag is TRUE.  For example, in
+
+  unsigned char bytes[] = { 0x23, 0x34, ... };
+
+where the number of elements is large (currently, at least 1000), no backing
+expression will be recorded to represent the conversion from int to unsigned
+char.  This considerably reduces IL memory use for some cases with unusually
+large aggregate initializers.
+*/
+#ifndef REDUCE_BACKING_EXPRESSION_USE
+#define REDUCE_BACKING_EXPRESSION_USE TRUE
+#endif /* REDUCE_BACKING_EXPRESSION_USE */
+
+
+/*
 Flag that is TRUE to indicate that backing expressions for constants
 should be recorded even though IL lowering is done.  Generally, they are
 not in that case because they're not useful (IL lowering doesn't maintain

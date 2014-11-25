@@ -7068,6 +7068,11 @@ file.
 #else /* !defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
   comment_undefined_macro_name(REDEFINE_EXTNAME_PRAGMA_ENABLED);
 #endif /* defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
+#if defined(REDUCE_BACKING_EXPRESSION_USE)
+  define_numeric_valued_macro(REDUCE_BACKING_EXPRESSION_USE);
+#else /* !defined(REDUCE_BACKING_EXPRESSION_USE) */
+  comment_undefined_macro_name(REDUCE_BACKING_EXPRESSION_USE);
+#endif /* defined(REDUCE_BACKING_EXPRESSION_USE) */
 #if defined(REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES)
   define_numeric_valued_macro(REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES);
 #else /* !defined(REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES) */

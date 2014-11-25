@@ -1,5 +1,25 @@
 Version 4.10
 
+11/24/14 [EDGcpfe/14726]
+Backing expressions for implicitly converted constants
+
+The changes for EDGcpfe/14588 caused the front end not to record a backing
+expression for certain initializer constants that are the result of an
+implicit conversion.  For example:
+
+  char a[] = { 0x31, 0x32, 0x00 };
+
+Here the original initializer constants are of type int, but these are
+implicitly conversion to type char.
+
+Two changes were made to this.  First, the backing expression is now only
+dropped in the case of large aggregate initializers (currently, more than a
+thousand element values), because the only reason for the change was saving
+IL memory for such initializers.  Second, if the new configuration macro
+REDUCE_BACKING_EXPRESSION_USE is set to FALSE (it is TRUE by default), then
+backing expressions are recorded even for those large initializers.
+
+
 11/24/14 [EDGcpfe/15611]
 Abort on GNU mem-initializer for array with destructors
 

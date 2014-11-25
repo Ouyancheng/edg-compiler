@@ -8093,7 +8093,8 @@ user-defined conversions.
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
-            if (is_implicit_cast && expr_stack->in_static_initializer &&
+            if (reduce_backing_expression_use &&
+                is_implicit_cast && expr_stack->in_static_initializer &&
                 expr_stack->prev == NULL &&
                 !(orig_expr != NULL || has_name(&operand->variant.constant)) &&
                 is_arithmetic_type(new_type)) {
@@ -20571,6 +20572,7 @@ Do one-time initialization of variables related to expression processing.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_ref_entries),
+      pch_saved_var_array_elem(reduce_backing_expression_use),
 #if SEQUENCING_DIAGNOSTICS_ENABLED
       pch_saved_var_array_elem(avail_seq_pt_var_entries),
       pch_saved_var_array_elem(avail_sequence_info_entries),
@@ -20610,6 +20612,7 @@ Do one-time initialization of variables related to expression processing.
      between translation units. */
   register_trans_unit_variable(expr_stack);
   register_trans_unit_variable(curr_expr_ref_entries);
+  register_trans_unit_variable(reduce_backing_expression_use);
 #if TARG_HAS_IEEE_FLOATING_POINT
   register_trans_unit_variable(nan_constant);
   register_trans_unit_variable(infinity_constant);
@@ -20635,6 +20638,7 @@ re-initialized for each translation unit.
 {
   expr_stack = NULL;
   curr_expr_ref_entries = NULL;
+  reduce_backing_expression_use = FALSE;
 #if TARG_HAS_IEEE_FLOATING_POINT
   nan_constant = NULL;
   infinity_constant = NULL;
