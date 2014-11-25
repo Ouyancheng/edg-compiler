@@ -398,10 +398,16 @@ NULL.
       check_assertion(!is_array_type(return_type) &&
                       !is_function_type(return_type));
       if (is_incomplete_type(return_type)) {
-        if (microsoft_bugs && !evaluated &&
-            is_immediate_class_type(return_type)) {
+        if ((microsoft_bugs && !evaluated &&
+             is_immediate_class_type(return_type)) ||
+            (!strict_ansi_mode && rout_ptr != NULL &&
+             rout_ptr->is_prototype_instantiation)) {
           /* MSVC++ allows a function call returning an incomplete class type
-             in a not-evaluated context. */
+             in a not-evaluated context.  Also, it is common practice not to
+             diagnose calls to functions with incomplete return types if the
+             called function is a prototype instantiation (verified with GCC
+             and Clang); in nonstrict modes, we therefore just issue a warning
+             as well. */
           pos_ty_warning(ec_incomplete_class_return_type, err_pos,
                          orig_return_type);
         } else {

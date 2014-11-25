@@ -1,5 +1,22 @@
 Version 4.10
 
+11/25/14 [EDGcpfe/15619]
+Incomplete return types in prototype instantiations
+
+When during the prototype instantiation of a template a call resolves to the
+prototype instantiation of another template and the return type of the called
+function is incomplete, the front end now issues just a warning in nonstrict
+modes (previously an error was issued).  For example:
+
+  struct I;
+  template<typename> struct S {
+    I f();
+    template<typename T> void g(T) {
+      f();  // Previously an error during prototype instantiation, not just
+    }       // a warning (except in strict mode).
+  };
+
+
 11/24/14 [EDGcpfe/14726]
 Backing expressions for implicitly converted constants
 
