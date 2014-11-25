@@ -2566,9 +2566,11 @@ position is available).
     /* An invalid attempt to initialize a flexible array.  Make sure that we
        move to the next initializer component (to avoid an infinite loop).
        Either is->init_error has been set, or an error message has been
-       issued. */
+       issued.  For error recovery purposes, end the traversal of initializer
+       components at this point (additional elements are most likely to
+       trigger additional, unhelpful errors). */
     check_assertion_or_expect_error(is->init_error);
-    *p_icp = icp->next;
+    *p_icp = NULL;
     elem_con = NULL;
   } else {
     aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
