@@ -13249,8 +13249,10 @@ to NULL.
     ap->operands = operands;
     ap->clobbers = clobbers;
     ap->labels = labels;
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
     ap->number_of_constraints =
                            (a_targ_size_t)number_of_constraints; /*lint !e571*/
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     if (gnu_asm_form) {
       validate_operands_and_clobbers(ap);
     }  /* if */

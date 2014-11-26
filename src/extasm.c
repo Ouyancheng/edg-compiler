@@ -879,7 +879,7 @@ even if they are invalid.
   }  /* for */
 clobber_check:
   /* Do the requisite checking for each set of constraints (up to the max). */
-  constraint_limit = asm_entry->number_of_constraints;
+  constraint_limit = (int)asm_entry->number_of_constraints;
   if (constraint_limit == 0) {
     /* If there were no input/output operands, we still need to do constraint
        checking on the clobbers operand. */
