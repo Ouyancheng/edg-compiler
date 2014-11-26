@@ -818,9 +818,9 @@ even if they are invalid.
      consistency. */
   /* For multi-alternative constraints, each set of constraints needs its
      own check.  The local data structures here assume a maximum number of
-     constraints; no checking is done on constraints over this max (a warning
-     is issued). */
-#define MAX_CONSTRAINTS 20 /* The maximum number of checked constraints. */
+     constraints; no checking is done on constraints over this max (a
+     diagnostic is issued). */
+#define MAX_CONSTRAINTS 30 /* The maximum number of checked constraints. */
   a_byte                        regs_clobbered[(int)anr_last][MAX_CONSTRAINTS];
   a_byte                        regs_used_in[(int)anr_last][MAX_CONSTRAINTS];
   a_byte                        regs_used_out[(int)anr_last][MAX_CONSTRAINTS];
@@ -848,10 +848,11 @@ even if they are invalid.
           /* This is a multiple alternative constraint string; each set of
              constraints is checked independently of the others. */
           constraint++;
-          if (constraint >= MAX_CONSTRAINTS-1) {
+          if (constraint >= MAX_CONSTRAINTS) {
             /* The number of constraints exceeds the space allocated for
                constraint checking; don't check the remaining constraints. */
-            pos_warning(ec_too_many_constraints, &aop->position);
+            pos_diagnostic(es_discretionary_error, ec_too_many_constraints,
+                           &aop->position);
             goto clobber_check;
           }  /* if */
         } else if (c->kind ==
