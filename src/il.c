@@ -19240,8 +19240,11 @@ already indicates the load.
           case eok_pm_field:
             /* These are rvalueable if the first operand is a glvalue.
                If the first operand is a prvalue, there's no place we can
-               load from; the prvalue has already been "loaded". */
-            rvalueable = (is_glvalue_node(node->variant.operation.operands) ||
+               load from; the prvalue has already been "loaded".  However,
+               the C++14 model is that a prvalue.field or prvalue.*pmd
+               selection is an xvalue that can still be "loaded". */
+            rvalueable = selection_from_rvalue_is_xvalue ||
+                         (is_glvalue_node(node->variant.operation.operands) ||
                           is_error_node(node->variant.operation.operands));
             break;
           case eok_points_to_field:
@@ -25145,7 +25148,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_subscript: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_vector_subscript: */		LVRV_OPND2_IS_PRVALUE,
-  /* eok_dot_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_dot_field: */			LVRV_NO_REQUIREMENTS,
   /* eok_points_to_field: */		LVRV_OPND1_IS_PRVALUE,
   /* eok_pm_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
 					LVRV_OPND2_IS_PRVALUE,
@@ -25311,6 +25314,9 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
   }  /* if */
 #if CHECKING
   if (node->orig_lvalue_type != NULL) {
+    /* If an original lvalue type is recorded, the node must have been
+       "rvalued" (i.e., converted from a glvalue to a prvalue by just clearing
+       the is_lvalue and is_xvalue flags). */
     check_assertion(node_includes_glvalue_to_prvalue_conv(node) ||
                     (is_operation_node(node) &&
                      node->variant.operation.is_reference_cast));

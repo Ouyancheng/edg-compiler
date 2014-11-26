@@ -2351,6 +2351,9 @@ by a command line option.
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
       binary_literals_allowed = TRUE;
+      if (rvalue_references_enabled) {
+        selection_from_rvalue_is_xvalue = TRUE;
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -3084,6 +3087,9 @@ default mode (e.g., exception handling).
     binary_literals_allowed = TRUE;
     if (!option_kind_used[(int)optk_digit_separators]) {
       digit_separators_enabled = TRUE;
+    }  /* if */
+    if (rvalue_references_enabled && !gpp_mode && !clang_mode) {
+      selection_from_rvalue_is_xvalue = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -10582,6 +10588,7 @@ variables declared in cmd_line.h.
   list_init_enabled = FALSE;
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
+  selection_from_rvalue_is_xvalue = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
