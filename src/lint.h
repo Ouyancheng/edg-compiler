@@ -713,7 +713,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-/*lint -esym(769,ec_asm_modifier_ignored)*/
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
 /*lint -esym(769,ec_bad_asm_constraint_letter)*/
 /*lint -esym(769,ec_missing_constraint_letter)*/
@@ -723,6 +722,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_register_used_and_clobbered)*/
 /*lint -esym(769,ec_fixed_register_used)*/
 /*lint -esym(769,ec_match_limit_for_symbolic_asm_operand)*/
+/*lint -esym(769,ec_constraint_number_mismatch)*/
+/*lint -esym(769,ec_too_many_constraints)*/
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 /*lint -esym(759,conv_float_string_to_integer_value)*/

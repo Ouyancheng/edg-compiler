@@ -1,5 +1,33 @@
 Version 4.10
 
+11/25/14 [EDGcpfe/15723]
+GNU compatibility: accept multiple alternative constraints in asm statements
+
+The GNU compiler allows "multiple alternative constraints" to occur in asm
+statements (see https://gcc.gnu.org/onlinedocs/gcc/Multi-Alternative.html),
+and now so does the front end.  Multiple sets of constraints are separated
+by commas within the constraint string.  For example (with --gcc):
+
+  void f(int x) {
+    __asm__ __volatile__
+    (
+      "lock ; cmpxchgl %3, %1\n\t"
+      "sete %2"
+      : "+a,a" (x), "+m,m" (x), "=q,m" (x)
+      : "r,r" (x)
+      : "cc"
+    );
+  }
+
+Note that this change involves a slight IL CHANGE; certain GNU constraint
+modifiers, namely, "&", "%", "#", "*", "?", and "!" are now treated
+as constraints (because they can appear multiple times in a single constraint
+string).  That's a change for "&" which had been a modifier
+(aom_earlyclobber).  Also, back ends will now see an aoc_end_of_constraint
+"constraint" which represents the "," in a constraint string (i.e., it's
+a separator for constraint sets).
+
+
 11/25/14 [EDGcpfe/15619]
 Incomplete return types in prototype instantiations
 

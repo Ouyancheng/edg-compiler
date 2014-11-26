@@ -13104,6 +13104,7 @@ to NULL.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                 seen_tok_colon_colon = FALSE;
   a_boolean                 err = FALSE;
+  int                       number_of_constraints = 0;
 
   db_enter(3, "asm_declaration");
   check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
@@ -13190,7 +13191,12 @@ to NULL.
       a_boolean  outputs;
       if (curr_token == tok_colon) {
         gnu_asm_form = TRUE;
-        operands = asm_operands_spec(&seen_tok_colon_colon);
+        /* Process the input and output operand lists (each preceded by
+           a colon). */
+        operands = asm_operands_spec(&seen_tok_colon_colon,
+                                     &number_of_constraints);
+        if (number_of_constraints == -1) number_of_constraints = 0;
+        /* Process the clobbers spec (which follows a colon). */
         clobbers = asm_clobbers_spec(&seen_tok_colon_colon);
         if (is_asm_goto) {
           /* The GNU documentation specifies that there should be no
@@ -13243,6 +13249,7 @@ to NULL.
     ap->operands = operands;
     ap->clobbers = clobbers;
     ap->labels = labels;
+    ap->number_of_constraints = (a_targ_size_t)number_of_constraints;
     if (gnu_asm_form) {
       validate_operands_and_clobbers(ap);
     }  /* if */

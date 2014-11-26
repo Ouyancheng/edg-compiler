@@ -6814,9 +6814,6 @@ Display the indicated asm operand.
   if (ptr->modifiers & aom_input) {
     disp_boolean("aom_input", TRUE);
   }  /* if */
-  if (ptr->modifiers & aom_earlyclobber) {
-    disp_boolean("aom_earlyclobber", TRUE);
-  }  /* if */
   for (c = ptr->constraints; c != NULL; c = c->next) {
     printf("constraint: %c\n",
            asm_operand_constraint_letters[(int)c->kind]);

@@ -407,20 +407,24 @@ Errors are diagnosed at the given position.
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-/* ARGSUSED */  /* operands is not used in some configurations. */
+/* ARGSUSED */  /* operands, number_of_constraints are not used. */
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 static void process_asm_operand(an_asm_operand_ptr  operand,
                                 an_asm_operand_ptr  operands,
                                 an_expr_node_ptr    expr,
                                 a_const_char        *cstring,
-                                a_boolean           output)
+                                a_boolean           output,
+                                int                 *number_of_constraints)
 /*
 Fill in *operand (a GNU asm operand description) using the cstring constraints
 string and the expr expression.  Output is TRUE if the call is for an output
 operand.  If RECORD_RAW_ASM_OPERAND_DESCRIPTIONS is FALSE, validate the
 semantic consistency of expr, cstring, and output: If an inconsistency is
 detected, an error is issued and *operand is set to "error placemarker" values.
-operands points to the operands created so far.
+operands points to the operands created so far.  If *number_of_constraints is
+zero, this is the first operand and *number_of_constraints will be updated to
+the actual number of constraints found in the constraint string (and will check
+for that number on subsequent invocations).
 */
 {
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
@@ -436,6 +440,7 @@ operands points to the operands created so far.
   an_asm_operand_modifier        modifiers;
   a_boolean                      error_occurred = FALSE;
   a_const_char                   *p;
+  int                            constraints = 1;
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   char                           errletter[2];
 #endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
@@ -450,20 +455,15 @@ operands points to the operands created so far.
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   errletter[1] = '\0';
 #endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-  /* Compute modifiers. */
+  /* Compute modifiers.  Note that the "+" and "=" modifiers must appear at the
+     beginning of the constraint string; other modifiers are handled as
+     "constraints" in the loop below. */
   modifiers = (an_asm_operand_modifier)aom_invalid;
   for (p = cstring; *p != '\0'; p++) {
     switch (*p) {
-      /* Modifiers valid in asm() */
+      /* Modifiers valid only at beginning of constraint string. */
       case '=': modifiers |= (an_asm_operand_modifier)aom_output; break;
       case '+': modifiers |= (an_asm_operand_modifier)aom_modify; break;
-      case '&': modifiers |= (an_asm_operand_modifier)aom_earlyclobber; break;
-      /* Modifiers ignored in asm(): */
-      case '%':  case '*':  case '#':  case '?':  case '!':
-#if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
-        errletter[0] = *p;
-        pos_st_warning(ec_asm_modifier_ignored, &operand->position, errletter);
-#endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
         break;
       default:
         goto done_with_modifiers;
@@ -484,6 +484,30 @@ done_with_modifiers:
     /* The next thing in the string should be a constraint letter. */
     ck = (an_asm_operand_constraint_kind)aoc_invalid;
     switch (*p) {
+      /* A constraint separator (multiple alternative constraint case). */
+      case ',':
+        ck = (an_asm_operand_constraint_kind)aoc_end_of_constraint;
+        constraints++;
+        break;
+      /* Modifiers that can appear multiple times in a constraint string. */
+      case '&':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_earlyclobber;
+        break;
+      case '%':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_commutative_ops;
+        break;
+      case '#':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_ignore;
+        break;
+      case '*':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_ignore_char;
+        break;
+      case '?':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_disparage_slightly;
+        break;
+      case '!':
+        ck = (an_asm_operand_constraint_kind)aoc_mod_disparage_severly;
+        break;
       /* Machine independent constraints - miscellaneous. */
       case 'X':
         ck = (an_asm_operand_constraint_kind)aoc_any;     
@@ -675,6 +699,19 @@ done_with_modifiers:
     pos_error(ec_asm_input_must_not_have_output_mod, &operand->position);
     goto error_return;
   }  /* if */
+  if (*number_of_constraints == 0) {
+    /* The number of constraints in each constraint string has not yet
+       been established; set it now. */
+    *number_of_constraints = constraints;
+  } else if (*number_of_constraints != constraints &&
+             *number_of_constraints != -1) {
+    /* Each multi-alternative constraint string must have the same number of
+       constraints. */
+    pos_error(ec_constraint_number_mismatch, &operand->position);
+    /* Use -1 so we don't get multiple instances of the same error. */
+    *number_of_constraints = -1;
+    goto error_return;
+  }  /* if */
   if (validate_expr_for_constraints(expr, operand->constraints)) {
     operand->expression = expr;
     operand->modifiers = modifiers;
@@ -780,13 +817,18 @@ even if they are invalid.
 #else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   /* Asm operand descriptions are parsed and can therefore be diagnosed for
      consistency. */
-  a_byte                        regs_clobbered[(int)anr_last];
-  a_byte                        regs_used_in[(int)anr_last];
-  a_byte                        regs_used_out[(int)anr_last];
+  /* For multi-alternative constraints, each set of constraints needs its
+     own check.  The local data structures here assume a maximum number of
+     constraints; no checking is done on constraints over this max (a warning
+     is issued). */
+#define MAX_CONSTRAINTS 20 /* The maximum number of checked constraints. */
+  a_byte                        regs_clobbered[(int)anr_last][MAX_CONSTRAINTS];
+  a_byte                        regs_used_in[(int)anr_last][MAX_CONSTRAINTS];
+  a_byte                        regs_used_out[(int)anr_last][MAX_CONSTRAINTS];
   an_asm_operand_ptr            aop;
   a_named_register_list_ptr     clobber, clobbers = asm_entry->clobbers;
   an_asm_operand_constraint_ptr c;
-  int                           i;
+  int                           i, constraint, constraint_limit;
   a_named_register              r;
 
   memzero((char*)regs_clobbered, sizeof regs_clobbered);
@@ -797,14 +839,27 @@ even if they are invalid.
          single_register_constraints[i].cons !=
                                       (an_asm_operand_constraint_kind)aoc_last;
          i++) {
-      a_boolean  input = (aop->modifiers & 
-                            ((an_asm_operand_modifier)aom_input |
-                             (an_asm_operand_modifier)aom_earlyclobber)) != 0;
-      a_boolean  output = (aop->modifiers &
-                            ((an_asm_operand_modifier)aom_output |
-                             (an_asm_operand_modifier)aom_earlyclobber)) != 0;
+      a_boolean  input =
+                    (aop->modifiers & (an_asm_operand_modifier)aom_input) != 0;
+      a_boolean  output =
+                   (aop->modifiers & (an_asm_operand_modifier)aom_output) != 0;
+      constraint = 0;
       for (c = aop->constraints; c != NULL; c = c->next) {
-        if (c->kind == single_register_constraints[i].cons) {
+        if (c->kind == (an_asm_operand_constraint_kind)aoc_end_of_constraint) {
+          /* This is a multiple alternative constraint string; each set of
+             constraints is checked independently of the others. */
+          constraint++;
+          if (constraint >= MAX_CONSTRAINTS-1) {
+            /* The number of constraints exceeds the space allocated for
+               constraint checking; don't check the remaining constraints. */
+            pos_warning(ec_too_many_constraints, &aop->position);
+            goto clobber_check;
+          }  /* if */
+        } else if (c->kind ==
+                        (an_asm_operand_constraint_kind)aoc_mod_earlyclobber) {
+          /* Indicate that the register is clobbered. */
+          input = output = TRUE;
+        } else if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
           /* Ignore entries for unrecognized registers. */
@@ -812,56 +867,72 @@ even if they are invalid.
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
           /* Test used == 1 so the error is issued once per register. */
           if (r != (a_named_register)anr_invalid &&
-              ((input && regs_used_in[(int)r] == 1) ||
-               (output && regs_used_out[(int)r] == 1))) {
+              ((input && regs_used_in[(int)r][constraint] == 1) ||
+               (output && regs_used_out[(int)r][constraint] == 1))) {
             pos_st_error(ec_register_used_twice, &aop->position,
                          named_register_names[(int)r]);
           }  /* if */
-          if (input) ++regs_used_in[(int)r];
-          if (output) ++regs_used_out[(int)r];
+          if (input) ++regs_used_in[(int)r][constraint];
+          if (output) ++regs_used_out[(int)r][constraint];
         }  /* if */
       }  /* for */
     }  /* for */
   }  /* for */
-  for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
-    r = clobber->reg;
+clobber_check:
+  /* Do the requisite checking for each set of constraints (up to the max). */
+  constraint_limit = asm_entry->number_of_constraints;
+  if (constraint_limit == 0) {
+    /* If there were no input/output operands, we still need to do constraint
+       checking on the clobbers operand. */
+    constraint_limit = 1;
+  } else if (constraint_limit > MAX_CONSTRAINTS) {
+    /* Constrain the check to the max (a warning has already been issued). */
+    constraint_limit = MAX_CONSTRAINTS;
+  }  /* if */
+  for (constraint = 0; constraint < constraint_limit; constraint++) {
+    for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
+      r = clobber->reg;
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
-    /* Ignore entries for unrecognized registers. */
-    if (r == (a_named_register)anr_unrecognized) continue;
+      /* Ignore entries for unrecognized registers. */
+      if (r == (a_named_register)anr_unrecognized) continue;
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-    if ((regs_used_in[(int)r] || regs_used_out[(int)r]) &&
-        !regs_clobbered[(int)r]) {
-      /* Test used and not clobbered so the error is issued at most once per
-         register. */
-      pos_st_error(ec_register_used_and_clobbered,
-                   &asm_entry->source_corresp.decl_position,
-                   named_register_names[(int)r]);
-    } else if (r != (a_named_register)anr_invalid &&
-               regs_clobbered[(int)r] == 1) {
-      /* Test clobbered == 1 so the diagnostic is issued at most once per
-         register. */
-      pos_st_warning(ec_register_clobbered_twice,
+      if ((regs_used_in[(int)r][constraint] ||
+           regs_used_out[(int)r][constraint]) &&
+          !regs_clobbered[(int)r][constraint]) {
+        /* Test used and not clobbered so the error is issued at most once per
+           register. */
+        pos_st_error(ec_register_used_and_clobbered,
                      &asm_entry->source_corresp.decl_position,
                      named_register_names[(int)r]);
-    }  /* if */
-    ++regs_clobbered[(int)r];
-  }  /* for */
-  for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
-    r = fixed_registers[i];
+      } else if (r != (a_named_register)anr_invalid &&
+                 regs_clobbered[(int)r][constraint] == 1) {
+        /* Test clobbered == 1 so the diagnostic is issued at most once per
+           register. */
+        pos_st_warning(ec_register_clobbered_twice,
+                       &asm_entry->source_corresp.decl_position,
+                       named_register_names[(int)r]);
+      }  /* if */
+      ++regs_clobbered[(int)r][constraint];
+    }  /* for */
+    for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
+      r = fixed_registers[i];
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
-    /* Ignore entries for unrecognized registers. */
-    if (r == (a_named_register)anr_unrecognized) continue;
+      /* Ignore entries for unrecognized registers. */
+      if (r == (a_named_register)anr_unrecognized) continue;
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-    if (regs_used_in[(int)r] || regs_used_out[(int)r]) {
-      pos_st_error(ec_fixed_register_used,
-                   &asm_entry->source_corresp.decl_position,
-                   named_register_names[(int)r]);
-    } else if (regs_clobbered[(int)r]) {
-      pos_st_error(ec_fixed_register_clobbered,
-                   &asm_entry->source_corresp.decl_position,
-                   named_register_names[(int)r]);
-    }  /* if */
+      if (regs_used_in[(int)r][constraint] ||
+          regs_used_out[(int)r][constraint]) {
+        pos_st_error(ec_fixed_register_used,
+                     &asm_entry->source_corresp.decl_position,
+                     named_register_names[(int)r]);
+      } else if (regs_clobbered[(int)r][constraint]) {
+        pos_st_error(ec_fixed_register_clobbered,
+                     &asm_entry->source_corresp.decl_position,
+                     named_register_names[(int)r]);
+      }  /* if */
+    }  /* for */
   }  /* for */
+#undef MAX_CONSTRAINTS
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   validate_symbolic_operand_and_label_references(asm_entry);
 }  /* validate_operands_and_clobbers */
@@ -870,7 +941,8 @@ even if they are invalid.
 static void asm_operand(an_asm_operand_ptr operand,
                         an_asm_operand_ptr operands,
                         a_boolean          output,
-                        a_boolean          *seen_tok_colon_colon)
+                        a_boolean          *seen_tok_colon_colon,
+                        int                *number_of_constraints)
 /*
 Scan a single asm-statement operand, writing it into the structure pointed to
 by operand.  The syntax is
@@ -883,7 +955,10 @@ optionally preceded by a symbolic name specifier of the form
 
 operands points to the list of operands created so far and output is TRUE
 if we're scanning an output operand.  seen_tok_colon_colon maintains
-state information for get_token_with_colon_separation.
+state information for get_token_with_colon_separation.  *number_of_constraints
+is used to ensure that the number of constraints in a multi-alternative
+constraint string are the same across all input and output specifications of a
+particular asm statement.
 */
 {
   a_const_char     *constraint_string = NULL;
@@ -957,7 +1032,8 @@ state information for get_token_with_colon_separation.
       syntax_error(ec_exp_lparen);
     }  /* if */
   }  /* if */
-  process_asm_operand(operand, operands, expr, constraint_string, output);
+  process_asm_operand(operand, operands, expr, constraint_string, output,
+                      number_of_constraints);
   remove_stop_token(tok_comma);
   remove_stop_token(tok_colon);
   remove_stop_token(tok_colon_colon);
@@ -965,11 +1041,15 @@ state information for get_token_with_colon_separation.
 }  /* asm_operand */
 
 
-an_asm_operand_ptr asm_operands_spec(a_boolean *seen_tok_colon_colon)
+an_asm_operand_ptr asm_operands_spec(a_boolean *seen_tok_colon_colon,
+                                     int       *number_of_constraints)
 /*
 Parse and validate a list of asm-statement operands.  This handles both input
 and output operands.  The list is returned as a sequence of an_asm_operand
-entries.
+entries.  *number_of_constraints is used to ensure that the number of
+constraints in a multi-alternative constraint string are the same across
+all input and output specifications of a particular asm statement.
+
 On entry, curr_token is the leading colon of the operands specification; on
 exit, it is the leading colon of the clobbers specification, or the close
 parenthesis if there are no clobbers.
@@ -1004,7 +1084,8 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
   }  /* if */
   while (curr_token == tok_string_literal || curr_token == tok_lbracket) {
     *p_operands = alloc_asm_operand();
-    asm_operand(*p_operands, operands, output, seen_tok_colon_colon);
+    asm_operand(*p_operands, operands, output, seen_tok_colon_colon,
+                number_of_constraints);
     p_operands = &(*p_operands)->next;
     /* Next must be a comma, colon, or right paren. */
     if (curr_token == tok_colon) {

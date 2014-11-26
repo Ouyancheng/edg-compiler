@@ -4731,10 +4731,30 @@ EXTERN a_const_char *type_mode_kind_names[(int)tmk_last + 1]
 /*
 Enumeration of input/output constraint categories for GNU extended
 asm.  The first block of these is independent of the target processor,
-the rest are machine dependent.
+the rest are machine dependent.  Note that some "modifiers" are treated here as
+constraints; any modifier which can appear multiple times in a constraint
+string is listed here.  Also update asm_operand_constraint_letters when adding
+new entries here.
 */
 enum an_asm_operand_constraint_kind_tag {
   aoc_invalid = 0,
+  aoc_end_of_constraint,/* ,: For cases with multiple constraints, indicates
+                              the end of the current constraint (other
+                              constraints may follow); represented by a comma
+                              in the input stream. */
+  /* modifiers */
+  /* Note that these are parsed, but not acted upon by the front end. */
+  aoc_mod_earlyclobber, /* &: modified early, cannot overlap inputs */
+  aoc_mod_commutative_ops,
+                        /* %: operands are commutative */
+  aoc_mod_ignore,       /* #: ignore remaining constraint */
+  aoc_mod_ignore_char,  /* *: ignore following character when choosing
+                              register preferences */
+  aoc_mod_disparage_slightly,
+                        /* ?: disparage alternative slightly */
+  aoc_mod_disparage_severly,
+                        /* !: disparage alternative severely */
+  /* misc */
   aoc_any,              /* X: unconstrained */
   aoc_general,          /* g: r or i or m */
   aoc_match_0, aoc_match_1, aoc_match_2, aoc_match_3, aoc_match_4,
@@ -4798,6 +4818,13 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
 #if VAR_INITIALIZERS
 = {
   /* aoc_invalid */             '@',
+  /* aoc_end_of_constraint */   ',',
+  /* aoc_mod_earlyclobber */    '&',
+  /* aoc_mod_commutative_ops */ '%',
+  /* aoc_mod_ignore */          '#',
+  /* aoc_mod_ignore_char */     '*',
+  /* aoc_mod_disparage_slightly */ '?',
+  /* aoc_mod_disparage_severly */ '!',
   /* aoc_any */                 'X',
   /* aoc_general */             'g',
   /* aoc_match_0 */             '0',
@@ -4869,13 +4896,16 @@ typedef struct an_asm_operand_constraint {
 /*
 Modifiers to asm operand strings.  These are all machine independent.
 Note that these are bitmasks, and that aom_input + aom_output == aom_modify.
+Note also that some "modifiers" are treated internally as "constraints"
+(see an_asm_operand_constraint_kind_tag).  Specifically, those modifiers
+that can appear multiple times in a single constraint string, e.g., for
+multiple alternative constraints, are treated as constraints.
 */
 enum an_asm_operand_modifier_tag {
   aom_invalid           = 0x00, /* error */
   aom_input             = 0x01, /* no mod: input operand */
   aom_output            = 0x02, /* =: output operand */
-  aom_modify            = 0x03, /* +: read-mod-write operand */
-  aom_earlyclobber      = 0x04  /* &: modified early, cannot overlap inputs */
+  aom_modify            = 0x03  /* +: read-mod-write operand */
 };
 typedef a_byte an_asm_operand_modifier;
 
@@ -5009,8 +5039,15 @@ typedef struct an_asm_operand {
   an_asm_operand_constraint_ptr
                 constraints;     
                         /* Constraints on where the operand may appear
-                           in order to make it a valid assembly
-                           instruction. */
+                           in order to make it a valid assembly instruction.
+                           Note that "multiple alternative constraints" are
+                           supported, that is, a single constraint string can
+                           represent multiple constraints each separated by
+                           a comma in the constraint string.  These constraints
+                           are separated by aoc_end_of_constraint entries
+                           in the constraints list.  The number of constraints
+                           is given by number_of_constraints in the
+                           an_asm_entry that points to this. */
   an_asm_operand_modifier
                 modifiers;      
                         /* Modifiers to the constraint. */
@@ -14205,6 +14242,14 @@ typedef struct an_asm_entry {
   a_label_list_ptr
                 labels;
                         /* List of labels (for "asm goto"). */
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  a_targ_size_t
+		number_of_constraints;
+			/* The number of constraints in each of the input
+			   and output operand constraints.  Nominally one,
+			   but may be more when multiple alternative
+			   constraints (separated by commas) are used. */
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 } an_asm_entry;
 

@@ -1165,7 +1165,7 @@ ec_invalid_case_range;;"the second constant in a case range must be larger than 
 ec_asm_name_in_rout_defn;;"an asm name is not permitted in a function definition"
 ec_asm_name_in_typedef;;"an asm name is ignored in a typedef"
 ec_bad_reg_name;;"unknown register name \"%s\""
-ec_asm_modifier_ignored;;"modifier letter '%s' ignored in asm operand"
+REMOVED;ec_asm_modifier_ignored;;"modifier letter '%s' ignored in asm operand"
 ec_bad_asm_constraint_modifier;;"unknown asm constraint modifier '%s'"
 ec_bad_asm_constraint_letter;;"unknown asm constraint letter '%s'"
 ec_missing_constraint_letter;;"asm operand has no constraint letter"
@@ -2686,6 +2686,8 @@ ec_cannot_call_member_on_rvalue;;"member function cannot be called on an rvalue"
 ec_templ_param_list_too_long;;"the template parameter list is too long"
 ec_bad_alias_templ_redecl;;"alias template type %t1 is incompatible with the previous type of %t2 in the redeclaration of %nfd"
 ec_field_initializer_is_not_constant;;"the field initializer for %nd is not a constant expression"
+ec_constraint_number_mismatch;;"the number of operand constraints must be the same in each constraint string"
+ec_too_many_constraints;;"the constraint string contains too many alternative constraints; not all constraints were checked"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

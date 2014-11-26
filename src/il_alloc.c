@@ -2905,6 +2905,9 @@ to it.
   ap->operands = NULL;
   ap->clobbers = NULL;
   ap->labels = NULL;
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  ap->number_of_constraints = 0;
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
   return ap;

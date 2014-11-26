@@ -8048,9 +8048,6 @@ Dump the GNU C operand descriptions for the given asm entry.
         m_write_ch('=');
       }  /* if */
     }  /* if */
-    if (aop->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
-      m_write_ch('&');
-    }  /* if */
     for (c = aop->constraints; c != NULL; c = c->next) {
       m_write_ch(asm_operand_constraint_letters[(int)c->kind]);
     }  /* for */
