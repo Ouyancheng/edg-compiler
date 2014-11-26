@@ -464,7 +464,6 @@ for that number on subsequent invocations).
       /* Modifiers valid only at beginning of constraint string. */
       case '=': modifiers |= (an_asm_operand_modifier)aom_output; break;
       case '+': modifiers |= (an_asm_operand_modifier)aom_modify; break;
-        break;
       default:
         goto done_with_modifiers;
     }  /* switch */

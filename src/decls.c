@@ -13101,10 +13101,10 @@ to NULL.
   an_asm_operand_ptr        operands = NULL;
   a_named_register_list_ptr clobbers = NULL;
   a_label_list_ptr          labels = NULL;
+  int                       number_of_constraints = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                 seen_tok_colon_colon = FALSE;
   a_boolean                 err = FALSE;
-  int                       number_of_constraints = 0;
 
   db_enter(3, "asm_declaration");
   check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
@@ -13249,7 +13249,8 @@ to NULL.
     ap->operands = operands;
     ap->clobbers = clobbers;
     ap->labels = labels;
-    ap->number_of_constraints = (a_targ_size_t)number_of_constraints;
+    ap->number_of_constraints =
+                           (a_targ_size_t)number_of_constraints; /*lint !e571*/
     if (gnu_asm_form) {
       validate_operands_and_clobbers(ap);
     }  /* if */
