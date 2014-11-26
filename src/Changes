@@ -40,7 +40,7 @@ modes (previously an error was issued).  For example:
   template<typename> struct S {
     I f();
     template<typename T> void g(T) {
-      f();  // Previously an error during prototype instantiation, not just
+      f();  // Previously an error during prototype instantiation, now just
     }       // a warning (except in strict mode).
   };
 
