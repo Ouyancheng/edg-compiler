@@ -4732,7 +4732,7 @@ EXTERN a_const_char *type_mode_kind_names[(int)tmk_last + 1]
 Enumeration of input/output constraint categories for GNU extended
 asm.  The first block of these is independent of the target processor,
 the rest are machine dependent.  Note that some "modifiers" are treated here as
-constraints; any modifier which can appear multiple times in a constraint
+constraints; any modifier that can appear multiple times in a constraint
 string is listed here.  Also update asm_operand_constraint_letters when adding
 new entries here.
 */
@@ -4747,7 +4747,7 @@ enum an_asm_operand_constraint_kind_tag {
   aoc_mod_earlyclobber, /* &: modified early, cannot overlap inputs */
   aoc_mod_commutative_ops,
                         /* %: operands are commutative */
-  aoc_mod_ignore,       /* #: ignore remaining constraint */
+  aoc_mod_ignore,       /* #: ignore the rest of this constraint */
   aoc_mod_ignore_char,  /* *: ignore following character when choosing
                               register preferences */
   aoc_mod_disparage_slightly,

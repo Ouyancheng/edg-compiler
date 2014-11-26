@@ -818,8 +818,8 @@ even if they are invalid.
      consistency. */
   /* For multi-alternative constraints, each set of constraints needs its
      own check.  The local data structures here assume a maximum number of
-     constraints; no checking is done on constraints over this max (a
-     diagnostic is issued). */
+     constraints (which matches GNU's limit); no checking is done on
+     constraints over this limit (a diagnostic is issued). */
 #define MAX_CONSTRAINTS 30 /* The maximum number of checked constraints. */
   a_byte                        regs_clobbered[(int)anr_last][MAX_CONSTRAINTS];
   a_byte                        regs_used_in[(int)anr_last][MAX_CONSTRAINTS];
@@ -886,7 +886,8 @@ clobber_check:
        checking on the clobbers operand. */
     constraint_limit = 1;
   } else if (constraint_limit > MAX_CONSTRAINTS) {
-    /* Constrain the check to the max (a warning has already been issued). */
+    /* Constrain the check to the max (a diagnostic has already been
+       issued). */
     constraint_limit = MAX_CONSTRAINTS;
   }  /* if */
   for (constraint = 0; constraint < constraint_limit; constraint++) {

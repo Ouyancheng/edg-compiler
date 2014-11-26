@@ -20,7 +20,7 @@ by commas within the constraint string.  For example (with --gcc):
   }
 
 Note that this change involves a slight IL CHANGE; certain GNU constraint
-modifiers, namely, "&", "%", "#", "*", "?", and "!" are now treated
+modifiers, namely, "&", "%", "#", "*", "?", and "!", are now treated
 as constraints (because they can appear multiple times in a single constraint
 string).  That's a change for "&" which had been a modifier
 (aom_earlyclobber).  Also, back ends will now see an aoc_end_of_constraint
