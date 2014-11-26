@@ -2351,9 +2351,6 @@ by a command line option.
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
       binary_literals_allowed = TRUE;
-      if (rvalue_references_enabled) {
-        selection_from_rvalue_is_xvalue = TRUE;
-      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
