@@ -19192,6 +19192,7 @@ introduced in C99 to control aliasing of pointers.  See C99 6.7.3.1.
   return is_restrict_pointer;
 }  /* node_is_pointer_with_restrict_semantics */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_rvalueable_node(an_expr_node_ptr node)
 /*
@@ -19301,7 +19302,6 @@ for is_lvalue to be TRUE.
   return !is_glvalue_node(node) && is_rvalueable_node(node);
 }  /* node_includes_glvalue_to_prvalue_conv */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean node_does_fetch(an_expr_node_ptr node,
                                  a_type_ptr       *p_fetched_type)
@@ -24990,7 +24990,7 @@ attributes are later processed for the non-string cases).
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if CHECKING
-#if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
+#if !STANDALONE_UTILITY_PROGRAM
 /*
 The following table defines the value category expected for the operands of
 each operation node.  lvalues and xvalues are always treated the same for
@@ -25188,6 +25188,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 };  /* lvalue_rvalue_test */
 
 
+static
 a_boolean node_operands_have_correct_value_category(an_expr_node_ptr node)
 /*
 If node is an operation expression node, return FALSE if any of its operands
@@ -25358,9 +25359,7 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
   traverse_expr(root, &tblock);
   return !tblock.result;
 }  /* tree_has_correct_lvalueness */
-#endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
                                             a_type_ptr targ_type,
@@ -25413,7 +25412,6 @@ handle operations.
   return result;
 }  /* pointer_type_is_consistent */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_operation_node_consistency(an_expr_node_ptr expr)
 /*
@@ -25427,28 +25425,26 @@ node, and report any failure as an internal error.
   check_assertion(is_operation_node(expr));
   op = expr->variant.operation.kind;
   operand_1 = expr->variant.operation.operands;
-#if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
-  /* This check is not performed in standalone programs configured with
-     PROTOTYPE_INSTANTIATIONS_IN_IL: generic operations and operands are
-     not always lvalue-correct, but the code for detecting a dependent
-     type is not available in a standalone program. */
+  /* This check couldn't be performed in standalone programs configured with
+     PROTOTYPE_INSTANTIATIONS_IN_IL: generic operations and operands are not
+     always lvalue-correct, but the code for detecting a dependent type is not
+     available in a standalone program. */
   if (!node_operands_have_correct_value_category(expr)) {
     /* At least one of the operands is an lvalue when an rvalue is
        expected or vice-versa. */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
     db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
     internal_error("is_lvalue incorrectly set");
   }  /* if */
-#endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
   /* Check that eok_cast is not used for array-decay operations.
      (That was the pattern in an earlier version of the IL, but such
      conversions should now be represented by eok_array_to_pointer.) */
-  if (op == (an_expr_operator_kind)eok_cast && is_pointer_type(expr->type)
-      && is_array_type(operand_1->type)) {
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+  if (op == (an_expr_operator_kind)eok_cast && is_pointer_type(expr->type) &&
+      is_array_type(operand_1->type)) {
+#if DEBUG
     db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
     internal_error("eok_cast used for array-to-ptr decay");
   }  /* if */
   /* Check that the result_is_not_used flags on the operands are not set
@@ -25480,20 +25476,19 @@ node, and report any failure as an internal error.
              not used, so the flag is set correctly. */
         } else {
           /* The flag is set incorrectly. */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
           db_expression(expr);
           db_expression(op_node);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
           internal_error("result_is_not_used set wrong on operand");
         }  /* if */
       }  /* if */
     }  /* for */
   }
-#if !STANDALONE_UTILITY_PROGRAM
-  /* Check that the result and operand types are consistent for
-     certain operators.  (We do not perform the check in a standalone
-     program because it relies on identical_types, which is not
-     available in that environment.) */
+  /* Check that the result and operand types are consistent for certain
+     operators.  (We cannot perform the check in a standalone program because
+     it relies on identical_types, which is not available in that
+     environment.) */
   if (op == (an_expr_operator_kind)eok_address_of &&
       !pointer_type_is_consistent(expr->type, operand_1->type,
                                   /*targ_type_is_prvalue=*/FALSE)) {
@@ -25577,9 +25572,9 @@ node, and report any failure as an internal error.
       internal_error("types for operation are not consistent");
     }  /* if */
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* check_operation_node_consistency */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_result_not_used_flag(an_expr_node_ptr node)
 /*

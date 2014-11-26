@@ -1123,9 +1123,11 @@ variable-length array (VLA).
 extern a_boolean node_is_pointer_with_restrict_semantics(
                                                         an_expr_node_ptr node);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
 
 extern a_boolean node_includes_glvalue_to_prvalue_conv(an_expr_node_ptr node);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
@@ -2599,14 +2601,11 @@ extern a_boolean compare_expressions(an_expr_node_ptr                node1,
 extern void rebuild_structures_on_il_read(void);
 
 #if CHECKING
-#if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
-extern a_boolean node_operands_have_correct_value_category(
-                                                        an_expr_node_ptr node);
-
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
-#endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
 
 extern void check_operation_node_consistency(an_expr_node_ptr expr);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void check_result_not_used_flag(an_expr_node_ptr node);
 #endif /* CHECKING */
 

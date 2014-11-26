@@ -11697,7 +11697,7 @@ gen_expr that might end up generating this expr as a temporary.
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   expr = assoc_expr_if_constant(expr);
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
   if (is_operation_node(expr)) {
     check_operation_node_consistency(expr);
   } else {
@@ -11705,7 +11705,7 @@ gen_expr that might end up generating this expr as a temporary.
     check_assertion(tree_has_correct_lvalueness(expr));
 #endif /* EXPENSIVE_CHECKING */
   }  /* if */
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 #if GNU_EXTENSIONS_ALLOWED
   if (expr->marked_as_gnu_extension) {
     write_tok_str("__extension__ "); 
@@ -11716,9 +11716,9 @@ gen_expr that might end up generating this expr as a temporary.
       /* This is the implicit dereference of a node with reference type.
          Put out the node being dereferenced. */
       expr = expr->variant.operation.operands;
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
       check_operation_node_consistency(expr);
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
   }  /* if */
   if (is_operation_node(expr) && node_operator_is(expr, eok_ref_indirect)) {
