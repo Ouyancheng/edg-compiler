@@ -5339,9 +5339,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                        (expr->type->kind != (a_type_kind)tk_integer ||
                         expr->type->variant.integer.int_kind !=
                                                   ((an_integer_kind)ik_int))));
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
       check_operation_node_consistency(expr);
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
