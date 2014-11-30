@@ -1,5 +1,14 @@
 Version 4.10
 
+11/30/14 [EDGcpfe/15735]
+Unique file identifier processing disabled by default on Windows
+
+The changes for unique file identifiers (see EDGcpfe/14054 on 5/20/14)
+are now disabled by default on Windows because the Microsoft compiler does
+not use such a facility and because the mechanism can produce incorrect
+results for network mounted file systems.
+
+
 11/30/14 [EDGcpfe/15328]
 Build problem if UNIQUE_FILE_IDENTIFIER_AVAILABLE is defined
 

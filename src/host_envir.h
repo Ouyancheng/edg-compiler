@@ -3418,10 +3418,15 @@ the stat system call if the S_ISDIR or S_IFDIR macro is defined.
 Determine if the operating system provides a mechanism to uniquely identify
 a file even in the presence of symbolic and/or hard links (e.g., inode
 information on Unix-like systems).
+
+Support for this feature is available on Windows, but is disabled by
+default because the Microsoft compiler does not use such a facility and
+because the mechanism can produce incorrect results for network mounted
+file systems.
 */
 #ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE
 #if EDG_WIN32
-#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE FALSE
 #else /* !EDG_WIN32 */
 #if STAT_AVAILABLE
 #define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
