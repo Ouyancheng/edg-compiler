@@ -1,5 +1,12 @@
 Version 4.10
 
+11/30/14 [EDGcpfe/15328]
+Build problem if UNIQUE_FILE_IDENTIFIER_AVAILABLE is defined
+
+Build errors would occur if UNIQUE_FILE_IDENTIFIER_AVAILABLE was defined
+in defines.h or on the compilation command-line.  Now fixed.
+
+
 11/30/14 [EDGcpfe/15738]
 Incorrect error test for CreateFile result on Windows
 

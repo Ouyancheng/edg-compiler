@@ -3408,6 +3408,8 @@ the stat system call if the S_ISDIR or S_IFDIR macro is defined.
 #if !EDG_WIN32
 #if defined(S_ISDIR) || defined(S_IFDIR)
 #define STAT_AVAILABLE TRUE
+#else /* !(defined(S_ISDIR) || defined(S_IFDIR)) */
+#define STAT_AVAILABLE FALSE
 #endif /* defined(S_ISDIR) || defined(S_IFDIR) */
 #endif /* !EDG_WIN32 */
 #endif /* STAT_AVAILABLE */
@@ -3415,10 +3417,27 @@ the stat system call if the S_ISDIR or S_IFDIR macro is defined.
 /*
 Determine if the operating system provides a mechanism to uniquely identify
 a file even in the presence of symbolic and/or hard links (e.g., inode
-information on Unix-like systems).  If such a mechanism is available,
-define a structure that can store the identifying information.
+information on Unix-like systems).
 */
 #ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE
+#if EDG_WIN32
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#else /* !EDG_WIN32 */
+#if STAT_AVAILABLE
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#else /* !STAT_AVAILABLE */
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE FALSE
+#endif /* STAT_AVAILABLE */
+#endif /* EDG_WIN32 */
+#endif /* ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+
+/*
+If the operating system provides a mechanism to uniquely identify
+a file even in the presence of symbolic and/or hard links (e.g., inode
+information on Unix-like systems) define a structure that can store
+the identifying information.
+*/
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
 #if EDG_WIN32
 /*
 On Windows, the unique file ID information contains fields copied from the
@@ -3435,10 +3454,11 @@ typedef struct a_unique_file_id {
 			/* Low-order part of the unique identifier within
 			   a given volume. */
 } a_unique_file_id;
-#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
 #else /* !EDG_WIN32 */
-#if STAT_AVAILABLE
-#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#if !STAT_AVAILABLE
+ #error STAT_AVAILABLE must be TRUE when UNIQUE_FILE_IDENTIFIER_AVAILABLE \
+        is TRUE on non-Windows platforms. 
+#endif /* !STAT_AVAILABLE */
 /*
 On systems with the stat structure, the unique file ID information contains
 fields copied from that structure.  The fields have the same name as the
@@ -3450,15 +3470,8 @@ typedef struct a_unique_file_id {
   ino_t		st_ino;
 			/* Unique identifier (inode) within the device. */
 } a_unique_file_id;
-#else /* !STAT_AVAILABLE */
-/*
-Not Windows or a system with the stat structure.
-*/
-#define UNIQUE_FILE_IDENTIFIER_AVAILABLE FALSE
-#define STAT_AVAILABLE FALSE
-#endif /* STAT_AVAILABLE */
 #endif /* EDG_WIN32 */
-#endif /* ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
 typedef struct a_unique_file_id *a_unique_file_id_ptr;
