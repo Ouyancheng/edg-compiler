@@ -2977,7 +2977,7 @@ left unchanged.
                       (HANDLE)NULL);
   /* If the file cannot be opened, or the call below to get the file
      information fails, leave the unique_id set to its default values. */
-  if (f_file != NULL) {
+  if (f_file != INVALID_HANDLE_VALUE) {
     if (GetFileInformationByHandle(f_file, &file_info)) {
       unique_id->dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
       unique_id->nFileIndexLow = file_info.nFileIndexLow;

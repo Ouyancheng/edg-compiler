@@ -1,5 +1,14 @@
 Version 4.10
 
+11/30/14 [EDGcpfe/15738]
+Incorrect error test for CreateFile result on Windows
+
+The changes for unique file identifiers (see EDGcpfe/14054 on 5/20/14)
+incorrectly tests for an error when calling the CreateFile function.
+Although the test was incorrect, the code following the call should
+handle the error cases acceptably.  The test has now been fixed.
+
+
 11/26/14 [EDGcpfe/15367]
 C++14: Value category of member selections (IL CHANGE)
 
