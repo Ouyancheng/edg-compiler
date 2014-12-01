@@ -1,5 +1,20 @@
 Version 4.10
 
+12/1/14  [EDGcpfe/15702,EDGcpfe/15732]
+Use of "this" in Microsoft-mode noexcept specification
+
+In Microsoft C++ mode with microsoft_version >= 1900, the front end previously
+issued a spurious error on the use of "this" in the noexcept specification of
+a member function.  For example:
+
+  struct S {
+    bool e();
+    void f() noexcept(noexcept(this->e()));
+  };  // Previously an error when microsoft_mode == 1900; now okay.
+
+This is now fixed.
+
+
 11/30/14 [EDGcpfe/15735]
 Unique file identifier processing disabled by default on Windows
 

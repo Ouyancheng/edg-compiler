@@ -10128,12 +10128,13 @@ implicit "this" is available, e.g., during overload resolution.
                     enclosing_rout_scope->variant.routine.this_param_variable;
       this_exists = (local_this_var != NULL);
     }  /* if */
-  } else if ((this_in_trailing_return_types_enabled &&
+  } else if (((this_in_trailing_return_types_enabled || noexcept_enabled) &&
               scope_is(ssep, sck_func_prototype)) ||
              ssep->in_field_initializer) {
-    /* In C++11, "this" can be referenced in a late-specified return type,
-       and "this" can be referenced inside a non-static-data-member-initializer
-       (NSDMI).  In both those cases, there's no "this" variable yet. */
+    /* In C++11, "this" can be referenced in a late-specified return type or a
+       noexcept(...) specification.  Also in C++11, "this" can be referenced
+       inside a non-static-data-member-initializer (NSDMI).  In all those
+       cases, there's no "this" variable yet. */
     /* Loop through all the function prototype scopes, because there may be
        nested function declarators, and the "this" from the enclosing
        member function declarator should be visible in the nested
@@ -10165,6 +10166,16 @@ implicit "this" is available, e.g., during overload resolution.
         check_assertion(dps != NULL &&
                         rout_type != NULL &&
                         rout_type->kind == (a_type_kind)tk_routine);
+        if (dps->has_trailing_return_type ?
+                 !this_in_trailing_return_types_enabled : !noexcept_enabled) {
+          /* If we're in a trailing return type for this function prototype
+             scope, dps->has_trailing_return_type will be TRUE.  Otherwise,
+             we're presumably in a noexcept specification.  If "this" is not
+             allowed in the current context, break out of the loop.  (E.g.,
+             MSVC 19.00 accepts "this" in noexcept specifications, but not in
+             trailing return types.) */
+          break;
+        }  /* if */
         this_class = rout_type->variant.routine.extra_info->this_class;
         if (this_class != NULL &&
             class_type_supp(this_class)->is_lambda_closure_class) {

@@ -2056,18 +2056,22 @@ routine is also called for the trailing return type of a lambda declarator.
      make the parameters visible while scanning the trailing return type. */
     make_param_syms_invisible(FALSE);
   }  /* if */
-  /* Parse the trailing return type. */
+  /* Parse the trailing return type.  While doing this, set
+     dps->has_trailing_return_type to TRUE.  This is sufficient for some of
+     the expression routines to know that we are parsing a trailing return
+     type. */
+  dps->has_trailing_return_type = TRUE;
   type_name_full(&trt_dps);
   if (parameters_visible_late) make_param_syms_invisible(TRUE);
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
     dps->auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
+    dps->has_trailing_return_type = FALSE;
   } else {
     /* Replace the specifiers type (which was auto) and the type assembled
        so far (which should be the same as the specifiers type)  by the
        actual return type. */
-    dps->has_trailing_return_type = TRUE;
     dps->specifiers_type = dps->declared_type = dps->type = trt_dps.type;
     rout_type->variant.routine.extra_info->trailing_return_type = TRUE;
     if (trt_dps.auto_type_specifier_seen &&
