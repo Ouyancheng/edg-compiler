@@ -19244,7 +19244,7 @@ already indicates the load.
                load from; the prvalue has already been "loaded".  However,
                the C++14 model is that a prvalue.field or prvalue.*pmd
                selection is an xvalue that can still be "loaded". */
-            rvalueable = selection_from_rvalue_is_xvalue ||
+            rvalueable = selection_from_prvalue_is_xvalue ||
                          (is_glvalue_node(node->variant.operation.operands) ||
                           is_error_node(node->variant.operation.operands));
             break;

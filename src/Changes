@@ -25,13 +25,13 @@ Although the test was incorrect, the code following the call should
 handle the error cases acceptably.  The test has now been fixed.
 
 
-11/26/14 [EDGcpfe/15367]
+11/26/14 [EDGcpfe/14181,EDGcpfe/15367]
 C++14: Value category of member selections (IL CHANGE)
 
 The C++14 standard made a significant change to the value category of an
-expression of the form rvalue.m or rvalue.*pm: The result is now an xvalue
+expression of the form prvalue.m or prvalue.*pm: The result is now an xvalue
 (this change came about by the resolution of the C++ standardization
-committee's Core issue 616; in C++11 it is an rvalue).  The front end now
+committee's Core issue 616; in C++11 it is a prvalue).  The front end now
 implements that rule (except that in GNU or Clang C++14 modes, the C++11 rule
 is retained for compatibility with the GCC and Clang compilers).  For example:
 

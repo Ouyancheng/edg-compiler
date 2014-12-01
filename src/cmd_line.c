@@ -3086,7 +3086,7 @@ default mode (e.g., exception handling).
       digit_separators_enabled = TRUE;
     }  /* if */
     if (rvalue_references_enabled && !gpp_mode && !clang_mode) {
-      selection_from_rvalue_is_xvalue = TRUE;
+      selection_from_prvalue_is_xvalue = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -10585,7 +10585,7 @@ variables declared in cmd_line.h.
   list_init_enabled = FALSE;
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
-  selection_from_rvalue_is_xvalue = FALSE;
+  selection_from_prvalue_is_xvalue = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;

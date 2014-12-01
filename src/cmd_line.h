@@ -1199,10 +1199,10 @@ EXTERN a_boolean
 			   field initializer make a class a non-aggregate). */
 
 EXTERN a_boolean
-		selection_from_rvalue_is_xvalue;
-			/* TRUE if the C++14 rule that a field selection on an
-			   rvalue class object produces an xvalue is in effect
-			   (in C++11 mode, it produces an rvalue). */
+		selection_from_prvalue_is_xvalue;
+			/* TRUE if the C++14 rule that a field selection on a
+			   prvalue class object produces an xvalue is in effect
+			   (in C++11 mode, it produces a prvalue). */
 
 EXTERN a_boolean
 		alias_declarations_enabled;

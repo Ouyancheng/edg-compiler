@@ -5676,7 +5676,7 @@ accepts the case where the first operand is a C++/CLI handle.
     } else if (is_an_lvalue(operand_1)) {
       /* lvalue.field produces an lvalue result. */
       result_is_a_glvalue = TRUE;
-    } else if (is_an_xvalue(operand_1) || selection_from_rvalue_is_xvalue) {
+    } else if (is_an_xvalue(operand_1) || selection_from_prvalue_is_xvalue) {
       /* xvalue.field produces an xvalue result.  In C++14, the same is true
          for prvalue.field (through the resolution of Core issue 616). */
       result_is_a_glvalue = TRUE;
@@ -7927,7 +7927,7 @@ the selection, not an operator token for the call.
               and an xvalue otherwise. The result of a .* expression whose
               second operand is a pointer to a member function is a prvalue."
            (In C++11 and C++14, "E1->*E2" is by definition "(*(E1)).*E2".) */
-        if (selection_from_rvalue_is_xvalue) {
+        if (selection_from_prvalue_is_xvalue) {
           if (ptr_to_data_member_case) {
             result_is_a_glvalue = TRUE;
             result_is_an_xvalue = !is_arrow_operator &&
