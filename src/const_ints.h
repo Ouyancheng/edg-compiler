@@ -262,7 +262,7 @@ extern int f_unsigned_to_string_buf(a_host_large_unsigned val,
                                     char                  *buf);
 
 #define unsigned_to_string_buf(val, buf)                                     \
-  (((val) < 10) ? ((buf)[0] = '0'+(val), (buf)[1] = '\0', 1)                 \
+  (((val) < 10) ? ((buf)[0] = (char)('0'+(val)), (buf)[1] = '\0', 1)         \
                 : f_unsigned_to_string_buf(val, buf))
 
 #define signed_to_string_buf(val, buf)                                       \
