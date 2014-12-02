@@ -3486,12 +3486,16 @@ add mangling for an eok_address_of operation.
     add_str_to_mangled_name("L_Z", mctl);
 #if ABI_COMPATIBILITY_VERSION >= 402
     if ((kind == iek_routine &&
-         ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static) ||
+         (((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static)
+#if ABI_COMPATIBILITY_VERSION >= 410
+          && !scp->is_class_member
+#endif /* ABI_COMPATIBILITY_VERSION >= 410 */
+                                  ) ||
         (kind == iek_variable &&
          ((a_variable_ptr)scp)->storage_class == (a_storage_class)sc_static)) {
       /* This entity has static storage class and needs to be individuated to
          avoid conflicts with similarly named entities in other translation
-         units. */
+         units.  Class members don't need individuation. */
       /* Note that g++ does this by adding an 'L' into the mangling at this
          point, but since there's no need to be compatible on this ABI
          extension, use the existing individuation mechanism. */

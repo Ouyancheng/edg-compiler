@@ -1,5 +1,21 @@
 Version 4.10
 
+12/2/14  [EDGcpfe/15747]
+Assertion failure when mangling lambda call operator (IA-64 ABI configs)
+
+An assertion failure (in mangled_ia64_parent_qualifier) had occurred when
+mangling a lambda call operator.  Now fixed.  For example (with --c++11
+-tused):
+
+  template <class T, void (T::*m)() const> void g();
+  template <class T> void h(const T &f) {
+    g<T, &T::operator()>();
+  }
+  void f() {
+    h([]() { });
+  }
+
+
 12/2/14  [EDGcpfe/14700]
 Incorrect IL for lowered thread_local rvalue references
 
