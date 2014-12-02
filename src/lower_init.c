@@ -16220,6 +16220,10 @@ has not yet been defined, it is created here.
     /* Return a pointer to the variable. */
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = var_addr_expr(var);
+    if (is_reference_type(var->type)) {
+      /* If the variable is a reference, add a cast to the proper type. */
+      return_stmt->expr = add_cast(return_stmt->expr, wrapper_type);
+    }  /* if */
     insert_statement(return_stmt, &insert_location);
     add_to_return_memo_list(return_stmt);
     /* Finish up. */
