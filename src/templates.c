@@ -6059,8 +6059,9 @@ the same constant.
   a_template_arg_ptr	arg1 = list1, arg2 = list2;
 #if CHECKING
   a_boolean		is_nonreal_member;
-  a_boolean		is_variadic;
+  a_boolean		pack_seen = FALSE;
 #endif /* CHECKING */
+  a_boolean		is_variadic;
   a_boolean		error_matches_anything;
   a_boolean		ignore_qualifiers;
   a_boolean		is_prototype;
@@ -6070,9 +6071,10 @@ the same constant.
 			cc_options;
 
   db_enter(4, "equiv_template_arg_lists");
+  is_variadic = (options & ETA_IS_VARIADIC) != 0;
 #if CHECKING
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
-  is_variadic = (options & ETA_IS_VARIADIC) != 0;
+  pack_seen = is_variadic;
 #endif /* CHECKING */
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
@@ -6094,32 +6096,36 @@ the same constant.
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   for (;;) {
-    /* Remove any pack expansion placeholders. */
-    while (arg1 != NULL &&
-           is_start_of_pack_expansion_templ_arg(arg1)) {
-      arg1 = arg1->next;
+    if (!is_variadic) {
+    /* Remove any pack expansion placeholders if the template being referenced
+       is not variadic. */
+      while (arg1 != NULL &&
+             is_start_of_pack_expansion_templ_arg(arg1)) {
+        arg1 = arg1->next;
 #if CHECKING
-      is_variadic = TRUE;
+        pack_seen = TRUE;
 #endif /* CHECKING */
-    }  /* while */
-    while (arg2 != NULL &&
-           is_start_of_pack_expansion_templ_arg(arg2)) {
-      arg2 = arg2->next;
+      }  /* while */
+      while (arg2 != NULL &&
+             is_start_of_pack_expansion_templ_arg(arg2)) {
+        arg2 = arg2->next;
 #if CHECKING
-      is_variadic = TRUE;
+        pack_seen = TRUE;
 #endif /* CHECKING */
-    }  /* while */
+      }  /* while */
+    }  /* if */
     if (arg1 == NULL || arg2 == NULL) break;
 #if CHECKING
     /* A pack expansion can occur in a nonreal argument list of a
-       non-variadic template.  Treat this as a variadic case. */
-    if (arg1->is_pack || arg2->is_pack) is_variadic = TRUE;
+       non-variadic template.  Treat this as variadic for checking
+       purposes. */
+    if (arg1->is_pack || arg2->is_pack) pack_seen = TRUE;
 #endif /* CHECKING */
     /* For a given non-variadic class, argument lists should always have
        the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
       equiv = FALSE;
-      check_assertion_str(is_nonreal_member || is_variadic,
+      check_assertion_str(is_nonreal_member || pack_seen,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
     } else if (arg1->is_pack != arg2->is_pack) {
@@ -6222,7 +6228,8 @@ the same constant.
       }  /* if */
       if (!equiv) break;
     } else {
-      unexpected_condition();
+      /* A start of pack expansion placeholder. */
+      check_assertion(is_start_of_pack_expansion_templ_arg(arg1));
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
@@ -6231,13 +6238,13 @@ the same constant.
 #if CHECKING
   /* If the lists are of different length, look for variadic arguments after
      we have reached the end of one of the lists. */
-  if (!is_variadic && arg1 != NULL) {
+  if (!pack_seen && arg1 != NULL) {
     a_template_arg_ptr	tap = arg1;
     for (; tap != NULL; tap = tap->next) {
-      if (tap->is_pack) is_variadic = TRUE;
+      if (tap->is_pack) pack_seen = TRUE;
     }  /* if */
   }  /* if */
-  if (!is_variadic && arg2 != NULL) {
+  if (!pack_seen && arg2 != NULL) {
     a_template_arg_ptr	tap = arg1;
     for (; tap != NULL; tap = tap->next) {
       if (tap->is_pack) is_variadic = TRUE;
@@ -6247,7 +6254,7 @@ the same constant.
   /* For a given function argument lists should always be exactly the same
      length. */
   check_assertion_or_expect_error_str(
-          is_variadic || is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
+          pack_seen || is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
           "equiv_template_arg_lists: unequal arg list lengths");
   if (equiv) {
     /* Make sure we are at the end of both argument lists.  This might not
@@ -6449,7 +6456,7 @@ specified by tssp.
   if (microsoft_bugs && microsoft_version <= 1100) {
     eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   }  /* if */
-  if (tssp->is_variadic) {
+  if (tssp->has_variadic_template_params) {
     eta_options |= ETA_IS_VARIADIC;
   }  /* if */
   return eta_options;
