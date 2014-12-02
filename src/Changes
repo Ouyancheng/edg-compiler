@@ -1,5 +1,16 @@
 Version 4.10
 
+12/2/14  [EDGcpfe/14566]
+Spurious error on default argument following a function parameter pack
+
+A spurious error had been given on the use of a default argument following
+a function parameter pack.  Now fixed.  For example (with --c++11):
+
+  struct A {
+    template <class ...T> A(T..., int=0);
+  };
+
+
 12/1/14  [EDGcpfe/15702,EDGcpfe/15732]
 Use of "this" in Microsoft-mode noexcept specification
 

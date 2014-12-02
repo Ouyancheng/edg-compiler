@@ -2479,7 +2479,7 @@ an error if a default argument expression is encountered.
                           extra_info;
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
-  a_boolean               default_arg_allowed_on_curr_param = FALSE;
+  a_boolean               declarator_allows_default_args = FALSE;
   a_boolean               ignore_disallowed_default_arg = FALSE;
   a_boolean               any_default_args = FALSE;
   a_source_position       last_default_arg_pos;
@@ -2650,7 +2650,7 @@ an error if a default argument expression is encountered.
            (di_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0) &&
           (!locator->is_operator_name ||
            locator->variant.opname == (an_opname_kind)onk_function_call)) {
-        default_arg_allowed_on_curr_param = TRUE;
+        declarator_allows_default_args = TRUE;
       }  /* if */
     }  /* if */
     /* Push a function prototype scope for the parameters. */
@@ -2696,6 +2696,8 @@ an error if a default argument expression is encountered.
         a_type_qualifier_set param_qualifiers = TQ_NONE;
         a_boolean            is_pack_element;
         a_boolean	     is_non_initial_pack_element;
+        a_boolean            default_arg_allowed_on_curr_param =
+                                                declarator_allows_default_args;
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
         is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
@@ -3233,7 +3235,7 @@ an error if a default argument expression is encountered.
               /* Default argument expressions are permitted on the second and
                  subsequent parameters of an operator new and delete
                  declarations. */
-              default_arg_allowed_on_curr_param = TRUE;
+              declarator_allows_default_args = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
