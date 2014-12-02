@@ -337,7 +337,6 @@ extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                                      a_boolean         record_backing_expr,
                                      a_source_position *pos,
                                      a_constant        *result_con,
-                                     a_boolean         *returns_reference,
                                      an_error_code     *failure_warning);
 
 extern void add_temp_init_backing_expression(a_constant         *con,

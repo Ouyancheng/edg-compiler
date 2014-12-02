@@ -5639,16 +5639,14 @@ of the call.
   if (constexpr_call_folding_should_be_done()) {
     an_error_code failure_warning;
     a_constant    result_con;
-    a_boolean     returns_reference;
     a_boolean     need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                            &result_con, &returns_reference,
-                            &failure_warning)) {
+                            &result_con, &failure_warning)) {
       folded = TRUE;
       make_constant_operand(&result_con, result);
       result->position = *pos;
-      if (returns_reference) {
+      if (is_reference_type(result->type)) {
         a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
         add_reference_indirection(result);
         if (is_rvalue_ref) {

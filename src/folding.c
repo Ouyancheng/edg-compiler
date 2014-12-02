@@ -9211,8 +9211,7 @@ static a_boolean i_fold_constexpr_call(
                               an_expr_node_ptr             call_expr,
                               a_constexpr_evaluation_block *ceblock,
                               a_boolean                    gnu_builtins_too,
-                              a_constant                   *result_con,
-                              a_boolean                    *returns_reference);
+                              a_constant                   *result_con);
 static a_boolean fold_object_expr(an_expr_node_ptr             expr,
                                   a_constexpr_evaluation_block *ceblock,
                                   a_boolean                    want_addr,
@@ -9832,11 +9831,8 @@ ceblock gives context information for the evaluation.
       case eok_dot_pm_call:
       case eok_points_to_pm_call:
         /* Try to fold a call if it's to a constexpr function. */
-        if (i_fold_constexpr_call(expr,
-                                  ceblock,
-                                  /*gnu_builtins_too=*/gnu_mode,
-                                  result_con,
-                                  (a_boolean *)NULL)) {
+        if (i_fold_constexpr_call(expr, ceblock, /*gnu_builtins_too=*/gnu_mode,
+                                  result_con)) {
           folded = TRUE;
         }  /* if */
         break;
@@ -10178,13 +10174,10 @@ ceblock gives context information for the evaluation.
         { a_routine_ptr rp = routine_from_function_expr(op1);
           if (rp != NULL && rp->is_constexpr &&
               is_reference_type(il_return_type_of(rp->type))) {
-            a_boolean returns_reference;
             folded = i_fold_constexpr_call(expr,
                                            ceblock,
                                            /*gnu_builtins_too=*/TRUE,
-                                           result_con,
-                                           &returns_reference);
-            check_assertion(returns_reference);
+                                           result_con);
           }  /* if */
         }
         break;
@@ -10547,21 +10540,15 @@ static a_boolean i_fold_constexpr_call(
                               an_expr_node_ptr             call_expr,
                               a_constexpr_evaluation_block *ceblock,
                               a_boolean                    gnu_builtins_too,
-                              a_constant                   *result_con,
-                              a_boolean                    *returns_reference)
+                              a_constant                   *result_con)
 /*
-call_expr is a call expression.  If it's calling a constexpr function,
-try to fold the call to a constant.  If that's possible, place the
-constant in *result_con and return TRUE; otherwise, return FALSE.  If
-returns_reference is non-NULL, *returns_reference is returned TRUE if
-the result is a reference, and result_con is the constant address for
-the reference.  If returns_reference is NULL, the caller requires a
-prvalue result and the reference return case will be converted to a
-prvalue if possible.  ceblock gives context information for the
-evaluation.  If gnu_builtins_too is TRUE, also attempt folding on
-GNU builtin functions.  This is the internal version of the routine,
-as indicated by the "i_" prefix; fold_constexpr_call should usually be
-called instead.
+call_expr is a call expression.  If it's calling a constexpr function, try
+to fold the call to a constant.  If that's possible, place the constant in
+*result_con and return TRUE; otherwise, return FALSE.  ceblock gives
+context information for the evaluation.  If gnu_builtins_too is TRUE, also
+attempt folding on GNU builtin functions.  This is the internal version of
+the routine, as indicated by the "i_" prefix; fold_constexpr_call should
+usually be called instead.
 */
 {
   a_boolean             folded = FALSE;
@@ -10570,7 +10557,6 @@ called instead.
   a_boolean             this_arg_is_pointer;
   a_constexpr_call      call_block;
 
-  if (returns_reference != NULL) *returns_reference = FALSE;
   check_assertion(is_call_node(call_expr));
   args = call_expr->variant.operation.operands;
   this_arg_is_pointer =
@@ -10677,23 +10663,8 @@ gnu_builtin_fail:;
         if (folded) {
           result_con->null_pointer_constant_ruled_out = TRUE;
           if (is_reference_type(il_return_type)) {
-            if (returns_reference != NULL) {
-              *returns_reference = TRUE;
-              /* Adjust lvalue reference to rvalue reference if necessary. */
-              result_con->type = il_return_type;
-            } else {
-              /* The caller is not expecting a reference result, so try
-                 to convert to an underlying constant value.  If we can't,
-                 the folding fails. */
-              a_constant copy;
-              copy_constant(result_con, &copy);
-              if (constant_value_at_address(&copy, ceblock,
-                                            result_con) != NULL) {
-                /* Okay. */
-              } else {
-                folded = FALSE;
-              }  /* if */
-            }  /* if */
+            /* Adjust lvalue reference to rvalue reference if necessary. */
+            result_con->type = il_return_type;
           }  /* if */
         }  /* if */
       } else {
@@ -10725,20 +10696,14 @@ a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
                               a_boolean         record_backing_expr,
                               a_source_position *pos,
                               a_constant        *result_con,
-                              a_boolean         *returns_reference,
                               an_error_code     *failure_warning)
 /*
-call_expr is a call expression.  If it's calling a constexpr function,
-try to fold the call to a constant.  If that's possible, place the
-constant in *result_con and return TRUE; otherwise, return FALSE.  If
-returns_reference is non-NULL, *returns_reference is returned TRUE if
-the result is a reference, and result_con is the constant address for
-the reference.  If returns_reference is NULL, the caller requires a
-prvalue result and the reference return case will be converted to an
-prvalue if possible.  pos gives the source position for the call.
-If failure_warning is non-NULL, *failure_warning will be set to
-the error code for a reason why folding failed, or ec_no_error
-if no specific reason is available.  If record_backing_expr is
+call_expr is a call expression.  If it's calling a constexpr function, try
+to fold the call to a constant.  If that's possible, place the constant in
+*result_con and return TRUE; otherwise, return FALSE.  pos gives the source
+position for the call.  If failure_warning is non-NULL, *failure_warning
+will be set to the error code for a reason why folding failed, or
+ec_no_error if no specific reason is available.  If record_backing_expr is
 TRUE, record call_expr as a backing expression for the resulting constant.
 */
 {
@@ -10746,11 +10711,8 @@ TRUE, record call_expr as a backing expression for the resulting constant.
   a_constexpr_evaluation_block ceblock;
 
   clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = i_fold_constexpr_call(call_expr,
-                                 &ceblock,
-                                 /*gnu_builtins_too=*/FALSE,
-                                 result_con,
-                                 returns_reference);
+  folded = i_fold_constexpr_call(call_expr, &ceblock,
+                                 /*gnu_builtins_too=*/FALSE, result_con);
   if (folded && record_backing_expr) result_con->expr = call_expr;
   if (failure_warning != NULL) {
     if (folded) {
