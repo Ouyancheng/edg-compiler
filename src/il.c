@@ -13260,7 +13260,8 @@ constant; otherwise, return NULL.
            instantiation. */
         expr = init->dynamic->variant.expression;
         if (expr_is_instantiation_dependent(expr) &&
-            !has_statement_expression(expr)) {
+            !has_statement_expression(expr) &&
+            init->dynamic->init_expr_lifetime == NULL) {
           /* Use the expression as a template parameter constant. */
         } else {
           /* Not a potential constant expression. */
