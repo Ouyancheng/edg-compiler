@@ -22200,6 +22200,7 @@ already been consumed.
   a_boolean         err = FALSE;
   a_statement_ptr   sp = NULL;
   a_source_position left_brace_position;
+  a_type_ptr        expr_type;
 
   left_brace_position = pos_curr_token;
   if (curr_expr_kind_is_traditional_const()) {
@@ -22235,6 +22236,7 @@ already been consumed.
     flush_until_matching_token();
     /* Skip the closing brace. */
     if (curr_token == tok_rbrace) (void)get_token();
+    expr_type = error_type();
   } else {
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
@@ -22255,18 +22257,18 @@ already been consumed.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Scan the compound statement. */
-    sp = compound_statement(/*at_function_level=*/FALSE,
-                            /*explicit_return_type=*/FALSE,
-                            /*is_catch_clause=*/FALSE,
-                            /*is_statement_expr=*/TRUE);
+    sp = compound_statement_full(/*at_function_level=*/FALSE,
+                                 /*explicit_return_type=*/FALSE,
+                                 /*is_catch_clause=*/FALSE,
+                                 /*is_statement_expr=*/TRUE, &expr_type);
     restore_expr_stack(saved_expr_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!err) {
+    if (expr_type == NULL) expr_type = void_type();
     a_statement_ptr     stmt, last_stmt;
-    a_type_ptr          expr_type;
     an_expr_node_ptr    expr;
     a_dynamic_init_ptr  dip = NULL;
     check_assertion(sp->kind == (a_statement_kind)stmk_block);
@@ -22282,21 +22284,9 @@ already been consumed.
     }  /* for */
     if (last_stmt != NULL &&
         last_stmt->kind == (a_statement_kind)stmk_stmt_expr_result) {
-      if (last_stmt->expr != NULL) {
-        expr_type = last_stmt->expr->type;
-      } else {
+      if (last_stmt->expr == NULL) {
         dip = last_stmt->variant.stmt_expr_result.dynamic_init;
         check_assertion(dip != NULL);
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-          a_routine_ptr  ctor = dip->variant.constructor.ptr;
-          check_assertion(ctor != NULL);
-          expr_type = parent_class_of(ctor);
-        } else {
-          check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression ||
-                          dip->kind == (a_dynamic_init_kind)
-                                                   dik_class_result_via_ctor);
-          expr_type = dip->variant.expression->type;
-        }  /* if */
       }  /* if */
       if (is_void_type(expr_type)) {
         set_expr_result_not_used(last_stmt->expr);
@@ -22310,8 +22300,6 @@ already been consumed.
           err = TRUE;
         }  /* if */
       }  /* if */
-    } else {
-      expr_type = void_type();
     }  /* if */
     if (!err) {
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
@@ -32261,6 +32249,8 @@ is FALSE, dip can be NULL.)
 #if GNU_EXTENSIONS_ALLOWED
   } else {
     a_boolean  incomplete;
+    check_assertion(struct_stmt_stack_top().is_statement_expr);
+    struct_stmt_stack_top().type = result.type;
     if (type_returned_by_cctor(result.type, &incomplete)) {
       a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
                                           CCO_MOVE_OPTIMIZATION_ALLOWED |

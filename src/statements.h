@@ -373,9 +373,13 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Pointer to a linked list of control flow entries
 			   identifying the continue statements (if any) in this
 			   structured statement. */
-  a_type_ptr	switch_selector_type;
-			/* The type of the switch selector expression
-			   (int or long). */
+  a_type_ptr	type;
+			/* A type associated with the statement.  For switch
+			   statements (ssk_switch), this is the type of the
+			   switch selector expression (int or long).  For the
+			   compound statement of a GNU statement expression,
+			   this is the result type.  Currently NULL for all
+			   other cases. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
@@ -470,10 +474,18 @@ extern void record_trivial_init_control_flow(a_variable_ptr  var);
 extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);
 
-extern a_statement_ptr compound_statement(a_boolean at_function_level,
-                                          a_boolean explicit_return_type,
-                                          a_boolean is_catch_clause,
-                                          a_boolean is_statement_expr);
+extern a_statement_ptr compound_statement_full(
+                                             a_boolean   at_function_level,
+                                             a_boolean   explicit_return_type,
+                                             a_boolean   is_catch_clause,
+                                             a_boolean   is_statement_expr,
+                                             a_type_ptr  *p_result_type);
+
+#define compound_statement(at_function_level, explicit_return_type,          \
+                           is_catch_clause, is_statement_expr)               \
+  (compound_statement_full(at_function_level, explicit_return_type,          \
+                           is_catch_clause, is_statement_expr,               \
+                           /*p_result_type=*/(a_type_ptr*)NULL))
 
 extern void start_of_function_try_block(void);
 

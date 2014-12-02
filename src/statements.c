@@ -2799,7 +2799,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->break_statements     = NULL;
   sssep->continue_label       = NULL;
   sssep->continue_statements  = NULL;
-  sssep->switch_selector_type = NULL;
+  sssep->type                 = NULL;
   sssep->curr_block_object_lifetime = olp;
   sssep->p_declared_entities  = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3806,7 +3806,7 @@ See also 3.6.4.2.
   }  /* if */
   /* Save the selector expression type for checking of the case label
      values. */
-  struct_stmt_stack[depth_stmt_stack].switch_selector_type = sp->expr->type;
+  struct_stmt_stack[depth_stmt_stack].type = sp->expr->type;
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -6358,7 +6358,7 @@ GNU also allows the "case range" form:
   if (sssep != NULL) {
     /* Assume the case is reachable if the switch is reachable. */
     merge_reachability(&sssep->start_reachable, &curr_reachability);
-    switch_type = sssep->switch_selector_type;
+    switch_type = sssep->type;
   } else {
     /* We are not inside a switch statement. */
     error(ec_case_label_must_be_in_switch);
@@ -6975,10 +6975,11 @@ performed by the caller).
 }  /* local_label_declaration */
 
 
-a_statement_ptr compound_statement(a_boolean  at_function_level,
-                                   a_boolean  explicit_return_type,
-                                   a_boolean  is_catch_clause,
-                                   a_boolean  is_statement_expr)
+a_statement_ptr compound_statement_full(a_boolean   at_function_level,
+                                        a_boolean   explicit_return_type,
+                                        a_boolean   is_catch_clause,
+                                        a_boolean   is_statement_expr,
+                                        a_type_ptr  *p_result_type)
 /*
 Scan a compound-statement.  The syntax is
 
@@ -6999,8 +7000,9 @@ come out on the closing "}".  If is_catch_clause is TRUE this is being called
 to scan the body of an exception handler.  The scope stack has already been
 pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).  If is_statement_expr is TRUE, this
-compound statement is the statement in a GNU statement expression,
-e.g., ({ ... }).
+compound statement is the statement in a GNU statement expression (of the
+form "({ ... })") and the result type of that compound statement is
+return through *p_result_type.
 */
 {
   a_statement_ptr            block;
@@ -7290,6 +7292,10 @@ e.g., ({ ... }).
      scope is popped.  (Note: process_curr_token_pragmas must be called after
      calling select_curr_construct_pragmas and before calling pop_scope.) */
   process_curr_token_pragmas();
+  if (is_statement_expr) {
+    check_assertion(p_result_type != NULL);
+    *p_result_type = struct_stmt_stack_top().type;
+  }  /* if */
   if (at_function_level) {
     /* Pop the statement stack. */
     pop_stmt_stack();
