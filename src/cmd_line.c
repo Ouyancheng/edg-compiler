@@ -1994,6 +1994,7 @@ static a_flag_name
   { "force_ms_type_info_not_in_namespace_std",
     &force_ms_type_info_not_in_namespace_std },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  { "terse_range_based_for_enabled", &terse_range_based_for_enabled },
   { NULL, NULL }  /* must be last */
 };
 
@@ -2299,9 +2300,6 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
-      if (microsoft_version >= 1900) {
-        terse_range_based_for_enabled = TRUE;
-      }  /* if */
     }  /* if */
     /* The Microsoft headers put va_list in the global namespace but create
        a using-declaration in namespace std.  Do the same thing unless

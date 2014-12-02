@@ -2401,8 +2401,13 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		terse_range_based_for_enabled;
-			/* When TRUE, the C++17 "terse" form of range-based-for
-			   statement is enabled (e.g., "for (x: v) ..."). */
+			/* When TRUE, the "terse" form of range-based-for
+			   statement is enabled (e.g., "for (x: v) ...").  This
+			   feature can currently only be enabled through the
+			   "set_flag" command-line option.  It was proposed for
+			   C++17 and for a brief time enabled in "preview"
+			   versions of the Microsoft compiler, but eventually
+			   the C++ standardization committee turned it down. */
 
 EXTERN a_boolean
 		deprecated_string_literal_conv_allowed;

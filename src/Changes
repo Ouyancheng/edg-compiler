@@ -914,24 +914,6 @@ instead of A<int>::f).  Now fixed.
   A<int> a;
 
 
-10/9/14  [EDGcpfe/15538]
-Microsoft compatibility: Terse form of range-based "for" statement
-
-In Microsoft C++ mode with microsoft_version >= 1900 the front end now accepts
-a "terse" form of the range-based "for" statement (see also the entry of 1/4/12
-for EDGcpfe/9255).  For example:
-
-  int main() {
-    int i[] = { 1, 3, 5 }, s = 0;
-    for (x: i) s += x;
-      // Equivalent to the C++11 form: for (auto &&x: i) ...
-    return s;
-  }
-
-(This feature has also been proposed for future C++ standardization through the
-committee's paper N3944.)
-
-
 10/9/14  [EDGcpfe/15541]
 Abort on typeref during cross-referencing output
 
