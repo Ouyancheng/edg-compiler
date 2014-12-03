@@ -22267,7 +22267,6 @@ already been consumed.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!err) {
-    if (expr_type == NULL) expr_type = void_type();
     a_statement_ptr     stmt, last_stmt;
     an_expr_node_ptr    expr;
     a_dynamic_init_ptr  dip = NULL;
@@ -22275,6 +22274,7 @@ already been consumed.
     /* The value of the expression is the value of the last statement
        in the block if it's an expression statement.  Otherwise, the
        expression is a void expression. */
+    if (expr_type == NULL) expr_type = void_type();
     last_stmt = NULL;
     for (stmt = sp->variant.block.statements;
          stmt != NULL;
