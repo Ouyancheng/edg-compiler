@@ -5741,7 +5741,6 @@ curr_routine points to the routine entry; otherwise, it is NULL.
     case sk_variable:
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
-      var_type = skip_typerefs(var_ptr->type);
       storage_class = var_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified &&
           (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
@@ -5801,7 +5800,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
           } else if (var_ptr->has_gnu_unused_attribute ||
-                     var_type->variables_are_implicitly_referenced) {
+                     skip_typerefs(var_ptr->type)
+                                      ->variables_are_implicitly_referenced) {
             /* Do not issue a remark about an unused parameter if the
                source explicitly annotated the parameter as being unused
                through a GNU attribute. */
@@ -5832,86 +5832,91 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
       } else if ((!sym->referenced ||
-                  (sym->value_has_been_set && !sym->variant.variable.used)) &&
+                  (sym->value_has_been_set && !sym->variant.variable.used))
 #if GNU_EXTENSIONS_ALLOWED
-                 !var_type->variables_are_implicitly_referenced &&
-                 !var_ptr->has_gnu_unused_attribute &&
-                 !var_ptr->has_gnu_used_attribute &&
-                 !var_ptr->is_weakref &&
+                 && !var_ptr->has_gnu_unused_attribute
+                 && !var_ptr->has_gnu_used_attribute
+                 && !var_ptr->is_weakref
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-                 var_ptr->section == NULL &&
+                 && var_ptr->section == NULL
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-                 !could_be_dependent_class_type(skip_array_types(var_type)) &&
-                 !is_error_type(var_type)) {
-        /* An unreferenced or unused variable or an unused parameter.
-           If a class is nonreal or if it has a template-dependent field or
-           base, it may yet have side effects and no diagnostic should be
-           issued.  In GNU C, variables with internal linkage are concatenated
-           within their section, which is sometimes used to create link-time
-           chains. */
-        a_boolean           suppress_warning;
-        an_error_code       error_code;
-        an_error_severity   severity = es_warning;
-        an_init_kind        init_kind;
-        an_initializer_ptr  ip;
+                                            ) {
+        /* An unreferenced or unused variable or an unused parameter.  In a
+           prototype instantiation context, class types and template parameter
+           types may yet have unestablished side effects and no diagnostic
+           should be issued (see below).  In GNU C, variables with internal
+           linkage are concatenated within their section, which is sometimes
+           used to create link-time chains. */
+        a_type_ptr  type = skip_array_types(var_ptr->type);
+        type = skip_typerefs(type);
+        if (!type->variables_are_implicitly_referenced &&
+            !(is_prototype_instantiation_context() &&
+              (is_immediate_class_type(type) ||
+               type->kind == (a_type_kind)tk_template_param)) &&
+            !is_error_type(type)) {
+          a_boolean           suppress_warning;
+          an_error_code       error_code;
+          an_error_severity   severity = es_warning;
+          an_init_kind        init_kind;
+          an_initializer_ptr  ip;
 
-        /* Check for a dynamic initialization that has side effects (such as
-           a constructor call).  If such an initialization exists, suppress
-           the warning. */
-        get_variable_initializer(var_ptr,
-                                 scope_stack[depth_scope_stack].il_scope,
-                                 &init_kind, &ip);
-        if (var_ptr->is_enhanced_for_iterator) {
-          /* Iterator variables of C++/CLI "for each" statements or
-             range-based-for statements shouldn't get warnings if unreferenced.
-             The loop itself might be the side effect. */
-          severity = es_remark;
-        } else
-        /* Do not insert code here. */
-        if (init_kind == (an_init_kind)initk_dynamic) {
-          a_dynamic_init_ptr dip = ip->dynamic;
-          if (is_dynamic_init_for_vla(dip)) {
-            /* Always issue a warning for an unreferenced VLA, even if
-               the declaration involves construction or destruction. */
-          } else if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-                     dip->destructor != NULL) {
-            /* Issue no diagnostic when a variable is initialized by a
-               constructor, or when its destructor will be called. This avoids
-               spurious diagnostics when the user defines a variable simply to
-               assure that the constructor or destructor is called. */
-            severity = es_none;
-          } else if (dynamic_init_has_side_effects(dip,
-                                                   /*for_unused_var=*/TRUE,
-                                                   &suppress_warning) ||
-                     suppress_warning) {
-            /* Initialization has side-effects -- issue a remark. */
+          /* Check for a dynamic initialization that has side effects (such as
+             a constructor call).  If such an initialization exists, suppress
+             the warning. */
+          get_variable_initializer(var_ptr,
+                                   scope_stack[depth_scope_stack].il_scope,
+                                   &init_kind, &ip);
+          if (var_ptr->is_enhanced_for_iterator) {
+            /* Iterator variables of C++/CLI "for each" statements or
+               range-based-for statements shouldn't get warnings if
+               unreferenced.  The loop itself might be the side effect. */
             severity = es_remark;
+          } else if (init_kind == (an_init_kind)initk_dynamic) {
+            a_dynamic_init_ptr dip = ip->dynamic;
+            if (is_dynamic_init_for_vla(dip)) {
+              /* Always issue a warning for an unreferenced VLA, even if
+                 the declaration involves construction or destruction. */
+            } else if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+                       dip->destructor != NULL) {
+              /* Issue no diagnostic when a variable is initialized by a
+                 constructor, or when its destructor will be called. This
+                 avoids spurious diagnostics when the user defines a variable
+                 simply to assure that the constructor or destructor is
+                 called. */
+              severity = es_none;
+            } else if (dynamic_init_has_side_effects(dip,
+                                                     /*for_unused_var=*/TRUE,
+                                                     &suppress_warning) ||
+                       suppress_warning) {
+              /* Initialization has side-effects -- issue a remark. */
+              severity = es_remark;
+            }  /* if */
+          } else if (il_header.any_templates_seen &&
+                     (!nonclass_prototype_instantiations ||
+                      defer_function_prototype_instantiations) &&
+                     instantiation_mode == tim_none &&
+                     (scope_kind == (a_scope_kind)sck_file ||
+                      scope_kind == (a_scope_kind)sck_namespace ||
+                      scope_kind == (a_scope_kind)sck_class_struct_union)) {
+            /* If we are not parsing all template definitions nor instantiating
+               all template uses, it is possible that we missed a reference/use
+               from a template to an enclosing scope (which can only be a file
+               scope, namespace scope, or class scope): Don't issue a warning
+               or remark in such cases since it would be unreliable. */
+            severity = es_none;
           }  /* if */
-        } else if (il_header.any_templates_seen &&
-                   (!nonclass_prototype_instantiations ||
-                    defer_function_prototype_instantiations) &&
-                   instantiation_mode == tim_none &&
-                   (scope_kind == (a_scope_kind)sck_file ||
-                    scope_kind == (a_scope_kind)sck_namespace ||
-                    scope_kind == (a_scope_kind)sck_class_struct_union)) {
-          /* If we are not parsing all template definitions nor instantiating
-             all template uses, it is possible that we missed a reference/use
-             from a template to an enclosing scope (which can only be a file
-             scope, namespace scope, or class scope): Don't issue a warning or
-             remark in such cases since it would be unreliable. */
-          severity = es_none;
-        }  /* if */
-        if (severity != es_none) {
-          /* Issue different diagnostics depending on whether the variable
-             was completely unreferenced or was set but not used. */
-          if (!sym->referenced) {
-            error_code = ec_declared_but_not_referenced;
-          } else {
-            check_assertion(sym->value_has_been_set);
-            error_code = ec_set_but_not_used;
+          if (severity != es_none) {
+            /* Issue different diagnostics depending on whether the variable
+               was completely unreferenced or was set but not used. */
+            if (!sym->referenced) {
+              error_code = ec_declared_but_not_referenced;
+            } else {
+              check_assertion(sym->value_has_been_set);
+              error_code = ec_set_but_not_used;
+            }  /* if */
+            report_unreferenced(sym, error_code, severity);
           }  /* if */
-          report_unreferenced(sym, error_code, severity);
         }  /* if */
       }  /* if */
       /* Check if this variable was declared using a type with no
