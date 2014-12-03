@@ -27754,6 +27754,7 @@ flag is set in the class symbol supplement of the given type.
         }  /* for */
       }  /* if */
       if (!cssp->known_not_to_be_a_literal_type &&
+          !cssp->known_to_be_a_literal_type &&
           !cssp->scanning_field_initializer &&
           check_if_constexpr_generated_default_constructor(type)) {
         /* The generated default constructor will be constexpr, so the type
@@ -27762,6 +27763,23 @@ flag is set in the class symbol supplement of the given type.
            the process of scanning field initializer, since that might yield
            an incorrect result. */
         cssp->known_to_be_a_literal_type = TRUE;
+      }  /* if */
+      if (!strict_ansi_mode &&
+          !cssp->known_not_to_be_a_literal_type &&
+          !cssp->known_to_be_a_literal_type) {
+        /* Consider the following case:
+             struct A { int a; };
+             struct B: A {};
+           Under C++11/C++14 rules, B is not a literal type because it's not
+           an aggregate type and it doesn't have a non-copy/move constexpr
+           constructor.  However, value-initialization does produce a constant
+           B value, and because of this existing practice is to treat B as a
+           literal type (this is also core issue 1452). */
+        a_constant  val;
+        if (!cssp->has_user_provided_default_constructor &&
+            make_value_initialized_constant(type, &val)) {
+          cssp->known_to_be_a_literal_type = TRUE;
+        }  /* if */
       }  /* if */
       if (!cssp->known_to_be_a_literal_type) {
         /* If we haven't concluded that the type is a literal type by now, it
