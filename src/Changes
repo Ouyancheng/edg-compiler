@@ -17,12 +17,12 @@ is now fixed.  For example, with --c++11:
   constexpr static int&& val (S&& arg) {
     return fwd(arg).t;
   }
-  constexpr int xxx (S&& arg) {
+  constexpr int xxx(S&& arg) {
     return val(fwd(arg));
   }
-  static_assert (xxx(S(1)) == 1, "");   // Previously reported "function
-                                        // call must have constant value"
-  static_assert (val(S(1)) == 1, "");   // Previously aborted
+  static_assert(xxx(S(1)) == 1, "");   // Previously reported "function
+                                       // call must have constant value"
+  static_assert(val(S(1)) == 1, "");   // Previously aborted
 
 
 12/2/14  [EDGcpfe/15747]
