@@ -1,5 +1,24 @@
 Version 4.10
 
+12/3/14  [EDGcpfe/15403]
+Abort on default initialization with a variadic constructor template
+
+The front end previously aborted with an internal error in
+push_template_instantiation_scope (scope_stk.c) when handling the default
+initializer in a prototype instantiation context for a class type with a
+variadic constructor template.  For example:
+
+  template<typename> struct S {
+    template<typename...> S();
+    void f();
+  };
+  template<typename T> void S<T>::f() {
+    S a;  // Previously triggered an internal error.
+  };
+
+This is now fixed.
+
+
 12/2/14  [EDGcpfe/15655]
 Incorrect handling of reference-returning constexpr functions
 

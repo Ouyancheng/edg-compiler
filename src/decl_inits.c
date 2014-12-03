@@ -5080,7 +5080,14 @@ FALSE is returned) for non-class objects.
         }  /* if */
       }  /* if */
       /* Find a default constructor. */
-      if (cssp->constructor != NULL) {
+      if (is_prototype_instantiation_context()) {
+        /* In general we cannot refer to constructors of nonreal classes, but
+           we should assume that they have them.  Even with real classes, we
+           cannot attempt to refer to the default constructor because doing do
+           could produce a spurious instantiation error.  Proceed with ctor and
+           dtor set to NULL, but do generate dynamic initializers in the IL. */
+        def_init_performed = TRUE;
+      } else if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            constructors represented in the normal cssp->constructor symbol.
            Look for a default constructor. */
@@ -5119,11 +5126,6 @@ FALSE is returned) for non-class objects.
            constructor) we still set def_init_performed as though default
            initialization were done even though it wasn't -- this will
            prevent a redundant diagnostic from being issued. */
-        def_init_performed = TRUE;
-      } else if (is_nonreal_class) {
-        /* In general we cannot refer to constructors of nonreal classes, but
-           we should assume that they have them.  Proceed with ctor and dtor
-           set to NULL, but do generate dynamic initializers in the IL. */
         def_init_performed = TRUE;
       } else {
         /* The class has no user-declared constructors. */
