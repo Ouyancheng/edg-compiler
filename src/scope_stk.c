@@ -5850,10 +5850,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            used to create link-time chains. */
         a_type_ptr  type = skip_array_types(var_ptr->type);
         type = skip_typerefs(type);
-        if (!type->variables_are_implicitly_referenced &&
-            !(is_prototype_instantiation_context() &&
+        if (!(is_prototype_instantiation_context() &&
               (is_immediate_class_type(type) ||
                type->kind == (a_type_kind)tk_template_param)) &&
+#if GNU_EXTENSIONS_ALLOWED
+            !type->variables_are_implicitly_referenced &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
             !is_error_type(type)) {
           a_boolean           suppress_warning;
           an_error_code       error_code;
