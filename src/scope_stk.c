@@ -5851,7 +5851,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         type = skip_typerefs(type);
         if (type->kind != (a_type_kind)tk_template_param &&
             !(is_immediate_class_type(type) &&
-              tp->variant.class_struct_union.is_nonreal_class) &&
+              type->variant.class_struct_union.is_nonreal_class) &&
 #if GNU_EXTENSIONS_ALLOWED
             !type->variables_are_implicitly_referenced &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
