@@ -5315,6 +5315,29 @@ FALSE is returned) for non-class objects.
 }  /* def_initializer */
 
 
+static void detach_object_lifetimes_for_aggr_init_elements(
+                                                     a_constant_ptr  aggr_con)
+/*
+aggr_con is an aggregate initializer appearing in a mem-initializer (a C++11
+feature).  Look through its initializer elements for dynamic initializations
+(including those in subaggregate initializers) and remove them from their
+associated destruction list (if any).  They will be reinserted by a call to
+restore_aggr_init_object_lifetimes once the final mem-initializer order is
+known.
+*/
+{
+  a_constant_ptr  con = aggr_con->variant.aggregate.first_constant;
+
+  for (; con != NULL; con = con->next) {
+    if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      remove_from_destruction_list(con->variant.dynamic_init);
+    } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+      detach_object_lifetimes_for_aggr_init_elements(con);
+    }  /* if */
+  }  /* for */
+}  /* detach_object_lifetimes_for_aggr_init_elements */
+
+
 static void detach_object_lifetime_for_dynamic_init(a_dynamic_init_ptr dip)
 /*
 If the indicated initialization has an associated object lifetime, detach
@@ -5322,22 +5345,27 @@ it from the object lifetime tree.  This is done for ctor-initializers
 so that the object lifetime list can be re-constructed in the canonical
 order rather than the order in which the initializers appear in the
 source.  Also unlink any destruction for an associated temporary whose
-lifetime was promoted to match a reference.
+lifetime was promoted to match a reference.  In the case of an aggregate
+initializer (a C++11 feature in the context of ctor-initializers), multiple
+destructions may have to be unlinked.
 */
 {
-  an_object_lifetime_ptr olp = init_expr_lifetime_of(dip);
-
-  if (olp != NULL) {
-    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
-    detach_from_object_lifetime_tree(olp);
-    /* Restore the parent destruction list (cleared by the call above) so
-       that when we re-insert the lifetime we can fix the related overlapping
-       dynamic init also. */
-    olp->parent_destruction_sublist = outer_dip;
-    if (outer_dip != NULL &&
-        outer_dip->overlaps_temps_in_inner_lifetime &&
-        outer_dip->lifetime_of_overlapping_temps == olp) {
-      remove_from_destruction_list(outer_dip);
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    detach_object_lifetimes_for_aggr_init_elements(dip->variant.constant);
+  } else {
+    an_object_lifetime_ptr olp = init_expr_lifetime_of(dip);
+    if (olp != NULL) {
+      a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
+      detach_from_object_lifetime_tree(olp);
+      /* Restore the parent destruction list (cleared by the call above) so
+         that when we re-insert the lifetime we can fix the related overlapping
+         dynamic init also. */
+      olp->parent_destruction_sublist = outer_dip;
+      if (outer_dip != NULL &&
+          outer_dip->overlaps_temps_in_inner_lifetime &&
+          outer_dip->lifetime_of_overlapping_temps == olp) {
+        remove_from_destruction_list(outer_dip);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* detach_object_lifetime_for_dynamic_init */
@@ -6447,39 +6475,70 @@ whole array.
 }  /* repeat_mem_init_for_array */
 
 
+static void restore_aggr_init_object_lifetimes(a_constant_ptr  aggr_con)
+/*
+aggr_con is an aggregate initializer appearing in a mem-initializer (a C++11
+feature).  Look through its initializer elements for dynamic initializations
+(including those in subaggregate initializers) and relink them on the order of
+destructions list of the appropriate object lifetime entry (they were unlinked
+by a call to detach_object_lifetimes_for_aggr_init_elements).
+*/
+{
+  a_constant_ptr  con = aggr_con->variant.aggregate.first_constant;
+
+  for (; con != NULL; con = con->next) {
+    if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      record_end_of_lifetime_destruction(con->variant.dynamic_init,
+                                         /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/TRUE);
+    } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+      restore_aggr_init_object_lifetimes(con);
+    }  /* if */
+  }  /* for */
+}  /* restore_aggr_init_object_lifetimes */
+
+
 static void restore_mem_init_object_lifetime(a_dynamic_init_ptr  dip)
 /*
 dip points to an entry describing a mem-initializer.  If the initializer had
 produced an object lifetime for the full expression, it was temporarily
-removed from the object lifetime tree.  Restore the object lifetime.  (This
-restoration must respect the order of initialization, which is not necessarily
-the order in which mem-initializers appear in the source.)
+removed from the object lifetime tree.  Restore the object lifetime and the
+associated destructions list.  (This restoration must respect the order of
+initialization, which is not necessarily the order in which mem-initializers
+appear in the source.)
 */
 {
-  an_object_lifetime_ptr  olp = init_expr_lifetime_of(dip);
-
-  if (olp != NULL) {
-    if (!long_lifetime_temps) {
-      /* Add the lifetime back in as a child of the current object
-         lifetime.  This assures that the order of the child-lifetime
-         list will reflect the actual order of construction. */
-      add_as_child_of_curr_object_lifetime(olp);
-    } else {
-      /* Promote destructions associated with expression temps to the
-         function scope lifetime. */
-      promote_lifetime_contents_to_curr_object_lifetime(olp);
-      if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-        an_expr_node_ptr  expr = dip->variant.expression;
-        if (expr->kind == (an_expr_node_kind)enk_object_lifetime &&
-            expr->variant.object_lifetime.ptr == olp) {
-          /* Link around the enk_object_lifetime expression -- it's not needed
-             any longer. */
-          dip->variant.expression = expr->variant.object_lifetime.expr;
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    /* For aggregate initializers (a C++11 feature in mem-initializer
+       contexts), the restoration amounts to restoring the element dynamic
+       initializer entries on the enclosing block's lifetime destructions
+       list. */
+    restore_aggr_init_object_lifetimes(dip->variant.constant);
+  } else {
+    an_object_lifetime_ptr  olp = init_expr_lifetime_of(dip);
+    if (olp != NULL) {
+      if (!long_lifetime_temps) {
+        /* Add the lifetime back in as a child of the current object
+           lifetime.  This assures that the order of the child-lifetime
+           list will reflect the actual order of construction. */
+        add_as_child_of_curr_object_lifetime(olp);
+      } else {
+        /* Promote destructions associated with expression temps to the
+           function scope lifetime. */
+        promote_lifetime_contents_to_curr_object_lifetime(olp);
+        if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+          an_expr_node_ptr  expr = dip->variant.expression;
+          if (expr->kind == (an_expr_node_kind)enk_object_lifetime &&
+              expr->variant.object_lifetime.ptr == olp) {
+            /* Link around the enk_object_lifetime expression -- it's not
+               needed any longer. */
+            dip->variant.expression = expr->variant.object_lifetime.expr;
+          }  /* if */
         }  /* if */
+        /* Unbind the object lifetime and return it to an available list. */
+        unbind_object_lifetime(olp);
+        free_object_lifetime(olp);
       }  /* if */
-      /* Unbind the object lifetime and return it to an available list. */
-      unbind_object_lifetime(olp);
-      free_object_lifetime(olp);
     }  /* if */
   }  /* if */
 }  /* restore_mem_init_object_lifetime */

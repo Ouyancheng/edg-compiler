@@ -1,5 +1,25 @@
 Version 4.10
 
+12/4/14  [EDGcpfe/15741]
+Invalid IL for aggregate mem-initializer with destructible elements
+
+C++11 added the ability to have constructors initialize members through
+aggregate initialization.  However, the front end produced invalid list of IL
+entries representing the destructions in some such cases.  That in turn could
+lead to an abort (in adjust_cleanup_state_for_aggregate_init) during IL
+lowering.  For example:
+
+  struct A { ~A(); };
+  struct B { A a1, a2; };  // Aggregate class with destructible elements.
+  struct C {
+    C() : b{A(),A()} {}  // The front end previously produced invalid IL for
+    A a;                 // the representation of destructions in this
+    B b;                 // destructor.
+  };
+
+This is now fixed.
+
+
 12/4/14  [EDGcpfe/15754]
 GNU/Clang compatibility: Call through an incomplete class
 
