@@ -7444,7 +7444,7 @@ specification and no indeterminate specification.
     if (esp == NULL) {
       result = FALSE;
     } else {
-      check_assertion(!esp->arg_cached);
+      check_assertion_or_expect_error(!esp->arg_cached);
       result = is_nothrow_spec(esp);
     }  /* if */
   } else {
