@@ -1,5 +1,23 @@
 Version 4.10
 
+12/4/14  [EDGcpfe/15754]
+GNU/Clang compatibility: Call through an incomplete class
+
+GCC and Clang accept the following case:
+
+  struct I;
+  template<class> void f(I const &i) {
+    i();  // Should be an error because i has an incomplete class type.
+  }
+
+We now emulate that behavior (but issue a warning) in Clang, GNU, and
+Microsoft C++ modes, by treating a call through an incomplete class type in a
+prototype instantiation context as a dependent call.  (This is often not an
+issue in Microsoft modes because prototype instantiations are usually not
+performed for function templates in that case, but this behavior adds a little
+bit of compatibility when forcing prototype instantiations in Microsoft mode.)
+
+
 12/3/14  [EDGcpfe/15638]
 Literal class types with no constexpr constructor
 
