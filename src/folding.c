@@ -5842,6 +5842,12 @@ address_escapes and template_constant are as for constant_glvalue_address_full
 }  /* make_constant_routine_address */
 
 
+static a_boolean fold_object_expr(an_expr_node_ptr             expr,
+                                  a_constexpr_evaluation_block *ceblock,
+                                  a_boolean                    want_addr,
+                                  a_constant                   *result_con);
+
+
 static a_boolean constant_glvalue_address_full(
                              an_expr_node_ptr              expr,
                              a_constexpr_evaluation_block  *ceblock,
@@ -5970,10 +5976,12 @@ a constexpr expansion, and the block provides context information.
             /* Field selection, x.y, or pointer-to-member field selection,
                x.*y.  If the left operand is a glvalue with a constant
                address, we can develop an address for the field. */
-            if (is_glvalue_node(op1) &&
-                constant_glvalue_address_full(op1, ceblock, &conaddr1,
-                                              address_escapes,
-                                              options, template_constant)) {
+            if ((is_glvalue_node(op1) &&
+                 constant_glvalue_address_full(op1, ceblock, &conaddr1,
+                                               address_escapes,
+                                               options, template_constant)) ||
+                fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
+                                 &conaddr1)) {
               if (op == (an_expr_operator_kind)eok_dot_field) {
                 goto handle_field_selection;
               } else {
@@ -9212,10 +9220,6 @@ static a_boolean i_fold_constexpr_call(
                               a_constexpr_evaluation_block *ceblock,
                               a_boolean                    gnu_builtins_too,
                               a_constant                   *result_con);
-static a_boolean fold_object_expr(an_expr_node_ptr             expr,
-                                  a_constexpr_evaluation_block *ceblock,
-                                  a_boolean                    want_addr,
-                                  a_constant                   *result_con);
 
 static a_constexpr_remap_ptr constant_remap_entry_for_variable(
                                          a_variable_ptr        var,
