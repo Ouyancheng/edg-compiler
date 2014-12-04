@@ -5406,7 +5406,7 @@ through the symbol table:  Establish that correspondence now if appropriate.
 }  /* f_change_to_canonical_types */
 
 #define change_to_canonical_types(type_1, type_2, seek_corresp)          \
-  (secondary_translation_unit_seen() && in_front_end &&                  \
+  (in_front_end && secondary_translation_unit_seen() &&                  \
    f_change_to_canonical_types(type_1, type_2, seek_corresp))
 
 
