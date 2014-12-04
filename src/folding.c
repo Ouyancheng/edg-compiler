@@ -5980,8 +5980,9 @@ a constexpr expansion, and the block provides context information.
                  constant_glvalue_address_full(op1, ceblock, &conaddr1,
                                                address_escapes,
                                                options, template_constant)) ||
-                fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
-                                 &conaddr1)) {
+                (ceblock != NULL &&
+                 fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
+                                  &conaddr1))) {
               if (op == (an_expr_operator_kind)eok_dot_field) {
                 goto handle_field_selection;
               } else {
