@@ -5041,7 +5041,7 @@ FALSE is returned) for non-class objects.
     if (is_array_type(tp)) {
       tp = f_skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
-    if (is_class_struct_union_type(tp)) {
+    if (is_immediate_class_type(tp)) {
       is_nonreal_class = tp->variant.class_struct_union.is_nonreal_class;
       cssp = symbol_supplement_for_class(tp);
     }  /* if */
@@ -5080,12 +5080,10 @@ FALSE is returned) for non-class objects.
         }  /* if */
       }  /* if */
       /* Find a default constructor. */
-      if (is_prototype_instantiation_context()) {
+      if (is_nonreal_class) {
         /* In general we cannot refer to constructors of nonreal classes, but
-           we should assume that they have them.  Even with real classes, we
-           cannot attempt to refer to the default constructor because doing do
-           could produce a spurious instantiation error.  Proceed with ctor and
-           dtor set to NULL, but do generate dynamic initializers in the IL. */
+           we should assume that they have them.  Proceed with ctor and dtor
+           set to NULL, but do generate dynamic initializers in the IL. */
         def_init_performed = TRUE;
       } else if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared

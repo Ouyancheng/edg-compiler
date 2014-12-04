@@ -5842,17 +5842,16 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                  && var_ptr->section == NULL
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
                                             ) {
-        /* An unreferenced or unused variable or an unused parameter.  In a
-           prototype instantiation context, class types and template parameter
-           types may yet have unestablished side effects and no diagnostic
-           should be issued (see below).  In GNU C, variables with internal
-           linkage are concatenated within their section, which is sometimes
-           used to create link-time chains. */
+        /* An unreferenced or unused variable or an unused parameter.  Nonreal
+           class types and template parameter types may yet have unestablished
+           side effects and no diagnostic should be issued (see below).  In
+           GNU C, variables with internal linkage are concatenated within their
+           section, which is sometimes used to create link-time chains. */
         a_type_ptr  type = skip_array_types(var_ptr->type);
         type = skip_typerefs(type);
-        if (!(is_prototype_instantiation_context() &&
-              (is_immediate_class_type(type) ||
-               type->kind == (a_type_kind)tk_template_param)) &&
+        if (type->kind != (a_type_kind)tk_template_param &&
+            !(is_immediate_class_type(type) &&
+              tp->variant.class_struct_union.is_nonreal_class) &&
 #if GNU_EXTENSIONS_ALLOWED
             !type->variables_are_implicitly_referenced &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
