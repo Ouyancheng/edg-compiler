@@ -27817,6 +27817,11 @@ look_for_var:
   /* We didn't find the variable in the immediately enclosing function.
      If we've bumped into an intermediate lambda, handle that and if
      appropriate keep looking. */
+  if (scope_is(&scope_stack[sd], sck_template_instantiation)) {
+    /* Generic lambdas have a template instantiation scope surrounding the
+       function scope of the call operator. */
+    --sd;
+  }  /* if */
   if (scope_is(&scope_stack[sd], sck_class_struct_union)) {
     a_type_ptr class_type = scope_stack[sd].assoc_type;
     if (class_type_supp(class_type)->is_lambda_closure_class) {
