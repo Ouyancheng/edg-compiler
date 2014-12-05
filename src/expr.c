@@ -32267,6 +32267,7 @@ is FALSE, dip can be NULL.)
                                           CCO_MOVE_OPTIMIZATION_ALLOWED |
                                           CCO_STMT_EXPR_RESULT);
       /* Build a dynamic initialization entry for the return statement. */
+      check_assertion(dip != NULL);
       prep_elision_initializer_operand(&result, result.type,
                                        /*fill_in_dtor=*/FALSE,
                                        conv_context, ec_bad_gnu_stmt_return,
