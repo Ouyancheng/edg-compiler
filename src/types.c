@@ -336,6 +336,7 @@ Note that cv-qualifiers ARE stripped off.
   return type_ptr;
 }  /* skip_typerefs_not_dependent_decltypes */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr skip_typerefs_not_parameterized_decltypes(a_type_ptr type_ptr)
 /*
@@ -357,6 +358,7 @@ type is skipped by this routine.
   return type_ptr;
 }  /* skip_typerefs_not_parameterized_decltypes */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_type_ptr skip_typedefs_not_dependent_decltypes(a_type_ptr type_ptr)
 /*
