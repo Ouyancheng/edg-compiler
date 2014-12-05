@@ -30508,7 +30508,6 @@ Scan a C++ lambda expression, e.g., something like
       if (lcp->is_init_capture) {
         free_decl_parse_state(lcp->capture_info.init_capture_dps);
         lcp->capture_info.init_capture_dps = NULL;
-        symbol_for(lcp->closure_field)->is_invisible = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

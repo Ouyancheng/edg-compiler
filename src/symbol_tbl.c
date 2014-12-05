@@ -12968,6 +12968,8 @@ interface classes.
          gpp_dependent_name_lookup) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
+    /* Don't look for progenitors in lambda closure classes. */
+    if (type_is_lambda_closure(bcp->type)) continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* In C++/CLI mode, look_in_interfaces will be FALSE for lookups that
        begin in a non-interface class. */
