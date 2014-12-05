@@ -28310,7 +28310,9 @@ available, issue an error at the given position.
     if (rp->is_template_function && !routine_has_been_defined(rp)) {
       force_instantiation_to_deduce_return_type(rp);
     }  /* if */
-    if (!rp->has_deduced_return_type) {
+    /* If the instantiation resulted in recursion, has_deducible_return_type
+       will have been set to FALSE by the code below. */
+    if (!rp->has_deduced_return_type && rp->has_deducible_return_type) {
       check_assertion(!rp->defined &&
                       rp->type->kind == (a_type_kind)tk_routine);
       pos_sy_error(ec_use_of_undefined_function_with_deduced_return_type,
