@@ -17737,12 +17737,19 @@ be called to start a copy.
       break;
     case enk_lambda:
       /* Make a copy of the lambda and its initialization. */
-      check_assertion(in_file_scope(expr->variant.lambda.ptr) ||
-                      !in_file_scope(expr_copy));
-      expr_copy->variant.lambda.ptr = copy_lambda(expr->variant.lambda.ptr);
-      expr_copy->variant.lambda.initialization =
+      if (!in_file_scope(expr->variant.lambda.ptr) &&
+          in_file_scope(expr_copy)) {
+        /* A local lambda should never have to be copied into file-scope
+           memory (it would cause memory region problems with captures), but
+           we may get here in severe error cases. */
+        expect_error();
+        expr_copy = error_node();
+      } else {
+        expr_copy->variant.lambda.ptr = copy_lambda(expr->variant.lambda.ptr);
+        expr_copy->variant.lambda.initialization =
                        i_copy_dynamic_init(expr->variant.lambda.initialization,
                                            options, cblock);
+      }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
