@@ -4901,7 +4901,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         a_type_ptr    temp_type;
         a_symbol_ptr  sym;
         a_boolean     is_member_function_typedef = FALSE;
-        temp_type = skip_typerefs_not_dependent_decltypes(complete_type);
+        temp_type = skip_typerefs_not_parameterized_decltypes(complete_type);
         if (!same_entities(temp_type, complete_type)) {
           if (any_cfront_mode()) {
             /* Check for a special form of member function typedef that is

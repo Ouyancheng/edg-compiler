@@ -58,6 +58,8 @@ extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_dependent_decltypes(a_type_ptr type_ptr);
+extern a_type_ptr skip_typerefs_not_parameterized_decltypes(
+                                                         a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs_not_dependent_decltypes(a_type_ptr type_ptr);
 #if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(

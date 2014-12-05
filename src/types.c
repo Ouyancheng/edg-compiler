@@ -337,6 +337,27 @@ Note that cv-qualifiers ARE stripped off.
 }  /* skip_typerefs_not_dependent_decltypes */
 
 
+a_type_ptr skip_typerefs_not_parameterized_decltypes(a_type_ptr type_ptr)
+/*
+Strip any typeref entries off the given type, and return a pointer to the
+underlying type, but keep decltype or typeof types that depend on a template
+parameter.  This is distinct from skip_typerefs_not_dependent_decltypes in
+that a decltype that is instantiation dependent but with an otherwise known
+type is skipped by this routine.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref) {
+    if (type_ptr->variant.typeref.is_dependent_type_operator &&
+        is_template_dependent_type(type_ptr->variant.typeref.type)) {
+      break;
+    } else {
+      type_ptr = type_ptr->variant.typeref.type;
+    }  /* if */
+  }  /* while */
+  return type_ptr;
+}  /* skip_typerefs_not_parameterized_decltypes */
+
+
 a_type_ptr skip_typedefs_not_dependent_decltypes(a_type_ptr type_ptr)
 /*
 Strip any typedef entries off the given type, and return a pointer to
