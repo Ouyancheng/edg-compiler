@@ -24470,6 +24470,7 @@ that follows.
 #endif /* DECL_MODIFIERS_IN_USE */
       } else {
         /* A specialization of a routine. */
+        rp->has_deducible_return_type = dps->has_deducible_return_type;
         if (special_kind_is(rp, sfk_destructor) ||
             (special_kind_is(rp, sfk_operator) &&
              is_delete_operator(rp->variant.opname_kind))) {

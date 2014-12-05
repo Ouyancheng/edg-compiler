@@ -1,5 +1,18 @@
 Version 4.10
 
+12/5/14  [EDGcpfe/15744]
+Explicit specializations and deduced return types
+
+The front end produced invalid IL and often aborted when an explicit
+specialization involved a deduced return type.  For example:
+
+  template<typename T> T f() {return T();}
+  template<> auto&& f() { return 1; }  // Previously triggered an internal
+                                       // error in generic_cast_operand.
+
+This is now fixed.
+
+
 12/4/14  [EDGcpfe/15741]
 Invalid IL for aggregate mem-initializer with destructible elements
 
