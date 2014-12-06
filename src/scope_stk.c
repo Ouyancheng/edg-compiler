@@ -4276,8 +4276,10 @@ information about the parameters.
   a_scope_kind	kind = scope == NULL ? (a_scope_kind)sck_none : scope->kind;
   /* If a class was specified, the scope will be the file scope, but we
      want to ignore that and reactivate the class scope below. */
-  if (definition_class != NULL) kind = (a_scope_kind)sck_class_struct_union;
-  if (is_local_scope_kind(kind) && (options & PS_IS_GENERIC_LAMBDA) == 0) {
+  if (definition_class != NULL) {
+    kind = (a_scope_kind)sck_class_struct_union;
+  } else if (is_local_scope_kind(kind) &&
+             (options & PS_IS_GENERIC_LAMBDA) == 0) {
     /* We are pushing a local scope for something that is not a generic
        lambda.  Don't actually push the scope.  This can happen in cases
        such as an inheriting constructor in a local class. */
@@ -4285,6 +4287,7 @@ information about the parameters.
   }  /* if */
   switch (kind) {
     case sck_block:
+    case sck_condition:
       reactivate_local_context(decl_info, scope,
                                instance_sym, (a_type_ptr)NULL,
                                (a_routine_ptr)NULL,
