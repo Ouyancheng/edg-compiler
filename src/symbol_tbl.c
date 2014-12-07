@@ -12505,6 +12505,8 @@ the lookup should consider C++/CLI interface classes.
   a_boolean	    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
   a_progenitor_ptr  progenitor, pp;
   a_symbol_ptr      class_symbol;
+  a_type_ptr        base_type = base_class->type;
+  a_boolean         is_closure = type_is_lambda_closure(base_type);
   a_class_symbol_supplement_ptr
                     cssp;
 
@@ -12513,11 +12515,11 @@ the lookup should consider C++/CLI interface classes.
   if (debug_level >= 4) {
     fprintf(f_debug, "looking for \"%s\" in base class \"%s\"\n",
                      locator->symbol_header->identifier,
-                     base_class->type->source_corresp.name);
+                     base_type->source_corresp.name);
   }  /* if */
 #endif /* DEBUG */
   /* First look in the scope of the base class itself. */
-  scope = base_class->type->variant.class_struct_union.extra_info->assoc_scope;
+  scope = base_type->variant.class_struct_union.extra_info->assoc_scope;
   if (scope == NULL) {
     /* This is probably a nonreal class encountered during a prototype
        instantiation.  Ignore it. */
@@ -12529,7 +12531,7 @@ the lookup should consider C++/CLI interface classes.
        the inactive list).  class_qualified_id_lookup is not called for two
        reasons:  to avoid unnecessary overhead and to prevent extra projection
        symbols from being created. */
-    class_symbol = symbol_for(base_class->type);
+    class_symbol = symbol_for(base_type);
     cssp = class_symbol->variant.class_struct_union.extra_info;
     sym = find_symbol_list_in_table(&cssp->pointers_block,
                                     locator->symbol_header);
@@ -12541,6 +12543,9 @@ the lookup should consider C++/CLI interface classes.
         /* Ignore this symbol if it doesn't match the lookup options
            specified by the caller. */
         if (!sym_matches_lookup_options(sym, options)) continue;
+        /* Ignore fields of lambda closure classes -- they should not be found
+           in base class lookups. */
+        if (is_closure && symbol_is(sym, sk_field)) continue;
         if (is_tag_symbol(fundamental_symbol_of(sym))) {
           if (must_be_tag) {
             /* Tag symbol is required and that's what we have. */
@@ -12604,7 +12609,7 @@ the lookup should consider C++/CLI interface classes.
     /* Not found in the current base class, so examine its own base classes,
        if any.  Note that a linked list of progenitor entries may be returned
        -- this usually represents an ambiguity. */
-    progenitor = find_progenitor(base_class->type, locator, options,
+    progenitor = find_progenitor(base_type, locator, options,
 				 look_in_dependent_bases, look_in_interfaces);
   }  /* if */
   /* Update the path and access fields of each entry in the set of
@@ -12968,8 +12973,6 @@ interface classes.
          gpp_dependent_name_lookup) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
-    /* Don't look for progenitors in lambda closure classes. */
-    if (type_is_lambda_closure(bcp->type)) continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* In C++/CLI mode, look_in_interfaces will be FALSE for lookups that
        begin in a non-interface class. */
