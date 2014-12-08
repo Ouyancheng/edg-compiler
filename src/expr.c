@@ -32261,6 +32261,7 @@ is FALSE, dip can be NULL.)
   } else {
     a_boolean  incomplete;
     check_assertion(struct_stmt_stack_top().is_statement_expr);
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
     struct_stmt_stack_top().type = result.type;
     if (type_returned_by_cctor(result.type, &incomplete)) {
       a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
