@@ -30190,11 +30190,7 @@ The heavy lifting for this routine is performed by scan_function_body.
       a_routine_ptr      rp = lambda->lambda_routine;
       a_decl_flag_set    sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                                      SFB_NO_CLASS_REACTIVATION;
-      /* Keep the lambda call operator invisible while scanning the lambda
-         body. */
-      symbol_for(rp)->is_invisible = TRUE;
       scan_function_body(rp, func_info, sfb_flags);
-      symbol_for(rp)->is_invisible = FALSE;
     }  /* if */
     if (curr_token == tok_rbrace) {
       /* Don't use required_token, because if we aren't at a brace, an error

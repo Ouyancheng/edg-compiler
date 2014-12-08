@@ -1050,7 +1050,15 @@ of lambda expressions.
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
                          (a_type_ptr)NULL, rout_ptr);
-  scope_stack_top().lambda = func_info->lambda;
+  if (func_info->lambda != NULL) {
+    scope_stack_top().lambda = func_info->lambda;
+    /* Make the lambda call operator invisible inside its own definition. */
+    if (rout_ptr->is_template_function) {
+      symbol_for(rout_ptr->assoc_template)->is_invisible = TRUE;
+    } else {
+      symbol_for(rout_ptr)->is_invisible = TRUE;
+    }  /* if */
+  }  /* if */
   /* Make sure the implicit_typename flag is FALSE during prototype
      instantiations.  It could be set if we are in a mode where
      nonclass prototype instantiations are not normally done, but we
@@ -1421,6 +1429,15 @@ of lambda expressions.
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
     check_deduced_return_type(rout_ptr, &body_pos);
+  }  /* if */
+  if (func_info->lambda != NULL) {
+    /* The lambda call operator was made invisible above; make it visible
+       again. */
+    if (rout_ptr->is_template_function) {
+      symbol_for(rout_ptr->assoc_template)->is_invisible = FALSE;
+    } else {
+      symbol_for(rout_ptr)->is_invisible = FALSE;
+    }  /* if */
   }  /* if */
   /* Pop the function scope. */
   pop_scope();
