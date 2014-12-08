@@ -27,9 +27,9 @@ This is now fixed.
 Invalid IL for aggregate mem-initializer with destructible elements
 
 C++11 added the ability to have constructors initialize members through
-aggregate initialization.  However, the front end produced invalid list of IL
-entries representing the destructions in some such cases.  That in turn could
-lead to an abort (in adjust_cleanup_state_for_aggregate_init) during IL
+aggregate initialization.  However, the front end produced an invalid list of
+IL entries representing the destructions in some such cases.  That in turn
+could lead to an abort (in adjust_cleanup_state_for_aggregate_init) during IL
 lowering.  For example:
 
   struct A { ~A(); };
@@ -37,7 +37,7 @@ lowering.  For example:
   struct C {
     C() : b{A(),A()} {}  // The front end previously produced invalid IL for
     A a;                 // the representation of destructions in this
-    B b;                 // destructor.
+    B b;                 // constructor.
   };
 
 This is now fixed.
