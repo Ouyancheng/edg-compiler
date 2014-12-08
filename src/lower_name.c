@@ -3487,10 +3487,7 @@ add mangling for an eok_address_of operation.
 #if ABI_COMPATIBILITY_VERSION >= 402
     if ((kind == iek_routine &&
          (((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static)
-#if ABI_COMPATIBILITY_VERSION >= 410
-          && !scp->is_class_member
-#endif /* ABI_COMPATIBILITY_VERSION >= 410 */
-                                  ) ||
+          && !scp->is_class_member) ||
         (kind == iek_variable &&
          ((a_variable_ptr)scp)->storage_class == (a_storage_class)sc_static)) {
       /* This entity has static storage class and needs to be individuated to
