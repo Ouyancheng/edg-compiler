@@ -10213,16 +10213,11 @@ ceblock gives context information for the evaluation.
         break;
     }  /* switch */
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    /* A temp-init with a const type and a constant value can be considered
-       a constant, and the address of a temporary containing the constant
-       returned. */
+    /* A temp-init with a non-volatile type and a constant value can be
+       considered a constant, and the address of a temporary containing the
+       constant returned. */
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-    if ((is_const_qualified_type(expr->type) ||
-         dip->is_top_temporary_for_constexpr_reference_param ||
-         /* We allow short-lifetime temps so that something like "(int &&)37"
-            in the middle of an expression can be evaluated to a constant. */
-         dip->has_temporary_lifetime) &&
-        !is_volatile_qualified_type(expr->type) &&
+    if (!is_volatile_qualified_type(expr->type) &&
         fold_dynamic_init(dip,
                           expr->type,
                           ceblock,
