@@ -29266,7 +29266,8 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
       /* Presumably a (direct or indirect) capture of an init-capture. */
       a_field_ptr  source_field = lcp->capture_info.source_closure_field;
       check_assertion(source_field != NULL);
-      if (symbol_for(source_field)->header == sym_hdr) {
+      if (symbol_for(source_field) != NULL &&
+          symbol_for(source_field)->header == sym_hdr) {
         break;
       }  /* if */
     }  /* if */
