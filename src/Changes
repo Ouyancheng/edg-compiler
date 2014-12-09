@@ -1,5 +1,20 @@
 Version 4.10
 
+12/8/14  [EDGcpfe/15775]
+Abort on bad iterator declaration in range-based "for" statement
+
+The front end previously aborted in scan_range_based_for_expression (with a
+null pointer indirection) when recovering from certain errors in the
+declaration of the iterator variable of a C++11 range-based "for" statement.
+For example:
+
+  void g() {
+    for ([]{} : {}) {}  // Previously triggered an abort.
+  }
+
+This is now fixed.
+ 
+
 12/8/14  [EDGcpfe/15607]
 Binding a non-const constexpr reference to a numeric literal
 

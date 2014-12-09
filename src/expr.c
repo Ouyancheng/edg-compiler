@@ -36376,10 +36376,14 @@ Sets *expr_position to the beginning position of the range expression.
           &still_dependent) &&
         !still_dependent) {
       /* Deduction failed. */
-      expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
-                       ec_cannot_deduce_decltype_auto_type :
-                       ec_cannot_deduce_auto_type,
-                     init_component_pos(alep));
+      if (rbflp->iterator != NULL) {
+        expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
+                         ec_cannot_deduce_decltype_auto_type :
+                         ec_cannot_deduce_auto_type,
+                       init_component_pos(alep));
+      } else {
+        expect_error();
+      }  /* if */
       conv_braced_init_component_to_error_expression(alep);
       copy_operand(operand_of_arg_list_elem(alep), &result);
     } else {
