@@ -1,5 +1,17 @@
 Version 4.10
 
+12/8/14  [EDGcpfe/15770]
+Abort on invalid qualification of decltype(auto) return type
+
+The front end aborted in get_template_arg_by_list_pos with a null pointer
+dereference when dealing with the invalid qualification of decltype(auto)
+used as a (deduced) return type.  For example:
+
+  decltype(auto) const g() { return 1; }  // Previously aborted.
+
+This is now fixed.
+
+
 12/8/14  [EDGcpfe/15775]
 Abort on bad iterator declaration in range-based "for" statement
 
