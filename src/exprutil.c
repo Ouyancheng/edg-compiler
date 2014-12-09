@@ -14442,6 +14442,9 @@ TRUE.  If the member is a bit field, issue an error.
 #endif /* CHECKING */
     /* Pointer to nonstatic member function. */
     rout = base_member_sym->variant.routine.ptr;
+    if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
+      finalize_deduced_return_type(rout, position);
+    }  /* if */
     set_ptr_to_member_function_constant(rout, &constant);
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */

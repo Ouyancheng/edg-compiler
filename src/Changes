@@ -1,5 +1,20 @@
 Version 4.10
 
+12/9/14  [EDGcpfe/15762]
+Pointer-to-member functions and deduced return types
+
+Previously, the front end sometimes produced invalid IL when dealing with
+pointer-to-member function constants referring to a member function with a
+C++14 deduced return type.  That in turn usually resulted in an abort later
+on (e.g., during lowering).  For example:
+
+  struct S { auto f(); };
+  bool b = &S::f == nullptr;  // Previously triggered an abort in
+                              // lower_constant.
+
+This is now fixed.
+
+
 12/9/14  [EDGcpfe/15777]
 C-generating back end: incorrect generated code for member access expression
 
