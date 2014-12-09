@@ -4469,6 +4469,10 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 }  /* dump_va_arg */
 
 
+static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
+                                              a_boolean        *comma_case);
+
+
 static void dump_lvalue_cast(an_expr_node_ptr node,
                              a_boolean        suppress_indirection)
 /*
@@ -4479,6 +4483,7 @@ on top of the expansion.
 {
   a_boolean        use_simple_cast = FALSE;
   an_expr_node_ptr operand_1 = node->variant.operation.operands;
+  a_boolean        suppress_ampersand = FALSE;
 
   write_tok_ch('(');
   /* Generate the lvalue cast as an indirection on a pointer cast.
@@ -4488,12 +4493,20 @@ on top of the expansion.
   if (is_operation_node(operand_1) &&
       (node_operator_is(operand_1, eok_dot_field) ||
        node_operator_is(operand_1, eok_points_to_field))) {
-    a_field_ptr field;
-    check_assertion(operand_1->variant.operation.operands->next->kind ==
-                                                 (an_expr_node_kind)enk_field);
-    field = operand_1->variant.operation.operands->next->variant.field;
+    an_expr_node_ptr object_expr;
+    a_field_ptr      field;
+    a_boolean        comma_case;
+    object_expr = operand_1->variant.operation.operands;
+    check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
+    field = object_expr->next->variant.field;
     if (field->is_bit_field) {
       use_simple_cast = TRUE;
+    } else if (node_operator_is(operand_1, eok_dot_field) &&
+               !object_expr->is_lvalue &&
+               (!optimizable_rvalue_selection(operand_1, &comma_case) ||
+                comma_case)) {
+      suppress_ampersand = TRUE;
+      operand_1->variant.operation.has_deferred_ampersand = TRUE;
     }  /* if */
   }  /* if */
   if (use_simple_cast) {
@@ -4527,7 +4540,7 @@ on top of the expansion.
          gcc bug when the underlying type is incomplete. */
       dump_lvalue_cast(operand_1, /*suppress_indirection=*/TRUE);
       goto after_operand_output;
-    } else {
+    } else if (!suppress_ampersand) {
       write_tok_ch('&');
     }  /* if */
   }  /* if */
@@ -4698,6 +4711,12 @@ output with parentheses if needed.
         an_expr_node_ptr comma_operand_2 = comma_operand_1->next;
         dump_expr_with_parens(comma_operand_1);
         write_tok_str(", ");
+        if (expr->variant.operation.has_deferred_ampersand) {
+          /* The address of the member is needed, but "&" cannot be applied
+             to a comma expression so it must now be put out for the second
+             operand of the comma. */
+          write_tok_ch('&');
+        }  /* if */
         dump_expr_with_parens(comma_operand_2);
       } else {
         if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
@@ -4715,6 +4734,12 @@ output with parentheses if needed.
       write_tok_str(" = ");
       dump_expr_with_parens(struct_expr);
       write_tok_str(", ");
+      if (expr->variant.operation.has_deferred_ampersand) {
+        /* The address of the member is needed, but "&" cannot be applied
+           to a comma expression so it must now be put out for the second
+           operand of the comma. */
+        write_tok_ch('&');
+      }  /* if */
       dump_temp_name((char *)expr);
     }  /* if */
     if (!promoted_bit_field_case) {

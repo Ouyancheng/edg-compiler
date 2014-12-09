@@ -15636,6 +15636,20 @@ typedef struct an_expr_node {
 			   eok_derived_class_cast, and eok_ref_cast (for
 			   casts to tracking references). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_C_GEN_BE
+      a_bit_field
+		has_deferred_ampersand:1;
+			/* TRUE for certain eok_dot_field nodes that are
+			   operands of an eok_lvalue_adjust node and whose
+			   first operand is not an lvalue.  Such nodes may
+			   be dumped as a comma expression, assigning to a
+			   variable and then referencing the member of the
+			   variable.  Because a comma expression cannot be
+			   the operand of an "&", which is part of the
+			   ordinary expansion of an eok_lvalue_adjust, the
+			   "&" must be deferred and applied to the second
+			   operand of the comma instead. */
+#endif /* BACK_END_IS_C_GEN_BE */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

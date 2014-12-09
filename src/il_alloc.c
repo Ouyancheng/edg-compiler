@@ -3116,6 +3116,9 @@ fields to default values.
                                 (a_rewritten_property_reference_kind)rprk_none;
       node->variant.operation.requires_runtime_cast_check = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_C_GEN_BE
+      node->variant.operation.has_deferred_ampersand = FALSE;
+#endif /* BACK_END_IS_C_GEN_BE */
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:

@@ -1,5 +1,26 @@
 Version 4.10
 
+12/9/14  [EDGcpfe/15777]
+C-generating back end: incorrect generated code for member access expression
+
+The C-generating back end previously produced incorrect code for a member
+access expression involving a qualification conversion on a non-lvalue in
+the lowered code.  In such cases, the generated code attempted to take the
+address of a comma expression in which the first operand computed the
+struct value and the second operand was a member access within the result
+of the first operand.  This has now been fixed by moving the address
+operation from the comma expression to its second operand.  For example:
+
+  const struct S { S() { } } s;
+  struct A {
+    const S x;
+    A() : x(s) {}
+  };
+  void f() {
+    static const S z = A().x;  // Previously generated incorrect code
+  }
+
+
 12/8/14  [EDGcpfe/15770]
 Abort on invalid qualification of decltype(auto) return type
 
