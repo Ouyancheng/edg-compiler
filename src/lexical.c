@@ -6047,12 +6047,15 @@ reallocate curr_source_line to make it bigger.
   old_size = after_end_of_curr_source_line - curr_source_line;
   /* Increase the size of curr_source_line. */
   new_size = old_size * 2;
-  /* Allocate one more byte than required, so that a pointer past the end
-     will not have the same address as a pointer to the next object in
-     memory. */
-  new_curr_source_line = realloc_buffer((char *)curr_source_line,
-                                         (sizeof_t)(old_size+1),
-                                         (sizeof_t)(new_size+1));
+  /* Allocate two more bytes than required: One at the end so that a pointer
+     past the end will not have the same address as a pointer to the next
+     object in memory, and one before the start to make it safe to check
+     the previous byte without an additional test. */
+  new_curr_source_line = realloc_buffer((char *)curr_source_line-1,
+                                         (sizeof_t)(old_size+2),
+                                         (sizeof_t)(new_size+2));
+  new_curr_source_line += 1;
+  new_curr_source_line[-1] = ' ';
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Reallocate the logical character info array to have the same size as
      the source line. */
@@ -21478,11 +21481,14 @@ are handled in lexical_init.)
      should not be reset.)  The space will be reallocated (larger) if
      necessary, but the size here should be big enough for the expected
      cases. */
-  /* Allocate one more byte than required, so that a pointer past the end
-     will not have the same address as a pointer to the next object in
-     memory. */
+  /* Allocate two more bytes than required: One at the end so that a pointer
+     past the end will not have the same address as a pointer to the next
+     object in memory, and one before the start to make it safe to check
+     the previous byte without an additional test. */
   curr_source_line = alloc_resizable_buffer(
-                            (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+1));
+                            (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+2));
+  curr_source_line += 1;
+  ((char*)curr_source_line)[-1] = ' ';
   after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
