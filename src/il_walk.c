@@ -2925,8 +2925,11 @@ Tips for proper use of the follow_addressing_path mode:
     an_expr_node_ptr      operand1 = expr->variant.operation.operands;
     an_expr_node_ptr      operand2 = operand1->next;
     if (is_glvalue_node(expr) ||
-        ((tblock->follow_class_rvalue_addressing_path ||
+        (
+#if !STANDALONE_UTILITY_PROGRAM
+         (tblock->follow_class_rvalue_addressing_path ||
           selection_from_prvalue_is_xvalue) &&
+#endif /* !STANDALONE_UTILITY_PROGRAM */
          is_class_struct_union_type(expr->type))) {
       /* The expression is a glvalue. */
       switch (op) {
