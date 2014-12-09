@@ -28933,7 +28933,7 @@ a warning.
   template <class T> void f(T) throw() {}
 
 
-1/14/11  [EDGcpfe/11270]
+1/14/11  [EDGcpfe/11270,EDGcpfe/15215]
 Partial ordering of lvalue vs. rvalue references
 
 Core issue 1164 clarified that an lvalue reference parameter should be
