@@ -6344,6 +6344,34 @@ stack and return TRUE.  Otherwise, return FALSE.
 }  /* is_obj_expr_of_stacked_aggr_con */
 
 
+static a_constant_ptr aggr_con_for_this_param(a_variable_ptr var)
+/*
+var designates a "this" parameter that might designate an object that is
+currently being initialized.  If an aggregate constant of the correct type
+is present in the aggregate initialization stack, return a pointer to that
+constant.  Otherwise, return NULL.
+*/
+{
+  a_constant_ptr            result = NULL;
+  an_aggr_init_con_elem_ptr init_con;
+  a_type_ptr                class_type;
+
+  check_assertion(var->is_this_parameter);
+  class_type = type_pointed_to(var->type);
+  for (init_con = curr_init_aggr_con; result == NULL && init_con != NULL;
+       init_con = init_con->next) {
+    if (init_con->constant == NULL) {
+      /* This should only happen in error situations. */
+      expect_error();
+    } else if (identical_types_ignoring_qualifiers(init_con->constant->type,
+                                                   class_type)) {
+      result = init_con->constant;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* aggr_con_for_this_param */
+
+
 a_boolean constant_prvalue_pointer_full(
                              an_expr_node_ptr              expr,
                              a_constexpr_evaluation_block  *ceblock,
@@ -9738,6 +9766,7 @@ ceblock gives context information for the evaluation.
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
     an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
     a_constant            op1_constant, op2_constant;
+    a_constant_ptr        obj_expr_con;
     a_boolean             op1_folded = FALSE, op2_folded = FALSE;
     switch (op) {
       case eok_indirect:
@@ -9856,6 +9885,16 @@ ceblock gives context information for the evaluation.
         /* p->field or p->*field.  Try to fold the left operand to a
            constant, then try to fold the field selection. */
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        if (!op1_folded && op1->kind == (an_expr_node_kind)enk_variable &&
+            op1->variant.variable->is_this_parameter &&
+            (obj_expr_con =
+                     aggr_con_for_this_param(op1->variant.variable)) != NULL) {
+          /* This member access expression refers to a field of an object
+             currently being initialized.  Use the address of that
+             in-progress constant as the pointer. */
+          set_temporary_address_constant(obj_expr_con, &op1_constant);
+          op1_folded = TRUE;
+        }  /* if */
         if (op == (an_expr_operator_kind)eok_pm_points_to_field) {
           goto pm_field_selection;
         }  /* if */
@@ -9863,10 +9902,8 @@ field_selection:
         if (op1_folded) {
           a_boolean points_to =
                             (op == (an_expr_operator_kind)eok_points_to_field);
-          if (fold_constant_field_selection(&op1_constant,
-                                            points_to,
-                                            op2->variant.field,
-                                            result_con)) {
+          if (fold_constant_field_selection(&op1_constant, points_to,
+                                            op2->variant.field, result_con)) {
             folded = TRUE;
           }  /* if */
         }  /* if */

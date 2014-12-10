@@ -1,5 +1,20 @@
 Version 4.10
 
+12/9/14  [EDGcpfe/15608]
+Member access in constexpr mem-initializers
+
+The front end previously failed to treat a constexpr constructor invocation
+as a constant expression if the constructor has a mem-initializer whose
+value refers to a previously-initialized member of the class.  This is now
+fixed.  For example, with --c++11:
+
+  struct S {
+    constexpr S() : m(42), n(m) { }
+    int m, n;
+  };
+  static_assert(S().n == 42, "");  // Previously treated as non-constant
+
+
 12/9/14  [EDGcpfe/15762]
 Pointer-to-member functions and deduced return types
 
