@@ -14875,9 +14875,13 @@ each case.
 
 static void lower_thread_local_variable(an_expr_node_ptr expr)
 /*
-Lower a reference to a thread_local variable by ensuring that the variable,
-if dynamically initialized, or potentially dynamically initialized, has
-had its dynamic initialization performed before its first use in the thread.
+Lower a reference to a thread_local variable by ensuring that the variable (and
+all other thread_local variables) has its initialization performed before the
+first use of any thread_local variable in the thread.  Note that a thread
+wrapper is created for all thread_local variables defined in this translation
+unit (not just those with dynamic initialization) because the standard states
+that initialization of all thread_local variables must be initialized before
+the first odr-use of any thread_local variable in the translation unit.
 */
 {
   a_variable_ptr    var;
@@ -14891,17 +14895,13 @@ had its dynamic initialization performed before its first use in the thread.
       ((var->storage_class == (a_storage_class)sc_unspecified ||
         var->storage_class == (a_storage_class)sc_static) &&
        !(var->source_corresp.is_local_to_function ||
-         var->promoted_local_static) &&
-       (var->init_kind == (an_init_kind)initk_dynamic ||
-        var->initialization_rewritten_as_assignment))) {
+         var->promoted_local_static))) {
     /* A reference to a thread_local variable that is not defined in this
-       translation unit or one that is defined in this translation unit
-       and has a file-scope dynamic initialization (watch out for the case
-       where the variable had dynamic initialization but has since been
-       lowered).  In these cases, invoke the wrapper routine to ensure that
-       the variable is properly initialized in this thread before it is used.
-       Replace the enk_variable node with "*wrapper()" (the wrapper returns the
-       address of the variable). */
+       translation unit or one that is defined in this translation unit.  In
+       these cases, invoke the wrapper routine to ensure that the variable is
+       properly initialized in this thread before it is used.  Replace the
+       enk_variable node with "*wrapper()" (the wrapper returns the address of
+       the variable). */
     wrapper = thread_local_wrapper_for_variable(var);
     new_expr = make_call_node(wrapper, (an_expr_node_ptr)NULL);
     check_assertion(!new_expr->is_lvalue);
