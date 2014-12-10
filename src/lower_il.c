@@ -15677,19 +15677,23 @@ cast.  See lower_expr for typical invocation.
           lower_os_constant(con);
           if (check_for_troublesome_aggregate_constant(con,
                                                        &temp_var)) {
-            check_assertion(is_or_was_ptr_to_member_function_type(con->type) ||
-                            !con->implicit_cast);
             /* This expression node is loading the value of a pointer-to-
                member-function, which has or will become a struct represented
-               by a ck_aggregate constant.  Since a ck_aggregate constant is
-               not allowed here, use the value of a temporary variable
-               initialized with the ck_aggregate constant. */
+               by a ck_aggregate constant, or an aggregate constant itself.
+               Since a ck_aggregate constant is not allowed here, use the value
+               of a temporary variable initialized with the ck_aggregate
+               constant. */
             set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
             expr->variant.variable = temp_var;
             /* Note that the type will be lowered to the proper struct type.
                The const on the variable type won't be there, but that's
                correct; it should be dropped because the reference is an
                rvalue. */
+            check_assertion(identical_types(expr->type,
+                                            make_unqualified_type(con->type))&&
+                            identical_types(expr->type,
+                                            make_unqualified_type(
+                                                             temp_var->type)));
           }  /* if */
         }  /* if */
       }  /* if */
