@@ -6047,7 +6047,7 @@ reallocate curr_source_line to make it bigger.
   old_size = after_end_of_curr_source_line - curr_source_line;
   /* Increase the size of curr_source_line. */
   new_size = old_size * 2;
-  /* Allocate two more bytes than required: One at the end so that a pointer
+  /* Allocate two more bytes than required: one at the end so that a pointer
      past the end will not have the same address as a pointer to the next
      object in memory, and one before the start to make it safe to check
      the previous byte without an additional test. */
@@ -21481,7 +21481,7 @@ are handled in lexical_init.)
      should not be reset.)  The space will be reallocated (larger) if
      necessary, but the size here should be big enough for the expected
      cases. */
-  /* Allocate two more bytes than required: One at the end so that a pointer
+  /* Allocate two more bytes than required: one at the end so that a pointer
      past the end will not have the same address as a pointer to the next
      object in memory, and one before the start to make it safe to check
      the previous byte without an additional test. */
