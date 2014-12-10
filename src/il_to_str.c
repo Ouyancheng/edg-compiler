@@ -1632,6 +1632,7 @@ Return its argument expression if available, or NULL otherwise.
                                    (a_local_expr_node_ref_kind)lerk_typeof;
     a_type_ptr underlying_type = f_skip_typerefs(type);
     a_scope_ptr scope = innermost_function_scope;
+    underlying_type = find_bottom_of_type(underlying_type);
     if (underlying_type->kind == (a_type_kind)tk_template_param &&
         underlying_type->variant.template_param.is_auto_param &&
         type->source_corresp.enclosing_routine != NULL &&
