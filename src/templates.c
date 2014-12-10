@@ -11783,7 +11783,9 @@ needed) and adjusts conv_func_type accordingly (i.e., eliminating the
   a_type_ptr     closure_class = sym_parent_class(templ_sym);
   a_routine_ptr  proto_call_rp = lambda_body_for_closure(closure_class);
 
-  if (proto_call_rp->has_deducible_return_type) {
+  if (proto_call_rp == NULL) {
+    expect_error();
+  } else if (proto_call_rp->has_deducible_return_type) {
     /* The prototype instance has a deducible return type.  Instantiate the
        associated template if needed. */
     a_symbol_ptr   call_op_template_sym =
