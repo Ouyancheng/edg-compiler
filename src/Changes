@@ -1,5 +1,22 @@
 Version 4.10
 
+12/10/14 [EDGcpfe/15685]
+Abort on invalid decltype-qualified destructor call
+
+An abort could occur (in class_qualified_id_lookup) on a decltype-qualified
+destructor call in which the expression before the "->" was not a pointer
+and was a non-class type.  Now fixed.
+
+  template <class T> inline void f(T* p) {
+    T t;
+    t->decltype(t)::~T();
+  }
+  int main() {
+    int *p = 0;
+    f(p);
+  }
+
+
 12/10/14 [EDGcpfe/14600]
 Lowering of thread_local variables
 

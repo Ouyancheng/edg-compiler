@@ -18922,8 +18922,9 @@ selection operator, in which case it points to the type of the left operand.
          finalizer reference, then it must be a non-class destructor/
          finalizer reference (e.g., int::~int). */
       is_nonclass_dtor_or_finalizer = is_vacuous_dtor_or_finalizer;
-      if (can_be_vacuous_dtor_or_finalizer && field_sel_type != NULL &&
-          (!is_class_struct_union_type(field_sel_type))) {
+      if (can_be_vacuous_dtor_or_finalizer &&
+          (field_sel_type == NULL ||
+           !is_class_struct_union_type(field_sel_type))) {
         /* A destructor/finalizer call for a non-class type is always vacuous,
            even if the destructor/finalizer name erroneously named a class
            type. */
