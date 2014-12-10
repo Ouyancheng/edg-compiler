@@ -835,8 +835,13 @@ and issue a diagnostic if that was not the case.
   if (!rp->has_deduced_return_type) {
     /* No return type was specified, and no return type was deduced from a
        return statement.  Determine the return type as if "return (void)0;"
-       had appeared. */
-    deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
+       had appeared, except in the case of prototype instantiations, where
+       we want to keep the original form of the return type. */
+    if (rp->is_prototype_instantiation) {
+      rp->has_deduced_return_type = TRUE;
+    } else {
+      deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
+    }  /* if */
   }  /* if */
 }  /* check_deduced_return_type */
 
@@ -1424,8 +1429,7 @@ of lambda expressions.
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (rout_ptr->has_deducible_return_type &&
-      !rout_ptr->is_prototype_instantiation) {
+  if (rout_ptr->has_deducible_return_type) {
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
     check_deduced_return_type(rout_ptr, &body_pos);
