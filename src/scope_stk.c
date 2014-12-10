@@ -8542,7 +8542,13 @@ being popped.
     if (is_local_scope_kind(kind)) {
       /* For a function, block, or condition scope, pop the current object
          lifetime, which ought to be the one created when this scope was
-         pushed. */
+         pushed, except perhaps for an olk_try_block in the case of a
+         reactivated block scope (these are not established through
+         push_scope_full). */
+      if (ssep->is_reactivation && curr_object_lifetime->kind ==
+                                     (an_object_lifetime_kind)olk_try_block) {
+        curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+      }  /* if */
       check_assertion_str2(curr_object_lifetime ==
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
