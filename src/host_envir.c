@@ -2935,7 +2935,7 @@ Set module_id to the string and return it.
 void clear_unique_file_id(a_unique_file_id_ptr	ufip)
 /*
 Clear the fields in ufip, which is a structure used to uniquely identify
-a file in a file system.  The cleared values must match the value that
+a file in a file system.  The cleared values must match the values that
 are expected to represent a file for which unique identifier information
 is not available in same_unique_file_ids.
 */
