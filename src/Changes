@@ -4,9 +4,9 @@ Version 4.10
 Member access in constexpr mem-initializers
 
 The front end previously failed to treat a constexpr constructor invocation
-as a constant expression if the constructor has a mem-initializer whose
-value refers to a previously-initialized member of the class.  This is now
-fixed.  For example, with --c++11:
+as a constant expression if the constructor has a mem-initializer in which
+the expression refers to a previously-initialized member of the class.
+This is now fixed.  For example, with --c++11:
 
   struct S {
     constexpr S() : m(42), n(m) { }
