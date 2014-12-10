@@ -15689,11 +15689,13 @@ cast.  See lower_expr for typical invocation.
                The const on the variable type won't be there, but that's
                correct; it should be dropped because the reference is an
                rvalue. */
-            check_assertion(identical_types(expr->type,
-                                            make_unqualified_type(con->type))&&
-                            identical_types(expr->type,
-                                            make_unqualified_type(
-                                                             temp_var->type)));
+            check_assertion(f_identical_types(expr->type,
+                                              make_unqualified_type(con->type),
+                                              ITF_NO_FLAGS) &&
+                            f_identical_types(expr->type,
+                                              make_unqualified_type(
+                                                               temp_var->type),
+                                              ITF_NO_FLAGS));
           }  /* if */
         }  /* if */
       }  /* if */
