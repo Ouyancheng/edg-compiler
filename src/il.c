@@ -22027,6 +22027,9 @@ entry is needed.)
   }  /* if */
   if (kind == (an_object_lifetime_kind)olk_global_static) {
     /* No parent pointer. */
+  } else if (is_reactivation && olp->parent_lifetime != NULL) {
+    /* A reactivation and this entry is already recorded in the overall
+       tree. */
   } else {
     /* Ordinarily, an object lifetime cannot be the child of a lifetime for a
        temporary.  The one exception is a lifetime embedded in a GNU statement

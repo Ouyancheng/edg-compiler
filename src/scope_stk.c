@@ -8547,14 +8547,16 @@ being popped.
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
                            "for function or block scope");
-      if (((kind == (a_scope_kind)sck_block ||
-            kind == (a_scope_kind)sck_condition) &&
+      if ((kind == (a_scope_kind)sck_block &&
            (options & PS_NOT_FINAL_POP) != 0) ||
           ssep->is_reactivation) {
         /* This is not the "final pop" of the local scope, and so we shouldn't
            perform the usual cleanup operations associated with popping the
            lifetime. */
         curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+        if (kind == (a_scope_kind)sck_function) {
+          curr_object_lifetime->has_implicit_child = TRUE;
+        }  /* if */
       } else {
         (void)pop_object_lifetime();
       }  /* if */
