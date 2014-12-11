@@ -2572,11 +2572,11 @@ the scope being pushed.
            call also allocates the top-level scope entry for the region. */
         new_il_scope = TRUE;
         sp = new_il_region(kind, ssep->number, assoc_routine);
+        sp->depth_in_scope_stack = depth_scope_stack;
       } else {
         curr_il_region_number = assoc_routine->assoc_scope;
         sp = il_header.region_scope_entry[curr_il_region_number];
       }  /* if */
-      sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
       break;
     case sck_instantiation_context:
