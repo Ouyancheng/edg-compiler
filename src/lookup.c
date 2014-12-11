@@ -2533,12 +2533,18 @@ that do normal id lookup processing.
              if the scope is on the stack more than once, the depth will
              be the first occurrence.  This is important because the
              symbol list for the other entries will not be correct if
-             the first occurrence is for the initial use of the scope. */
+             the first occurrence is for the initial use of the scope.
+             If this is a reactivation and the primary entry for the
+             scope is not on the stack, get the symbol list from the scope. */
           a_scope_depth	depth;
           check_assertion(ssep->il_scope != NULL);
           depth = ssep->il_scope->depth_in_scope_stack;
           check_assertion(depth != NO_SCOPE_DEPTH);
-          sym = assoc_pointers_block_of(&scope_stack[depth])->symbols;
+          if (scope_stack[depth].is_reactivation) {
+            sym = ssep->il_scope->symbols;
+          } else {
+            sym = assoc_pointers_block_of(&scope_stack[depth])->symbols;
+          }  /* if */
         } else {
           sym = inactive_symbol_list_from_locator(*locator);
         }  /* if */
