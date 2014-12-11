@@ -36930,7 +36930,12 @@ type with the type of return_op.
                      orig_type->variant.template_param.extra_info
                               ->coordinates.position ==
                                                      DECLTYPE_AUTO_POS_NUMBER;
-  if (is_void_type(return_op->type)) {
+  if (is_error_type(auto_type)) {
+    /* Something when wrong upstream.  Proceed with an error type. */
+    expect_error();
+    *return_type = error_type();
+    rout_type->variant.routine.return_type = *return_type;
+  } else if (is_void_type(return_op->type)) {
     deduce_return_type_from_void_operand(curr_routine,
                                          /*keep_placeholder=*/!lambda_case,
                                          &return_op->position);
