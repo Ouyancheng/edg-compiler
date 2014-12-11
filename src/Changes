@@ -1,5 +1,21 @@
 Version 4.10
 
+12/11/14 [EDGcpfe/14701]
+Mangling of user-defined literal operator
+
+A user-defined literal operator reference in a context that requires mangling
+had resulted in invalid mangled names in IA-64 ABI configurations and an
+assertion failure ("end_mangling_full: wrong number of leftover spaces") in
+Cfront ABI configurations.  That is now fixed.  For example (with --c++11):
+
+  constexpr int operator "" zzz(unsigned long long x);
+  constexpr int operator "" zzz(long double x);
+  template <class... T> void f(decltype(T(operator "" zzz))...) {}
+  void g() {
+    f();
+  }
+
+
 12/10/14 [EDGcpfe/15609]
 constexpr signed/unsigned char array initialized from string literal
 

@@ -3344,6 +3344,7 @@ typedef struct a_routine_info_block {
 		opname_kind;
   a_template_arg_ptr
 		template_arg_list;
+  a_const_char  *ud_suffix;
 } a_routine_info_block;
 
 
@@ -3436,7 +3437,7 @@ add mangling for an eok_address_of operation.
           mangled_operator_or_special_function(rinfo->opname_kind,
                                         /*num_operands=*/0,
                                         rinfo->conversion_type,
-                                        /*ud_suffix=*/NULL,
+                                        rinfo->ud_suffix,
                                         rinfo->template_arg_list,
                                         (a_name_reference_ptr)NULL,
                                         /*suppress_operation_indicator=*/FALSE,
@@ -3452,7 +3453,7 @@ add mangling for an eok_address_of operation.
                                      (a_ctor_or_dtor_kind)cdk_none,
                                      /*num_operands=*/0,
                                      rinfo->conversion_type,
-                                     /*ud_suffix=*/NULL,
+                                     rinfo->ud_suffix,
                                      mctl);
         }  /* if */
         if (rinfo->template_arg_list != NULL) {
@@ -3469,6 +3470,18 @@ add mangling for an eok_address_of operation.
       }  /* if */
       close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
+  } else if (rinfo != NULL && rinfo->ud_suffix != NULL) {
+    /* This is a ck_template_param/tpck_unknown_function for a UDL operator
+       function; give it a special mangling. */
+    mangled_operator_or_special_function(rinfo->opname_kind,
+                                         /*num_operands=*/0,
+                                         rinfo->conversion_type,
+                                         rinfo->ud_suffix,
+                                         rinfo->template_arg_list,
+                                         (a_name_reference_ptr)NULL,
+                                         /*suppress_operation_indicator=*/TRUE,
+                                         /*suppress_underscores=*/FALSE,
+                                         mctl);
   } else if (rinfo != NULL && rinfo->template_arg_list != NULL) {
     /* This is an unqualified, template-dependent routine, which is mangled
        with <unresolved-name>.  It can't be a conversion function or
@@ -3539,7 +3552,7 @@ add mangling for an eok_address_of operation.
                                    (a_ctor_or_dtor_kind)cdk_none,
                                    /*num_operands=*/0,
                                    rinfo->conversion_type,
-                                   /*ud_suffix=*/NULL,
+                                   rinfo->ud_suffix,
                                    mctl);
         if (rinfo->template_arg_list != NULL) {
           /* Put out the template argument list. */
@@ -3794,12 +3807,21 @@ only).
   an_opname_kind          opname_kind =  con->variant.template_param.variant.
                                               unknown_function.opname_kind;
   a_special_function_kind special_kind = (a_special_function_kind)sfk_none;
+  a_const_char            *con_name = unmangled_name_of(&con->source_corresp);
+  a_const_char            *ud_suffix = NULL;
 
   /* This routine is a simplified version of mangled_function_name. */
   if (conversion_type != NULL) {
     special_kind = (a_special_function_kind)sfk_conversion;
   } else if (opname_kind != (an_opname_kind)onk_none) {
     special_kind = (a_special_function_kind)sfk_operator;
+  }  /* if */
+  if (con_name != NULL &&
+      strncmp(con_name, CANONICAL_LITERAL_OPERATOR_INTRO,
+              LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO) == 0) {
+    /* If the constant represents a UDL operator, capture the ud-suffix. */
+    ud_suffix = ud_suffix_from_literal_operator_id(con_name);
+    special_kind = (a_special_function_kind)sfk_udl_operator;
   }  /* if */
 #if !IA64_ABI
   mangled_function_base_name(&con->source_corresp,
@@ -3808,7 +3830,7 @@ only).
                              (a_ctor_or_dtor_kind)cdk_none,
                              /*num_operands=*/0,
                              conversion_type,
-                             /*ud_suffix=*/NULL,
+                             ud_suffix,
                              mctl);
   if (has_template_args) {
     /* Put out the template argument list. */
@@ -3834,6 +3856,7 @@ only).
     if (has_template_args) {
       rinfo.template_arg_list = template_arg_list;
     }  /* if */
+    rinfo.ud_suffix = ud_suffix;
     mangled_entity_reference(&con->source_corresp, iek_constant,
                              &rinfo, add_address_of, mctl);
   }
@@ -10305,7 +10328,7 @@ literal operator.
     /* For a conversion function, add the type signature. */
     check_assertion(conversion_type != NULL);
     mangled_encoding_for_type(conversion_type, mctl);
-  } else if (special_kind == (a_special_function_kind)sfk_udl_operator) {
+  } else if (ud_suffix != NULL) {
     /* For a literal operator, add the ud-suffix to the mangled name. */
     mangled_name_with_length(ud_suffix, mctl);
   }  /* if */
