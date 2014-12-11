@@ -9617,9 +9617,13 @@ evaluation (e.g., parameter values).
         a_type_ptr elem_type;
         check_assertion(result_con->kind == (a_constant_repr_kind)ck_string);
         elem_type = array_element_type(result_con->type);
-        if (!identical_types_ignoring_qualifiers(target_type, elem_type)) {
-          /* The requested type is not the string element type, probably
-             as the result of a cast to reference type or the like. */
+        if (!identical_types_ignoring_qualifiers(target_type, elem_type) &&
+            !(is_plain_char_type(elem_type) &&
+              is_character_type(target_type))) {
+          /* The requested type is not the string element type and also not
+             a signed or unsigned char type initialized from a narrow
+             string literal, probably as the result of a cast to reference
+             type or the like. */
           type_mismatch = TRUE;
         } else if (offset >= (a_targ_ptrdiff_t)(cum_offset +
                                         result_con->variant.string.length)) {
