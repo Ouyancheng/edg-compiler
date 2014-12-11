@@ -2531,6 +2531,7 @@ the scope being pushed.
   if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
        (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_condition ||
         kind == (a_scope_kind)sck_func_prototype)) ||
         kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace_extension ||
@@ -2629,15 +2630,21 @@ the scope being pushed.
       sp->depth_in_scope_stack = depth_scope_stack;
       break;
     case sck_condition:
-      /* A C++ condition scope is only created when there is a declaration,
-         so we know an IL scope will be required. */
-      check_assertion_str(curr_il_region_number != file_scope_region_number,
+      /* Use the enclosing memory region. */
+      ssep->il_memory_region = (ssep-1)->il_memory_region;
+      if (scope_to_reactivate != NULL) {
+        sp = scope_to_reactivate;
+      } else {
+        /* A C++ condition scope is only created when there is a declaration,
+           so we know an IL scope will be required (unlike a block scope). */
+        check_assertion_str(
+                          curr_il_region_number != file_scope_region_number,
                           "push_scope_full: bad region number for condition");
-      sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
-                       (a_routine_ptr)NULL);
-      ssep->il_memory_region = curr_il_region_number;
-      /* Add it to the scopes list for the enclosing scope. */
-      add_to_scopes_list(sp, ssep-1);
+        sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
+                         (a_routine_ptr)NULL);
+        /* Add it to the scopes list for the enclosing scope. */
+        add_to_scopes_list(sp, ssep-1);
+      }  /* if */
       break;
     case sck_enum:
       /* Create an IL scope in file scope memory.  (This case is very similar
