@@ -2690,6 +2690,7 @@ ec_constraint_number_mismatch;;"the number of operand constraints must be the sa
 ec_too_many_constraints;;"the constraint string contains too many alternative constraints; not all constraints were checked"
 ec_call_through_incomplete_class_type;;"call through incomplete class %t will always produce an error when instantiated"
 ec_decltype_auto_cannot_be_qualified;;"decltype(auto) cannot have added type qualifiers"
+ec_bad_init_capture_capture;;"init-capture %nod cannot be captured here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

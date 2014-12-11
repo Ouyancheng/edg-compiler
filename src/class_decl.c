@@ -1755,6 +1755,12 @@ being done.
         source_field = enclosing_lcp->closure_field;
         check_assertion(source_field != NULL);
       }  /* if */
+    } else if (fp != NULL) {
+      /* We're capturing an init-capture.  If we didn't find the enclosing
+         lambda (e.g., because of an intermediate non-closure class scope),
+         this must be an error. */
+      check_assertion(fp->is_init_capture);
+      pos_sy_error(ec_bad_init_capture_capture, pos, symbol_for(fp));
     }  /* if */
   }
   /* Switch to the memory region of the scope in which the capture will
