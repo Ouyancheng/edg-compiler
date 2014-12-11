@@ -4505,6 +4505,10 @@ on top of the expansion.
                !object_expr->is_lvalue &&
                (!optimizable_rvalue_selection(operand_1, &comma_case) ||
                 comma_case)) {
+      /* The operand is a member access expression that will be generated
+         as a comma expression, to which "&" cannot be applied.  Signal
+         that the ampersand should be put out on the second operand of the
+         comma expression. */
       suppress_ampersand = TRUE;
       operand_1->variant.operation.has_deferred_ampersand = TRUE;
     }  /* if */
@@ -5324,6 +5328,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean                      ptr_to_empty_struct_case = FALSE;
   a_boolean                      pointer_arithmetic_op = FALSE;
   an_expr_node_ptr               ptr_operand;
+  a_boolean                      comma_case;
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   check_assertion_str(!is_nullptr_type(expr->type),
@@ -5410,6 +5415,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                    }
                  Add a cast to the proper type for that case. */
               dump_cast(expr->type);
+            }  /* if */
+            if (is_operation_node(operand_1) &&
+                node_operator_is(operand_1, eok_dot_field) &&
+                !operand_1->variant.operation.operands->is_lvalue &&
+                (!optimizable_rvalue_selection(operand_1, &comma_case) ||
+                 comma_case)) {
+              /* The operand is a member access expression that will be
+                 generated as a comma expression, to which "&" cannot be
+                 applied.  Signal that the ampersand is to be put out on
+                 the second operand of the comma expression instead. */
+              operand_1->variant.operation.has_deferred_ampersand = TRUE;
+              dump_expression(operand_1);
+              goto done_with_unary_operation;
             }  /* if */
             is_unary = TRUE;
             opstr = "&";
