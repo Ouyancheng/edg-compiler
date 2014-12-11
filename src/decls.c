@@ -3733,17 +3733,28 @@ processing should proceed in error mode.
     /* A variable: Imbue an error type for recovery. */
     esdp->type = error_type();
     *okay = FALSE;
-  } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-    /* A routine, and the latest declaration is in file-scope: Assume this
-       latest declaration has the type intended by the programmer and
-       proceed in error mode. */
-    esdp->type = latest_type;
-    *okay = FALSE;
   } else {
-    /* The latest declaration is in block scope.  Proceed in non-error mode
-       (although a diagnostic is still emitted for this conflict): This will
-       cause the type of this declaration to prevail in this scope, and that
-       of the previous declaration to be restored when this scope ends. */
+    a_type_ptr  return_type =
+                      skip_typerefs(latest_type)->variant.routine.return_type;
+    if (is_auto_type(find_bottom_of_type(return_type))) {
+      /* The latest declaration implies a deducible return type, but the
+         earlier declaration may not match that, and the routine entry may
+         therefore not reflect the deducibility.  Proceed with an error
+         type. */
+      esdp->type = latest_type;
+      *okay = FALSE;
+    } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+      /* A routine, and the latest declaration is in file-scope: Assume this
+         latest declaration has the type intended by the programmer and
+         proceed in error mode. */
+      esdp->type = latest_type;
+      *okay = FALSE;
+    } else {
+      /* The latest declaration is in block scope.  Proceed in non-error mode
+         (although a diagnostic is still emitted for this conflict): This will
+         cause the type of this declaration to prevail in this scope, and that
+         of the previous declaration to be restored when this scope ends. */
+    }  /* if */
   }  /* if */
 }  /* recover_from_irreconcilable_external_symbol_types */
 
