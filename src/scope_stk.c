@@ -4355,7 +4355,6 @@ considered.
 
 
 static void push_instantiation_context(
-		a_template_decl_info_ptr	decl_info,
 		a_template_decl_info_ptr	enclosing_decl_info,
 		a_namespace_ptr			definition_nsp,
 		a_type_ptr			definition_class,
@@ -4388,8 +4387,7 @@ particular instantiation.  This process includes
 - pushing any block scopes needed to restore the context for a generic
   lambda
 
-decl_info is the template declaration information for the template being
-instantiated.  enclosing_decl_info is the template declaration information
+enclosing_decl_info is the template declaration information
 for the enclosing template, if any, or NULL if there is none.
 definition_nsp is the template definition namespace to be extended.
 definition_class is the template definition class to be reactivated.
@@ -4923,7 +4921,7 @@ class to be defined.
     }  /* if */
     reference_nsp = referencing_namespace_for_instance(instance_sym);
     if (is_lambda_body) options |= PS_IS_GENERIC_LAMBDA;
-    push_instantiation_context(decl_info, enclosing_tdip,
+    push_instantiation_context(enclosing_tdip,
                                parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,
                                &context_depth, &after_definition_depth,
