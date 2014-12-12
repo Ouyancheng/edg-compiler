@@ -1,5 +1,40 @@
 Version 4.10
 
+12/12/14 [EDGcpfe/14600]
+Lowering of thread_local variables
+
+Previously, only thread_local variables with dynamic initialization that are
+defined in the translation unit were candidates for replacement with a
+thread wrapper routine during lowering, but that resulted in a violation of
+the standard that requires the initialization of all thread_local variables
+in the translation unit before the first odr-use of any thread_local
+variable (even statically-initialized thread_local variables).  The previous
+behavior matches that of the GNU compiler and is more efficient in that
+wrapper routines are not created for statically-initialized thread_local
+variables.  A new global variable, all_thread_locals_have_wrappers, has been
+introduced and is set by default to TRUE to enable the standard-compliant
+behavior by emitting wrappers for all thread_locals with extern linkage.
+all_thread_locals_have_wrappers is set to FALSE in GNU emulation modes (but to
+TRUE in clang emulation mode).  This change only affects configurations where
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES is TRUE.  For example
+(with --c++11):
+
+  int ret = 1;
+  int f() {
+    ret = 0;
+    return 0;
+  }
+  thread_local int n = f();   // Previously f() was never called because
+                              // "n" was not odr-used, but "m" is odr-used
+                              // which should trigger initialization of all
+                              // thread_locals in the translation unit.
+  thread_local int m = 5;
+  int k = m;
+  int main() {
+    return ret;               // Returns 0 except with --g++.
+  }
+
+
 12/11/14 [EDGcpfe/14701]
 Mangling of user-defined literal operator
 

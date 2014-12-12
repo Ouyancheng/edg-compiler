@@ -1995,9 +1995,23 @@ EXTERN a_boolean
 EXTERN a_boolean
 		std_thread_local_storage_specifier_enabled;
 			/* TRUE if the C++11 "thread_local" or C11
-			  "_Thread_local" specifier should be accepted to
-			  indicate that a variable should reside in
-			  thread-local storage. */
+			   "_Thread_local" specifier should be accepted to
+			   indicate that a variable should reside in
+			   thread-local storage. */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+EXTERN a_boolean
+		all_thread_locals_have_wrappers;
+			/* TRUE if all thread_local variables with extern
+			   linkage should have "wrappers".  This is necessary
+			   to be C++11 standard compliant (ensures that all
+			   thread_locals are properly initialized before any
+			   thread_local in the translation unit is used -- not
+			   just dynamically-initialized thread_locals).
+			   Setting this to FALSE provides GNU compatibility
+			   (and less overhead for thread_locals that are not
+			   dynamically initialized).  Set this to TRUE for
+			   clang compatibility. */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 EXTERN a_boolean
 		allow_nonconstant_auto_aggr_init_in_c_mode;

@@ -16078,6 +16078,7 @@ void make_null_thread_local_init_routine_for_variable(a_variable_ptr var)
 If we're not using weak references, then every thread_local variable with
 external linkage needs to have an initialization routine defined, even if it
 does nothing.  This routine creates the do-nothing routine for such cases.
+This routine is not needed when all thread_locals variables have wrappers.
 */
 {
   a_routine_ptr   routine;
@@ -16088,7 +16089,8 @@ does nothing.  This routine creates the do-nothing routine for such cases.
   a_memory_region_number
                   region_number;
 
-  check_assertion(var->init_routine.thread.init_routine == NULL);
+  check_assertion(var->init_routine.thread.init_routine == NULL &&
+                  !all_thread_locals_have_wrappers);
   routine = thread_local_init_routine_for_variable(var);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
@@ -16186,8 +16188,8 @@ has not yet been defined, it is created here.
          }
 
        For the case where the variable is not defined in this translation
-       unit (and we're using weak references), an additional "if" statement
-       is added:
+       unit (and all_thread_locals_have_wrappers is FALSE and we're using weak
+       references), an additional "if" statement is added:
 
          extern void var_init() __attribute__ ((weak));
          inline T* var_wrapper() {
@@ -16197,13 +16199,15 @@ has not yet been defined, it is created here.
 
         If weak references are being used and the variable is not
         dynamically initialized, there will be no definition of var_init.
-        When weak references are not used, the "if" statement isn't needed --
-        a var_init routine is emitted for all thread_local variables with
-        external linkage in that case. */
+        When weak references are not used (and not all thread_locals have
+        wrappers), the "if" statement isn't needed -- a var_init routine is
+        emitted for all thread_local variables with external linkage in that
+        case. */
     init_routine = thread_local_init_routine_for_variable(var);
     call_insert_location = &insert_location;
 #if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
-    if (var->storage_class == (a_storage_class)sc_extern) {
+    if (!all_thread_locals_have_wrappers &&
+        var->storage_class == (a_storage_class)sc_extern) {
       an_expr_node_ptr test_node;
       /* Make the boolean controlling expression "test_var". */
       test_node = function_addr_expr(init_routine);

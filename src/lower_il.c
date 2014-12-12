@@ -9670,20 +9670,28 @@ Do IL lowering of the indicated variable and everything under it.
       variable->modified_within_try_block = FALSE;
     }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
-#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && \
-    !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     if (variable->is_thread_local &&
-        variable->storage_class == (a_storage_class)sc_unspecified &&
-        variable->init_kind != (an_init_kind)initk_dynamic) {
-      /* When we're not using weak references, any thread_local variable
-         with external linkage that is defined in this translation unit and
-         has no initialization needs to have a NULL initialization routine
-         emitted (since other translation units don't know whether or not
-         this variable has dynamic initialization, they'll emit references
-         to this routine). */
-      make_null_thread_local_init_routine_for_variable(variable);
+        variable->storage_class == (a_storage_class)sc_unspecified) {
+      if (all_thread_locals_have_wrappers) {
+        /* All thread_locals should have wrappers, ensure that one is created
+           for this variable (even if it is not referenced in this
+           translation unit). */
+        (void)thread_local_wrapper_for_variable(variable);
+#if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+      } else if (variable->init_kind != (an_init_kind)initk_dynamic) {
+        /* When we're not using weak references and wrapper routines are only
+           generated for dynamically-initialized thread_local variables, any
+           thread_local variable with external linkage that is defined in this
+           translation unit and has no initialization needs to have a NULL
+           initialization routine emitted (since other translation units don't
+           know whether or not this variable has dynamic initialization,
+           they'll emit references to this routine). */
+        make_null_thread_local_init_routine_for_variable(variable);
+#endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+      }  /* if */
     }  /* if */
-#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && !LAZY_... */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
   }  /* if */
@@ -14875,32 +14883,44 @@ each case.
 
 static void lower_thread_local_variable(an_expr_node_ptr expr)
 /*
-Lower a reference to a thread_local variable by ensuring that the variable,
-if dynamically initialized, or potentially dynamically initialized, has
-had its dynamic initialization performed before its first use in the thread.
+Lower a reference to a thread_local variable by replacing its use with a
+wrapper routine if applicable.
 */
 {
   a_variable_ptr    var;
   a_routine_ptr     wrapper;
   an_expr_node_ptr  new_expr;
+  a_boolean         wrapper_needed = FALSE;
 
   check_assertion(is_variable_node(expr));
   var = expr->variant.variable;
   check_assertion(var_has_thread_storage_duration(var));
-  if (var->storage_class == (a_storage_class)sc_extern ||
-      ((var->storage_class == (a_storage_class)sc_unspecified ||
-        var->storage_class == (a_storage_class)sc_static) &&
-       !(var->source_corresp.is_local_to_function ||
-         var->promoted_local_static) &&
-       (var->init_kind == (an_init_kind)initk_dynamic ||
-        var->initialization_rewritten_as_assignment))) {
-    /* A reference to a thread_local variable that is not defined in this
-       translation unit or one that is defined in this translation unit
-       and has a file-scope dynamic initialization (watch out for the case
-       where the variable had dynamic initialization but has since been
-       lowered).  In these cases, invoke the wrapper routine to ensure that
-       the variable is properly initialized in this thread before it is used.
-       Replace the enk_variable node with "*wrapper()" (the wrapper returns the
+  if (var->storage_class == (a_storage_class)sc_extern) {
+    /* If the variable is defined in another translation unit, a wrapper is
+       always used (in some cases a definition for the wrapper will not
+       be emitted, and in other cases the wrapper may do nothing, but the
+       caller doesn't know that). */
+    wrapper_needed = TRUE;
+  } else if ((var->storage_class == (a_storage_class)sc_unspecified ||
+              var->storage_class == (a_storage_class)sc_static)) {
+    if (var->source_corresp.is_local_to_function ||
+        var->promoted_local_static) {
+      /* Exclude promoted local statics. */
+      wrapper_needed = FALSE;
+    } else if (all_thread_locals_have_wrappers) {
+      /* To be standard-compliant, all thread_local variables need
+         wrappers. */
+      wrapper_needed = TRUE;
+    } else if (var->init_kind == (an_init_kind)initk_dynamic ||
+               var->initialization_rewritten_as_assignment) {
+      /* Wrappers are generated only for thread_local variables with
+         dynamic initialization (this matches GNU's behavior and is more
+         efficient, but is not standard-compliant). */
+      wrapper_needed = TRUE;
+    }  /* if */
+  }  /* if */
+  if (wrapper_needed) {
+    /* Replace the enk_variable node with "*wrapper()" (the wrapper returns the
        address of the variable). */
     wrapper = thread_local_wrapper_for_variable(var);
     new_expr = make_call_node(wrapper, (an_expr_node_ptr)NULL);
@@ -15190,9 +15210,8 @@ cast.  See lower_expr for typical invocation.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
         } else if (var->is_thread_local) {
-          /* If this thread_local variable has an initialization (or may
-             have an initialization), rewrite it with a call to the
-             initialization routine before the variable is accessed. */
+          /* Determine if this thread_local variable needs to be rewritten
+             to call a wrapper routine. */
           lower_thread_local_variable(expr);
           /* Note that the expression may no longer be an enk_variable
              after this lowering. */

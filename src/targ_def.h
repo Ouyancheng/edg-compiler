@@ -503,6 +503,16 @@ The IA-64 ABI requires USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 be set to TRUE (as do configurations that use the C-generating back end).
 See also IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS (if that configuration
 macro is FALSE, lowering of thread_local is moot).
+
+The GNU implementation only emits wrapper routines for dynamically-initialized
+thread_local variables, but that leads to a violation of the C++11 standard if
+a statically-initialized thread_local variable is odr-used before a
+dynamically-initialized thread_local variable (because all thread_local
+initialization must be performed before any thread_local variable is odr-used,
+and the statically-initialized thread_local doesn't have a wrapper which is
+used to trigger the initialization of all threads in the translation unit).
+See the definition of all_thread_locals_have_wrappers which determines at
+run time whether to use the GNU behavior or the standard-compliant behavior.
 */
 #ifndef USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 #define USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES \

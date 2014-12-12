@@ -4021,6 +4021,13 @@ This function is also called in clang mode.
        fields in any special way wrt. promotion. */
     bit_field_promotion_applies_to_some_operations = FALSE;
   }  /* if */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (!clang_mode) {
+    /* GNU produces wrappers only for dynamically-initialized thread_local
+       variables; clang provides wrappers for all. */
+    all_thread_locals_have_wrappers = FALSE;
+  }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -10762,6 +10769,9 @@ variables declared in cmd_line.h.
                                  DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
   thread_local_storage_specifier_enabled =
                                 DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  all_thread_locals_have_wrappers = TRUE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   std_thread_local_storage_specifier_enabled = FALSE;
   allow_nonconstant_auto_aggr_init_in_c_mode = FALSE;
   /* Global variables from lang_feat.h. */
