@@ -4511,13 +4511,6 @@ is used for generic lambdas and is the scope containing the lambda.
                                    definition_class,
                                    instance_sym, assoc_type,
                                    assoc_routine, options);
-  if (is_lambda_body &&
-      context_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-    /* Limit the lookup to symbols visible at the point of declaration of
-       the lambda. */
-    scope_stack[context_scope->depth_in_scope_stack].
-                                     decl_seq_for_lookup = decl_info->decl_seq;
-  }  /* if */
   /* Return the calculated scope depths to the caller. */
   *p_common_depth = common_depth;
   *p_definition_depth = definition_depth;
@@ -4916,12 +4909,6 @@ class to be defined.
     if (lambda_scope->depth_in_scope_stack == orig_depth) {
       use_existing_context = TRUE;
     }  /* if */
-    if (lambda_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-      /* Limit the lookup to symbols visible at the point of declaration of
-         the lambda. */
-      scope_stack[lambda_scope->depth_in_scope_stack].
-                                     decl_seq_for_lookup = decl_info->decl_seq;
-    }  /* if */
     is_real_lambda_instantiation = TRUE;
   }  /* if */
   if (!use_existing_context) {
@@ -4964,6 +4951,11 @@ class to be defined.
                           (an_object_lifetime_ptr)NULL,
                           (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           options);
+    if (is_lambda_body) {
+      /* Limit the lookup to symbols visible at the point of declaration of
+         the lambda. */
+      scope_stack[depth_scope_stack].decl_seq_for_lookup = decl_info->decl_seq;
+    }  /* if */
   }  /* if */
   if (!use_existing_context) {
     a_scope_stack_entry_ptr	ssep;
