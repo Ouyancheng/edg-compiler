@@ -4368,7 +4368,6 @@ static void push_instantiation_context(
                 a_symbol_ptr			instance_sym,
                 a_type_ptr			assoc_type,
 		a_routine_ptr			assoc_routine,
-		a_boolean			is_lambda_body,
 		a_push_scope_options_set	options)
 /*
 Pushes the scopes necessary to create the appropriate context for a
@@ -4409,8 +4408,7 @@ member instantiations when the outermost instantiation scope is actually
 the instantiation scope for the member, not the class that is being
 reactivated.  Likewise, assoc_type and assoc_routine are non-NULL when
 they should be used for the outermost instantiation scope.  "options" is
-the set of option flags passed into the push scope routines.  is_lambda_body
-is TRUE if this is the instantiation of a generic lambda.  context_scope
+the set of option flags passed into the push scope routines.  context_scope
 is used for generic lambdas and is the scope containing the lambda.
 */
 {
@@ -4931,8 +4929,7 @@ class to be defined.
                                &context_depth, &after_definition_depth,
                                context_scope,
                                enclosing_instance_sym, enclosing_assoc_type,
-                               enclosing_assoc_routine, is_lambda_body,
-                               options);
+                               enclosing_assoc_routine, options);
     /* At this point, definition_depth points to the parent scope
        of the template being instantiated.  Save this value before it
        is potentially modified below. */
