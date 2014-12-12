@@ -125,6 +125,18 @@ static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location);
 
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+static void make_null_tls_init_routine(void);
+
+static a_boolean tls_init_needed;
+                        /* TRUE if a reference to a __tls_init function has
+                           been generated in this translation unit. */
+
+static a_boolean tls_init_emitted;
+                        /* TRUE if a __tls_init function has been emitted in
+                           this translation unit. */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type,
@@ -6064,6 +6076,7 @@ can easily access them.
     /* Create a static __tls_init routine to contain all of the thread_local
        initializations. */
     name = (char *)"__tls_init";
+    tls_init_emitted = TRUE;
     storage_class = (a_storage_class)sc_static;
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
@@ -16107,6 +16120,47 @@ This routine is not needed when all thread_locals variables have wrappers.
 
 #endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 
+static void make_null_tls_init_routine(void)
+/*
+In cases where wrappers are generated for all thread_local variables with
+external linkage, it's possible that none of the thread_local variables has
+dynamic initialization in which case the wrapper routines will refer to
+a __tls_init routine that doesn't exist.  This routine creates a dummy
+__tls_init routine to satisfy those references.
+*/
+{
+  a_routine_ptr   routine;
+  a_scope_ptr     scope;
+  a_generated_routine_context
+                  grcontext;
+  a_statement_ptr return_stmt;
+  a_memory_region_number
+                  region_number;
+
+  routine = make_rout_entry("__tls_init",
+                            (a_storage_class)sc_static,
+                            void_type(),
+                            (a_type_ptr)NULL);
+  routine->type->variant.routine.extra_info->prototyped = TRUE;
+  routine->source_corresp.name_has_been_mangled = TRUE;
+  routine->is_tls_init_routine = TRUE;
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(routine, /*make_return=*/TRUE,
+                                  &region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
+  /* Add the return statement at the end of the routine to the return memo
+     list. */
+  return_stmt = scope->assoc_block->variant.block.statements;
+  check_assertion(return_stmt != NULL &&
+                  return_stmt->kind == (a_statement_kind)stmk_return);
+  add_to_return_memo_list(return_stmt);
+  pop_generated_routine_context(scope, region_number, &grcontext);
+#if MAINTAIN_NEEDED_FLAGS
+  mark_as_needed((char *)routine, iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+}  /* make_null_tls_init_routine */
+
+
 a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
 /*
 Return the wrapper routine for the specified thread_local variable.  The
@@ -16234,6 +16288,11 @@ has not yet been defined, it is created here.
     /* Finish up. */
     pop_generated_routine_context(scope, region_number, &grcontext);
     var->init_routine.thread.wrapper = wrapper_routine;
+    if (var->storage_class != (a_storage_class)sc_extern) {
+      /* Wrapper is for something defined in this translation unit so we need
+         a __tls_init routine in this translation unit. */
+      tls_init_needed = TRUE;
+    }  /* if */
   }  /* if */
   return var->init_routine.thread.wrapper;
 }  /* thread_local_wrapper_for_variable */
@@ -16819,7 +16878,16 @@ code to cause the generated initialization routine to be called at startup.
     s_lower_file_scope_dynamic_inits((unsigned long)0, 0,
                                      /*do_thread_local=*/FALSE);
     file_scope->dynamic_inits = NULL;
-  }
+  }  /* if */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (tls_init_needed && !tls_init_emitted) {
+    /* In some configurations, wrapper functions may be emitted that refer
+       to the __tls_init function, but if there are no dynamic initializations
+       of thread_local variables, no __tls_init function is emitted.  Emit
+       a NULL __tls_init in that case. */
+    make_null_tls_init_routine();
+  }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* lower_file_scope_dynamic_inits */
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -17901,6 +17969,10 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(builtin_cpu_is_routine);
   register_trans_unit_variable(builtin_cpu_supports_routine);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  register_trans_unit_variable(tls_init_needed);
+  register_trans_unit_variable(tls_init_emitted);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* init_lower_one_time_init */
 
 
@@ -17973,6 +18045,10 @@ for each translation unit.
   builtin_cpu_is_routine = NULL;
   builtin_cpu_supports_routine = NULL;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  tls_init_needed = FALSE;
+  tls_init_emitted = FALSE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* init_lower_trans_unit_init */
 
 

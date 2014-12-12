@@ -1196,6 +1196,13 @@ flag.
          debugger). */
       set_routine_definition_needed(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+    } else if (rout->is_tls_init_routine) {
+      /* The routine definition is for the initialization of thread_local
+         variables in this translation unit (and is invoked through an
+         alias that is not followed by the needed processing logic). */
+      set_routine_definition_needed(rout);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     }  /* if */
   }  /* if */
 }  /* mark_as_needed */
