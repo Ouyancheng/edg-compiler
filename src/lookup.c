@@ -2529,7 +2529,7 @@ that do normal id lookup processing.
         if (use_lookup_table) {
           sym = find_symbol_list_in_table(spbp, locator->symbol_header);
         } else if (use_scope_list) {
-          /* Get the symbols list from the scope stack entry.  Note that
+          /* Get the symbol list from the scope stack entry.  Note that
              if the scope is on the stack more than once, the depth will
              be the first occurrence.  This is important because the
              symbol list for the other entries will not be correct if
