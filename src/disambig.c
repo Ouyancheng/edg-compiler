@@ -1005,8 +1005,12 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   }  /* if */
   /* Cache the tokens associated with the optional exception specification.
      Note that we don't try to disambiguate a throw expression from a
-     throw declaration. */
-  if (curr_token == tok_throw || curr_token == tok_noexcept) {
+     throw declaration.  This is not needed when the prescan is to identify
+     "auto" parameters (and could trigger errors if the exception
+     specification refers back to parameters, which haven't been declared
+     yet). */
+  if ((curr_token == tok_throw || curr_token == tok_noexcept) &&
+      !record_auto_params) {
     /* Advance past the throw or noexcept keyword. */
     a_boolean  arg_optional = curr_token == tok_noexcept;
     get_token_and_coalesce_if_identifier(flags);
