@@ -1,5 +1,21 @@
 Version 4.10
 
+12/15/14 [EDGcpfe/15828]
+Deduced return types and prototype instantiations
+
+The front end previously expected an "auto" return type to be deducible for a
+prototype instantiation of a template when that prototype instantiation was
+used, e.g., in a call.  That could result in an internal error in function
+force_instantiation_to_deduce_return_type (templates.c).  For example:
+
+  template<typename T> struct S {
+    auto f();
+    int g() { return f(); }  // Use of prototype instantiation of S<T>::f.
+  };                         // Previously triggered an internal error.
+
+This is now fixed.
+
+
 12/15/14 [EDGcpfe/15831]
 Lowering of "auto" type
 
