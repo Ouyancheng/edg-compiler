@@ -9183,13 +9183,32 @@ a function value should be returned through an additional pointer parameter
 }  /* set_lowered_routine_calling_method_flag */
 
 
+static void overwrite_type_with_new_type(a_type_ptr type,
+                                         a_type_ptr new_type)
+/*
+Overwrite "type" with a typeref to new_type, saving a copy of "type" in the
+orig_type field of the typeref.
+*/
+{
+  a_type_ptr copy_of_orig_type, type_next;
+
+  copy_of_orig_type = alloc_type(type->kind);
+  copy_type(type, copy_of_orig_type);
+  /* Change the type to a pure typeref to the new (lowered) type. */
+  type_next = type->next;
+  set_type_kind(type, (a_type_kind)tk_typeref);
+  type->next = type_next;
+  type->variant.typeref.type = new_type;
+  type->variant.typeref.orig_type = copy_of_orig_type;
+}  /* overwrite_type_with_new_type */
+
+
 static void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
 */
 {
-  a_type_ptr ptr_return_type, new_type, type_next, member_type;
-  a_type_ptr copy_of_orig_type;
+  a_type_ptr ptr_return_type, new_type, member_type;
 
   /* Note that within this routine "lower_os_type" need not be used.
      The fact that we are lowering a type means we are lowering the
@@ -9246,22 +9265,9 @@ Do IL lowering of the indicated type and everything under it.
           /* Pointer to data member; gets replaced by an integer. */
           new_type = integer_type(targ_ptr_to_data_member_int_kind);
         }  /* if */
-        /* Make a copy of the original pointer-to-member type.  Note that
-           this copy is for the use of IL lowering; it is not really part
-           of the IL tree. */
-        copy_of_orig_type = alloc_type(type->kind);
-        copy_type(type, copy_of_orig_type);
-        /* Change the type to a pure typeref to the new (lowered) type. */
-        type_next = type->next;
-        set_type_kind(type, (a_type_kind)tk_typeref);
-        type->next = type_next;
-        type->variant.typeref.type = new_type;
-        /* Point to a copy of the original pointer-to-member type.  This
-           preserves information otherwise destroyed: if, while lowering,
-           one comes across a pointer-to-member type that has already been
-           lowered, one needs to be able to get the original class and
-           member type. */
-        type->variant.typeref.orig_type = copy_of_orig_type;
+        /* Replace the original pointer-to-member type with the new type; the
+           original type is saved in the orig_type field if needed. */
+        overwrite_type_with_new_type(type, new_type);
 #if MAINTAIN_NEEDED_FLAGS
         /* Set the "needed" flag appropriately.  Without this, the typeref
            could be marked as needed and that might prevent processing of
@@ -9425,6 +9431,9 @@ Do IL lowering of the indicated type and everything under it.
         if (!is_auto_type(type)) {
           clear_parent(&type->source_corresp);
           set_type_kind(type, (a_type_kind)tk_error);
+        } else {
+          /* Overwrite an "auto" type with a typeref to void. */
+          overwrite_type_with_new_type(type, void_type());
         }  /* if */
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -9439,14 +9448,7 @@ Do IL lowering of the indicated type and everything under it.
            lowered IL to make it happen naturally) and maintain a copy of
            the original type for the use of IL lowering; it is not really
            part of the IL tree. */
-        copy_of_orig_type = alloc_type(type->kind);
-        copy_type(type, copy_of_orig_type);
-        /* Change the type to a pure typeref to the new (lowered) type. */
-        type_next = type->next;
-        set_type_kind(type, (a_type_kind)tk_typeref);
-        type->next = type_next;
-        type->variant.typeref.type = void_star_type();
-        type->variant.typeref.orig_type = copy_of_orig_type;
+        overwrite_type_with_new_type(type, void_star_type());
         break;
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:
