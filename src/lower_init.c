@@ -16039,6 +16039,60 @@ can access them simultaneously).
 }  /* add_guard_code_to_thread_local_init */
 
 
+void set_storage_class_for_thread_local_routines(a_variable_ptr var)
+/*
+Set (or re-set) the storage class of the wrapper and initialization routines
+for a thread_local variable.  The wrapper and initialization routines are
+initially created at the first use of the variable, but in certain cases the
+final storage class of the variable is not known, for example:
+
+  extern thread_local int x;
+  int main() {
+    return x-37;
+  }
+  thread_local int x = 37;
+
+In cases like this, this routine is called a second time with the final
+storage class.
+*/
+{
+  a_routine_ptr wrapper_routine = var->init_routine.thread.wrapper;
+  a_routine_ptr init_routine = var->init_routine.thread.init_routine;
+
+  check_assertion(var->is_thread_local &&
+                  wrapper_routine != NULL && init_routine != NULL);
+  /* (Re-)set the storage class of the two thread_local-specific routines
+     to the same storage class as the variable. */
+  wrapper_routine->storage_class = var->storage_class;
+  init_routine->storage_class = var->storage_class;
+  /* Set various items based on the storage class. */
+  if (var->storage_class == (a_storage_class)sc_static) {
+    /* Set the inline flag. */
+    set_inline_flag(wrapper_routine, TRUE);
+#if MINIMAL_INLINING
+    wrapper_routine->inlinable = TRUE;
+#endif /* MINIMAL_INLINING */
+  } else {
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
+    /* Set the "weak" attribute since this routine may be defined in more
+       than one translation unit. */
+    wrapper_routine->is_weak = TRUE;
+    init_routine->is_weak = TRUE;
+#else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
+    /* Each translation unit that uses this thread_local variable will
+       emit its own wrapper routine, so ensure they're all static
+       (to avoid multiple definition errors from the linker). */
+    wrapper_routine->storage_class = (a_storage_class)sc_static;
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (var->storage_class != (a_storage_class)sc_extern) {
+    /* Wrapper is for something defined in this translation unit so we need
+       a __tls_init routine in this translation unit. */
+    tls_init_needed = TRUE;
+  }  /* if */
+}  /* set_storage_class_for_thread_local_routines */
+
+
 static a_routine_ptr thread_local_init_routine_for_variable(a_variable_ptr var)
 /*
 Return the routine to use for initializing the specified thread_local variable.
@@ -16074,11 +16128,6 @@ data member is instantiated in this translation unit) -- this is fixed up later
     init_routine->source_corresp.name_has_been_mangled = TRUE;
     init_routine->type->variant.routine.extra_info->prototyped = TRUE;
     init_routine->is_tls_init_alias = TRUE;
-#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
-    if (init_routine->storage_class != (a_storage_class)sc_static) {
-      init_routine->is_weak = TRUE;
-    }  /* if */
-#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
     var->init_routine.thread.init_routine = init_routine;
   }  /* if */
   return var->init_routine.thread.init_routine;
@@ -16209,27 +16258,12 @@ has not yet been defined, it is created here.
                                       (a_type_ptr)NULL);
     wrapper_routine->source_corresp.name_has_been_mangled = TRUE;
     wrapper_routine->type->variant.routine.extra_info->prototyped = TRUE;
+    var->init_routine.thread.wrapper = wrapper_routine;
+    init_routine = thread_local_init_routine_for_variable(var);
+    set_storage_class_for_thread_local_routines(var);
     /* Make a memory region, scope, and block for the routine definition. */
     scope = make_routine_definition(wrapper_routine, /*make_return=*/FALSE,
                                     &region_number);
-    if (wrapper_routine->storage_class == (a_storage_class)sc_static) {
-      /* Set the inline flag. */
-      set_inline_flag(wrapper_routine, TRUE);
-#if MINIMAL_INLINING
-      wrapper_routine->inlinable = TRUE;
-#endif /* MINIMAL_INLINING */
-    } else {
-#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
-      /* Set the "weak" attribute since this routine may be defined in more
-         than one translation unit. */
-      wrapper_routine->is_weak = TRUE;
-#else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
-      /* Each translation unit that uses this thread_local variable will
-         emit its own wrapper routine, so ensure they're all static
-         (to avoid multiple definition errors from the linker). */
-      wrapper_routine->storage_class = (a_storage_class)sc_static;
-#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
     push_generated_routine_context(scope, region_number, &grcontext);
     set_block_start_insert_location(scope->assoc_block, &insert_location);
     /* In cases where we know the variable has a dynamic initialization
@@ -16251,13 +16285,12 @@ has not yet been defined, it is created here.
            return &var;
          }
 
-        If weak references are being used and the variable is not
-        dynamically initialized, there will be no definition of var_init.
-        When weak references are not used (and not all thread_locals have
-        wrappers), the "if" statement isn't needed -- a var_init routine is
-        emitted for all thread_local variables with external linkage in that
-        case. */
-    init_routine = thread_local_init_routine_for_variable(var);
+       If weak references are being used and the variable is not
+       dynamically initialized, there will be no definition of var_init.
+       When weak references are not used (and not all thread_locals have
+       wrappers), the "if" statement isn't needed -- a var_init routine is
+       emitted for all thread_local variables with external linkage in that
+       case. */
     call_insert_location = &insert_location;
 #if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
     if (!all_thread_locals_have_wrappers &&
@@ -16287,12 +16320,6 @@ has not yet been defined, it is created here.
     add_to_return_memo_list(return_stmt);
     /* Finish up. */
     pop_generated_routine_context(scope, region_number, &grcontext);
-    var->init_routine.thread.wrapper = wrapper_routine;
-    if (var->storage_class != (a_storage_class)sc_extern) {
-      /* Wrapper is for something defined in this translation unit so we need
-         a __tls_init routine in this translation unit. */
-      tls_init_needed = TRUE;
-    }  /* if */
   }  /* if */
   return var->init_routine.thread.wrapper;
 }  /* thread_local_wrapper_for_variable */

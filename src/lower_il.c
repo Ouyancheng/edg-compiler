@@ -9677,7 +9677,15 @@ Do IL lowering of the indicated variable and everything under it.
         /* All thread_locals should have wrappers, ensure that one is created
            for this variable (even if it is not referenced in this
            translation unit). */
-        (void)thread_local_wrapper_for_variable(variable);
+        if (variable->init_routine.thread.wrapper == NULL) {
+          /* Create a wrapper now. */
+          (void)thread_local_wrapper_for_variable(variable);
+        } else {
+          /* A wrapper has already been created; set the storage class for
+             the wrapper and initialization routine again (they may have
+             changed from their original settings). */
+          set_storage_class_for_thread_local_routines(variable);
+        }  /* if */
 #if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
       } else if (variable->init_kind != (an_init_kind)initk_dynamic) {
         /* When we're not using weak references and wrapper routines are only
