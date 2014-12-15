@@ -9689,7 +9689,8 @@ Do IL lowering of the indicated variable and everything under it.
           set_storage_class_for_thread_local_routines(variable);
         }  /* if */
 #if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
-      } else if (variable->init_kind != (an_init_kind)initk_dynamic) {
+      } else if (variable->init_kind != (an_init_kind)initk_dynamic &&
+                 variable->init_routine.thread.init_routine == NULL) {
         /* When we're not using weak references and wrapper routines are only
            generated for dynamically-initialized thread_local variables, any
            thread_local variable with external linkage that is defined in this
