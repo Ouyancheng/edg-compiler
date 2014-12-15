@@ -10,7 +10,7 @@ type, and the decltype produced a non-dependent nonclass type.  Now fixed.
   template <class T> void f(T* p) {
     class Z {} z;
     int x; 
-    z->decltype(x)::~ T() ; 
+    z->decltype(x)::~T() ; 
   }
 
 
