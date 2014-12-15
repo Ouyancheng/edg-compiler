@@ -10777,15 +10777,9 @@ mangled without parameter encoding.
   if (!has_name(routine)) {
     /* Unnamed routines generally do not need mangled names. */
     /* Compiler-generated routines have no name, and they are left alone.
-       But constructors for unnamed classes that got a name for linkage
-       purposes should get mangled names.  For example:
-          struct X { X(); };
-          typedef struct { X x; } A;
-       Also, constructors of unnamed types in local functions need mangling.
-       */
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
-        (has_name(parent_class_of(routine)) ||
-         parent_class_of(routine)->source_corresp.is_local_to_function)) {
+       But all constructors (e.g., for unnamed classes) should get mangled
+       names. */
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
       mangling_needed = TRUE;
     }  /* if */
   } else if (routine == il_header.main_routine) {
