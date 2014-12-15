@@ -47,18 +47,6 @@ to a typeref to void.  For example (with --c++14):
   template struct A<double>;
 
 
-12/15/14 [EDGcpfe/15827]
-Explicit instantiation of deleted function
-
-The front end failed to issue an error when an explicit instantiation
-referred to a deleted function.  Now fixed.  If the explicit instantiation
-refers to an instance of a class template, the explicit instantiation
-now ignores deleted member functions.
-
-  template <class T> void f(T) = delete;
-  template void f(int);  // should get error
-
-
 12/15/14 [EDGcpfe/15829]
 Missing error on use of "void" and "auto"
 

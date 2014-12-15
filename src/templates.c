@@ -30221,12 +30221,9 @@ directive.
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
     } else if (routine->is_deleted) {
-      /* The routine is deleted. */
+      /* The routine is deleted.  Don't give an error, but ignore an
+         attempt to instantiate the function. */
       result = FALSE;
-      if (issue_errors &&
-          pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
-        sym_error(ec_deleted_function, sym);
-      }  /* if */
     } else if (is_inline_template_function(tip, /*in_class=*/FALSE)) {
       /* An inline function is allowed in an explicit instantiation, but not
          in a pragma.  The Sun compiler does not instantiate inline functions
