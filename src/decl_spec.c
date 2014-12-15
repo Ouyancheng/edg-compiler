@@ -8638,7 +8638,8 @@ if an error is issued.
        "auto" can be a type specifier.  In the "auto" case, it cannot be a
        storage class specifier because this mode doesn't allow it or because
        no other type specifier was seen. */
-    if (!auto_type_allowed || (*decl_specifiers_seen & DS_TYPE) != 0 ||
+    if (!auto_type_allowed ||
+        (*decl_specifiers_seen & (DS_TYPE | DS_VOID)) != 0 ||
         ((input_flags & DSI_IS_PARAMETER) != 0 &&
          state->decltype_auto_specifier_seen)) {
       /* If the current mode supports "auto" as a type specifier, but the

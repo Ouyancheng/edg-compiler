@@ -1,5 +1,15 @@
 Version 4.10
 
+12/15/14 [EDGcpfe/15829]
+Missing error on use of "void" and "auto"
+
+An error should be issued when both "void" and "auto" are used in a
+declaration; the front end had issued an error in all modes except --c++14
+and now issues an error in that case as well:
+
+  void auto f() {}    // now gets an error with --c++14
+
+
 12/13/14 [EDGcpfe/15819]
 Abort on invalid decltype-qualified destructor call
 
