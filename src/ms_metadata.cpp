@@ -635,8 +635,8 @@ API reference: http://msdn.microsoft.com/en-us/library/yfsftwz6.aspx.
 }  /* unescape_cli_identifier */
 
 
-static bool is_identifier_char(wchar_t ch,
-                               bool    is_identifier_start)
+static bool is_cli_identifier_char(wchar_t ch,
+                                   bool    is_identifier_start)
 /*
 Return true if ch is valid as a character in an identifier (or as the first
 character of an identifier if is_identifier_start is true).
@@ -666,7 +666,7 @@ character of an identifier if is_identifier_start is true).
              ec_no_error);
   }  /* if */
   return is_id;
-}  /* is_identifier_char */
+}  /* is_cli_identifier_char */
 
 bool escaped_char_for_string_literal_special_char(wchar_t &ch)
 /*
@@ -725,10 +725,10 @@ of the given string that starts at the position indicated by chars_to_skip.
     auto skipped_chars_end = identifier.begin() + chars_to_skip;
     auto iter = skipped_chars_end;
     auto ch = *iter;
-    if (is_identifier_char(ch, /*is_identifier_start=*/true)) {
+    if (is_cli_identifier_char(ch, /*is_identifier_start=*/true)) {
       for (++iter; iter != identifier.end(); ++iter) {
         ch = *iter;
-        if (!is_identifier_char(ch, /*is_identifier_start=*/false)) {
+        if (!is_cli_identifier_char(ch, /*is_identifier_start=*/false)) {
           break;
         }  /* if */
       }  /* for */
