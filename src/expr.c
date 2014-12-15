@@ -36931,7 +36931,7 @@ type with the type of return_op.
                               ->coordinates.position ==
                                                      DECLTYPE_AUTO_POS_NUMBER;
   if (is_error_type(auto_type)) {
-    /* Something when wrong upstream.  Proceed with an error type. */
+    /* Something went wrong upstream.  Proceed with an error type. */
     expect_error();
     *return_type = error_type();
     rout_type->variant.routine.return_type = *return_type;
