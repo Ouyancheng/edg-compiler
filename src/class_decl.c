@@ -30266,7 +30266,9 @@ For example:
   /* Scan the lambda capture list. */
   (void)get_token();
   add_stop_token(tok_rbracket);
+  decl_scope_level = saved_decl_scope_level;
   scan_lambda_capture_list(lambda);
+  decl_scope_level = decl_level;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   lambda->capture_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
