@@ -27822,7 +27822,8 @@ look_for_var:
        function scope of the call operator. */
     --sd;
   }  /* if */
-  if (scope_is(&scope_stack[sd], sck_class_struct_union)) {
+  if (scope_is(&scope_stack[sd], sck_class_struct_union) ||
+      scope_is(&scope_stack[sd], sck_class_reactivation)) {
     a_type_ptr class_type = scope_stack[sd].assoc_type;
     if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* This is an intermediate lambda. */
