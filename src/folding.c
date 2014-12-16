@@ -6361,8 +6361,7 @@ constant.  Otherwise, return NULL.
   for (init_con = curr_init_aggr_con; result == NULL && init_con != NULL;
        init_con = init_con->next) {
     if (init_con->constant == NULL) {
-      /* This should only happen in error situations. */
-      expect_error();
+      /* There is no constant associated with this initialization yet. */
     } else if (identical_types_ignoring_qualifiers(init_con->constant->type,
                                                    class_type)) {
       result = init_con->constant;
@@ -11207,6 +11206,7 @@ otherwise, return FALSE.
          that. */
 #if CHECKING
       if (!eff_obj_con->partial_aggr_value &&
+          curr_init_aggr_con == NULL &&
           !empty_anonymous_union_initializer) {
         /* This must have been the result of an error upstream. */
         expect_error();
