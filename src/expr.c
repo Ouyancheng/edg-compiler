@@ -28857,19 +28857,12 @@ normal_function:
             /* We found an init-capture.  Therefore, we must be in a lambda
                body. */
             a_lambda_capture_ptr lcp;
-            a_variable_ptr       this_var;
-            /* Create a "this" operand explicitly (the ordinary path ignores
-               closure types). */
-            this_var = this_variable_for_lambda_closure();
-            make_expression_operand(var_rvalue_expr(this_var),
-                                    &this_pointer_operand);
-            this_operand_set = TRUE;
             /* If one or more intermediate lambdas captured that init-capture,
                switch to the field corresponding to the innermost capture.  In
                the case of implicit captures, that field may have to be created
                first. */
-            lcp = lambda_capture_for_init_capture(sym_ptr->variant.field.ptr,
-                                                  &locator.source_position);
+            lcp = lambda_capture_for_init_capture(
+                        sym_ptr->variant.field.ptr, &locator.source_position);
             if (lcp == NULL) {
               /* The init-capture could not be captured.  An error has already
                  been issued. */
@@ -28879,6 +28872,13 @@ normal_function:
               rep = NULL;
               break;
             } else {
+              a_variable_ptr       this_var;
+              /* Create a "this" operand explicitly (the ordinary path ignores
+                 closure types). */
+              this_var = this_variable_for_lambda_closure();
+              make_expression_operand(var_rvalue_expr(this_var),
+                                      &this_pointer_operand);
+              this_operand_set = TRUE;
               sym_ptr = symbol_for(lcp->closure_field);
               locator.specific_symbol = sym_ptr;
             }  /* if */

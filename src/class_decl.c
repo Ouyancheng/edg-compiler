@@ -1912,29 +1912,36 @@ can be created, return NULL and issue an error at the given position.
   a_lambda_ptr          lambda = get_current_lambda();
   a_lambda_capture_ptr  lcp;
 
-  check_assertion(lambda != NULL && fp->is_init_capture);
-  /* Check if an existing capture already exists for this field. */
-  lcp = find_lambda_capture(lambda, (a_variable_ptr)NULL, fp);
-  if (lcp == NULL) {
-    /* No existing capture.  See if one can be created. */
-    an_error_code err_code = ec_no_error;
-    a_boolean     by_ref = lambda->default_is_by_reference;
-    if (!lambda->has_capture_default) {
-      /* No capture default, so implicit captures are not allowed. */
-      err_code = ec_not_captured_local_var_in_lambda;
-    } else {
-      /* Implicit capture is possible at this level.  Attempt the creation of
-         a capture entry. */
-      a_boolean no_impl_capture;
-      lcp = add_lambda_capture(lambda, (a_variable_ptr)NULL, fp,
-                               /*is_implicit=*/TRUE, by_ref, pos,
-                               &no_impl_capture);
-      if (no_impl_capture) {
-        err_code = ec_no_implicit_capture_on_enclosing_lambda;
+  check_assertion(fp->is_init_capture);
+  if (lambda == NULL) {
+    /* There is currently no lambda whose init-capture field can be captured
+       (maybe we're inside a local class of the lambda). */
+    pos_sy_error(ec_bad_init_capture_capture, pos, symbol_for(fp));
+    lcp = NULL;
+  } else {
+    /* Check if an existing capture already exists for this field. */
+    lcp = find_lambda_capture(lambda, (a_variable_ptr)NULL, fp);
+    if (lcp == NULL) {
+      /* No existing capture.  See if one can be created. */
+      an_error_code err_code = ec_no_error;
+      a_boolean     by_ref = lambda->default_is_by_reference;
+      if (!lambda->has_capture_default) {
+        /* No capture default, so implicit captures are not allowed. */
+        err_code = ec_not_captured_local_var_in_lambda;
+      } else {
+        /* Implicit capture is possible at this level.  Attempt the creation
+           of a capture entry. */
+        a_boolean no_impl_capture;
+        lcp = add_lambda_capture(lambda, (a_variable_ptr)NULL, fp,
+                                 /*is_implicit=*/TRUE, by_ref, pos,
+                                 &no_impl_capture);
+        if (no_impl_capture) {
+          err_code = ec_no_implicit_capture_on_enclosing_lambda;
+        }  /* if */
       }  /* if */
-    }  /* if */
-    if (err_code != ec_no_error) {
-      pos_error(err_code, pos);
+      if (err_code != ec_no_error) {
+        pos_error(err_code, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   return lcp;
