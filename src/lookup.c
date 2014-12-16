@@ -571,6 +571,7 @@ created.
     proxy_class = &type->variant.template_param.extra_info->class_type;
     is_generic = type->variant.template_param.is_generic_param;
   } else {
+    check_assertion(type->kind == (a_type_kind)tk_typeref);
     proxy_class = &type->variant.typeref.extra_info->proxy_class;
   }  /* if */
   /* If the proxy class does not exist yet, create it now. */
