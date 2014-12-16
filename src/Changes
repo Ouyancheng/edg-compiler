@@ -1,5 +1,22 @@
 Version 4.10
 
+12/16/14 [EDGcpfe/14365]
+IA-64 mangling of certain operator functions
+
+The IA-64 ABI specifies that in cases where both binary and unary manglings
+are available that the binary mangling should be used.  The front end had
+neglected to follow that guideline in the case of a pack expansion.  This has
+been fixed when ABI_COMPATIBILITY_VERSION >= 410 (and now matches GNU's
+behavior).  The Cfront mangling is unchanged.  For example, with --c++11:
+
+  struct X{};
+  void operator+(X);
+  template<typename ...T> auto f(T... x) -> decltype(operator+(x...));
+  int main() {
+    f(X{});
+  }
+
+
 12/16/14 [EDGcpfe/15660]
 Microsoft compatibility: location of alink.h header file
 

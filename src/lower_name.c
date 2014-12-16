@@ -2594,6 +2594,48 @@ generated default arguments are not represented in the returned value.
 }  /* number_of_operands_in_list */
 
 
+#if !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410)
+/*ARGSUSED*/  /* opname is not used in that case. */
+#endif /* !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410) */
+static unsigned long number_of_operands_in_operator_list(
+                                                       an_opname_kind   opname,
+                                                       an_expr_node_ptr expr)
+/*
+Returns the number of arguments that should be used in a mangling for the
+mangling of the operator associated with opname.  expr is the argument list.
+The IA-64 ABI specifies that when an <unresolved-name> refers to an operator
+for which both binary and unary manglings are available that the binary
+mangling is chosen.  In the case where a pack expansion is used as the only
+argument, this routine returns 2 (to force the binary mangling).  Note that
+the return value of this routine should not be used for looping through
+actual arguments (since it may return a number that is greater than the
+number of actual arguments).  The Cfront ABI uses the unary mangling in this
+case (since there's no specification and to avoid unnecessary ABI changes).
+*/
+{
+  unsigned long    num_operands;
+
+  num_operands = number_of_operands_in_list(expr);
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
+  switch (opname) {
+    case onk_plus:              /* "+" */
+    case onk_minus:             /* "-" */
+    case onk_star:              /* "*" */
+    case onk_ampersand:         /* "&" */
+      /* For operations that can be unary or binary, choose binary if
+         appropriate. */
+      if (num_operands == 1 && expr->is_pack_expansion) {
+        num_operands = 2;
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410 */
+  return num_operands;
+}  /* number_of_operands_in_operator_list */
+
+
 static unsigned long number_of_parameters(a_routine_ptr routine)
 /*
 Return the number of parameters for the specified routine.
@@ -5173,8 +5215,10 @@ expression that was used to select expr (NULL if no selector was used).
     mangled_destructor_name(destructor_type, name_reference, mctl);
   } else if (mangle_as_operator) {
     /* Mangle the entity as an operator. */
+    unsigned long num_operands= number_of_operands_in_operator_list(opname,
+                                                                    arguments);
     mangled_operator_or_special_function(opname,
-                                         number_of_operands_in_list(arguments),
+                                         num_operands,
                                          conversion_type,
                                          ud_suffix,
                                          template_arg_list,
