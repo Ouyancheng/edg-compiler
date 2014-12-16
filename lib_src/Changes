@@ -1,3 +1,16 @@
+Version 4.10
+
+12/16/14 [EDGcpfe/15838]
+Runtime source now copyrighted but not proprietary
+
+We've changed the copyright notices in the runtime library source to make
+those files freely redistributable.  They're copyrighted, but they're
+not proprietary.  This was done because some customers wanted to provide
+code generation options that required a customized runtime library to
+be built by their end-users.
+
+
+-------------------------------------------------------------------------------
 Version 4.9, April 17, 2014
 
 No changes.
