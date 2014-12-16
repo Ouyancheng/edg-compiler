@@ -9989,11 +9989,16 @@ pm_field_selection:
         }  /* if */
         break;
       default:
-        /* "Normal" operators.  For these, the operands have to be constant
-            for folding to be possible. */
-        op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        /* "Normal" operators.  For these, the operands have to be "real"
+            constants (not dynamic initializations) for folding to be
+            possible. */
+        op1_folded = (fold_expr(op1, ceblock, &op1_constant) &&
+                      op1_constant.kind !=
+                                        (a_constant_repr_kind)ck_dynamic_init);
         if (op2 != NULL) {
-          op2_folded = fold_expr(op2, ceblock, &op2_constant);
+          op2_folded = (fold_expr(op2, ceblock, &op2_constant) &&
+                        op2_constant.kind !=
+                                        (a_constant_repr_kind)ck_dynamic_init);
         }  /* if */
         if (op1_folded && (op2_folded || op2 == NULL)) {
           /* The operands are constants. */
