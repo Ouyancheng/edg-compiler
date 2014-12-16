@@ -9689,16 +9689,21 @@ Do IL lowering of the indicated variable and everything under it.
           set_storage_class_for_thread_local_routines(variable);
         }  /* if */
 #if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
-      } else if (variable->init_kind != (an_init_kind)initk_dynamic &&
-                 variable->init_routine.thread.init_routine == NULL) {
-        /* When we're not using weak references and wrapper routines are only
-           generated for dynamically-initialized thread_local variables, any
-           thread_local variable with external linkage that is defined in this
-           translation unit and has no initialization needs to have a NULL
-           initialization routine emitted (since other translation units don't
-           know whether or not this variable has dynamic initialization,
-           they'll emit references to this routine). */
-        make_null_thread_local_init_routine_for_variable(variable);
+      } else if (variable->init_kind != (an_init_kind)initk_dynamic) {
+        if (variable->init_routine.thread.init_routine == NULL) {
+          /* When we're not using weak references and wrapper routines are only
+             generated for dynamically-initialized thread_local variables, any
+             thread_local variable with external linkage that is defined in
+             this translation unit and has no initialization needs to have a
+             NULL initialization routine emitted (since other translation units
+             don't know whether or not this variable has dynamic
+             initialization, they'll emit references to this routine). */
+          make_null_thread_local_init_routine_for_variable(variable);
+        } else if (variable->init_routine.thread.init_routine->storage_class !=
+                                                     variable->storage_class) {
+          /* The storage class has changed since the routine was created. */
+          set_storage_class_for_thread_local_routines(variable);
+        }  /* if */
 #endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
       }  /* if */
     }  /* if */
