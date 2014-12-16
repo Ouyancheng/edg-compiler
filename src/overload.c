@@ -18093,8 +18093,10 @@ is used only in C++ mode.
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
     /* The constructor is a trivial bitwise copy constructor. */
     *class_bitwise_copy = TRUE;
-    expr_reference_to_trivial_copy_constructor(ctor_class, &operand->position,
-                                               /*elided_reference=*/FALSE);
+    expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
+                                                  &operand->position,
+                                                  ctor_class,
+                                                  /*honor_virtual=*/FALSE);
     if (ctor_arg_conversion == NULL ||
         is_null_user_conv_descr(ctor_arg_conversion)) {
       /* No user-defined conversion on the argument, so this is a simple
