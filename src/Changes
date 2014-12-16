@@ -51,15 +51,13 @@ Lowering of "auto" type
 
 It is unusual for an "auto" type to be seen in lowering, but prior to the
 changes for EDGcpfe/15827, the example below had generated one, leading to
-invalid code being generated in the back end.  An "auto" type is now lowered
+an "auto" type escaping to a back end (which caused invalid code to be
+generated in the C-generating back end).  An "auto" type is now lowered
 to a typeref to void.  For example (with --c++14):
 
-  template <class T> struct A {
-    auto f() = delete;    // Had (prior to the changes for EDGcpfe/15827)
-                          // generated an "auto" function in C-generating
-                          // back end configurations.
-  };
-  template struct A<double>;
+  auto f() = delete;    // Had (prior to the changes for EDGcpfe/15827)
+                        // generated an "auto" function in C-generating
+                        // back end configurations.
 
 
 12/15/14 [EDGcpfe/15827]
