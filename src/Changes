@@ -49,15 +49,15 @@ This is now fixed.
 12/15/14 [EDGcpfe/15831]
 Lowering of "auto" type
 
-It is unusual for an "auto" type to be seen in lowering, but prior to the
-changes for EDGcpfe/15827, the example below had generated one, leading to
-an "auto" type escaping to a back end (which caused invalid code to be
-generated in the C-generating back end).  An "auto" type is now lowered
-to a typeref to void.  For example (with --c++14):
+The front end ordinarily replaces the C++14 "auto" placeholder function return
+type by the deduced return type.  However, for "auto" functions that are not
+defined or are defined as deleted (such functions cannot be referenced and thus
+are marked as unneeded), the return type is left as "auto".  Since the "auto"
+type is a C++-only construct, IL lowering should have replaced it with a C type
+but failed to do so.  This is now fixed, with the "auto" type being replaced by
+a typeref to void.  For example, with --c++14:
 
-  auto f() = delete;    // Had (prior to the changes for EDGcpfe/15827)
-                        // generated an "auto" function in C-generating
-                        // back end configurations.
+  auto f();  // Return type was previously "auto" in lowered IL, now void
 
 
 12/15/14 [EDGcpfe/15827]
