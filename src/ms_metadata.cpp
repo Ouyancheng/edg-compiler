@@ -23,11 +23,13 @@ don't need this file.  You don't need to compile it, and you don't
 need to link it in.  You can stick with the traditional C-only build
 process.
 
-Note that it uses the alink.h include file.  This file is not
-currently part of the Windows SDK, although it is expected to be
-at some point in the future.  The file can be downloaded at
-http://code.msdn.microsoft.com/alink
+Note that this file uses the alink.h include file.  It is included with
+installations of Visual Studio (beginning with Visual Studio 2012) as
+part of the Windows 8 (and newer) SDKs.  The file can be found in:
 
+  \Program Files(x86)\Windows Kits\8.x\Include\um\alink.h
+
+where 8.x is currently either 8.0 or 8.1.
 */
 
 #include "basics.h"

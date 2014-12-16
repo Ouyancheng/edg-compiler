@@ -1,5 +1,20 @@
 Version 4.10
 
+12/16/14 [EDGcpfe/15660]
+Microsoft compatibility: location of alink.h header file
+
+The alink.h header file is required to build ms_metadata.cpp, which is
+needed when enabling C++/CLI support.  Formerly, this was available
+on the Microsoft web site at a location that was specified in the
+ms_metadata.cpp file.  It is now included with installations of Visual
+Studio (beginning with Visual Studio 2012) as part of the Windows 8 (and
+newer) SDKs.  The file can be found in:
+
+  \Program Files(x86)\Windows Kits\8.x\Include\um\alink.h
+
+where 8.x is currently either 8.0 or 8.1.
+
+
 12/15/14 [EDGcpfe/14537]
 Assertion failure during IA-64 mangling of constructor in unnamed class
 
