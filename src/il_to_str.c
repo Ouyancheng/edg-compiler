@@ -1624,22 +1624,20 @@ Return its argument expression if available, or NULL otherwise.
     /* __underlying_type and __based constructs don't allow expression
         arguments. */
   } else if (expr == NULL) {
-    /* See if the expression can be found in the local function scope
-       (or enclosing function scope for a template parameter of a generic
-       lambda). */
+    /* See if the expression can be found in a local function scope. */
     a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
                                    (a_local_expr_node_ref_kind)lerk_decltype :
                                    (a_local_expr_node_ref_kind)lerk_typeof;
-    a_type_ptr underlying_type = f_skip_typerefs(type);
-    a_scope_ptr scope = innermost_function_scope;
-    underlying_type = find_bottom_of_type(underlying_type);
-    if (underlying_type->kind == (a_type_kind)tk_template_param &&
-        underlying_type->variant.template_param.is_auto_param &&
-        type->source_corresp.enclosing_routine != NULL &&
+    a_scope_ptr scope;
+    if (type->source_corresp.enclosing_routine != NULL &&
         type->source_corresp.enclosing_routine->assoc_scope !=
                                                           NULL_region_number) {
-      /* A parameter of a generic lambda. */
+      /* If the type is defined in a function or block scope, search in
+         that routine's scope (if it has been defined). */
       scope = scope_for_routine(type->source_corresp.enclosing_routine);
+    } else {
+      /* Assume we should use the current function. */
+      scope = innermost_function_scope;
     }  /* if */
     if (scope != NULL) {
       expr = find_local_expr_node_in_scope((char*)type, lerk, scope);
