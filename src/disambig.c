@@ -563,11 +563,13 @@ Return TRUE if token can follow a typeof of the form "typeof(expression)".
 static void prescan_type_operator(a_disambig_state_ptr       state,
 				  a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a decltype, __underlying_type, or typeof specifier.
+Scan past (and cache) a decltype, alignas, __underlying_type, or typeof
+specifier.  (alignas isn't strictly a type operator, but it is syntactically
+similar.)
 */
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
-  /* Bypass the decltype, __underlying_type, or typeof (or __typeof__)
+  /* Bypass the decltype, alignas, __underlying_type, or typeof (or __typeof__)
      token. */
   (void)get_token();
   if (curr_token == tok_lparen) {
@@ -887,6 +889,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_decltype_construct:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
+        break;
+      case tok_alignas:
+        is_decl_specifier_token = TRUE;
+        prescan_type_operator(state, flags);
         break;
       case tok_lbracket:
         if (std_attribute_tokens_next()) {
