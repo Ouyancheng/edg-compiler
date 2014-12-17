@@ -2604,13 +2604,14 @@ static unsigned long number_of_operands_in_operator_list(
 Returns the number of arguments that should be used when determining which
 mangled encoding to use for the operator associated with opname.  expr is the
 argument list.  The IA-64 ABI specifies that when an <unresolved-name> refers
-to an operator for which both binary and unary manglings are available that the
-binary mangling is chosen.  In the case where a pack expansion is used as the
-only argument, this routine returns 2 (to force the binary mangling).  Note
-that the return value of this routine should not be used for looping through
-actual arguments (since it may return a number that is greater than the number
-of actual arguments).  The Cfront ABI uses the unary mangling in this case
-(since there's no specification and to avoid unnecessary ABI changes).
+to an operator for which both binary and unary mangled encodings are available,
+the binary encoding is chosen.  In the case where a pack expansion is used as
+the only argument, this routine returns 2 (to trigger use of the binary
+encoding).  Note that the return value of this routine should not be used for
+looping through actual arguments (since it may return a number that is greater
+than the number of actual arguments).  The Cfront ABI uses the unary encoding
+in this case (since there's no specification and to avoid unnecessary ABI
+changes).
 */
 {
   unsigned long    num_operands;
