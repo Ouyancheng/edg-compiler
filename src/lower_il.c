@@ -2036,7 +2036,7 @@ type, an lvalue is returned instead.
       node = var_rvalue_expr(temp_var);
     }  /* if */
     if (constant->implicit_cast) {
-      add_cast_if_necessary(node, constant->type);
+      node = add_cast_if_necessary(node, constant->type);
     }  /* if */
   } else {
     /* Normal case; make a constant node. */
