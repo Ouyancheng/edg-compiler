@@ -2030,12 +2030,13 @@ type, an lvalue is returned instead.
      variable. */
   if (check_for_troublesome_aggregate_constant(constant,
                                                &temp_var)) {
-    check_assertion(is_or_was_ptr_to_member_function_type(constant->type) ||
-                    !constant->implicit_cast);
     if (is_array_type(constant->type)) {
       node = var_lvalue_expr(temp_var);
     } else {
       node = var_rvalue_expr(temp_var);
+    }  /* if */
+    if (constant->implicit_cast) {
+      add_cast_if_necessary(node, constant->type);
     }  /* if */
   } else {
     /* Normal case; make a constant node. */
@@ -2823,9 +2824,6 @@ not to contain any top level base class casts.
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
          constant. */
-      check_assertion(is_or_was_ptr_to_member_function_type(
-                                               expr->variant.constant->type) ||
-                      !expr->variant.constant->implicit_cast);
       expr = var_addr_expr(temp);
     } else {
       temp = assign_expr_to_temp(expr);
@@ -12870,8 +12868,6 @@ variables can have changed since the first reference.
     if (is_constant_node(expr) &&
         check_for_troublesome_aggregate_constant(expr->variant.constant,
                                                  &temp_var)) {
-      check_assertion(is_or_was_ptr_to_member_function_type(expr->type) ||
-                      !expr->variant.constant->implicit_cast);
       /* This expression node is a pointer-to-member-function constant, which
          has become a struct represented by a ck_aggregate constant.  Since a
          ck_aggregate constant is not allowed here, use the value of a
