@@ -5500,9 +5500,18 @@ precedence confusion.  Do the output in the way described by octl.
         for (; sub_con != NULL; sub_con = sub_con->next) {
           if (sub_con->implicit_aggr_element &&
               !octl->c_generating_back_end) {
-            /* Don't render implicit elements unless the C-generating back end
-               has to compile them. */
-            continue;
+#if DEBUG
+            if (octl->debug_output) {
+              /* Emit the constant (with an indication that it is implicit). */
+              octl->output_str("<implicit element> ", octl);
+            } else
+#endif /* DEBUG */
+            /* Do not insert code here. */
+            {
+              /* Don't render implicit elements unless the C-generating back
+                 end has to compile them. */
+              continue;
+            }  /* if */
           }  /* if */
           form_constant(sub_con, /*need_parens=*/FALSE, octl);
           if (sub_con->next != NULL &&
