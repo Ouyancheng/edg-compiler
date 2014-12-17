@@ -4237,6 +4237,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
     if (may_be_added_to_types_list(class_type, effective_decl_level)) {
       add_to_types_list(class_type, effective_decl_level);
+    } else if (is_local_class &&
+               scope_stack[effective_decl_level].in_prototype_instantiation) {
+      /* Mark a local class of a prototype instantiation as nonreal.
+         Otherwise, an instantiation over that type can end up on the list of
+         file scope types. */
+      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
