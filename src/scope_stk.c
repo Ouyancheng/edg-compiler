@@ -3510,18 +3510,18 @@ the scope being pushed.
                                      ssep->is_reactivation);
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
-  }  /* if */
-  /* Propagate the flag indicating that this scope is inside the compound
-     statement of a try block. */
-  if (kind == (a_scope_kind)sck_block && (ssep-1)->within_try_block) {
-    ssep->within_try_block = TRUE;
-  }  /* if */
-  if (kind == (a_scope_kind)sck_condition) {
-      /* A C++ condition scope is only created when there is a declaration,
-         so we know an IL scope will be required (unlike a block scope). */
-    check_assertion_str(curr_il_region_number != file_scope_region_number,
-                        "push_scope_full: bad region number for condition");
-    sp = ensure_il_scope_exists(ssep);
+    /* Propagate the flag indicating that this scope is inside the compound
+       statement of a try block. */
+    if (kind == (a_scope_kind)sck_block && (ssep-1)->within_try_block) {
+      ssep->within_try_block = TRUE;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_condition) {
+        /* A C++ condition scope is only created when there is a declaration,
+           so we know an IL scope will be required (unlike a block scope). */
+      check_assertion_str(curr_il_region_number != file_scope_region_number,
+                          "push_scope_full: bad region number for condition");
+      sp = ensure_il_scope_exists(ssep);
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
