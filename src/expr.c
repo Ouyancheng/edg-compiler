@@ -36907,7 +36907,6 @@ type with the type of return_op.
 {
   a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
   a_boolean   is_decltype_auto, still_dependent;
-  a_boolean   lambda_case = curr_routine->is_lambda_body;
 
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
