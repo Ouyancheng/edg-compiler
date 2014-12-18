@@ -4566,8 +4566,8 @@ specified by depth.
 }  /* add_to_using_decl_list */
 
 
-void add_to_scopes_list(a_scope_ptr             scope_ptr,
-                        a_scope_stack_entry_ptr ssep)
+static void add_to_scopes_list(a_scope_ptr             scope_ptr,
+                               a_scope_stack_entry_ptr ssep)
 /*
 Add the given IL scope to the scopes list for the scope stack entry pointed
 to by ssep.

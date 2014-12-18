@@ -3521,8 +3521,7 @@ the scope being pushed.
          so we know an IL scope will be required (unlike a block scope). */
     check_assertion_str(curr_il_region_number != file_scope_region_number,
                         "push_scope_full: bad region number for condition");
-    ensure_il_scope_exists(ssep);
-    sp = ssep->il_scope;
+    sp = ensure_il_scope_exists(ssep);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
