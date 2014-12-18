@@ -1912,6 +1912,7 @@ initialization).  *is describes the initialization as a whole.
     }  /* if */
     /* Determine the element count in the destination type if known. */
     if (atype->variant.array.variant.number_of_elements == 0 &&
+        !atype->variant.array.is_template_dependent_size_array &&
         !atype->variant.array.bound_is_zero) {
       /* An array whose number of elements is not a priori bound. */
       no_bound = TRUE;
