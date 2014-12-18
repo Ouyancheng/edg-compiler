@@ -1,5 +1,17 @@
 Version 4.10
 
+12/18/14 [EDGcpfe/14978]
+C++-generating back end: incorrect suffix in numeric user-defined literals
+
+The C++-generating back end previously incorrectly added numeric suffixes
+to the integer or floating point portion of a numeric user-defined literal.
+This is now fixed.  For example, with --c++11:
+
+  struct S { };
+  S operator""_x(unsigned long long);
+  S s = 123_x;   // Previously generated as 123ULL_x
+
+
 12/16/14 [EDGcpfe/15834]
 Assertion failure processing aggregate initializer
 

@@ -3101,27 +3101,31 @@ precedence confusion.  Do the output in the way described by octl.
     literal_form = decimal_str_for_integer_constant(eff_constant);
   }  /* if */
   output_partial_token_str(literal_form, octl);
-  /* Put out a suffix if needed. */
-  /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-     a prefix cast is used (see above). */
-  if (!signed_constant && !octl->gen_pcc_code) {
-    /* Unsigned constant. */
-    output_partial_token_str("U", octl);
-  }  /* if */
-  if (integer_type_constant) {
-    /* Add length suffixes if appropriate. */
-    if (ikind == (an_integer_kind)ik_long           ||
-        ikind == (an_integer_kind)ik_unsigned_long) {
-      output_partial_token_str("L", octl);
-#if LONG_LONG_ALLOWED
-    } else if (ikind == (an_integer_kind)ik_long_long ||
-               ikind == (an_integer_kind)ik_unsigned_long_long) {
-      if (use_microsoft_form()) {
-        output_partial_token_str("i64", octl);
-      } else {
-        output_partial_token_str("LL", octl);
+  if (!octl->part_of_ud_literal) {
+    /* Put out a suffix if needed.  The suffix must be suppressed for the
+       numeric part of a user-defined literal lest it be considered part of
+       the literal suffix. */
+    /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
+       a prefix cast is used (see above). */
+    if (!signed_constant && !octl->gen_pcc_code) {
+      /* Unsigned constant. */
+      output_partial_token_str("U", octl);
+    }  /* if */
+    if (integer_type_constant) {
+      /* Add length suffixes if appropriate. */
+      if (ikind == (an_integer_kind)ik_long           ||
+          ikind == (an_integer_kind)ik_unsigned_long) {
+        output_partial_token_str("L", octl);
+  #if LONG_LONG_ALLOWED
+      } else if (ikind == (an_integer_kind)ik_long_long ||
+                 ikind == (an_integer_kind)ik_unsigned_long_long) {
+        if (use_microsoft_form()) {
+          output_partial_token_str("i64", octl);
+        } else {
+          output_partial_token_str("LL", octl);
+        }  /* if */
+  #endif /* LONG_LONG_ALLOWED */
       }  /* if */
-#endif /* LONG_LONG_ALLOWED */
     }  /* if */
   }  /* if */
   if (minus_1_trick) octl->output_str("-1", octl);
@@ -4589,6 +4593,11 @@ generated (in configurations that support that).
       gnu_builtin_suffix = "l";
       max_exp = targ_ldbl_max_exp;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+    }  /* if */
+    if (octl->part_of_ud_literal) {
+      /* Suppress the suffix on the numeric part of a user-defined literal
+         lest it be considered part of the literal suffix. */
+      suffix = "";
     }  /* if */
   } else {
     /* Generating K&R C.  Suffixes are not allowed. */
