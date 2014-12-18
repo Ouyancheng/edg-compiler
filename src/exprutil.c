@@ -16608,6 +16608,16 @@ explicit "&" operator in the source and *operator_position gives its position.
           an_expr_node_ptr test_expr;
           expr = make_node_from_operand(operand);
           test_expr = skip_parens(expr);
+          /* In some modes, same-type casts have no effects.  Such casts may
+             be represented using eok_lvalue_cast nodes: Skip over them for
+             testing purposes. */
+          while (is_operation_node(test_expr) &&
+                 node_operator_is(test_expr, eok_lvalue_cast) &&
+                 identical_types(test_expr->type,
+                                 test_expr->variant.operation.operands
+                                          ->type)) {
+            test_expr = test_expr->variant.operation.operands;
+          }  /* while */
           if (curr_expr_kind_is_const()) {
             if (is_operation_node(test_expr) &&
                 node_operator_is(test_expr, eok_points_to_field) &&
