@@ -530,7 +530,7 @@ entity.  Issue diagnostics as appropriate.
     for (; ap != NULL; ap = ap->next) {
       if (is_std_attribute(ap) &&
           ap->kind != (a_byte_attribute_kind)ak_empty_attr &&
-          !gpp_mode) {
+          !gnu_mode) {
         sev = es_error;
         err_ap = ap;
         break;
