@@ -13697,6 +13697,11 @@ implicitly declared member functions.
     rtn->variant.opname_kind = locator->variant.opname;
     if (locator->variant.opname == (an_opname_kind)onk_ampersand) {
       class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
+    } else if (locator->variant.opname == (an_opname_kind)onk_function_call &&
+               ctsp->is_lambda_closure_class) {
+      /* This is the lambda call operator.  Mark it as such. */
+      rtn->is_lambda_body = TRUE;
+      rtn->type->variant.routine.extra_info->assoc_routine = rtn;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && is_immediate_managed_class_type(class_type)) {
@@ -14765,9 +14770,11 @@ decl_member_function_template.
                       symbol_is(dps->sym, sk_function_template));
       tssp = dps->sym->variant.template_info;
       check_assertion(tssp != NULL);
+      rp = tssp->variant.function.routine;
+      rp->is_lambda_body = TRUE;
+      rp->type->variant.routine.extra_info->assoc_routine = rp;
       complete_generated_member_template(templ_state, (a_func_info_block*)NULL,
                                          dps->sym);
-      rp = tssp->variant.function.routine;
     } else {
       /* The ordinary (i.e., non-generic case): Call decl_member_function. */
       decl_member_function(&loc, func_info, class_state, decl_info,
@@ -14788,8 +14795,6 @@ decl_member_function_template.
                                       prev_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     lambda->lambda_routine = rp;
-    rp->is_lambda_body = TRUE;
-    rp->type->variant.routine.extra_info->assoc_routine = rp;
   }  /* if */
   if (lambda->is_generic) {
     /* A generic lambda: Pop the template declaration scope. */
