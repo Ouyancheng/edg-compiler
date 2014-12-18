@@ -1310,6 +1310,9 @@ display_constant_value:
                iek_constant);
       disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
                iek_constant);
+      if (ptr->variant.aggregate.has_dynamic_init_component) {
+        disp_boolean("has_dynamic_init_component", TRUE);
+      }  /* if */
       break;
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");
@@ -1318,9 +1321,7 @@ display_constant_value:
       disp_host_large_unsigned(
                "count", (a_host_large_unsigned)ptr->variant.init_repeat.count);
       if (ptr->variant.init_repeat.multidimensional_aggr_tail_not_repeated) {
-        disp_boolean("multidimensional_aggr_tail_not_repeated",
-                     (a_boolean)ptr->variant.init_repeat.
-                                      multidimensional_aggr_tail_not_repeated);
+        disp_boolean("multidimensional_aggr_tail_not_repeated", TRUE);
       }  /* if */
       break;
     case ck_designator:

@@ -4321,6 +4321,11 @@ typedef struct a_constant {
                 last_constant;
                         /* List of constants in { } in an initialization.
                            Both pointers are NULL if the list is empty. */
+      a_bit_field
+		has_dynamic_init_component:1;
+			/* TRUE if one of the constants on the list is a
+			   ck_dynamic_init entry, or a ck_aggregate entry with
+			   this flag set to TRUE. */
     } aggregate;
     /* When kind == ck_init_repeat: */
     /* A ck_init_repeat constant is used only in initialization.  As such,

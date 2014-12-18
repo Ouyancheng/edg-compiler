@@ -5702,7 +5702,59 @@ expression).
                  "lower_dynamic_init_aggregate_constant: repeat on non-array");
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times. */
-      if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+      if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init ||
+          (repeated_con->kind == (a_constant_repr_kind)ck_aggregate &&
+           repeated_con->variant.aggregate.has_dynamic_init_component)) {
+        /* Repeated ck_dynamic_init constant (or aggregate that contains a
+           ck_dynamic_init). */
+        check_assertion(!C_mode());
+        ipd.array_element_sequence = TRUE;
+        ipd.array_element_type = repeated_con->type;
+        if (con_ptr->variant.init_repeat.count == 0) {
+          /* If the repeat count is zero, this initialization is being used
+             to complete a partial-initialization of a variably-sized array.
+             Make a note of the starting element that needs initialization
+             (which could be zero, in cases like "new A[n] {}"). */
+          check_assertion(ipd.num_elem_node != NULL);
+          ipd.partial_initialization_starting_element = ipmp->curr_elem;
+          if (is_array_type(array_element_type(aggr_type))) {
+            /* For the multi-dimensional array case, ensure that the
+               starting element takes into account all of the elements
+               that have already been initialized. */
+            ipd.partial_initialization_starting_element *=
+                             num_array_elements(array_element_type(aggr_type));
+          }  /* if */
+        } else {
+          ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+        }  /* if */
+        if (repeated_con->kind == (a_constant_repr_kind)ck_aggregate) {
+          /* If the repeated constant is an aggregate recurse to lower it
+             properly. */
+          lower_dynamic_init_aggregate_constant(repeated_con, &ipd,
+                                                dtor_case, source_desc,
+                                                others_follow, insert_location,
+                                                contains_vector_dynamic_init,
+                                                keep_constant, options);
+        } else {
+          lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
+                                others_follow, insert_location, keep_constant,
+                                options);
+        }  /* if */
+        /* Remove the ck_init_repeat constant, in case the overall aggregate
+           is kept for the constant parts. */
+        if (prev_con == NULL) {
+          aggr_const->variant.aggregate.first_constant = NULL;
+        } else {
+          prev_con->next = NULL;
+        }  /* if */
+        if (aggr_const->variant.aggregate.last_constant == con_ptr) {
+          check_assertion(con_ptr->next == NULL);
+          aggr_const->variant.aggregate.last_constant = prev_con;
+        }  /* if */
+      } else {
+        /* Some constant that doesn't contain a ck_dynamic_init; lower it
+           with the normal mechanism. */
 #if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode || (C_mode() && microsoft_mode)) {
           lower_c99_constant(repeated_con);
@@ -5758,41 +5810,6 @@ expression).
              constant.) */
           *keep_constant = TRUE;
         }  /* if */
-      } else {
-        /* Repeated ck_dynamic_init constant. */
-        check_assertion(!C_mode());
-        ipd.array_element_sequence = TRUE;
-        ipd.array_element_type = repeated_con->type;
-        if (con_ptr->variant.init_repeat.count == 0) {
-          /* If the repeat count is zero, this initialization is being used
-             to complete a partial-initialization of a variably-sized array.
-             Make a note of the starting element that needs initialization
-             (which could be zero, in cases like "new A[n] {}"). */
-          check_assertion(ipd.num_elem_node != NULL);
-          ipd.partial_initialization_starting_element = ipmp->curr_elem;
-          if (is_array_type(array_element_type(aggr_type))) {
-            /* For the multi-dimensional array case, ensure that the
-               starting element takes into account all of the elements
-               that have already been initialized. */
-            ipd.partial_initialization_starting_element *=
-                             num_array_elements(array_element_type(aggr_type));
-          }  /* if */
-        } else {
-          ipd.array_element_count =
-                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
-        }  /* if */
-        lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
-                              others_follow, insert_location, keep_constant,
-                              options);
-        /* Remove the ck_init_repeat constant, in case the overall aggregate
-           is kept for the constant parts. */
-        check_assertion(con_ptr->next == NULL);
-        if (prev_con == NULL) {
-          aggr_const->variant.aggregate.first_constant = NULL;
-        } else {
-          prev_con->next = NULL;
-        }  /* if */
-        aggr_const->variant.aggregate.last_constant = prev_con;
       }  /* if */
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */

@@ -5219,6 +5219,17 @@ initializer, then aggr_con does also).
       con->kind == (a_constant_repr_kind)ck_designator) {
     aggr_con->uses_designated_initializers = TRUE;
   }  /* if */
+  /* Define a local macro to avoid code duplication. */
+#define is_or_has_dynamic_init_component(con) \
+  ((con)->kind == (a_constant_repr_kind)ck_dynamic_init || \
+   ((con)->kind == (a_constant_repr_kind)ck_aggregate && \
+    (con)->variant.aggregate.has_dynamic_init_component))
+  if (is_or_has_dynamic_init_component(con) ||
+      (con->kind == (a_constant_repr_kind)ck_init_repeat &&
+       is_or_has_dynamic_init_component(con->variant.init_repeat.constant))) {
+    aggr_con->variant.aggregate.has_dynamic_init_component = TRUE;
+  }  /* if */
+#undef is_or_has_dynamic_init_component
 }  /* add_constant_to_aggregate */
   
 

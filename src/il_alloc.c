@@ -835,6 +835,7 @@ fields to default values.
     case ck_aggregate:
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
+      cp->variant.aggregate.has_dynamic_init_component = FALSE;
       break;
     case ck_init_repeat:
       cp->variant.init_repeat.constant = NULL;
