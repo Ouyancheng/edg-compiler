@@ -2635,15 +2635,8 @@ the scope being pushed.
       if (scope_to_reactivate != NULL) {
         sp = scope_to_reactivate;
       } else {
-        /* A C++ condition scope is only created when there is a declaration,
-           so we know an IL scope will be required (unlike a block scope). */
-        check_assertion_str(
-                          curr_il_region_number != file_scope_region_number,
-                          "push_scope_full: bad region number for condition");
-        sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
-                         (a_routine_ptr)NULL);
-        /* Add it to the scopes list for the enclosing scope. */
-        add_to_scopes_list(sp, ssep-1);
+        /* A scope is allocated for the condition later because the parent
+           scope must also be set. */
       }  /* if */
       break;
     case sck_enum:
@@ -3522,6 +3515,14 @@ the scope being pushed.
      statement of a try block. */
   if (kind == (a_scope_kind)sck_block && (ssep-1)->within_try_block) {
     ssep->within_try_block = TRUE;
+  }  /* if */
+  if (kind == (a_scope_kind)sck_condition) {
+      /* A C++ condition scope is only created when there is a declaration,
+         so we know an IL scope will be required (unlike a block scope). */
+    check_assertion_str(curr_il_region_number != file_scope_region_number,
+                        "push_scope_full: bad region number for condition");
+    ensure_il_scope_exists(ssep);
+    sp = ssep->il_scope;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

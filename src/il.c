@@ -7732,13 +7732,14 @@ caller is responsible for sorting that out.)
 
   if (sp == NULL) {
     /* There is no IL scope. */
-    if (ssep->kind == (a_scope_kind)sck_block) {
+    if (ssep->kind == (a_scope_kind)sck_block ||
+        ssep->kind == (a_scope_kind)sck_condition) {
       a_scope_stack_entry_ptr	parent_ssep = previous_scope_of(ssep);
       /* Create the IL scope in a block scope. */
       (void)ensure_il_scope_exists(parent_ssep);
       region_to_switch_back_to = curr_il_region_number;
       switch_il_region(ssep->il_memory_region);
-      ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
+      ssep->il_scope = sp = alloc_scope(ssep->kind, ssep->number,
                                         (a_routine_ptr)NULL);
       switch_il_region(region_to_switch_back_to);
       /* Set the parent scope. */
