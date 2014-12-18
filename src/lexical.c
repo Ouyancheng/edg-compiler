@@ -8349,6 +8349,7 @@ the kind of token.
   a_source_position
                 start_pos;
   a_boolean     first_digit_seen = FALSE;
+  a_const_char  *possible_start_of_ud_suffix;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -8527,6 +8528,7 @@ following position.
 #if LONG_LONG_ALLOWED
   /* Or "ll" for long long. */
 #endif /* LONG_LONG_ALLOWED */
+  possible_start_of_ud_suffix = curr_char_loc;
   for (;; curr_char_loc++) {
     ch = *curr_char_loc;
     if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
@@ -8566,6 +8568,10 @@ following position.
 #if FIXED_POINT_ALLOWED
     fixed_point_ruled_out = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
+  }  /* if */
+  if (possible_start_of_ud_suffix == curr_char_loc) {
+    /* No numeric suffix was seen. */
+    possible_start_of_ud_suffix = NULL;
   }  /* if */
   goto fixed_point_suffix;
 
@@ -8624,18 +8630,28 @@ float_accum_2:
     /* No hex digits were specified.  Something like "0xp0". */
     error_at_line_pos(ec_bad_float_constant, curr_char_loc);
   }  /* if */
+  /* The "e" or "E" might be the start of a ud-suffix if no exponent
+     follows, so record its location. */
+  possible_start_of_ud_suffix = curr_char_loc;
   if ((ch = *(curr_char_loc+1)) == '+' || ch == '-') curr_char_loc++;
   first_digit_seen = FALSE;
   skip_digit_separator(1);
   if (!isdigit((unsigned char)*(curr_char_loc+1)) && !fetch_pp_tokens) {
-    /* No digits of the exponent are present. pcc treats this as an exponent
-       of zero. */
-    if (C_dialect != C_dialect_pcc) {
+    /* No digits of the exponent are present. */
+    if (user_defined_literals_enabled) {
+      /* If user-defined literals are enabled, the "e" or "E" could
+         be a ud-suffix, so we report no error here. */
+    } else if (C_dialect == C_dialect_pcc) {
+      /* pcc treats this as an exponent of zero, so just issue a warning. */
+      warning_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
+    } else {
       error_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
       err = TRUE;
-    } else {
-      warning_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
     }  /* if */
+  } else {
+    /* We have an exponent, so the "e" or "E" is not the start of a
+       ud-suffix. */
+    possible_start_of_ud_suffix = NULL;
   }  /* if */
   do {
     skip_digit_separator(1);
@@ -8663,6 +8679,7 @@ end_float_accum:
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
+    possible_start_of_ud_suffix = curr_char_loc;
     curr_char_loc++;
 #if FIXED_POINT_ALLOWED
     if (ch == 'l' || ch == 'L') {
@@ -8899,6 +8916,13 @@ fixed_point_suffix:
     }  /* if */
     /* Convert the constant.  Errors are still possible, since the checking
        above allows certain cases by. */
+    if (user_defined_literals_enabled && potential_ud_suffix &&
+        possible_start_of_ud_suffix != NULL) {
+      /* Exclude the characters that were previously thought to be a
+         numeric suffix; they are actually part of the putative ud-suffix
+         instead. */
+      end_of_curr_token = possible_start_of_ud_suffix - 1;
+    }  /* if */
     switch (kind) {
       case k_decimal:
         conv_integer_literal(10, &err_code, &err_pos);
