@@ -22574,8 +22574,7 @@ Also scans GNU statement expressions:
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
 
-      if (compound_literals_allowed &&
-          curr_token == tok_lbrace) {
+      if (compound_literals_allowed && curr_token == tok_lbrace) {
         /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C99. */
         if (type_defined && !C_mode() && !gpp_mode) {
           /* All g++ versions allow type definitions as part of compound
@@ -36938,11 +36937,11 @@ type with the type of return_op.
     rout_type->variant.routine.return_type = *return_type;
   } else if (is_void_type(return_op->type)) {
     deduce_return_type_from_void_operand(curr_routine,
-                                         /*keep_placeholder=*/!lambda_case,
+                                         /*keep_placeholder=*/TRUE,
                                          &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
   } else if (deduce_placeholder_type(is_decltype_auto, orig_type, auto_type,
-                                     /*keep_placeholder=*/!lambda_case,
+                                     /*keep_placeholder=*/TRUE,
                                      return_op, /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {

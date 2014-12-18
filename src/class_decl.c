@@ -17770,16 +17770,20 @@ be entered.
     cannot_bind_to_curr_construct();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (class_type_supp(class_type)->is_lambda_closure_class) {
+  if (class_type_supp(class_type)->is_lambda_closure_class &&
+      !decl_state->is_init_capture) {
     /* Fields of closure types may be declared "on the fly" (in the case of
-       implicit captures), and are not subject to pragmas in any case. */
+       implicit captures), and are not subject to pragmas in any case.
+       However, we do want to record the declaration of init-capture fields. */
   } else if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,
                               decl_state->source_sequence_entry);
-    /* Do processing required for any pragmas that are bound to the current
-       declaration. */
-    process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
+    if (!decl_state->is_init_capture) {
+      /* Do processing required for any pragmas that are bound to the current
+         declaration. */
+      process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
+    }  /* if */
   } else {
     /* Issue diagnostics on pragmas that are trying to bind to an unnamed
        field. */

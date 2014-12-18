@@ -137,6 +137,7 @@ should only be called if cross-reference information is being generated
     clear_il_to_str_output_control_block(&octl);
     octl.output_str = write_string_to_xref_file;
     octl.remove_template_typedefs = TRUE;
+    octl.render_auto_deduction_typerefs = TRUE;
     output_control_block_has_been_set_up = TRUE;
   }  /* if */
   if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
