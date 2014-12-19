@@ -8648,6 +8648,12 @@ float_accum_2:
            the exponent, but that's potentially a ud-suffix, so treat this
            as an integer. */
         goto fixed_point_suffix;
+      } else {
+        /* Restore the current character to be the sign character, if any,
+           and treat the number before the "e" or "E" as the entire
+           floating-point number. */
+        curr_char_loc = possible_start_of_ud_suffix;
+        goto end_float_accum;
       }  /* if */
     } else if (C_dialect == C_dialect_pcc) {
       /* pcc treats this as an exponent of zero, so just issue a warning. */
