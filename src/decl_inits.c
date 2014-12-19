@@ -1288,6 +1288,9 @@ Issue any diagnostics at the given position.
       /* Return a copy of the constant. */
       elem_con = alloc_unshared_constant(&folded_value);
     }  /* if */
+    if (folded_value.is_partially_initialized) {
+      is->partial_initializer = TRUE;
+    }  /* if */
   } else {
     /* A non-constant initializer. */
     if (is->initializer_must_be_constant) {
