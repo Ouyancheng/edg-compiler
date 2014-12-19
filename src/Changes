@@ -3773,7 +3773,7 @@ modes with microsoft_version < 1700.  For example:
 Spurious error on initializer for unspecified-bound array in template
 
 The front end previously issued a spurious error ("an empty initializer is
-invalid for an array with unspecified bound") when an multi-dimensional array
+invalid for an array with unspecified bound") when a multi-dimensional array
 variable defined with an aggregate initializer in a function template has both
 an unspecified bound and a template-dependent bound.  (The error only occurred
 if the function template underwent prototype instantiation.)  For example:
