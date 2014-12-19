@@ -28394,9 +28394,11 @@ by param_sym (sk_parameter).
   node->variant.param_ref.param_num = param_sym->variant.param_id->param_num;
   node->variant.param_ref.levels_up = levels_up;
   make_glvalue_expression_operand(node, result);
+  result->is_id_expression = TRUE;
   /* If the parameter has a reference type, add an implicit indirection. */
   if (!C_mode() && is_any_reference_type(node->type)) {
     add_reference_indirection(result);
+    result->is_id_expression = TRUE;
   }  /* if */
 }  /* make_param_ref_operand */
 
@@ -29249,7 +29251,6 @@ overloaded_function:
                  void f(a, int b[sizeof(a)]);
                Create an enk_param_ref operand to represent the use. */
             make_param_ref_operand(result, sym_ptr);
-            result->is_id_expression = TRUE;
           }  /* if */
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
