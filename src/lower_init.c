@@ -1640,9 +1640,10 @@ initialization (when ipdp->array_element_sequence is TRUE).
     } else {
       /* Create a temporary for this expression and pass a pointer to it
          to the helper routine. */
+      a_variable_ptr temp_var;
       check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression &&
                       init_val_node != NULL);
-      a_variable_ptr temp_var = assign_expr_to_temp(init_val_node);
+      temp_var = assign_expr_to_temp(init_val_node);
       init_val_node = add_address_of_to_node(var_lvalue_expr(temp_var));
     }  /* if */
     if (ipdp->array_element_count == 0) {
