@@ -4481,26 +4481,28 @@ eok_lvalue_adjust).  If suppress_indirection is TRUE, suppress the "*"
 on top of the expansion.
 */
 {
-  a_boolean        use_simple_cast = FALSE;
+  a_boolean        bit_field_case = FALSE;
   an_expr_node_ptr operand_1 = node->variant.operation.operands;
   a_boolean        suppress_ampersand = FALSE;
+  an_expr_node_ptr object_expr;
+  a_targ_size_t    field_offset;
 
   write_tok_ch('(');
   /* Generate the lvalue cast as an indirection on a pointer cast.
      This avoids depending too much on the underlying compiler's
      implementation of lvalue casts.  Note that this will not work for
-     a bit-field, so generate a simple cast for those cases. */
+     a bit-field, so generate a special-purpose expansion for those cases. */
   if (is_operation_node(operand_1) &&
       (node_operator_is(operand_1, eok_dot_field) ||
        node_operator_is(operand_1, eok_points_to_field))) {
-    an_expr_node_ptr object_expr;
     a_field_ptr      field;
     a_boolean        comma_case;
     object_expr = operand_1->variant.operation.operands;
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
     field = object_expr->next->variant.field;
     if (field->is_bit_field) {
-      use_simple_cast = TRUE;
+      bit_field_case = TRUE;
+      field_offset = field->offset;
     } else if (node_operator_is(operand_1, eok_dot_field) &&
                !object_expr->is_lvalue &&
                (!optimizable_rvalue_selection(operand_1, &comma_case) ||
@@ -4513,25 +4515,42 @@ on top of the expansion.
       operand_1->variant.operation.has_deferred_ampersand = TRUE;
     }  /* if */
   }  /* if */
-  if (use_simple_cast) {
-    check_assertion(!suppress_indirection);
+  if (!suppress_indirection) write_tok_ch('*');
+  if (node->orig_lvalue_type != NULL) {
+    /* If we saved the original lvalue type, use that. */
+    dump_cast_to_pointer_to(node->orig_lvalue_type);
+  } else if (!node->is_lvalue &&
+             is_function_type(operand_1->type) &&
+             is_pointer_type(node->type) &&
+             is_function_type(type_pointed_to(node->type))) {
+    /* If an eok_lvalue_adjust has an implicit lvalue-to-rvalue conversion
+       built in, and the underlying lvalue is a function, the decay to
+       rvalue adds a "pointer-to" to the type. */
     dump_cast(node->type);
   } else {
-    if (!suppress_indirection) write_tok_ch('*');
-    if (node->orig_lvalue_type != NULL) {
-      /* If we saved the original lvalue type, use that. */
-      dump_cast_to_pointer_to(node->orig_lvalue_type);
-    } else if (!node->is_lvalue &&
-               is_function_type(operand_1->type) &&
-               is_pointer_type(node->type) &&
-               is_function_type(type_pointed_to(node->type))) {
-      /* If an eok_lvalue_adjust has an implicit lvalue-to-rvalue conversion
-         built in, and the underlying lvalue is a function, the decay to
-         rvalue adds a "pointer-to" to the type. */
-      dump_cast(node->type);
-    } else {
-      dump_cast_to_pointer_to(node->type);
+    dump_cast_to_pointer_to(node->type);
+  }  /* if */
+  if (bit_field_case) {
+    char buf[32];
+    /* It is not permitted to take the address of a bit-field, so use
+       pointer arithmetic on the address of the containing object. */
+    write_tok_str("(((char *)");
+    if (node_operator_is(operand_1, eok_dot_field)) {
+      /* Take the address of the object expression. */
+      check_assertion(object_expr->is_lvalue);
+      write_tok_ch('&');
     }  /* if */
+    dump_expr_with_parens(object_expr);
+    write_tok_ch(')');
+    if (field_offset != 0) {
+      /* Add the offset of the bit-field to the address of the object to
+         get the pointer to be cast to the target type. */
+      (void)unsigned_to_string_buf((a_host_large_unsigned)field_offset, buf);
+      write_tok_ch('+');
+      write_tok_str(buf);
+    }  /* if */
+    write_tok_ch(')');
+  } else {
     if (is_operation_node(operand_1) &&
         node_operator_is(operand_1, eok_indirect)) {
       /* Cancel "&" over "*" to avoid a gcc bug when the underlying type
@@ -4547,8 +4566,8 @@ on top of the expansion.
     } else if (!suppress_ampersand) {
       write_tok_ch('&');
     }  /* if */
+    dump_expr_with_parens(operand_1);
   }  /* if */
-  dump_expr_with_parens(operand_1);
 after_operand_output:
   write_tok_ch(')');
 }  /* dump_lvalue_cast */
