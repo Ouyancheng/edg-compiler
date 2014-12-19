@@ -2076,6 +2076,9 @@ by a command line option.
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
       c99_bool_is_keyword = TRUE;
     }  /* if */
+    if (microsoft_version >= 1800) {
+      alignof_enabled = TRUE;
+    }  /* if */
   } else {
     /* Microsoft C++ mode. */
     if (force_ms_type_info_not_in_namespace_std) {
