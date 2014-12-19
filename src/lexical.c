@@ -8350,6 +8350,7 @@ the kind of token.
                 start_pos;
   a_boolean     first_digit_seen = FALSE;
   a_const_char  *possible_start_of_ud_suffix;
+  a_boolean     decimal_point_seen = FALSE;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -8579,6 +8580,7 @@ float_accum_1:
   /* At the decimal point in a floating constant.  Take whatever digits
      follow it.  The kind variable indicates the kind of digits that
      are being used (hex or decimal). */
+  decimal_point_seen = TRUE;
   first_digit_seen = FALSE;
   if (kind == k_hex) {
     skip_digit_separator(1);
@@ -8641,6 +8643,12 @@ float_accum_2:
     if (user_defined_literals_enabled) {
       /* If user-defined literals are enabled, the "e" or "E" could
          be a ud-suffix, so we report no error here. */
+      if (!decimal_point_seen) {
+        /* The only indication that this was a floating-point number was
+           the exponent, but that's potentially a ud-suffix, so treat this
+           as an integer. */
+        goto fixed_point_suffix;
+      }  /* if */
     } else if (C_dialect == C_dialect_pcc) {
       /* pcc treats this as an exponent of zero, so just issue a warning. */
       warning_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
