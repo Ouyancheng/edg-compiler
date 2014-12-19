@@ -8349,7 +8349,7 @@ the kind of token.
   a_source_position
                 start_pos;
   a_boolean     first_digit_seen = FALSE;
-  a_const_char  *possible_start_of_ud_suffix;
+  a_const_char  *possible_start_of_ud_suffix = NULL;
   a_boolean     decimal_point_seen = FALSE;
 
 /*
