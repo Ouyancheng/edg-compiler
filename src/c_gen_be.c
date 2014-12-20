@@ -4484,8 +4484,8 @@ on top of the expansion.
   a_boolean        bit_field_case = FALSE;
   an_expr_node_ptr operand_1 = node->variant.operation.operands;
   a_boolean        suppress_ampersand = FALSE;
-  an_expr_node_ptr object_expr;
-  a_targ_size_t    field_offset;
+  an_expr_node_ptr object_expr = NULL;
+  a_targ_size_t    field_offset = 0;
 
   write_tok_ch('(');
   /* Generate the lvalue cast as an indirection on a pointer cast.
