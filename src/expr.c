@@ -14060,6 +14060,7 @@ previously-scanned noexcept expression, and return the result in
                       region_to_switch_back_to;
   an_object_lifetime_ptr
                       saved_object_lifetime;
+  a_scope_depth       expr_scope_depth;
 
   db_enter(4, "scan_noexcept_operator");
   check_assertion(noexcept_enabled);
@@ -14091,8 +14092,9 @@ previously-scanned noexcept expression, and return the result in
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
-     memory region. */
-  switch_to_scope_region_and_lifetime(depth_scope_stack,
+     memory region.  This is true even when in local class types. */
+  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  switch_to_scope_region_and_lifetime(expr_scope_depth,
                                       &region_to_switch_back_to,
                                       &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
