@@ -11765,9 +11765,10 @@ static void complete_closure_conversion_template_type_deduction(
 				           a_type_ptr          conv_func_type)
 /*
 templ_sym is a conversion function template of a generic lambda, and
-conv_func_type is the deduced type for that conversion function so far.
-However, that deduced type may still contain an "auto" type that hasn't been
-deduced yet.  For example:
+conv_func_type is the deduced type for that conversion function so far (with
+templ_arg_list the corresponding template argument list).  However, that
+deduced type may still contain an "auto" type that hasn't been deduced yet.
+For example:
 
 	auto lambda = [](auto a) { return a+1; };
 	int (*pf)(int) = lambda;
@@ -19329,7 +19330,7 @@ param_pos is 1.
 
 If the parameter is named, loc is the corresponding symbol locator; otherwise,
 loc is NULL.  is_pack is TRUE if the parameter is really a parameter pack.
-decl_state track the declaration of the template overall, and decl_pos_block
+decl_state tracks the declaration of the template overall, and decl_pos_block
 provides additional position information.
 */
 {
@@ -26030,7 +26031,7 @@ pre-scan) to be a C++14 generic lambda.  Set up IL and front end structures to
 scan the lambda declarator and declare a corresponding member template for the
 lambda's call operator.  In particular, push a template declaration scope and
 declare template parameters corresponding to the prescanned "auto" parameters
-described by dps->auto_params.
+described by dps->auto_params.  Initialize and update *templ_state accordingly.
 */
 {
   a_template_decl_info_ptr     template_decl_info = NULL;
@@ -26110,7 +26111,6 @@ for a lambda call operator.  Perform final actions needed for that declaration
 (such as freeing token caches that are no longer needed).
 */
 {
-
   wrapup_templ_decl_state(templ_state);
 }  /* wrap_up_generic_lambda_declarator_scan */
 

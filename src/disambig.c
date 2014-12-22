@@ -652,13 +652,13 @@ static void prescan_decl_specifiers(a_disambig_state_ptr       state,
 Scan and cache the tokens that comprise a list of decl_specifiers.
 */
 {
-  a_boolean	is_decl_specifier_token = TRUE;
-  a_boolean	any_decl_specifiers = FALSE;
-  a_boolean	type_specifier_seen = FALSE;
-  a_boolean	is_ctor_dtor_or_finalizer_name = FALSE;
-  a_boolean	is_typename = FALSE;
+  a_boolean     is_decl_specifier_token = TRUE;
+  a_boolean     any_decl_specifiers = FALSE;
+  a_boolean     type_specifier_seen = FALSE;
+  a_boolean     is_ctor_dtor_or_finalizer_name = FALSE;
+  a_boolean     is_typename = FALSE;
   a_boolean     record_auto_params = (flags & DFS_RECORD_AUTO_PARAMS) != 0;
-  a_symbol_ptr	sym;
+  a_symbol_ptr  sym;
 
   /* Disambiguation code should never be called in C mode.  (Otherwise, we
      would have to add things like tok_c99_bool to the cases below.) */
@@ -1416,7 +1416,7 @@ evidence to the contrary.
       get_token_and_coalesce_if_identifier(flags);
       is_first_declarator = FALSE;
     }  /* for */
-    /* Break out of the look if no additional declaration seems to follow
+    /* Break out of the loop if no additional declaration seems to follow
        or if multiple types are not allowed. */
     if (single_type_required(flags) ||
          (curr_token != tok_comma && curr_token != tok_ellipsis)) {
@@ -1897,7 +1897,7 @@ Microsoft compilers accept it nonetheless.
 void prescan_lambda_parameter_clause(a_decl_parse_state  *dps)
 /*
 The current token is the left parenthesis of a lambda declarator described by
-*dps.  Prescan that declarator to identify and "auto" parameters and record
+*dps.  Prescan that declarator to identify any "auto" parameters and record
 those parameters in a list pointed to by dps->auto_params.  Such parameters
 indicate that the lambda is a C++14 generic lambda.
 */

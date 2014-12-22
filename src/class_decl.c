@@ -25923,7 +25923,7 @@ passed via template_decl.
             locator.is_conversion_name ||
             dps->is_lambda ||
             (locator.is_error && looks_like_ctor_or_dtor(&locator))) {
-          /* Type specifier is not expected (nor permitted) on constructors,
+          /* Type specifiers are not expected (nor permitted) on constructors,
              destructors, and conversion functions.  Similarly, they are not
              permitted on C++/CLI static constructors and finalizers.  They're
              not present on lambdas. */

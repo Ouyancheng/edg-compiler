@@ -28139,8 +28139,8 @@ indicates that the symbol is an anonymous union and cannot be captured.
         /* Allow references from lambda headers to nonstatic variables inside
            sizeof (and similar) expressions.  (Except VLA variables, since
            sizeof applied to such variables involves a run-time computation.)
-           As an extension, allow this more generally in nonstrict modes,
-           (except for decltype/typeof constructs they appear in a member
+           As an extension, allow this more generally in nonstrict modes
+           (except for decltype/typeof constructs that appear in a member
            function definition of the class since that would require a
            reference between two different function scope memory regions). */
         if (!in_lambda_header()) {

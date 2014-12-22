@@ -11552,7 +11552,7 @@ type, or NULL if the lambda body routine does not exist yet.
       }  /* for */
     } else {
       /* A generic lambda: Look among the template entries in the class scope.
-         Use the symbol list since scope->templates doesn't always include
+         Use the symbols list since scope->templates doesn't always include
          member templates if prototype_instantiations_in_il is FALSE. */
       a_symbol_ptr  sym = class_symbol_supp(symbol_for(type))->symbols;
       if (sym == NULL && scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {

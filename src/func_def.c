@@ -2073,10 +2073,9 @@ instantiated.
     static_entry_pt = conv_op->next;
     check_assertion(special_kind_is(static_entry_pt, sfk_lambda_entry_point));
   } else {
-    /* For generic lambdas, the alternative entry for the call operator may
-       have to be partially instantiated at this point, and the corresponding
-       call operator may have to be fully instantiated. */
-    
+    /* For generic lambdas, the alternative entry for the call operator has to
+       be partially instantiated at this point, and the corresponding call
+       operator has to be fully instantiated. */
     a_type_ptr          closure_type = parent_class_of(conv_op), return_type;
     a_template_ptr      entry_pt_templ, call_op_templ;
     a_symbol_ptr        entry_pt_templ_sym, call_op_templ_sym, instance_sym;

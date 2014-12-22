@@ -4362,10 +4362,10 @@ static void push_instantiation_context(
 		a_scope_depth			*p_common_depth,
 		a_scope_depth			*p_definition_depth,
 		a_scope_depth			*p_context_depth,
-                a_scope_depth			*p_after_definition_depth,
+		a_scope_depth			*p_after_definition_depth,
 		a_scope_ptr			context_scope,
-                a_symbol_ptr			instance_sym,
-                a_type_ptr			assoc_type,
+		a_symbol_ptr			instance_sym,
+		a_type_ptr			assoc_type,
 		a_routine_ptr			assoc_routine,
 		a_push_scope_options_set	options)
 /*
@@ -6716,7 +6716,7 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup,
                   a_boolean 	                is_local_reactivation,
-		  a_push_scope_options_set	options)
+                  a_push_scope_options_set	options)
 
 /*
 Do the processing required when a scope is closed.  This includes

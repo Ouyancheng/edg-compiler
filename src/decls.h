@@ -1075,9 +1075,8 @@ typedef struct a_decl_parse_state {
   an_auto_param_descr_ptr
 		auto_params;
 			/* A list of entries describing "auto" type specifiers
-			   "auto" type specifiers encountered while prescanning
-			   a function declarator (for a C++14 generic lambda).
-			   */
+			   encountered while prescanning a function declarator
+			   (for a C++14 generic lambda). */
   a_decl_parse_state_ptr
 		next;
 			/* For dynamically allocated state entries that have
