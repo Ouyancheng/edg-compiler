@@ -892,11 +892,10 @@ typedef struct a_scope_stack_entry {
 			   structs declared outside the function body. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_bit_field	is_reactivation:1;
-			/* File scopes can be pushed, popped, and then
-			   pushed again later.  When generic lambda are used
-			   this is also true of function and other local
-			   scopes.  This is TRUE when a scope has been
-			   re-pushed. */
+			/* File scopes can be pushed, popped, and then pushed
+			   again later.  When generic lambdas are used this is
+			   also true of function and other local scopes.  This
+			   is TRUE when a scope has been re-pushed. */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_bit_field	assign_string_literal_sequence_numbers:1;
 			/* TRUE if this is a function scope for which
