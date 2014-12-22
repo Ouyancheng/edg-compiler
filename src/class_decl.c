@@ -30005,7 +30005,6 @@ decl_info/locator/func_info the member to be declared.
     }  /* if */
     pop_scope();
   }  /* if */
-
 }  /* decl_generated_lambda_member */
 
 

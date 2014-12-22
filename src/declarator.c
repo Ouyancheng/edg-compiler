@@ -1991,7 +1991,12 @@ a trailing return type.
     }  /* if */
   }  /* if */
   if (err) {
-    if (state->auto_type != NULL) *state->auto_type = *error_type();
+    /* For error recovery purposes, do not proceed with an "auto" type.
+       Various structures may already be pointing to the "auto" type entry,
+       however: Change it to an error entry to avoid surprises. */
+    if (state->auto_type != NULL) {
+      *state->auto_type = *error_type();
+    }  /* if */
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
   } else if (state->secondary_declarator) {
