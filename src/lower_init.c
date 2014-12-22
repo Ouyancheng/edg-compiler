@@ -124,6 +124,8 @@ static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_boolean              base_of_complete_object,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location);
+static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
+                                                   a_type_ptr     target_type);
 
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 static void make_null_tls_init_routine(void);
@@ -5534,6 +5536,26 @@ Pop the top entry from aggregate_this_stack.
 }  /* pop_aggregate_this */
 
 
+static a_boolean has_aggregate_with_dynamic(a_constant_ptr con)
+/*
+Returns TRUE if the constant includes (at some level) an aggregate that
+contains a dynamic initialization.
+*/
+{
+  a_boolean result;
+
+  if (con->kind == (a_constant_repr_kind)ck_aggregate &&
+      con->variant.aggregate.has_dynamic_init_component) {
+    result = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    result = has_aggregate_with_dynamic(con->variant.init_repeat.constant);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* has_aggregate_with_dynamic */
+
+
 static void lower_dynamic_init_aggregate_constant(
                           a_constant_ptr         aggr_const,
                           an_init_pos_descr_ptr  ipdp,
@@ -5706,9 +5728,23 @@ expression).
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
+      a_type_ptr elem_type;
       check_assertion_str(array_aggr,
                  "lower_dynamic_init_aggregate_constant: repeat on non-array");
       repeated_con = con_ptr->variant.init_repeat.constant;
+      elem_type = array_element_type(aggr_type);
+      if (has_aggregate_with_dynamic(repeated_con) &&
+          !identical_types_ignoring_qualifiers(elem_type,
+                                               repeated_con->type)) {
+        /* As a shortcut, the IL allows a single "leaf" entity to be
+           repeated for a multi-dimensional aggregate constant.  Remove
+           this shortcut and create IL that represents the structure of the
+           multi-dimensional array. */
+        handle_multidimensional_ck_init_repeat(con_ptr, elem_type);
+        /* Update information about the revised repeated constant. */
+        check_assertion(con_ptr->kind == (a_constant_repr_kind)ck_init_repeat);
+        repeated_con = con_ptr->variant.init_repeat.constant;
+      }  /* if */
       /* Repeat the constant the right number of times. */
       if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init ||
           (repeated_con->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -5733,8 +5769,14 @@ expression).
                              num_array_elements(array_element_type(aggr_type));
           }  /* if */
         } else {
-          ipd.array_element_count =
+          if (ipdp->array_element_sequence) {
+            /* Flatten multi-dimensional arrays. */
+            ipd.array_element_count = ipdp->array_element_count *
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+          } else {
+            ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+          }  /* if */
         }  /* if */
         if (repeated_con->kind == (a_constant_repr_kind)ck_aggregate) {
           /* If the repeated constant is an aggregate recurse to lower it
@@ -5796,8 +5838,14 @@ expression).
                              num_array_elements(array_element_type(aggr_type));
             }  /* if */
           } else {
-            ipd.array_element_count =
+            if (ipdp->array_element_sequence) {
+              /* Flatten multi-dimensional arrays. */
+              ipd.array_element_count = ipdp->array_element_count *
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+            } else {
+              ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+            }  /* if */
           }  /* if */
           entity_node = make_init_entity_node(&ipd,
                                               /*result_is_lvalue=*/TRUE,
@@ -12690,13 +12738,14 @@ this routine may be called multiple times to handle a single multi-dimensional
 aggregate constant.
 */
 {
-  a_constant_ptr  rep_con, new_aggr;
+  a_constant_ptr  old_rep_con, rep_con, new_aggr;
   a_targ_size_t   target_elements, old_rep_count;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_init_repeat &&
                   is_array_type(target_type));
   target_elements = num_array_elements(target_type);
   old_rep_count = constant->variant.init_repeat.count;
+  old_rep_con = constant->variant.init_repeat.constant;
   check_assertion(target_elements != 0 &&
                   old_rep_count % target_elements == 0);
   /* Allocate a new aggregate of the appropriate type. */
@@ -12704,15 +12753,20 @@ aggregate constant.
   new_aggr->type = target_type;
   if (target_elements == 1) {
     /* No repeat needed if count is one. */
-    rep_con = constant->variant.init_repeat.constant;
+    rep_con = old_rep_con;
   } else {
-    rep_con = alloc_repeated_constant(constant->variant.init_repeat.constant,
-                                      target_elements);
+    rep_con = alloc_repeated_constant(old_rep_con, target_elements);
   }  /* if */
   new_aggr->variant.aggregate.first_constant = rep_con;
   new_aggr->variant.aggregate.last_constant = rep_con;
+  if (old_rep_con->kind == (a_constant_repr_kind)ck_dynamic_init ||
+      (old_rep_con->kind == (a_constant_repr_kind)ck_aggregate &&
+       old_rep_con->variant.aggregate.has_dynamic_init_component)) {
+    new_aggr->variant.aggregate.has_dynamic_init_component = TRUE;
+  }  /* if */
   new_aggr->has_been_prelowered =
                    constant->variant.init_repeat.constant->has_been_prelowered;
+  mark_as_not_visited(new_aggr);
   /* Update the original constant to reflect the reduced count and new
      repeated constant pointer. */
   constant->variant.init_repeat.count = old_rep_count / target_elements;
@@ -12817,7 +12871,7 @@ have already had their designated initializers lowered.
              multi-dimensional array. */
           handle_multidimensional_ck_init_repeat(con.ptr, elem_type);
           /* Update information about the revised repeated constant. */
-          check_assertion (con.ptr->kind ==
+          check_assertion(con.ptr->kind ==
                                          (a_constant_repr_kind)ck_init_repeat);
           repeated_con = con.ptr->variant.init_repeat.constant;
           con.repeat_count = con.ptr->variant.init_repeat.count;
