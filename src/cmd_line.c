@@ -2076,7 +2076,7 @@ by a command line option.
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
       c99_bool_is_keyword = TRUE;
     }  /* if */
-    if (microsoft_version >= 1800) {
+    if (microsoft_version >= 1900) {
       alignof_enabled = TRUE;
     }  /* if */
   } else {
