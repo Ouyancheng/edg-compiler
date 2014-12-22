@@ -124,6 +124,8 @@ static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_boolean              base_of_complete_object,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location);
+static a_constant_ptr alloc_repeated_constant(a_constant_ptr repeated_con,
+                                              a_targ_size_t  count);
 static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
                                                    a_type_ptr     target_type);
 
@@ -12245,27 +12247,6 @@ lowered.
 }  /* make_init_zero_constant */
 
 
-static a_constant_ptr alloc_repeated_constant(a_constant_ptr repeated_con,
-                                              a_targ_size_t  count)
-/*
-Allocate a ck_init_repeat constant for "count" instances of repeated_con.
-If repeated_con is un-lowered, the returned constant will also be
-un-lowered.
-*/
-{
-  a_constant_ptr con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-  con->variant.init_repeat.count = count;
-  con->variant.init_repeat.constant = repeated_con;
-  if (!visited_yet(repeated_con)) {
-    /* By default, con is marked as having been lowered, but that would
-       prevent repeated_con from being lowered if it hasn't been lowered
-       already, so mark con appropriately. */
-    mark_as_not_visited(con);
-  }  /* if */
-  return con;
-}  /* alloc_repeated_constant */
-
-
 static a_constant_ptr make_one_or_more_init_zero_constants(
                                       a_type_ptr    type,
                                       a_targ_size_t number_of_constants_needed)
@@ -13289,6 +13270,27 @@ Note that this is called in C mode as well as C++ mode.
 }  /* lower_dynamic_init_designated_initializers */
 
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
+
+static a_constant_ptr alloc_repeated_constant(a_constant_ptr repeated_con,
+                                              a_targ_size_t  count)
+/*
+Allocate a ck_init_repeat constant for "count" instances of repeated_con.
+If repeated_con is un-lowered, the returned constant will also be
+un-lowered.
+*/
+{
+  a_constant_ptr con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+  con->variant.init_repeat.count = count;
+  con->variant.init_repeat.constant = repeated_con;
+  if (!visited_yet(repeated_con)) {
+    /* By default, con is marked as having been lowered, but that would
+       prevent repeated_con from being lowered if it hasn't been lowered
+       already, so mark con appropriately. */
+    mark_as_not_visited(con);
+  }  /* if */
+  return con;
+}  /* alloc_repeated_constant */
+
 
 static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
                                                    a_type_ptr     target_type)
