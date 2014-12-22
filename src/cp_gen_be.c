@@ -17045,11 +17045,17 @@ handle_as_definition:
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   if (!decl_within_class && !decl_within_function && !friend_decl &&
-      template_decl == NULL) {
+      template_decl == NULL &&
+      !(rout->source_corresp.is_class_member &&
+        rout->source_corresp.name_linkage ==
+                               (a_name_linkage_kind)nlk_cplusplus_external)) {
     /* If the current default name linkage kind is different from the one on
        the routine, a non-braced linkage specification may be needed.  (This
        cannot be done for local declarations or declarations in class
-       definitions.) */
+       definitions.  Also, we don't render 'extern "C++"' on an out-of-class
+       member function definition because MSVC versions prior to 19.00 cannot
+       handle it when the member function is an operator, and it's not actually
+       needed in such cases.) */
     a_name_linkage_kind  nlk = rout->source_corresp.name_linkage;
     if (gen_linkage_specification_if_needed(nlk)) {
       if (storage_class == (a_storage_class)sc_extern) {
