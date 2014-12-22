@@ -12727,55 +12727,6 @@ different than the old member), the old value is added to
 }  /* process_union_designators */
   
 
-static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
-                                                   a_type_ptr     target_type)
-/*
-In cases where a single ck_init_repeat is used to initialize more than one
-aggregate in a multi-dimensional aggregate constant array, split the
-ck_init_repeat into two ck_init_repeats, thereby producing a repeated aggregate
-constant of target_type (the type of elements in the array that is being
-lowered).  For example, change "<6 repetitions of {47}>" to "<2 repetitions of
-{<3 repetitions of {47}>}>" for a target_type of "array [3] of A".  Note that
-this routine may be called multiple times to handle a single multi-dimensional
-aggregate constant.
-*/
-{
-  a_constant_ptr  old_rep_con, rep_con, new_aggr;
-  a_targ_size_t   target_elements, old_rep_count;
-
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_init_repeat &&
-                  is_array_type(target_type));
-  target_elements = num_array_elements(target_type);
-  old_rep_count = constant->variant.init_repeat.count;
-  old_rep_con = constant->variant.init_repeat.constant;
-  check_assertion(target_elements != 0 &&
-                  old_rep_count % target_elements == 0);
-  /* Allocate a new aggregate of the appropriate type. */
-  new_aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  new_aggr->type = target_type;
-  if (target_elements == 1) {
-    /* No repeat needed if count is one. */
-    rep_con = old_rep_con;
-  } else {
-    rep_con = alloc_repeated_constant(old_rep_con, target_elements);
-  }  /* if */
-  new_aggr->variant.aggregate.first_constant = rep_con;
-  new_aggr->variant.aggregate.last_constant = rep_con;
-  if (old_rep_con->kind == (a_constant_repr_kind)ck_dynamic_init ||
-      (old_rep_con->kind == (a_constant_repr_kind)ck_aggregate &&
-       old_rep_con->variant.aggregate.has_dynamic_init_component)) {
-    new_aggr->variant.aggregate.has_dynamic_init_component = TRUE;
-  }  /* if */
-  new_aggr->has_been_prelowered =
-                   constant->variant.init_repeat.constant->has_been_prelowered;
-  mark_as_not_visited(new_aggr);
-  /* Update the original constant to reflect the reduced count and new
-     repeated constant pointer. */
-  constant->variant.init_repeat.count = old_rep_count / target_elements;
-  constant->variant.init_repeat.constant = new_aggr;
-}  /* handle_multidimensional_ck_init_repeat */
-
-
 static void lower_aggregate_designated_initializers(
                                                a_constant_ptr aggr_con,
                                                a_constant_ptr earlier_aggr_con)
@@ -13338,6 +13289,54 @@ Note that this is called in C mode as well as C++ mode.
 }  /* lower_dynamic_init_designated_initializers */
 
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
+
+static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
+                                                   a_type_ptr     target_type)
+/*
+In cases where a single ck_init_repeat is used to initialize more than one
+aggregate in a multi-dimensional aggregate constant array, split the
+ck_init_repeat into two ck_init_repeats, thereby producing a repeated aggregate
+constant of target_type (the type of elements in the array that is being
+lowered).  For example, change "<6 repetitions of {47}>" to "<2 repetitions of
+{<3 repetitions of {47}>}>" for a target_type of "array [3] of A".  Note that
+this routine may be called multiple times to handle a single multi-dimensional
+aggregate constant.
+*/
+{
+  a_constant_ptr  old_rep_con, rep_con, new_aggr;
+  a_targ_size_t   target_elements, old_rep_count;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_init_repeat &&
+                  is_array_type(target_type));
+  target_elements = num_array_elements(target_type);
+  old_rep_count = constant->variant.init_repeat.count;
+  old_rep_con = constant->variant.init_repeat.constant;
+  check_assertion(target_elements != 0 &&
+                  old_rep_count % target_elements == 0);
+  /* Allocate a new aggregate of the appropriate type. */
+  new_aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  new_aggr->type = target_type;
+  if (target_elements == 1) {
+    /* No repeat needed if count is one. */
+    rep_con = old_rep_con;
+  } else {
+    rep_con = alloc_repeated_constant(old_rep_con, target_elements);
+  }  /* if */
+  new_aggr->variant.aggregate.first_constant = rep_con;
+  new_aggr->variant.aggregate.last_constant = rep_con;
+  if (old_rep_con->kind == (a_constant_repr_kind)ck_dynamic_init ||
+      (old_rep_con->kind == (a_constant_repr_kind)ck_aggregate &&
+       old_rep_con->variant.aggregate.has_dynamic_init_component)) {
+    new_aggr->variant.aggregate.has_dynamic_init_component = TRUE;
+  }  /* if */
+  new_aggr->has_been_prelowered =
+                   constant->variant.init_repeat.constant->has_been_prelowered;
+  mark_as_not_visited(new_aggr);
+  /* Update the original constant to reflect the reduced count and new
+     repeated constant pointer. */
+  constant->variant.init_repeat.count = old_rep_count / target_elements;
+  constant->variant.init_repeat.constant = new_aggr;
+}  /* handle_multidimensional_ck_init_repeat */
 
 #if !IA64_ABI
 
