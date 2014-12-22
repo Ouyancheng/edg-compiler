@@ -3595,13 +3595,13 @@ after a class instantiation.
     /* If we pushed a translation unit above, pop it now. */
   }  /* if */
   if (classes_that_may_need_fixups != NULL) {
-    a_type_list_entry_ptr  tlep = classes_that_may_need_fixups;
+    a_type_list_entry_ptr  tlep, list_to_free = classes_that_may_need_fixups;
     classes_that_may_need_fixups = NULL;
-    for (; tlep != NULL; tlep = tlep->next) {
+    for (tlep = list_to_free; tlep != NULL; tlep = tlep->next) {
       check_trans_unit_for_class(tlep->type, &trans_unit_pushed);
       wrap_up_class_definition(tlep->type);
     }  /* for */
-    free_list_of_type_list_entries(classes_that_may_need_fixups);
+    free_list_of_type_list_entries(list_to_free);
   }  /* if */
   if (trans_unit_pushed) pop_translation_unit_stack();
   db_exit();
