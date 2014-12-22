@@ -5676,15 +5676,15 @@ structure of #line directives, where the actual input file does not change.
   /* Check for the need to expand the input stack. */
   if (depth_input_stack + 1 == size_input_stack) {
     /* Expand the input stack by reallocating it. */
-    int      new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
-    sizeof_t base_idx = base_ise - input_stack;
+    int new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
     input_stack = (an_input_stack_entry_ptr)realloc_buffer(
                    (char *)input_stack,
                    (sizeof_t)(size_input_stack * sizeof(an_input_stack_entry)),
                    (sizeof_t)(new_size * sizeof(an_input_stack_entry)));
     size_input_stack = new_size;
-    curr_ise = &input_stack[depth_input_stack];
-    base_ise = &input_stack[base_idx];
+    if (depth_input_stack >= 0) {
+      curr_ise = &input_stack[depth_input_stack];
+    }  /* if */
   }  /* if */
   /* Push the new entry, copy the contents of the previous top of stack,
      and identify the new entry as having been cloned. */
