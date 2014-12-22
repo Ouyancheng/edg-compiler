@@ -6149,7 +6149,9 @@ can easily access them.
     /* Create a static __tls_init routine to contain all of the thread_local
        initializations. */
     name = (char *)"__tls_init";
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     tls_init_emitted = TRUE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     storage_class = (a_storage_class)sc_static;
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
