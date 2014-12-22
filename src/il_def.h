@@ -18308,7 +18308,7 @@ typedef struct a_scope {
 			   finished.  That includes IL lowering if
 			   appropriate.  FALSE otherwise. */
   a_byte_boolean
-		do_not_free_memory_region:1;
+		do_not_free_memory_region;
 			/* For sck_function scopes, TRUE if some construct
 			   refers to the memory region of this routine, so
 			   the memory region cannot be freed. */
