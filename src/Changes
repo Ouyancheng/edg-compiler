@@ -1,3 +1,18 @@
+Version 4.11
+
+12/24/14 [EDGcpfe/15643,EDGcpfe/15844]
+clang compatibility: __has_include appearing in a macro expansion
+
+The front end previously aborted with a failed assertion in conv_single_char
+if the __has_include macro appears within the expanded text of a macro
+invocation and the header file name uses the angle-bracket (<...>) form.
+This is now fixed.  For example, with --clang:
+
+  #define M(s) __has_include(s)
+  #if M(<foo.h>)    // Previously aborted
+  #endif
+
+------------------------------------------------------------------------------
 Version 4.10, December 23, 2014
 
 12/22/14 [EDGcpfe/14152]

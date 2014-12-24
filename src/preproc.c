@@ -1017,7 +1017,7 @@ name, return FALSE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   skip_white_space();
-  if (*curr_char_loc == '<') {
+  if (*curr_char_loc == '<' && within_curr_source_line(curr_char_loc)) {
     /* The next token appears to be a system header name.  Scan it as a
        single header name token.  Note that this is done only when the
        <...> appears at the top level, not when it appears within a
