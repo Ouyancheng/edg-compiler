@@ -1,5 +1,34 @@
 Version 4.11
 
+12/28/14 [EDGcpfe/15727]
+GNU C++ compatibility: visibility of using-directives in instantiations
+
+In g++ mode, the front end emulates the non-standard behavior of the
+visibility of names in the presence of using-directives (see 11/27/07
+entry).  The front end did not properly emulates cases where the
+name found as a result of the using-directive was not a template.
+Now fixed.  In addition, the special behavior is now used only when
+gnu_version <= 40700.
+
+  struct A {};
+  struct B {
+    // The call of f(t) formerly found ::f instead of N::f
+    template< typename T > B(const T &t) : m(f(t)) {}
+    int m;
+  };
+  template <typename T> inline int f(const T& t) {
+    return t.g();
+  }
+  namespace N {
+    int f(const A &);
+  }
+  using namespace N;
+  int main() {
+    A a;
+    B b(a);
+  }
+
+
 12/24/14 [EDGcpfe/15643,EDGcpfe/15844]
 clang compatibility: __has_include appearing in a macro expansion
 

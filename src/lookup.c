@@ -2205,8 +2205,14 @@ in the scope in which the using-directives apply.
             (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
             lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER);
   if (is_function_or_template_symbol(new_sym) || visible_using_dir) {
+    /* For gnu_versions < 40700, non-template symbols are visible but
+       templates are not.  The symbol_is_or_contains_template test is
+       an approximation of this behavior. */
     if (!visible_using_dir &&
-        ((gnu_version >= 40100 && sym_from_scope != NULL) ||
+        ((gnu_version >= 40100 &&
+          (sym_from_scope != NULL &&
+          (gnu_version >= 40700 ||
+           symbol_is_or_contains_template(new_sym)))) ||
          (gnu_version >= 30400 && locator->is_template_id))) {
       /* This is a symbol that should be ignored in g++ mode. */
       result = FALSE;
