@@ -10313,7 +10313,7 @@ to be part of the function template such as a lambda nested therein.
   *elements = 0;
   /* Count the number of pack elements. */
   for (; vp != NULL; vp = vp->next) {
-    if (!vp->assoc_param_type->is_pack_element) break;
+    if (vp->assoc_param_type->param_num != param_num) break;
     (*elements)++;
   }  /* for */
 done:

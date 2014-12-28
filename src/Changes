@@ -1,5 +1,27 @@
 Version 4.11
 
+12/28/14 [EDGcpfe/15313]
+Spurious "does not have the same number of elements" in variadic instantiation
+
+A spurious error pack length mismatch error could be issued when a
+function parameter pack of a function template is followed by another
+function parameter pack that uses a pack from an enclosing class
+template.  Now fixed.
+
+  void h(...);
+  template <class T> int g(T);
+  template <class ... T> struct A {
+    template <class ... U> void f(T... ts, U... us) {
+      // spurious "ts" does not have the same number of elements as "T"
+      h(g<T>(ts)...);
+    }
+  };
+  int main() {
+    A<int> a;
+    a.f(1, 2);
+  }
+
+
 12/28/14 [EDGcpfe/15453]
 GNU C++ compatibility: classes instantiated when needed for ADL
 
