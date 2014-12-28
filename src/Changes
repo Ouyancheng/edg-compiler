@@ -1,5 +1,21 @@
 Version 4.11
 
+12/28/14 [EDGcpfe/15453]
+GNU C++ compatibility: classes instantiated when needed for ADL
+
+Newer versions of the g++ compiler no longer fail to instantiate
+classes to determine their associated classes and namespaces for
+argument-dependent lookup purposes (see 3/6/06 entry).  We now disable
+our emulation of this bug when gnu_version is >= 40500.
+
+  template<class T> class A {
+    friend void f(const A& a) { }
+  };
+  void g(const A<int>& a) {
+    f(a);  // error: '"f" undefined' when gnu_version is < 40500
+  } 
+
+
 12/28/14 [EDGcpfe/15727]
 GNU C++ compatibility: visibility of using-directives in instantiations
 

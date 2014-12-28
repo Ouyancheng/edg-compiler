@@ -6122,8 +6122,9 @@ associated namespaces and classes to "namespace_list" and "class_list".
         add_class_to_lookup_lists(type, namespace_list, class_list);
         /* If this is a template, make sure it is instantiated.  In some modes
            this is not always done. */
-        if (gpp_mode) {
-          /* GCC appears not to instantiate the class type in this case. */
+        if (gpp_mode && gnu_version < 40500) {
+          /* Older versions of g++ do not to instantiate the class type in
+             this case. */
         } else if (microsoft_mode &&
                    (microsoft_version < 1500 ||
                     ms_does_not_complete_class_for_candidate_decl())) {
