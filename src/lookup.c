@@ -2211,8 +2211,8 @@ in the scope in which the using-directives apply.
     if (!visible_using_dir &&
         ((gnu_version >= 40100 &&
           (sym_from_scope != NULL &&
-          (gnu_version >= 40700 ||
-           symbol_is_or_contains_template(new_sym)))) ||
+           (gnu_version >= 40700 ||
+            symbol_is_or_contains_template(new_sym)))) ||
          (gnu_version >= 30400 && locator->is_template_id))) {
       /* This is a symbol that should be ignored in g++ mode. */
       result = FALSE;
