@@ -4307,9 +4307,12 @@ information about the parameters.
                                options);
       break;
     case sck_class_struct_union:
-      reactivate_class_context(decl_info, definition_class,
-                               instance_sym, assoc_type, assoc_routine,
-                               options);
+      if (definition_class != NULL) {
+        /* If a definition class was provided, reactivate its context. */
+        reactivate_class_context(decl_info, definition_class,
+                                 instance_sym, assoc_type, assoc_routine,
+                                 options);
+      }  /* if */
       break;
     default:
       break;

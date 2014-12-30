@@ -1,5 +1,22 @@
 Version 4.11
 
+12/30/14 [EDGcpfe/15858]
+Abort on invalid default template argument in invalid instantiation
+
+In version 4.10, an abort could occur (in reactivate_instantiation_context)
+in g++ mode after a default template argument in a friend template declaration
+resulted in a "redefinition of default argument" error.  Now fixed.
+
+  template <class T> struct A {
+    template <class U = T> friend class A;
+     void f(int);
+  };
+  int main() {
+    A<> a;
+    a.f(1);
+  }
+
+
 12/28/14 [EDGcpfe/15313]
 Spurious "does not have the same number of elements" in variadic instantiation
 
