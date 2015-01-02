@@ -1819,12 +1819,15 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
           check_context_sensitive_keyword(tok_override, "override")) {
         if (func_info->override) {
           error(ec_duplicate_function_modifier);
-        } else if (!cpp11_mode &&
-                   (locator->is_destructor_name
-                    if_microsoft_extensions(|| locator->is_finalizer_name))) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode &&
+                   ((locator->is_destructor_name &&
+                     microsoft_version < 1700) ||
+                    locator->is_finalizer_name)) {
           error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           if (gpp_mode && !cpp11_mode) {
             pos_warning(ec_override_and_final_is_cpp11, &error_position);

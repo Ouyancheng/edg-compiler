@@ -1,5 +1,19 @@
 Version 4.11
 
+1/2/15   [EDGcpfe/15355]
+Microsoft compatibility" "override" modifier on destructors
+
+In Microsoft C++ mode with microsoft_version >= 1700 the front end now accepts
+the "override" modifier on destructors.  For example:
+
+  struct B { virtual ~B(); };
+  struct D: B {
+    ~D() override;  // Now accepted in Microsoft mode with
+  };                // microsoft_version >= 1700.
+
+(Such cases are also allowed in C++11 mode.)
+
+
 1/2/15   [EDGcpfe/15859]
 Warnings when building the front end with gcc
 
