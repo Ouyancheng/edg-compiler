@@ -16853,9 +16853,8 @@ needed bit number does not match needed_bit_number.
 {
   int                first_priority = 0;
   a_dynamic_init_ptr dip;
-  unsigned long      eff_needed_bit_number = needed_bit_number;
 
-  if (needed_bit_number == 1) eff_needed_bit_number = 0;
+  if (needed_bit_number == 1) needed_bit_number = 0;
   /* init_priority is enabled only in g++ mode. */
   if (gpp_mode) {
     for (dip = il_header.primary_scope->dynamic_inits;
@@ -16864,7 +16863,7 @@ needed bit number does not match needed_bit_number.
 #if ONE_INSTANTIATION_PER_OBJECT
       if (one_instantiation_per_object &&
           dip->variable->instantiation_needed_bit_number !=
-                                               eff_needed_bit_number) continue;
+                                                   needed_bit_number) continue;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       if (dip->variable->init_priority != 0) {
         first_priority = dip->variable->init_priority;

@@ -6,7 +6,8 @@ Warnings when building the front end with gcc
 Building some configurations of the front end using gcc with certain
 compilation options (notably "-O2 -funroll-loops -Wall") resulted in
 compiler warnings.  These warnings have now been eliminated.  This change
-is similar to that of EDGcpfe/15100 but affects code added since then.
+is similar to that of EDGcpfe/15100 but affects code added since then and
+conditionally-compiled code in different configurations.
 
 
 12/30/14 [EDGcpfe/15858]
