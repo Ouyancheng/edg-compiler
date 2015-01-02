@@ -1,5 +1,14 @@
 Version 4.11
 
+1/2/15   [EDGcpfe/15859]
+Warnings when building the front end with gcc
+
+Building some configurations of the front end using gcc with certain
+compilation options (notably "-O2 -funroll-loops -Wall") resulted in
+compiler warnings.  These warnings have now been eliminated.  This change
+is similar to that of EDGcpfe/15100 but affects code added since then.
+
+
 12/30/14 [EDGcpfe/15858]
 Abort on invalid default template argument in invalid instantiation
 

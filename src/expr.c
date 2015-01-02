@@ -4880,7 +4880,7 @@ are expected to be NULL in that case.
     } else {
       a_boolean     routine_operand = is_undefined_symbol_operand(operand) ||
                                       is_indefinite_function_operand(operand);
-      a_symbol_ptr  rout_sym;
+      a_symbol_ptr  rout_sym = NULL;
       if (routine_operand) {
         rout_sym = operand->symbol;
       } else if (is_expression_operand(operand)) {
@@ -18842,7 +18842,7 @@ in *rcblock).
 */
 {
   a_source_position  start_position, delete_position;
-  a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
+  a_type_ptr         delete_type = NULL, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant;
   a_boolean          array_delete = FALSE;

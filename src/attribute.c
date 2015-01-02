@@ -7518,7 +7518,7 @@ Also used for the GNU ifunc attribute.
   an_alias_fixup_ptr  entries = alias_fixup_list, entry;
   a_symbol_ptr        aliased_sym;
   a_symbol_locator    locator;
-  a_source_position   *pos;
+  a_source_position   *pos = NULL;
 
   alias_fixup_list = last_alias_fixup = NULL;
   while (entries != NULL) {

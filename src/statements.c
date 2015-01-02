@@ -1892,7 +1892,7 @@ body of a constexpr function or constructor.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
     a_boolean                    early_sses_present = FALSE;
-    a_source_sequence_entry_ptr  move_to_point;
+    a_source_sequence_entry_ptr  move_to_point = NULL;
     /* Identify if any source sequence entries have been added during
        declaration vs. expression disambiguation. */
     if (C_mode()) {

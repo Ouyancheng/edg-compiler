@@ -29459,7 +29459,7 @@ caller has already moved past the '[', and this routine leaves the trailing
         a_source_position          pos_capture;
         a_variable_ptr             var = NULL;
         a_field_ptr                field = NULL;
-        a_symbol_header_ptr        sym_hdr;
+        a_symbol_header_ptr        sym_hdr = NULL;
         a_boolean                  by_ref = FALSE, is_this = FALSE;
         a_boolean                  no_impl_capture = FALSE;
         pos_capture = pos_curr_token;

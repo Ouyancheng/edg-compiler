@@ -22663,7 +22663,7 @@ alias
   a_boolean				keep_token_cache = TRUE;
   a_boolean				internal_alias;
   a_boolean				is_redecl = FALSE;
-  a_symbol_ptr				orig_decl_sym;
+  a_symbol_ptr				orig_decl_sym = NULL;
   a_template_symbol_supplement_ptr	orig_decl_tssp;
   a_token_sequence_number		tsn_for_alias =
                                                     curr_token_sequence_number;
