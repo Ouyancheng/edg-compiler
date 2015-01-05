@@ -17397,12 +17397,12 @@ typedef struct a_template {
   uint32_t	cache_checksum;
 			/* A checksum of the definition cache used to compare
 			   definitions from different translation units. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_template_param_coordinate
 		coordinates;
 			/* For a class template associated with a template
 			   template parameter, provides the list position and
 			   nesting depth of the parameter. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		export_position;
 			/* The position of the export keyword or
