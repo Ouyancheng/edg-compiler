@@ -4,9 +4,9 @@ Version 4.11
 Default value of USE_POINTER_TO_CONST_CHAR
 
 A change has been made to set the default value of USE_POINTER_TO_CONST_CHAR
-to TRUE (previously it was TRUE only if previously undefined and compilation
-was performed by a C++11-compliant compiler -- i.e., when __cplusplus had a
-value greater than or equal to 201103L).
+to TRUE (previously it was TRUE only if undefined and the front end was being
+compiled by a C++11-compliant compiler -- i.e., when __cplusplus had a value
+greater than or equal to 201103L).
 
 
 1/5/15   [EDGcpfe/15856]
