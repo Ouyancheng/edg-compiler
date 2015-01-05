@@ -1,7 +1,7 @@
 Version 4.11
 
 1/2/15   [EDGcpfe/15355]
-Microsoft compatibility" "override" modifier on destructors
+Microsoft compatibility: "override" modifier on destructors
 
 In Microsoft C++ mode with microsoft_version >= 1700 the front end now accepts
 the "override" modifier on destructors.  For example:
