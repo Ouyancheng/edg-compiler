@@ -1,5 +1,15 @@
 Version 4.11
 
+1/5/15   [EDGcpfe/15856]
+Space savings for a_scope and a_template entries
+
+Some small changes changes were made to a_scope and a_template entries to
+reduce their size (particularly, on 64-bit platforms).  The changes involve
+turning a_byte_boolean flags into single-bit bit fields, and ensuring that
+checksums for template definitions are limited to 32 bits.  This is a subtle
+IL CHANGE.
+
+
 1/2/15   [EDGcpfe/15355]
 Microsoft compatibility: "override" modifier on destructors
 

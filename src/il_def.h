@@ -17004,8 +17004,8 @@ number is created.  In C++, a class/struct/union has a true scope
 associated with it.  These scope numbers are mostly of interest to the
 front end.
 */
-typedef long a_scope_number;
-#define MAX_SCOPE_NUMBER LONG_MAX
+typedef int32_t a_scope_number;
+#define MAX_SCOPE_NUMBER INT32_MAX
 #define NO_SCOPE_NUMBER ((a_scope_number)-1)
 			/* Scope number used for things without scope. */
 #define FILE_SCOPE_NUMBER 0
@@ -17352,37 +17352,57 @@ typedef struct a_template {
   a_template_kind
 		kind;
 			/* The kind of template represented. */
-  a_byte_boolean
-		is_exported;
+  a_bit_field
+		is_exported:1;
 			/* TRUE if the template was declared as exported,
 			   either because the declaration included the
 			   export keyword, or because it is a member of
 			   a class declared export.  This is set only on
 			   the canonical entry. */
-  a_byte_boolean
-		ignore_export;
+  a_bit_field
+		ignore_export:1;
 			/* TRUE for templates that have is_exported TRUE
 			   but that are static or are declared using
 			   types that make it impossible for them to be
 			   referenced outside of the translation unit (e.g.,
 			   types from an unnamed namespace). */
-  a_byte_boolean
-		is_pack;
+  a_bit_field
+		is_pack:1;
 			/* TRUE for a template template arguments if it is
 			   a template parameter pack. */
-  a_byte_boolean
-		is_friend_template;
+  a_bit_field
+		is_friend_template:1;
 			/* TRUE for a template declared as a friend
 			   template. */
-#if RECORD_TEMPLATE_STRINGS
-  a_const_char	*text;
-			/* A null-terminated string representing the text of
-			   the template declaration, starting with the keyword
-			   "template".  This pointer is NULL for an entry
-			   representing a nonstandard friend template of the
-			   form "friend class X;" (a Microsoft extension). */
-#endif /* RECORD_TEMPLATE_STRINGS */
+#if BACK_END_IS_CP_GEN_BE
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_targ_alignment
+		final_alignment;
+			/* The packing alignment at the end of the template
+			   definition.  #pragma pack directives inside the
+			   template definition appear in the generated code
+			   but do not have associated a_pragma IL entries, so
+			   the C++-generating back end cannot track their
+			   effect directly.  This field, set during prototype
+			   instantiation, allows it to re-sync after
+			   inserting the definition into the output. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  int32_t	min_template_arguments;
+			/* The number of parameters in this declaration
+			   that do not have default arguments.  This will
+			   be updated in the canonical template to reflect
+			   the most recent declaration put out for the
+			   template. */
+#endif /* BACK_END_IS_CP_GEN_BE */
+  uint32_t	cache_checksum;
+			/* A checksum of the definition cache used to compare
+			   definitions from different translation units. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_template_param_coordinate
+		coordinates;
+			/* For a class template associated with a template
+			   template parameter, provides the list position and
+			   nesting depth of the parameter. */
   a_source_position
 		export_position;
 			/* The position of the export keyword or
@@ -17406,11 +17426,6 @@ typedef struct a_template {
 			   This is used only for "nonreal" templates and for
 			   template template parameters, and is used to
 			   determine if two such templates are equivalent. */
-  a_template_param_coordinate
-		coordinates;
-			/* For a class template associated with a template
-			   template parameter, provides the list position and
-			   nesting depth of the parameter. */
   a_template_decl_ptr
 		template_decl;
 			/* A description of the template declaration header
@@ -17458,29 +17473,14 @@ typedef struct a_template {
 			   instance, this points to the template for
 			   the original member template declaration in the
 			   prototype instantiation. */
-  unsigned long	cache_checksum;
-			/* A checksum of the definition cache used to compare
-			   definitions from different translation units. */
-#if BACK_END_IS_CP_GEN_BE
-#if USER_CONTROL_OF_STRUCT_PACKING
-  a_targ_alignment
-		final_alignment;
-			/* The packing alignment at the end of the template
-			   definition.  #pragma pack directives inside the
-			   template definition appear in the generated code
-			   but do not have associated a_pragma IL entries, so
-			   the C++-generating back end cannot track their
-			   effect directly.  This field, set during prototype
-			   instantiation, allows it to re-sync after
-			   inserting the definition into the output. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  int32_t	min_template_arguments;
-			/* The number of parameters in this declaration
-			   that do not have default arguments.  This will
-			   be updated in the canonical template to reflect
-			   the most recent declaration put out for the
-			   template. */
-#endif /* BACK_END_IS_CP_GEN_BE */
+#if RECORD_TEMPLATE_STRINGS
+  a_const_char	*text;
+			/* A null-terminated string representing the text of
+			   the template declaration, starting with the keyword
+			   "template".  This pointer is NULL for an entry
+			   representing a nonstandard friend template of the
+			   form "friend class X;" (a Microsoft extension). */
+#endif /* RECORD_TEMPLATE_STRINGS */
 } a_template;
 
 #if RECORD_MACROS_IN_IL
@@ -18301,30 +18301,30 @@ typedef struct a_scope {
   a_scope_kind	kind;
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.). */
-  a_byte_boolean
-		function_body_processing_finished;
+  a_bit_field
+		function_body_processing_finished:1;
 			/* Front-end only, for sck_function scopes: set to
 			   TRUE once the function body processing is
 			   finished.  That includes IL lowering if
 			   appropriate.  FALSE otherwise. */
-  a_byte_boolean
-		do_not_free_memory_region;
+  a_bit_field
+		do_not_free_memory_region:1;
 			/* For sck_function scopes, TRUE if some construct
 			   refers to the memory region of this routine, so
 			   the memory region cannot be freed. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  a_byte_boolean
-		scope_orphaned_list_header_generated;
+  a_bit_field
+		scope_orphaned_list_header_generated:1;
 			/* TRUE if a scope orphaned list header entry has
 			   been generated for this scope.  This is done right
 			   after IL lowering, if any. */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  a_byte_boolean
-		is_constexpr_routine;
+  a_bit_field
+		is_constexpr_routine:1;
 			/* TRUE for a constexpr function or constructor
 			   which is valid for constexpr expansion. */
-  a_byte_boolean
-		has_constexpr_return_expr;
+  a_bit_field
+		has_constexpr_return_expr:1;
 			/* When TRUE, the constexpr function's return
 			   expression is in constexpr_return_expr; when
 			   FALSE the return value is given by

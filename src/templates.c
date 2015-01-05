@@ -21045,7 +21045,7 @@ it in the IL template entry.
       check_assertion(templ != NULL);
       definition_templ = templ->definition_template;
       check_assertion(definition_templ != NULL);
-      definition_templ->cache_checksum = cache_value;
+      definition_templ->cache_checksum = (uint32_t)cache_value;
     }
   }  /* if */
 #undef CACHE_HASH_FACTOR

@@ -4603,16 +4603,20 @@ fields, and return a pointer to it.
   tp->ignore_export = FALSE;
   tp->is_pack = FALSE;
   tp->is_friend_template = FALSE;
-#if RECORD_TEMPLATE_STRINGS
-  tp->text = NULL;
-#endif /* RECORD_TEMPLATE_STRINGS */
+#if BACK_END_IS_CP_GEN_BE
+#if USER_CONTROL_OF_STRUCT_PACKING
+  tp->final_alignment = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  tp->min_template_arguments = -1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+  tp->cache_checksum = 0;
+  tp->coordinates.position = 0;
+  tp->coordinates.depth = NO_NESTING_DEPTH;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = null_source_position;
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tp->template_info = NULL;
-  tp->coordinates.position = 0;
-  tp->coordinates.depth = NO_NESTING_DEPTH;
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
   tp->prototype_instantiation.routine = NULL;
@@ -4620,13 +4624,9 @@ fields, and return a pointer to it.
   tp->canonical_template = NULL;
   tp->definition_template = NULL;
   tp->prototype_template = NULL;
-  tp->cache_checksum = 0;
-#if BACK_END_IS_CP_GEN_BE
-#if USER_CONTROL_OF_STRUCT_PACKING
-  tp->final_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  tp->min_template_arguments = -1;
-#endif /* BACK_END_IS_CP_GEN_BE */
+#if RECORD_TEMPLATE_STRINGS
+  tp->text = NULL;
+#endif /* RECORD_TEMPLATE_STRINGS */
   return tp;
 }  /* alloc_template */
 

@@ -711,7 +711,7 @@ and indentation is the indentation desired.
     }  /* if */
   }
 
-  (void)sprintf(buffer, "scope %ld", sym->decl_scope);
+  (void)sprintf(buffer, "scope %ld", (long)sym->decl_scope);
   put_string(buffer);
 
   if (sym->referenced) put_string("ref'd");
