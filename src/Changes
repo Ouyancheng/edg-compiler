@@ -1,5 +1,20 @@
 Version 4.11
 
+1/7/15   [EDGcpfe/15867]
+C-generating back end, Microsoft compatibility: segfault in offset_after_field
+with bit-field union member
+
+In C-generating back end configurations with MSVC_IS_GENERATED_CODE_TARGET
+set to TRUE, the front end previously aborted with a segfault in
+offset_after_field when the largest member of a union is the "container"
+within which a bit-field is allocated.  This is now fixed.  For example:
+
+  union U {
+    char c;
+    unsigned i : 6;  // Previously aborted: sizeof(unsigned) > sizeof(char)
+  } u;
+
+
 1/5/15   [EDGcpfe/15856]
 Space savings for a_scope and a_template entries
 

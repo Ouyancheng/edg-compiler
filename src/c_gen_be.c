@@ -2997,8 +2997,16 @@ Return the byte offset following the end of the indicated field.
        the size of the declared type; in that case, because of the extra
        padding added following the container to fill out the declared width
        of the bit-field, the normal calculation below applies. */
-    offset_after = msvc_bit_field_tracker.container_offset +
+    if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+      /* In a union, field tracking is irrelevant, since all fields begin
+         at offset 0.  The offset is simply the size of the container, i.e.,
+         the declared type of the bit-field. */
+      offset_after = field_type->size;
+    } else {
+      /* The offset is that following the bit-field's container. */
+      offset_after = msvc_bit_field_tracker.container_offset +
                                    msvc_bit_field_tracker.container_type->size;
+    }  /* if */
   } else {
     /* Non-Microsoft bit field. */
     offset_after = field->offset + (targ_char_bit - 1 + 
