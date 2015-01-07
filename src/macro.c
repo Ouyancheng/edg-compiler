@@ -3934,7 +3934,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_generic_lambda",
-    NULL,
+    &generic_lambdas_enabled,
     "__cpp_generic_lambdas",
     "201304" },
   { "cxx_implicit_moves",
@@ -3996,7 +3996,7 @@ static a_feature_support feature_support_list[] = {
 			   depending on the level of constexpr support. */
     NULL },
   { "cxx_return_type_deduction",
-    NULL,
+    &deduced_return_types_enabled,
     "__cpp_return_type_deduction",
     "201304" },
   { "cxx_rtti",
@@ -5672,7 +5672,7 @@ end_arg_expansion:;
                                       sizeof(a_feature_support),
                                       compare_feature_names);
         if (feature != NULL) {
-          feature_supported = *feature->enabled;
+          feature_supported = (feature->enabled != NULL && *feature->enabled);
         } else if (type_traits_helpers_enabled) {
           /* The identifier is not the name of a feature, so check it
              against the list of supported C++ type trait helpers. */

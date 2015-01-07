@@ -1,5 +1,18 @@
 Version 4.11
 
+1/7/15   [EDGcpfe/15872]
+clang compatibility: segfault on __has_feature for C++14 features
+
+Using the __has_feature built-in macro with some C++14 feature names
+(cxx_generic_lambda, cxx_relaxed_constexpr, cxx_return_type_deduction,
+cxx_variable_templates) or with cxx_runtime_array caused the front end to
+abort with a segfault in macro_invocation.  This is now fixed.  For example,
+with --clang:
+
+  #if __has_feature(cxx_generic_lambda)  // Previously aborted
+  #endif
+
+
 1/7/15   [EDGcpfe/15593]
 Trailing return types in handler parameter declarations
 
