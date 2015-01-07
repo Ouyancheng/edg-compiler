@@ -2295,8 +2295,19 @@ and for member functions of template classes.
            prototype instantiations of those default arguments.  This
            is not done for real template instantiations -- they get their
            default information from the information saved during the
-           prototype instantiation. */
-        if (!fixup_class_is_real_template_instantiation) {
+           prototype instantiation -- unless those instantiations are
+           recorded in the source sequence lists and prototype instantiation
+           are recorded in the IL (in which case we, e.g., need the default
+           argument representation for rendering in the C++-generating back
+           end). */
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || \
+    !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
+    !PROTOTYPE_INSTANTIATIONS_IN_IL
+        if (fixup_class_is_real_template_instantiation) {
+        } else
+#endif  /* !GENERATE_SOURCE_SEQUENCE_LISTS || !CLASS_TEMPLATE_... */
+        /* Do not insert code here. */
+        {
           sym = rfp->symbol;
           if (daefp != NULL && nonclass_prototype_instantiations &&
               template_second_pass) {

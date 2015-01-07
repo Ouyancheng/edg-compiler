@@ -28095,7 +28095,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
            remember the nonlocal reference to help back-end aliasing
            analysis. */
         var->referenced_non_locally = TRUE;
-      } else if ((curr_expr_kind_is_const() ||
+      } else if ((curr_expr_kind_is_const() || rvalue_only != NULL ||
                   expr_stack->is_vla_dimension_expression) &&
                  var->constant_valued) {
         /* Allow references to constant-valued variables in constant
@@ -28108,6 +28108,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
            expressions.  The CWG has already indicated that such references
            in a lambda should not require a capture, so it's right that this
            code precedes the lambda processing below. */
+        if (rvalue_only != NULL) *rvalue_only = TRUE;
       } else if (in_lambda_body()) {
         /* This reference is in the body of a lambda, so it may be okay
            if the variable has been captured. */
@@ -28794,8 +28795,8 @@ variable:
                                          result, rep);
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
-                 rvalue (because it's a constant-valued variable that cannot
-                 be captured in a lambda). */
+                 rvalue (e.g., because it's a constant-valued variable that
+                 cannot be captured in a lambda). */
               if (is_array_type(result->type)) {
                 conv_array_operand_to_pointer_operand(result);
               } else {

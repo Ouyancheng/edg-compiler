@@ -1432,6 +1432,17 @@ The count can be zero.
 {
   a_constant_ptr  result; 
 
+  if (elem_con->kind == (a_constant_repr_kind)ck_aggregate &&
+      elem_con->variant.aggregate.has_dynamic_init_component) {
+    /* A ck_init_repeat cannot have a ck_aggregate with dynamic components
+       directly under it. */
+    a_constant_ptr      orig_elem_con = elem_con;
+    a_dynamic_init_ptr  dip = alloc_dynamic_init(dik_nonconstant_aggregate);
+    dip->variant.constant = elem_con;
+    elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    elem_con->type = orig_elem_con->type;
+    elem_con->variant.dynamic_init = dip;
+  }  /* if */
   result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
   result->variant.init_repeat.count = count;
   result->variant.init_repeat.constant = elem_con;

@@ -1,5 +1,21 @@
 Version 4.11
 
+1/7/15   [EDGcpfe/11678,EDGcpfe/14185,EDGcpfe/15590]
+Local constant-valued variables accessed from nested classes
+
+The front end now permits more situations where a nested class uses the value
+of a constant-valued variable local to the enclosing class.  For example:
+
+  void g() {
+    int const N = 10;
+    struct S {
+      int n = N;  // Previously an error; now okay.
+    };
+  }
+
+This implements the standards committee's resolution for Core issue 696.)
+
+
 1/7/15   [EDGcpfe/15872]
 clang compatibility: segfault on __has_feature for C++14 features
 
