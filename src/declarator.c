@@ -3072,9 +3072,6 @@ an error if a default argument expression is encountered.
             any_default_args = FALSE;
           }  /* if */
         } else {
-          /* Argument expressions are not allowed in overloaded operator
-             declarations.  Issue an error, but go ahead and scan the
-             expression. */
           a_scope_kind		parent_scope_kind;
           a_scope_stack_entry_ptr
 				parent_ssep;
@@ -3084,6 +3081,8 @@ an error if a default argument expression is encountered.
           a_boolean		invalid_default_arg = FALSE;
           a_param_type_ptr	ptp_for_scan;
           if (!default_arg_allowed_on_curr_param) {
+            /* Argument expressions is not allowed.  Issue an error, but go
+               ahead and scan the expression. */
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
           } else if (!is_top_level_declarator) {
             /* Default arguments are normally only allowed on top-level

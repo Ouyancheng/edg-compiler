@@ -13599,7 +13599,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
         rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if DECL_MODIFIERS_IN_USE
         /* Note that locator_position is not updated in this case. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* DECL_MODIFIERS_IN_USE */
       }  /* if */
     } else {
       a_decl_parse_state  state;
