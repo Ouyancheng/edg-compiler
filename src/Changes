@@ -1,5 +1,20 @@
 Version 4.11
 
+
+1/7/15   [EDGcpfe/15589]
+Effect of multiple alignas specifiers on a class or enum declaration
+
+When multiple C++11 alignas specifiers are used for a class or enum
+declaration, the front end now retains the strictest (i.e., largest)
+alignment value as required by the C++ standard (except in GNU C++11 mode,
+where the previous behavior of keeping the value of the last specifier
+remains for compatibility purposes).  For example:
+
+  struct alignas(4) alignas(16) alignas(8) X {};
+  static_assert(alignof(X) == 16, "Unexpected");  // Now accepted, except in
+                                                  // GNU C++11 mode.
+
+
 1/7/15   [EDGcpfe/15867]
 C-generating back end, Microsoft compatibility: segfault in offset_after_field
 with bit-field union member

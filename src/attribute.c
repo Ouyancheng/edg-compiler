@@ -3704,7 +3704,8 @@ static char* apply_align_attr(an_attribute_ptr  ap,
                               an_il_entry_kind  entity_kind)
 /*
 Apply the given "align" (or "aligned") attribute to the given entity and
-return that entity.
+return that entity.  This is also the function called for the C++11 "alignas"
+specifier.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -3852,8 +3853,14 @@ return that entity.
           set_declspec_align(tp, alignment, &ap->position);
         }  /* if */
       } else {
-        tp->alignment = alignment;
-        tp->alignment_set_explicitly = TRUE;
+        /* Apply the given alignment, but in the case of the standard "alignas"
+           specifier (in non-GCC mode), ensure only the strictest alignment is
+           recorded. */
+        if (!std_specifier || !tp->alignment_set_explicitly ||
+            alignment > tp->alignment || (gpp_mode && !clang_mode)) {
+          tp->alignment = alignment;
+          tp->alignment_set_explicitly = TRUE;
+        }  /* if */
       }  /* if */
     } else if (entity_kind == iek_routine) {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
