@@ -12811,6 +12811,7 @@ a normal try.
       } else {
         a_decl_pos_block  decl_pos_block;
         state.auto_type_allowed = FALSE;
+        state.trailing_return_type_allowed = trailing_return_types_enabled;
         clear_decl_pos_block(&decl_pos_block);
         decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
@@ -12835,11 +12836,6 @@ a normal try.
           }  /* if */
           declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, (a_func_info_block_ptr)NULL, &decl_pos_block);
-          if (state.do_flags & DO_REAL_DECLARATOR_SCANNED) {
-            state.sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
-                                     decl_scope_level,
-                                     /*suppress_redecl_error=*/FALSE);
-          }  /* if */
         }  /* if */
         check_use_of_auto_type(&state);
         check_pending_qualifiers_used(&state);
@@ -12883,7 +12879,10 @@ a normal try.
            explicit name. */
         handler->parameter = make_handler_parameter(state.type);
         /* Update the symbol, if there is one. */
-        if (state.sym != NULL) {
+        if (state.do_flags & DO_REAL_DECLARATOR_SCANNED) {
+          state.sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
+                                   decl_scope_level,
+                                   /*suppress_redecl_error=*/FALSE);
           state.sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), state.sym);
           record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
@@ -12985,6 +12984,7 @@ a normal try.
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;
         type_ptr = state.type;
+        check_use_of_auto_type(&state);
         run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
       }  /* if */
     }  /* if */

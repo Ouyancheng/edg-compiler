@@ -1,5 +1,19 @@
 Version 4.11
 
+1/7/15   [EDGcpfe/15593]
+Trailing return types in handler parameter declarations
+
+Previously, the front end failed to accept C++11 trailing return types in
+handler parameters.  For example:
+
+  int main() {
+    try {
+    } catch (auto (*pf)()->int) {  // Previously a spurious error in C++11.
+    }                              // Now okay.
+  }
+
+This is now fixed.
+
 
 1/7/15   [EDGcpfe/15589]
 Effect of multiple alignas specifiers on a class or enum declaration
