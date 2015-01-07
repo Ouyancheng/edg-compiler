@@ -165,7 +165,7 @@ constant, and return information about it in *delta.
     /* Represent NULL as -1. */
     offset = -1;
 #endif /* IA64_ABI */
-  } /* if */
+  }  /* if */
   *delta = offset;
 }  /* repr_for_ptr_to_data_member_constant */
 
