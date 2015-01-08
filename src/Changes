@@ -77,6 +77,9 @@ remains for compatibility purposes).  For example:
   static_assert(alignof(X) == 16, "Unexpected");  // Now accepted, except in
                                                   // GNU C++11 mode.
 
+(For variables and nonstatic data members, the strictest alignment specifier
+was already correctly recorded.)
+
 
 1/7/15   [EDGcpfe/15867]
 C-generating back end, Microsoft compatibility: segfault in offset_after_field
