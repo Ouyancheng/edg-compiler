@@ -1,5 +1,13 @@
 Version 4.11
 
+1/8/15   [EDGcpfe/15874]
+Spurious command-line error when DEFAULT_GNU_COMPATIBILITY is TRUE
+
+In configuration with DEFAULT_GNU_COMPATIBILITY set to TRUE, the front end
+issued a spurious command-line error when specifying certain non-GNU mode
+option (e.g., Microsoft mode through "--microsoft_mode").  This is now fixed.
+
+
 1/8/15   [EDGcpfe/15870,EDGcpfe/15873]
 Compilation error on definition of uintptr_t
 

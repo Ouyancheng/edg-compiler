@@ -3415,6 +3415,7 @@ an otherwise implicitly enabled GNU C mode.
       /* GNU C mode was enabled by default.  Silently disable it since an
          explicit mode setting on the command line overrides it. */
       gcc_mode = FALSE;
+      gnu_mode = FALSE;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3443,6 +3444,7 @@ an otherwise implicitly enabled GNU C++ mode.
       /* GNU C++ mode was enabled by default.  Silently disable it since an
          explicit mode setting on the command line overrides it. */
       gpp_mode = FALSE;
+      gnu_mode = FALSE;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
