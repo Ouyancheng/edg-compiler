@@ -33,7 +33,7 @@ in C++11 mode:
     };
   }
 
-This implements the standards committee's resolution for Core issue 696.)
+(This implements the standards committee's resolution for Core issue 696.)
 
 
 1/7/15   [EDGcpfe/15872]
