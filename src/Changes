@@ -20,10 +20,11 @@ This is now fixed.
 
 
 1/7/15   [EDGcpfe/11678,EDGcpfe/14185,EDGcpfe/15590]
-Local constant-valued variables accessed from nested classes
+Local constant-valued variables accessed from local classes
 
-The front end now permits more situations where a nested class uses the value
-of a constant-valued variable local to the enclosing class.  For example:
+The front end now permits more situations where a local class uses the value
+of a constant-valued variable local to the enclosing function.  For example,
+in C++11 mode:
 
   void g() {
     int const N = 10;
