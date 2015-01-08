@@ -21892,8 +21892,12 @@ caller.
       source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
        /* Update cross-reference information, etc.  This is done here because
-         the "defines_something" flag is set by the caching done just above. */
-      if (decl_state->defines_something) {
+          the "defines_something" flag is set by the caching done just
+          above. */
+      if (rout_ptr != NULL && rout_ptr->compiler_generated) {
+        /* We don't record cross-reference information for compiler-generated
+           templates. */
+      } else if (decl_state->defines_something) {
         mark_defined(sym, decl_pos);
       } else {
         mark_declared(sym, decl_pos);
