@@ -1,5 +1,17 @@
 Version 4.11
 
+1/8/15   [EDGcpfe/15870,EDGcpfe/15873]
+Compilation error on definition of uintptr_t
+
+In some configurations, the front end attempts to declare its own definition
+of uintptr_t (a standard C99 integer type that can hold pointer values).
+However, when the host environment is a Microsoft or Microsoft-like compiler
+the definition was in terms of a type __uint64, which is not actually
+defined by the Microsoft compiler and hence resulted in a compilation error.
+Now the front end relies on the Microsoft vadefs.h header instead to get the
+uintptr_t type in the affected configurations.
+
+
 1/7/15   [EDGcpfe/15592]
 Direct reference binding and explicit conversion operators
 
