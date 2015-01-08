@@ -1,5 +1,24 @@
 Version 4.11
 
+1/7/15   [EDGcpfe/15592]
+Direct reference binding and explicit conversion operators
+
+The front end previously failed to consider C++11 explicit conversion operators
+when binding -- using direct-initialization notation -- a reference to an
+expression requiring a conversion into a temporary (the temporary is
+initialized using copy-initialization, a context that often excludes explicit
+conversion operators).  For example:
+
+  struct X {};
+  struct S {
+    explicit operator X();
+  } s;
+  X const &r(s);  // Previously an error; now accepted.
+  X const &b = s;  // Still an error (not "direct").
+
+This is now fixed.
+
+
 1/7/15   [EDGcpfe/11678,EDGcpfe/14185,EDGcpfe/15590]
 Local constant-valued variables accessed from nested classes
 

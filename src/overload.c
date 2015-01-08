@@ -19677,12 +19677,13 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 }  /* temp_init_from_operand */
 
 
-static void convert_operand_into_temp(an_operand    *source_operand,
-                                      a_type_ptr    dest_type,
-                                      a_type_ptr    orig_dest_type,
-                                      a_conv_descr  *conversion,
-                                      an_error_code incompatible_err,
-                                      a_boolean     *err)
+static void convert_operand_into_temp(an_operand         *source_operand,
+                                      a_type_ptr         dest_type,
+                                      a_type_ptr         orig_dest_type,
+                                      a_conv_descr       *conversion,
+                                      a_conv_context_set ref_conv_context,
+                                      an_error_code      incompatible_err,
+                                      a_boolean          *err)
 /*
 Convert source_operand to dest_type, put it into a newly-created
 temporary, and return an lvalue for the temporary in source_operand.  The
@@ -19694,13 +19695,16 @@ source_operand to an error operand, and return *err TRUE.  orig_dest_type
 is the destination (reference) type before any rewriting, for use in
 error messages.  If conversion is non-NULL, the conversion is already
 known to be possible, and *conversion describes it.  dest_type must not
-be a reference type.  Only used in C++.  This is copy-initialization.
+be a reference type.  ref_conv_context is the set of conversion context flags
+for the reference binding: For direct binding, explicit conversion functions
+must be considered.  Only used in C++.  This is copy-initialization.
 */
 {
-  a_conv_descr local_conversion;
-  an_operand   orig_operand;
-  a_boolean    have_temp;
-  a_boolean    is_explicit_cast = FALSE;
+  a_conv_descr       local_conversion;
+  an_operand         orig_operand;
+  a_boolean          have_temp;
+  a_boolean          is_explicit_cast = FALSE;
+  a_conv_context_set conv_context = CCO_DEFAULT;
 
   *err = FALSE;
   orig_operand = *source_operand;
@@ -19728,6 +19732,9 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     }  /* if */
   }  /* if */
   /* See if the conversion is possible. */
+  if (ref_conv_context & CCO_DIRECT_INITIALIZATION) {
+    conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
+  }  /* if */
   if (conversion_usable_or_possible(source_operand, dest_type, 
                                     (a_boolean *)NULL, orig_dest_type,
                                     /*need_lvalue_result=*/FALSE,
@@ -19735,7 +19742,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
                                     /*orig_is_copy_initialization=*/TRUE,
                                     /*ref_binding_type=*/orig_dest_type,
                                     /*is_direct_binding=*/FALSE,
-                                    CCO_DEFAULT,
+                                    conv_context,
                                     incompatible_err,
                                     &source_operand->position,
                                     &conversion,
@@ -20688,7 +20695,8 @@ the conversion.
       /* When binding an rvalue reference, make sure we have something
          we can bind to, and not, say, an integer constant. */
       convert_operand_into_temp(source_operand, base_dest_type, dest_type,
-                                conversion, incompatible_err, &err);
+                                conversion, conv_context, incompatible_err,
+                                &err);
     }  /* if */
   } else if (direct_binding_possible && is_an_lvalue(source_operand)) {
     /* The initial value is an lvalue of the right type; the binding
@@ -20974,7 +20982,8 @@ the conversion.
          code above for the list-initialization code must change as
          well. */
       convert_operand_into_temp(source_operand, base_dest_type, dest_type,
-                                conversion, incompatible_err, &err);
+                                conversion, conv_context, incompatible_err,
+                                &err);
       if (err) {
         /* The conversion could not be done.  An error has already been
            issued. */
