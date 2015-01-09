@@ -837,7 +837,13 @@ typedef int32_t
 	 	a_macro_invocation_record_index;
 			/* The index of a macro invocation record (defined in
 			   il_def.h; all we need is the index type here). */
-#define NO_PARENT_MACRO_INVOCATION (-1L)
+/*
+Value that indicates that there is no corresponding macro invocation
+record.  The value 0 is used to allow clearing blocks containing macro
+invocation record indices using memzero for efficiency.  As a result of
+this choice, the zeroth macro invocation record will be left unused.
+*/
+#define NO_PARENT_MACRO_INVOCATION 0
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */
 typedef struct a_source_position *a_source_position_ptr;
 typedef struct a_source_position {

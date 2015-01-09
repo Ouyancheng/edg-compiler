@@ -598,7 +598,7 @@ static void add_entry_to_macro_text_map(
                                a_macro_invocation_record_index macro_context)
 /*
 Add a new entry to the specified macro text map with the specified offset,
-sequence number, and column.
+sequence number, column, and macro context.
 */
 {
   a_macro_text_map_entry_ptr mtmep = next_macro_text_map_entry(mtmp);
@@ -1139,7 +1139,12 @@ new macro invocation record block if necessary.
   }  /* if */
   index_in_block = num_macro_invocation_records -
                      last_macro_invocation_record_block->first_record_in_block;
-  ++num_macro_invocation_records;
+  if (num_macro_invocation_records++ == 0) {
+    /* Skip the zeroth element so NO_PARENT_MACRO_INVOCATION can have the
+       value 0. */
+    ++index_in_block;
+    ++num_macro_invocation_records;
+  }  /* if */
   return last_macro_invocation_record_block->records + index_in_block;
 }  /* next_macro_invocation_record */
 

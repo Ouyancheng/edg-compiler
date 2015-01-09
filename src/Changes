@@ -1,5 +1,21 @@
 Version 4.11
 
+1/9/15   [EDGcpfe/15868]
+Incorrect value for macro_context in source positions (IL CHANGE)
+
+In configurations with RECORD_MACRO_INVOCATIONS and NULL_POINTER_IS_ZERO
+set to TRUE, the changes for EDGcpfe/15561 could result in some source
+positions having a macro_context value designating the first (i.e., index
+0) macro invocation when, in fact, the position is not related to a macro
+expansion.  This has now been addressed by changing the value of
+NO_PARENT_MACRO_INVOCATION from -1 to 0.  As a result, in configurations
+with MACRO_INVOCATION_TREE_IN_IL set to TRUE, the zeroth macro invocation
+record is now unused and does not correspond to a macro invocation,
+although a translation unit with no macro invocations is still marked with
+the value 0 for il_header.num_macro_invocation_records.  These represent a
+small IL CHANGE.
+
+
 1/8/15   [EDGcpfe/15862]
 Constexpr constructor template and virtual base classes
 

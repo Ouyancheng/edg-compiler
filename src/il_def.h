@@ -17542,27 +17542,28 @@ typedef struct a_macro_invocation_record *a_macro_invocation_record_ptr;
 typedef struct a_macro_invocation_record {
   a_macro_invocation_record_index
 		parent_macro_index;
-			/* If non-negative, the index in the macro invocation
-			   tree of the macro invocation record for the macro
-			   expansion in which this macro invocation occurred.
-			   If equal to NO_PARENT_MACRO_INVOCATION, this macro
+			/* If greater than NO_PARENT_INVOCATION, gives the
+			   index in the macro invocation tree of the macro
+			   invocation record for the macro expansion in
+			   which this macro invocation occurred.  If equal
+			   to NO_PARENT_MACRO_INVOCATION, this macro
 			   invocation occurred directly in program text.
-			   All other negative values indicate that this
-			   macro invocation record does not denote an actual
-			   macro invocation but is simply a placeholder
-			   specifying the number of levels of nesting that
-			   are to be popped in the transition to the next
-			   record.  (A single-level pop is implicit.) */
+			   All other (i.e., negative) values indicate that
+			   this macro invocation record does not denote an
+			   actual macro invocation but is simply a
+			   placeholder specifying the number of levels of
+			   nesting that are to be popped in the transition
+			   to the next record.  (A single-level pop is
+			   implicit.) */
   a_macro_ptr	assoc_macro;
 			/* The macro whose expansion this invocation record
 			   represents.  Will be NULL for negative values of
-			   parent_macro_index other than
-			   NO_PARENT_MACRO_INVOCATION. */
+			   parent_macro_index. */
   a_simple_source_position
 		start;	/* The original location of the macro name for this
 			   invocation (i.e., if this invocation occurs in
 			   the expansion of another, this position will be in
-			   either a macro definition line or in a macro
+			   either a macro definition line or a macro
 			   argument). */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_simple_source_position
@@ -18875,11 +18876,18 @@ typedef struct an_il_header {
 #if MACRO_INVOCATION_TREE_IN_IL
   a_macro_invocation_record_index
 		num_macro_invocation_records;
-			/* The number of macro invocation records in the macro
-			   invocation tree.  This number includes placeholder
-			   records that represent multi-level stack pops, so
-			   it will typically be larger than the actual number
-			   of macro invocations that were performed. */
+			/* The number of macro invocation records in the
+			   macro invocation tree.  This number includes
+			   placeholder records that represent multi-level
+			   stack pops, so it will typically be larger than
+			   the actual number of macro invocations that were
+			   performed.  Also, the zeroth macro invocation
+			   record does not reflect an actual macro
+			   invocation but corresponds to the
+			   NO_PARENT_MACRO_INVOCATION index.  Nonetheless,
+			   a translation unit with no macro invocations
+			   will be indicated by the value 0 for
+			   num_macro_invocation_records (and not 1). */
   unsigned long	max_macro_invocation_depth;
 			/* The number of levels in the deepest part of the
 			   macro invocation tree. */

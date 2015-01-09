@@ -4675,6 +4675,14 @@ region, initialize the fields, and return a pointer to it.
 #if DEBUG
   num_macro_invocation_record_blocks_allocated++;
 #endif /* DEBUG */
+#if NULL_POINTER_IS_ZERO
+  /* We can use memzero to clear the block efficiently.  Note that this
+     depends on NO_PARENT_MACRO_INVOCATION and SP_COL_UNKNOWN both having
+     value 0. */
+  memzero((char *)mirbp, sizeof(a_macro_invocation_record_block));
+#else /* !NULL_POINTER_IS_ZERO */
+  /* The presence of pointers in the block means that we must do
+     memberwise assignments to clear it. */
   mirbp->first_record_in_block = 0;
   mirbp->left_subtree = NULL;
   mirbp->right_subtree = NULL;
@@ -4690,7 +4698,7 @@ region, initialize the fields, and return a pointer to it.
     mirbp->records[i].end.column = SP_COL_UNKNOWN;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* for */
-
+#endif /* NULL_POINTER_IS_ZERO */
   return mirbp;
 }  /* alloc_macro_invocation_record_block */
 #endif /* RECORD_MACRO_INVOCATIONS */
