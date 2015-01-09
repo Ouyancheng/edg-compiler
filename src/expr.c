@@ -27698,12 +27698,17 @@ static a_boolean in_lambda_header(void)
 Return TRUE if we are currently in the header (not the body) of a lambda.
 */
 {
-  a_boolean in_header = FALSE;
+  a_boolean                in_header = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
-  if (scope_is(&scope_stack_top(), sck_func_prototype) &&
-      scope_is(&scope_stack_top()-1, sck_class_struct_union) &&
-      type_is_lambda_closure((&scope_stack_top()-1)->assoc_type)) {
-    /* We're in a lambda declarator. */
+  
+  if (scope_is(ssep, sck_func_prototype)) {
+    ssep -= 1;
+  }  /* if */
+  if (scope_is(ssep, sck_class_struct_union) &&
+      type_is_lambda_closure(ssep->assoc_type)) {
+    /* We're in a lambda declarator (if a function prototype scope was not
+       skipped above, this is presumable a prescan). */
     in_header = TRUE;
   } else if (expr_stack != NULL &&
              expr_stack->current_lambda_in_header != NULL) {

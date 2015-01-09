@@ -1,5 +1,21 @@
 Version 4.11
 
+1/9/15   [EDGcpfe/15857]
+Spurious error on use of local variable in lambda header in strict C++14 mode
+
+In modes that accept generic lambdas (particularly, C++14 mode), the front
+end issued a spurious diagnostic (an error in strict mode, a warning otherwise)
+when a local variable is used in a non-evaluated context in a lambda parameter
+declaration.  For example:
+
+  int g() {
+    int x;
+    return [](decltype(x) p){ return p; }(2);  // Previously a spurious error
+  }                                            // in strict C++14 mode.
+
+This is now fixed.
+
+
 1/9/15   [EDGcpfe/15868]
 Incorrect value for macro_context in source positions (IL CHANGE)
 
