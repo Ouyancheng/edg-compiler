@@ -2819,7 +2819,9 @@ popped.
   if (expr_stack->lifetime != NULL &&
       !is_useless_object_lifetime(expr_stack->lifetime)) {
     /* An object lifetime with a constant result -- surprising. */
-    check_assertion(total_errors != 0 || expr_stack->any_suppressed_error);
+    check_assertion(total_errors != 0 ||
+                    expr_stack->any_suppressed_error ||
+                    constant->kind == (a_constant_repr_kind)ck_template_param);
     discard_curr_expr_object_lifetime();
   }  /* if */
   if (constexpr_enabled &&

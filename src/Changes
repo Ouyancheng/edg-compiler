@@ -1,5 +1,22 @@
 Version 4.11
 
+1/8/15   [EDGcpfe/15893]
+Internal error in wrap_up_constant_full_expression
+
+The changes for EDGcpfe/14647 (see entry of 11/6/13) introduced a regression
+in some configurations that set PROTOTYPE_INSTANTIATIONS_IN_IL to TRUE: In GNU
+C++ mode, certain functional notation casts to a type with a destructor
+appearing in a template could result in an internal error in
+wrap_up_constant_full_expression (exprutil.c).  For example:
+
+  struct S { S(); ~S(); };
+  template<typename> void g() {
+    S as[] = { S() };  // Previously triggered an abort in GNU C++ mode in
+  }                    // some configurations.
+
+This is now fixed.
+
+
 1/8/15   [EDGcpfe/15895]
 Cross-reference output and generated member templates
 
