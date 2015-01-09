@@ -1,5 +1,24 @@
 Version 4.11
 
+1/8/15   [EDGcpfe/15862]
+Constexpr constructor template and virtual base classes
+
+The front end previously failed to diagnose a constexpr constructor template
+in a class with a virtual base class.  In configurations performing IL
+lowering, this was likely to trigger an internal error in
+initialize_vptr_in_aggregate_constant.  For example:
+
+  struct A {};
+  struct B : virtual A {
+    template <int ...J> constexpr B() {}  // This is now an error.
+  };
+  int main() { B(); }
+    // Previously, lowering aborted with an internal error because the
+    // error above was not diagnosed.
+
+This is now fixed (the example now triggers an error).
+
+
 1/8/15   [EDGcpfe/15893]
 Internal error in wrap_up_constant_full_expression
 

@@ -8963,6 +8963,17 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
         rp->is_constexpr = FALSE;
       }  /* if */
     }  /* if */
+  } else if (symbol_is(sym, sk_function_template)) {
+    /* The restriction on constructors applies also to constructor
+       templates. */
+    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    if (special_kind_is(rp, sfk_constructor)) {
+      a_type_ptr  class_type = parent_class_of(rp);
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        pos_error(ec_constexpr_ctor_with_virtual_base, &dps->constexpr_pos);
+        rp->is_constexpr = FALSE;
+      }  /* if */
+    }  /* if */
   } else if (symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
     /* Check that a constexpr variable (or static data member) has a reference
@@ -8984,8 +8995,7 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
                 &dps->constexpr_pos);
       vp->is_constexpr = FALSE;
     }  /* if */
-  } else if (symbol_is(sym, sk_routine) ||
-             symbol_is(sym, sk_function_template)) {
+  } else if (symbol_is(sym, sk_routine)) {
     /* Other symbol kinds for which constexpr is potentially valid.
        No diagnostic is needed. */
   } else {
