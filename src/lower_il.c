@@ -7453,6 +7453,7 @@ table.
   a_routine_ptr                      thunk_to_call;
   a_base_class_ptr                   sharing_bcp, imm_bcp;
   a_virtual_table_index              vcall_index;
+  a_boolean                          use_null_function = FALSE;
 #if IA64_ABI
   a_routine_ptr                      second_func_to_call;
   a_base_class_ptr                   vcall_bcp;
@@ -7716,13 +7717,29 @@ table.
       }  /* if */
 #endif /* IA64_ABI */
     }  /* if */
+#if IA64_ABI
+    if (gnu_mode && gnu_version >= 40900 && !clang_mode &&
+        ctor_bcp != NULL &&
+        func_to_call->special_kind ==
+                                    (a_special_function_kind)sfk_destructor &&
+        func_to_call->is_virtual) {
+      /* Beginning with 4.9.0, g++ suppresses references to virtual destructors
+         from construction virtual tables in order to increase the likelihood
+         that speculative devirtualization will be successful.  Invoking a
+         virtual destructor during object creating is undefined behavior,
+         so these entries should never be referred to anyway. */
+      use_null_function = TRUE;
+    }  /* if */
+#endif /* IA64_ABI */
     /* Create the initializing constants for this entry of the table. */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "  function entry:         ");
     }  /* if */
 #endif /* DEBUG */
-    add_vtbl_entry_init(delta, func_to_call, /*typeinfo_entry=*/FALSE,
+    add_vtbl_entry_init(delta,
+                        use_null_function ? (a_routine_ptr)NULL : func_to_call,
+                        /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/FALSE,
                         class_whose_vtbl_is_being_made);
 #if IA64_ABI
@@ -7732,7 +7749,10 @@ table.
         fprintf(f_debug, "  second function entry:  ");
       }  /* if */
 #endif /* DEBUG */
-      add_vtbl_entry_init(delta, second_func_to_call, /*typeinfo_entry=*/FALSE,
+      add_vtbl_entry_init(delta,
+                          use_null_function ? (a_routine_ptr)NULL :
+                                              second_func_to_call,
+                          /*typeinfo_entry=*/FALSE,
                           first_con, last_con, /*prepend=*/FALSE,
                           class_whose_vtbl_is_being_made);
       entry_number += 1;

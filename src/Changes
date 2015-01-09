@@ -1,5 +1,29 @@
 Version 4.11
 
+1/9/15   [EDGcpfe/15864]
+GNU compatibility: virtual destructors in construction virtual tables
+
+The g++ compiler made a change in the 4.9.0 release to suppress references to
+virtual destructors from construction virtual tables.  The change was made to
+increase the likelihood that speculative devirtualization would be applicable
+(it is undefined behavior to invoke a virtual destructor from an object under
+construction).  In certain cases, linking objects compiled with the g++ (4.9.0)
+and EDG compiler had produced unresolved references to these virtual
+destructors.  A change has been made to emulate this behavior (when gnu_version
+>= 40900).  The Cfront ABI is unchanged.  In this example (with
+--gnu_version 40900), the virtual function pointers for ~B in the B-in-C
+construction vtable are now NULL:
+
+  struct A {};
+  struct B : virtual A {
+    virtual ~B();
+  };
+  struct C : B {
+    ~C();
+  };
+  C::~C() {}
+
+
 1/9/15   [EDGcpfe/15857]
 Spurious error on use of local variable in lambda header in strict C++14 mode
 
