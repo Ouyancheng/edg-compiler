@@ -4668,7 +4668,9 @@ region, initialize the fields, and return a pointer to it.
 */
 {
   a_macro_invocation_record_block_ptr mirbp;
+#if !NULL_POINTER_IS_ZERO
   int                                 i;
+#endif /* !NULL_POINTER_IS_ZERO */
 
   mirbp = (a_macro_invocation_record_block_ptr)
                              alloc_il(sizeof(a_macro_invocation_record_block));
