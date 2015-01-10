@@ -839,9 +839,9 @@ typedef int32_t
 			   il_def.h; all we need is the index type here). */
 /*
 Value that indicates that there is no corresponding macro invocation
-record.  The value 0 is used to allow clearing blocks containing macro
-invocation record indices using memzero for efficiency.  As a result of
-this choice, the zeroth macro invocation record will be left unused.
+record.  The value 0 is chosen to allow use of memzero to clear blocks
+containing macro invocation record indices.  As a result of this choice,
+the zeroth macro invocation record will be left unused.
 */
 #define NO_PARENT_MACRO_INVOCATION 0
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */

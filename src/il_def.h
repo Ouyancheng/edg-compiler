@@ -17542,11 +17542,12 @@ typedef struct a_macro_invocation_record *a_macro_invocation_record_ptr;
 typedef struct a_macro_invocation_record {
   a_macro_invocation_record_index
 		parent_macro_index;
-			/* If greater than NO_PARENT_INVOCATION, gives the
-			   index in the macro invocation tree of the macro
-			   invocation record for the macro expansion in
-			   which this macro invocation occurred.  If equal
-			   to NO_PARENT_MACRO_INVOCATION, this macro
+			/* If greater than NO_PARENT_MACRO_INVOCATION,
+			   gives the index in the macro invocation tree of
+			   the macro invocation record for the macro
+			   expansion in which this macro invocation
+			   occurred.  If equal to
+			   NO_PARENT_MACRO_INVOCATION, this macro
 			   invocation occurred directly in program text.
 			   All other (i.e., negative) values indicate that
 			   this macro invocation record does not denote an
