@@ -7726,7 +7726,7 @@ table.
       /* Beginning with 4.9.0, g++ suppresses references to virtual destructors
          from construction virtual tables in order to increase the likelihood
          that speculative devirtualization will be successful.  Invoking a
-         virtual destructor during object creating is undefined behavior,
+         virtual destructor during object construction is undefined behavior,
          so these entries should never be referred to anyway. */
       use_null_function = TRUE;
     }  /* if */
