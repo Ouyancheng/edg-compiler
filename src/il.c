@@ -26110,7 +26110,7 @@ return that.  If not, return the original expression.
   return texpr;
 }  /* expr_before_type_adjustment */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES && !STANDALONE_UTILITY_PROGRAM
 /*
 GNU C and C++ distinguishes between two alignments for fundamental types:
 The intrinsic alignment (returned by __alignof__ in most cases, and imbued on
@@ -26235,7 +26235,7 @@ Return the field alignment for the given type.
   return result;
 }  /* field_alignment_for */
 
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES && !STANDALONE_UTILITY_... */
 
 a_boolean pm_constant_is_null(a_constant_ptr constant)
 /*
