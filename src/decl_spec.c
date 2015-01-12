@@ -8996,8 +8996,8 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
       vp->is_constexpr = FALSE;
     }  /* if */
   } else if (symbol_is(sym, sk_routine)) {
-    /* Other symbol kinds for which constexpr is potentially valid.
-       No diagnostic is needed. */
+    /* constexpr is potentially valid for non-member functions: No diagnostic
+       is needed here. */
   } else {
     pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
   }  /* if */
