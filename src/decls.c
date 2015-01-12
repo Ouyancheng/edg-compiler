@@ -4412,6 +4412,14 @@ created; the caller must set it.
                (e.g.) pick up default arguments during template instantiations.
                In those cases, a fixup entry will be created (below) to later
                restore the original type. */
+            if (dps->has_deducible_return_type &&
+                (*routine_ptr)->has_deduced_return_type) {
+              /* Even if we (temporarily) use the declared type at this point,
+                 we have to use the return type already deduced to avoid
+                 spurious "auto" types in the expression trees. */
+              type_ptr->variant.routine.return_type =
+                            (*routine_ptr)->type->variant.routine.return_type;
+            }  /* if */
             (*routine_ptr)->type = type_ptr;
           }  /* if */
         }  /* if */
