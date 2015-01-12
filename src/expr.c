@@ -27708,7 +27708,7 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
   if (scope_is(ssep, sck_class_struct_union) &&
       type_is_lambda_closure(ssep->assoc_type)) {
     /* We're in a lambda declarator (if a function prototype scope was not
-       skipped above, this is presumable a prescan). */
+       skipped above, this is presumably a prescan). */
     in_header = TRUE;
   } else if (expr_stack != NULL &&
              expr_stack->current_lambda_in_header != NULL) {
