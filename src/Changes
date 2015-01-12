@@ -1,5 +1,29 @@
 Version 4.11
 
+1/12/15  [EDGcpfe/14021]
+IA-64 ABI: Missing exception epilogue on destructors with function try blocks
+
+Destructors with function try blocks had not been lowered properly when using
+the IA-64 ABI; the epilogue for exception handling had inadvertently been
+omitted, resulting in undefined behavior at runtime.  The following code
+had caused an assertion failure in the runtime library (throw.c) when using the
+C-generating back end (with -x):
+
+  struct A {
+    ~A() try {} catch (...) {}
+  };
+  int main() {
+    try {
+      A a;
+      throw -59;
+    }
+    catch (...) {
+      return 0;
+    }
+    return 1;
+  }
+
+
 1/12/15  [EDGcpfe/15854]
 Block-extern function redeclarations and deducible return types
 

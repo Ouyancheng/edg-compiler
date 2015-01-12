@@ -15688,7 +15688,6 @@ destructor scope, and also lower the user code.
   an_insert_location     insert_location3;
   a_source_position      closing_brace_pos;
   a_routine_ptr          delete_routine;
-  a_boolean              epilogue_setup_done = FALSE;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   an_insert_location     else_insert_location;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
@@ -15991,12 +15990,18 @@ destructor scope, and also lower the user code.
   }  /* if */
   /* Now lower the user code. */
   if (has_function_try_block) {
+    a_boolean label_added;
     /* The top statement of the destructor is a function-try-block.
        The code to destroy members and bases is inserted inside the
        try block. */
     lower_try_block(user_code_stmts, /*is_function_try_block=*/TRUE,
                     &dtor_info);
     set_insert_location(user_code_stmts, &insert_location);
+    /* If there are any returns in the catch clauses of the
+       function-try-block, add an epilogue label and change the returns
+       to gotos.  In the simplest case, changes the insert location from
+       after the return at the end of the routine to before it. */
+    add_epilogue_label(&insert_location, top_stmt, &label_added);
   } else {
     /* Normal case (not function-try-block). */
     a_statement_ptr last_stmt;
@@ -16008,9 +16013,6 @@ destructor scope, and also lower the user code.
     insert_dtor_member_and_base_destructions(&insert_location,
                                              top_stmt,
                                              &dtor_info);
-#if !IA64_ABI
-    epilogue_setup_done = TRUE;
-#endif /* !IA64_ABI */
   }  /* if */
 #if !IA64_ABI
   /* Set the current position to the closing brace of the destructor. */
@@ -16030,15 +16032,6 @@ destructor scope, and also lower the user code.
     a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
     an_expr_node_ptr complete_obj_param_node;
 
-    if (!epilogue_setup_done) {
-      a_boolean label_added;
-      /* If there are any returns in the catch clauses of the
-         function-try-block, add an epilogue label and change the returns
-         to gotos.  In the simplest case, changes the insert location from
-         after the return at the end of the routine to before it. */
-      add_epilogue_label(&insert_location, top_stmt, &label_added);
-      epilogue_setup_done = TRUE;
-    }  /* if */
     /* Make "param & 0x1". */
     complete_obj_param_node = var_rvalue_expr(this_param_var->next);
     two_constant_node = node_for_integer_constant(1L, (an_integer_kind)ik_int);
