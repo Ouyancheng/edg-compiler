@@ -2147,6 +2147,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_creation_of_initializer_list_object = FALSE;
   dip->is_array_for_initializer_list_object = FALSE;
   dip->is_top_temporary_for_constexpr_reference_param = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  dip->suppress_init_list_arg_braces = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

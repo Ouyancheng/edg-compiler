@@ -1,5 +1,24 @@
 Version 4.11
 
+1/13/15  [EDGcpfe/15871]
+C++-generating back end: braces in arguments to initializer-list constructors
+
+In C++11, an initializer-list constructor is one whose first parameter is
+a specialization of std::initializer_list and having either no additional
+parameters or default arguments for all additional parameters.  Such a
+constructor can be invoked with a brace-enclosed list of values as a single
+argument.  The C++-generating back end previously incorrectly added an
+additional set of parentheses to the argument to such a constructor.  This
+is now fixed.  For example, with --c++11:
+
+  #include <initializer_list>
+  struct S {
+    S(std::initializer_list<int>);
+  };
+  int f(S);
+  int i = f({1,2});  // Previously generated as f({{1,2}})
+
+
 1/12/15  [EDGcpfe/14021]
 IA-64 ABI: Missing exception epilogue on destructors with function try blocks
 

@@ -15089,6 +15089,7 @@ when possible.
   a_boolean        braced_init;
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
+  a_boolean        suppress_braces = FALSE;
 
   dip = skip_constexpr_ctor_eval(dip);
   braced_init = dip->is_braced_initializer;
@@ -15104,6 +15105,12 @@ when possible.
                                                            &init_entity_typea);
     dipa = skip_constexpr_ctor_eval(dipa);
     braced_init = dipa->is_braced_initializer;
+    if (braced_init && dip->suppress_init_list_arg_braces) {
+      /* The initializer list is already brace-enclosed, so the argument to
+         the std::initializer_list constructor should not have additional
+         braces. */
+      suppress_braces = TRUE;
+    }  /* if */
     if (!dip->is_explicit_cast && !dip->is_compound_literal) {
       dip = dipa;
       init_entity_type = init_entity_typea;
@@ -15365,8 +15372,7 @@ output_functional_notation_cast_arguments:
       /* Constant (simple or aggregate). */
       con = dip->variant.constant;
       gen_initializer_constant(con, init_entity_type,
-                               /*transparent_case=*/FALSE,
-                               /*suppress_braces=*/FALSE);
+                               /*transparent_case=*/FALSE, suppress_braces);
       break;
     case dik_bitwise_copy:
       /* A bitwise copy.  Only the cases with an explicit source expression
@@ -15422,6 +15428,16 @@ output_functional_notation_cast_arguments:
              an argument in a call. */
           write_tok_ch('{');
           brace_list_case = TRUE;
+          if (args != NULL && args->next == NULL &&
+              args->kind == (an_expr_node_kind)enk_temp_init &&
+              args->variant.init.dynamic_init->
+                                      is_creation_of_initializer_list_object) {
+            /* A single argument that is a std::initializer_list temporary.
+               The array argument to the std::initializer_list constructor
+               does not need extra braces but can share these. */
+            args->variant.init.dynamic_init->suppress_init_list_arg_braces =
+                                                                          TRUE;
+          }  /* if */
         } else {
           /* Normal case, a single expression. */
           /* When the assertion here fails, it's almost always because one of

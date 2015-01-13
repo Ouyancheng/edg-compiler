@@ -3483,6 +3483,16 @@ typedef struct a_dynamic_init {
 			   as the argument for a reference parameter of a
 			   constexpr function.  Short-term use in the front end
 			   only. */
+#if BACK_END_IS_CP_GEN_BE
+  a_bit_field	suppress_init_list_arg_braces:1;
+			/* TRUE for a dynamic init for which
+			   is_creation_of_initializer_list_object is TRUE
+			   to indicate that braces around a ck_aggregate
+			   argument to the initializer_list constructor
+			   should be suppressed because the context is
+			   already brace-enclosed.  Set/used only within
+			   the C++-generating back end. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
