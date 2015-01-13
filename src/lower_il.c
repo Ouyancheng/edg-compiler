@@ -14871,19 +14871,27 @@ and in a non-constant aggregate initialization, e.g.:
   } s = { 42 };
 
 Replace the enk_param_ref with an enk_variable node that represents "this" in
-each case.
+each case.  Note that (as of C++14), the two cases are not mutually exclusive
+as in this case:
+
+  struct B {
+    int x = 37;
+    int y = f();
+    int f() { return x;}  // enk_param_ref-for-this refers to the B object.
+  };
+  struct A {
+    int g() { return 2; }
+    B b { g() };  // enk_param_ref-for-this refers to the A object.
+  } a;
+
+If we're in a non-constant aggregate initialization, search for that first.
 */
 {
+  a_boolean found = FALSE;
+
   check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref &&
                   expr->variant.param_ref.param_num == 0);
-  if (ctor_init_this != NULL) {
-    /* We're lowering a constructor init; use the "this" parameter for
-       the function. */
-    check_assertion(identical_types_ignoring_qualifiers(ctor_init_this->type,
-                                                        expr->type));
-    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-    expr->variant.variable = ctor_init_this;
-  } else {
+  if (aggregate_this_stack != NULL) {
     /* We must be lowering an aggregate constant; go backwards through the
        stack of nested potential "this" pointers looking for one that matches
        the type of the enk_param_ref node (there can only be one) and
@@ -14896,18 +14904,29 @@ each case.
     an_expr_node_ptr      new_expr = NULL;
     an_init_pos_descr_ptr ipdp;
     a_type_ptr            new_type, old_type = type_pointed_to(expr->type);
-    check_assertion(aggregate_this_stack != NULL);
     for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {
       new_expr = make_address_of_init_entity_node(ipdp,
                                                   /*using_as_dest=*/FALSE);
       new_type = type_pointed_to(new_expr->type);
       if (identical_types_ignoring_qualifiers(new_type, old_type)) {
+        found = TRUE;
+        new_expr = add_cast_if_necessary(new_expr, expr->type);
+        overwrite_node(expr, new_expr);
         break;
       }  /* if */
     }  /* for */
-    check_assertion(ipdp != NULL);
-    new_expr = add_cast_if_necessary(new_expr, expr->type);
-    overwrite_node(expr, new_expr);
+  }  /* if */
+  if (!found) {
+    if (ctor_init_this != NULL) {
+      /* We're lowering a constructor init; use the "this" parameter for
+         the function. */
+      check_assertion(identical_types_ignoring_qualifiers(ctor_init_this->type,
+                                                          expr->type));
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      expr->variant.variable = ctor_init_this;
+    } else {
+      unexpected_condition();
+    }  /* if */
   }  /* if */
 }  /* lower_param_ref */
 
