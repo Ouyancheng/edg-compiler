@@ -28,11 +28,11 @@ C-generating back end (with -x):
 Block-extern function redeclarations and deducible return types
 
 When a block-extern declaration is a declaration of a function previously
-defined with a deducible return type, the front end previously failed to
-imbue the deduced return type on the local declaration.  This resulted in 
-invalid IL for expressions referring to the local declaration.  That invalid
-IL resulted, e.g., in invalid output in the C-generating back end. For example,
-assuming C++14 mode:
+defined with a deducible return type, the front end previously failed to imbue
+the deduced return type on the local declaration.  This resulted in invalid IL
+for expressions referring to the local declaration.  That invalid IL resulted,
+e.g., in invalid output in the C-generating back end.  For example, assuming
+C++14 mode:
 
   auto f() { return 42; }
   void g() {
