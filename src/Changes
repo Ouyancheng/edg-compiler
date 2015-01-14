@@ -1,5 +1,15 @@
 Version 4.11
 
+1/13/15  [EDGcpfe/15899]
+Bit-field layout when container size is smaller than container alignment
+
+The front end sometimes incorrectly laid out a bit field whose container type
+is an integer type with a size smaller than its alignment (this is unusual,
+but can happen in some modes with alignment attributes).  Specifically, under
+such circumstances a bit field could sometimes be placed in the "alignment
+padding" of the prior container.  This is now fixed.
+
+
 1/13/15  [EDGcpfe/15845]
 Assertion failure in lower_param_ref
 
