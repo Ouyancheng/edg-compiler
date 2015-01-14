@@ -1119,7 +1119,7 @@ container when that size is smaller than the alignment.
 #define fits_in_container(size, alignment)                                   \
  (bit_size <= targ_char_bit * ((size) - (lob->byte_offset % (alignment)))    \
               - lob->bit_offset &&                                           \
-  (lob->byte_offset % (alignment)) < (size) /*lint !e650*/)
+   /*lint !e650*/(lob->byte_offset % (alignment)) < (size))
 
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
