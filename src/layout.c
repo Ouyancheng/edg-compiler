@@ -1112,12 +1112,14 @@ Useful macro that determines whether a field of size bit_size at the
 current offset will fit into a container of the indicated size (in bytes)
 that is aligned according to the indicated alignment.  (For use only when
 targ_microsoft_bit_field_allocation is FALSE.)
+
+This also checks that the current offset is inside the actual size of the
+container when that size is small than the alignment.
 */
-#define fits_in_container(size, alignment)                               \
- (bit_size <=                                                            \
-    targ_char_bit * ((size) - (lob->byte_offset % (alignment))) -        \
-                                                      lob->bit_offset && \
-  (lob->byte_offset % (alignment)) < size)
+#define fits_in_container(size, alignment)                                   \
+ (bit_size <= targ_char_bit * ((size) - (lob->byte_offset % (alignment)))    \
+              - lob->bit_offset &&                                           \
+  (lob->byte_offset % (alignment)) < (size))
 
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
