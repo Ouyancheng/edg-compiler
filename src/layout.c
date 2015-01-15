@@ -1116,7 +1116,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
 This also checks that the current offset is inside the actual size of the
 container when that size is smaller than the alignment.
 */
-#define fits_in_container(size, alignment)  /*lint !e650*/                   \
+#define fits_in_container(size, alignment)                                   \
  (bit_size <= targ_char_bit * ((size) - (lob->byte_offset % (alignment)))    \
               - lob->bit_offset &&                                           \
   (lob->byte_offset % (alignment)) < (size))
@@ -1221,7 +1221,8 @@ container when that size is smaller than the alignment.
          aligned). */
       container_size = 0;  /* Meaning not set yet. */
       if (bit_size > 0) {
-        if (fits_in_container(1, 1)) {
+        int one = 1;  /* To appease Lint. */
+        if (fits_in_container(1, one)) {
           /* Char. */
           container_size      = 1;
           container_alignment = 1;
