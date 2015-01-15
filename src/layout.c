@@ -1221,7 +1221,7 @@ container when that size is smaller than the alignment.
          aligned). */
       container_size = 0;  /* Meaning not set yet. */
       if (bit_size > 0) {
-        int one = 1;  /* To appease Lint. */
+        unsigned int one = 1;  /* To appease Lint. */
         if (fits_in_container(1, one)) {
           /* Char. */
           container_size      = 1;
