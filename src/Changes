@@ -1,5 +1,20 @@
 Version 4.11
 
+1/13/15  [EDGcpfe/15903]
+Spurious error on use of certain type traits helpers
+
+In modes that may involve generated deleted special member functions, the front
+end sometimes emitted spurious errors when handling certain type traits helpers
+like __is_assignable or __is_constructible.  For example:
+
+  extern "C" int printf(const char*,...);
+  template<typename> struct C { C(C&&); };
+  static_assert(!__is_trivially_assignable(C<int>, C<int>), "Unexpected");
+    // Previously triggered an error in C++11 mode.
+
+This is now fixed.
+
+
 1/13/15  [EDGcpfe/15899]
 Bit-field layout when container size is smaller than container alignment
 

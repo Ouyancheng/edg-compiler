@@ -506,6 +506,15 @@ recorded right away and no entry is created; NULL is returned.
     /* Do not record references to ambiguous symbols, since we don't
        know which symbol is referenced. */
     rep = NULL;
+  } else if (expr_stack != NULL && expr_stack->suppress_diagnostics) {
+    /* SFINAE processing and the evaluation of certain pseudo-functions (like
+       __is_trivially_assignable) don't really "reference" any symbols.
+        */ 
+    rep = NULL;
+    if (is_simple_function_symbol(fund_sym) &&
+        fund_sym->variant.routine.ptr->is_deleted) {
+      record_suppressed_error();
+    }  /* if */
   } else {
     /* For only certain kinds of symbols can the kind of reference be affected
        by context: for example, variables can have SRK_USE, SRK_MODIFICATION,
