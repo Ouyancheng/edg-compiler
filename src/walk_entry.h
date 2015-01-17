@@ -3523,7 +3523,11 @@ after_entry_from_class:
         walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
         walk_ptr(ptr->closure_class, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->closure_class);
-        walk_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+        if (ptr->is_generic && !prototype_instantiations_in_il) {
+          conditionally_clear_fe_pointer(ptr->lambda_routine);
+        } else {
+          walk_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+        }  /* if */
         set_proper_routine_definition_needed_flag(ptr->lambda_routine);
       }
       break;

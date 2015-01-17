@@ -1,5 +1,14 @@
 Version 4.11
 
+1/16/15  [EDGcpfe/15894]
+C++-generating back end and generic lambdas
+
+When prototype instantiations are not recorded in the IL, the C++-generating
+back end aborted when attempting to render a generic lambda.  This is now
+fixed.  The fix involves recording a text form of the generic lambda (minus
+the capture list) as is done with templates.
+
+
 1/13/15  [EDGcpfe/15903]
 Spurious error on use of certain type traits helpers
 

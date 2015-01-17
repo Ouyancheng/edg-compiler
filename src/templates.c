@@ -32167,7 +32167,9 @@ the function template, and decl_state tracks its declaration.
 {
   a_template_symbol_supplement_ptr  tssp;
   a_def_arg_expr_fixup_ptr          saved_curr_default_args;
+  a_source_position                 def_pos;
 
+  def_pos = pos_curr_token;
   /* Don't consider any current default arguments to be associated with the
      generated member template. */
   saved_curr_default_args = curr_default_args;
@@ -32183,6 +32185,14 @@ the function template, and decl_state tracks its declaration.
   }  /* if */
   complete_il_template_entry(decl_state, sym);
   curr_default_args = saved_curr_default_args;
+#if RECORD_TEMPLATE_STRINGS
+  /* Record a text version of the generated template body. */
+  init_token_string(&def_pos, /*keep_spacing=*/TRUE,
+                    /*suppress_identifier_wrapping=*/FALSE);
+  add_token_cache_to_string(&tssp->cache.tokens);
+  add_token_cache_to_string(&tssp->variant.function.decl_cache.tokens);
+  decl_state->il_template_entry->text = make_copy_of_token_string();
+#endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
 
 #if DEBUG

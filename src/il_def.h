@@ -17489,7 +17489,10 @@ typedef struct a_template {
 			   the template declaration, starting with the keyword
 			   "template".  This pointer is NULL for an entry
 			   representing a nonstandard friend template of the
-			   form "friend class X;" (a Microsoft extension). */
+			   form "friend class X;" (a Microsoft extension).
+			   For generated function templates (such as the call
+			   operator of a generic lambda) only the declarator
+			   and body of the template is represented. */
 #endif /* RECORD_TEMPLATE_STRINGS */
 } a_template;
 
@@ -18008,7 +18011,9 @@ typedef struct a_lambda {
 			   such as the parameter list, the function body,
 			   and their associated source positions.  For a
 			   generic lambda, this points to the prototype
-			   instantiation of the call operator. */
+			   instantiation of the call operator, except that
+			   this pointer is cleared if prototype instantiations
+			   are not recorded in the IL. */
   a_bit_field
 		is_generic:1;
 			/* TRUE if this is a C++14-style generic lambda (i.e.,

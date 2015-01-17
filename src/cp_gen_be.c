@@ -11360,6 +11360,25 @@ Render a C11 _Generic construct.
 }  /* gen_c11_generic */
 
 
+static void write_code_string(a_const_char *p)
+/*
+Write a string of code (e.g., a template or an asm function body).  Newline
+characters in the string indicate new source lines.
+*/
+{
+  a_const_char *eol;
+
+  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
+    /* Write a sequence of characters ending with a newline. */
+    *(char *)eol = '\0';
+    write_str(p);
+    end_output_line();
+    *(char *)eol = '\n';
+  }  /* for */
+  write_str(p);
+}  /* write_code_string */
+
+
 static void gen_lambda_captures(a_lambda_ptr  lambda)
 /*
 Render the list of lambda captures, including the delimiting brackets.
@@ -11426,49 +11445,61 @@ Render code for the given expression node, which represents a lambda.
 */
 {
   a_lambda_ptr            lambda = expr->variant.lambda.ptr;
+  a_scope_ptr             closure_scope;
   a_routine_ptr           rp = lambda->lambda_routine;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  a_memory_region_number  scope_region_number = rp->assoc_scope;
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  a_scope_ptr             scope;
-  a_function_state        state;
-  a_source_sequence_scan_state
-                          saved_state;
 
   gen_lambda_captures(lambda);
-  /* Push the closure class on the name context stack so that references to
-     fields (which stand for captured variables) show up without
-     qualification. */
-  push_name_context(class_type_supp(lambda->closure_class)->assoc_scope);
+  closure_scope = class_type_supp(lambda->closure_class)->assoc_scope;
+  if (lambda->is_generic && !prototype_instantiations_in_il) {
+    /* No lambda routine is recorded if this is a generic lambda and
+       prototype instantiations are not recorded in the IL.  Render the
+       lambda from the text form. */
+    a_template_ptr  call_op_template = closure_scope->templates;
+    write_code_string(call_op_template->text);
+  } else {
+    /* Render the lambda from the associated routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Read the information for the function from the IL file.  This must be
-     read before the interface is generated in order to get the parameter
-     names. */
-  read_memory_region(scope_region_number);
+    a_memory_region_number  scope_region_number = rp->assoc_scope;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  scope = scope_for_routine(rp);
-  save_source_sequence_scan_state(&saved_state);
-  curr_source_sequence_entry = scope->source_sequence_list;
-  adv_to_signif_source_sequence_entry();
-  if (lambda->has_parameter_decl) {
-    gen_function_declarator_with_scope(rp->type, scope,
-                                       /*top_level_decl=*/TRUE,
-                                       /*suppress_def_args=*/FALSE);
-    write_space();
+    a_scope_ptr             scope;
+    a_function_state        state;
+    a_source_sequence_scan_state
+                            saved_state;
+    /* Push the closure class on the name context stack so that references to
+       fields (which stand for captured variables) show up without
+       qualification. */
+    push_name_context(closure_scope);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Read the information for the function from the IL file.  This must be
+       read before the interface is generated in order to get the parameter
+       names. */
+    read_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    /* Render the lambda body from the prototype instantiation. */
+    scope = scope_for_routine(rp);
+    save_source_sequence_scan_state(&saved_state);
+    curr_source_sequence_entry = scope->source_sequence_list;
+    adv_to_signif_source_sequence_entry();
+    if (lambda->has_parameter_decl) {
+      gen_function_declarator_with_scope(rp->type, scope,
+                                         /*top_level_decl=*/TRUE,
+                                         /*suppress_def_args=*/FALSE);
+      write_space();
+    }  /* if */
+    save_function_state(&state);
+    innermost_function_scope = scope;
+    push_name_context(scope);
+    gen_statement(scope->assoc_block);
+    pop_name_context();
+    restore_function_state(&state);
+    restore_source_sequence_scan_state(&saved_state);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Now that we're done with the function, free its IL information. */
+    free_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    /* Pop the name context for the closure class. */
+    pop_name_context();
   }  /* if */
-  save_function_state(&state);
-  innermost_function_scope = scope;
-  push_name_context(scope);
-  gen_statement(scope->assoc_block);
-  pop_name_context();
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Now that we're done with the function, free its IL information. */
-  free_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  restore_function_state(&state);
-  restore_source_sequence_scan_state(&saved_state);
-  /* Pop the name context for the closure class. */
-  pop_name_context();
 }  /* gen_lambda */
 
 
@@ -13238,25 +13269,6 @@ is the one associated with the pragma.
     }  /* if */
   }  /* if */
 }  /* gen_pragma */
-
-
-static void write_code_string(a_const_char *p)
-/*
-Write a string of code (e.g., a template or an asm function body).  Newline
-characters in the string indicate new source lines.
-*/
-{
-  a_const_char *eol;
-
-  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
-    /* Write a sequence of characters ending with a newline. */
-    *(char *)eol = '\0';
-    write_str(p);
-    end_output_line();
-    *(char *)eol = '\n';
-  }  /* for */
-  write_str(p);
-}  /* write_code_string */
 
 
 static void write_tok_str_if_nonnull(a_const_char *str)
