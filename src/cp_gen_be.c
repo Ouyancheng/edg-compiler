@@ -15440,15 +15440,25 @@ output_functional_notation_cast_arguments:
              an argument in a call. */
           write_tok_ch('{');
           brace_list_case = TRUE;
-          if (args != NULL && args->next == NULL &&
-              args->kind == (an_expr_node_kind)enk_temp_init &&
-              args->variant.init.dynamic_init->
+          if (args != NULL && args->next == NULL) {
+            /* There is a single argument to the constructor.  Check to see
+               if it is a compiler-generated std::initializer_list
+               temporary. */
+            an_expr_node_ptr arg = args;
+            if (is_operation_node(arg) &&
+                node_operator_is(arg, eok_reference_to)) {
+              /* Skip over the implicit reference node. */
+              arg = arg->variant.operation.operands;
+            }  /* if */
+            if (arg->kind == (an_expr_node_kind)enk_temp_init &&
+                arg->variant.init.dynamic_init->
                                       is_creation_of_initializer_list_object) {
-            /* A single argument that is a std::initializer_list temporary.
-               The array argument to the std::initializer_list constructor
-               does not need extra braces but can share these. */
-            args->variant.init.dynamic_init->suppress_init_list_arg_braces =
+              /* The argument is a std::initializer_list temporary.  The
+                 array argument to the std::initializer_list constructor
+                 should not have extra braces. */
+              arg->variant.init.dynamic_init->suppress_init_list_arg_braces =
                                                                           TRUE;
+            }  /* if */
           }  /* if */
         } else {
           /* Normal case, a single expression. */
