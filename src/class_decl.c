@@ -323,7 +323,7 @@ NULL is returned.
 }  /* corresponding_param_type */
 
 
-void scan_cached_default_args(a_decl_parse_state  *dps)
+static void scan_cached_default_args(a_decl_parse_state  *dps)
 /*
 dps->routine_fixup is non-NULL, presumably because dps->sym represents an
 out-of-class function or member function declaration that included default

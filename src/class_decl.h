@@ -95,8 +95,6 @@ extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
 
-void scan_cached_default_args(a_decl_parse_state  *dps);
-
 void prescan_function_default_arg_expr(a_decl_parse_state  *dps,
                                        a_func_info_block   *func_info,
                                        a_param_type_ptr    ptp);
