@@ -37,10 +37,12 @@ class_decl.c -- Scanning of class declarations.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Structure for keeping track of fixup information for a particular member
-function, including both the cached tokens comprising default argument
-expressions of its parameters and the cached tokens comprising the function
-body, if it is defined inline.
+Structure for keeping track of fixup information for a particular function or
+member function, including both the cached tokens comprising default argument
+expressions of its parameters and -- for a function defined inside a class
+definition -- the cached tokens comprising the function body.  Currently only
+used for non-member, non-friend declarations when that declaration includes
+default arguments.
 */
 /* a_routine_fixup_ptr is already defined in symbol_tbl.h. */
 typedef struct a_routine_fixup {
@@ -52,14 +54,17 @@ typedef struct a_routine_fixup {
   a_type_ptr	class_type;
 			/* Pointer to the class that is current when the
 			   declaration requiring a fixup was encountered.
-			   Usually the parent class of "symbol". */
+			   Usually the parent class of "symbol".  This is NULL
+			   for functions appearing outside any class. */
   a_symbol_ptr  symbol;
 			/* Pointer to a symbol entry with which the fixup
 			   is associated.  Usually, it is a member function
 			   symbol, but it can be any member symbol with an
 			   associated routine type for which default args
 			   have been specified (a typedef or data member of
-			   type ptr-to-routine). */
+			   type ptr-to-routine).  NULL in the case of a
+			   function declaration appearing outside a class
+			   definition. */
   a_func_info_block
 		func_info;
 			/* Information saved by declarator processing for
@@ -68,11 +73,11 @@ typedef struct a_routine_fixup {
 		def_arg_expr_fixup_list;
 			/* List of entries describing default argument
 			   expression associated with parameters for the
-			   current routine. */
+			   routine that is fixed up. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* Pointer to a list of prototype symbols to be
 			   reactivated for scanning default arguments.
-			   Used only when is_template is TRUE. */
+			   Currently only used when is_template is TRUE. */
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
@@ -240,7 +245,9 @@ initialize it.
 static void free_routine_fixup(a_routine_fixup_ptr  rfp)
 /*
 Return a routine fixup entry, along with any default arg expr fixup entries
-associated with it, to their respective available-lists.
+associated with it (in the non-template case), to their respective
+available-lists.  The caller is responsible for discarding any structures
+pointed to by the rfp->func_info if needed.
 */
 {
   if (!rfp->is_template) {
@@ -249,13 +256,12 @@ associated with it, to their respective available-lists.
     free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
   }  /* if */
   rfp->def_arg_expr_fixup_list = NULL;
-  done_with_func_info(rfp->func_info);
   rfp->next = avail_routine_fixup;
   avail_routine_fixup = rfp;
 }  /* free_routine_fixup */
 
 
-static void add_to_routine_fixup_list(a_routine_fixup_ptr      rfp)
+static void add_to_routine_fixup_list(a_routine_fixup_ptr  rfp)
 /*
 Add a routine fixup entry to the end of the list for the class associated
 with the indicated scope stack entry.
@@ -282,6 +288,119 @@ with the indicated scope stack entry.
   }  /* if */
   ssep->last_routine_fixup = rfp;
 }  /* add_to_routine_fixup_list */
+
+
+static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
+                                                 a_param_type_ptr  ptp)
+/*
+"ptp" describes the n-th parameter of some unspecified routine type.  This
+routine assumes "type" has a compatible routine type and returns its n-th
+parameter type description.  If the given type has insufficient parameters,
+NULL is returned.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
+  sizeof_t                       n_params = 0, n_params_remaining = 0,
+                                 param_pos;
+
+  /* Count the position of the given a_param_type entry (from the right). */
+  for (; ptp != NULL; ptp = ptp->next) { ++n_params_remaining; }
+  /* Count the total number of parameters. */
+  ptp = rtsp->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) { ++n_params; }
+  /* Skip the right number. */
+  if (n_params_remaining > n_params) {
+    /* This can happen in some severe error cases.  Return a NULL parameter
+       entry. */
+    expect_error();
+    ptp = NULL;
+  } else {
+    ptp = rtsp->param_type_list;
+    param_pos = n_params - n_params_remaining;
+    for (; param_pos--;) { ptp = ptp->next; }
+  }  /* if */
+  return ptp;
+}  /* corresponding_param_type */
+
+
+void scan_cached_default_args(a_decl_parse_state  *dps)
+/*
+dps->routine_fixup is non-NULL, presumably because dps->sym represents an
+out-of-class function or member function declaration that included default
+arguments.  Scan those default arguments in the context of dps->sym and free
+the entry pointed to by dps->routine_fixup.
+*/
+{
+  a_symbol_ptr  sym = dps->sym;
+
+  check_assertion(dps->routine_fixup != NULL);
+  if (sym != NULL && is_simple_function_symbol(sym)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    a_def_arg_expr_fixup_ptr
+                   daefp = dps->routine_fixup->def_arg_expr_fixup_list;
+    if (sym->is_class_member) {
+      push_class_and_template_reactivation_scope(
+                sym_parent_class(sym), dps->is_explicit_instantiation,
+                /*extend_namespace=*/TRUE);    
+    }  /* if */
+    (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, rp);
+    (void)push_scope((a_scope_kind)sck_func_prototype,
+                     dps->routine_fixup->func_info.scope_number,
+                     underlying_function_type(dps->sym), (a_routine_ptr)NULL);
+    for (; daefp != NULL; daefp = daefp->next) {
+      a_param_type_ptr  ptp = daefp->param_type;
+      if (dps->prev_type != NULL) {
+        /* A redeclaration: We may have formed a composite type.  So find the
+           parameter entry corresponding to the original parameter entry in the
+           current routine type. */
+        ptp = corresponding_param_type(rp->type, ptp);
+      }  /* if */
+      rescan_cached_tokens(&daefp->cache.tokens);
+      delayed_scan_of_default_arg_expr(ptp, dps->sym,
+                                       /*check_for_errors=*/TRUE);
+    }  /* for */
+    pop_scope();
+    pop_scope();
+    if (sym->is_class_member) {
+      pop_class_reactivation_scope();
+    }  /* if */
+  } else {
+    expect_error();
+  }  /* if */
+  free_routine_fixup(dps->routine_fixup);
+  dps->routine_fixup = NULL;
+}  /* scan_cached_default_args */
+
+
+void prescan_function_default_arg_expr(a_decl_parse_state  *dps,
+                                       a_func_info_block   *func_info,
+                                       a_param_type_ptr    ptp)
+/*
+Cache a default argument for an ordinary (i.e., not a template) function or
+member function declared outside a class definition and record an end-of-parse
+action to scan the cached tokens when the declaration is complete.
+
+*dps and *func_info keep track of the declaration of the function or member
+function (that declaration is not completed yet), and ptp represents the
+parameter associated with the default argument.  ptp->has_default_arg is set
+to TRUE at this time.
+*/
+{
+  if (dps->routine_fixup == NULL) {
+    /* This is the first default argument for this declaration: Allocate the
+       associated routine fixup entry. */
+    dps->routine_fixup = alloc_routine_fixup((a_type_ptr)NULL);
+    dps->routine_fixup->func_info = *func_info;
+    add_end_of_parse_action(scan_cached_default_args, dps,
+                            /*secondary_decls=*/FALSE);
+  }  /* if */
+  prescan_default_function_arg_expr(
+                            ptp, &dps->routine_fixup->def_arg_expr_fixup_list,
+                            /*is_function_template=*/FALSE,
+                            /*is_friend_decl=*/FALSE, ptp->param_num);
+  ptp->has_default_arg = TRUE;
+}  /* prescan_function_default_arg_expr */
 
 
 static a_boolean is_invalid_scope_for_class(void)
@@ -384,6 +503,7 @@ the current class.  Otherwise free it for later use.
   if (needed) {
     add_to_routine_fixup_list(curr_routine_fixup);
   } else {
+    done_with_func_info(curr_routine_fixup->func_info);
     free_routine_fixup(curr_routine_fixup);
   }  /* if */
   curr_routine_fixup = NULL;
@@ -2089,39 +2209,6 @@ specifies the position of the parameter in the parameter list.
 }  /* prescan_member_function_default_arg_expr */
 
 
-static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
-                                                 a_param_type_ptr  ptp)
-/*
-"ptp" describes the n-th parameter of some unspecified routine type.  This
-routine assumes "type" has a compatible routine type and returns its n-th
-parameter type description.  If the given type has insufficient parameters,
-NULL is returned.
-*/
-{
-  a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
-  sizeof_t                       n_params = 0, n_params_remaining = 0,
-                                 param_pos;
-
-  /* Count the position of the given a_param_type entry (from the right). */
-  for (; ptp != NULL; ptp = ptp->next) { ++n_params_remaining; }
-  /* Count the total number of parameters. */
-  ptp = rtsp->param_type_list;
-  for (; ptp != NULL; ptp = ptp->next) { ++n_params; }
-  /* Skip the right number. */
-  if (n_params_remaining > n_params) {
-    /* This can happen in some severe error cases.  Return a NULL parameter
-       entry. */
-    expect_error();
-    ptp = NULL;
-  } else {
-    ptp = rtsp->param_type_list;
-    param_pos = n_params - n_params_remaining;
-    for (; param_pos--;) { ptp = ptp->next; }
-  }  /* if */
-  return ptp;
-}  /* corresponding_param_type */
-
-
 static a_boolean fixup_is_for_friend(a_routine_fixup_ptr  rfp)
 /*
 Return TRUE if the given routine fixup is for a friend declaration.
@@ -3076,7 +3163,10 @@ nested class.
       /* Free the current entry, returning it and any expr fixup entries
          attached to it to their respective available-lists.  "rfp" may
          be set to NULL earlier if it should not be freed. */
-      if (rfp != NULL) free_routine_fixup(rfp);
+      if (rfp != NULL) {
+        done_with_func_info(rfp->func_info);
+        free_routine_fixup(rfp);
+      }  /* if */
     }  /* for */
     if (curr_scope_class_type != NULL) {
       /* Pop the reactivated class scope from the scope stack. */
@@ -29841,6 +29931,10 @@ lambda.
         /* If a lambda appears in a function prototype scopes, its closure
            type is treated as if it were defined in the nearest enclosing
            non-function-prototype scope. */
+        break;
+      case sck_function_access:
+        /* Ignore this scope.  (It might enclose a function prototype scope
+           while parsing default arguments.) */
         break;
       case sck_template_declaration:
       case sck_enum:

@@ -16992,6 +16992,11 @@ error.  conv_context describes the context of the conversion.
           db_candidate_function_list(candidate_functions);
         }  /* if */
 #endif /* DEBUG */
+      } else if (expr_access_checking_should_be_done() &&
+                 candidate_functions->function_symbol != NULL &&
+                 !have_access_to_symbol(
+                                      candidate_functions->function_symbol)) {
+        /* The needed conversion function/constructor is not accessible. */
       } else {
         /* Exactly one constructor or conversion function matches best. */
         okay = TRUE;

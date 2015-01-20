@@ -275,6 +275,7 @@ be restored).
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
   dps->auto_params = NULL;
+  dps->routine_fixup = NULL;
 }  /* clear_decl_parse_state_fields */
 
 

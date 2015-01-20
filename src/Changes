@@ -1,5 +1,25 @@
 Version 4.11
 
+1/20/15  [EDGcpfe/14602]
+Accessibility of constructors and conversion functions
+
+The front end sometimes failed to take into account the accessibility of
+constructors and conversion functions when determining implicit convertibility.
+For example:
+
+  class X {
+    X(int) throw () {}
+    X& operator=(int) throw () { return *this; }
+    X(X const&) = default;
+    X& operator=(X const&) = default;
+  };
+  static_assert(!__is_convertible_to(int, X), "Unexpected!");
+    // Previously, this assertion failed.  Now accepted.
+
+Fixing this issue also required reworking the fix for EDGcpfe/9680, which
+deals with accessibility checks in default arguments (see the entry of 4/2/09).
+
+
 1/19/15  [EDGcpfe/15706]
 Do not emit vtable as a result of explicitly instantiated decider function
 

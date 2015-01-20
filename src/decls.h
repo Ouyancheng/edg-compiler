@@ -1077,6 +1077,11 @@ typedef struct a_decl_parse_state {
 			/* A list of entries describing "auto" type specifiers
 			   encountered while prescanning a function declarator
 			   (for a C++14 generic lambda). */
+  a_routine_fixup_ptr
+		routine_fixup;
+			/* A routine fixup entry for a non-member, non-template
+			   function declaration.  Used for delayed default
+			   argument processing. */
   a_decl_parse_state_ptr
 		next;
 			/* For dynamically allocated state entries that have

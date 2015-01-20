@@ -3079,6 +3079,7 @@ an error if a default argument expression is encountered.
           a_boolean		cache_default_arg;
           a_boolean		ignore_default_arg_expr;
           a_boolean		invalid_default_arg = FALSE;
+          a_boolean             nontemplate_function_outside_of_class = FALSE;
           a_param_type_ptr	ptp_for_scan;
           if (!default_arg_allowed_on_curr_param) {
             /* Argument expressions is not allowed.  Issue an error, but go
@@ -3174,6 +3175,15 @@ an error if a default argument expression is encountered.
                   ignore_disallowed_default_arg = TRUE;
                 }  /* if */
               }  /* if */
+            } else if (is_top_level_declarator &&
+                       state->function_definition_allowed &&
+                       !microsoft_mode) {
+              /* Even for a non-template function appearing outside of a class
+                 definition we have to cache the default argument until we
+                 know which function is being declared, because only then can
+                 we be certain that we correctly establish friendship. */
+              cache_default_arg = TRUE;
+              nontemplate_function_outside_of_class = TRUE;
             }  /* if */
           }  /* if */
           if (curr_token == tok_comma || curr_token == tok_rparen ||
@@ -3184,41 +3194,44 @@ an error if a default argument expression is encountered.
                that can begin a default argument. */
             invalid_default_arg = TRUE;
           }  /* if */
-          /* A NULL param type pointer is used as a signal to the caching
-             and scanning routines that the default argument should be
-             ignored. */
+          /* A NULL param type pointer is used as a signal to the caching and
+             scanning routines that the default argument should be ignored. */
           ptp_for_scan = ignore_default_arg_expr ? NULL : ptp;
           if (cache_default_arg) {
-            /* The default argument should be cached because it is either
-               in a member function declaration inside a class or in
-               a function template declaration.  The defaults arguments
-               for member function are cached at this point and only
-               scanned once the entire class has been defined.
-               This is because forward references may legally appear in the
-               default argument expression.  Function templates whose arguments
-               involve template parameters are cached here and scanned
-               when an instance of the function template is created. */
-            if (invalid_default_arg && is_member_or_friend_function &&
-                scope_stack[depth_scope_stack].in_prototype_instantiation) {
-              /* During a prototype instantiation default arguments are
-                 cached, but not rescanned.  Issue the syntax error here. */
-              pos_error(ec_exp_primary_expr, &pos_curr_token);
-            }  /* if */
+            /* The default argument should be cached.  There are three cases:
+                 (1) function templates: Their default arguments aren't
+                     scanned until the template is actually used.
+                 (2) member function and friend declarations in classes: The
+                     default argument should be scanned when the enclosing
+                     class(es) are completed.
+                 (3) functions and member functions declared outside any class
+                     definition: The default argument can be scanned as soon as
+                     the function/member function is known. */
             if (is_member_or_friend_function) {
-              /* Scan the default arguments for a member or friend
-                 function. */
+              /* Cache a default argument for a member or friend function. */
+              if (invalid_default_arg &&
+                  scope_stack[depth_scope_stack].in_prototype_instantiation) {
+                /* During a prototype instantiation default arguments are
+                   cached, but not rescanned.  Issue the syntax error here. */
+                pos_error(ec_exp_primary_expr, &pos_curr_token);
+              }  /* if */
               prescan_member_function_default_arg_expr(ptp_for_scan,
 						       is_friend_decl,
                                                        param_number);
+            } else if (nontemplate_function_outside_of_class) {
+              /* Cache a default argument for an ordinary function or member
+                 function declared outside any class definition. */
+              prescan_function_default_arg_expr(state, func_info,
+                                                ptp_for_scan);
             } else {
-              /* Scan the default arguments for a function template. */
+              /* Cache a default argument for a function template. */
               prescan_function_template_default_arg_expr(ptp_for_scan,
                                                          param_number);
             }  /* if */
           } else {
-            /* Not a case in which the default argument should be
-               cached -- or else a syntax error.  Go ahead and
-               scan the expression and convert it to the required type. */
+            /* Not a case in which the default argument should be cached -- or
+               else a syntax error.  Scan the expression and convert it to the
+               required type. */
             scan_default_arg_expr(ptp_for_scan, is_member_or_friend_function);
           }  /* if */
           if (default_arg_allowed_on_curr_param &&
