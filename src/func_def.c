@@ -296,7 +296,10 @@ indicated routine has just been processed.
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
-    } else if (routine->is_virtual) {
+    } else if (routine->is_virtual && !routine->explicit_instantiation) {
+      /* Other compilers (g++, clang, Microsoft) do not emit vtables
+         if the decider function is explicitly instantiated, so we
+         do likewise. */
       a_routine_ptr decider = vtbl_decider_function_for_class(
                                                             class_type,
                                                             (a_boolean *)NULL);

@@ -1,5 +1,27 @@
 Version 4.11
 
+1/19/15  [EDGcpfe/15706]
+Do not emit vtable as a result of explicitly instantiated decider function
+
+The front end emitted a vtable when a decider function was explicitly
+instantiated.  Other compilers (g++, clang, Microsoft) don't do this,
+so now we no longer do.  In the example below, A<long long>::f is not
+instantiated (interestingly, Microsoft instantiates that function even
+though they do not emit a vtable or code for the function).
+
+  template<typename T> struct A {
+    virtual ~A() {}
+    virtual void f();
+    virtual void g();
+  };
+  template<typename T> inline void A<T>::f() {
+     T t;
+     some_undefined_function(t);  // cause error if instantiated
+  }
+  template <typename T> void A<T>::g() { }
+  template void A<long long>::g();
+
+
 1/16/15  [EDGcpfe/15894]
 C++-generating back end and generic lambdas
 
