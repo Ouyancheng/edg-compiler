@@ -3081,9 +3081,9 @@ a ck_aggregate constant.
     aggr_init_array(p_icp, &etype, is, diag_pos, init_con);
   } else if (is_aggregate_type(base_etype)) {
     /* Aggregate class (since the array case was already tested for). */
+#if DO_IL_LOWERING
     a_class_symbol_supplement_ptr  cssp;
     cssp = class_symbol_supp(symbol_for(base_etype));
-#if DO_IL_LOWERING
     if (is_braced_init_component(icp) && icp->variant.braced.list == NULL &&
         cssp->has_nontrivial_default_constructor && list_init_enabled) {
       /* An aggregate class with a nontrivial default constructor and
