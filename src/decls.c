@@ -5074,8 +5074,8 @@ static void check_default_arg_compatibility(a_type_ptr  orig_type,
 /*
 Given an existing routine type (orig_type) and the type based on a new
 declaration (new_type), compare the default argument expressions on a
-parameter-by-parameter basis and report any errors (see ARM 8.2.6).  The
-merging of the default arguments occurs in composite_type.
+parameter-by-parameter basis and report any errors.  The merging of the
+default arguments occurs in composite_type.
 is_function_template is TRUE if the associated routine is a function
 template (but not a member function of a class template).
 */
@@ -5104,18 +5104,26 @@ template (but not a member function of a class template).
     }  /* if */
   }  /* for */
   if (redecl_error) {
-    an_error_severity	severity = es_error;
-    if (((gpp_mode && is_function_template) ||
-         (microsoft_mode && microsoft_version >= 1300 &&
-          !is_function_template))  &&
-        scope_stack[depth_scope_stack].kind ==
+    if (is_function_template) {
+      /* Issue a diagnostic now, because may not re-examine the default
+         argument. */
+      an_error_severity	severity = es_error;
+      if (((gpp_mode && is_function_template) ||
+           (microsoft_mode && microsoft_version >= 1300 &&
+            !is_function_template))  &&
+          scope_stack[depth_scope_stack].kind ==
 				      (a_scope_kind)sck_template_declaration) {
-      /* g++ ignores redeclared default arguments in function template
-         declarations.  Microsoft (versions 1300 and above) ignore redeclared
-         default arguments in member functions of class templates. */
-      severity = es_warning;
+        /* g++ ignores redeclared default arguments in function template
+           declarations.  Microsoft (versions 1300 and above) ignore redeclared
+           default arguments in member functions of class templates. */
+        severity = es_warning;
+      }  /* if */
+      diagnostic(severity, ec_default_arg_already_defined);
+    } else {
+      /* We will issue a more precise error when scanning the default
+         argument. */
+      expect_error();
     }  /* if */
-    diagnostic(severity, ec_default_arg_already_defined);
   }  /* if */
   if (not_at_end_of_list_error) {
     error(ec_default_arg_not_at_end);
