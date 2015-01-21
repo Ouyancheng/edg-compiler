@@ -95,9 +95,11 @@ extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
 
-void prescan_function_default_arg_expr(a_decl_parse_state  *dps,
-                                       a_func_info_block   *func_info,
-                                       a_param_type_ptr    ptp);
+extern void copy_func_info_to_fixup(a_decl_parse_state  *dps,
+                                    a_func_info_block   *func_info);
+
+extern void prescan_function_default_arg_expr(a_decl_parse_state  *dps,
+                                              a_param_type_ptr    ptp);
 
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,

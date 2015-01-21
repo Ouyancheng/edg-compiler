@@ -15693,6 +15693,13 @@ proceed after the call.
                 linkage = idl_none;
   a_boolean     has_initializer = FALSE;
 
+  if (state->routine_fixup != NULL) {
+    /* The fixup was created while scanning the parameters and at that time
+       the func_info information was incomplete.  Now that it is complete,
+       copy that information so that it will be available when scanning
+       default arguments later on. */
+    copy_func_info_to_fixup(state, func_info);
+  }  /* if */
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
     a_boolean  defaulted;

@@ -3221,8 +3221,7 @@ an error if a default argument expression is encountered.
             } else if (nontemplate_function_outside_of_class) {
               /* Cache a default argument for an ordinary function or member
                  function declared outside any class definition. */
-              prescan_function_default_arg_expr(state, func_info,
-                                                ptp_for_scan);
+              prescan_function_default_arg_expr(state, ptp_for_scan);
             } else {
               /* Cache a default argument for a function template. */
               prescan_function_template_default_arg_expr(ptp_for_scan,

@@ -323,6 +323,16 @@ NULL is returned.
 }  /* corresponding_param_type */
 
 
+void copy_func_info_to_fixup(a_decl_parse_state  *dps,
+                             a_func_info_block   *func_info)
+/*
+Copy *func_info to dps->routine_fixup->func_info.
+*/
+{
+  dps->routine_fixup->func_info = *func_info;
+}  /* copy_func_info_to_fixup */
+
+
 static void scan_cached_default_args(a_decl_parse_state  *dps)
 /*
 dps->routine_fixup is non-NULL, presumably because dps->sym represents an
@@ -331,13 +341,15 @@ arguments.  Scan those default arguments in the context of dps->sym and free
 the entry pointed to by dps->routine_fixup.
 */
 {
-  a_symbol_ptr  sym = dps->sym;
+  a_symbol_ptr         sym = dps->sym;
+  a_routine_fixup_ptr  rfp = dps->routine_fixup;
 
-  check_assertion(dps->routine_fixup != NULL);
+  check_assertion(rfp != NULL);
   if (sym != NULL && is_simple_function_symbol(sym)) {
-    a_routine_ptr  rp = sym->variant.routine.ptr;
+    a_routine_ptr      rp = sym->variant.routine.ptr;
     a_def_arg_expr_fixup_ptr
-                   daefp = dps->routine_fixup->def_arg_expr_fixup_list;
+                       daefp = rfp->def_arg_expr_fixup_list;
+    a_func_info_block  *func_info = &rfp->func_info;
     if (sym->is_class_member) {
       push_class_and_template_reactivation_scope(
                 sym_parent_class(sym), dps->is_explicit_instantiation,
@@ -345,8 +357,7 @@ the entry pointed to by dps->routine_fixup.
     }  /* if */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rp);
-    (void)push_scope((a_scope_kind)sck_func_prototype,
-                     dps->routine_fixup->func_info.scope_number,
+    (void)push_scope((a_scope_kind)sck_func_prototype, func_info->scope_number,
                      underlying_function_type(dps->sym), (a_routine_ptr)NULL);
     for (; daefp != NULL; daefp = daefp->next) {
       a_param_type_ptr  ptp = daefp->param_type;
@@ -359,6 +370,14 @@ the entry pointed to by dps->routine_fixup.
       rescan_cached_tokens(&daefp->cache.tokens);
       delayed_scan_of_default_arg_expr(ptp, dps->sym,
                                        /*check_for_errors=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (rp->type != func_info->declared_type) {
+        a_param_type_ptr  declared_ptp =
+                      corresponding_param_type(func_info->declared_type, ptp);
+        declared_ptp->default_arg_expr =
+                            duplicate_default_arg_expr(ptp->default_arg_expr);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* for */
     pop_scope();
     pop_scope();
@@ -368,30 +387,30 @@ the entry pointed to by dps->routine_fixup.
   } else {
     expect_error();
   }  /* if */
-  free_routine_fixup(dps->routine_fixup);
+  free_routine_fixup(rfp);
   dps->routine_fixup = NULL;
 }  /* scan_cached_default_args */
 
 
 void prescan_function_default_arg_expr(a_decl_parse_state  *dps,
-                                       a_func_info_block   *func_info,
                                        a_param_type_ptr    ptp)
 /*
 Cache a default argument for an ordinary (i.e., not a template) function or
 member function declared outside a class definition and record an end-of-parse
 action to scan the cached tokens when the declaration is complete.
 
-*dps and *func_info keep track of the declaration of the function or member
-function (that declaration is not completed yet), and ptp represents the
-parameter associated with the default argument.  ptp->has_default_arg is set
-to TRUE at this time.
+*dps keep track of the declaration of the function or member function (that
+declaration is not completed yet), and ptp represents the parameter associated
+with the default argument.  ptp->has_default_arg is set to TRUE at this time.
 */
 {
   if (dps->routine_fixup == NULL) {
     /* This is the first default argument for this declaration: Allocate the
        associated routine fixup entry. */
     dps->routine_fixup = alloc_routine_fixup((a_type_ptr)NULL);
-    dps->routine_fixup->func_info = *func_info;
+    /* dps->routine_fixup->func_info must be updated later. */
+    /* Record an end-of-parse action to parse the default argument cached
+       below, and any others that might be associated with this fixup entry. */
     add_end_of_parse_action(scan_cached_default_args, dps,
                             /*secondary_decls=*/FALSE);
   }  /* if */
