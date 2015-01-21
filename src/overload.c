@@ -16995,8 +16995,12 @@ error.  conv_context describes the context of the conversion.
       } else if (expr_access_checking_should_be_done() &&
                  candidate_functions->function_symbol != NULL &&
                  !have_access_to_symbol(
-                                      candidate_functions->function_symbol)) {
-        /* The needed conversion function/constructor is not accessible. */
+                                      candidate_functions->function_symbol) &&
+                 !expr_error_should_be_issued()) {
+        /* The needed conversion function/constructor is not accessible.
+           If we are in a context where diagnostics should not be issued (e.g.,
+           SFINAE), consider this a non-match.  Otherwise, we'll consider it a
+           match because it will lead to a more helpful diagnostic. */
       } else {
         /* Exactly one constructor or conversion function matches best. */
         okay = TRUE;
