@@ -3240,7 +3240,8 @@ FALSE and *temp_var set to NULL.
 a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr)
 /*
 Change the indicated rvalue expression into an assignment of the expression
-to a temporary, and return a pointer to the temporary.
+to a temporary, and return a pointer to the temporary.  It is up to the caller
+to ensure that the (revised) expr is executed.
 */
 {
   an_expr_node_ptr expr_copy, temp_node;

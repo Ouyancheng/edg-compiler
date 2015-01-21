@@ -3079,7 +3079,7 @@ default mode (e.g., exception handling).
     generic_lambdas_enabled = TRUE;
     generic_lambdas_can_implicitly_capture = TRUE;
     init_capture_enabled = TRUE;
-    if (field_initializers_enabled) {
+    if (field_initializers_enabled && list_init_enabled) {
       aggregate_classes_can_have_field_initializers = TRUE;
     }  /* if */
     binary_literals_allowed = TRUE;
