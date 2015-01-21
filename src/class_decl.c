@@ -359,6 +359,7 @@ the entry pointed to by dps->routine_fixup.
                      (a_type_ptr)NULL, rp);
     (void)push_scope((a_scope_kind)sck_func_prototype, func_info->scope_number,
                      underlying_function_type(dps->sym), (a_routine_ptr)NULL);
+    reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
     for (; daefp != NULL; daefp = daefp->next) {
       a_param_type_ptr  ptp = daefp->param_type;
       if (dps->prev_type != NULL) {
