@@ -1,35 +1,5 @@
 Version 4.11
 
-1/21/15  [EDGcpfe/15900]
-Lowering of repeated dynamic initializations of aggregate types
-
-Lowering of repeated dynamic initializations of aggregate types in C++14 mode
-had caused assertion failures (in lower_param_ref), or the generation of
-incorrect code in some cases.  In cases where an aggregate class with a
-nontrivial default constructor is initialized with a pair of empty braces, and
-DO_IL_LOWERING is TRUE, a constructor call is now generated (as in C++11 mode).
-This change was made because a ck_init_repeat operating on a ck_aggregate which
-contains ck_dynamic_inits had required lowering to generate a loop (which is
-legal in statement contexts, but not when the dynamic initialization occurs in
-an expression context -- lowering can only generate IL that represents the C
-language).  Lowering could instead call a function and add the loop in the
-generated function, but that function is essentially the constructor so the
-generated code would be similar.  The following example had failed an assertion
-check (with --c++14):
-
-  struct A {
-    struct B {
-      int x = 37;
-      int y = f();
-      int f() {return x;}
-    };
-    B b {};
-  };
-  void f() {
-    A a[2]{};
-  }
-
-
 1/20/15  [EDGcpfe/14602]
 Accessibility of constructors and conversion functions
 

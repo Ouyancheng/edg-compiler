@@ -1634,14 +1634,22 @@ initialization (when ipdp->array_element_sequence is TRUE).
     /* Don't bother to create an assignment from an array with zero elements.
        These come up in cases like "new int[0]{};". */
   } else if (ipdp->array_element_sequence) {
-    /* We're assigning a constant value to an entire array or some portion
-       thereof. */
-    check_assertion(dip == NULL ||
-                    dip->kind == (a_dynamic_init_kind)dik_constant);
-    /* Use (or create) the temporary variable associated with this constant. */
-    init_val_node = add_address_of_to_node(var_lvalue_expr(
+    /* We're assigning a value to an entire array or some portion thereof. */
+    if (dip == NULL || dip->kind == (a_dynamic_init_kind)dik_constant) {
+      /* Use (or create) the temporary variable associated with this
+         constant. */
+      init_val_node = add_address_of_to_node(var_lvalue_expr(
                                                  assoc_var_for_constant(con,
                                                        /*const_okay=*/FALSE)));
+    } else {
+      /* Create a temporary for this expression and pass a pointer to it
+         to the helper routine. */
+      a_variable_ptr temp_var;
+      check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression &&
+                      init_val_node != NULL);
+      temp_var = assign_expr_to_temp(init_val_node);
+      init_val_node = add_address_of_to_node(var_lvalue_expr(temp_var));
+    }  /* if */
     if (ipdp->array_element_count == 0) {
       num_elem_node = num_elem_node_if_array(ipdp);
     }  /* if */

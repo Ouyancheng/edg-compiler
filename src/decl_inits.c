@@ -3049,7 +3049,6 @@ a ck_aggregate constant.
 {
   an_init_component_ptr  icp = *p_icp;
   a_boolean              pack_expansion = FALSE;
-  a_type_ptr             base_etype;
   a_type_kind            etype_kind;
   a_boolean              saved_non_top_level_aggregate
                                                  = is->non_top_level_aggregate;
@@ -3061,7 +3060,6 @@ a ck_aggregate constant.
     /* If this component is a pack expansion, don't attempt to match up types
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
-    base_etype = etype;
     pack_expansion = is->pack_expansion_handled = TRUE;
   } else if (gpp_mode && is_prototype_instantiation_context() &&
              is_class_struct_union_type(etype)) {
@@ -3069,47 +3067,18 @@ a ck_aggregate constant.
        template definitions, even if the type is fully known (i.e.,
        nondependent). */
     etype = type_of_unknown_templ_param_nontype;
-    base_etype = etype;
-  } else {
-    base_etype = skip_typerefs(etype);
   }  /* if */
-  etype_kind = base_etype->kind;
+  etype_kind = skip_typerefs(etype)->kind;
   if (etype_kind == (a_type_kind)tk_array) {
     /* Array. */
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_array(p_icp, &etype, is, diag_pos, init_con);
-  } else if (is_aggregate_type(base_etype)) {
+  } else if (is_aggregate_type(etype)) {
     /* Aggregate class (since the array case was already tested for). */
-#if DO_IL_LOWERING
-    a_class_symbol_supplement_ptr  cssp;
-    cssp = class_symbol_supp(symbol_for(base_etype));
-    if (is_braced_init_component(icp) && icp->variant.braced.list == NULL &&
-        cssp->has_nontrivial_default_constructor && list_init_enabled) {
-      /* An aggregate class with a nontrivial default constructor and
-         initialized with a pair of empty braces.  We could generate an
-         ordinary aggregate initializer for this case, but in cases where the
-         resulting constant appears under a ck_init_repeat this presents
-         lowering problems because it may require us to embed a loop in an
-         expression, and there is no standard C construct that implements that
-         (lowering could move the loop into a function, but we may as well use
-         use the constructor in that case).  To force the generation of a
-         constructor call, we temporarily mark the class as a non-aggregate.
-         The ck_init_repeat case only occurs for the default initialization of
-         array elements and that default initialization produces an empty
-         ick_braced initializer component only when list_init_enabled is TRUE
-         (see default_nontrivial_init_constant_for_aggr_member). */
-      cssp->is_class_aggregate = FALSE;
-      aggr_init_simple_element(p_icp, etype, is, init_con);
-      cssp->is_class_aggregate = TRUE;
-    } else
-#endif /* DO_IL_LOWERING */
-    /* Do not insert code here. */
-    {
-      is->non_top_level_aggregate = TRUE;
-      is->arg_match = NULL;
-      aggr_init_class(p_icp, etype, is, diag_pos, init_con);
-    }  /* if */
+    is->non_top_level_aggregate = TRUE;
+    is->arg_match = NULL;
+    aggr_init_class(p_icp, etype, is, diag_pos, init_con);
   } else if (is_template_param_or_nonreal_class_type(etype) ||
              etype_kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
