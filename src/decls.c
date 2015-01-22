@@ -5104,26 +5104,19 @@ template (but not a member function of a class template).
     }  /* if */
   }  /* for */
   if (redecl_error) {
-    if (is_function_template) {
-      /* Issue a diagnostic now, because may not re-examine the default
-         argument. */
-      an_error_severity	severity = es_error;
-      if (((gpp_mode && is_function_template) ||
-           (microsoft_mode && microsoft_version >= 1300 &&
-            !is_function_template))  &&
-          scope_stack[depth_scope_stack].kind ==
-				      (a_scope_kind)sck_template_declaration) {
-        /* g++ ignores redeclared default arguments in function template
-           declarations.  Microsoft (versions 1300 and above) ignore redeclared
-           default arguments in member functions of class templates. */
-        severity = es_warning;
-      }  /* if */
-      diagnostic(severity, ec_default_arg_already_defined);
-    } else {
-      /* We will issue a more precise error when scanning the default
-         argument. */
-      expect_error();
+    /* Issue a diagnostic now, because may not re-examine the default
+       argument. */
+    an_error_severity	severity = es_error;
+    if (((gpp_mode && is_function_template) ||
+         (microsoft_mode && microsoft_version >= 1300 &&
+          !is_function_template))  &&
+        scope_is(&scope_stack_top(), sck_template_declaration)) {
+      /* g++ ignores redeclared default arguments in function template
+         declarations.  Microsoft (versions 1300 and above) ignore redeclared
+         default arguments in member functions of class templates. */
+      severity = es_warning;
     }  /* if */
+    diagnostic(severity, ec_default_arg_already_defined);
   }  /* if */
   if (not_at_end_of_list_error) {
     error(ec_default_arg_not_at_end);
@@ -5223,9 +5216,11 @@ a copy of the previous type).
     /* We cannot be required to preserve the types from both sources. */
     check_assertion_str(!preserve_rout_type || !preserve_type_ptr,
                         "reconcile_routine_types: can't preserve both types");
-    if (C_dialect == C_dialect_cplusplus) {
+    if (!C_mode() && dps->routine_fixup == NULL) {
       /* If there are default arguments associated with the parameters, check
-         them at this time.  They will be merged in composite_type. */
+         them at this time, unless we have recorded a fixup entry to deal with
+         default arguments at the end of the declaration.  They will be merged
+         in composite_type. */
       check_default_arg_compatibility(type_ptr, rout_type,
                                       routine_ptr->template_arg_list != NULL);
     }  /* if */
@@ -8539,7 +8534,6 @@ for use in generating cross-reference output describing this declaration.
     if (C_dialect == C_dialect_cplusplus) {
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
-      check_default_args(type_ptr);
       if (is_friend_decl && !friend_function_injection_enabled) {
         set_invisible = TRUE;
       }  /* if */
