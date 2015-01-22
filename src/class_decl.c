@@ -395,7 +395,6 @@ the entry pointed to by dps->routine_fixup.
           break;
         }  /* if */
       }  /* for */
-      vsym->is_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (rp->type != func_info->declared_type) {
         a_param_type_ptr  declared_ptp =
