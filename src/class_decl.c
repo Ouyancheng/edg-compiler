@@ -351,6 +351,7 @@ the entry pointed to by dps->routine_fixup.
                        daefp = rfp->def_arg_expr_fixup_list;
     a_func_info_block  *func_info = &rfp->func_info;
     a_boolean          saved_is_invisible = sym->is_invisible;
+    a_symbol_ptr       psym = func_info->prototype_scope_symbols, vsym = NULL;
     if (sym->is_class_member) {
       push_class_and_template_reactivation_scope(
                 sym_parent_class(sym), dps->is_explicit_instantiation,
@@ -365,6 +366,16 @@ the entry pointed to by dps->routine_fixup.
                      (a_type_ptr)NULL, rp);
     (void)push_scope((a_scope_kind)sck_func_prototype, func_info->scope_number,
                      underlying_function_type(dps->sym), (a_routine_ptr)NULL);
+    /* Reactivate prototype scope symbols, but keep parameters that still have
+       unparsed default arguments invisible (except for the first, which we're
+       about to parse). */
+    for (; psym != NULL; psym = psym->next_in_scope) {
+      if (symbol_is(psym, sk_parameter) &&
+          psym->variant.param_id->param_num > daefp->param_type->param_num) {
+        psym->is_invisible = TRUE;
+        if (vsym == NULL) vsym = psym;
+      }  /* if */
+    }  /* for */
     reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
     for (; daefp != NULL; daefp = daefp->next) {
       a_param_type_ptr  ptp = daefp->param_type;
@@ -377,6 +388,14 @@ the entry pointed to by dps->routine_fixup.
       rescan_cached_tokens(&daefp->cache.tokens);
       delayed_scan_of_default_arg_expr(ptp, dps->sym,
                                        /*check_for_errors=*/TRUE);
+      /* Restore the visibility of the next parameter symbol. */
+      for (; vsym != NULL; vsym = vsym->next_in_scope) {
+        if (symbol_is(vsym, sk_parameter)) {
+          vsym->is_invisible = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+      vsym->is_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (rp->type != func_info->declared_type) {
         a_param_type_ptr  declared_ptp =
@@ -385,6 +404,13 @@ the entry pointed to by dps->routine_fixup.
                             duplicate_default_arg_expr(ptp->default_arg_expr);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* for */
+    /* If there are any more parameter symbols, restore their visibility
+       too. */
+    for (; vsym != NULL; vsym = vsym->next_in_scope) {
+      if (symbol_is(vsym, sk_parameter)) {
+        vsym->is_invisible = FALSE;
+      }  /* if */
     }  /* for */
     pop_scope();
     pop_scope();
