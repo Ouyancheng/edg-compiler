@@ -5694,6 +5694,31 @@ structure of #line directives, where the actual input file does not change.
 }  /* push_cloned_input_stack_entry */
 
 
+static a_source_file_ptr find_parent_file_of(a_source_file_ptr root,
+                                             a_source_file_ptr child)
+/*
+Recursively scan the tree of source files rooted in root looking for a file
+whose last child is child.  Return a pointer to that file if found or NULL
+if it cannot be found.
+*/
+{
+  a_source_file_ptr result = NULL;
+
+  if (root->last_child_file == child) {
+    /* This is the parent. */
+    result = root;
+  } else {
+    /* Check this file's children. */
+    a_source_file_ptr sfp;
+    for (sfp = root->first_child_file; result == NULL && sfp != NULL;
+         sfp = sfp->next) {
+      result = find_parent_file_of(sfp, child);
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* if */
+
+
 a_source_file_ptr clone_current_input_file(a_seq_number  seq_number,
                                            a_line_number line_number)
 /*
@@ -5715,14 +5740,22 @@ directive.
   new_file->first_line_number = line_number;
   new_file->first_child_file = NULL;
   new_file->last_child_file = NULL;
-  old_file->next = new_file;
   /* Link the clone as the sibling to the current file. */
-  if (depth_input_stack > 0) {
-    parent = (curr_ise - 1)->assoc_il_file;
-  } else {
-    parent = il_header.primary_source_file;
-  }  /* if */
-  if (parent->last_child_file == old_file) {
+  old_file->next = new_file;
+  if (new_file->next == NULL) {
+    /* Need to find the parent and update its last_child_file. */
+    if (depth_input_stack > 0) {
+      parent = (curr_ise - 1)->assoc_il_file;
+    } else {
+      parent = il_header.primary_source_file;
+    }  /* if */
+    if (parent->last_child_file != old_file) {
+      /* Need to search the tree for the parent.  This should only happen
+         with malformed preprocessor output where the #line directives do
+         not actually reflect a tree resulting from #include directives. */
+      parent = find_parent_file_of(il_header.primary_source_file, old_file);
+      check_assertion(parent != NULL);
+    }  /* if */
     parent->last_child_file = new_file;
   }  /* if */
   curr_ise->assoc_il_file = new_file;
