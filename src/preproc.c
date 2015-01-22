@@ -1984,7 +1984,7 @@ and may have extra operands at the end).
        push; just indicate the start of a new range of line numbers. */
     suppress_pop = TRUE;
     suppress_push = TRUE;
-    record_resumption_of_source_file(curr_ise->assoc_il_file,
+    record_resumption_of_source_file((a_source_file_ptr)NULL,
                                      seq_number_last_read + 1, temp_line);
   }  /* if */
   /* If we are leaving an already-active #line file, record the end of its
@@ -2011,7 +2011,7 @@ and may have extra operands at the end).
     if (cpp_output_form && strcmp(curr_ise->file_name, temp_file) == 0) {
       /* We found the file to which this directive applies, so record the
          fact that the succeeding text belongs to it. */
-      record_resumption_of_source_file(curr_ise->assoc_il_file,
+      record_resumption_of_source_file((a_source_file_ptr)NULL,
                                        seq_number_last_read + 1, temp_line);
     } else {
       /* We're not continuing an existing file, so push a new file for the

@@ -3415,8 +3415,27 @@ void record_resumption_of_source_file(a_source_file_ptr	curr_file,
 /*
 Indicate that we are resuming the processing of curr_file at the sequence
 number specified by seq_number and line number specified by line_number.
+If curr_file is NULL, we are processing a #line directive that changes the
+line number in the file designated by curr_ise->assoc_il_file, which
+requires that we end that file and start a new one to reflect the jump in
+line numbers before recording the resumption.
 */
 {
+  if (curr_file == NULL) {
+    /* We are resuming the current source file at a different line number,
+       so we need to end the current source file, clone it, update
+       curr_ise to point to the clone, and update the clone to reflect the
+       new starting line number. */
+    curr_file = alloc_source_file();
+    *curr_file = *curr_ise->assoc_il_file;
+    curr_file->first_seq_number = seq_number;
+    curr_file->first_line_number = line_number;
+    curr_file->first_child_file = NULL;
+    curr_file->last_child_file = NULL;
+    curr_ise->assoc_il_file->next = curr_file;
+    record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
+    curr_ise->assoc_il_file = curr_file;
+  }  /* if */
   add_seq_number_lookup_entry(curr_file, seq_number, line_number);
 }  /* record_resumption_of_source_file */
 

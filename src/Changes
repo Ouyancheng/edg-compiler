@@ -1,5 +1,22 @@
 Version 4.11
 
+1/21/15  [EDGcpfe/15925]
+Line numbers in file tree structure reconstructed from #line directives
+
+The changes in version 4.10 for EDGcpfe/15187 resulted in a tree of
+a_source_file entries that corresponds to the pattern of inclusions
+implicit in the #line directives produced by preprocessing the original
+source and header files.  However, that tree structure was not suitable for
+associating sequence numbers with the line numbers implied by the #line
+directives.  This was reflected, for example, in the fact that the line
+numbers calculated by find_seq_in_source_files (with the physical_line
+parameter == FALSE) were different from the (correct) ones calculated by
+find_seq_in_lookup_tables.  This has now been addressed by creating a new
+sibling a_source_file entry for each new #line directive that names a given
+file in order to represent the new mapping between sequence numbers and
+line numbers for the subsequent range of lines.
+
+
 1/20/15  [EDGcpfe/14602]
 Accessibility of constructors and conversion functions
 
