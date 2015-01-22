@@ -5013,19 +5013,23 @@ parameter pack.  Issue an error otherwise.
 }  /* check_default_args_for_param_type */
 
 
-static void check_default_args(a_type_ptr  type)
+static void check_default_args(a_decl_parse_state  *dps)
 /*
-Given a routine type based on a current declaration, where there is no prior
-declaration with which to merge it, look for the case in which a parameter
-with a default argument is followed in the parameter list by one without a
-default argument, and report the error.  If a C++/CLI param array is present,
-issue an error if a default argument is encountered at all.
+dps describes the current declaration, where there is no prior declaration
+with which to merge it.  If appropriate, look for the case in which a
+parameter with a default argument is followed in the parameter list by one
+without a default argument, and report the error.  (In many cases, this check
+can be delayed until the default arguments are actually scanned, but with,
+e.g., templates, we do not know if the default arguments will be scanned at
+all.  If a C++/CLI param array is present, issue an error if a default
+argument is encountered at all.
 */
 {
+  a_type_ptr        type = skip_typerefs(dps->type);
   a_param_type_ptr  ptp;
 
   /* Loop through the single list. */
-  ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
+  ptp = type->variant.routine.extra_info->param_type_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && is_cli_param_array_routine_type(type)) {
     a_param_type_ptr  p;
@@ -5042,7 +5046,10 @@ issue an error if a default argument is encountered at all.
     }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  {
+  /* Do not insert code here. */
+  if (dps->routine_fixup == NULL) {
+    /* No fixup is recorded to scan the default arguments later on.  Check the
+       constraint now. */
     check_default_args_for_param_type(ptp, &error_position);
   }  /* if */
 }  /* check_default_args */
@@ -8534,7 +8541,9 @@ for use in generating cross-reference output describing this declaration.
     a_symbol_ptr  symbol_for_overloading = NULL;
     if (C_dialect == C_dialect_cplusplus) {
       /* Be sure the default arguments, if any, are at the end of the
-         parameters list. */
+         parameters list.  Also check some C++/CLI constraints on default
+         arguments. */
+      check_default_args(dps);
       if (is_friend_decl && !friend_function_injection_enabled) {
         set_invisible = TRUE;
       }  /* if */
@@ -9847,7 +9856,7 @@ definition of a member function of a class template.
            namespace scope. */
         report_bad_new_or_delete(locator, dps);
       }  /* if */
-      check_default_args(type_ptr);
+      check_default_args(dps);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
                                     templ_decl_info->parameters,
