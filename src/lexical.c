@@ -5751,16 +5751,23 @@ directive.
     }  /* if */
     if (parent->last_child_file != old_file) {
       a_source_file_ptr sfp;
+      a_boolean         top_level = FALSE;
       /* Need to search the tree for the parent.  This should only happen
          with malformed preprocessor output where the #line directives do
          not actually reflect a tree resulting from #include directives. */
       for (parent = NULL, sfp = il_header.primary_source_file;
-           parent == NULL && sfp != NULL; sfp = sfp->next) {
-        parent = find_parent_file_of(sfp, old_file);
+           parent == NULL && !top_level && sfp != NULL; sfp = sfp->next) {
+        if (old_file == sfp) {
+          top_level = TRUE;
+        } else {
+          parent = find_parent_file_of(sfp, old_file);
+        }  /* if */
       }  /* for */
-      check_assertion(parent != NULL);
+      check_assertion(parent != NULL || top_level);
     }  /* if */
-    parent->last_child_file = new_file;
+    if (parent != NULL) {
+      parent->last_child_file = new_file;
+    }  /* if */
   }  /* if */
   curr_ise->assoc_il_file = new_file;
   return new_file;
