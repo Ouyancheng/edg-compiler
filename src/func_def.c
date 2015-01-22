@@ -296,10 +296,15 @@ indicated routine has just been processed.
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
-    } else if (routine->is_virtual && !routine->explicit_instantiation) {
+    } else if (routine->is_virtual
+#if IA64_ABI
+               && !routine->explicit_instantiation
+#endif /* IA64_ABI */
+                                                  ) {
       /* Other compilers (g++, clang, Microsoft) do not emit vtables
          if the decider function is explicitly instantiated, so we
-         do likewise. */
+         do likewise.  When the cfront ABI is used, we have to emit the
+         vtable because it won't be emitted elsewhere. */
       a_routine_ptr decider = vtbl_decider_function_for_class(
                                                             class_type,
                                                             (a_boolean *)NULL);

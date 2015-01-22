@@ -42,9 +42,11 @@ Do not emit vtable as a result of explicitly instantiated decider function
 
 The front end emitted a vtable when a decider function was explicitly
 instantiated.  Other compilers (g++, clang, Microsoft) don't do this,
-so now we no longer do.  In the example below, A<long long>::f is not
-instantiated (interestingly, Microsoft instantiates that function even
-though they do not emit a vtable or code for the function).
+so now we no longer do when the IA-64 ABI is used (it must be emitted in the
+cfront ABI because the vtable won't be emitted elsewhere).  In the example
+below, A<long long>::f is not instantiated (interestingly, Microsoft
+instantiates that function even though they do not emit a vtable or code
+for the function).
 
   template<typename T> struct A {
     virtual ~A() {}
