@@ -350,10 +350,16 @@ the entry pointed to by dps->routine_fixup.
     a_def_arg_expr_fixup_ptr
                        daefp = rfp->def_arg_expr_fixup_list;
     a_func_info_block  *func_info = &rfp->func_info;
+    a_boolean          saved_is_invisible = sym->is_invisible;
     if (sym->is_class_member) {
       push_class_and_template_reactivation_scope(
                 sym_parent_class(sym), dps->is_explicit_instantiation,
                 /*extend_namespace=*/TRUE);    
+    } else if (dps->first_decl) {
+      /* A declaration is not visible in its own default arguments.  E.g.,
+           int f(int x = f(0));
+         is not valid if f was not previously declared. */
+      sym->is_invisible = TRUE;
     }  /* if */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rp);
@@ -384,6 +390,8 @@ the entry pointed to by dps->routine_fixup.
     pop_scope();
     if (sym->is_class_member) {
       pop_class_reactivation_scope();
+    } else if (dps->first_decl) {
+      sym->is_invisible = saved_is_invisible;
     }  /* if */
   } else {
     expect_error();
