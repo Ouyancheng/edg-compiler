@@ -5694,6 +5694,42 @@ structure of #line directives, where the actual input file does not change.
 }  /* push_cloned_input_stack_entry */
 
 
+a_source_file_ptr clone_current_input_file(a_seq_number  seq_number,
+                                           a_line_number line_number)
+/*
+Clone the current input file, setting the clone's first_seq_number and
+first_line number to seq_number and line_number, respectively; link the
+clone as the original's sibling; update curr_ise to point to the clone; and
+return a pointer to the clone.  This is used for a #line directive to
+create a new sequence/line number mapping for the lines following the
+directive.
+*/
+{
+  a_source_file_ptr new_file = alloc_source_file();
+  a_source_file_ptr old_file = curr_ise->assoc_il_file;
+  a_source_file_ptr parent;
+
+  /* Copy all the data from the cloned input file, updating as necessary. */
+  *new_file = *old_file;
+  new_file->first_seq_number = seq_number;
+  new_file->first_line_number = line_number;
+  new_file->first_child_file = NULL;
+  new_file->last_child_file = NULL;
+  old_file->next = new_file;
+  /* Link the clone as the sibling to the current file. */
+  if (depth_input_stack > 0) {
+    parent = (curr_ise - 1)->assoc_il_file;
+  } else {
+    parent = il_header.primary_source_file;
+  }  /* if */
+  if (parent->last_child_file == old_file) {
+    parent->last_child_file = new_file;
+  }  /* if */
+  curr_ise->assoc_il_file = new_file;
+  return new_file;
+}  /* clone_current_input_file */
+
+
 void pop_input_stack(void)
 /*
 Pop the input stack, and correctly prepare for input from the file

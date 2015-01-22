@@ -2538,6 +2538,9 @@ extern void push_input_stack(
 
 extern void push_cloned_input_stack_entry(void);
 
+extern a_source_file_ptr clone_current_input_file(a_seq_number  seq_number,
+                                                  a_line_number line_number);
+
 extern void pop_input_stack(void);
 
 extern void pop_cloned_input_stack_entry(void);

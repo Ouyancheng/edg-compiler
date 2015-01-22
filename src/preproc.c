@@ -1963,8 +1963,17 @@ and may have extra operands at the end).
           suppress_pop = TRUE;
           push_clone = TRUE;
         } else if (*start_of_curr_token == '2') {
-          /* Resuming the previous file on the stack, do not push it. */
-          suppress_push = TRUE;
+          if (curr_ise->assoc_il_file != curr_ise->assoc_actual_il_file) {
+            /* Resuming the previous file on the stack, do not push it. */
+            suppress_push = TRUE;
+          } else {
+            /* This  appears  to  be  a broken  preprocessed  file  --  the
+               physical  file is  the  top of  the stack,  so  there is  no
+               "previous file" to resume.  Try  to recover by treating this
+               as entering a new file. */
+            suppress_pop = TRUE;
+            push_clone = TRUE;
+          }  /* if */
         } else if (*start_of_curr_token == '3') {
           from_system_include = TRUE;
         }  /* if */

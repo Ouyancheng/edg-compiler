@@ -3423,18 +3423,11 @@ line numbers before recording the resumption.
 {
   if (curr_file == NULL) {
     /* We are resuming the current source file at a different line number,
-       so we need to end the current source file, clone it, update
-       curr_ise to point to the clone, and update the clone to reflect the
-       new starting line number. */
-    curr_file = alloc_source_file();
-    *curr_file = *curr_ise->assoc_il_file;
-    curr_file->first_seq_number = seq_number;
-    curr_file->first_line_number = line_number;
-    curr_file->first_child_file = NULL;
-    curr_file->last_child_file = NULL;
-    curr_ise->assoc_il_file->next = curr_file;
-    record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
-    curr_ise->assoc_il_file = curr_file;
+       so we need to end the current source file and create a new one to
+       represent the new range of line numbers. */
+    a_source_file_ptr old_file = curr_ise->assoc_il_file;
+    curr_file = clone_current_input_file(seq_number, line_number);
+    record_end_of_source_file(old_file, seq_number_last_read);
   }  /* if */
   add_seq_number_lookup_entry(curr_file, seq_number, line_number);
 }  /* record_resumption_of_source_file */
