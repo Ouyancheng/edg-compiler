@@ -3072,15 +3072,15 @@ an error if a default argument expression is encountered.
             any_default_args = FALSE;
           }  /* if */
         } else {
-          a_scope_kind		parent_scope_kind;
+          a_scope_kind      parent_scope_kind;
           a_scope_stack_entry_ptr
-				parent_ssep;
-          a_boolean		is_member_or_friend_function;
-          a_boolean		cache_default_arg;
-          a_boolean		ignore_default_arg_expr;
-          a_boolean		invalid_default_arg = FALSE;
-          a_boolean             nontemplate_function_outside_of_class = FALSE;
-          a_param_type_ptr	ptp_for_scan;
+                            parent_ssep;
+          a_boolean         is_member_or_friend_function;
+          a_boolean         cache_default_arg;
+          a_boolean         ignore_default_arg_expr;
+          a_boolean         invalid_default_arg = FALSE;
+          a_boolean         nontemplate_function_outside_of_class = FALSE;
+          a_param_type_ptr  ptp_for_scan;
           if (!default_arg_allowed_on_curr_param) {
             /* Argument expressions is not allowed.  Issue an error, but go
                ahead and scan the expression. */
@@ -3212,7 +3212,7 @@ an error if a default argument expression is encountered.
               if (invalid_default_arg &&
                   scope_stack[depth_scope_stack].in_prototype_instantiation) {
                 /* During a prototype instantiation default arguments are
-                   cached, but not rescanned.  Issue the syntax error here. */
+                   cached but not rescanned.  Issue the syntax error here. */
                 pos_error(ec_exp_primary_expr, &pos_curr_token);
               }  /* if */
               prescan_member_function_default_arg_expr(ptp_for_scan,

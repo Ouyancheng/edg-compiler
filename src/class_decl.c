@@ -408,7 +408,7 @@ Cache a default argument for an ordinary (i.e., not a template) function or
 member function declared outside a class definition and record an end-of-parse
 action to scan the cached tokens when the declaration is complete.
 
-*dps keep track of the declaration of the function or member function (that
+*dps keeps track of the declaration of the function or member function (that
 declaration is not completed yet), and ptp represents the parameter associated
 with the default argument.  ptp->has_default_arg is set to TRUE at this time.
 */
