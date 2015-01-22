@@ -15450,6 +15450,13 @@ output_functional_notation_cast_arguments:
               /* Skip over the implicit reference node. */
               arg = arg->variant.operation.operands;
             }  /* if */
+            if (is_constant_node(arg) && arg->variant.constant->expr != NULL &&
+                arg->variant.constant->expr->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
+              /* A constexpr constructor for std::initializer_list can
+                 result in a constant at this level. */
+              arg = arg->variant.constant->expr;
+            }  /* if */
             if (arg->kind == (an_expr_node_kind)enk_temp_init) {
               a_dynamic_init_ptr arg_dip = arg->variant.init.dynamic_init;
               if (arg_dip->kind == (a_dynamic_init_kind)dik_expression) {
