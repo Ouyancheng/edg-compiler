@@ -18673,14 +18673,16 @@ cases so we don't do it here.
       check_assertion(is_glvalue_node(node));
       if (gcc_mode && gcc_const_variables_allowed &&
           (curr_expr_kind_is_const() ||
+           expr_stack->is_vla_dimension_expression ||
            (curr_expr_kind_is(ek_sizeof) &&
             expr_stack->favor_constant_result))) {
-        /* gcc allows const variables to be used in constant expressions in
-           some cases.  We allow it but report it as a warning.  gcc allows
-           these cases only with -O1 and above, and only in foldable
-           constant expressions.  The ek_sizeof/favor_constant_result part
-           of the test is to identify the operand of a __builtin_constant_p
-           call. */
+        /* GCC allows const variables to be used in constant expressions in
+           some C-mode cases.  We allow it but report it as a warning.  With
+           -O1 and above GCC allows it in foldable constant expressions.  GCC
+           also does this in array dimension expressions (where otherwise we'd
+           get a VLA type).  The test for ek_sizeof and favor_constant_result
+           is to identify the operand of a __builtin_constant_p call, which is
+           yet another context where GCC permits this in C mode. */
         a_variable_ptr var;
         if (operand_is_lvalue_for_variable(operand, &var) &&
             is_potentially_constant_valued_variable(var) &&
