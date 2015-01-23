@@ -11987,7 +11987,7 @@ from_type to to_type.  This should be called only in C++ mode.
         }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
+  }  /* for */
   db_exit();
 }  /* copy_routine_type_default_args */
 
