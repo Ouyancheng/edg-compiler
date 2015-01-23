@@ -4937,8 +4937,13 @@ class to be defined.
     new_innermost_namespace_scope = definition_depth;
   }  /* if */
   if (is_template) {
-    if (is_real_lambda_instantiation) {
-      /* For a generic lambda, push the closure class. */
+    a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+    if (is_real_lambda_instantiation &&
+        (!scope_is(ssep, sck_class_reactivation) ||
+         ssep->assoc_type != lambda_class)) {
+      /* For a generic lambda, push the closure class.  Don't push it if it
+         is already the current scope, which can happen sometimes as part of
+         the pushing of the instantiation context above. */
       push_class_reactivation_scope(lambda_class,
                                     /*entend_namespace=*/FALSE);
     }  /* if */

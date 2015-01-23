@@ -1,5 +1,23 @@
 Version 4.11
 
+1/23/15  [EDGcpfe/15917]
+Internal error on instantiation of nested generic lambda
+
+An internal error could occur (in scope_depth_for_capture) during the
+instantiation of a nested generic lambda.  Now fixed.
+
+  int main() {
+    auto L = [](auto i) {
+      return [=](auto j) {
+        return [=]() {
+          return i;  // internal error here
+        };
+      };
+    };
+    return L(3)(3)();
+  }
+
+
 1/23/15  [EDGcpfe/15927]
 GNU C compatibility: constant-valued variables in array dimensions
 
