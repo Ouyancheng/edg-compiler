@@ -3175,13 +3175,14 @@ an error if a default argument expression is encountered.
                   ignore_disallowed_default_arg = TRUE;
                 }  /* if */
               }  /* if */
-            } else if (is_top_level_declarator &&
-                       state->function_definition_allowed &&
+            } else if (is_top_level_declarator && !is_typedef_decl &&
+                       !(di_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) &&
                        !microsoft_mode) {
               /* Even for a non-template function appearing outside of a class
                  definition we have to cache the default argument until we
                  know which function is being declared, because only then can
-                 we be certain that we correctly establish friendship. */
+                 we be certain that we correctly establish friendship.
+                 Microsoft compilers, however, don't do this. */
               cache_default_arg = TRUE;
               nontemplate_function_outside_of_class = TRUE;
             }  /* if */
@@ -3228,9 +3229,10 @@ an error if a default argument expression is encountered.
                                                          param_number);
             }  /* if */
           } else {
-            /* Not a case in which the default argument should be cached -- or
-               else a syntax error.  Scan the expression and convert it to the
-               required type. */
+            /* Not a case in which the default argument should be cached (e.g.,
+               because this is a typedef declaration in a mode that allows
+               default arguments in that context) -- or else a syntax error.
+               Scan the expression and convert it to the required type. */
             scan_default_arg_expr(ptp_for_scan, is_member_or_friend_function);
           }  /* if */
           if (default_arg_allowed_on_curr_param &&
