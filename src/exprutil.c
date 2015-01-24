@@ -12446,6 +12446,7 @@ of a subscript operation).
                                                &operand_1->variant.constant) &&
                !op_is_false_constant(operand_1)) {
       /* (1 || nonconstant) produces true in C++11. */
+      discard_operand(operand_2);
       make_integer_constant_operand(result, (a_host_large_integer)1);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
@@ -12456,6 +12457,7 @@ of a subscript operation).
                                                &operand_1->variant.constant) &&
                op_is_false_constant(operand_1)) {
       /* (0 && nonconstant) produces false in C++11. */
+      discard_operand(operand_2);
       make_integer_constant_operand(result, (a_host_large_integer)0);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
