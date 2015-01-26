@@ -3177,7 +3177,7 @@ an error if a default argument expression is encountered.
               }  /* if */
             } else if (is_top_level_declarator && !is_typedef_decl &&
                        !(di_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) &&
-                       !state->is_lambda && !dps->nested_ptr_or_ref_seen &&
+                       !state->is_lambda && !state->nested_ptr_or_ref_seen &&
                        !microsoft_mode) {
               /* Even for a non-template function appearing outside of a class
                  definition we have to cache the default argument until we
