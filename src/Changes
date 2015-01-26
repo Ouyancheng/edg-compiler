@@ -45,7 +45,7 @@ instantiation of a nested generic lambda.  Now fixed.
   }
 
 
-1/23/15  [EDGcpfe/15927]
+1/23/15  [EDGcpfe/10791,EDGcpfe/15927]
 GNU C compatibility: constant-valued variables in array dimensions
 
 Constant-valued variables used in rvalue contexts in array dimensions are now
