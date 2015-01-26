@@ -3177,12 +3177,16 @@ an error if a default argument expression is encountered.
               }  /* if */
             } else if (is_top_level_declarator && !is_typedef_decl &&
                        !(di_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) &&
+                       !state->is_lambda && !dps->nested_ptr_or_ref_seen &&
                        !microsoft_mode) {
               /* Even for a non-template function appearing outside of a class
                  definition we have to cache the default argument until we
                  know which function is being declared, because only then can
                  we be certain that we correctly establish friendship.
-                 Microsoft compilers, however, don't do this. */
+                 Microsoft compilers, however, don't do this.   This doesn't
+                 apply to contexts where abstract declarators may be used
+                 (e.g., type-ids or parameter declarations), to typedef
+                 declarations, or to lambdas. */
               cache_default_arg = TRUE;
               nontemplate_function_outside_of_class = TRUE;
             }  /* if */
