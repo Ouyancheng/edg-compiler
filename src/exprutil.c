@@ -1737,11 +1737,9 @@ is pushed regardless of any of the other factors.
   if (curr_expr_kind_is_const()) {
     /* Constant operations should be folded to constants inside
        constant expressions. */
-    /* Set the flag for pre-C++11 constant expression scanning.  For the
-       ek_template_arg case, the caller may change it further. */
+    /* Set the flag for pre-C++11 constant expression scanning. */
     if (!constexpr_enabled ||
-        curr_expr_kind_is(ek_pp) ||
-        curr_expr_kind_is(ek_template_arg)) {
+        curr_expr_kind_is(ek_pp)) {
       new_entry->traditional_const_expr_required = TRUE;
     }  /* if */
     expr_stack->favor_constant_result = TRUE;
@@ -2937,6 +2935,7 @@ values.
   operand->selector_is_object_pointer = FALSE;
   operand->virtual_function = FALSE;
   operand->is_id_expression = FALSE;
+  operand->is_address_of_id_expression = FALSE;
   operand->is_qualified_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
@@ -5835,6 +5834,8 @@ longer an id-expression.
 */
 {
   operand->is_id_expression = orig_operand->is_id_expression;
+  operand->is_address_of_id_expression =
+                                     orig_operand->is_address_of_id_expression;
   operand->is_name_followed_by_left_paren =
                                   orig_operand->is_name_followed_by_left_paren;
 }  /* restore_operand_id_details */
@@ -6198,6 +6199,7 @@ See conv_to_error_operand for the usual case.
   operand->state = (an_operand_state)os_none;
   operand->is_simple_string_literal = FALSE;
   operand->is_id_expression = FALSE;
+  operand->is_address_of_id_expression = FALSE;
   /* bound_function is not cleared on purpose. */
   operand->selector_is_object_pointer = FALSE;
   operand->is_operand_of_address_of = FALSE;

@@ -9145,6 +9145,7 @@ error indication in *rcblock).
     (void)get_token();
   } else {
     /* Normal case, not the &... extension. */
+    a_boolean  address_of_id_expression;
     if (rcblock == NULL) {
       /* Scan the operand. */
       an_operand  bound_function_selector, *p_bf_selector = NULL;
@@ -9164,7 +9165,7 @@ error indication in *rcblock).
                            &operand);
       }  /* if */
     }  /* if */
-
+    address_of_id_expression = operand.is_id_expression;
     if (err) {
       /* Operator is not allowed in this kind of expression. */
       make_error_operand(result);
@@ -9290,6 +9291,9 @@ error indication in *rcblock).
                                 make_name_reference(&locator_for_curr_id,
                                                     &constant->source_corresp);
         }  /* if */
+      }  /* if */
+      if (address_of_id_expression) {
+        result->is_address_of_id_expression = TRUE;
       }  /* if */
       check_assertion(!result->is_id_expression);
     }  /* if */
@@ -37694,6 +37698,42 @@ memory region).  Do various error checks.
 }  /* prep_nontype_template_argument_initializer */
 
 
+static a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
+                                                          a_constant_ptr  con)
+/*
+Return TRUE if the given constant represents a valid ck_address or
+ck_ptr_to_member template argument that is not an id-expression (optionally
+prefixed with "&").
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_null_pointer_constant(con)) {
+    result = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_address) {
+    /* The standard allows not only "null pointer constants", but, more
+       generally, "null pointer constants" (which can result from casting a
+       null pointer constant to a pointer type).  Microsoft compilers also
+       allow something like "&typeid(X)". */
+    if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      result = con->variant.address.variant.routine == NULL;
+    } else if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+      result = con->variant.address.variant.variable == NULL;
+    } else if (microsoft_mode &&
+               con->variant.address.kind == (an_address_base_kind)abk_typeid) {
+      result = TRUE;
+    }  /* if */
+  } else if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    /* A null-pointer value for a pointer-to-member constant. */
+    result = con->variant.ptr_to_member.is_function_ptr ?
+                            con->variant.ptr_to_member.variant.routine == NULL
+                          : con->variant.ptr_to_member.variant.field == NULL;
+  }  /* if */
+  return result;
+}  /* is_address_of_typeid */
+
+
 static void check_nontype_template_argument_type(an_operand *operand)
 /*
 operand is a nontype template argument expression that has just been scanned.
@@ -37702,29 +37742,31 @@ sure that some cases allowed within template argument expressions don't
 escape at the end of the expression.)
 */
 {
+  a_type_ptr  type = operand->type;
+
   if (gpp_mode && is_floating_type(operand->type) && !is_an_lvalue(operand)) {
     /* g++ allows floating-point constants and operations in template
        arguments.  Make sure the final result is not floating. */
     error_in_operand(expr_not_integral_or_any_enum_code(), operand);
+  } else if (!expr_stack->traditional_const_expr_required &&
+             !is_template_dependent_context()) {
+    a_type_ptr  ftp = skip_typerefs(type);
+    if (ftp->kind == (a_type_kind)tk_pointer ||
+        ftp->kind == (a_type_kind)tk_ptr_to_member) {
+      if (!operand->is_id_expression &&
+          !operand->is_address_of_id_expression &&
+          !(is_constant_operand(operand) &&
+            is_valid_ptr_or_ptr_to_member_templ_arg_constant(
+                                               &operand->variant.constant))) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_invalid_nontype_template_argument,
+                       &operand->position, type);
+          conv_to_error_operand(operand);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* check_nontype_template_argument_type */
-
-
-static void determine_traditional_const_for_template_arg_expression(
-                                                         a_type_ptr param_type)
-/*
-We're about to process a nontype template argument of type param_type.
-If we're in C++11 mode, set the traditional_const_expr_required flag in the
-expression stack appropriately.  param_type can be NULL if it's not known.
-*/
-{
-  check_assertion(curr_expr_kind_is(ek_template_arg));
-  expr_stack->traditional_const_expr_required = TRUE;
-  if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
-      is_integral_or_unscoped_enum_type(param_type)) {
-    expr_stack->traditional_const_expr_required = FALSE;
-  }  /* if */
-}  /* determine_traditional_const_for_template_arg_expression */
 
 
 void scan_template_argument_constant_expression(a_type_ptr param_type,
@@ -37749,7 +37791,6 @@ memory region).  If param_type is NULL, the parameter type is not known.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  determine_traditional_const_for_template_arg_expression(param_type);
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -38986,9 +39027,6 @@ function or template.
                                     (an_expression_kind)ek_sizeof,
                                   rcblock,
                                   &expr_stack_entry);
-  if (nontype_template_arg) {
-    determine_traditional_const_for_template_arg_expression(guide_type);
-  }  /* if */
   rescan_expr_with_substitution_internal(expr, rcblock,
                                          EOPT_NO_OPTIONS,
                                          &result,

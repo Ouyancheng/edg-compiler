@@ -334,6 +334,9 @@ typedef struct an_operand {
   a_bit_field   is_id_expression:1;
 			/* TRUE if this operand was generated from an
 			   id-expression (a qualified or unqualified name). */
+  a_bit_field   is_address_of_id_expression:1;
+			/* TRUE if this operand was generated from an
+			   id-expression prefixed with an ampersand ("&"). */
   a_bit_field	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name. */

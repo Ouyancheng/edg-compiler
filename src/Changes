@@ -1,5 +1,22 @@
 Version 4.11
 
+1/26/15  [EDGcpfe/15782]
+Generalized constant-expressions in non-type template arguments
+
+The front end previously didn't always accept constant-expressions resulting
+from calls to constexpr functions in template arguments, even in cases where
+C++11 permits them.  For example, in C++11 mode:
+
+  struct S {};
+  constexpr int one(S const&) { return 1; }
+  template<int I> void g() {};
+  int main() {
+    g<one(S())>();  // Previously triggered a spurious error.  Now okay.
+  }
+
+This is now fixed.
+
+
 1/23/15  [EDGcpfe/15931]
 Abort on foldable C++11-mode logical operator with destructible operand
 
