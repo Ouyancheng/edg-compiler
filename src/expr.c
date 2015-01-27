@@ -37708,13 +37708,13 @@ prefixed with "&".  The most common valid case are null-pointer-like constants.
 {
   a_boolean  result = FALSE;
 
+  /* The standard allows not only "null pointer constants", but, more
+     generally, "null pointer values" (which can result from casting a null
+     pointer constant to a pointer type).  Microsoft compilers also allow
+     something like "&typeid(X)". */
   if (is_null_pointer_constant(con)) {
     result = TRUE;
   } else if (con->kind == (a_constant_repr_kind)ck_address) {
-    /* The standard allows not only "null pointer constants", but, more
-       generally, "null pointer constants" (which can result from casting a
-       null pointer constant to a pointer type).  Microsoft compilers also
-       allow something like "&typeid(X)". */
     if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
       result = con->variant.address.variant.routine == NULL;
     } else if (con->variant.address.kind ==
