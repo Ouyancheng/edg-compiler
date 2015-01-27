@@ -10316,10 +10316,10 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
   ap = find_attribute((a_byte_attribute_kind)ak_abi_tag, ap);
   check_assertion(ap != NULL);
   for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+    an_abi_tag_string_ptr atsp, prev = NULL;
     check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                     aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
-    an_abi_tag_string_ptr atsp, prev = NULL;
     if (avail_abi_tag_strings != NULL) {
       atsp = avail_abi_tag_strings;
       avail_abi_tag_strings = atsp->next;

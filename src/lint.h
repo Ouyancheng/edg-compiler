@@ -666,6 +666,12 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_pragma_inside_function)*/
 /*lint -esym(769,ec_extended_friends_is_cpp11)*/
 /*lint -esym(769,ec_bad_gnu_stmt_return)*/
+/*lint -esym(769,ec_abi_tag_ignored_in_C_mode)*/
+/*lint -esym(769,ec_abi_tag_redefinition)*/
+/*lint -esym(769,ec_abi_tag_ignored)*/
+/*lint -esym(769,ec_no_abi_tag_on_declaration)*/
+/*lint -esym(769,ec_abi_tag_prev_declaration)*/
+/*lint -esym(769,ec_abi_tag_ignored_on_instantiation)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

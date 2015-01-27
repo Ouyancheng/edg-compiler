@@ -6681,7 +6681,8 @@ requiring an exhaustive search.
                           super_aap->variant.constant->variant.string.length &&
           memcmp(sub_aap->variant.constant->variant.string.value,
                  super_aap->variant.constant->variant.string.value,
-                 sub_aap->variant.constant->variant.string.length) == 0) {
+                 size_t_arg(sub_aap->variant.constant->variant.string.length))
+                                                                        == 0) {
         /* Found this item on both lists; continue to the next item. */
         break;
       }  /* if */
@@ -6789,10 +6790,10 @@ to match GNU's behavior).
       if (entity_kind == iek_routine) {
         ((a_routine_ptr)entity)->has_gnu_abi_tag_attribute = TRUE;
       } else {
-        a_type_ptr class = (a_type_ptr)entity;
+        a_type_ptr class_type = (a_type_ptr)entity;
         check_assertion(entity_kind == iek_type &&
-                        is_immediate_class_type(class));
-        class_type_supp(class)->has_gnu_abi_tag_attribute = TRUE;
+                        is_immediate_class_type(class_type));
+        class_type_supp(class_type)->has_gnu_abi_tag_attribute = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
