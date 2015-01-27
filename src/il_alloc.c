@@ -1492,6 +1492,7 @@ class is available.
   ctsp->ELF_visibility                    =
                                       (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  ctsp->has_gnu_abi_tag_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
   ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
@@ -2690,6 +2691,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_ifunc                    = FALSE;
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
+  rp->has_gnu_abi_tag_attribute   = FALSE;
   rp->allocates_memory            = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

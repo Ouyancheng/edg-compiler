@@ -2309,6 +2309,47 @@ template parameters.
           bad_mangled_name(dctl);
         }  /* if */
       }  /* if */
+    } else if (start_of_id_is("ab", p, dctl)) {
+      /* __abnn<tag>: Mangling for __attribute(abi_tag((tag)).  Multiple
+         "abi_tag" attributes can be specified. */
+      unsigned long count;
+      p = p+2;
+      write_id_str("attribute(abi_tag((\"", dctl);
+      for (;;) {
+        p = get_number(p, &count, dctl);
+        if (count == 0 || p+count > dctl->end_of_name) {
+          bad_mangled_name(dctl);
+          break;
+        }  /* if */
+        while (count--) {
+          write_id_ch(*p++, dctl);
+        }  /* while */
+        write_id_ch('"', dctl);
+        if (start_of_id_is("__ab", p, dctl)) {
+          p = p+4;
+          write_id_str(",\"", dctl);
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
+      write_id_str("))) ", dctl);
+      if (!dctl->err_in_id) {
+        /* This mangling is basically a prefix; what remains is still a name
+           (possibly with special names that are checked for above); recurse
+           to handle that case. */
+        if (nchars != 0) {
+          if (nchars > (p - ptr)) {
+            nchars -= (p - ptr);
+          } else {
+            bad_mangled_name(dctl);
+          }  /* if */
+        }  /* if */
+        end_ptr = demangle_name(p, nchars, stop_on_underscores, nchars_left,
+                                mclass, temp_par_info, instance_emitted, dctl);
+      } else {
+        end_ptr = p;
+      }  /* if */
+      goto end_of_routine;
     } else {
       /* Something unrecognized. */
     }  /* if */
@@ -2432,6 +2473,7 @@ template parameters.
   } else {
     bad_mangled_name(dctl);
   }  /* if */
+end_of_routine:
   if (prev_end != NULL) dctl->end_of_name = prev_end;
   return end_ptr;
 }  /* demangle_name */
@@ -5944,6 +5986,52 @@ position following what was demangled.
 }  /* demangle_unnamed_type */
 
 
+static a_const_char *demangle_abi_tag_attribute(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
+/*
+GNU uses a 'B' suffix (ostensibly to <source-name>, but it appears in other
+contexts as well) to indicate a list of "abi_tag" attributes -- decode that
+list here.  Note that the resulting "__attribute(...)" string doesn't appear
+in the proper location in the demangled name (but it serves the purpose of
+differentiating the unmangled name from those without the "abi_tag" attribute).
+This is a GNU-specific extension that uses the same letter ('B') as an
+EDG-specific extension used for the module id of an externalized name but they
+don't collide as the EDG-specific use uses 'B' as a prefix while the
+GNU-specific extension uses 'B' as a suffix.
+*/
+{
+  long num;
+
+  write_id_str(" __attribute((abi_tag(", dctl);
+  while (*ptr == 'B') {
+    ptr++;
+    ptr = get_number(ptr, &num, dctl);
+    if (num <= 0) {
+      bad_mangled_name(dctl);
+      break;
+    } else {
+      write_id_ch('"', dctl);
+      for (; num > 0; ptr++, num--) {
+        if (*ptr == '\0') {
+          bad_mangled_name(dctl);
+          break;
+        } else {
+          write_id_ch(*ptr, dctl);
+        }  /* if */
+      }  /* for */
+      write_id_ch('"', dctl);
+      if (*ptr == 'B') {
+        /* Another "abi_tag" attribute follows. */
+        write_id_ch(',', dctl);
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  write_id_str("))) ", dctl);
+  return ptr;
+}  /* demangle_abi_tag_attribute */
+
+
 static a_const_char *demangle_unqualified_name(
                                  a_const_char               *ptr,
                                  a_boolean                  *is_no_return_name,
@@ -6015,6 +6103,11 @@ caller does not need the value.
         ptr += length;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (*ptr == 'B') {
+    /* A 'B' suffix for a <source-name> is a GNU-specific extension for
+       an abi_tag attribute. */
+    ptr = demangle_abi_tag_attribute(ptr, dctl);
   }  /* if */
   return ptr;
 }  /* demangle_unqualified_name */
@@ -6934,6 +7027,11 @@ substitution, the name of the last component in the substitution is used.
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
             ptr += 2;
+            if (*ptr == 'B') {
+              /* A 'B' suffix for a <source-name> is a GNU-specific extension
+                 for an abi_tag attribute. */
+              ptr = demangle_abi_tag_attribute(ptr, dctl);
+            }  /* if */
           } else {
             /* The second character of the constructor or destructor name
                encoding is bad. */

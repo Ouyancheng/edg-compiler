@@ -4117,6 +4117,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!is_template_specific_decl || !(*declares_something)) {
+      dps->redeclares_tag = TRUE;
       is_redeclaration = TRUE;
     }  /* if */
     if (!friend_class_injection_enabled && !is_friend_decl) {

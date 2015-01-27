@@ -2465,6 +2465,7 @@ typedef enum an_attribute_kind_tag {
   ak_warning,		/* "warning" (gnu). */
   ak_weak,		/* "weak" (gnu). */
   ak_weakref,		/* "weakref" (gnu). */
+  ak_abi_tag,		/* "abi_tag" (gnu). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7556,6 +7557,9 @@ typedef struct a_class_type_supplement {
 			/* The visibility of the class members in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  a_bit_field   has_gnu_abi_tag_attribute:1;
+			/* TRUE if this class was declared with the
+			   GNU "abi_tag" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
@@ -13554,6 +13558,9 @@ typedef struct a_routine {
   a_bit_field   has_gnu_used_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "used" attribute. */
+  a_bit_field   has_gnu_abi_tag_attribute:1;
+			/* TRUE if this routine was declared with the
+			   GNU "abi_tag" attribute. */
   a_bit_field	allocates_memory:1;
 			/* TRUE if this routine was declared with the
 			   malloc attribute.  Such a routine should

@@ -183,6 +183,7 @@ be restored).
     dps->need_assign_remove_stop_token = FALSE;
     dps->need_lbrace_remove_stop_token = FALSE;
     dps->restore_name_linkage = FALSE;
+    dps->redeclares_tag = FALSE;
     dps->is_property_or_event_field = FALSE;
     dps->is_declspec_property_field = FALSE;
     dps->has_cli_context_sensitive_keyword = FALSE;

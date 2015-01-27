@@ -1,3 +1,17 @@
+Version 4.11
+
+1/27/15  [EDGcpfe/15897]
+GNU compatibility: demangling for abi_tag attribute
+
+Demangling support for the GNU "abi_tag" attribute has been added.  In the
+IA-64 ABI case, the mangling follows that used by GNU (though not at present
+part of the IA-64 ABI standard), namely using "B<count><tag>" as a suffix
+to a name (where <count> indicates the number of characters in the <tag>
+abi_tag attribute argument).  For the Cfront ABI, "__ab<count><tag>" is used
+as a prefix to convey the same information.
+
+
+-------------------------------------------------------------------------------
 Version 4.10, December 23, 2014
 
 No changes.

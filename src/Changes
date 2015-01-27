@@ -1,5 +1,33 @@
 Version 4.11
 
+1/27/15  [EDGcpfe/15897]
+GNU compatibility: support for abi_tag attribute
+
+Support has been added for the "abi_tag" attribute in g++ compatibility modes
+when gnu_version >= 40800.  The abi_tag attribute is described here:
+https://gcc.gnu.org/onlinedocs/gcc-4.9.0/gcc/C_002b_002b-Attributes.html.
+In the IA-64 ABI, the front end uses the GNU-specific mangling to encode
+the names of the abi_tag attributes (namely as a suffix following "B").  The
+"__ab" prefix is used for the same purpose in the Cfront ABI.  Note that only
+narrow string literals are accepted as arguments to the abi_tag attribute.
+For example (with --gnu_version 40800):
+
+  template <class T> __attribute((abi_tag("foo"))) void f1();
+  template <class T> struct __attribute((abi_tag("foo"))) A {
+    void f1();
+    void __attribute((abi_tag("bar"))) f2();
+  };
+  int main() {
+    A<int> a;
+    f1<int>();  // Cfront: __ab3foof1__tm__2_i__Fv_v
+                // IA-64:  _Z2f1B3fooIiEvv
+    a.f1();     // Cfront: f1__18__ab3fooA__tm__2_iFv_v
+                // IA-64:  _ZN1AB3fooIiE2f1Ev
+    a.f2();     // Cfront: __ab3barf2__18__ab3fooA__tm__2_iFv_v
+                // IA-64:  _ZN1AB3fooIiE2f2B3barEv
+  }
+
+
 1/27/15  [EDGcpfe/15659]
 Null-pointer values in non-type template arguments
 

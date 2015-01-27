@@ -637,6 +637,10 @@ static a_boolean type_is_lambda_in_initializer(a_type_ptr type);
 static a_const_char *give_unnamed_namespace_a_name(
                                                a_namespace_ptr          nsp,
                                                a_mangling_control_block *mctl);
+#if GNU_EXTENSIONS_ALLOWED
+static void add_abi_tag_mangling(an_attribute_ptr         ap,
+                                 a_mangling_control_block *mctl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -7509,6 +7513,14 @@ often be unknown at the time of the call, requiring a length reservation).
   a_const_char *name = unmangled_or_fabricated_name_of(&type->source_corresp);
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
+#if !IA64_ABI && GNU_EXTENSIONS_ALLOWED
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.extra_info->has_gnu_abi_tag_attribute) {
+    /* The Cfront ABI adds a prefix to indicate the presence of "abi_tag"
+       attributes. */
+    add_abi_tag_mangling(type->source_corresp.attributes, mctl);
+  }  /* if */
+#endif /* !IA64_ABI && GNU_EXTENSIONS_ALLOWED */
   if (name == NULL) {
     /* For an unnamed type, special encodings apply. */
     mangled_unnamed_type_encoding(type, mctl);
@@ -7519,6 +7531,14 @@ often be unknown at the time of the call, requiring a length reservation).
 #endif /* IA64_ABI */
     add_str_to_mangled_name(name, mctl);
   }  /* if */
+#if IA64_ABI && GNU_EXTENSIONS_ALLOWED
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.extra_info->has_gnu_abi_tag_attribute) {
+    /* The IA-64 ABI adds a suffix to indicate the presence of "abi_tag"
+       attributes. */
+    add_abi_tag_mangling(type->source_corresp.attributes, mctl);
+  }  /* if */
+#endif /* IA64_ABI && GNU_EXTENSIONS_ALLOWED */
 }  /* mangled_encoding_for_class_or_enum_type */
 
 
@@ -10257,6 +10277,99 @@ returned string to an appropriate buffer before this routine is invoked again.
   return name;
 }  /* mangled_expr_operator_name */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+A local structure to keep a list of "abi_tag" attribute values (ck_string
+constants).
+*/
+typedef struct an_abi_tag_string *an_abi_tag_string_ptr;
+typedef struct an_abi_tag_string {
+  an_abi_tag_string_ptr
+              next;     /* A pointer to the next entry. */
+  a_constant_ptr
+              constant; /* A pointer to a ck_string constant. */
+} an_abi_tag_string;
+
+static an_abi_tag_string_ptr
+              avail_abi_tag_strings;
+                        /* A list of available abi_tag entries. */
+
+
+static void add_abi_tag_mangling(an_attribute_ptr         ap,
+                                 a_mangling_control_block *mctl)
+/*
+Add a mangled encoding for any GNU "abi_tag" attribute(s) as specified in
+the attribute list.  Note that the mangled encoding is based on a sorted
+list of all "abi_tag" attribute strings in the last "abi_tag" __attribute
+(to match GNU's behavior).  For the IA-64 ABI case, use the (GNU-specific)
+"B" suffix ("B" is already used as a prefix for EDG-specific module id
+mangling).  For the Cfront case, use "__ab".  Note that the mangled encoding
+is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
+(as controlled by the caller).
+*/
+{
+  an_abi_tag_string_ptr list = NULL, last = NULL, ptr;
+  an_attribute_arg_ptr  aap;
+
+  check_assertion(ap != NULL);
+  ap = find_attribute((a_byte_attribute_kind)ak_abi_tag, ap);
+  check_assertion(ap != NULL);
+  for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+    check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                    aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+    an_abi_tag_string_ptr atsp, prev = NULL;
+    if (avail_abi_tag_strings != NULL) {
+      atsp = avail_abi_tag_strings;
+      avail_abi_tag_strings = atsp->next;
+    } else {
+      atsp = alloc_general_of_type(an_abi_tag_string);
+    }  /* if */
+    atsp->constant = aap->variant.constant;
+    if (list == NULL) {
+      /* First attribute on the list. */
+      list = atsp;
+      atsp->next = NULL;
+    } else {
+      /* Keep the abi_tag attributes in ascending order.  It is expected
+         that the number of "abi_tag" strings will be small, so an in-line
+         "sort" is used. */
+      for (ptr = list; ptr != NULL; ptr = ptr->next) {
+        if (strcmp(atsp->constant->variant.string.value,
+                   ptr->constant->variant.string.value) <= 0) {
+          break;
+        }  /* if */
+        prev = ptr;
+      }  /* for */
+      if (ptr == list) {
+        atsp->next = list;
+        list = atsp;
+      } else {
+        check_assertion(prev != NULL);
+        prev->next = atsp;
+        atsp->next = ptr;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Now that the abi_tag strings have been identified and sorted, add them
+     to the mangled name. */
+  for (ptr = list; ptr != NULL; ptr = ptr->next) {
+#if IA64_ABI
+    add_to_mangled_name('B', mctl);
+#else /* !IA64_ABI */
+    add_str_to_mangled_name("__ab", mctl);
+#endif /* IA64_ABI */
+    mangled_name_with_length(ptr->constant->variant.string.value, mctl);
+    last = ptr;
+  }  /* for */
+  /* Return entries to the available list. */
+  check_assertion(last != NULL);
+  last->next = avail_abi_tag_strings;
+  avail_abi_tag_strings = list;
+}  /* add_abi_tag_mangling */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- ctor_dtor_kind is not used in that case. */
@@ -10280,9 +10393,6 @@ literal operator.
 */
 {
   a_const_char *name = NULL;
-#if !IA64_ABI
-  a_boolean    add_leading_underscores = FALSE;
-#endif /* !IA64_ABI */
 
   if (special_kind == (a_special_function_kind)sfk_none
       || special_kind == (a_special_function_kind)sfk_lambda_entry_point
@@ -10307,7 +10417,8 @@ literal operator.
   } else {
     /* Use a special name for the routine. */
 #if !IA64_ABI
-    add_leading_underscores = TRUE;
+    /* Add leading underscores to the "special" name. */
+    add_str_to_mangled_name("__", mctl);
 #endif /* !IA64_ABI */
     switch (special_kind) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10362,11 +10473,6 @@ literal operator.
                                "mangled_function_base_name: bad special kind");
     }  /* switch */
   }  /* if */
-#if !IA64_ABI
-  if (add_leading_underscores) {
-    add_str_to_mangled_name("__", mctl);
-  }  /* if */
-#endif /* !IA64_ABI */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
   if (special_kind == (a_special_function_kind)sfk_conversion) {
@@ -10664,10 +10770,22 @@ determination is made by the callee.
 #if GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI
   if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
 #endif /* GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI */
+#if !IA64_ABI && GNU_EXTENSIONS_ALLOWED
+  if (routine->has_gnu_abi_tag_attribute) {
+    /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
+    add_abi_tag_mangling(routine->source_corresp.attributes, mctl);
+  }  /* if */
+#endif /* !IA64_ABI && GNU_EXTENSIONS_ALLOWED */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
                              num_operands, conversion_type,
                              ud_suffix_for_routine(routine), mctl);
+#if IA64_ABI && GNU_EXTENSIONS_ALLOWED
+  if (routine->has_gnu_abi_tag_attribute) {
+    /* The IA-64 ABI adds "abi_tag" mangling as a suffix. */
+    add_abi_tag_mangling(routine->source_corresp.attributes, mctl);
+  }  /* if */
+#endif /* IA64_ABI && GNU_EXTENSIONS_ALLOWED */
   if (mangle_as_template) {
 #if IA64_ABI
 mangle_template:
@@ -13078,6 +13196,9 @@ Do one-time initialization of variables related to name mangling.
 #if IA64_ABI
   avail_substitutions = NULL;
 #endif /* !IA64_ABI */
+#if GNU_EXTENSIONS_ALLOWED
+  avail_abi_tag_strings = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Save variables from lower_name.c that are needed for precompiled
      headers. */
   if (precompiled_header_processing_required) {

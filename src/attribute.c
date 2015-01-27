@@ -290,6 +290,7 @@ static an_attr_descr known_attr_table[] = {
   { "warning", "(sn)", "gx(40000-)", ak_warning },
   { "weak", "", "gx", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
+  { "abi_tag", "(sn+)", "gx(40800-)", ak_abi_tag },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -535,6 +536,7 @@ static an_attr_application_fn apply_visibility_attr;
 static an_attr_application_fn apply_warn_unused_result_attr;
 static an_attr_application_fn apply_weak_attr;
 static an_attr_application_fn apply_weakref_attr;
+static an_attr_application_fn apply_abi_tag_attr;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -657,6 +659,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_warning, "r", NO_APPL_FN },
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
+  { ak_abi_tag, "r|c", apply_abi_tag_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
@@ -6643,6 +6646,158 @@ Apply the GNU "weakref" attribute to the given entity and return that entity.
   }  /* if */
   return entity;
 }  /* apply_weakref_attr */
+
+
+static a_boolean abi_tag_list_is_subset_of(an_attribute_ptr superset_ap,
+                                           an_attribute_ptr subset_ap)
+/*
+Returns TRUE if the list of narrow string literal abi_tag attribute arguments
+pointed to by subset_ap is a subset of those specified by superset_ap.  When
+FALSE is returned, an error is emitted.  Note that these lists are unordered,
+requiring an exhaustive search.
+*/
+{
+  an_attribute_ptr     super_ap, sub_ap;
+  an_attribute_arg_ptr sub_aap, super_aap;
+  a_boolean            result = TRUE;
+
+  super_ap = find_attribute((an_attribute_kind)ak_abi_tag, superset_ap);
+  sub_ap = find_attribute((an_attribute_kind)ak_abi_tag, subset_ap);
+  for (sub_aap = sub_ap->arguments; sub_aap != NULL; sub_aap = sub_aap->next) {
+#if EXPENSIVE_CHECKING
+    check_assertion(sub_aap->kind == (an_attribute_arg_kind)aak_constant &&
+                    sub_aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+#endif /* EXPENSIVE_CHECKING */
+    for (super_aap = super_ap->arguments;
+         super_aap != NULL;
+         super_aap = super_aap->next) {
+#if EXPENSIVE_CHECKING
+      check_assertion(super_aap->kind == (an_attribute_arg_kind)aak_constant &&
+                      super_aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+#endif /* EXPENSIVE_CHECKING */
+      if (sub_aap->variant.constant->variant.string.length ==
+                          super_aap->variant.constant->variant.string.length &&
+          memcmp(sub_aap->variant.constant->variant.string.value,
+                 super_aap->variant.constant->variant.string.value,
+                 sub_aap->variant.constant->variant.string.length) == 0) {
+        /* Found this item on both lists; continue to the next item. */
+        break;
+      }  /* if */
+    }  /* for */
+    if (super_aap == NULL) {
+      /* Didn't find this string on the superset list. */
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    check_assertion(sub_aap != NULL && super_ap != NULL);
+    pos_st_start_error(ec_abi_tag_redefinition, &sub_aap->position,
+                       sub_aap->variant.constant->variant.string.value);
+    add_diag_info_with_pos_insert(ec_abi_tag_prev_declaration,
+                       &super_ap->position);
+    end_error();
+  }  /* if */
+  return result;
+}  /* abi_tag_list_is_subset_of */
+
+
+static char* apply_abi_tag_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "abi_tag" attribute to the given entity and return that entity.
+Note that in cases where multiple abi_tag attributes are specified on the
+same declaration, only the last abi_tag attribute is maintained (this seems
+to match GNU's behavior).
+*/
+{
+  if (C_mode()) {
+    /* gcc allows the attribute with a warning that it is ignored (because
+       it affects only mangling). */
+    pos_warning(ec_abi_tag_ignored_in_C_mode, &ap->position);
+    make_attr_unrecognized(ap);
+  } else {
+    a_source_correspondence_ptr scp = (a_source_correspondence*)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    a_boolean           redeclaration = FALSE;
+    an_attribute_ptr    prev;
+#if CHECKING
+    /* GNU accepts more than just narrow string literals, but that seems to
+       be a bug, so limit the arguments to narrow string literals. */
+    an_attribute_arg_ptr  aap;
+    for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+      check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                      aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+    }  /* for */
+#endif /* CHECKING */
+    if (dps != NULL &&
+        gnu_version >= 40900 &&
+        entity_kind == iek_type &&
+        is_immediate_class_type((a_type_ptr)entity) &&
+        ((a_type_ptr)entity)->variant.class_struct_union.is_specialized) {
+      /* Ignore attributes (with a warning) on explicit instantiations
+         (they had been accepted prior to 4.9.0). */
+      pos_warning(ec_abi_tag_ignored_on_instantiation, &ap->position);
+      make_attr_unrecognized(ap);
+    } else {
+      /* See if there are any previous abi_tag attributes on this entity (there
+         should at least be the current abi_tag attribute). */
+      prev = find_attribute(ak_abi_tag, scp->attributes);
+      check_assertion(prev != NULL);
+      if (dps != NULL &&
+          ((entity_kind == iek_routine && !dps->first_decl) ||
+           (entity_kind == iek_type && dps->redeclares_tag))) {
+        /* This is a redeclaration of a function or class. */
+        redeclaration = TRUE;
+      }  /* if */
+      if (!redeclaration) {
+        if (prev == ap) {
+          /* Usual case: not a redeclaration and a single abi_tag attribute. */
+        } else {
+          /* There are at least two abi_tag attributes on a single declaration;
+             ignore the first (with a warning), then "remove" it. */
+          pos_warning(ec_abi_tag_ignored, &prev->position);
+          make_attr_unrecognized(prev);
+        }  /* if */
+      } else {
+        /* A redeclaration. */
+        if (prev == ap) {
+          /* Previous declaration didn't have an abi_tag attribute, but this
+             one does; report the mismatch. */
+          pos_sy_error(ec_no_abi_tag_on_declaration, &ap->position,
+                       (a_symbol_ptr)scp->assoc_info);
+          make_attr_unrecognized(ap);
+        } else {
+          /* Make sure that every string in the new abi_tag list is also
+             on the previous attribute list. */
+          if (!abi_tag_list_is_subset_of(prev, ap)) {
+            make_attr_unrecognized(ap);
+          }  /* if */
+          /* Get rid of the previous abi_tag attribute in any case (g++ only
+             acts on the last one). */
+          make_attr_unrecognized(prev);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+      /* If the attribute hasn't been marked as unrecognized, set the
+         corresponding flag in the entity. */
+      if (entity_kind == iek_routine) {
+        ((a_routine_ptr)entity)->has_gnu_abi_tag_attribute = TRUE;
+      } else {
+        a_type_ptr class = (a_type_ptr)entity;
+        check_assertion(entity_kind == iek_type &&
+                        is_immediate_class_type(class));
+        class_type_supp(class)->has_gnu_abi_tag_attribute = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_abi_tag_attr */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

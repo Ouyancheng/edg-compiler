@@ -2692,6 +2692,12 @@ ec_call_through_incomplete_class_type;;"call through incomplete class %t will al
 ec_decltype_auto_cannot_be_qualified;;"decltype(auto) cannot have added type qualifiers"
 ec_bad_init_capture_capture;;"init-capture %nod cannot be captured here"
 ec_invalid_nontype_template_argument;;"invalid nontype template argument of type %t"
+ec_abi_tag_ignored_in_C_mode;;"the abi_tag attribute is ignored (it has no meaning in C mode)"
+ec_abi_tag_redefinition;;"redeclaration adds abi_tag attribute \"%s\""
+ec_abi_tag_ignored;;"abi_tag attribute is ignored (superseded by latter abi_tag attribute)"
+ec_no_abi_tag_on_declaration;;"previous declaration of %nd had no abi_tag attribute"
+ec_abi_tag_prev_declaration;;"(see previous declaration %p)"
+ec_abi_tag_ignored_on_instantiation;;"abi_tag attribute is ignored on explicit instantiation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

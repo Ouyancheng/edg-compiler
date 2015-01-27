@@ -827,6 +827,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is the first declaration of a variable
 			   or function that was predeclared by the front
 			   end. */
+  a_bit_field	redeclares_tag:1;
+			/* TRUE if the specifiers include a tag name (like
+			   "struct S" or "enum E") that must match a prior
+			   declaration. */
   a_bit_field	is_property_or_event_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier or
