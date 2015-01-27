@@ -37698,49 +37698,6 @@ memory region).  Do various error checks.
 }  /* prep_nontype_template_argument_initializer */
 
 
-static a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
-                                                          a_constant_ptr  con)
-/*
-Return TRUE if the given constant represents a valid pointer or pointer-to-
-member template argument that is not an id-expression or an id-expression
-prefixed with "&".  The most common valid cases are null-pointer-like
-constants.
-*/
-{
-  a_boolean  result = FALSE;
-
-  /* The standard allows not only "null pointer constants", but, more
-     generally, "null pointer values" (which can result from casting a null
-     pointer constant to a pointer type).  Microsoft compilers also allow
-     something like "&typeid(X)". */
-  if (is_null_pointer_constant(con)) {
-    result = TRUE;
-  } else if (con->kind == (a_constant_repr_kind)ck_address) {
-    if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
-      result = con->variant.address.variant.routine == NULL;
-    } else if (con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-      result = con->variant.address.variant.variable == NULL;
-    } else if (microsoft_mode &&
-               con->variant.address.kind == (an_address_base_kind)abk_typeid) {
-      result = TRUE;
-    }  /* if */
-  } else if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
-    /* A null-pointer value for a pointer-to-member constant. */
-    result = con->variant.ptr_to_member.is_function_ptr ?
-                            con->variant.ptr_to_member.variant.routine == NULL
-                          : con->variant.ptr_to_member.variant.field == NULL;
-  } else if (con->kind == (a_constant_repr_kind)ck_integer &&
-             (is_pointer_type(con->type) ||
-              is_ptr_to_member_type(con->type)) &&
-             cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
-    /* A "zero" constant converted to a pointer or pointer-to-member type. */
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
-
-
 static void check_nontype_template_argument_type(an_operand *operand)
 /*
 operand is a nontype template argument expression that has just been scanned.

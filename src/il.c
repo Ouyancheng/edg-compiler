@@ -15820,6 +15820,97 @@ nullptr type, set *copy_error to TRUE.  (No checking is needed or done if
 }  /* check_template_nullptr_operation */
 
 
+a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
+                                                          a_constant_ptr  con)
+/*
+Return TRUE if the given constant represents a valid pointer or pointer-to-
+member template argument that is not an id-expression or an id-expression
+prefixed with "&".  The most common valid cases are null-pointer-like
+constants.
+*/
+{
+  a_boolean  result = FALSE;
+  a_boolean  null_value_okay = cpp11_mode ||
+                               (microsoft_mode && microsoft_version >= 1800);
+  /* The C++11 standard allows not only "null pointer constants", but, more
+     generally, "null pointer values" (which can result from casting a null
+     pointer constant to a pointer type).  Microsoft compilers also allow
+     something like "&typeid(X)". */
+  if (null_value_okay && is_null_pointer_constant(con)) {
+    result = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_address) {
+    if (microsoft_mode &&
+              con->variant.address.kind == (an_address_base_kind)abk_typeid) {
+      result = TRUE;
+    } else if (!null_value_okay) {
+      /* The remaining clauses test null pointer value cases. */
+    } else if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+      result = con->variant.address.variant.routine == NULL;
+    } else if (con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+      result = con->variant.address.variant.variable == NULL;
+    }  /* if */
+  } else if (null_value_okay &&
+             con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    /* A null-pointer value for a pointer-to-member constant. */
+    result = con->variant.ptr_to_member.is_function_ptr ?
+                            con->variant.ptr_to_member.variant.routine == NULL
+                          : con->variant.ptr_to_member.variant.field == NULL;
+  } else if (null_value_okay &&
+             con->kind == (a_constant_repr_kind)ck_integer &&
+             (is_pointer_type(con->type) ||
+              is_ptr_to_member_type(con->type)) &&
+             cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+    /* A "zero" constant converted to a pointer or pointer-to-member type. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
+
+
+a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
+                                                          a_constant_ptr  con)
+/*
+Return TRUE if the given constant represents a valid pointer or pointer-to-
+member template argument that is not an id-expression or an id-expression
+prefixed with "&".  The most common valid case are null-pointer-like constants.
+*/
+{
+  a_boolean  result = FALSE;
+
+  /* The standard allows not only "null pointer constants", but, more
+     generally, "null pointer values" (which can result from casting a null
+     pointer constant to a pointer type).  Microsoft compilers also allow
+     something like "&typeid(X)". */
+  if (is_null_pointer_constant(con)) {
+    result = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_address) {
+    if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      result = con->variant.address.variant.routine == NULL;
+    } else if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+      result = con->variant.address.variant.variable == NULL;
+    } else if (microsoft_mode &&
+               con->variant.address.kind == (an_address_base_kind)abk_typeid) {
+      result = TRUE;
+    }  /* if */
+  } else if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    /* A null-pointer value for a pointer-to-member constant. */
+    result = con->variant.ptr_to_member.is_function_ptr ?
+                            con->variant.ptr_to_member.variant.routine == NULL
+                          : con->variant.ptr_to_member.variant.field == NULL;
+  } else if (con->kind == (a_constant_repr_kind)ck_integer &&
+             (is_pointer_type(con->type) ||
+              is_ptr_to_member_type(con->type)) &&
+             cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+    /* A "zero" constant converted to a pointer or pointer-to-member type. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
+
+
 static a_boolean substituted_cast_is_valid(a_constant *src_con,
                                            a_type_ptr new_type,
                                            a_boolean  is_explicit_cast,
@@ -16902,6 +16993,7 @@ name lookup options.
         if (!(options & CTWS_NON_CONSTANT_EXPR) &&
             (is_bad_type_for_template_arg_operand(new_type) ||
              is_bad_type_for_template_arg_operand(copied_con_type)) &&
+            !is_valid_ptr_or_ptr_to_member_templ_arg_constant(src_con) &&
             !types_are_compatible(new_type, copied_con_type)) {
           /* One of the types is invalid for a template argument constant
              expression.  However, exempt the idiom where a constant is
