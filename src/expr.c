@@ -37703,7 +37703,8 @@ static a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
 /*
 Return TRUE if the given constant represents a valid pointer or pointer-to-
 member template argument that is not an id-expression or an id-expression
-prefixed with "&".  The most common valid case are null-pointer-like constants.
+prefixed with "&".  The most common valid cases are null-pointer-like
+constants.
 */
 {
   a_boolean  result = FALSE;
