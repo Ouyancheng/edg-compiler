@@ -37701,9 +37701,9 @@ memory region).  Do various error checks.
 static a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                           a_constant_ptr  con)
 /*
-Return TRUE if the given constant represents a valid ck_address or
-ck_ptr_to_member template argument that is not an id-expression (optionally
-prefixed with "&").
+Return TRUE if the given constant represents a valid pointer or pointer-to-
+member template argument that is not an id-expression or an id-expression
+prefixed with "&".  The most common valid case are null-pointer-like constants.
 */
 {
   a_boolean  result = FALSE;
@@ -37729,9 +37729,15 @@ prefixed with "&").
     result = con->variant.ptr_to_member.is_function_ptr ?
                             con->variant.ptr_to_member.variant.routine == NULL
                           : con->variant.ptr_to_member.variant.field == NULL;
+  } else if (con->kind == (a_constant_repr_kind)ck_integer &&
+             (is_pointer_type(con->type) ||
+              is_ptr_to_member_type(con->type)) &&
+             cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+    /* A "zero" constant converted to a pointer or pointer-to-member type. */
+    result = TRUE;
   }  /* if */
   return result;
-}  /* is_address_of_typeid */
+}  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
 
 
 static void check_nontype_template_argument_type(an_operand *operand)
