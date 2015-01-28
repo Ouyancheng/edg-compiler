@@ -1,5 +1,20 @@
 Version 4.11
 
+1/28/15  [EDGcpfe/15939]
+Mangling support for decltype(auto)
+
+Mangling support has been added for "decltype(auto)".  In IA-64 ABI
+configurations the string "Dc" is now used; the EDG-specific string "q" is used
+in Cfront ABI configurations.  Previously, the mangling for "auto" had
+been used (and continues to be used when ABI_COMPATIBILITY_VERSION < 411).
+For example (with --c++14):
+
+  template <class T> auto f(T t) -> decltype(auto) { return t; }
+  int main() {
+    return f(0);
+  }
+
+
 1/28/15  [EDGcpfe/15930]
 Mangled encoding for "operator auto()"
 

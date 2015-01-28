@@ -1,5 +1,13 @@
 Version 4.11
 
+1/28/15  [EDGcpfe/15939]
+Demangling support for decltype(auto)
+
+Demangling support for decltype(auto) has been added.  The IA-64 ABI uses the
+string "Dc" to represent this type and the Cfront ABI uses the EDG-specific
+"q" mangling.
+
+
 1/27/15  [EDGcpfe/15897]
 GNU compatibility: demangling for abi_tag attribute
 

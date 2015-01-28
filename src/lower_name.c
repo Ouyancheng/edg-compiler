@@ -154,6 +154,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "Da"
+#define MANGLING_STRING_FOR_DECLTYPE_AUTO "Dc"
 #define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
@@ -292,6 +293,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "u"
+#define MANGLING_STRING_FOR_DECLTYPE_AUTO "q"
 #define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
@@ -9013,7 +9015,8 @@ specified type.  Substitutions are not allocated for <builtin-type>s
          should have been stripped, leaving only dependent decltype/typeof
          typerefs (for which substitutions are created). */
       check_assertion(typeref_is_type_operator(type) ||
-                      type->variant.typeref.is_deduced_auto);
+                      type->variant.typeref.is_deduced_auto ||
+                      type->variant.typeref.is_deduced_decltype_auto);
       result = TRUE;
       break;
     case tk_pointer:
@@ -9215,6 +9218,9 @@ top_of_loop:
     } else if (type->variant.typeref.is_deduced_auto) {
       /* Mangling for a deduced auto type (e.g., "operator auto()") needs
          to appear in the mangled name. */
+      break;
+    } else if (type->variant.typeref.is_deduced_decltype_auto) {
+      /* Mangling for a decltype(auto) needs to appear in the mangled name. */
       break;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
     }  /* if */
@@ -9500,7 +9506,17 @@ top_of_loop:
            the modern mangling approach. */
         if (is_auto_type(type)) {
           /* This occurs, for example, when mangling decltype(new auto(p1)). */
-          s = MANGLING_STRING_FOR_AUTO;
+#if ABI_COMPATIBILITY_VERSION >= 411
+          if (type->variant.template_param.extra_info->
+                            coordinates.position == DECLTYPE_AUTO_POS_NUMBER) {
+            /* decltype(auto). */
+            s = MANGLING_STRING_FOR_DECLTYPE_AUTO;
+          } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 */
+          /* Do not insert code here. */
+          {
+            s = MANGLING_STRING_FOR_AUTO;
+          }  /* if */
         } else {
           switch (type->variant.template_param.kind) {
             case tptk_param:
@@ -9553,7 +9569,8 @@ top_of_loop:
            __underlying_types/typeofs should have been stripped, leaving only
            dependent decltype/__underlying_type/typeof typerefs. */
         check_assertion(typeref_is_type_operator(type) ||
-                        type->variant.typeref.is_deduced_auto);
+                        type->variant.typeref.is_deduced_auto ||
+                        type->variant.typeref.is_deduced_decltype_auto);
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);
@@ -9587,6 +9604,10 @@ top_of_loop:
           /* Provide mangling for a deduced auto type (e.g.,
              "operator auto()"). */
           add_str_to_mangled_name(MANGLING_STRING_FOR_AUTO, mctl);
+          goto have_whole_mangled_name;
+        } else if (type->variant.typeref.is_deduced_decltype_auto) {
+          /* Provide mangling for a decltype(auto). */
+          add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_AUTO, mctl);
           goto have_whole_mangled_name;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
         }  /* if */

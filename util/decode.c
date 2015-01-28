@@ -2900,6 +2900,9 @@ to the character position following what was demangled.
       case 'u':
         s = "auto";
         break;
+      case 'q':
+        s = "decltype(auto)";
+        break;
       case 'g':
         s = "char16_t";
         break;
@@ -5021,6 +5024,9 @@ demangled as part of the template function instead).
         switch (*p++) {
           case 'a':
             s = "auto";
+            break;
+          case 'c':
+            s = "decltype(auto)";
             break;
           case 'n':
             s = "std::nullptr_t";
