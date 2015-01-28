@@ -9012,7 +9012,8 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
          should have been stripped, leaving only dependent decltype/typeof
          typerefs (for which substitutions are created). */
-      check_assertion(typeref_is_type_operator(type));
+      check_assertion(typeref_is_type_operator(type) ||
+                      type->variant.typeref.is_deduced_auto);
       result = TRUE;
       break;
     case tk_pointer:
@@ -9210,6 +9211,12 @@ top_of_loop:
                type->variant.typeref.is_dependent_type_operator) {
       /* This __underlying_type needs to appear in the mangled name. */
       break;
+#if ABI_COMPATIBILITY_VERSION >= 411
+    } else if (type->variant.typeref.is_deduced_auto) {
+      /* Mangling for a deduced auto type (e.g., "operator auto()") needs
+         to appear in the mangled name. */
+      break;
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (type->variant.typeref.is_typeof &&
@@ -9545,7 +9552,8 @@ top_of_loop:
         /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/
            __underlying_types/typeofs should have been stripped, leaving only
            dependent decltype/__underlying_type/typeof typerefs. */
-        check_assertion(typeref_is_type_operator(type));
+        check_assertion(typeref_is_type_operator(type) ||
+                        type->variant.typeref.is_deduced_auto);
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);
@@ -9574,6 +9582,13 @@ top_of_loop:
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
+#if ABI_COMPATIBILITY_VERSION >= 411
+        } else if (type->variant.typeref.is_deduced_auto) {
+          /* Provide mangling for a deduced auto type (e.g.,
+             "operator auto()"). */
+          add_str_to_mangled_name(MANGLING_STRING_FOR_AUTO, mctl);
+          goto have_whole_mangled_name;
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 */
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (type->variant.typeref.is_typeof) {
