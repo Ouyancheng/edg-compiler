@@ -8460,6 +8460,26 @@ for use in generating cross-reference output describing this declaration.
                                   /*preserve_type_ptr=*/(is_function_def ||
                                                          replace_routine),
                                   dps);
+            if (is_function_def && dps->routine_fixup != NULL) {
+              /* We've preserved type_ptr, but that may mask duplicate
+                 default argument errors.  E.g.:
+                   void f(int = 3);
+                   void f(int = 3) {}
+                 Copy default arguments over if needed. */
+              a_param_type_ptr  from_ptp, to_ptp;
+              from_ptp = function_type_params(skip_typerefs(dps->prev_type));
+              to_ptp = function_type_params(skip_typerefs(type_ptr));
+              while (from_ptp != NULL && to_ptp != NULL) {
+                if (from_ptp->has_default_arg && to_ptp->has_default_arg &&
+                    from_ptp->default_arg_expr != NULL &&
+                    to_ptp->default_arg_expr == NULL) {
+                  to_ptp->default_arg_expr = duplicate_default_arg_expr(
+                                                  from_ptp->default_arg_expr);
+                }  /* if */
+                from_ptp = from_ptp->next;
+                to_ptp = to_ptp->next;
+              }  /* while */
+            }  /* if */
           }  /* if */
           if (gpp_mode && params != NULL && !old_decl_has_body &&
               !is_function_def &&
