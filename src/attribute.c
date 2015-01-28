@@ -6735,23 +6735,42 @@ to match GNU's behavior).
                                               (a_constant_repr_kind)ck_string);
     }  /* for */
 #endif /* CHECKING */
-    if (dps != NULL &&
-        gnu_version >= 40900 &&
-        entity_kind == iek_type &&
-        is_immediate_class_type((a_type_ptr)entity) &&
-        ((a_type_ptr)entity)->variant.class_struct_union.is_specialized) {
+    /* There appears to have been some major tweaking of the way the abi_tag
+       was handled between the 4.8.0 and 4.9.0 releases of g++; the code
+       below attempts to emulate both behaviors. */
+    if (entity_kind == iek_routine &&
+        ((a_routine_ptr)entity)->is_template_function) {
+      if (gnu_version < 40900) {
+        /* It appears that abi_tag attributes are silently ignored on
+           function templates before version 4.9.0. */
+        make_attr_unrecognized(ap);
+      } else if (dps != NULL &&
+                 !((a_routine_ptr)entity)->is_prototype_instantiation) {
+        /* Attributes specified on specializations are also ignored. */
+        pos_warning(ec_abi_tag_ignored_on_instantiation, &ap->position);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    } else if (dps != NULL &&
+               gnu_version >= 40900 &&
+               entity_kind == iek_type &&
+               is_immediate_class_type((a_type_ptr)entity) &&
+               ((a_type_ptr)entity)->
+                                   variant.class_struct_union.is_specialized) {
       /* Ignore attributes (with a warning) on explicit instantiations
          (they had been accepted prior to 4.9.0). */
       pos_warning(ec_abi_tag_ignored_on_instantiation, &ap->position);
       make_attr_unrecognized(ap);
-    } else {
+    }  /* if */
+    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
       /* See if there are any previous abi_tag attributes on this entity (there
          should at least be the current abi_tag attribute). */
       prev = find_attribute(ak_abi_tag, scp->attributes);
       check_assertion(prev != NULL);
       if (dps != NULL &&
           ((entity_kind == iek_routine && !dps->first_decl) ||
-           (entity_kind == iek_type && dps->redeclares_tag))) {
+           (entity_kind == iek_type &&
+            dps->redeclares_tag &&
+            dps->tag_def_or_forward_decl))) {
         /* This is a redeclaration of a function or class. */
         redeclaration = TRUE;
       }  /* if */

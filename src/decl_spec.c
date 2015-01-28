@@ -4223,6 +4223,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
+  dps->tag_def_or_forward_decl = is_class_definition ||
+                                 curr_token == tok_semicolon;
   if (tag_sym->kind != (a_symbol_kind)sk_type &&
       !is_redeclaration && !is_template_specific_decl) {
     /* This is the initial declaration of this class type. */
@@ -4338,6 +4340,41 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (!err && gnu_mode && gnu_version >= 40900 &&
+      is_template_specialization) {
+    /* GNU "abi_tag" attributes on specializations (if any) are inherited from
+       the prototype class. */
+    a_type_ptr    proto_type;
+    a_symbol_ptr  class_sym, proto_sym;
+    check_assertion(tag_sym != NULL);
+    class_sym = tag_sym->variant.class_struct_union.extra_info->class_template;
+    check_assertion(class_sym != NULL &&
+                    class_sym->kind == (a_symbol_kind)sk_class_template);
+    proto_sym = class_sym->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+    check_assertion(proto_sym != NULL &&
+                    proto_sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+    proto_type = proto_sym->variant.class_struct_union.type;
+    check_assertion(proto_type != NULL && is_immediate_class_type(proto_type));
+    if (class_type_supp(proto_type)->has_gnu_abi_tag_attribute) {
+      /* Copy the abi_tag attribute and apply it to the specialization. */
+      an_attribute_ptr abi_tag_attr = find_attribute(ak_abi_tag,
+                                        proto_type->source_corresp.attributes);
+      check_assertion(abi_tag_attr != NULL &&
+                      abi_tag_attr->next == NULL);
+      abi_tag_attr = copy_of_attributes_list(abi_tag_attr);
+      /* Set ap->assoc_info to NULL (by passing NULL for dps) to differentiate
+         this case from the one above (where the abi_tag is specified on the
+         specialization itself). */
+      attach_tag_attributes(abi_tag_attr, class_type,
+                            (a_decl_parse_state *)NULL,
+                            is_class_definition,
+                            curr_token == tok_semicolon,
+                            /*ignore_gnu_attributes=*/FALSE);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* If the current token marks a removed template body, skip past that
      special token. */
   if (definition_removed) (void)get_token();
@@ -5966,10 +6003,12 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     set_to_error_locator(locator);
     tag_sym = NULL;
   }  /* if */
+  dps->tag_def_or_forward_decl = is_definition || curr_token == tok_semicolon;
   if (tag_sym != NULL) {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
+    dps->redeclares_tag = TRUE;
     if (is_immediate_enum_type(enum_type)) {
       /* C++/CLI does not permit a type first declared with "enum class" or
          "enum struct" to later be referred to with just "enum", nor vice

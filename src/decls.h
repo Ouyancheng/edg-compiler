@@ -831,6 +831,11 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the specifiers include a tag name (like
 			   "struct S" or "enum E") that must match a prior
 			   declaration. */
+  a_bit_field	tag_def_or_forward_decl:1;
+			/* TRUE if the specifiers define a tag type or declare
+			   a tag type where the tag name (or underlying type,
+			   in the case of an opaque enum declaration) is
+			   immediately followed by a semicolon. */
   a_bit_field	is_property_or_event_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier or

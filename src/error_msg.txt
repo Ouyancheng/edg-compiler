@@ -2697,7 +2697,7 @@ ec_abi_tag_redefinition;;"redeclaration adds abi_tag attribute \"%s\""
 ec_abi_tag_ignored;;"abi_tag attribute is ignored (superseded by latter abi_tag attribute)"
 ec_no_abi_tag_on_declaration;;"previous declaration of %nd had no abi_tag attribute"
 ec_abi_tag_prev_declaration;;"(see previous declaration %p)"
-ec_abi_tag_ignored_on_instantiation;;"abi_tag attribute is ignored on explicit instantiation"
+ec_abi_tag_ignored_on_instantiation;;"abi_tag attribute is ignored on instantiation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
