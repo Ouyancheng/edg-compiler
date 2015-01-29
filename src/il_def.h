@@ -2247,9 +2247,16 @@ typedef struct an_attribute_arg {
   an_attribute_arg_ptr
 		next;
 			/* Next in a linked list of attribute arguments. */
+  a_small_token_kind
+		token_kind;
+			/* For aak_token or aak_raw_token entries, the token
+			   kind that was scanned.  Otherwise, tok_last. */
   an_attribute_arg_kind
 		kind;
 			/* The kind of argument this represents. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if the argument is a variadic template pack
+			   expansion, i.e., it's followed by "...". */
   a_source_position
 		position;
 			/* The source position of the argument. */
@@ -2258,10 +2265,6 @@ typedef struct an_attribute_arg {
 		end_position;
 			/* The position of the end of the argument. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_small_token_kind
-		token_kind;
-			/* For aak_token or aak_raw_token entries, the token
-			   kind that was scanned.  Otherwise, tok_last. */
   union {
     /* When kind == aak_empty: no variant fields. */
     /* When kind == aak_token or aak_raw_token: */

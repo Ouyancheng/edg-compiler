@@ -4351,6 +4351,7 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       default:
         unexpected_condition();
     }  /* switch */
+    if (aap->is_pack_expansion) write_tok_str("...");
     if (aap->next != NULL) {
       /* Another argument follows.  Separate raw tokens by whitespace, and
          other arguments by commas. */

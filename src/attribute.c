@@ -1247,26 +1247,27 @@ search_done:
 }  /* get_attr_descr_for_attribute */
 
 
-static void record_empty_attribute_argument(an_attribute_ptr  ap,
-                                            a_const_char      *sig)
+static void record_empty_attribute_argument(an_attribute_ptr   ap,
+                                            a_const_char       *sig,
+                                            a_source_position  *lparen_pos)
 /*
 An argument list of the form "()" has been encountered (the current token is
-the left parenthesis) for the given attribute.  sig points to the character
-after the "(" in the attribute's signature.  If the signature does not allow
-for an empty list, issue a diagnostic (and set ap->kind to ak_unrecognized).
-Either way, return an aak_empty attribute argument.
+the right parenthesis, except in some error cases) for the given attribute.
+sig points to the character after the "(" in the attribute's signature and
+*lparen_pos is the position of the left parenthesis.  If the signature does
+not allow for an empty list, issue a diagnostic (and set ap->kind to
+ak_unrecognized).  Either way, return an aak_empty attribute argument.
 */
 {
   an_attribute_arg_ptr  aap = alloc_attribute_arg();
 
   aap->kind = (an_attribute_arg_kind)aak_empty;
-  aap->position = pos_curr_token;
-  (void)get_token();
+  aap->position = *lparen_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (*sig != '*' && *sig != '?' && *sig != ')') {
-    str_error(ec_invalid_empty_attribute_arg_list, ap->name);
+  if (*sig != '*' && *sig != '?' && *sig != ')' && curr_token == tok_rparen) {
+    pos_st_error(ec_invalid_empty_attribute_arg_list, lparen_pos, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
   ap->arguments = aap;
@@ -1554,7 +1555,11 @@ ak_unrecognized.
   a_const_char          *saved_sig;
   a_boolean             may_terminate;
 
-  do {
+  /* The outer loop traverses segments in *sig: */
+  for (;;) {
+    a_pack_expansion_stack_entry_ptr  pesep;
+    a_boolean                         more_pack_elements = FALSE;
+next_pack_element:
     /* Skip a "?" indicating that the argument list may terminate at this
        point. */
     if (*sig == '?') {
@@ -1563,6 +1568,15 @@ ak_unrecognized.
       if (curr_token == tok_rparen) break;
     } else {
       may_terminate = FALSE;
+    }  /* if */
+    if (!more_pack_elements &&
+        !begin_potential_pack_expansion_context(&pesep)) {
+      /* An empty pack expansion.  Check if additional arguments follow. */
+      if (!loop_token(tok_comma)) {
+        break;
+      } else {
+        continue;
+      }  /* if */
     }  /* if */
     saved_sig = sig;
     /* Traverse the next sig segment while scanning a corresponding attribute
@@ -1621,10 +1635,16 @@ ak_unrecognized.
           check_attr_config(FALSE, ap,
                             "invalid attribute signature configuration");
       }  /* switch */
+      if (end_potential_pack_expansion_context(
+                                    pesep, /*is_declarator=*/FALSE) != NULL) {
+        (*p_aap)->is_pack_expansion = TRUE;
+      }  /* if */
       while (*p_aap != NULL) p_aap = &(*p_aap)->next;
-      if (*sig == '+' && curr_token == tok_comma) {
-        /* Skip the comma and get another argument of the same kind. */
-        (void)get_token();
+      more_pack_elements = advance_to_next_pack_element(pesep);
+      if (*sig == '+' && (more_pack_elements || curr_token == tok_comma)) {
+        /* Skip the comma if needed and get another argument of the same
+           kind. */
+        if (!more_pack_elements) (void)get_token();
       } else {
         /* No more arguments to get. */
         break;
@@ -1646,7 +1666,12 @@ ak_unrecognized.
       may_terminate = TRUE;
       break;
     }  /* if */
-  } while (loop_token(tok_comma));
+    if (more_pack_elements) {
+      goto next_pack_element;
+    } else if (!loop_token(tok_comma)) {
+      break;
+    }  /* if */
+  }  /* for */
   if (!may_terminate) {
     /* More arguments were expected. */
     pos_st_error(ec_missing_attribute_arguments, &pos_curr_token, ap->name);
@@ -1665,8 +1690,11 @@ not match the pattern indicated by sig; in that case, ap->kind is set to
 ak_unrecognized.
 */
 {
+  a_source_position  lparen_pos;
+
   add_stop_token(tok_rparen);
   if (curr_token == tok_lparen) {
+    lparen_pos = pos_curr_token;
     /* An argument list appears to follow.  Parse it and check it against
        sig. */
     if (*sig == '\0') {
@@ -1681,14 +1709,13 @@ ak_unrecognized.
     check_attr_config(*sig == '(', ap,
                       "invalid attribute signature configuration");
     ++sig;
-    if (next_token() == tok_rparen) {
+    /* Skip over the left parenthesis. */
+    (void)get_token();
+    /* Scan the non-empty argument list. */
+    scan_attr_arg_list(ap, sig);
+    if (ap->arguments == NULL) {
       /* An empty attribute argument "()". */
-      record_empty_attribute_argument(ap, sig);
-    } else {
-      /* Skip over the left parenthesis. */
-      (void)get_token();
-      /* Scan the non-empty argument list. */
-      scan_attr_arg_list(ap, sig);
+      record_empty_attribute_argument(ap, sig, &lparen_pos);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
   } else if (*sig == '(') {
@@ -2087,7 +2114,7 @@ af_alignas and the attribute name is "alignas".
   (void)get_token();
   /* Use the general attribute argument scanning framework to scan a type or
      constant. */
-  scan_attribute_args(ap, "(ct)");
+  scan_attribute_args(ap, "(?ct+)");
   make_attribute_group(ap, &group_pos);
   attr_family_seen[ap->kind] |= 1 << ap->family;
   return ap;
@@ -3748,132 +3775,142 @@ specifier.
   if (check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
     an_attribute_arg_ptr  aap = ap->arguments;
-    a_targ_alignment      alignment = 0;
-    a_boolean             apply_value = TRUE;
-    a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
-    if (aap == NULL) {
-      /* If there is no argument to the GNU "aligned" attribute, then the
-         maximum alignment useful on the target is implied. */
-      check_assertion(ap->family == (a_byte_attribute_family)af_gnu);
-      alignment = targ_maximum_intrinsic_alignment;
-    } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
-      a_type_ptr  tp = aap->variant.type;
-      check_assertion(std_specifier);
-      /* For references and/or arrays, use the underlying type. */
-      if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
-      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      if (is_function_type(tp)) {
-        pos_error(ec_function_type_not_allowed, &aap->position);
-        apply_value = FALSE;
-        make_attr_unrecognized(ap);
-      } else if (is_template_dependent_type(tp)) {
-        /* Something like "[[align(T)]]" with T a template parameter: The
-           alignment value isn't generally known and should therefore not be
-           recorded. */
-        apply_value = FALSE;
-      } else {
-        complete_type_is_needed(tp);
-        if (is_incomplete_type(tp)) {
-          pos_error(incomplete_type_err_code(tp), &aap->position);
+    do {
+      a_targ_alignment      alignment = 0;
+      a_boolean             apply_value = TRUE;
+      a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+      if (ap->arguments == NULL) {
+        /* If there is no argument to the GNU "aligned" attribute, then the
+           maximum alignment useful on the target is implied. */
+        check_assertion(ap->family == (a_byte_attribute_family)af_gnu);
+        alignment = targ_maximum_intrinsic_alignment;
+      } else if (aap->kind == (an_attribute_arg_kind)aak_empty) {
+        /* alignas accepts pack expansions.  We may get here with an empty
+           expansions: The attribute has no effect in that case. */
+        check_assertion(ap->family == (a_byte_attribute_family)af_alignas);
+        break;
+      } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
+        a_type_ptr  tp = aap->variant.type;
+        check_assertion(std_specifier);
+        /* For references and/or arrays, use the underlying type. */
+        if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
+        if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+        if (is_function_type(tp)) {
+          pos_error(ec_function_type_not_allowed, &aap->position);
           apply_value = FALSE;
           make_attr_unrecognized(ap);
+        } else if (is_template_dependent_type(tp)) {
+          /* Something like "[[align(T)]]" with T a template parameter: The
+             alignment value isn't generally known and should therefore not be
+             recorded. */
+          apply_value = FALSE;
         } else {
-          alignment = alignment_of_type(aap->variant.type);
+          complete_type_is_needed(tp);
+          if (is_incomplete_type(tp)) {
+            pos_error(incomplete_type_err_code(tp), &aap->position);
+            apply_value = FALSE;
+            make_attr_unrecognized(ap);
+          } else {
+            alignment = alignment_of_type(aap->variant.type);
+          }  /* if */
         }  /* if */
-      }  /* if */
-    } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
-      a_host_large_integer  value = 0;
-      if (get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
-                               MAX_HOST_LARGE_INTEGER, &value)) {
-        if (value == 0) {
-          /* The standard attribute [[align(0)]] is simply ignored. */
-          apply_value = FALSE;
-        } else if (!check_pack_alignment_value(value, &alignment)) {
-          pos_error(ec_bad_attribute_alignment, &aap->position);
-          apply_value = FALSE;
-          make_attr_unrecognized(ap);
-        }  /* if */
-      } else {
-        apply_value = FALSE;
-      }  /* if */
-    }  /* if */
-    if (!apply_value) {
-      /* Nothing more to do. */
-    } else if (entity_kind == iek_field) {
-      a_field_ptr  fp = (a_field_ptr)entity;
-      if (std_specifier) {
-        if (field_alignment_for(fp->type) > alignment) {
-          pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
-          make_attr_unrecognized(ap);
-        } else if (alignment > fp->alignment) {
-          fp->alignment = alignment;
-        }  /* if */
-      } else {
-        /* Apply the specified alignment.  This may be an increase or a
-           decrease compared to the natural alignment of the type, but a lower
-           #pragma pack setting will take precedence in non-Microsoft modes. */
-        a_targ_alignment  eff_alignment = alignment;
-        if (!microsoft_mode && current_pack_pragma_value() != 0 &&
-            alignment > current_pack_pragma_value()) {
-          eff_alignment = current_pack_pragma_value();
-        }  /* if */
-        fp->alignment = eff_alignment;
-      }  /* if */
-    } else if (entity_kind == iek_variable) {
-      a_variable_ptr  vp = (a_variable_ptr)entity;
-      if (ap->family == (a_byte_attribute_family)af_gnu) {
-        /* GCC retains the "last" applied alignment.  Declarator attributes
-           are applied before prefix attributes. */
-        vp->alignment = alignment;
-      } else if (std_specifier) {
-        check_assertion(dps != NULL);
-        if (alignment > dps->alignment) {
-          /* The actual recording of the alignment in the variable entry will
-             be done a call to record_std_alignment_attr later on. */
-          dps->alignment = alignment;
-        }  /* if */
-      } else if (alignment > vp->alignment) {
-        vp->alignment = alignment;
-      }  /* if */
-    } else if (entity_kind == iek_type) {
-      a_type_ptr  tp = (a_type_ptr)entity;
-      /* Set the alignment here.  When the actual class layout, or choice of
-         integral type, is performed the value indicated here will be honored.
-         Note that this attribute applies to a typedef itself; not to its
-         underlying type. */
-      if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
-        if (type_is_typedef(tp) &&
-            alignment < alignment_of_type(tp->variant.typeref.type)) {
-          pos_warning(ec_declspec_align_reduction_ignored, &ap->position);
-          make_attr_unrecognized(ap);
-        } else if (is_immediate_enum_type(tp)) {
-          /* Microsoft compilers ignore the attribute in
-               enum __declspec(align(16)) E {};
-          */
-          pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
-          make_attr_unrecognized(ap);
+      } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
+        a_host_large_integer  value = 0;
+        if (get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
+                                 MAX_HOST_LARGE_INTEGER, &value)) {
+          if (value == 0) {
+            /* The standard attribute [[align(0)]] is simply ignored. */
+            apply_value = FALSE;
+          } else if (!check_pack_alignment_value(value, &alignment)) {
+            pos_error(ec_bad_attribute_alignment, &aap->position);
+            apply_value = FALSE;
+            make_attr_unrecognized(ap);
+          }  /* if */
         } else {
-          set_declspec_align(tp, alignment, &ap->position);
+          apply_value = FALSE;
+        }  /* if */
+      }  /* if */
+      if (!apply_value) {
+        /* Nothing more to do. */
+      } else if (entity_kind == iek_field) {
+        a_field_ptr  fp = (a_field_ptr)entity;
+        if (std_specifier) {
+          if (field_alignment_for(fp->type) > alignment) {
+            pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
+            make_attr_unrecognized(ap);
+          } else if (alignment > fp->alignment) {
+            fp->alignment = alignment;
+          }  /* if */
+        } else {
+          /* Apply the specified alignment.  This may be an increase or a
+             decrease compared to the natural alignment of the type, but a
+             lower #pragma pack setting will take precedence in non-Microsoft
+             modes. */
+          a_targ_alignment  eff_alignment = alignment;
+          if (!microsoft_mode && current_pack_pragma_value() != 0 &&
+              alignment > current_pack_pragma_value()) {
+            eff_alignment = current_pack_pragma_value();
+          }  /* if */
+          fp->alignment = eff_alignment;
+        }  /* if */
+      } else if (entity_kind == iek_variable) {
+        a_variable_ptr  vp = (a_variable_ptr)entity;
+        if (ap->family == (a_byte_attribute_family)af_gnu) {
+          /* GCC retains the "last" applied alignment.  Declarator attributes
+             are applied before prefix attributes. */
+          vp->alignment = alignment;
+        } else if (std_specifier) {
+          check_assertion(dps != NULL);
+          if (alignment > dps->alignment) {
+            /* The actual recording of the alignment in the variable entry will
+               be done a call to record_std_alignment_attr later on. */
+            dps->alignment = alignment;
+          }  /* if */
+        } else if (alignment > vp->alignment) {
+          vp->alignment = alignment;
+        }  /* if */
+      } else if (entity_kind == iek_type) {
+        a_type_ptr  tp = (a_type_ptr)entity;
+        /* Set the alignment here.  When the actual class layout, or choice of
+           integral type, is performed the value indicated here will be
+           honored.  Note that this attribute applies to a typedef itself; not
+           to its underlying type. */
+        if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+          if (type_is_typedef(tp) &&
+              alignment < alignment_of_type(tp->variant.typeref.type)) {
+            pos_warning(ec_declspec_align_reduction_ignored, &ap->position);
+            make_attr_unrecognized(ap);
+          } else if (is_immediate_enum_type(tp)) {
+            /* Microsoft compilers ignore the attribute in
+                 enum __declspec(align(16)) E {};
+            */
+            pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+            make_attr_unrecognized(ap);
+          } else {
+            set_declspec_align(tp, alignment, &ap->position);
+          }  /* if */
+        } else {
+          /* Apply the given alignment, but in the case of the standard
+             "alignas" specifier (in non-GCC mode), ensure only the strictest
+             alignment is recorded. */
+          if (!std_specifier || !tp->alignment_set_explicitly ||
+              alignment > tp->alignment || (gpp_mode && !clang_mode)) {
+            tp->alignment = alignment;
+            tp->alignment_set_explicitly = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (entity_kind == iek_routine) {
+        a_type_ptr  func_type = get_func_type_for_attr(ap, &entity,
+                                                       entity_kind);
+        if (func_type != NULL) {
+          func_type->alignment = alignment;
+          func_type->alignment_set_explicitly = TRUE;
         }  /* if */
       } else {
-        /* Apply the given alignment, but in the case of the standard "alignas"
-           specifier (in non-GCC mode), ensure only the strictest alignment is
-           recorded. */
-        if (!std_specifier || !tp->alignment_set_explicitly ||
-            alignment > tp->alignment || (gpp_mode && !clang_mode)) {
-          tp->alignment = alignment;
-          tp->alignment_set_explicitly = TRUE;
-        }  /* if */
+        unexpected_condition();
       }  /* if */
-    } else if (entity_kind == iek_routine) {
-      a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
-      if (func_type != NULL) {
-        func_type->alignment = alignment;
-        func_type->alignment_set_explicitly = TRUE;
-      }  /* if */
-    } else {
-      unexpected_condition();
-    }  /* if */
+      if (aap != NULL) aap = aap->next;
+    } while (aap != NULL);
   }  /* if */
   return entity;
 #else /* !USER_CONTROL_OF_STRUCT_PACKING */

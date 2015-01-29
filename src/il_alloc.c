@@ -5216,12 +5216,13 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
 
   aap = alloc_il_of_type(an_attribute_arg);
   aap->next = NULL;
+  aap->token_kind = (a_small_token_kind)tok_error;
   aap->kind = (an_attribute_arg_kind)aak_empty;
+  aap->is_pack_expansion = FALSE;
   aap->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  aap->token_kind = (a_small_token_kind)tok_error;
   aap->variant.token = NULL;
 #if DEBUG
   ++num_attribute_args_allocated;

@@ -5522,6 +5522,9 @@ Display the indicated attribute argument entry.
   disp_name("kind");
   (void)printf("%s\n", kind_name);
   disp_ptr("next", (char *)aap->next, iek_attribute_arg);
+  if (aap->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
   disp_source_position("position", &aap->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &aap->end_position);
