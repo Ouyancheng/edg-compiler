@@ -2479,6 +2479,34 @@ arrays, give the total number of elements.
   return num_elements;
 }  /* num_array_elements */
 
+
+a_boolean types_have_same_array_dimensions(a_type_ptr tp1,
+                                           a_type_ptr tp2)
+/*
+Returns TRUE if the specified types have the same array dimensions (i.e.,
+number of dimensions as well as dimensions themselves).  Two types that aren't
+array types are considered to have the same dimension.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
+  if (!is_array(tp1) && !is_array(tp2)) {
+    /* Neither type is an array, so they have the same "dimension". */
+    result = TRUE;
+  } else if (is_array(tp1) && is_array(tp2) &&
+             tp1->variant.array.variant.number_of_elements ==
+                             tp2->variant.array.variant.number_of_elements) {
+    /* Both are array types and have the same number of elements; check the
+       element types. */
+    result = types_have_same_array_dimensions(
+                                            tp1->variant.array.element_type,
+                                            tp2->variant.array.element_type);
+  }  /* if */
+  return result;
+}  /* types_have_same_array_dimensions */
+
 #if GNU_VECTOR_TYPES_ALLOWED
 
 a_targ_size_t num_vector_elements(a_type_ptr vector_type)
