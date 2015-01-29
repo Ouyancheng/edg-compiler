@@ -1266,7 +1266,8 @@ ak_unrecognized).  Either way, return an aak_empty attribute argument.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (*sig != '*' && *sig != '?' && *sig != ')' && curr_token == tok_rparen) {
+  if (*sig != '*' && *sig != '?' && *sig != ')' && curr_token == tok_rparen &&
+      !is_unrecognized_attr(ap)) {
     pos_st_error(ec_invalid_empty_attribute_arg_list, lparen_pos, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
