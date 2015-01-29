@@ -8102,6 +8102,29 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
 
 #endif /* DO_IL_LOWERING */
 
+static a_boolean should_delay_finishing_of_function_body(
+						a_routine_ptr	routine)
+/*
+Some routines must be kept in memory for later use.  Return TRUE if
+routine should be kept.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (routine != NULL &&
+      (routine->contains_generic_lambda ||
+       (routine->is_lambda_body && routine->is_template_function))) {
+    result = TRUE;
+  }  /* if */
+  if (result) {
+    /* Record that lowering has been delayed on at least one function in the
+       primary IL. */
+    function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
+  }  /* if */
+  return result;
+}  /* should_delay_finishing_of_function_body */
+
+
 static void wrap_up_symbols_with_no_scope(void)
 /*
 Certain symbols (such as keywords and predefined macros) are not entered
@@ -8773,7 +8796,7 @@ being popped.
       empty_func_shareable_constants_table();
     } else
 #endif /* DO_IL_LOWERING */
-    {
+    if (!should_delay_finishing_of_function_body(curr_routine)) {
       /* Do final processing on the function body.  That includes
          IL lowering if appropriate. */
       check_assertion(il_scope != NULL); /* For Coverity. */

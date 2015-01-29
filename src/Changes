@@ -138,11 +138,13 @@ process to abort later on.  For example:
 This is now fixed.
 
 
-1/23/15  [EDGcpfe/15917]
+1/23/15  [EDGcpfe/15917,EDGcpfe/15945]
 Internal error on instantiation of nested generic lambda
 
 An internal error could occur (in scope_depth_for_capture) during the
-instantiation of a nested generic lambda.  Now fixed.
+instantiation of a nested generic lambda.  In configurations without IL
+lowering, the internal error could occur in finish_function_body_processing.
+Now fixed.
 
   int main() {
     auto L = [](auto i) {
