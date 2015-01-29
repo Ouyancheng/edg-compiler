@@ -3864,7 +3864,7 @@ specifier.
           check_assertion(dps != NULL);
           if (alignment > dps->alignment) {
             /* The actual recording of the alignment in the variable entry will
-               be done a call to record_std_alignment_attr later on. */
+               be done by a call to record_std_alignment_attr later on. */
             dps->alignment = alignment;
           }  /* if */
         } else if (alignment > vp->alignment) {
@@ -3874,7 +3874,7 @@ specifier.
         a_type_ptr  tp = (a_type_ptr)entity;
         /* Set the alignment here.  When the actual class layout, or choice of
            integral type, is performed the value indicated here will be
-           honored.  Note that this attribute applies to a typedef itself; not
+           honored.  Note that this attribute applies to a typedef itself, not
            to its underlying type. */
         if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
           if (type_is_typedef(tp) &&
