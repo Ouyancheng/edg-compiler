@@ -7490,7 +7490,7 @@ block with state information for the processing.
           a_type_ptr     array_type = skip_typerefs(elem_type);
           a_type_ptr     con_type = skip_typerefs(rep_con->type);
           a_boolean      repeat_at_this_level = TRUE;
-          if (!standalone_identical_types(array_type, con_type)) {
+          if (!types_have_same_array_dimensions(array_type, con_type)) {
             /* A ck_init_repeat can apply either to the leaf elements or to
                the top-level array in a multidimensional array.  If the
                repeated constant matches the type at this level, don't
