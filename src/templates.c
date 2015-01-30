@@ -13672,6 +13672,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
           is_nothrow_type(underlying_rout_type)) {
         rp->never_throws = TRUE;
       }  /* if */
+      if (templ_rout->is_lambda_body) {
+        /* is_lambda_body_routine_type requires the assoc_routine pointer to
+           be recorded for lambda call operators. */
+        rtsp->assoc_routine = rp;
+      }  /* if */
     } else {
       return_type = error_type();
     }  /* if */
@@ -19213,6 +19218,8 @@ entered into the symbol table.
                          &locator->source_position);
       sym->decl_scope = scope_stack[decl_scope_level].number;
     }  /* if */
+  } else if (locator != NULL) {
+    sym = make_symbol(kind, locator);
   } else {
     sym = make_unnamed_symbol(kind, &pos_curr_token);
   }  /* if */
@@ -19318,6 +19325,7 @@ Scan the default argument of the type template parameter specified by tpp.
 static a_template_param_ptr decl_type_template_param(
                                    a_template_param_list_pos  param_pos,
                                    a_symbol_locator           *loc,
+                                   a_boolean                  is_named,
                                    a_boolean                  is_pack,
                                    a_tmpl_decl_state          *decl_state,
                                    a_decl_pos_block           *decl_pos_block)
@@ -19328,10 +19336,11 @@ template parameter list.  For example, for the parameter T in
 	template<class T, class, class ... U> ...
 param_pos is 1.
 
-If the parameter is named, loc is the corresponding symbol locator; otherwise,
-loc is NULL.  is_pack is TRUE if the parameter is really a parameter pack.
-decl_state tracks the declaration of the template overall, and decl_pos_block
-provides additional position information.
+If the parameter is named (is_named is TRUE), loc is the corresponding symbol
+locator; otherwise, loc may be NULL (or it may be a synthesized locator, e.g.,
+in for "auto" parameters in generic lambdas).  is_pack is TRUE if the parameter
+is really a parameter pack.  decl_state tracks the declaration of the template
+overall, and decl_pos_block provides additional position information.
 */
 {
   a_symbol_ptr		sym;
@@ -19339,7 +19348,7 @@ provides additional position information.
   a_template_param_ptr	template_param;
 
   /* Create an sk_type symbol for the parameter. */
-  sym = create_template_param_symbol((a_symbol_kind)sk_type, loc, loc == NULL,
+  sym = create_template_param_symbol((a_symbol_kind)sk_type, loc, !is_named,
                                      /*enter_sym=*/TRUE);
   /* Allocate a template-param type.  This type is for front-end use
      only and will not appear in the IL passed on to the back end.  It
@@ -19360,9 +19369,9 @@ provides additional position information.
                      scope_stack_top().il_scope);
     add_to_types_list(template_param_type, depth_scope_stack);
   }  /* if */
-  if (loc == NULL) {
+  if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed type is
-       represented by NULL, not "<unnamed>" as indicated by the symbol
+       represented by NULL, not "<unnamed>" as might be indicated by the symbol
        header. */
     clear_source_corresp_name(&template_param_type->source_corresp);
   }  /* if */
@@ -19432,7 +19441,7 @@ parameter entry for the parameter.
   template_param = decl_type_template_param(template_param_list_pos,
                                             is_named ? &locator_for_curr_id
                                                      : (a_symbol_locator*)NULL,
-                                            is_pack,
+                                            is_named, is_pack,
                                             decl_state,
                                             &decl_pos_block);
   /* Bypass the identifier. */
@@ -26042,6 +26051,9 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   a_template_param_ptr         template_param, end_template_param_list = NULL;
   an_auto_param_descr_ptr      apdp = dps->auto_params;
   a_template_param_list_pos    param_pos = 1;
+#define AUTO_PARAM_NAME_PREFIX "<auto-"
+#define AUTO_PARAM_NAME_SUFFIX ">"
+  char                         param_name[100] = AUTO_PARAM_NAME_PREFIX;
 
   check_assertion(apdp != NULL);
   init_tmpl_decl_state_for_generated_member_template(templ_state);
@@ -26073,16 +26085,29 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
      entry. */
   scope_stack_top().tmpl_decl_state = templ_state;
   for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
+    a_symbol_locator  param_loc;
     a_decl_pos_block  decl_pos_block;
+    sizeof_t          len;
     clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_pos_block.identifier_range.start = apdp->start_pos;
     decl_pos_block.identifier_range.end = apdp->end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    template_param = decl_type_template_param(param_pos,
-                                              (a_symbol_locator*)NULL,
+    /* Create a locator for the synthesized parameter. */
+    clear_locator(&param_loc, &apdp->start_pos);
+    unsigned_to_string_buf((a_host_large_unsigned)param_pos,
+                           param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
+    len = strlen(param_name);
+    strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
+    len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
+    (void)find_symbol(param_name, len, &param_loc);
+#undef AUTO_PARAM_NAME_PREFIX
+#undef AUTO_PARAM_NAME_SUFFIX
+    template_param = decl_type_template_param(param_pos, &param_loc,
+                                              /*is_named=*/FALSE,
                                               apdp->is_parameter_pack,
                                               templ_state, &decl_pos_block);
+    template_param->param_symbol->is_invisible = TRUE;
     template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
     template_param->variant.type->variant.template_param.is_auto_param = TRUE;
     apdp->template_type_parameter = template_param;

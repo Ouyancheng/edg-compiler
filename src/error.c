@@ -1006,6 +1006,7 @@ level.
           /* This is not the first argument -- add "," separator. */
           add_string_to_segment(", ", seg_ptr);
         }  /* if */
+// FIXME for auto?
         add_string_to_segment(tpp->param_symbol->header->identifier,
                               seg_ptr);
         add_string_to_segment("=", seg_ptr);
@@ -1096,7 +1097,7 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_boolean			is_declaration_like = FALSE;
   a_symbol_ptr			corresp_template_sym = NULL;
   a_template_instance_ptr	tip = NULL;
-  a_symbol_ptr			sym_to_display;
+  a_symbol_ptr			sym_to_display = NULL;
   a_boolean			saved_remove_template_typedefs;
   a_boolean  saved_render_auto_deduction_typerefs =
                                 octl.render_auto_deduction_typerefs;
@@ -1246,6 +1247,14 @@ declaration position to eliminate redundant file names in a diagnostic.
       routine = fund_sym->variant.routine.ptr;
       entity_kind = ec_function;
       is_declaration_like = TRUE;
+      if (fund_sym->variant.routine.ptr->is_lambda_body) {
+        /* For lambdas, display the closure type name instead, which is of
+           the form "lambda [](params)->some_type" and therefore already
+           reflects the function's signature. */
+        sym_to_display = symbol_for(fund_sym->parent.class_type);
+        routine = NULL;
+        type = NULL;
+      }  /* if */
       goto symbol_name;
     case sk_extern_routine:
       type = fund_sym->variant.extern_symbol_descr->type;
@@ -1313,6 +1322,14 @@ declaration position to eliminate redundant file names in a diagnostic.
       /* Function templates can differ only by return type, so include the
          return type when also displaying the parameter types. */
       force_return_type = seg_ptr->variant.symbol.force_function_params;
+      if (routine->is_lambda_body) {
+        /* For lambdas, display the closure type name instead, which is of
+           the form "lambda [](params)->some_type" and therefore already
+           reflects the function's signature. */
+        sym_to_display = symbol_for(fund_sym->parent.class_type);
+        routine = NULL;
+        type = NULL;
+      }  /* if */
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration-like entity. */
@@ -1343,7 +1360,8 @@ symbol_name:
       /* Determine the symbol to be displayed.  For class members and
          ambiguous symbols always use the original symbol.  Otherwise, use
          the fundamental symbol. */
-      { a_boolean	use_orig_sym;
+      if (sym_to_display == NULL) {
+        a_boolean	use_orig_sym;
         use_orig_sym = sym->is_class_member || sym->ambiguous;
         if (corresp_template_sym == NULL) {
           sym_to_display = use_orig_sym ? sym : fund_sym;
