@@ -1,5 +1,27 @@
 Version 4.11
 
+1/30/15  [EDGcpfe/15951]
+Diagnostics for lambdas
+
+The readability of diagnostics for lambdas (generic lambdas in particular) has
+been improved.  For example, a diagnostic that previously read
+
+  "t1.c", line 7: warning: variable "y" was declared but never referenced
+            int y = a;
+                ^
+            detected during instantiation of "lambda
+                      [](auto)->auto::operator()(auto)->auto [with
+                      <unnamed>=int]" at line 11
+
+is now rendered as
+
+  "t1.c", line 7: warning: variable "y" was declared but never referenced
+            int y = a;
+                ^
+            detected during instantiation of function
+                      "lambda [](auto)->auto [with <auto-1>=int]" at line 11
+
+
 1/29/15  [EDGcpfe/15942]
 Lowering of multidimensional arrays with qualified element types
 
