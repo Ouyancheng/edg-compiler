@@ -1006,7 +1006,6 @@ level.
           /* This is not the first argument -- add "," separator. */
           add_string_to_segment(", ", seg_ptr);
         }  /* if */
-// FIXME for auto?
         add_string_to_segment(tpp->param_symbol->header->identifier,
                               seg_ptr);
         add_string_to_segment("=", seg_ptr);
