@@ -12801,7 +12801,9 @@ have already had their designated initializers lowered.
           /* As a shortcut, the IL allows a single "leaf" entity to be
              repeated for a multi-dimensional aggregate constant.  Remove
              this shortcut and create IL that represents the structure of the
-             multi-dimensional array. */
+             multi-dimensional array.  Note that the underlying array element
+             type may be const-qualified here (and not the repeated constant
+             type). */
           handle_multidimensional_ck_init_repeat(con.ptr, elem_type);
           /* Update information about the revised repeated constant. */
           check_assertion(con.ptr->kind ==

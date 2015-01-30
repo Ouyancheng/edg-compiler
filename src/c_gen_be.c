@@ -7494,7 +7494,8 @@ block with state information for the processing.
             /* A ck_init_repeat can apply either to the leaf elements or to
                the top-level array in a multidimensional array.  If the
                repeated constant matches the type at this level, don't
-               extend the count to the leaf elements. */
+               extend the count to the leaf elements.  Note that the array
+               type may be const-qualified here (and not the constant type). */
             ipdp->repetition_count = &count;
             repeat_at_this_level = FALSE;
           }  /* if */
