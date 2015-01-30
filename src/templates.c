@@ -26095,8 +26095,8 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Create a locator for the synthesized parameter. */
     clear_locator(&param_loc, &apdp->start_pos);
-    unsigned_to_string_buf((a_host_large_unsigned)param_pos,
-                           param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
+    (void)unsigned_to_string_buf((a_host_large_unsigned)param_pos,
+                                 param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
     len = strlen(param_name);
     strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
     len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
