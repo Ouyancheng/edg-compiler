@@ -6785,7 +6785,7 @@ to match GNU's behavior).
       } else if (dps != NULL &&
                  !((a_routine_ptr)entity)->is_prototype_instantiation) {
         /* Attributes specified on specializations are also ignored. */
-        pos_warning(ec_abi_tag_ignored_on_instantiation, &ap->position);
+        pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
         make_attr_unrecognized(ap);
       }  /* if */
     } else if (dps != NULL &&
@@ -6794,9 +6794,9 @@ to match GNU's behavior).
                is_immediate_class_type((a_type_ptr)entity) &&
                ((a_type_ptr)entity)->
                                    variant.class_struct_union.is_specialized) {
-      /* Ignore attributes (with a warning) on explicit instantiations
+      /* Ignore attributes (with a warning) on explicit specializations
          (they had been accepted prior to 4.9.0). */
-      pos_warning(ec_abi_tag_ignored_on_instantiation, &ap->position);
+      pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
       make_attr_unrecognized(ap);
     }  /* if */
     if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
