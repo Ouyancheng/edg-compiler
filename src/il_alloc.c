@@ -1851,6 +1851,7 @@ to default values.
 #endif /* DO_IL_LOWERING */
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
+      rtsp->assoc_routine_is_lambda_body = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->routine_name_linkage     = default_routine_name_linkage;
       rtsp->routine_name_linkage_is_explicit = FALSE;

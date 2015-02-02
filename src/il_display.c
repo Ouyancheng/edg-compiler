@@ -1504,6 +1504,9 @@ Display a_routine_type_supplement.
   if (ptr->assoc_routine_is_dtor) {
     disp_boolean("assoc_routine_is_dtor", TRUE);
   }  /* if */
+  if (ptr->assoc_routine_is_lambda_body) {
+    disp_boolean("assoc_routine_is_lambda_body", TRUE);
+  }  /* if */
   if (ptr->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
     disp_name_linkage("routine_name_linkage",
                       (a_name_linkage_kind)ptr->routine_name_linkage);

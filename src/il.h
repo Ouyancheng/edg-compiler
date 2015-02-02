@@ -2180,8 +2180,7 @@ Return TRUE if type is a lambda closure class.
 Return TRUE if rout_type is a routine type for a lambda.
 */
 #define is_lambda_body_routine_type(rout_type)				\
-  ((rout_type)->variant.routine.extra_info->assoc_routine != NULL &&	\
-   (rout_type)->variant.routine.extra_info->assoc_routine->is_lambda_body)
+  ((rout_type)->variant.routine.extra_info->assoc_routine_is_lambda_body)
 
 /*
 Return the unmangled name of an entity, given a pointer to its source

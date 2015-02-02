@@ -13673,9 +13673,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
         rp->never_throws = TRUE;
       }  /* if */
       if (templ_rout->is_lambda_body) {
-        /* is_lambda_body_routine_type requires the assoc_routine pointer to
-           be recorded for lambda call operators. */
-        rtsp->assoc_routine = rp;
+        rtsp->assoc_routine_is_lambda_body = TRUE;
       }  /* if */
     } else {
       return_type = error_type();

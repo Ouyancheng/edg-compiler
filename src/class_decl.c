@@ -14892,7 +14892,8 @@ decl_member_function_template.
     a_boolean           prev_source_sequence_entries_disallowed
                                          = source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    check_assertion(is_function_type(dps->type));
+    check_assertion(dps->type->kind == (a_type_kind)tk_routine);
+    dps->type->variant.routine.extra_info->assoc_routine_is_lambda_body = TRUE;
     func_info->is_inline = TRUE;
     func_info->is_definition = TRUE;
     make_opname_locator((an_opname_kind)onk_function_call, &loc,

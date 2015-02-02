@@ -6282,6 +6282,10 @@ typedef struct a_routine_type_supplement {
   a_bit_field	assoc_routine_is_dtor:1;
 			/* TRUE if associated with a destructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
+  a_bit_field	assoc_routine_is_lambda_body:1;
+			/* TRUE if associated with a lambda call operator,
+			   even if the assoc_routine pointer has not yet been
+			   supplied. */
   a_bit_field	suppress_diagnostic_on_incomplete_return_type:1;
 			/* TRUE if, upon calling the function or taking its
 			   address, a diagnostic has been put out because the

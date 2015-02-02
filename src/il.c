@@ -23152,9 +23152,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
   rp->defined_in_friend_decl = FALSE;
   rp->assoc_scope = NULL_region_number;
   rp->is_delegating_ctor = FALSE;
-  if (!rp->is_lambda_body) {
-    skip_typerefs(rp->type)->variant.routine.extra_info->assoc_routine = NULL;
-  }  /* if */
+  skip_typerefs(rp->type)->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
     rp->storage_class = (a_storage_class)sc_extern;
 #if IA64_ABI && DO_IL_LOWERING
