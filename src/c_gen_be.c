@@ -7493,9 +7493,10 @@ block with state information for the processing.
           if (!types_have_same_array_dimensions(array_type, con_type)) {
             /* A ck_init_repeat can apply either to the leaf elements or to
                the top-level array in a multidimensional array.  If the
-               repeated constant matches the type at this level, don't
-               extend the count to the leaf elements.  Note that the array
-               type may be const-qualified here (and not the constant type). */
+               repeated constant matches the type at this level, don't extend
+               the count to the leaf elements.  Note that the cv-qualification
+               of the underlying array element type and the repeated constant
+               type may be different. */
             ipdp->repetition_count = &count;
             repeat_at_this_level = FALSE;
           }  /* if */
