@@ -3775,11 +3775,11 @@ specifier.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
+    a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
     an_attribute_arg_ptr  aap = ap->arguments;
     do {
-      a_targ_alignment      alignment = 0;
-      a_boolean             apply_value = TRUE;
-      a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+      a_targ_alignment  alignment = 0;
+      a_boolean         apply_value = TRUE;
       if (ap->arguments == NULL) {
         /* If there is no argument to the GNU "aligned" attribute, then the
            maximum alignment useful on the target is implied. */
@@ -3912,6 +3912,13 @@ specifier.
       }  /* if */
       if (aap != NULL) aap = aap->next;
     } while (aap != NULL);
+    if (is_unrecognized_attr(ap) && std_specifier) {
+      /* With the standard alignment specifier ("alignas") we may have seen
+         some valid and some invalid arguments.  If we made the attribute
+         unrecognized as a whole, discard any pending alignment updates. */
+      expect_error();
+      dps->alignment = 0;
+    }  /* if */
   }  /* if */
   return entity;
 #else /* !USER_CONTROL_OF_STRUCT_PACKING */
