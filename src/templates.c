@@ -19581,8 +19581,9 @@ depends on a template parameter.
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
-                                     &param_locator, is_unnamed,
-                                     /*enter_sym=*/TRUE);
+                                     is_unnamed ? (a_symbol_locator*)NULL
+                                                : &param_locator,
+                                     is_unnamed, /*enter_sym=*/TRUE);
   sym->variant.constant = param_con =
                      fs_constant((a_constant_repr_kind)ck_template_param);
   param_con->type = param_type_ptr;
@@ -19811,9 +19812,9 @@ depends on a another template parameter.
   /* Create a class template symbol for this template template parameter.
      Do not enter the symbol when this is a rescan. */
   sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
-                                     &locator_for_curr_id,
-                                     !is_named,
-                                     /*enter_sym=*/!is_rescan);
+                                     is_named ? &locator_for_curr_id
+                                              : (a_symbol_locator*)NULL,
+                                     !is_named, /*enter_sym=*/!is_rescan);
   templ_ptr = alloc_template();
   /* See if the parameter being declared has the same name as one of its
      template parameters. */
