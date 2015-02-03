@@ -32215,8 +32215,8 @@ the function template, and decl_state tracks its declaration.
   /* Record a text version of the generated template body. */
   init_token_string(&def_pos, /*keep_spacing=*/TRUE,
                     /*suppress_identifier_wrapping=*/FALSE);
-  add_token_cache_to_string(&tssp->cache.tokens);
   add_token_cache_to_string(&tssp->variant.function.decl_cache.tokens);
+  add_token_cache_to_string(&tssp->cache.tokens);
   decl_state->il_template_entry->text = make_copy_of_token_string();
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
