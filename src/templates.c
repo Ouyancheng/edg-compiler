@@ -19218,6 +19218,7 @@ entered into the symbol table.
     }  /* if */
   } else if (locator != NULL) {
     sym = make_symbol(kind, locator);
+    sym->decl_scope = scope_stack[decl_scope_level].number;
   } else {
     sym = make_unnamed_symbol(kind, &pos_curr_token);
   }  /* if */
