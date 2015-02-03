@@ -19216,7 +19216,7 @@ entered into the symbol table.
                          &locator->source_position);
       sym->decl_scope = scope_stack[decl_scope_level].number;
     }  /* if */
-  } else if (locator != NULL) {
+  } else if (locator != NULL && !locator->is_error) {
     sym = make_symbol(kind, locator);
     sym->decl_scope = scope_stack[decl_scope_level].number;
   } else {
