@@ -13319,8 +13319,11 @@ aggregate constant.
   /* Allocate a new aggregate of the appropriate type. */
   new_aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
   new_aggr->type = target_type;
-  if (target_elements == 1) {
-    /* No repeat needed if count is one. */
+  if (target_elements == 1 &&
+      !is_array_type(target_type->variant.array.element_type)) {
+    /* No repeat needed if count is one (and there are no further dimensions
+       in the array -- watch out for the [1][1] case -- keep the ck_init_repeat
+       in that case). */
     rep_con = old_rep_con;
   } else {
     rep_con = alloc_repeated_constant(old_rep_con, target_elements);
