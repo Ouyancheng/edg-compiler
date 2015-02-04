@@ -5264,6 +5264,31 @@ a copy of the previous type).
       } else {
         /* type_ptr must be preserved. */
         comp_type = composite_type(type_ptr, rout_type);
+        /* If there are pending default arguments, transfer any prior default
+           arguments to the new type, to ensure that duplicate default
+           arguments are correctly diagnosed.  E.g.:
+               void f(int = 3);
+               void f(int = 3) {}
+           Here, the new type is the one recorded, but its default argument
+           expressions will be scanned later (via a routine fixup).  So at this
+           point the param type entry returned by composite_type has the
+           has_default_arg flag set to TRUE, but the default_arg_expr field
+           set to NULL. */
+        if (dps->routine_fixup != NULL) {
+          a_param_type_ptr  from_ptp, to_ptp;
+          from_ptp = function_type_params(skip_typerefs(rout_type));
+          to_ptp = function_type_params(skip_typerefs(comp_type));
+          while (from_ptp != NULL && to_ptp != NULL) {
+            if (from_ptp->has_default_arg && to_ptp->has_default_arg &&
+                from_ptp->default_arg_expr != NULL &&
+                to_ptp->default_arg_expr == NULL) {
+              to_ptp->default_arg_expr = duplicate_default_arg_expr(
+                                              from_ptp->default_arg_expr);
+            }  /* if */
+            from_ptp = from_ptp->next;
+            to_ptp = to_ptp->next;
+          }  /* while */
+        }  /* if */
         routine_ptr->type = rout_type = type_ptr;
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
@@ -8460,26 +8485,6 @@ for use in generating cross-reference output describing this declaration.
                                   /*preserve_type_ptr=*/(is_function_def ||
                                                          replace_routine),
                                   dps);
-            if (is_function_def && dps->routine_fixup != NULL) {
-              /* We've preserved type_ptr, but that may mask duplicate
-                 default argument errors.  E.g.:
-                   void f(int = 3);
-                   void f(int = 3) {}
-                 Copy default arguments over if needed. */
-              a_param_type_ptr  from_ptp, to_ptp;
-              from_ptp = function_type_params(skip_typerefs(dps->prev_type));
-              to_ptp = function_type_params(skip_typerefs(type_ptr));
-              while (from_ptp != NULL && to_ptp != NULL) {
-                if (from_ptp->has_default_arg && to_ptp->has_default_arg &&
-                    from_ptp->default_arg_expr != NULL &&
-                    to_ptp->default_arg_expr == NULL) {
-                  to_ptp->default_arg_expr = duplicate_default_arg_expr(
-                                                  from_ptp->default_arg_expr);
-                }  /* if */
-                from_ptp = from_ptp->next;
-                to_ptp = to_ptp->next;
-              }  /* while */
-            }  /* if */
           }  /* if */
           if (gpp_mode && params != NULL && !old_decl_has_body &&
               !is_function_def &&
