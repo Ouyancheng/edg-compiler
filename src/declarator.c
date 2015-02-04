@@ -1974,23 +1974,43 @@ a trailing return type.
   if (is_array_type(state->declared_type)) {
     pos_error(ec_auto_type_in_array_type, &state->auto_pos);
     err = TRUE;
-  } else if (!state->has_trailing_return_type &&
-             is_function_type(state->declared_type)) {
-    if (deduced_return_types_enabled) {
-      /* Something like "auto g() { return 0; }", which is permitted in
-         C++14. */
-      state->has_deducible_return_type = TRUE;
-    } else {
-      if (is_error_type(state->specifiers_type)) {
-        /* A diagnostic has been issued already. */
-        expect_error();
+  } else {
+    a_boolean  is_function_declarator =
+                        state->declared_type->kind == (a_type_kind)tk_routine;
+    /* Check that if "decltype(auto)" is used, it has no declarator operator
+       on top.   E.g., "decltype(auto)& g();" is invalid. */
+    if (state->decltype_auto_specifier_seen &&
+        (!state->has_trailing_return_type || state->is_trailing_return_type)) {
+      a_type_kind  ret_kind;
+      if (is_function_declarator) {
+        ret_kind = state->declared_type->variant.routine.return_type->kind;
       } else {
-        pos_error(trailing_return_types_enabled ?
-                    ec_missing_trailing_return_type :
-                    ec_auto_type_in_function_type,
+        ret_kind = state->declared_type->kind;
+      }  /* if */
+      if (ret_kind == (a_type_kind)tk_pointer ||
+          ret_kind == (a_type_kind)tk_ptr_to_member) {
+        pos_error(ec_decltype_auto_return_must_be_standalone,
                   &state->auto_pos);
       }  /* if */
-      err = TRUE;
+    }  /* if */
+    /* Check whether a trailing return type is missing. */
+    if (is_function_declarator && !state->has_trailing_return_type) {
+      if (deduced_return_types_enabled) {
+        /* Something like "auto g() { return 0; }", which is permitted in
+           C++14. */
+        state->has_deducible_return_type = TRUE;
+      } else {
+        if (is_error_type(state->specifiers_type)) {
+          /* A diagnostic has been issued already. */
+          expect_error();
+        } else {
+          pos_error(trailing_return_types_enabled ?
+                      ec_missing_trailing_return_type :
+                      ec_auto_type_in_function_type,
+                    &state->auto_pos);
+        }  /* if */
+        err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {
@@ -2085,7 +2105,6 @@ routine is also called for the trailing return type of a lambda declarator.
     if (trt_dps.auto_type_specifier_seen &&
         (!trt_dps.has_trailing_return_type ||
          trt_dps.has_deducible_return_type)) {
-      check_type_with_auto_specifier(&trt_dps);
       dps->has_deducible_return_type = TRUE;
     }  /* if */
   }  /* if */

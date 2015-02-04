@@ -2698,6 +2698,7 @@ ec_abi_tag_ignored;;"abi_tag attribute is ignored (superseded by later abi_tag a
 ec_no_abi_tag_on_declaration;;"previous declaration of %nd had no abi_tag attribute"
 ec_abi_tag_prev_declaration;INTERNAL;"(see previous declaration %p)"
 ec_abi_tag_ignored_on_specialization;;"abi_tag attribute is ignored on specialization"
+ec_decltype_auto_return_must_be_standalone;;"decltype(auto) cannot appear under a pointer, reference, or pointer-to-member construct"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

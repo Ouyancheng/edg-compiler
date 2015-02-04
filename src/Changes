@@ -1,5 +1,17 @@
 Version 4.11
 
+2/4/15   [EDGcpfe/15974]
+Invalid decltype(auto) use not diagnosed in deduced return types
+
+The C++14 decltype(auto) type specifier cannot be combined with a pointer,
+reference, or pointer-to-member declarator operator.  The front diagnosed this
+for variable declarations, but not for deduced return types.  For example:
+
+  decltype(auto)& f();  // Previously went undiagnosed in C++14 mode.
+
+This is now fixed: An error is issued in such cases.
+
+
 2/3/15   [EDGcpfe/15963]
 Assertion failure during lowering of multidimensional arrays
 
