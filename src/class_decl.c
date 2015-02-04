@@ -15881,7 +15881,9 @@ specific information about the member declaration, respectively.
                var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                (class_state->is_nonreal_instantiation &&
-                is_template_param_type(member_type))) {
+                is_template_param_type(var->is_constexpr ?
+                                                 skip_array_types(member_type)
+                                               : member_type))) {
       /* A const integral or const enumeration type may be initialized inside
          the class definition.  C++11 extended this to literal type members
          for constexpr data members.  In either case the static data member
