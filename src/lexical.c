@@ -2988,27 +2988,6 @@ invocations.
 
 
 /*
-Add a source line modification entry to indicate deletion of num_chars
-characters starting at line_loc.  The inserted_chars area is used for the
-zero-length replacement string.  for_comment is TRUE if the modification is
-due to a comment.  If no text is to be deleted, nothing is done (there is
-no room for the ATTENTION_MARKER).
-*/
-#define add_deletion_source_line_modif(line_loc, num_chars, for_comment)     \
-{                                                                            \
-  if ((num_chars) > 0) {                                                     \
-    a_source_line_modif_ptr dslmp;                                           \
-    dslmp = add_source_line_modif(line_loc, (sizeof_t)(num_chars),           \
-                                  (char *)NULL, (char *)NULL);               \
-    *dslmp->inserted_chars   = LE_ESCAPE;                                    \
-    dslmp->inserted_chars[1] = LE_END_OF_INSERTION;                          \
-    dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
-    dslmp->is_for_comment = for_comment;                                     \
-  }  /* if */                                                                \
-}  /* add_deletion_source_line_modif */
-
-
-/*
 Add a source line modification to indicate replacement of num_chars
 characters starting at line_loc by a space.  This is used for deletion
 of comments.  A different space string must be used for each comment
@@ -3549,8 +3528,9 @@ is TRUE.
             putc('\0', f_pp_output);
             prev_ch = '\0';
             loc_in_line += LE_ESCAPE_LEN;
-          } else if (ch == LE_COMMA_FROM_ARGUMENT) {
-            /* Do not output comma markers. */
+          } else if (ch == LE_COMMA_FROM_ARGUMENT ||
+                     ch == LE_RAW_OR_EXPANDED_ARGUMENT) {
+            /* Do not output comma or argument markers. */
             loc_in_line += LE_ESCAPE_LEN;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
           } else if (ch == LE_END_OF_TOP_LEVEL_EXPANSION) {
@@ -3929,12 +3909,13 @@ the calls to this routine.
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
             ch == LE_TEMPORARILY_INERT_MACRO ||
-            ch == LE_COMMA_FROM_ARGUMENT
+            ch == LE_COMMA_FROM_ARGUMENT ||
+            ch == LE_RAW_OR_EXPANDED_ARGUMENT
 #if !FULLY_RESOLVED_MACRO_POSITIONS
             || ch == LE_END_OF_TOP_LEVEL_EXPANSION
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
             ) {
-          /* Do not output end-of-token, inert-macro, comma, or
+          /* Do not output end-of-token, inert-macro, comma, argument, or
              end-of-top-level-expansion markers. */
           token_start = TRUE;
           loc_in_line += LE_ESCAPE_LEN;
@@ -7937,6 +7918,13 @@ white_space_loop:
         pos_of_macro_invocation = null_source_position;
         curr_char_loc += LE_ESCAPE_LEN;
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+      } else if (ch == LE_RAW_OR_EXPANDED_ARGUMENT) {
+        /* Marker put into text to indicate the start of a special sequence
+           that allows either the raw or expanded form of a macro argument
+           to be used, depending on how it is used in the replacement text.
+           See choose_raw_or_expanded_arg for details. */
+        choose_raw_or_expanded_arg();
+        curr_char_loc += LE_ESCAPE_LEN;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -10536,18 +10524,21 @@ non-NULL, also append the characters in the comment, through but not including
             ch == LE_INERT_MACRO ||
             ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_NULL ||
-            ch == LE_COMMA_FROM_ARGUMENT
+            ch == LE_COMMA_FROM_ARGUMENT ||
+            ch == LE_RAW_OR_EXPANDED_ARGUMENT
 #if !FULLY_RESOLVED_MACRO_POSITIONS
             || ch == LE_END_OF_TOP_LEVEL_EXPANSION
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
            ) {
           /* Marker put into text by preprocessing of macros, to force the
              same interpretation of token boundaries as during the macro
-             definition.  Or, marker that indicates that a macro name should
-             not be expanded, or represents a null (zero) character.  Or,
-             marker that indicates that the next comma token came from a
-             macro argument.  Or, marker for the end of a top-level macro
-             invocation.  Skip over the escape and don't put it out. */
+             definition.  Or, marker that indicates that a macro name
+             should not be expanded, or represents a null (zero) character.
+             Or, marker that indicates that the next comma token came from
+             a macro argument.  Or, marker for the end of a top-level macro
+             invocation.  Or, marker for a special sequence that includes
+             both raw and expanded versions of a macro argument.  Skip over
+             the escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -12528,6 +12519,13 @@ return_end_of_source_token:
         /* Marker put into text preceding a comma in a macro argument to
            prevent it from delimiting macro arguments upon rescan.  Process
            it as white space. */
+        skip_white_space();
+        goto start_of_token_scan;
+      } else if (ch == LE_RAW_OR_EXPANDED_ARGUMENT) {
+        /* Marker put into text preceding a special sequence that allows
+           selecting either the raw or expanded version of a macro argument,
+           depending on how it is used in the replacement text.  See
+           choose_raw_or_expanded_arg for details. */
         skip_white_space();
         goto start_of_token_scan;
       } else {

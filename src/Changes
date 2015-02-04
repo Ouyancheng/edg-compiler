@@ -1,5 +1,35 @@
 Version 4.11
 
+2/4/15   [EDGcpfe/15923]
+Microsoft compatibility: invalid pasting in arguments to nested macros
+
+The C and C++ Standards require that when a macro parameter is used as the
+operand of a ## (paste), the unexpanded version of the macro parameter is
+used.  The Microsoft preprocessor, however, generally uses the expanded
+version of the argument in such contexts.  One exception to this pattern
+occurs when the parameter is pasted to a preceding identifier; in that
+case, the Microsoft preprocessor uses the unexpanded version of the argument
+(see EDGcpfe/13024).
+
+Another exception occurs when the parameter is pasted to a preceding "(" or
+"," (which is invalid according to the Standards, since the result cannot
+form a single preprocessing token) and that character defines the start of
+a macro argument in the replacement text.  In this case, the decision
+regarding whether to use the expanded or unexpanded version of the original
+argument is determined by whether the nested macro uses its parameter in a
+paste operation or not.  If it does, the unexpanded version of the original
+argument is used; otherwise, the expanded version is used as usual.  The
+front end has now been changed to emulate this behavior in Microsoft
+compatibility modes.  For example, with --microsoft:
+
+  #define M2(M,X)      M(##X)
+  #define with_concat(X)   yy_ ## X
+  #define without_concat(X) yy X
+  #define M4  xxx
+  M2(with_concat, M4);      // Expands to: yy_M4 (argument M4 not expanded)
+  M2(without_concat, M4);   // Expands to: yy xxx (argument M4 is expanded)
+
+
 2/4/15   [EDGcpfe/15976]
 Invalid handling of function differing only in auto/decltype(auto) return type
 

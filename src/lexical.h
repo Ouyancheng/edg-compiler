@@ -1196,6 +1196,17 @@ escape.
 			   only when FULLY_RESOLVED_MACRO_POSITIONS is
 			   FALSE as part of an optimization to speed up
 			   calculation of source positions. */
+#define LE_RAW_OR_EXPANDED_ARGUMENT 10
+			/* Indicates that the immediately following text
+			   consists of a deletion source line modification
+			   where the deleted text is the raw form of a
+			   macro argument immediately followed by a
+			   deletion source line modification where the
+			   deleted text is the expanded form of that
+			   argument.  This structure allows choosing the
+			   correct form when needed to support an obscure
+			   characteristic of the Microsoft preprocessor.
+			   See choose_raw_or_expanded_arg for details. *
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -2238,6 +2249,27 @@ extern a_source_line_modif_ptr add_source_line_modif(
                           sizeof_t                  num_chars_to_delete,
                           a_const_char              *inserted_text,
                           a_const_char              *end_inserted_text);
+
+/*
+Add a source line modification entry to indicate deletion of num_chars
+characters starting at line_loc.  The inserted_chars area is used for the
+zero-length replacement string.  for_comment is TRUE if the modification is
+due to a comment.  If no text is to be deleted, nothing is done (there is
+no room for the ATTENTION_MARKER).
+*/
+#define add_deletion_source_line_modif(line_loc, num_chars, for_comment)     \
+{                                                                            \
+  if ((num_chars) > 0) {                                                     \
+    a_source_line_modif_ptr dslmp;                                           \
+    dslmp = add_source_line_modif(line_loc, (sizeof_t)(num_chars),           \
+                                  (char *)NULL, (char *)NULL);               \
+    *dslmp->inserted_chars   = LE_ESCAPE;                                    \
+    dslmp->inserted_chars[1] = LE_END_OF_INSERTION;                          \
+    dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
+    dslmp->is_for_comment = for_comment;                                     \
+  }  /* if */                                                                \
+}  /* add_deletion_source_line_modif */
+
 /* Free a source line modification entry. */
 extern void free_source_line_modif(a_source_line_modif_ptr *slmp);
 /* Remove a source line modification entry from the source_line_modif_list. */

@@ -547,6 +547,11 @@ typedef struct a_macro_param {
 			/* TRUE if the parameter is used somewhere in the
 			   body of the macro in a context that calls for the
 			   macro-expanded form of the argument. */
+  a_byte_boolean
+		is_operand_of_paste;
+			/* TRUE if the parameter is used somewhere in the
+			   body of the macro as an operand of the paste
+			   (##) operator. */
 } a_macro_param;
 
 typedef struct a_macro_def {
@@ -652,13 +657,24 @@ typedef enum /*a_repl_text_seq_kind*/ {
   rt_argument,		/* Macro-expanded string for argument.  Followed by 3
 			   bytes containing the argument number, as for 
 			   rt_raw_argument. */
-  rt_microsoft_magic_arg_marker
+  rt_microsoft_magic_arg_marker,
 			/* Like rt_paste in an extended variadic macro in
 			   that it consumes a comma preceding an empty
 			   __VA_ARGS__ substitution, but without actually
 			   pasting the following token to the preceding
 			   text.  Used to support the Microsoft variety of
 			   variadic macros. */
+  rt_microsoft_maybe_raw_argument
+			/* An argument string that might be raw or
+			   expanded, depending on its subsequent use.
+			   Normally the Microsoft preprocessor expands
+			   macro arguments, even when they are the operand
+			   of a paste, but if the argument is concatenated
+			   with a preceding "(" or "," and the result is
+			   passed in the expanded text to a macro that uses
+			   it as an operand of a paste, the raw argument is
+			   used.  Followed by 3 byes containing the
+			   argument number, as for rt_raw_argument. */
 } a_repl_text_seq_kind;
 
 

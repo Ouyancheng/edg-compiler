@@ -263,6 +263,14 @@ static a_symbol_ptr
 			   macro "__has_builtin", which is used in clang
 			   mode. */
 
+static a_boolean
+		use_raw_version_of_arg;
+			/* TRUE if the raw version of a macro argument
+			   should be used, FALSE if the expanded version
+			   should be used.  Used to support a Microsoft
+			   preprocessor idiosyncrasy.  See
+			   choose_raw_or_expanded_arg for details. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -1936,6 +1944,7 @@ to it.
   mpp->name = NULL;
   mpp->next = NULL;
   mpp->need_expanded_form = FALSE;
+  mpp->is_operand_of_paste = FALSE;
   return (mpp);
 }  /* alloc_macro_param */
 
@@ -2138,6 +2147,11 @@ print the replacement text and expansions of macros.
         ch = '!';
         p += LE_ESCAPE_LEN;
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+      } else if (ch == LE_RAW_OR_EXPANDED_ARGUMENT) {
+        /* Marker introducing both the raw and expanded versions of a
+           macro argument. */
+        ch = '~';
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -2805,6 +2819,75 @@ comment-only white space is ignored.
 }  /* macro_skip_white_space */
 
 
+void choose_raw_or_expanded_arg(void)
+/*
+curr_char_loc points to an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
+Immediately following is the ATTENTION_MARKER of a deletion source line
+modification whose deleted text is the raw version of a macro argument.
+Immediately following the deleted text is an ATTENTION_MARKER of a deletion
+source line modification whose deleted text is the expanded version of the
+macro argument.  Depending on the value of use_raw_version_of_arg, remove
+one or the other of those source line modifications and change the
+LE_RAW_OR_EXPANDED_ARGUMENT lexical escape to an LE_END_OF_TOKEN so this
+routine will not be invoked twice for the same argument.
+
+This is used to support the following Microsoft idiosyncrasy.  Given the
+macro definitions
+
+    #define M1(x) M2(##x)
+    #define M3 xyz
+
+and an invocation
+
+    M1(M3)
+
+whether the argument to M1 is expanded to xyz or left as M3 depends on the
+characteristics of M2.  If M2 is a macro that uses its argument as an
+operand of a paste (##) operator, the raw version of M3 is used; otherwise,
+the expanded version is used.  For example, with
+
+    #define M2(x) abc ## x
+
+the result will be abcM3, while with
+
+    #define M2(x) abc x
+
+the result will be abc xyz.  To support deferring the determination of
+whether to use the raw or expanded version of the argument until its
+eventual use is known, both versions are copied into the expanded text with
+their text deleted, and the construct preceded by an
+LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.  When macro_invocation is about
+to read the first token of a macro argument, it sets use_raw_version_of_arg
+according to whether the corresponding parameter is used in a paste
+operation, and skip_white_space calls this routine whenever it encounters
+an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
+*/
+{
+  a_const_char *raw_loc = curr_char_loc + LE_ESCAPE_LEN;
+  a_source_line_modif_ptr raw_slmp = nested_source_line_modif(raw_loc);
+  a_source_line_modif_ptr exp_slmp =
+             nested_source_line_modif(raw_loc + raw_slmp->num_chars_to_delete);
+
+  if (use_raw_version_of_arg) {
+    /* Remove the deletion source line modification from the raw version of
+       the argument, leaving the expanded one deleted, and update the
+       deletion count in macro_buffer accordingly. */
+    rem_source_line_modif(raw_slmp);
+    free_source_line_modif(&raw_slmp);
+    num_chars_deleted_in_macro_buffer += exp_slmp->num_chars_to_delete - 1;
+  } else {
+    /* Remove the deletion source line modification from the expanded
+       version of the argument, leaving the raw one deleted, and update the
+       delete count in macro_buffer accordingly. */
+    rem_source_line_modif(exp_slmp);
+    free_source_line_modif(&exp_slmp);
+    num_chars_deleted_in_macro_buffer += raw_slmp->num_chars_to_delete - 1;
+  }  /* if */
+  /* Ensure that this routine is not called again for this argument. */
+  *(char *)(curr_char_loc + 1) = LE_END_OF_TOKEN;
+}  /* choose_raw_or_expanded_arg */
+
+
 static a_token_kind arg_get_token(a_boolean *any_white_space_skipped)
 /*
 Fetch and return a token as part of scanning a macro argument.  Return
@@ -2920,11 +3003,12 @@ In such cases, charize is TRUE.
     if (ch == LE_ESCAPE) {
       if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO ||
           p[1] == LE_TEMPORARILY_INERT_MACRO ||
-          p[1] == LE_COMMA_FROM_ARGUMENT) {
+          p[1] == LE_COMMA_FROM_ARGUMENT ||
+          p[1] == LE_RAW_OR_EXPANDED_ARGUMENT) {
         /* End of token marker, also indicates end of character constant or
-           string literal, and start of another token soon.  The end of token
-           marker itself is not put out.  The inert-macro and comma markers
-           are handled the same way. */
+           string literal, and start of another token soon.  The end of
+           token marker itself is not put out.  The inert-macro, comma, and
+           argument markers are handled the same way. */
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
@@ -3598,6 +3682,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
   get_macro_repl_text_number(arg_number, ahead);
   next_op = (a_repl_text_seq_kind)*(ahead++);
   if (next_op == rt_raw_argument ||
+      next_op == rt_microsoft_maybe_raw_argument ||
       (microsoft_mode && next_op == rt_argument)) {
     /* A macro argument follows the concatenation.  (In Microsoft mode,
        the argument is expanded, whether or not preceded by "##".) */
@@ -3714,6 +3799,30 @@ hence its name should not be changed.
           break;
         case rt_argument:
           sect_len = map->expanded_len;
+          break;
+        case rt_microsoft_maybe_raw_argument:
+          /* The replacement text will contain both the raw and the
+             expanded versions of the argument, to allow selection of the
+             correct version once it is known how the argument will be used
+             in the replacement text.  See choose_raw_or_expanded_arg for
+             details.  The combined section consists of an
+             LE_RAW_OR_EXPANDED_ARGUMENT lexical escape, the raw text, and
+             the expanded text (or a single space if the length of the
+             expanded text is zero).  This structure is optimized away,
+             however, if the raw length is zero. */
+          if (map->raw_len == 0) {
+            /* Nothing to insert. */
+            sect_len = 0;
+          } else {
+            /* This rts_kind is only used when pasting to a preceding "("
+               or ",", so the complexities above in the processing of
+               rt_raw_argument for inert macros and pasted function names
+               are not needed here. */
+            sect_len = map->raw_len + map->expanded_len + LE_ESCAPE_LEN;
+            if (map->expanded_len == 0) {
+              ++sect_len;
+            }  /* if */
+          }  /* if */
           break;
         default:
           unexpected_condition_str2("length_of_replacement_text:",
@@ -4878,7 +4987,12 @@ end_scan_for_macro_modifs:;
       after_last_invocation_token = start_of_curr_token + len_of_curr_token;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       /* Get another token to prime the loop. */
+      if (param_list != NULL) {
+        /* Set up for a potential call of choose_raw_or_expanded_arg. */
+        use_raw_version_of_arg = param_list->is_operand_of_paste;
+      }  /* if */
       (void)arg_get_token(&any_white_space_skipped);
+      use_raw_version_of_arg = FALSE;
       pp = param_list;
       /* Check for empty argument list. */
       if (curr_token != tok_rparen || pp != NULL) {
@@ -5391,7 +5505,12 @@ end_arg_expansion:;
           /* Keep looping while a comma is the next token. */
           not_done = (curr_token == tok_comma);
           if (not_done) {
+            if (pp != NULL) {
+              /* Set up for a potential call of choose_raw_or_expanded_arg. */
+              use_raw_version_of_arg = pp->is_operand_of_paste;
+            }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            use_raw_version_of_arg = FALSE;
           }  /* if */
         } while (not_done);
         remove_stop_token(tok_comma);
@@ -5847,6 +5966,7 @@ end_arg_expansion:;
                  rts_kind == rt_microsoft_magic_arg_marker) {
         sect_len = 0;
       } else {
+        char *final_inert_escape;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
@@ -5910,41 +6030,39 @@ end_arg_expansion:;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            { char *final_inert_escape =
-                                   find_final_inert_escape(text_loc, sect_len);
-              if (final_inert_escape != NULL) {
-                /* Remove an LE_INERT_MACRO escape preceding an identifier
-                   at the end if present, since the token is being pasted
-                   to another one. */
-                /* Replace the inert-macro escape by an end-of-token escape to
-                   keep the overall length the same (repl_text_len has already
-                   been determined). */
-                /* Copy the part before the escape here, and copy the part
-                   after the escape (the identifier name) in the normal
-                   code below. */
-                sizeof_t initial_len = final_inert_escape - text_loc;
-                if (initial_len > 0) {
+            final_inert_escape = find_final_inert_escape(text_loc, sect_len);
+            if (final_inert_escape != NULL) {
+              /* Remove an LE_INERT_MACRO escape preceding an identifier
+                 at the end if present, since the token is being pasted
+                 to another one. */
+              /* Replace the inert-macro escape by an end-of-token escape to
+                 keep the overall length the same (repl_text_len has already
+                 been determined). */
+              /* Copy the part before the escape here, and copy the part
+                 after the escape (the identifier name) in the normal
+                 code below. */
+              sizeof_t initial_len = final_inert_escape - text_loc;
+              if (initial_len > 0) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-                  /* Copy the map entries for the text preceding the escape. */
-                  clone_macro_text_map_entries(&map->raw_text_map,
-                                               (sizeof_t)(text_loc -
-                                                          map->raw_text),
-                                               initial_len - 1,
-                                               &macro_text_map,
-                                               (sizeof_t)(src_loc -
-                                                          rescan_loc),
-                                               this_macro_invocation_record);
+                /* Copy the map entries for the text preceding the escape. */
+                clone_macro_text_map_entries(&map->raw_text_map,
+                                             (sizeof_t)(text_loc -
+                                                        map->raw_text),
+                                             initial_len - 1,
+                                             &macro_text_map,
+                                             (sizeof_t)(src_loc -
+                                                        rescan_loc),
+                                             this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-                  (void)memcpy(src_loc, text_loc,
-                               size_t_arg(initial_len)); /*lint !e668 */
-                  src_loc += initial_len;
-                }  /* if */
-                *src_loc++ = LE_ESCAPE;
-                *src_loc++ = LE_END_OF_TOKEN;
-                text_loc = final_inert_escape+LE_ESCAPE_LEN;
-                sect_len -= initial_len+LE_ESCAPE_LEN;
+                (void)memcpy(src_loc, text_loc,
+                             size_t_arg(initial_len)); /*lint !e668 */
+                src_loc += initial_len;
               }  /* if */
-            }
+              *src_loc++ = LE_ESCAPE;
+              *src_loc++ = LE_END_OF_TOKEN;
+              text_loc = final_inert_escape+LE_ESCAPE_LEN;
+              sect_len -= initial_len+LE_ESCAPE_LEN;
+            }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
             /* Copy the rest of the map entries (or all of them, if none were
                copied above). */
@@ -6026,6 +6144,76 @@ end_arg_expansion:;
                                          (sizeof_t)(src_loc - rescan_loc),
                                          NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+            break;
+          case rt_microsoft_maybe_raw_argument:
+            /* This is either the raw or the expanded text of an argument,
+               depending on how it is used in the replacement text. */
+            is_va_arg_substitution = (mdp->variadic && rts_number == n_params);
+            if (map->raw_len == 0) {
+              /* Special handling is not needed. */
+              sect_len = 0;
+            } else {
+              /* The inserted text will be an LE_RAW_OR_EXPANDED_ARGUMENT
+                 lexical escape, followed by the raw text of the argument,
+                 followed by the expanded text of the argument (or a single
+                 space if the length of the expanded text is zero).  Both
+                 versions will be deleted via source line modifications,
+                 leaving the correct version to be selected when the
+                 LE_RAW_OR_EXPANDED_ARGUMENT escape is processed.  See
+                 choose_raw_or_expanded_arg for details. */
+              *src_loc++ = LE_ESCAPE;
+              *src_loc++ = LE_RAW_OR_EXPANDED_ARGUMENT;
+              /* Calculate the effective length of the raw version. */
+              sect_len = map->raw_len;
+              if ((extended_variadic_macros_allowed || microsoft_mode) &&
+                  mdp->variadic &&
+                  ((a_repl_text_seq_kind)*rtp == rt_paste ||
+                   (a_repl_text_seq_kind)*rtp ==
+                                              rt_microsoft_magic_arg_marker)) {
+                adjust_length_for_magic_arg(rts_kind, rtp, n_params,
+                                            arg_values, &sect_len);
+              }  /* if */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+              /* Copy the raw text map entries, using
+                 NO_PARENT_MACRO_INVOCATION as the macro context to preserve
+                 the context from the raw argument. */
+              clone_macro_text_map_entries(&map->raw_text_map,
+                                           /*starting_src_offset=*/0,
+                                           sect_len, &macro_text_map,
+                                           (sizeof_t)(src_loc - rescan_loc),
+                                           this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+              /* Add the raw argument text and delete it. */
+              (void)memcpy(src_loc, map->raw_text, size_t_arg(sect_len));
+              add_deletion_source_line_modif(src_loc, sect_len,
+                                             /*for_comment=*/FALSE);
+              src_loc += sect_len;
+              /* Add the expanded argument text. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+              /* Copy the expanded text map entries, using
+                 NO_PARENT_MACRO_INVOCATION as the macro context to preserve
+                 the context from the expanded argument. */
+              clone_macro_text_map_entries(&map->exp_text_map,
+                                           /*starting_src_offset=*/0,
+                                           map->expanded_len, &macro_text_map,
+                                           (sizeof_t)(src_loc - rescan_loc),
+                                           this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+              /* Add the expanded argument text or a space to which the
+                 deletion source line modification can be attached. */
+              sect_len = map->expanded_len;
+              if (sect_len > 0) {
+                (void)memcpy(src_loc, map->expanded_text,
+                             size_t_arg(sect_len));
+              } else {
+                sect_len = 1;
+                *src_loc = ' ';
+              }  /* if */
+              add_deletion_source_line_modif(src_loc, sect_len,
+                                             /*for_comment=*/FALSE);
+              src_loc += sect_len;
+              goto copy_done;
+            }  /* if */
             break;
           default:
             unexpected_condition_str2("macro_invocation:",
@@ -6542,6 +6730,7 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
           }  /* for */
           break;
         case rt_raw_argument:
+        case rt_microsoft_maybe_raw_argument:
           /* parameter ## normal or parameter ## parameter, or pcc-mode
              parameter. */
           put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
@@ -6679,8 +6868,9 @@ beginning of the encoding of the replacement list.
       fprintf(f_debug, "function-like, parameter list:\n");
       for (pp = param_list, param_num = 1; pp != NULL;
            pp = pp->next, param_num++) {
-        fprintf (f_debug, "  (%d) %s%s\n", (int)param_num, pp->name,
-                 pp->need_expanded_form ? " (need expanded form)" : "");
+        fprintf(f_debug, "  (%d) %s%s%s\n", (int)param_num, pp->name,
+                pp->need_expanded_form ? " (need expanded form)" : "",
+                pp->is_operand_of_paste ? " (is_operand_of_paste)" : "");
       }  /* for */
     }  /* if */
     fprintf(f_debug, "replacement text:\n");
@@ -6719,6 +6909,9 @@ beginning of the encoding of the replacement list.
           fprintf(f_debug, "  magic arg marker\n");
           check_assertion(rts_number == 0);
           break;
+        case rt_microsoft_maybe_raw_argument:
+          fprintf(f_debug, "  maybe raw argument %lu\n",
+                           (unsigned long)rts_number);
         default:
           unexpected_condition_str2("db_dump_macro_def:",
                                     "bad section kind in macro def");
@@ -6779,7 +6972,8 @@ repl_text_length does not include the rt_null terminator.
       } else if (ch == (char)rt_raw_argument ||
                  ch == (char)rt_stringized_raw_argument ||
                  ch == (char)rt_charized_raw_argument ||
-                 ch == (char)rt_argument) {
+                 ch == (char)rt_argument ||
+                 ch == (char)rt_microsoft_maybe_raw_argument) {
         /* Check to ensure the argument number matches, then skip over
            it. */
         mismatch_seen =
@@ -7151,16 +7345,31 @@ Scan and process a #define directive.
                   (prev_token != tok_identifier ||
                    (microsoft_version >= 1400 && variadic &&
                     param_num == n_params))) {
-                /* The Microsoft compiler expands variadic arguments before
-                   substitution, even after "##".  It also expands a normal
-                   argument if the token before "##" is not an
-                   identifier. */
-                put_start_of_non_text_section(rt_argument, param_num);
+                /* The Microsoft preprocessor normally expands variadic
+                   arguments before substitution, even after "##".  It also
+                   expands a normal argument if the token before "##" is
+                   not an identifier. */
+                if (prev_token == tok_lparen || prev_token == tok_comma) {
+                  /* An exception to this behavior is when the token is
+                     used as an argument to a nested macro and that macro
+                     uses the argument as an operand of a paste operation.
+                     In that case, the raw version of the macro is used.
+                     To allow the decision to be deferred until it is known
+                     whether the exception applies, a special sequence
+                     containing both the raw and expanded versions will be
+                     used. */
+                  put_start_of_non_text_section(
+                                               rt_microsoft_maybe_raw_argument,
+                                               param_num);
+                } else {
+                  put_start_of_non_text_section(rt_argument, param_num);
+                }  /* if */
                 param_ptr->need_expanded_form = TRUE;
               } else {
                 /* The raw form of the argument will be used. */
                 put_start_of_non_text_section(rt_raw_argument, param_num);
               }  /* if */
+              param_ptr->is_operand_of_paste = TRUE;
               need_end_of_token_marker = TRUE;
               (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                     &any_white_space_skipped);
@@ -7276,6 +7485,7 @@ Scan and process a #define directive.
               /* The argument will be used in its raw form. */
               put_start_of_non_text_section(rt_raw_argument, save_param_num);
             }  /* if */
+            save_param_ptr->is_operand_of_paste = TRUE;
           } else {
             /* Not "##", so put expanded version of argument into string. */
             put_start_of_non_text_section(rt_argument, save_param_num);
@@ -9840,6 +10050,7 @@ after this function.
 #endif /* RECORD_MACRO_INVOCATIONS */
   access_control_sfinae = FALSE;
   contextual_conversions = FALSE;
+  use_raw_version_of_arg = FALSE;
 }  /* macro_trans_unit_init */
 
 
