@@ -1206,7 +1206,7 @@ escape.
 			   argument.  This structure allows choosing the
 			   correct form when needed to support an obscure
 			   characteristic of the Microsoft preprocessor.
-			   See choose_raw_or_expanded_arg for details. *
+			   See choose_raw_or_expanded_arg for details. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
