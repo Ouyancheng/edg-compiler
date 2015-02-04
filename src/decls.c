@@ -5282,8 +5282,11 @@ a copy of the previous type).
             if (from_ptp->has_default_arg && to_ptp->has_default_arg &&
                 from_ptp->default_arg_expr != NULL &&
                 to_ptp->default_arg_expr == NULL) {
+              expect_error();
               to_ptp->default_arg_expr = duplicate_default_arg_expr(
                                               from_ptp->default_arg_expr);
+              to_ptp->entities_defined_in_default_arg =
+                                    from_ptp->entities_defined_in_default_arg;
             }  /* if */
             from_ptp = from_ptp->next;
             to_ptp = to_ptp->next;
