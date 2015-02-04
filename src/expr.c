@@ -360,7 +360,7 @@ was not attempted because the types involved are still dependent,
       if (keep_placeholder) {
         a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
         type->variant.typeref.type = *deduced_auto_type;
-        type->variant.typeref.is_deduced_auto = TRUE;
+        type->variant.typeref.is_deduced_decltype_auto = TRUE;
         *type_after_deduction = type;
       } else {
         *type_after_deduction = *deduced_auto_type;
@@ -36889,7 +36889,8 @@ are left unaffected).
 */
 {
   if (!rp->is_prototype_instantiation) {
-    a_type_ptr  declared_return_type, deduced_return_type;
+    a_type_ptr  declared_return_type, deduced_return_type, tp;
+    a_boolean   is_decltype_auto_case = FALSE;
     check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH &&
                     rp->type->kind == (a_type_kind)tk_routine &&
                     rp->has_deducible_return_type);
@@ -36899,8 +36900,13 @@ are left unaffected).
     } else {
       declared_return_type = rp->type->variant.routine.return_type;
     }  /* if */
-    if (is_auto_type(skip_typerefs(declared_return_type))) {
+    tp = skip_typerefs(declared_return_type);
+    if (is_auto_type(tp)) {
       deduced_return_type = void_type();
+      if (tp->variant.template_param.extra_info->coordinates.position
+                                                == DECLTYPE_AUTO_POS_NUMBER) {
+        is_decltype_auto_case = TRUE;
+      }  /* if */
     } else {
       pos_error(ec_cannot_deduce_auto_type, diag_pos);
       deduced_return_type = error_type();
@@ -36908,7 +36914,11 @@ are left unaffected).
     if (keep_placeholder) {
       a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
       type->variant.typeref.type = deduced_return_type;
-      type->variant.typeref.is_deduced_auto = TRUE;
+      if (is_decltype_auto_case) {
+        type->variant.typeref.is_deduced_decltype_auto = TRUE;
+      } else {
+        type->variant.typeref.is_deduced_auto = TRUE;
+      }  /* if */
       deduced_return_type = type;
     }  /* if */
     set_deduced_return_type(deduced_return_type, diag_pos);

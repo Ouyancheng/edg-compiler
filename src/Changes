@@ -1,5 +1,19 @@
 Version 4.11
 
+2/4/15   [EDGcpfe/15976]
+Invalid handling of function differing only in auto/decltype(auto) return type
+
+When function declarations differ only in that on return type is "auto" and the
+other "decltype(auto)", the front end previously erroneously treated those as
+declaring the same function.  For example:
+
+  auto f();
+  decltype(auto) f();  // Previously accepted as a redeclaration in C++14 mode,
+                       // now an error because only the return type differs.
+
+This is now fixed.
+
+
 2/4/15   [EDGcpfe/15974]
 Invalid decltype(auto) use not diagnosed in deduced return types
 
