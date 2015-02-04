@@ -36488,7 +36488,15 @@ TRUE if the function being declared is a class member or friend.
     /* Record entities defined in the default argument expression. */
     an_il_entity_list_entry_ptr  *p_lep;
     p_lep = &ptp->entities_defined_in_default_arg;
-    while (*p_lep != NULL) p_lep = &(*p_lep)->next;
+    if (*p_lep != NULL) {
+      /* This can happen in error cases where default arguments are
+         duplicated.  Make sure both lists of entities are recorded for error
+         recovery purposes. */
+      expect_error();
+      do {
+       p_lep = &(*p_lep)->next;
+      } while (*p_lep != NULL);
+    }  /* if */
     expr_stack_entry.p_end_of_entities_defined_in_expression = p_lep;
   }  /* if */
   if (list_init_enabled && curr_token == tok_lbrace) {
