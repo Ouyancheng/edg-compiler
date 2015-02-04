@@ -19337,7 +19337,7 @@ param_pos is 1.
 
 If the parameter is named (is_named is TRUE), loc is the corresponding symbol
 locator; otherwise, loc may be NULL (or it may be a synthesized locator, e.g.,
-in for "auto" parameters in generic lambdas).  is_pack is TRUE if the parameter
+for "auto" parameters in generic lambdas).  is_pack is TRUE if the parameter
 is really a parameter pack.  decl_state tracks the declaration of the template
 overall, and decl_pos_block provides additional position information.
 */
