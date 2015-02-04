@@ -6912,6 +6912,7 @@ beginning of the encoding of the replacement list.
         case rt_microsoft_maybe_raw_argument:
           fprintf(f_debug, "  maybe raw argument %lu\n",
                            (unsigned long)rts_number);
+          break;
         default:
           unexpected_condition_str2("db_dump_macro_def:",
                                     "bad section kind in macro def");
