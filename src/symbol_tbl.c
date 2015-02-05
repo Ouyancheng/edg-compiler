@@ -2949,10 +2949,17 @@ explicitly specialized.
 
   if (sym->is_class_member) {
     a_type_ptr  parent_class = sym_parent_class(sym);
-    while (parent_class->source_corresp.is_class_member) {
-      parent_class = parent_class_of(parent_class);
-    }  /* while */
-    template_sym = template_symbol_for_class_symbol(symbol_for(parent_class));
+    if (class_type_supp(parent_class)->is_lambda_closure_class) {
+      /* The member templates in closure types of generic lambdas cannot be
+         specialized. */
+      result = TRUE;
+    } else {
+      while (parent_class->source_corresp.is_class_member) {
+        parent_class = parent_class_of(parent_class);
+      }  /* while */
+      template_sym = template_symbol_for_class_symbol(
+                                                    symbol_for(parent_class));
+    }  /* if */
   } else if (is_class_struct_union_symbol(sym)) {
     template_sym = template_symbol_for_class_symbol(sym);
   }  /* if */
