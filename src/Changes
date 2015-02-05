@@ -1,5 +1,24 @@
 Version 4.11
 
+2/5/15   [EDGcpfe/15964,EDGcpfe/15965]
+Assertion failures in lowering during initialization of aggregate array
+
+Various assertion failures ("lower_dynamic_init_aggregate_constant: repeat on
+non-array", "lower_dynamic_init_aggregate_constant: bad aggr kind",
+"lower_dynamic_init_aggregate_constant: have constant, no field") had occurred
+when lowering repeated dynamic initialization of certain aggregates in C++14
+mode.  Now fixed.  For example (with --c++14):
+
+  struct A {
+    struct B {
+      int y = f();
+      int f() {return 10;}
+    };
+    B b{};
+  };
+  A a[2]{};
+
+
 2/5/15   [EDGcpfe/15952]
 Generic lambdas and source sequence entries for instantiations
 

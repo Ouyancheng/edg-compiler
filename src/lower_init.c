@@ -1476,9 +1476,10 @@ is the destination of an initialization operation.
       entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
                                             using_as_dest, is_vla);
     }  /* if */
-    if (ipdp->array_element_sequence) {
+    if (ipdp->array_element_sequence && ipdp->modifiers == NULL) {
       /* For an array element sequence that covers more than one dimension
-         of an array, get the type right for the underlying element. */
+         of an array, get the type right for the underlying element.  Do not
+         add a cast when modifiers are present. */
       entity_node = add_cast_to_glvalue_if_necessary(entity_node,
                                                      ipdp->array_element_type);
     }  /* if */
@@ -5593,6 +5594,9 @@ expression).
   a_type_ptr           aggr_type;
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr, array_or_vector = FALSE;
+#if LOWER_COMPLEX && EXPENSIVE_CHECKING
+  a_boolean            was_complex_type = FALSE;
+#endif /* LOWER_COMPLEX && EXPENSIVE_CHECKING */
 
   if (contains_vector_dynamic_init != NULL) {
     *contains_vector_dynamic_init = FALSE;
@@ -5619,6 +5623,9 @@ expression).
     check_assertion(is_complex_type(aggr_const->type));
     aggr_type = lowered_complex_type(aggr_type->variant.float_kind);
     lower_c99_complex_aggregate_constant(aggr_const);
+#if EXPENSIVE_CHECKING
+    was_complex_type = TRUE;
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
 #endif /* LOWER_COMPLEX */
   /* Start a new level in the init_pos_modifier chain. */
@@ -5669,12 +5676,18 @@ expression).
     prelower_aggregate_constant(aggr_const);
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
-  }  /* if */
-  if (!array_or_vector) {
-    /* If this aggregate constant is a class type, push a pointer to the
-       beginning of the constant in case a reference to "this" is needed
-       later (see lower_param_ref). */
-    check_assertion(is_immediate_class_type(aggr_type));
+    /* Push a pointer to the beginning of the constant in case a reference to
+       "this" is needed later (see lower_param_ref). */
+#if EXPENSIVE_CHECKING
+    if (!was_complex_type) {
+      /* Verify that the aggregate type matches that of the corresponding
+         "init node". */
+      an_expr_node_ptr init_node = make_address_of_init_entity_node(ipdp,
+                                                      /*using_as_dest=*/FALSE);
+      check_assertion(identical_types_ignoring_qualifiers(aggr_type,
+                                            type_pointed_to(init_node->type)));
+    }  /* if */
+#endif /* EXPENSIVE_CHECKING */
     push_aggregate_this(ipdp);
   }  /* if */
   con_ptr = aggr_const->variant.aggregate.first_constant;
