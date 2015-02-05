@@ -1980,7 +1980,8 @@ a trailing return type.
     /* Check that if "decltype(auto)" is used, it has no declarator operator
        on top.   E.g., "decltype(auto)& g();" is invalid. */
     if (state->decltype_auto_specifier_seen &&
-        (!state->has_trailing_return_type || state->is_trailing_return_type)) {
+        ((is_function_declarator && !state->has_trailing_return_type) ||
+         state->is_trailing_return_type)) {
       a_type_kind  ret_kind;
       if (is_function_declarator) {
         ret_kind = state->declared_type->variant.routine.return_type->kind;
