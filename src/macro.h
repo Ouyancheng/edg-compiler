@@ -160,7 +160,7 @@ extern a_boolean is_valid_identifier(a_const_char     *id_start,
                                      a_symbol_ptr     *assoc_symbol,
                                      a_symbol_locator *locator);
 
-extern  void choose_raw_or_expanded_arg(void);
+extern void choose_raw_or_expanded_arg(void);
 
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
