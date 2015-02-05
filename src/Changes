@@ -1,5 +1,16 @@
 Version 4.11
 
+2/5/15   [EDGcpfe/15980]
+Internal error in generic lambda with attribute on parameter
+
+An internal error could occur (in process_generic_lambda_param_type) if
+a complex attribute followed a generic lambda parameter.  Now fixed.
+
+  void f() {
+    [ ] ( auto & a [[some_attr([[f([[]])]])]] , auto (*fp) ( float ) ) { } ; 
+  }
+
+
 2/5/15   [EDGcpfe/15920]
 Allow "typename" to declare a template template parameter
 
