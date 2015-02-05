@@ -1042,7 +1042,7 @@ ec_bad_cmd_line_macro;;"invalid macro definition: "
 ec_nonstandard_ptr_minus_ptr;;"subtraction of pointer types %t1 and %t2 is nonstandard"
 ec_empty_template_param_list;;"an empty template parameter list is not allowed in a template template parameter declaration"
 ec_exp_class;;"expected \"class\""
-ec_struct_not_allowed;;"the \"class\" keyword must be used when declaring a template template parameter"
+ec_struct_not_allowed;;"the \"struct\" keyword may not be used when declaring a template template parameter"
 ec_virtual_function_decl_hidden;;"%np2 is hidden by %no1 -- virtual function override intended?"
 ec_no_qualified_friend_definition;;"a qualified name is not allowed for a friend declaration that is a function definition"
 ec_not_compatible_with_templ_templ_param;;"%n1 is not compatible with %n2"
@@ -2699,6 +2699,7 @@ ec_no_abi_tag_on_declaration;;"previous declaration of %nd had no abi_tag attrib
 ec_abi_tag_prev_declaration;INTERNAL;"(see previous declaration %p)"
 ec_abi_tag_ignored_on_specialization;;"abi_tag attribute is ignored on specialization"
 ec_decltype_auto_return_must_be_standalone;;"decltype(auto) cannot appear under a pointer, reference, or pointer-to-member construct"
+ec_exp_class_or_typename;;"expected \"class\" or \"typename\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

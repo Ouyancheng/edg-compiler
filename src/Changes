@@ -1,5 +1,17 @@
 Version 4.11
 
+2/5/15   [EDGcpfe/15920]
+Allow "typename" to declare a template template parameter
+
+Because alias templates can be used as template template arguments, the
+syntax for declaring template template parameters now allows the use
+of the "typename" keyword.  This is a result of the proposal from the
+committee paper N4051.  We now allow the "typename" keyword to be used
+in C++14 mode, and also in non-strict mode for older dialects.
+
+  template <template <typename> typename X> struct A;
+
+
 2/5/15   [EDGcpfe/15964,EDGcpfe/15965]
 Assertion failures in lowering during initialization of aggregate array
 

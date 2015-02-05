@@ -19767,6 +19767,7 @@ depends on a another template parameter.
   a_tmpl_decl_state			local_decl_state;
   a_boolean				is_pack = FALSE;
   a_decl_pos_block			decl_pos_block;
+  a_boolean				typename_allowed;
 
   clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -19793,15 +19794,24 @@ depends on a another template parameter.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* The current keyword must be "class" followed by an optional identifier.
-     If it is "struct", give an error, but treat it like "class". */
-  if (curr_token != tok_class && curr_token != tok_struct) {
-    error(ec_exp_class);
+  /* The current keyword must be "class" or (after N4051) "typename" followed
+     by an optional identifier,   If it is "struct", give an error, but
+     treat it like "class".  Allow "typename" except in some strict modes. */
+  typename_allowed = !strict_ansi_mode || cpp14_mode;
+  if (curr_token != tok_class && curr_token != tok_struct &&
+      curr_token != tok_typename) {
+    pos_error(typename_allowed ? ec_exp_class_or_typename : ec_exp_class,
+              &pos_curr_token);
   } else {
      if (curr_token == tok_struct) {
        error(ec_struct_not_allowed);
+     } else if (curr_token == tok_typename && !typename_allowed &&
+                strict_ansi_mode) {
+       pos_diagnostic(strict_ansi_discretionary_severity,
+                      ec_invalid_typename_specifier,
+                      &pos_curr_token);
      }  /* if */
-     /* Bypass the "class" or "struct" keyword. */
+     /* Bypass the "class", "struct", or "typename" keyword. */
      (void)get_token();
   }  /* if */
   if (curr_token == tok_ellipsis && variadic_templates_enabled) {
