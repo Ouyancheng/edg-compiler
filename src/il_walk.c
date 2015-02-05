@@ -2556,7 +2556,6 @@ in cases where the orphan lists have not been generated yet.
       list_processing_routine(solhp->orphaned_types);
       innermost_function_scope = saved_innermost_function_scope;
     }  /* for */
-#if DO_IL_LOWERING
     /* Templates instantiated late in the primary translation unit in
        the presence of exported templates have their lowering delayed
        (see pop_scope), and therefore their orphan lists are not
@@ -2564,10 +2563,7 @@ in cases where the orphan lists have not been generated yet.
        cases, we're done. */
     if (C_mode() ||
         !is_primary_translation_unit ||
-        !function_body_processing_delayed_on_some_func_in_primary_il)
-#endif /* DO_IL_LOWERING */
-    /* Do not insert code here. */
-    {
+        !function_body_processing_delayed_on_some_func_in_primary_il) {
       goto end_of_routine;
     }  /* if */
   }  /* if */
