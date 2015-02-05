@@ -8771,6 +8771,16 @@ being popped.
   */
   for (etfp = ssep->extern_type_fixup_list; etfp != NULL; etfp = etfp->next) {
     if (etfp->is_routine) {
+      a_routine_ptr  rp = etfp->variant.routine;
+      if (rp->has_deduced_return_type && !rp->defined) {
+        /* Consider:
+             auto f() { auto f(); return 1; }
+           The local declaration triggered the creation of a fixup entry, but
+           meanwhile the return type has been deduced.  Ensure that that
+           deduced type is not lot. */
+        etfp->type->variant.routine.return_type =
+                                        rp->type->variant.routine.return_type;
+      }  /* if */
       etfp->variant.routine->type  = etfp->type;
     } else {
       etfp->variant.variable->type = etfp->type;

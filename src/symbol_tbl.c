@@ -13705,7 +13705,7 @@ current scope (the front of the list is good, because the fixup list
 should act like a stack if the same entity has several fixups).
 */
 {
-  register an_extern_type_fixup_ptr ptr;
+  an_extern_type_fixup_ptr ptr;
 
   db_enter(5, "alloc_etype_fixup");
 

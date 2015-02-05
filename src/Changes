@@ -1,5 +1,21 @@
 Version 4.11
 
+2/4/15   [EDGcpfe/15967]
+Invalid IL for routine with deduced return type declared inside itself
+
+In C++14 mode, a routine definition like the following is possible:
+
+  auto g() {
+    auto g();
+    return 42;
+  }
+
+The front accidentally discarded the deduced return type of the function in
+such cases.  The result invalid IL could then lead to aborts later on (e.g.,
+during the IL lowering process, which does not expect to see undeduced return
+types).
+
+
 2/4/15   [EDGcpfe/15973]
 Spurious error on in-class initializer for static array member in template
 
