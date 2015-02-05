@@ -34,7 +34,7 @@ This is now fixed.
 Microsoft compatibility: invalid pasting in arguments to nested macros
 
 The C and C++ Standards require that when a macro parameter is used as the
-operand of a ## (paste), the unexpanded version of the macro parameter is
+operand of a ## (paste), the unexpanded version of the macro argument is
 used.  The Microsoft preprocessor, however, generally uses the expanded
 version of the argument in such contexts.  One exception to this pattern
 occurs when the parameter is pasted to a preceding identifier; in that
@@ -43,7 +43,7 @@ case, the Microsoft preprocessor uses the unexpanded version of the argument
 
 Another exception occurs when the parameter is pasted to a preceding "(" or
 "," (which is invalid according to the Standards, since the result cannot
-form a single preprocessing token) and that character defines the start of
+form a single preprocessing token) and that character precedes the start of
 a macro argument in the replacement text.  In this case, the decision
 regarding whether to use the expanded or unexpanded version of the original
 argument is determined by whether the nested macro uses its parameter in a
