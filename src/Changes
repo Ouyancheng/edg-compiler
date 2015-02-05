@@ -63,9 +63,9 @@ compatibility modes.  For example, with --microsoft:
 2/4/15   [EDGcpfe/15976]
 Invalid handling of function differing only in auto/decltype(auto) return type
 
-When function declarations differ only in that on return type is "auto" and the
-other "decltype(auto)", the front end previously erroneously treated those as
-declaring the same function.  For example:
+When function declarations differ only in that one return type is "auto" and
+the other "decltype(auto)", the front end previously erroneously treated those
+as declaring the same function.  For example:
 
   auto f();
   decltype(auto) f();  // Previously accepted as a redeclaration in C++14 mode,
