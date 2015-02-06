@@ -1283,7 +1283,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     }  /* if */
   }  /* if */
   if (std_attribute_tokens_next()) {
-    /* C++11 permits attributes the declarator. */
+    /* C++11 permits attributes in the declarator. */
     prescan_std_attribute(flags);
   }  /* if */
   /* The declarator can end at this point, or an array or function
