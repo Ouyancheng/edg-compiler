@@ -5594,9 +5594,9 @@ expression).
   a_type_ptr           aggr_type;
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr, array_or_vector = FALSE;
-#if LOWER_COMPLEX && EXPENSIVE_CHECKING && CHECKING
+#if EXPENSIVE_CHECKING && CHECKING
   a_boolean            was_complex_type = FALSE;
-#endif /* LOWER_COMPLEX && EXPENSIVE_CHECKING && CHECKING */
+#endif /* EXPENSIVE_CHECKING && CHECKING */
 
   if (contains_vector_dynamic_init != NULL) {
     *contains_vector_dynamic_init = FALSE;
