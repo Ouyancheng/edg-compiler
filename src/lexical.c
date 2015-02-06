@@ -6857,11 +6857,12 @@ literals in C++11.
   } else {
     /* Not end of file, read the line. */
     curr_ise->line_number++;
+    curr_ise->actual_line = ++base_ise->actual_line;
     /* Check if this line being read is that next needed for the file index
        table (for the actual source file, excluding any entries that were
        cloned to track the tree structure of #line directives).  Remember
        that the first character has already been read into ch. */
-    if (++(base_ise->actual_line) == base_ise->next_index_point) {
+    if (base_ise->actual_line == base_ise->next_index_point) {
       base_ise->next_index_point = update_file_index(
                                         base_ise->assoc_actual_il_file,
                                         base_ise->actual_line,
@@ -7156,15 +7157,16 @@ line_loop:
   /* Start of a line after the first, first character already read into ch. */
   seq_number_last_read++;
   curr_ise->line_number++;
+  curr_ise->actual_line = ++base_ise->actual_line;
   curr_column = 0;
   /* Check if this line being read is that next needed for the file index
      table.  Remember that the first character has already been read into
      ch. */
-  if (++(curr_ise->actual_line) == curr_ise->next_index_point) {
-    curr_ise->next_index_point = update_file_index(
-                                        curr_ise->assoc_actual_il_file,
-                                        curr_ise->actual_line,
-                                        ftell(curr_ise->file) - 1);
+  if (base_ise->actual_line == base_ise->next_index_point) {
+    base_ise->next_index_point = update_file_index(
+                                        base_ise->assoc_actual_il_file,
+                                        base_ise->actual_line,
+                                        ftell(base_ise->file) - 1);
   }  /* if */
   /* Check for an empty line. */
   if (ch == '\n') {

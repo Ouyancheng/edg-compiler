@@ -1,5 +1,15 @@
 Version 4.11
 
+2/6/15   [EDGcpfe/15985]
+Current line number within the file being read
+
+The value of curr_ise->actual_line should always reflect the current line
+number within the physical file being processed, i.e., ignoring the effect
+of #line directives.  However, the changes in version 4.10 for
+EDGcpfe/15187 resulted in that value not being updated correctly when #line
+directives are present.  This is now fixed.
+
+
 2/5/15   [EDGcpfe/15978]
 Mangling of "auto" and "decltype(auto)" return types in function names
 
