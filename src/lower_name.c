@@ -431,6 +431,12 @@ typedef struct a_mangling_control_block {
 			   particular translation unit, so this flag indicates
 			   that mangling should be skipped for this particular
 			   entity. */
+  a_boolean     mangle_auto_placeholder;
+                        /* TRUE if the entity being mangled is the return
+                           type of a routine where has_deduced_return_type
+                           is TRUE -- in which case auto and decltype(auto)
+                           typerefs should be mangled explicitly (otherwise
+                           the underlying type is used). */
 } a_mangling_control_block;
 
 
@@ -697,6 +703,7 @@ Set the fields of the indicated mangling control block to default values.
   mctl->suppress_partial_spec_args = FALSE;
 #endif /* !IA64_ABI */
   mctl->lacking_module_id = FALSE;
+  mctl->mangle_auto_placeholder = FALSE;
 }  /* clear_mangling_control_block */
 
 #if IA64_ABI
@@ -9215,11 +9222,13 @@ top_of_loop:
       /* This __underlying_type needs to appear in the mangled name. */
       break;
 #if ABI_COMPATIBILITY_VERSION >= 411
-    } else if (type->variant.typeref.is_deduced_auto) {
+    } else if (type->variant.typeref.is_deduced_auto &&
+               mctl->mangle_auto_placeholder) {
       /* Mangling for a deduced auto type (e.g., "operator auto()") needs
          to appear in the mangled name. */
       break;
-    } else if (type->variant.typeref.is_deduced_decltype_auto) {
+    } else if (type->variant.typeref.is_deduced_decltype_auto &&
+               mctl->mangle_auto_placeholder) {
       /* Mangling for a decltype(auto) needs to appear in the mangled name. */
       break;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
@@ -10513,8 +10522,12 @@ literal operator.
   add_str_to_mangled_name(name, mctl);
   if (special_kind == (a_special_function_kind)sfk_conversion) {
     /* For a conversion function, add the type signature. */
+    a_boolean save_mangle_auto_placeholder;
     check_assertion(conversion_type != NULL);
+    save_mangle_auto_placeholder = mctl->mangle_auto_placeholder;
+    mctl->mangle_auto_placeholder = TRUE;
     mangled_encoding_for_type(conversion_type, mctl);
+    mctl->mangle_auto_placeholder = save_mangle_auto_placeholder;
   } else if (ud_suffix != NULL) {
     /* For a literal operator, add the ud-suffix to the mangled name. */
     mangled_name_with_length(ud_suffix, mctl);
@@ -10922,7 +10935,7 @@ mangle_template:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !IA64_ABI */
   if (!suppress_param_encoding) {
-    a_boolean do_return_type;
+    a_boolean do_return_type, save_mangle_auto_placeholder;
 #if !IA64_ABI
     /* Put out the qualifiers on the function type (if applicable).  Only
        applicable to the Cfront ABI. */
@@ -10942,6 +10955,8 @@ mangle_template:
       do_return_type = FALSE;
     }  /* if */
     /* Output the function type, including the parameter types. */
+    save_mangle_auto_placeholder = mctl->mangle_auto_placeholder;
+    mctl->mangle_auto_placeholder = routine->has_deduced_return_type;
     mangled_encoding_for_function_type(routine_type, do_return_type,
 #if !IA64_ABI
                                        /*do_markers=*/TRUE,
@@ -10949,6 +10964,7 @@ mangle_template:
                                        /*do_markers=*/FALSE, 
 #endif /* IA64_ABI */
                                        mctl);
+    mctl->mangle_auto_placeholder = save_mangle_auto_placeholder;
   }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING && IA64_ABI
   if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
