@@ -1,5 +1,16 @@
 Version 4.11
 
+1/8/15   [EDGcpfe/15895]
+Cross-reference output and generated member templates
+
+As was already the case with generated member functions the front end now no
+longer outputs cross-reference declaration/instantiation information for
+generated member templates that have no direct source representation
+(specifically, member templates declared in the closure types of C++14
+generic lambdas that implement an implicit conversion to a pointer-to-function
+type).  Uses of such generated members are still output, however.
+
+
 2/6/15   [EDGcpfe/15985]
 Current line number within the file being read
 
@@ -665,16 +676,6 @@ wrap_up_constant_full_expression (exprutil.c).  For example:
   }                    // some configurations.
 
 This is now fixed.
-
-
-1/8/15   [EDGcpfe/15895]
-Cross-reference output and generated member templates
-
-As was already the case with generated member functions the front end now no
-longer outputs cross-reference information for generated member templates
-that have no direct source representation (specifically, member templates
-declared in the closure types of C++14 generic lambdas that implement an
-implicit conversion to a pointer-to-function type).
 
 
 1/8/15   [EDGcpfe/15874]

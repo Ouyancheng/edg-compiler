@@ -13734,9 +13734,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
          implicit exception specification may need to be generated. */
       update_routine_type_exception_specification_if_needed(rp, &rp->type);
     }  /* if */
-    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
-                              sym, &sym->decl_position,
-                              (a_source_sequence_entry_ptr)NULL);
+    if (!templ_rout->compiler_generated) {
+      record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
+                                sym, &sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+    }  /* if */
     if (templ_rout->source_corresp.attributes != NULL) {
       /* We use the attributes copied from the prototype instantiation rather
          than scanning them from the cache.  That ensures that we pick up the
@@ -19378,7 +19380,11 @@ overall, and decl_pos_block provides additional position information.
      template-param type -- "for now", since it will be replaced with
      an actual type during instantiation of the class or function. */
   sym->variant.type.ptr = template_param_type;
-  record_template_param_symbol(sym);
+  if (!decl_state->is_lambda) {
+    /* Don't record "auto" template parameters generated for generic lambdas
+       since they aren't explicitly declared. */
+    record_template_param_symbol(sym);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position information from decl_pos_block. */
   update_decl_pos_info(&template_param_type->source_corresp, decl_pos_block);

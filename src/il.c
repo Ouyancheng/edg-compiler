@@ -11546,7 +11546,7 @@ memory).
 }  /* f_get_parent_scope_of */
 
 
-a_routine_ptr lambda_body_for_closure(a_type_ptr	type)
+a_routine_ptr lambda_body_for_closure(a_type_ptr  type)
 /*
 Return a pointer to the lambda body routine for the closure class specified by
 type, or NULL if the lambda body routine does not exist yet.
