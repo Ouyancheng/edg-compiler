@@ -1,24 +1,5 @@
 Version 4.11
 
-2/5/15   [EDGcpfe/15978]
-Mangling of "auto" and "decltype(auto)" return types in function names
-
-The previous change to provide mangling for "auto" and "decltype(auto)" (see
-EDGcpfe/15930 and EDGcpfe/15939) was somewhat overzealous and also mangled a
-deduced return type in a function name.  That caused problems in examples like
-the one below where the two instances of f1 had been given the same mangled
-name (i.e., one with the mangling for "auto" rather than "int" and "double").
-With --c++14:
-
-  template <class T> auto f1(T x) { return x; }
-  template <class T> auto f2(T x) { return x; }
-  int main() {
-    f1(f2(0));
-    f1(f2(0.0));
-    return 0;
-  }
-
-
 2/5/15   [EDGcpfe/15980]
 Internal error in generic lambda with attribute on parameter
 
