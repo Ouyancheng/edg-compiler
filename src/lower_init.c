@@ -5594,9 +5594,9 @@ expression).
   a_type_ptr           aggr_type;
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr, array_or_vector = FALSE;
-#if LOWER_COMPLEX && EXPENSIVE_CHECKING
+#if LOWER_COMPLEX && EXPENSIVE_CHECKING && CHECKING
   a_boolean            was_complex_type = FALSE;
-#endif /* LOWER_COMPLEX && EXPENSIVE_CHECKING */
+#endif /* LOWER_COMPLEX && EXPENSIVE_CHECKING && CHECKING */
 
   if (contains_vector_dynamic_init != NULL) {
     *contains_vector_dynamic_init = FALSE;
@@ -5623,9 +5623,9 @@ expression).
     check_assertion(is_complex_type(aggr_const->type));
     aggr_type = lowered_complex_type(aggr_type->variant.float_kind);
     lower_c99_complex_aggregate_constant(aggr_const);
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && CHECKING
     was_complex_type = TRUE;
-#endif /* EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING && CHECKING */
   }  /* if */
 #endif /* LOWER_COMPLEX */
   /* Start a new level in the init_pos_modifier chain. */
@@ -5678,7 +5678,7 @@ expression).
                              aggr_type->variant.class_struct_union.field_list);
     /* Push a pointer to the beginning of the constant in case a reference to
        "this" is needed later (see lower_param_ref). */
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && CHECKING
     if (!was_complex_type) {
       /* Verify that the aggregate type matches that of the corresponding
          "init node". */
@@ -5687,7 +5687,7 @@ expression).
       check_assertion(identical_types_ignoring_qualifiers(aggr_type,
                                             type_pointed_to(init_node->type)));
     }  /* if */
-#endif /* EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING && CHECKING */
     push_aggregate_this(ipdp);
   }  /* if */
   con_ptr = aggr_const->variant.aggregate.first_constant;
