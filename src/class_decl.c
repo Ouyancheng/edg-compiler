@@ -30188,6 +30188,8 @@ generated for several calling conventions).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean           saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_routine_type_supplement_ptr
+                      rtsp;
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Don't issue source sequence entries for generated entities. */
@@ -30197,14 +30199,17 @@ generated for several calling conventions).
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  /* Create a call type without an implicit "this" parameter. */
+  /* Create a call type without an implicit "this" parameter (and not directly
+     associated with the lambda call operator). */
   call_type = copy_routine_type_with_param_types(skip_typerefs(call_op->type),
                                                  /*copy_default_args=*/FALSE);
-  call_type->variant.routine.extra_info->this_class = NULL;
-  call_type->variant.routine.extra_info->qualifiers = TQ_NONE;
-  call_type->variant.routine.extra_info->assoc_routine = NULL;
+  rtsp = call_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_lambda_body = FALSE;
+  rtsp->this_class = NULL;
+  rtsp->qualifiers = TQ_NONE;
+  rtsp->assoc_routine = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-  call_type->variant.routine.extra_info->calling_convention = call_conv;
+  rtsp->calling_convention = call_conv;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
   /* Generate a declaration for the conversion function. */
