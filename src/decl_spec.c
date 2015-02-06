@@ -4349,29 +4349,31 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     a_symbol_ptr  class_sym, proto_sym;
     check_assertion(tag_sym != NULL);
     class_sym = tag_sym->variant.class_struct_union.extra_info->class_template;
-    check_assertion(class_sym != NULL &&
-                    class_sym->kind == (a_symbol_kind)sk_class_template);
-    proto_sym = class_sym->variant.template_info->
+    if (class_sym != NULL) {
+      check_assertion(class_sym->kind == (a_symbol_kind)sk_class_template);
+      proto_sym = class_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
-    check_assertion(proto_sym != NULL &&
-                    proto_sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-    proto_type = proto_sym->variant.class_struct_union.type;
-    check_assertion(proto_type != NULL && is_immediate_class_type(proto_type));
-    if (class_type_supp(proto_type)->has_gnu_abi_tag_attribute) {
-      /* Copy the abi_tag attribute and apply it to the specialization. */
-      an_attribute_ptr abi_tag_attr = find_attribute(ak_abi_tag,
+      check_assertion(proto_sym != NULL &&
+                      proto_sym->kind ==
+                                        (a_symbol_kind)sk_class_or_struct_tag);
+      proto_type = proto_sym->variant.class_struct_union.type;
+      check_assertion(proto_type != NULL &&
+                      is_immediate_class_type(proto_type));
+      if (class_type_supp(proto_type)->has_gnu_abi_tag_attribute) {
+        /* Copy the abi_tag attribute and apply it to the specialization. */
+        an_attribute_ptr abi_tag_attr = find_attribute(ak_abi_tag,
                                         proto_type->source_corresp.attributes);
-      check_assertion(abi_tag_attr != NULL &&
-                      abi_tag_attr->next == NULL);
-      abi_tag_attr = copy_of_attributes_list(abi_tag_attr);
-      /* Set ap->assoc_info to NULL (by passing NULL for dps) to differentiate
-         this case from the one above (where the abi_tag is specified on the
-         specialization itself). */
-      attach_tag_attributes(abi_tag_attr, class_type,
-                            (a_decl_parse_state *)NULL,
-                            is_class_definition,
-                            curr_token == tok_semicolon,
-                            /*ignore_gnu_attributes=*/FALSE);
+        check_assertion(abi_tag_attr != NULL);
+        abi_tag_attr = copy_of_attributes_list(abi_tag_attr);
+        /* Set ap->assoc_info to NULL (by passing NULL for dps) to
+           differentiate this case from the one above (where the abi_tag is
+           specified on the specialization itself). */
+        attach_tag_attributes(abi_tag_attr, class_type,
+                              (a_decl_parse_state *)NULL,
+                              is_class_definition,
+                              curr_token == tok_semicolon,
+                              /*ignore_gnu_attributes=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

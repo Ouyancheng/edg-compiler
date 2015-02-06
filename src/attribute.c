@@ -6799,8 +6799,9 @@ to match GNU's behavior).
                gnu_version >= 40900 &&
                entity_kind == iek_type &&
                is_immediate_class_type((a_type_ptr)entity) &&
-               ((a_type_ptr)entity)->
-                                   variant.class_struct_union.is_specialized) {
+               (dps->is_explicit_instantiation ||
+                ((a_type_ptr)entity)->
+                                  variant.class_struct_union.is_specialized)) {
       /* Ignore attributes (with a warning) on explicit specializations
          (they had been accepted prior to 4.9.0). */
       pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
