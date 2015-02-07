@@ -18507,7 +18507,8 @@ operator should be created.  No routine body is generated at this time.
 void set_class_assoc_operator_new_routine(a_type_ptr class_type)
 /*
 Determine the default operator new() function to be used for the indicated
-class and record it in the class's assoc_operator_new_routine field.
+class and record it in the class's assoc_operator_new_routine field.  (This
+function does nothing for prototype instantiations.)
 */
 {
   a_symbol_ptr                sym;
@@ -18515,8 +18516,10 @@ class and record it in the class's assoc_operator_new_routine field.
   a_boolean                   ambiguous;
 
   check_assertion(is_immediate_class_type(class_type));
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp->assoc_operator_new_routine == NULL) {
+  ctsp = class_type_supp(class_type);
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    /* Nothing to do. */
+  } else if (ctsp->assoc_operator_new_routine == NULL) {
     /* Use the class "new" if there is one, and otherwise the global operator
        new. */
     sym = opname_member_function_symbol((an_opname_kind)onk_new, class_type);

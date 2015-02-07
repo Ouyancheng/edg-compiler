@@ -1,5 +1,25 @@
 Version 4.11
 
+2/6/15   [EDGcpfe/15987]
+Abort with template-dependent using-declaration of member operator new
+
+In configurations with NEW_CAN_BE_FOLDED_INTO_CTOR set to TRUE, a class that
+contains a using-declaration for an operator new from a template-dependent base
+class could abort while processing the definition of one of its constructors
+(the abort was an internal error in set_overload_set_traversal_symbol).  For
+example:
+
+  template<typename> struct M {
+    static void* operator new(__EDG_SIZE_TYPE__);
+  };
+  template<typename T> struct I: M<T> {
+    using M<T>::operator new;
+    I() {}  // Previously triggered an internal error.
+  };
+
+This is now fixed.
+
+
 2/6/15   [EDGcpfe/15895]
 Cross-reference output and generated member templates
 
