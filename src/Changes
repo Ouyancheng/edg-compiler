@@ -1,6 +1,6 @@
 Version 4.11
 
-1/8/15   [EDGcpfe/15895]
+2/6/15   [EDGcpfe/15895]
 Cross-reference output and generated member templates
 
 As was already the case with generated member functions the front end now no
