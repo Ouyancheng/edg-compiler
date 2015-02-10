@@ -1,5 +1,30 @@
 Version 4.11
 
+2/9/15   [EDGcpfe/15988]
+Use of an unevaluated "this" in non-capturing lambda
+
+The front end previously required "this" to be captured for uses of "this" in
+an unevaluated context within a lambda.  For example, in C++11 mode:
+
+  struct S {
+    unsigned f() {
+      return []{ return sizeof(i); }();  // Previously an error because
+    }                                    // i requires access to "this", but
+    int i;                               // "this" cannot be captured.
+  };
+
+This is now fixed.
+
+Prior to the changes for EDGcpfe/15384,EDGcpfe/15386 (see entry of 9/4/14) the
+front end did (accidentally) accept cases like the above when the lambda
+appears in a nonstatic data member initializer.  In that sense this fixes a
+regression.  For example:
+
+  struct F {
+    int i = []{ return decltype(i)(); }();  // Accepted in version 4.9, but
+  };                                        // not 4.10.  Now accepted again.
+
+
 2/6/15   [EDGcpfe/15987]
 Abort with template-dependent using-declaration of member operator new
 

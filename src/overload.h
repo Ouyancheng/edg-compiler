@@ -855,7 +855,8 @@ extern void cast_pointer_for_field_selection(
 extern a_boolean variable_this_exists(a_variable_ptr *this_var,
                                       a_type_ptr     *this_type);
 
-extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym);
+extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym,
+                                               a_boolean    allow_lambda_this);
 
 extern a_variable_ptr this_variable_for_lambda_closure(void);
 

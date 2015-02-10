@@ -10269,20 +10269,25 @@ expression-processing routines.
 }  /* variable_this_exists */
 
 
-a_boolean this_exists_for_member_access(a_symbol_ptr member_sym)
+a_boolean this_exists_for_member_access(a_symbol_ptr member_sym,
+                                        a_boolean    allow_lambda_this)
 /*
 Return TRUE if "this" exists in the current context and it can be used
 to access the member member_sym.  (In the simple sense that the
 member's class is the same as the class of "this" or is a base class
 thereof, not with regard to anything fancier like access checking
-or ambiguity.)
+or ambiguity.)  The captured "this" in a lambda body (which is the
+"this" from the function enclosing the lambda, not the "this" that
+points to the closure class object) is considered visible only if
+allow_lambda_this is TRUE.
 */
 {
   a_boolean  this_exists = FALSE;
   a_type_ptr this_type;
 
   check_assertion(member_sym->is_class_member);
-  if (variable_this_exists((a_variable_ptr *)NULL, &this_type) &&
+  if (variable_this_exists_full((a_variable_ptr *)NULL, &this_type,
+                                allow_lambda_this, (a_source_position*)NULL) &&
       is_same_class_or_base_class_thereof(type_pointed_to(this_type),
                                           sym_parent_class(member_sym))) {
     this_exists = TRUE;

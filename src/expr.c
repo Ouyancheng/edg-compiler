@@ -28966,7 +28966,8 @@ normal_function:
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
                   !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
-                  !this_exists_for_member_access(sym_ptr)) {
+                  !this_exists_for_member_access(
+                                      sym_ptr, /*allow_lambda_this=*/FALSE)) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
@@ -28975,7 +28976,9 @@ normal_function:
                    allowed in the operand of typeid when the operand is a
                    glvalue of polymorphic class type, because the operand
                    will be evaluated at runtime.  This case is diagnosed in
-                   scan_typeid_operator.) */
+                   scan_typeid_operator.)  In lambda contexts, unevaluated
+                   uses of "this" do not require an actual capture, and
+                   therefore also follow this path. */
                 a_type_ptr class_ptr_type =
                                  make_pointer_type(sym_parent_class(sym_ptr));
                 make_integer_constant_operand(&this_pointer_operand,
@@ -29271,7 +29274,8 @@ overloaded_function:
           check_assertion(cli_or_cx_enabled);
           { /* Create a "this" operand if meaningful. */
             an_operand      *selector = NULL;
-            if (this_exists_for_member_access(sym_ptr) &&
+            if (this_exists_for_member_access(sym_ptr,
+                                              /*allow_lambda_this=*/TRUE) &&
                 make_this_pointer_operand(sym_ptr, projection_sym_ptr,
                                           &locator.source_position,
                                           (a_boolean)locator.
