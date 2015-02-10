@@ -10041,10 +10041,10 @@ type was an error because the function turned out to be static.
 }  /* check_use_of_this_in_member_decl */
 
 
-static a_boolean variable_this_exists_full(a_variable_ptr    *this_var,
-                                           a_type_ptr        *this_type,
-                                           a_boolean         allow_lambda_this,
-                                           a_source_position *used_pos)
+a_boolean variable_this_exists_full(a_variable_ptr    *this_var,
+                                    a_type_ptr        *this_type,
+                                    a_boolean         allow_lambda_this,
+                                    a_source_position *used_pos)
 /*
 Return TRUE if there is a currently-visible "this".  If there is, also
 set *this_var to point to the variable entry for it.  If there is a
@@ -10087,7 +10087,8 @@ implicit "this" is available, e.g., during overload resolution.
   }  /* if */
   if (enclosing_rout_scope != NULL) {
     a_routine_ptr curr_rout = enclosing_rout_scope->variant.routine.ptr;
-    if (curr_rout->is_lambda_body && allow_lambda_this) {
+    a_boolean     is_lambda_body = curr_rout->is_lambda_body;
+    if (is_lambda_body && allow_lambda_this) {
       /* We're inside the body of a lambda.  "this" exists only if it's
          captured from the surrounding context.  The lambda body is the
          operator() function of the lambda closure class, but the "this"
@@ -10122,7 +10123,7 @@ implicit "this" is available, e.g., during overload resolution.
         local_this_type = add_right_pointer_type_to_this(local_this_type,
                                                          local_this_type);
       }  /* if */
-    } else {
+    } else if (!is_lambda_body) {
       /* Normal case, not inside a lambda (but inside a function body). */
       local_this_var =
                     enclosing_rout_scope->variant.routine.this_param_variable;

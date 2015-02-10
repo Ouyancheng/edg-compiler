@@ -29354,8 +29354,8 @@ rvalue that points to the object for which the member function was
 called.
 */
 {
-  a_variable_ptr    this_var;
-  a_type_ptr        this_type;
+  a_variable_ptr    this_var, dummy_var;
+  a_type_ptr        this_type, dummy_type;
   a_source_position start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
@@ -29389,6 +29389,17 @@ called.
                                                           &start_position)) {
     /* "this" not allowed in C++11 constant expressions. */
     make_error_operand(result);
+  } else if (curr_expr_is_potentially_unevaluated() && in_lambda_body() &&
+             !variable_this_exists_full(&dummy_var, &dummy_type,
+                                        /*allow_lambda_this=*/FALSE,
+                                        (a_source_position*)NULL)) {
+    /* We're in a lambda and "this" could potentially be captured (because
+       variable_this_exists(...) returned TRUE above), but it doesn't need to
+       be captured since we're in an unevaluated context.  Don't attempt the
+       capture (which might fail), and instead make a null pointer operand of
+       the right type. */
+    make_integer_constant_operand(result, (a_host_large_integer)0L);
+    cast_operand(this_type, result, /*is_implicit_cast=*/TRUE);
   } else {
     /* Make an rvalue for the "this" variable.  Note that this rewrites
        the "this" in a lambda to the captured "this" from the enclosing

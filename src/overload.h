@@ -852,6 +852,11 @@ extern void cast_pointer_for_field_selection(
                                a_boolean         do_protected_member_check,
                                a_source_position *member_pos);
 
+extern a_boolean variable_this_exists_full(a_variable_ptr    *this_var,
+                                           a_type_ptr        *this_type,
+                                           a_boolean         allow_lambda_this,
+                                           a_source_position *used_pos);
+
 extern a_boolean variable_this_exists(a_variable_ptr *this_var,
                                       a_type_ptr     *this_type);
 
