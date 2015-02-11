@@ -533,34 +533,44 @@ Determine whether the entity is the closure class for a lambda, and if so,
 generate a name for it and return TRUE (FALSE otherwise).
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean  result = FALSE;
 
   if (entry_kind == iek_type && !generating_debug_output(octl)) {
     a_type_ptr	type = (a_type_ptr)scp;
     if (is_immediate_class_type(type) &&
-         class_type_supp(type)->is_lambda_closure_class) {
-      a_routine_ptr	rp;
+        class_type_supp(type)->is_lambda_closure_class) {
       result = TRUE;
-      /* Get the routine entry for the lambda body. */
-      rp = lambda_body_for_closure(type);
       octl->output_str("lambda []", octl);
-      /* Add the routine type of the lambda routine to the output.  The
-         routine pointer for the lambda body can be NULL if this routine is
-         called after the closure class has been created but before the
-         complete lambda parameter list and return type have been scanned. */
-      if (rp != NULL) {
-        /* Avoid parameters added by lowering such as "this" and a pointer
-           to the return value.  This both causes the result to look more
-           like it would before lowering and also avoids a potential
-           infinite recursion on the "this" parameter: since "this" is a
-           pointer to the closure class, displaying its type would invoke
-           this code again. */
-        a_boolean saved_suppress_flag =
+#if STANDALONE_UTILITY_PROGRAM
+      { a_source_position  *pos = &type->source_corresp.decl_position;
+        octl->output_str(" type at line ", octl);
+        form_unsigned_num((a_host_large_unsigned)pos->seq, octl);
+        octl->output_str(", col. ", octl);
+        form_unsigned_num((a_host_large_unsigned)pos->column, octl);
+      }
+#else /* !STANDALONE_UTILITY_PROGRAM */
+      { a_routine_ptr  rp;
+        /* Get the routine entry for the lambda body. */
+        rp = lambda_body_for_closure(type);
+        /* Add the routine type of the lambda routine to the output.  The
+           routine pointer for the lambda body can be NULL if this routine is
+           called after the closure class has been created but before the
+           complete lambda parameter list and return type have been scanned. */
+        if (rp != NULL) {
+          /* Avoid parameters added by lowering such as "this" and a pointer
+             to the return value.  This both causes the result to look more
+             like it would before lowering and also avoids a potential
+             infinite recursion on the "this" parameter: since "this" is a
+             pointer to the closure class, displaying its type would invoke
+             this code again. */
+          a_boolean saved_suppress_flag =
                                   octl->suppress_compiler_generated_parameters;
-        octl->suppress_compiler_generated_parameters = TRUE;
-        form_type(rp->type, octl);
-        octl->suppress_compiler_generated_parameters = saved_suppress_flag;
-      }  /* if */
+          octl->suppress_compiler_generated_parameters = TRUE;
+          form_type(rp->type, octl);
+          octl->suppress_compiler_generated_parameters = saved_suppress_flag;
+        }  /* if */
+      }
+#endif /* STANDALONE_UTILITY_PROGRAM */
     }  /* if */
   }  /* if */
   return result;
