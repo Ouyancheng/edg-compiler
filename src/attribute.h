@@ -178,14 +178,14 @@ also copy_of_attributes_list and copy_of_attributes_with_substitution.
 extern an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes);
 
 extern an_attribute_ptr copy_of_attributes_with_substitution(
-                                           an_attribute_ptr      attributes,
-                                           a_boolean             primary_only,
-                                           a_symbol_ptr          template_sym,
-                                           a_template_param_ptr  t_params,
-                                           a_template_arg_ptr    t_args,
-                                           a_type_ptr            parent_class,
-                                           a_boolean             *err);
-
+                                an_attribute_ptr      attributes,
+                                a_boolean             primary_only,
+                                a_symbol_ptr          template_sym,
+                                a_template_param_ptr  t_params,
+                                a_template_arg_ptr    t_args,
+                                a_type_ptr            parent_class,
+                                a_boolean             is_partial_instantiation,
+                                a_boolean             *p_error);
 
 /*
 Return TRUE if the given attribute may produce a new type entry when applied

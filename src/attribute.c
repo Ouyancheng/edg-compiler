@@ -3415,14 +3415,38 @@ is a class member, parent_class points to the entry for its parent class
 }  /* substitute_attribute_arg_type */
 
 
+static a_boolean attribute_applies_to_partial_instantiation(
+                                                        an_attribute_kind kind)
+/*
+Returns TRUE if the specified attribute kind applies to a partial
+instantiation.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+#if GNU_EXTENSIONS_ALLOWED
+    case ak_abi_tag:
+      result = gnu_version >= 40900;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* attribute_applies_to_partial_instantiation */
+
+
 an_attribute_ptr copy_of_attributes_with_substitution(
-                                           an_attribute_ptr      attributes,
-                                           a_boolean             primary_only,
-                                           a_symbol_ptr          template_sym,
-                                           a_template_param_ptr  t_params,
-                                           a_template_arg_ptr    t_args,
-                                           a_type_ptr            parent_class,
-                                           a_boolean             *p_error)
+                                an_attribute_ptr      attributes,
+                                a_boolean             primary_only,
+                                a_symbol_ptr          template_sym,
+                                a_template_param_ptr  t_params,
+                                a_template_arg_ptr    t_args,
+                                a_type_ptr            parent_class,
+                                a_boolean             is_partial_instantiation,
+                                a_boolean             *p_error)
 /*
 Return a copy of the given list of attributes (which may be NULL) after
 substituting template parameters (if any).  If primary_only is TRUE, only the
@@ -3430,7 +3454,7 @@ attributes whose on_primary_declaration flag is set are copied.  If the entity
 to which the attributes are to be applied is a template specialization,
 template_sym is the template associated with the specialization, t_args
 represents the template arguments for that specialization and t_params the
-associated template parameters; otherwise, template_symm, t_args and t_params
+associated template parameters; otherwise, template_sym, t_args and t_params
 are NULL.  If the entity to which the attributes are to be applied is a class
 member, parent_class is the enclosing class: That parent class may itself be a
 specialization, and its parameter substitutions are also applied to the
@@ -3441,7 +3465,10 @@ attributes.  E.g.:
 The [[align(T)]] attribute is instantiated for S<double>::N with t_params and
 t_args both set to NULL (since S<T>::N is not itself a template), and
 parent_class pointing to the entry for S<double> (which implies the T->double
-substitution).
+substitution).  When is_partial_instantiation is TRUE, only attributes that
+apply to a partial instantiation are copied; when is_partial_instantiation
+is FALSE, only attributes that apply to a full instantiation are copied
+(does not apply to function templates).
 If p_error is non-NULL, *p_error is set to TRUE if the substitution results in
 an invalid entity.  If p_error is NULL, a substitution error is diagnosed as
 an error.
@@ -3453,6 +3480,14 @@ an error.
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     if (primary_only && !ap->on_primary_declaration) continue;
+    if (template_sym->kind == (a_symbol_kind)sk_class_template &&
+        is_partial_instantiation != attribute_applies_to_partial_instantiation(
+                                                (an_attribute_kind)ap->kind)) {
+      /* For instantiations of class templates, apply the attribute at either
+         partial instantiation time or full instantiation time (but not both),
+         as determined by the attribute kind. */
+      continue;
+    }  /* if */
     if (!rescan_pushed && template_sym != NULL) {
       /* If we will be substituting template arguments below, push a rescan
          context if one has not already been pushed. */
@@ -6769,6 +6804,8 @@ to match GNU's behavior).
     a_source_correspondence_ptr scp = (a_source_correspondence*)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
     a_boolean           redeclaration = FALSE;
+    a_routine_ptr       rp;
+    a_type_ptr          class_type;
     an_attribute_ptr    prev;
 #if CHECKING
     /* GNU accepts more than just narrow string literals, but that seems to
@@ -6780,32 +6817,56 @@ to match GNU's behavior).
                                               (a_constant_repr_kind)ck_string);
     }  /* for */
 #endif /* CHECKING */
+    if (entity_kind == iek_routine) {
+      rp = (a_routine_ptr)entity;
+    } else {
+      check_assertion(entity_kind == iek_type);
+      class_type = (a_type_ptr)entity;
+      check_assertion(is_immediate_class_type(class_type));
+    }  /* if */
     /* There appears to have been some major tweaking of the way the abi_tag
        was handled between the 4.8.0 and 4.9.0 releases of g++; the code
        below attempts to emulate both behaviors. */
-    if (entity_kind == iek_routine &&
-        ((a_routine_ptr)entity)->is_template_function) {
-      if (gnu_version < 40900) {
+    if (gnu_version < 40900) {
+      if (entity_kind == iek_routine && rp->is_template_function) {
         /* It appears that abi_tag attributes are silently ignored on
            function templates before version 4.9.0. */
         make_attr_unrecognized(ap);
+      } else if (entity_kind == iek_type && !ap->on_primary_declaration &&
+                 class_type->variant.class_struct_union.is_template_class) {
+        /* In GCC 4.8.x the attribute is ignored on class declarations that
+           result from template instantiations or specializations, unless
+           the instantiation/specialization provides a definition.  For
+           class templates this is handled by not instantiating the
+           attributes at all.  But for members of class templates, we just
+           discard the attribute here.  E.g., the attribute has no effect
+           in the following:
+             template<class T> struct S {
+               struct __attribute((abi_tag("XYZ"))) N;
+             };
+             template<> struct S<int>::N {};
+             void f(S<int>::N *p) {}
+             void f(S<double>::N *p) {}
+           */
+        make_attr_unrecognized(ap);
+      }  /* if */
+    } else {
+      if (dps != NULL &&
+          entity_kind == iek_type &&
+          (dps->is_explicit_instantiation ||
+           class_type->variant.class_struct_union.is_specialized)) {
+        /* Ignore attributes (with a warning) on explicit specializations
+           (they had been accepted prior to 4.9.0). */
+        pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
+        make_attr_unrecognized(ap);
       } else if (dps != NULL &&
-                 !((a_routine_ptr)entity)->is_prototype_instantiation) {
+                 entity_kind == iek_routine &&
+                 rp->is_template_function &&
+                 !rp->is_prototype_instantiation) {
         /* Attributes specified on specializations are also ignored. */
         pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
         make_attr_unrecognized(ap);
       }  /* if */
-    } else if (dps != NULL &&
-               gnu_version >= 40900 &&
-               entity_kind == iek_type &&
-               is_immediate_class_type((a_type_ptr)entity) &&
-               (dps->is_explicit_instantiation ||
-                ((a_type_ptr)entity)->
-                                  variant.class_struct_union.is_specialized)) {
-      /* Ignore attributes (with a warning) on explicit specializations
-         (they had been accepted prior to 4.9.0). */
-      pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
-      make_attr_unrecognized(ap);
     }  /* if */
     if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
       /* See if there are any previous abi_tag attributes on this entity (there
@@ -6853,11 +6914,8 @@ to match GNU's behavior).
       /* If the attribute hasn't been marked as unrecognized, set the
          corresponding flag in the entity. */
       if (entity_kind == iek_routine) {
-        ((a_routine_ptr)entity)->has_gnu_abi_tag_attribute = TRUE;
+        rp->has_gnu_abi_tag_attribute = TRUE;
       } else {
-        a_type_ptr class_type = (a_type_ptr)entity;
-        check_assertion(entity_kind == iek_type &&
-                        is_immediate_class_type(class_type));
         class_type_supp(class_type)->has_gnu_abi_tag_attribute = TRUE;
       }  /* if */
     }  /* if */

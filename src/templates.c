@@ -3952,6 +3952,7 @@ be completed here.
                    template_sym,
                    tssp_of_prototype->cache.decl_info->parameters,
                    template_arg_list, parent_class_or_null(class_type),
+                   /*is_partial_instantiation=*/FALSE,
                    (a_boolean*)NULL);
         attach_tag_attributes(ap, class_type, (a_decl_parse_state*)NULL,
                               /*is_definition=*/TRUE,
@@ -5366,6 +5367,7 @@ on_primary_declaration flag is TRUE.
                     template_sym,
                     cache_for_template(tssp)->decl_info->parameters,
                     rp->template_arg_list, parent_class_or_null(rp),
+                    /*is_partial_instantiation=*/FALSE,
                     (a_boolean*)NULL);
   if (inst_attr != NULL) {
     attach_attributes(inst_attr, (char*)rp, iek_routine);
@@ -6917,6 +6919,9 @@ such classes.
   a_boolean				open_constructed_arg_list = FALSE;
   a_boolean				instantiate_nonreal_class = FALSE;
   a_boolean				dependent_arg_list;
+  a_symbol_ptr				prototype_template_prototype_sym;
+  a_type_ptr				prototype_type;
+  a_symbol_ptr				proto_template;
 
   dependent_arg_list = template_arg_list_is_dependent(template_arg_list);
   tssp = class_template_sym->variant.template_info;
@@ -7024,14 +7029,12 @@ such classes.
      until a full instantiation takes place -- or, if there is none, in
      pop_scope, as with ordinary classes. */
   ctsp->template_arg_list = template_arg_list;
-  {
-    /* For certain classes (like X<int>::Y<T>) the prototype instantiation
-       must be fetched from the prototype template (e.g., X<T>::Y).  Hence
-       we cannot just use prototype_sym. */
-    a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
-    ctsp->assoc_template =
-                    proto_template->variant.template_info->il_template_entry;
-  }  /* if */
+  /* For certain classes (like X<int>::Y<T>) the prototype instantiation
+     must be fetched from the prototype template (e.g., X<T>::Y).  Hence
+     we cannot just use prototype_sym. */
+  proto_template = prototype_template_of(class_template_sym);
+  ctsp->assoc_template =
+                      proto_template->variant.template_info->il_template_entry;
   if (sym->is_class_member) {
     /* If this is an instance of a member template, set the access of
        the type based on the access stored in the template. */
@@ -7049,20 +7052,33 @@ such classes.
     class_type->source_corresp.name_linkage =
                                    tssp->variant.class_template.name_linkage;
   }  /* if */
+  prototype_template_prototype_sym = proto_template->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+  prototype_type = prototype_template_prototype_sym == NULL ? NULL :
+                         prototype_template_prototype_sym->
+                                               variant.class_struct_union.type;
+  if (prototype_type != NULL &&
+      prototype_type->source_corresp.attributes != NULL) {
+    /* Apply any attributes that should be applied at partial instantiation
+       time. */
+    an_attribute_ptr  ap;
+    ap = copy_of_attributes_with_substitution(
+            prototype_type->source_corresp.attributes,
+            /*primary_only=*/TRUE, primary_template_sym,
+            proto_template->variant.template_info->cache.decl_info->parameters,
+            template_arg_list, parent_class_or_null(class_type),
+            /*is_partial_instantiation=*/TRUE, (a_boolean*)NULL);
+    attach_tag_attributes(ap, class_type, (a_decl_parse_state*)NULL,
+                          /*is_definition=*/TRUE,
+                          /*is_forward_decl=*/FALSE,
+                          /*ignore_gnu_attributes=*/FALSE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (microsoft_mode or_near_and_far_enabled()) {
-    a_symbol_ptr	prototype_template_prototype_sym;
-    a_type_ptr	prototype_type;
     /* Update the Microsoft decl modifier information for this class based
        on the information stored in the prototype instantiation.  If this
        is an instance of a subordinate template, use the prototype
        instantiation associated with the prototype template. */
-    prototype_template_prototype_sym =
-           prototype_template_of(class_template_sym)->variant.template_info->
-                              variant.class_template.prototype_instantiation;
-    prototype_type = prototype_template_prototype_sym == NULL ? NULL :
-                         prototype_template_prototype_sym->
-                                             variant.class_struct_union.type;
     if (prototype_type != NULL) {
       a_class_type_supplement_ptr  prototype_ctsp;
       an_extended_decl_info_block  extended_decl_info;
@@ -7432,6 +7448,7 @@ error type is used.
                                    template_sym,
                                    tssp->cache.decl_info->parameters,
                                    template_arg_list, parent_class,
+                                   /*is_partial_instantiation=*/FALSE,
                                    (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
@@ -7613,6 +7630,7 @@ template.
                                    (a_template_param_ptr)NULL,
                                    (a_template_arg_ptr)NULL,
                                    parent_class,
+                                   /*is_partial_instantiation=*/FALSE,
                                    (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */

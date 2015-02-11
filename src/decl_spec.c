@@ -4340,43 +4340,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (!err && gnu_mode && gnu_version >= 40900 &&
-      is_template_specialization) {
-    /* GNU "abi_tag" attributes on specializations (if any) are inherited from
-       the prototype class. */
-    a_type_ptr    proto_type;
-    a_symbol_ptr  class_sym, proto_sym;
-    check_assertion(tag_sym != NULL);
-    class_sym = tag_sym->variant.class_struct_union.extra_info->class_template;
-    if (class_sym != NULL) {
-      check_assertion(class_sym->kind == (a_symbol_kind)sk_class_template);
-      proto_sym = class_sym->variant.template_info->
-                                variant.class_template.prototype_instantiation;
-      check_assertion(proto_sym != NULL &&
-                      proto_sym->kind ==
-                                        (a_symbol_kind)sk_class_or_struct_tag);
-      proto_type = proto_sym->variant.class_struct_union.type;
-      check_assertion(proto_type != NULL &&
-                      is_immediate_class_type(proto_type));
-      if (class_type_supp(proto_type)->has_gnu_abi_tag_attribute) {
-        /* Copy the abi_tag attribute and apply it to the specialization. */
-        an_attribute_ptr abi_tag_attr = find_attribute(ak_abi_tag,
-                                        proto_type->source_corresp.attributes);
-        check_assertion(abi_tag_attr != NULL);
-        abi_tag_attr = copy_of_attributes_list(abi_tag_attr);
-        /* Set ap->assoc_info to NULL (by passing NULL for dps) to
-           differentiate this case from the one above (where the abi_tag is
-           specified on the specialization itself). */
-        attach_tag_attributes(abi_tag_attr, class_type,
-                              (a_decl_parse_state *)NULL,
-                              is_class_definition,
-                              curr_token == tok_semicolon,
-                              /*ignore_gnu_attributes=*/FALSE);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* If the current token marks a removed template body, skip past that
      special token. */
   if (definition_removed) (void)get_token();
