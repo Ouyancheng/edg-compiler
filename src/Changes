@@ -1,7 +1,7 @@
 Version 4.11
 
 2/9/15   [EDGcpfe/15988]
-Use of an unevaluated "this" in non-capturing lambda
+Use of an unevaluated "this" in a non-capturing lambda
 
 The front end previously required "this" to be captured for uses of "this" in
 an unevaluated context within a lambda.  For example, in C++11 mode:
@@ -10,7 +10,7 @@ an unevaluated context within a lambda.  For example, in C++11 mode:
     unsigned f() {
       return []{ return sizeof(i); }();  // Previously an error because
     }                                    // i requires access to "this", but
-    int i;                               // "this" cannot be captured.
+    int i;                               // "this" is not captured.
   };
 
 This is now fixed.
