@@ -988,7 +988,7 @@ ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function
 ec_invalid_inheritance_kind_for_class;;"pointer-to-member representation %sq is too restrictive for %n"
 ec_implicit_return_from_non_void_function;;"missing return statement at end of non-void %n"
 ec_duplicate_using_decl;;"duplicate using-declaration of %no ignored"
-ec_unsigned_enum_bit_field_with_signed_enumerator;;"enum bit-fields are always unsigned, but enum %t includes negative enumerator"
+ec_unsigned_enum_bit_field_with_signed_enumerator;;"enum bit fields are always unsigned, but enum %t includes negative enumerator"
 ec_cl_class_name_injection_option_only_in_cplusplus;;"option \"class_name_injection\" can be used only when compiling C++"
 ec_cl_arg_dependent_lookup_option_only_in_cplusplus;;"option \"arg_dep_lookup\" can be used only when compiling C++"
 ec_cl_friend_injection_option_only_in_cplusplus;;"option \"friend_injection\" can be used only when compiling C++"

@@ -1,5 +1,14 @@
 Version 4.11
 
+2/11/15   [EDGcpfe/9000]
+"bit field" vs. "bit-field" in diagnostics
+
+The diagnostics file that comes with the front end (error_msg.txt) almost
+consistently uses the term "bit field", but one instance was written
+"bit-field" instead (ec_unsigned_enum_bit_field_with_signed_enumerator).  That
+one instance has now been changed to "bit field" also.
+
+
 2/9/15   [EDGcpfe/15988]
 Use of an unevaluated "this" in a non-capturing lambda
 
