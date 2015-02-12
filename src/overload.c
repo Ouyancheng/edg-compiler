@@ -3128,9 +3128,13 @@ copy-initialization).
       goto have_level;
     }  /* if */
     if (param_is_class_type && arg_is_class_type &&
-        (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
+        (bcp = find_base_class_of(arg_type, param_type)) != NULL &&
+        (!bcp->ambiguous ||
+         (expr_stack != NULL && !expr_stack->suppress_diagnostics))) {
       /* The argument is a derived class and the parameter is a base class,
-         so the conversion can be done. */
+         so the conversion can be done.  (It cannot really be done if the
+         base class is ambiguous, but if we are going to issue diagnostics,
+         we let it pass here anyway.) */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std.cast_base_class = bcp;
       arg_summary->conversion.std.nontrivial_conversion = TRUE;

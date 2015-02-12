@@ -1,5 +1,21 @@
 Version 4.11
 
+2/11/15   [EDGcpfe/16003]
+__is_convertible_to and ambiguous base classes
+
+Previously, __is_convertible_to produced TRUE when testing convertibility from
+a derived class to an ambiguous base class.  For example:
+
+  struct B {};
+  struct C1: B {};
+  struct C2: B {};
+  struct D: C1, C2 {};  // Base class B is ambiguous.
+  static_assert(!__is_convertible_to(D, B), "Unexpected!");
+    // Previously this assertion check failed.  Now okay.
+
+This is now fixed.
+
+
 2/11/15   [EDGcpfe/9000]
 "bit field" vs. "bit-field" in diagnostics
 
