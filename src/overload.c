@@ -12848,6 +12848,8 @@ binding is to an rvalue reference.
                             ostblock;
   a_boolean                 boolean_converted_case = FALSE;
   a_template_arg_ptr        template_arg_list;
+  a_class_symbol_supplement_ptr
+                            cssp;
   a_template_symbol_supplement_ptr
                             tssp = NULL;
 
@@ -12935,14 +12937,14 @@ not_direct_binding_case:
      template class, instantiate it to make its conversion functions
      visible. */
   instantiate_template_class(conv_funcs_class);
+  cssp = class_symbol_supp(symbol_for(conv_funcs_class));
   /* Look at all the conversion functions for the source class.  After the
      end of the normal list, if we have a specific dest_type go through the
      list of template conversion functions. */
   template_conversions_started = FALSE;
   /*lint --e{850} conversion_symbol modified in loop */
   for (conversion_symbol = set_up_overload_symbol_list_traversal_simple(
-               symbol_supplement_for_class(conv_funcs_class)->conversion_list,
-               &ostblock);
+                                            cssp->conversion_list, &ostblock);
        ;
        conversion_symbol = next_symbol_in_overload_symbol_list(&ostblock)) {
     if (conversion_symbol == NULL) {
@@ -12951,9 +12953,8 @@ not_direct_binding_case:
       if (!template_conversions_started && dest_type != NULL) {
         template_conversions_started = TRUE;
         conversion_symbol = set_up_overload_symbol_list_traversal_simple(
-                                symbol_supplement_for_class(conv_funcs_class)->
-                                                      conversion_template_list,
-                                &ostblock);
+                                               cssp->conversion_template_list,
+                                               &ostblock);
       }  /* if */
       if (conversion_symbol == NULL) break;
     }  /* if */
@@ -13028,10 +13029,6 @@ not_direct_binding_case:
       a_boolean  weird_gpp_case = FALSE;
       /* The symbol is a function template. */
       check_assertion(eff_dest_type != NULL);  /* For Coverity. */
-      /* Don't do type deduction if that would produce a conversion
-         function that returns an abstract class type (which would be
-         invalid). */
-      if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
       if (is_reference_binding && !need_lvalue_result &&
@@ -13040,6 +13037,13 @@ not_direct_binding_case:
         /* When binding to a class prvalue, don't make the result
            cv-qualified just because the reference is to const. */
         eff_dest_type = skip_typerefs(eff_dest_type);
+      }  /* if */
+      if (is_abstract_class_type(eff_dest_type) &&
+          !(need_lvalue_result &&
+            is_any_reference_type(il_return_type_of(conv_routine_type)))) {
+        /* Don't do type deduction if that would produce a conversion function
+           that returns an abstract class type (which would be invalid). */
+        goto reject_function;
       }  /* if */
       /* Determine whether the desired type matches the type returned by the
          conversion template.  If normal deduction fails, check whether a
