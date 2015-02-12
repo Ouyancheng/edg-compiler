@@ -1,5 +1,24 @@
 Version 4.11
 
+2/12/15   [EDGcpfe/15707]
+Clang/GCC compatibility: Default constructors of unions with NSDMIs
+
+Ordinarily, in C++11 mode the generated default constructor of a union (or a
+class with an anonymous union) is "deleted" if it has a nonstatic data member
+whose type has a nontrivial default constructor.  For example:
+
+  struct N { N(); };  // Type with nontrivial default constructor.
+  union U {
+    N n{};  // Nonstatic data member initializer.
+  } u;
+
+This is normally an error since the initialization of the variable u
+implicitly uses the deleted default constructor of U.  In GNU and Clang C++
+modes, however, the front end does not mark U's constructor as deleted because
+the field requiring nontrivial initialization includes a nonstatic data member
+initializer (NSDMI).
+
+
 2/12/15   [EDGcpfe/16003]
 Conversion function template to "reference to abstract class"
 

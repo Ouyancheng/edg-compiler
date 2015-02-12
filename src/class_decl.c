@@ -16137,8 +16137,14 @@ assignment.
 static a_boolean check_valid_union_field(a_type_ptr         field_type,
                                          a_type_ptr         class_type,
                                          a_boolean          is_nonstd,
+                                         a_boolean          has_initializer,
                                          a_source_position  *pos)
 /*
+Check that a union field's type (field_type) is valid.  class_type is the type
+of the union.  is_nonstd is TRUE if class_type is a nonstandard anonymous
+union.  has_initializer is TRUE if the field has an initializer (a C++11
+feature).  pos is the position for diagnostics.
+
 In traditional C++, nonstatic data members of a union may not be objects with
 a constructor, a destructor, or a user-defined assignment operator.  (In C++11
 those restrictions were removed.)  If any such member functions are present
@@ -16167,7 +16173,8 @@ for the union type (class_type).
     } else if (unrestricted_unions_enabled) {
       if (class_type != NULL) {
         parent_cssp = symbol_supplement_for_class(class_type);
-        if (cssp->has_nontrivial_default_constructor) {
+        if (cssp->has_nontrivial_default_constructor &&
+            !((gpp_mode || clang_mode) && has_initializer)) {
           parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
         if (cssp->makes_copy_construction_nontrivial) {
@@ -16304,6 +16311,7 @@ promotion is for a nonstandard anonymous union.
  
   if (is_nonstd && gpp_mode &&
       !check_valid_union_field(field->type, class_type, /*is_nonstd=*/TRUE,
+                               field->has_initializer,
                                &field->source_corresp.decl_position)) {
     /* GNU C++ compilers apply the same constraints to nonstandard anonymous
        unions (which aren't really unions) as to ordinary unions.  There is
@@ -17829,6 +17837,7 @@ be entered.
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
     if (!check_valid_union_field(member_type, class_type, /*is_nonstd=*/FALSE,
+                                 decl_state->has_initializer,
                                  &locator->source_position)) {
       member_type = error_type();
     }  /* if */
@@ -18290,6 +18299,11 @@ information about the member declaration, respectively.
                                             curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  dps->has_initializer = field_initializers_enabled &&
+                         !decl_info->is_bit_field &&
+                         (curr_token == tok_assign ||
+                          curr_token == tok_lbrace ||
+                          curr_token == tok_removed_expr);
   /* Create the IL for the field, enter the symbol (if needed), etc. */
   (void)decl_nonstatic_data_member(locator, class_state, decl_info,
                                    depth_scope_stack);
@@ -18297,9 +18311,7 @@ information about the member declaration, respectively.
     /* Fields can only be declared in class scope, but severe syntax errors
        can sometimes get us here with a different scope on top of the stack. */
     expect_error();
-  } else if (field_initializers_enabled && !decl_info->is_bit_field &&
-             (curr_token == tok_assign || curr_token == tok_lbrace ||
-              curr_token == tok_removed_expr)) {
+  } else if (dps->has_initializer) {
     /* A field initializer.  For nontemplate classes (and prototype
        instantiations) it must be parsed in the context of the completed class
        definition.  This is handled by creating a fixup entry holding the
