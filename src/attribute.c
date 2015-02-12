@@ -6804,8 +6804,8 @@ to match GNU's behavior).
     a_source_correspondence_ptr scp = (a_source_correspondence*)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
     a_boolean           redeclaration = FALSE;
-    a_routine_ptr       rp;
-    a_type_ptr          class_type;
+    a_routine_ptr       rp = NULL;
+    a_type_ptr          class_type = NULL;
     an_attribute_ptr    prev;
 #if CHECKING
     /* GNU accepts more than just narrow string literals, but that seems to
@@ -6838,7 +6838,7 @@ to match GNU's behavior).
            result from template instantiations or specializations, unless
            the instantiation/specialization provides a definition.  For
            class templates this is handled by not instantiating the
-           attributes at all.  But for members of class templates, we just
+           attribute at all.  But for members of class templates, we just
            discard the attribute here.  E.g., the attribute has no effect
            in the following:
              template<class T> struct S {
