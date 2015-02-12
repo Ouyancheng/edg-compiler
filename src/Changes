@@ -1,5 +1,21 @@
 Version 4.11
 
+2/11/15   [EDGcpfe/16010]
+Dependent expressions in non-type template arguments
+
+The front end previously incorrectly rejected some non-type template
+arguments involving dependent expressions as not having a constant value.
+This is now fixed.  For example, with --c++11:
+
+  template <int I> struct Int { };
+
+  template <int I, int J>
+  constexpr int operator+(Int<I> lhs, Int<J> rhs) { return I + J; }
+
+  template <int I, int J>
+  struct Sum : Int<Int<I>() + Int<J>()> { };  // Previously a spurious error
+
+
 2/11/15   [EDGcpfe/16003]
 __is_convertible_to and ambiguous base classes
 

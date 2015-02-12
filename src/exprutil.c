@@ -12510,6 +12510,14 @@ of a subscript operation).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
+      if (is_template_param_constant_operand(operand_1) ||
+          is_template_param_constant_operand(operand_2) ||
+          is_template_dependent_type(operand_1->type) ||
+          is_template_dependent_type(operand_2->type)) {
+        /* This is a dependent expression, so make a template constant
+           result. */
+        template_constant = TRUE;
+      }  /* if */
       if (!template_constant && curr_expr_kind_is_evaluated_const() &&
           !result_is_lvalue) {
         /* An operation on constants could not be folded.  For example,
