@@ -10,9 +10,9 @@ generalized identifier.  For example:
 
   struct X { template<typename> void operator()() {} };
   template <typename T> void f() {
-  typedef void (A::*M)();
-    void (A::*pmf)() = &A::template operator()<int>;  // (*)
+    void (T::*pmf)() = &T::template operator()<int>;  // (*)
   }
+  template void f<X>();
 
 Previously, the line marked (*) was incorrectly parsed, leading to syntax
 errors.  This is now fixed.
