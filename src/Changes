@@ -19,7 +19,7 @@ the field requiring nontrivial initialization includes a nonstatic data member
 initializer (NSDMI).
 
 
-2/12/15   [EDGcpfe/16003]
+2/12/15   [EDGcpfe/16002]
 Conversion function template to "reference to abstract class"
 
 Previously, when considering user-defined implicit conversions, the front end
