@@ -5379,7 +5379,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           "dump_expr: lvalue assignment operator");
       /* Check for type_kinds that should have been lowered. */
       check_assertion(expr->variant.operation.type_kind !=
-                                                (a_type_kind)tk_ptr_to_member);
+                                               (a_type_kind)tk_ptr_to_member &&
+                      expr->variant.operation.type_kind !=
+                                                      (a_type_kind)tk_nullptr);
 #if LOWER_COMPLEX
       check_assertion(expr->variant.operation.type_kind !=
                                                      (a_type_kind)tk_complex &&

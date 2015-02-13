@@ -13571,6 +13571,11 @@ Lower the type_kind of the operation node as appropriate.
         expr->variant.operation.type_kind = (a_type_kind)tk_integer;
       }  /* if */
       break;
+    case tk_nullptr:
+      /* A nullptr type is lowered to "void *" which corresponds to a lowered
+         type kind of tk_pointer. */
+      expr->variant.operation.type_kind = (a_type_kind)tk_pointer;
+      break;
     default:
       /* Nothing to do. */
       break;
