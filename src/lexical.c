@@ -18648,7 +18648,8 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_template_sym = NULL;
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (((gpp_mode && gnu_version >= 30400) || microsoft_mode) &&
+          if (((gpp_mode && gnu_version >= 30400) || microsoft_mode ||
+               clang_mode) &&
               (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0 &&
               is_template_dependent_context()) {
             /* g++ and Microsoft allow usage like "p->A::template f()",
@@ -18663,7 +18664,7 @@ selection operator, in which case it points to the type of the left operand.
                has been enabled.*/
             a_token_kind	second_token;
             (void)next_two_tokens(tok_identifier, &second_token);
-            if (second_token != tok_lt &&
+            if (second_token != tok_lt && second_token != tok_error &&
                 (options & GID_CLASS_TEMPLATE_REQUIRED) == 0) {
               is_template = FALSE;
             }  /* if */

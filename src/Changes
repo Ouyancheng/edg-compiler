@@ -1,5 +1,23 @@
 Version 4.11
 
+2/13/15   [EDGcpfe/15656]
+Spurious error on "::template" in GNU and Microsoft modes
+
+The changes for EDGcpfe/9422 (GNU mode) and EDGcpfe/12785 (Microsoft mode)
+introduced a regression in cases where "::template" is followed not by a
+simple identifier, but by "operator" and some additional tokens forming the
+generalized identifier.  For example:
+
+  struct X { template<typename> void operator()() {} };
+  template <typename T> void f() {
+  typedef void (A::*M)();
+    void (A::*pmf)() = &A::template operator()<int>;  // (*)
+  }
+
+Previously, the line marked (*) was incorrectly parsed, leading to syntax
+errors.  This is now fixed.
+
+
 2/13/15   [EDGcpfe/16019]
 Lowered type_kind for tk_nullptr
 
