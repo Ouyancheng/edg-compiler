@@ -7720,14 +7720,18 @@ table.
 #if IA64_ABI
     if (gnu_mode && gnu_version >= 40900 && !clang_mode &&
         ctor_bcp != NULL &&
-        func_to_call->special_kind ==
+        ((func_to_call->special_kind ==
                                     (a_special_function_kind)sfk_destructor &&
-        func_to_call->is_virtual) {
+          func_to_call->is_virtual) ||
+         (func_to_call->overriding_function_for_wrapper != NULL &&
+          func_to_call->overriding_function_for_wrapper->special_kind ==
+                                   (a_special_function_kind)sfk_destructor))) {
       /* Beginning with 4.9.0, g++ suppresses references to virtual destructors
-         from construction virtual tables in order to increase the likelihood
-         that speculative devirtualization will be successful.  Invoking a
-         virtual destructor during object construction is undefined behavior,
-         so these entries should never be referred to anyway. */
+         (and virtual destructor thunks) from construction virtual tables in
+         order to increase the likelihood that speculative devirtualization
+         will be successful.  Invoking a virtual destructor during object
+         construction is undefined behavior, so these entries should never be
+         referred to anyway. */
       use_null_function = TRUE;
     }  /* if */
 #endif /* IA64_ABI */
