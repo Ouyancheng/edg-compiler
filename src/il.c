@@ -10859,9 +10859,8 @@ qual_pos must be non-NULL.
 }  /* make_reference_to_reference */
 
 
-static a_type_ptr copy_array_type_replacing_element_type(
-                                                      a_type_ptr  old_array,
-                                                      a_type_ptr  element_type)
+a_type_ptr copy_array_type_replacing_element_type(a_type_ptr  old_array,
+                                                  a_type_ptr  element_type)
 /*
 old_array is an array type that needs to be copied, but with a new element
 type (one that may, e.g., differ from the existing element type in its

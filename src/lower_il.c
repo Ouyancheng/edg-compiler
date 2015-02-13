@@ -10417,6 +10417,46 @@ contains a parameter whose type requires a copy constructor to be called.
 }  /* type_has_param_passed_via_cctor */
 
 
+a_type_ptr cast_type_for_param_passed_via_cctor(a_type_ptr source,
+                                                a_type_ptr dest)
+/*
+An object of type "source" is about to be cast to "dest" because "source" has
+some function type component with a parameter that requires a copy constructor
+to be called (i.e., needs_cast_because_type_has_param_passed_via_cctor returns
+TRUE).  In most cases, a simple cast to "dest" is needed (because lowering will
+alter the function signature), but in cases where "dest" is a variably-sized
+array type and "source" is a non-variably-sized array type, such a cast will
+effectively convert "source" to a variably-sized array which can lead to
+problems when the type is later used as a source operand to an eok_bassign as
+in a case like this:
+
+  struct A { A(const A&); };
+  template <class T> using B = void (*)(T);
+  void f(int i) {
+    new B<A>[i] { {} };
+  }
+
+In cases like the one described above, a new array type that has the same shape
+as "source", but the underlying element of "dest" is created and returned,
+otherwise "dest" is returned.
+*/
+{
+  a_type_ptr result;
+
+#if EXPENSIVE_CHECKING
+  check_assertion(needs_cast_because_type_has_param_passed_via_cctor(source));
+#endif /* EXPENSIVE_CHECKING */
+  if (is_incomplete_array_type(dest) && !is_incomplete_array_type(source)) {
+    check_assertion(is_array_type(source));
+    result = copy_array_type_replacing_element_type(source,
+                                          underlying_array_element_type(dest));
+  } else {
+    result = dest;
+  }  /* if */
+  return result;
+}  /* cast_type_for_param_passed_via_cctor */
+
+
 void lower_arg_expr_list(an_expr_node_ptr   expr_list,
                          a_type_ptr         called_rout_type,
                          a_routine_ptr      called_rout,
@@ -10499,7 +10539,9 @@ points to a location to insert code prior to the execution of the call
            passing a type that contains a function where (at least) one of the
            parameters will undergo this type conversion, we need to add
            a cast to the destination type to avoid a type mismatch. */
-        change_to_cast(expr, copy_node(expr), param->type);
+        change_to_cast(expr, copy_node(expr),
+                       cast_type_for_param_passed_via_cctor(expr->type,
+                                                            param->type));
       }  /* if */
       param = param->next;
     } else {
@@ -14811,7 +14853,10 @@ The given node is an eok_assign node.  Lower the node if needed.
                                                    operand_node->next->type)) {
         /* Add a cast if the source of the assignment has a type that contains
            a function with a copy constructed parameter. */
-        operand_node->next = add_cast(operand_node->next, operand_node->type);
+        operand_node->next = add_cast(operand_node->next,
+                                      cast_type_for_param_passed_via_cctor(
+                                                      operand_node->next->type,
+                                                      operand_node->type));
       }  /* if */
       break;
     case tk_struct:

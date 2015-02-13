@@ -1576,8 +1576,9 @@ initialization (when ipdp->array_element_sequence is TRUE).
   an_expr_node_ptr      num_elem_node = NULL;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
-  a_boolean             array_assignment = FALSE, needs_cast = FALSE;
+  a_boolean             array_assignment = FALSE;
   a_type_ptr            entity_type = entity_node->type;
+  a_type_ptr            cast_to_type = NULL;
 
   check_assertion(entity_node->is_lvalue);
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
@@ -1672,7 +1673,8 @@ initialization (when ipdp->array_element_sequence is TRUE).
          function with a parameter that is passed via a copy constructor,
          we need to add a cast to the destination type to avoid a type
          mismatch. */
-      needs_cast = TRUE;
+      cast_to_type = cast_type_for_param_passed_via_cctor(init_val_node->type,
+                                                          entity_type);
     } else if (is_lambda_capture &&
                is_ptr_or_ref_type(init_val_node->type) &&
                is_incomplete_type(type_pointed_to(init_val_node->type))) {
@@ -1682,14 +1684,14 @@ initialization (when ipdp->array_element_sequence is TRUE).
          capture.  Add an explicit cast to the incomplete type (since the
          source type, while incomplete now, will be complete in the generated
          C code). */
-      needs_cast = TRUE;
+      cast_to_type = entity_type;
     }  /* if */
-    if (needs_cast) {
+    if (cast_to_type != NULL) {
       /* If we need a cast, make sure we don't change the lvalueness. */
       if (init_val_node->is_lvalue) {
-        init_val_node = add_cast_to_glvalue(init_val_node, entity_type);
+        init_val_node = add_cast_to_glvalue(init_val_node, cast_to_type);
       } else {
-        init_val_node = add_cast(init_val_node, entity_type);
+        init_val_node = add_cast(init_val_node, cast_to_type);
       }  /* if  */
     }  /* if */
     assign_node = make_assignment_expr_with_subobject_fix(entity_node,
@@ -11900,7 +11902,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
                                                 dip->variant.constant->type)) {
           /* Change the type of a routine address constant if needed. */
           check_assertion(var != NULL);
-          dip->variant.constant->type = var->type;
+          dip->variant.constant->type = cast_type_for_param_passed_via_cctor(
+                                                   dip->variant.constant->type,
+                                                   var->type);
           dip->variant.constant->implicit_cast = TRUE;
         } else {
           /* See if an implicit cast is necessary for this constant (or any
@@ -11919,7 +11923,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
              mismatch. */
           check_assertion(var != NULL);
           dip->variant.expression = add_cast(dip->variant.expression,
-                                             var->type);
+                                          cast_type_for_param_passed_via_cctor(
+                                                 dip->variant.expression->type,
+                                                 var->type));
           /* We've just added a cast to a lowered expression; perform another
              post pass on the new expression (for example, to lower a
              pointer-to-member type_kind that might have just been added). */
