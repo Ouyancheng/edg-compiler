@@ -9763,7 +9763,7 @@ ceblock gives context information for the evaluation.
   } else if (is_operation_node(expr)) {
     /* An operation node.  If the operands are constant, we may be able to
        fold it. */
-    a_boolean             did_not_fold, template_constant;
+    a_boolean             did_not_fold, template_constant = FALSE;
     an_error_code         error_detected = ec_no_error;
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
@@ -10167,6 +10167,11 @@ pm_field_selection:
               /* Assume the operation can't be folded. */
               break;
           }  /* switch */
+          if (!folded && error_detected == ec_no_error && template_constant) {
+            /* A dependent expression: make a template param constant. */
+            make_template_param_expr_constant(expr, result_con);
+            folded = TRUE;
+          }  /* if */
         }  /* if */
         break;
     }  /* switch */
