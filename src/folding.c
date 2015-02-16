@@ -9963,8 +9963,7 @@ pm_field_selection:
         }  /* if */
         break;
       case eok_base_class_cast:
-        /* A cast of a prvalue to one of its base class subobjects.  We can
-           fold that if the operand is a ck_aggregate constant. */
+        /* A cast of a prvalue to one of its base class subobjects. */
         if (fold_expr(op1, ceblock, &op1_constant)) {
           if (op1_constant.kind == (a_constant_repr_kind)ck_template_param) {
             /* A dependent constant.  Just change the type. */
@@ -9976,6 +9975,34 @@ pm_field_selection:
               folded = TRUE;
               copy_constant_for_constexpr_evaluation(&op1_constant,
                                                      result_con);
+            }  /* if */
+          } else if (op1_constant.kind == (a_constant_repr_kind)ck_address) {
+            /* An address constant.  Fold the base class cast into it. */
+            if (is_template_dependent_type(expr->type)) {
+              make_template_param_cast_constant(
+                                  &op1_constant, result_con, expr->type,
+                                  !expr->variant.operation.compiler_generated);
+              folded = TRUE;
+            } else {
+              /* Try to fold the base class cast. */
+              a_base_class_ptr bcp;
+              a_type_ptr       base_type;
+              a_type_ptr       derived_type;
+              base_type = type_pointed_to(expr->type);
+              base_type = skip_typerefs(base_type);
+              derived_type = type_pointed_to(op1->type);
+              derived_type = skip_typerefs(derived_type);
+              bcp = find_base_class_of(derived_type, base_type);
+              check_assertion(bcp != NULL);
+              fold_base_class_cast(&op1_constant, bcp, expr->type, result_con,
+                                   /*check_cast_access=*/FALSE,
+                                   /*check_ambiguity=*/FALSE,
+                                   expr->variant.operation.compiler_generated,
+                                   /*is_object_pointer=*/TRUE, &did_not_fold,
+                                   &pos, &error_detected);
+              if (error_detected == ec_no_error && !did_not_fold) {
+                folded = TRUE;
+              }  /* if */
             }  /* if */
           } else if (op1_constant.kind == (a_constant_repr_kind)ck_aggregate) {
             a_constant_ptr base_con;
