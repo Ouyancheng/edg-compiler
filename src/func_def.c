@@ -277,6 +277,9 @@ compilation.
 }  /* require_definitions_of_virtual_functions_in_class */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/ /* routine is not used in this case. */
+#endif /* !IA64_ABI */
 static a_boolean is_explicit_instantiation_to_be_ignored(
 						a_routine_ptr	routine)
 /*
