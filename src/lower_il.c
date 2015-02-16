@@ -16286,6 +16286,12 @@ is_full_expr is TRUE.
     lower_expr(expr);
   }  /* if */
   normalize_boolean_controlling_expr_if_needed(expr);
+  if (is_full_expr &&
+      lowering_normalizes_boolean_controlling_expressions) {
+    /* Perform a lowering post-pass on the normalized expression (a post-pass
+       had been performed above, but the expression may have been changed). */
+    perform_post_pass_on_lowered_expression(expr);
+  }  /* if */
 }  /* lower_boolean_controlling_expr */
 
 
