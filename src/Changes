@@ -152,11 +152,12 @@ This is now fixed.
 
 
 2/11/15   [EDGcpfe/16010]
-Dependent expressions in non-type template arguments
+Dependent expressions in constant contexts
 
-The front end previously incorrectly rejected some non-type template
-arguments involving dependent expressions as not having a constant value.
-This is now fixed.  For example, with --c++11:
+The front end previously incorrectly rejected some expressions appearing in
+constant contexts in template definitions as not having a constant value if
+they involve dependent values.  This is now fixed.  For example, with
+--c++11:
 
   template <int I> struct Int { };
 

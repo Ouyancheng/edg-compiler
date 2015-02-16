@@ -12510,12 +12510,14 @@ of a subscript operation).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
-      if (constexpr_enabled && curr_expr_kind_is(ek_template_arg) &&
+      if (constexpr_enabled &&
+          (curr_expr_kind_is(ek_integral_constant) ||
+           curr_expr_kind_is(ek_template_arg)) &&
           (is_template_param_constant_operand(operand_1) ||
            is_template_param_constant_operand(operand_2) ||
            is_template_dependent_type(operand_1->type) ||
            is_template_dependent_type(operand_2->type))) {
-        /* This is a dependent expression used as a template argument, so
+        /* This is a dependent expression used in a constant context, so
            make a template constant result instead of reporting it as being
            non-constant. */
         template_constant = TRUE;
