@@ -277,6 +277,26 @@ compilation.
 }  /* require_definitions_of_virtual_functions_in_class */
 
 
+static a_boolean is_explicit_instantiation_to_be_ignored(
+						a_routine_ptr	routine)
+/*
+Return TRUE if routine was explicitly instantiated and we are in an ABI
+where that should suppress the generation of the vtable.
+
+Other compilers (g++, clang, Microsoft) do not emit vtables if the decider
+function is explicitly instantiated, so we do likewise in the IA-64 ABI.
+When the cfront ABI is used, we have to emit the vtable because it won't
+be emitted elsewhere.
+*/
+{
+#if IA64_ABI
+  return routine->explicit_instantiation;
+#else /* !IA64_ABI */
+  return FALSE;
+#endif /* IA64_ABI */
+}  /* is_explicit_instantiation_to_be_ignored */
+
+
 static a_boolean virtual_functions_needed_due_to_definition_of(
                                                          a_routine_ptr routine)
 /*
@@ -296,20 +316,15 @@ indicated routine has just been processed.
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
-    } else if (routine->is_virtual
-#if IA64_ABI
-               && !routine->explicit_instantiation
-#endif /* IA64_ABI */
-                                                  ) {
-      /* Other compilers (g++, clang, Microsoft) do not emit vtables
-         if the decider function is explicitly instantiated, so we
-         do likewise.  When the cfront ABI is used, we have to emit the
-         vtable because it won't be emitted elsewhere. */
+    } else if (routine->is_virtual &&
+               !is_explicit_instantiation_to_be_ignored(routine)) {
       a_routine_ptr decider = vtbl_decider_function_for_class(
                                                             class_type,
                                                             (a_boolean *)NULL);
       if (decider != NULL ?
-                    (decider == routine || routine_has_been_defined(decider)) :
+                    (decider == routine ||
+                     (routine_has_been_defined(decider) &&
+                      !is_explicit_instantiation_to_be_ignored(decider))) :
                     routine->considered_decider_function_at_some_point) {
         /* This routine is the decider function for definition of the
            virtual function table.  Since it's defined, the virtual function
