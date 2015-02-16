@@ -10426,8 +10426,8 @@ to be called (i.e., needs_cast_because_type_has_param_passed_via_cctor returns
 TRUE).  In most cases, a simple cast to "dest" is needed (because lowering will
 alter the function signature), but in cases where "dest" is a variably-sized
 array type and "source" is a non-variably-sized array type, such a cast will
-effectively convert "source" to a variably-sized array which can lead to
-problems when the type is later used as a source operand to an eok_bassign as
+effectively convert "source" to a variably-sized array.  That can lead to
+problems if the type is later used as a source operand to an eok_bassign as
 in a case like this:
 
   struct A { A(const A&); };
@@ -10436,8 +10436,8 @@ in a case like this:
     new B<A>[i] { {} };
   }
 
-In cases like the one described above, a new array type that has the same shape
-as "source", but the underlying element of "dest" is created and returned,
+In cases like the one described above, a new array type with the same shape
+as "source" but an underlying element type of "dest" is created and returned,
 otherwise "dest" is returned.
 */
 {
