@@ -18652,7 +18652,7 @@ selection operator, in which case it points to the type of the left operand.
                clang_mode) &&
               (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0 &&
               is_template_dependent_context()) {
-            /* g++ and Microsoft allow usage like "p->A::template f()",
+            /* g++, Clang and Microsoft allow usage like "p->A::template f()",
                where the name (at least during the prototype instantiation)
                is not a template.  Ignore the template keyword in this case.
                An exception is made when the caller specifies the
