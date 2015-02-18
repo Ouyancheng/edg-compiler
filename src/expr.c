@@ -15983,7 +15983,7 @@ the delete routine is ambiguous (an error will have been issued).
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
     if (placement_new && is_two_argument_delete(delete_routine) &&
-        && is_default_operator_delete(delete_routine) &&
+        is_default_operator_delete(delete_routine) &&
         (clang_mode || (!microsoft_mode && !gpp_mode))) {
       /* Core issue 429: Give an error if a placement new operation results
          in the selection of a non-placement operator delete function (i.e.,
