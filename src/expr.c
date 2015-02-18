@@ -15932,6 +15932,7 @@ static a_routine_ptr determine_deletion_for_new(
                                            a_type_ptr        base_new_type,
                                            a_symbol_ptr      new_sym,
                                            a_boolean         use_global_delete,
+                                           a_boolean         placement_new,
                                            a_source_position *position,
                                            a_boolean         *ambiguous)
 /*
@@ -15945,7 +15946,8 @@ base_new_type is the type of entity being allocated (the element type
 if an array is being allocated); new_sym is the "new" routine being
 called to do the allocation, stripped to its fundamental symbol;
 use_global_delete is TRUE if "::new" was used; and *position gives
-the position to be used for errors.  *ambiguous is set to TRUE if
+the position to be used for errors.  placement_new is TRUE if a placement
+new expression is being processed.  *ambiguous is set to TRUE if
 the delete routine is ambiguous (an error will have been issued).
 */
 {
@@ -15980,17 +15982,29 @@ the delete routine is ambiguous (an error will have been issued).
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
-    if (delete_sym->is_class_member) {
-      /* Check access and ambiguity for class member operator deletes. */
-      a_symbol_locator locator_for_delete;
-      make_locator_for_symbol(delete_sym, &locator_for_delete);
-      locator_for_delete.source_position = *position;
-      expr_overload_check_ambiguity_and_verify_access(&locator_for_delete,
-                                                      overload_delete_sym);
+    if (placement_new && is_two_argument_delete(delete_routine) &&
+        && is_default_operator_delete(delete_routine) &&
+        (clang_mode || (!microsoft_mode && !gpp_mode))) {
+      /* Core issue 429: Give an error if a placement new operation results
+         in the selection of a non-placement operator delete function (i.e.,
+         one whose second argument is size_t).  Clang implements this;
+         Microsoft and GNU do not. */
+      pos_sy_error(ec_placement_new_refers_to_non_placement_delete, position,
+                   delete_sym);
+      delete_routine = NULL;
+    } else {
+      if (delete_sym->is_class_member) {
+        /* Check access and ambiguity for class member operator deletes. */
+        a_symbol_locator locator_for_delete;
+        make_locator_for_symbol(delete_sym, &locator_for_delete);
+        locator_for_delete.source_position = *position;
+        expr_overload_check_ambiguity_and_verify_access(&locator_for_delete,
+                                                        overload_delete_sym);
+      }  /* if */
+      /* Mark the symbol referenced. */
+      record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
+                              position, /*update_il_entry=*/FALSE);
     }  /* if */
-    /* Mark the symbol referenced. */
-    record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
-                            position, /*update_il_entry=*/FALSE);
   }  /* if */
   return delete_routine;
 }  /* determine_deletion_for_new */
@@ -17811,6 +17825,7 @@ expression, and return the result in *result (or an error indication in
       delete_routine = determine_deletion_for_new(base_new_type,
                                                   function_symbol,
                                                   use_global_new,
+                                                  placement_new,
                                                   &new_position,
                                                   &delete_ambiguous);
     }  /* if */

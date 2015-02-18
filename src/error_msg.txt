@@ -2700,6 +2700,7 @@ ec_abi_tag_prev_declaration;INTERNAL;"(see previous declaration %p)"
 ec_abi_tag_ignored_on_specialization;;"abi_tag attribute is ignored on specialization"
 ec_decltype_auto_return_must_be_standalone;;"decltype(auto) cannot appear under a pointer, reference, or pointer-to-member construct"
 ec_exp_class_or_typename;;"expected \"class\" or \"typename\""
+ec_placement_new_refers_to_non_placement_delete;;"placement \"new\" expression refers to non-placement %nd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
