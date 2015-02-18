@@ -18687,11 +18687,7 @@ cases so we don't do it here.
       check_assertion(is_expression_operand(operand));
       node = operand->variant.expression;
       check_assertion(is_glvalue_node(node));
-      if (gcc_mode && gcc_const_variables_allowed &&
-          (curr_expr_kind_is_const() ||
-           expr_stack->is_vla_dimension_expression ||
-           (curr_expr_kind_is(ek_sizeof) &&
-            expr_stack->favor_constant_result))) {
+      if (gcc_mode && gcc_const_variables_allowed) {
         /* GCC allows const variables to be used in constant expressions in
            some C-mode cases.  We allow it but report it as a warning.  With
            -O1 and above GCC allows it in foldable constant expressions.  GCC
@@ -18704,14 +18700,19 @@ cases so we don't do it here.
             is_potentially_constant_valued_variable(var) &&
             (con_value = var_constant_value_full(
                                    var,
-                                   /*copy_for_reuse=*/TRUE,
-                                   /*clear_backing_expr=*/TRUE,
+                                   /*copy_for_reuse=*/FALSE,
+                                   /*clear_backing_expr=*/FALSE,
                                    /*allow_C_mode_const_var=*/TRUE)) != NULL) {
-          expr_pos_warning(ec_const_var_in_C_const_expr,
-                           &operand->position);
+          if ((curr_expr_kind_is_const() ||
+              expr_stack->is_vla_dimension_expression ||
+              (curr_expr_kind_is(ek_sizeof) &&
+               expr_stack->favor_constant_result))) {
+            expr_pos_warning(ec_const_var_in_C_const_expr,
+                             &operand->position);
+          }  /* if */
           constant_case = TRUE;
-          /* We aren't recording the backing expression here.  We probably
-             should, but this is a pretty odd case. */
+          con_value = alloc_unshared_constant(con_value);
+          con_value->expr = var_rvalue_expr(var);
         }  /* if */
       }  /* if */
       if (!constant_case) {
