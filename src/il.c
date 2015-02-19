@@ -16412,7 +16412,7 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
 
   if (cpp11_sfinae_enabled) {
     /* C++11 SFINAE rules: do the substitution by rescanning. */
-    a_boolean  saved_cpp11_sfinae_ignore_access,
+    a_boolean  saved_cpp11_sfinae_ignore_access = FALSE,
                restore_sfinae_ignore_access = FALSE;
     if (microsoft_mode && (options & CTWS_RETURN_TYPE) &&
         cpp11_sfinae_ignore_access &&

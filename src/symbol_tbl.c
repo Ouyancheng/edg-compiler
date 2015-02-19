@@ -11897,7 +11897,7 @@ be reported when access deferral is ended by the enclosing context.
         a_boolean	accessible;
         next_aedp = aedp->next;
         aedp->next = NULL;
-        /* Temporary set the "in_decltype_context" flag to match the original
+        /* Temporarily set the "in_decltype_context" flag to match the original
            context.  This matters in Microsoft mode, where access errors are
            treated differently inside "decltype(...)" constructs. */
         scope_stack_top().in_decltype_context = aedp->in_decltype_context;
