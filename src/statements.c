@@ -1923,7 +1923,25 @@ body of a constexpr function or constructor.
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   if (p_okay_in_constexpr_body != NULL) {
-    *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;
+    if (!relaxed_constexpr_enabled) {
+      *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;
+    } else {
+      a_boolean  decl_okay_in_constexpr_body = TRUE;
+      /* C++14 permits just about any declaration, except definitions of
+         variables with one or more of the following attributes:
+           - a non-literal type
+           - thread or static storage duration
+           - no explicit or implicit initializer
+      */
+      if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
+        a_variable_ptr  var = dps.sym->variant.variable.ptr;
+        if (var->init_kind == (an_init_kind)initk_none ||
+            var_has_static_or_thread_storage_duration(var) ||
+            !is_literal_type(var->type)) {
+        }  /* if */
+      }  /* if */
+      *p_okay_in_constexpr_body = decl_okay_in_constexpr_body;
+    }  /* if */
   }  /* if */
   /* Re-load sssep since the call to scan_nonmember_declaration may have
      caused the statement stack to be reallocated. */
@@ -6645,7 +6663,7 @@ this statement was preceded by the GNU keyword __extension__.
 {
   a_boolean          prev_was_label = FALSE;
   a_boolean          get_another_statement;
-  a_boolean          can_appear_in_constexpr_body = FALSE;
+  a_boolean          can_appear_in_constexpr_body = relaxed_constexpr_enabled;
   a_source_position  start_pos;
   an_il_entity_list_entry_ptr
                      entity_list;
@@ -6708,6 +6726,7 @@ rescan_statement:
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_forall:
     /* The upc_forall statement is similar to the standard for statement. */
+      check_assertion(!constexpr_enabled);
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
       /* For statement (3.6.5) and range-based-for ([stmt.ranged]). */
@@ -6717,11 +6736,13 @@ rescan_statement:
     case tok_for_each:
       /* "for each" statement (ECMA-372 section 16.2.1). */
       for_each_statement();
+      can_appear_in_constexpr_body = FALSE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_goto:
       /* Goto statement (3.6.6). */
       goto_statement();
+      can_appear_in_constexpr_body = FALSE;
       break;
     case tok_continue:
       /* Continue statement (3.6.6). */
@@ -6744,20 +6765,24 @@ rescan_statement:
     case tok_microsoft_asm:
       /* Asm "declaration" (ARM 7.3) or Microsoft mode asm block. */
       asm_statement();
+      can_appear_in_constexpr_body = FALSE;
       break;
     case tok_try:
       /* C++ try block. */
       try_block_statement((a_statement_ptr)NULL,
                           /*explicit_return_type=*/FALSE);
+      can_appear_in_constexpr_body = FALSE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_microsoft_try:
       /* Microsoft try-finally or try-except statement. */
       microsoft_try_statement();
+      can_appear_in_constexpr_body = FALSE;
       break;
     case tok_leave:
       /* Microsoft __leave. */
       leave_statement();
+      can_appear_in_constexpr_body = FALSE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_case:
@@ -6847,9 +6872,11 @@ default_label_case:
     case tok_upc_notify:
     case tok_upc_wait:
     case tok_upc_barrier:
+      check_assertion(!constexpr_enabled);
       upc_barrier_style_statement();
       break;
     case tok_upc_fence:
+      check_assertion(!constexpr_enabled);
       upc_fence_statement();
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */

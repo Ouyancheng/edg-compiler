@@ -914,7 +914,9 @@ typedef struct a_decl_parse_state {
 			   seen. */
   a_bit_field	decl_okay_in_constexpr_body:1;
 			/* TRUE if this declaration is a valid form for a
-			   constexpr function or constructor body. */
+			   C++11 constexpr function or constructor body.
+			   (This does not apply to the more "relaxed" C++14
+			   constexpr functions and constructors.) */
   a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this is the declaration of an inheriting
 			   constructor. */

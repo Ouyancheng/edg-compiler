@@ -529,6 +529,12 @@ EXTERN a_boolean
 			   accepted (a C++11 feature). */
 
 EXTERN a_boolean
+		relaxed_constexpr_enabled;
+			/* TRUE if the constexpr constraint relaxation allowed
+			   by C++14 is enabled (this, e.g., allows loop
+			   constructs in constexpr functions). */
+
+EXTERN a_boolean
 		rtti_enabled;
 			/* TRUE if support for runtime type identification
 			   (RTTI) is enabled.  Significant only in C++ mode.

@@ -1995,6 +1995,9 @@ static a_flag_name
     &force_ms_type_info_not_in_namespace_std },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { "terse_range_based_for_enabled", &terse_range_based_for_enabled },
+#if /*FIXME: delete once relaxed constexpr is enabled in C++14 mode.*/1
+  { "relaxed_constexpr", &relaxed_constexpr_enabled },
+#endif /*FIXME*/
   { NULL, NULL }  /* must be last */
 };
 
@@ -3089,6 +3092,9 @@ default mode (e.g., exception handling).
     if (rvalue_references_enabled && !gpp_mode && !clang_mode) {
       selection_from_prvalue_is_xvalue = TRUE;
     }  /* if */
+#if /*FIXME*/0
+    relaxed_constexpr_enabled = TRUE;
+#endif /*FIXME*/
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -10441,6 +10447,7 @@ variables declared in cmd_line.h.
   delegating_constructors_enabled = FALSE;
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
+  relaxed_constexpr_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;
