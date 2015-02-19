@@ -4104,7 +4104,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_relaxed_constexpr",
-    NULL,
+    &relaxed_constexpr_enabled,
     NULL,		/* __cpp_constexpr must be handled specially, as
 			   the single macro name takes on different values
 			   depending on the level of constexpr support. */
@@ -9558,12 +9558,12 @@ command line -D options.
     }  /* for */
     /* __cpp_constexpr must be handled specially, as it will have different
        values depending on whether C++11 or C++14 constexpr features are
-       supported.  Currently the front end is only capable of support for
-       the C++11 version, corresponding to a value of 200704.  When the
-       C++14 version is implemented, the following code will be updated to
-       define __cpp_constexpr with the value 201304 if the C++14 version is
-       enabled. */
-    if (constexpr_enabled) {
+       supported. */
+    if (relaxed_constexpr_enabled) {
+      (void)enter_predef_macro("201304", "__cpp_constexpr",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    } else if (constexpr_enabled) {
       (void)enter_predef_macro("200704", "__cpp_constexpr",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
