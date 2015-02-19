@@ -6727,6 +6727,7 @@ rescan_statement:
     case tok_upc_forall:
     /* The upc_forall statement is similar to the standard for statement. */
       check_assertion(!constexpr_enabled);
+      /*FALLTHROUGH*/
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
       /* For statement (3.6.5) and range-based-for ([stmt.ranged]). */
