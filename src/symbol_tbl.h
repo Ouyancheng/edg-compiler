@@ -4196,6 +4196,11 @@ typedef struct an_access_error_descr {
 		in_template_arg_list;
 			/* TRUE if the access occurred in the context of
 			   a template argument list. */
+  a_byte_boolean
+		in_decltype_context;
+			/* TRUE if the access occurred in the context of
+			   a decltype(...) construct.  (Currently only
+			   relevant in Microsoft mode.) */
 } an_access_error_descr;
 
 

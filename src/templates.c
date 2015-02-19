@@ -10892,10 +10892,10 @@ the appropriate error checks.  Return the (possibly) substituted type.
 {
   a_type_ptr	new_type;
 
-  new_type = copy_type_with_substitution(type,
-                                         templ_arg_list, templ_param_list,
-                                         source_pos, options, copy_error,
-                                         ctws_state);
+  new_type = copy_type_with_substitution(
+                                     type, templ_arg_list, templ_param_list,
+                                     source_pos, (options | CTWS_RETURN_TYPE),
+                                     copy_error, ctws_state);
   if (new_type != type) {
     /* Check for a function returning a function, a function returning an
        array type, or a function returning an abstract class type. */

@@ -1747,6 +1747,9 @@ typedef int a_ctws_options_set;
 			   should permit a list that doesn't cover all the
 			   corresponding template parameters (because
 			   additional arguments will be deduced later). */
+#define CTWS_RETURN_TYPE		0x200
+			/* TRUE if the type being processed is the return type
+			   of a function type. */
 
 /*
 Structure used to represent a set of function parameters that resulted from

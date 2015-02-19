@@ -11451,13 +11451,14 @@ in the source program.
   a_symbol_ptr	fund_sym = fundamental_symbol_of(symbol);
   a_boolean	have_access = TRUE;
 
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+  if (scope_stack_top().in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
   } else if (microsoft_mode &&
              depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
              scope_stack[depth_innermost_instantiation_scope].
-                                              function_partial_instantiation) {
+                                              function_partial_instantiation &&
+             !scope_stack_top().in_decltype_context) {
     /* The Microsoft compiler ignores certain access errors during the rescan
        of function template declarations when creating the partial
        instantiation of the function. */
@@ -11655,7 +11656,7 @@ a context where deferral of errors applies.
 {
   a_boolean			defer_access_checks = FALSE;
   a_scope_stack_entry_ptr	ssep = NULL;
-  a_boolean			in_template_arg_list;
+  a_boolean			in_template_arg_list, in_decltype_context;
 
   if (scope_stack_top().make_access_errors_warnings) {
     /* We're in a context where we are supposed to reduce access errors
@@ -11663,6 +11664,7 @@ a context where deferral of errors applies.
     severity = es_warning;
   }  /* if */
   in_template_arg_list = scope_stack_top().in_template_arg_list;
+  in_decltype_context = scope_stack_top().in_decltype_context;
   if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
@@ -11698,6 +11700,7 @@ a context where deferral of errors applies.
           aedp->severity == severity &&
           aedp->error_code == error_code &&
           aedp->in_template_arg_list == in_template_arg_list &&
+          aedp->in_decltype_context == in_decltype_context &&
           cmp_source_positions(aedp->position, *source_position) == 0) {
         break;
       }  /* if */
@@ -11713,6 +11716,7 @@ a context where deferral of errors applies.
       aedp->severity = severity;
       aedp->error_code = error_code;
       aedp->in_template_arg_list = in_template_arg_list;
+      aedp->in_decltype_context = in_decltype_context;
       if (ssep->deferred_access_checks == NULL) {
         ssep->deferred_access_checks = aedp;
       }  /* if */
@@ -11887,10 +11891,16 @@ be reported when access deferral is ended by the enclosing context.
     a_symbol_ptr		prev_error_symbol = NULL;
     prev_error_position = null_source_position;  /* Keep lint happy. */
     if (aedp != NULL) {
+      a_boolean  saved_in_decltype_context =
+                                        scope_stack_top().in_decltype_context;
       for (; aedp != NULL; aedp = next_aedp) {
         a_boolean	accessible;
         next_aedp = aedp->next;
         aedp->next = NULL;
+        /* Temporary set the "in_decltype_context" flag to match the original
+           context.  This matters in Microsoft mode, where access errors are
+           treated differently inside "decltype(...)" constructs. */
+        scope_stack_top().in_decltype_context = aedp->in_decltype_context;
         if (aedp->protected_access_class != NULL) {
           /* Protected member check of 11.5 in the C++ standard. */
           if (prev_error_symbol == aedp->sym &&
@@ -11944,6 +11954,7 @@ be reported when access deferral is ended by the enclosing context.
       }  /* for */
       ssep->deferred_access_checks = new_head;
       ssep->last_deferred_access_check = new_tail;
+      scope_stack_top().in_decltype_context = saved_in_decltype_context;
     }  /* if */
   }  /* if */
 }  /* perform_deferred_access_checks */
@@ -11965,17 +11976,15 @@ routine entry of the function that was declared.
   /* This routine is always called last, so we can reset this flag now. */
   ssep->defer_access_checks = FALSE;
   if (ssep->deferred_access_checks != NULL) {
-    if (ssep->deferred_access_checks != NULL) {
-      if (rp->source_corresp.is_class_member) {
-        push_class_reactivation_scope(parent_class_of(rp),
-                                      /*extend_namespace=*/FALSE);
-      }  /* if */
-      (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
-                       (a_type_ptr)NULL, rp);
-      perform_deferred_access_checks();
-      pop_scope();
-      if (rp->source_corresp.is_class_member) pop_class_reactivation_scope();
+    if (rp->source_corresp.is_class_member) {
+      push_class_reactivation_scope(parent_class_of(rp),
+                                    /*extend_namespace=*/FALSE);
     }  /* if */
+    (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, rp);
+    perform_deferred_access_checks();
+    pop_scope();
+    if (rp->source_corresp.is_class_member) pop_class_reactivation_scope();
   }  /* if */
 }  /* perform_deferred_access_checks_for_function */
 

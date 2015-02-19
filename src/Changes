@@ -1,5 +1,45 @@
 Version 4.11
 
+2/18/15  [EDGcpfe/16001]
+Microsoft C++ compatibility: Access checking in decltype(...) constructs
+
+In Microsoft mode, the front end does not by default treat access errors
+during template argument deduction as mere deduction failures (i.e., so-called
+SFINAE behavior); instead, they are ordinary errors.  However, it does now
+treat access errors occurring within decltype constructs in return types of
+member functions in that way.  For example:
+
+  class P { P& operator=(int); };  // P::operator= is private.
+  struct S {
+    template<typename T> static auto f(T)->decltype((T() = 0), 1);  // (1)
+    static auto f(...)->int;                                        // (2)
+    using type = decltype(f(P()));
+  };
+
+Previously, this example triggered an access error while considering the
+candidate (1) for the call f(P()).  Now, the candidate is simply discarded in
+favor of candidate (2).
+
+The changes for this also affect the behavior described for EDGcpfe/12708.
+E.g., modifying the example in the Changes entry for EDGcpfe/12708 as follows
+(to place the access error in a decltype construct), now produces an error
+again:
+
+  struct A {
+    template <class T> static decltype(typename T::X()) f(T);
+  };    
+  class B {
+    typedef int X; 
+  };  
+  int main() {
+    B b;
+    A::f(b); 
+  } 
+
+(i.e., the disabling of access errors described in EDGcpfe/12708 no longer
+applies in the decltype context).
+
+
 2/18/15  [EDGcpfe/7107]
 Core issue 429: Diagnose non-placement delete used for placement new
 
