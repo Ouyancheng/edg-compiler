@@ -49,8 +49,8 @@ new operation.  That is now implemented (except in Microsoft and GNU
 emulation modes).  For example (with -x):
 
   struct S {
-    static void* operator new(__SIZE_TYPE__, __SIZE_TYPE__);
-    static void operator delete(void*, __SIZE_TYPE__);
+    static void* operator new(__EDG_SIZE_TYPE__, __EDG_SIZE_TYPE__);
+    static void operator delete(void*, __EDG_SIZE_TYPE__);
   };
   S* p = new (0) S; // Now ill-formed: non-placement deallocation function
                     // matches placement allocation function.
