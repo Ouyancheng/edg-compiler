@@ -4299,8 +4299,9 @@ subsequent calls.
       break;
     }  /* if */
   }  /* for */
-  if (p[0] != LE_ESCAPE || p[1] != LE_END_OF_INSERTION) {
-    /* The argument contains something other than a simple identifier. */
+  if (p == id || p[0] != LE_ESCAPE || p[1] != LE_END_OF_INSERTION) {
+    /* The argument is empty or contains something other than a simple
+       identifier. */
     pos_diagnostic(es_discretionary_error, ec_feature_test_macro_req_id,
                    error_pos);
     id = NULL;

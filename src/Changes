@@ -1,5 +1,18 @@
 Version 4.11
 
+2/19/15  [EDGcpfe/16036]
+clang compatibility: empty argument to __has_feature/__has_extension
+
+The clang compiler treats an empty argument to the __has_feature and
+__has_extension built-in macros as an error.  The front end previously
+failed to diagnose this error and inadvertently treated such an argument as
+a test for support of Unicode literals, for which clang has no feature
+name.  This is now fixed.  For example, with --clang:
+
+  #if __has_feature()  // Now diagnosed as an error
+  #endif
+
+
 2/19/15  [EDGcpfe/16029]
 Incorrect checking code in equiv_template_arg_lists
 
