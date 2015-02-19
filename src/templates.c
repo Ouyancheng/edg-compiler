@@ -6247,9 +6247,9 @@ the same constant.
     }  /* if */
   }  /* if */
   if (!pack_seen && arg2 != NULL) {
-    a_template_arg_ptr	tap = arg1;
+    a_template_arg_ptr	tap = arg2;
     for (; tap != NULL; tap = tap->next) {
-      if (tap->is_pack) is_variadic = TRUE;
+      if (tap->is_pack) pack_seen = TRUE;
     }  /* if */
   }  /* if */
 #endif /* CHECKING */

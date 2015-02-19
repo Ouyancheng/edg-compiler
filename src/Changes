@@ -1,5 +1,13 @@
 Version 4.11
 
+2/19/15  [EDGcpfe/16029]
+Incorrect checking code in equiv_template_arg_lists
+
+A bug in some checking code added to equiv_template_arg_lists in version 4.10
+could, in theory, result in a spurious internal error, although no actual
+cases have been encountered at this time.  Now fixed.
+
+
 2/18/15  [EDGcpfe/16001]
 Microsoft C++ compatibility: Access checking in decltype(...) constructs
 
