@@ -30,6 +30,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "pch.h"
 #include "func_def.h"
 #include "il_walk.h"
+#include "interpret.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -5647,29 +5648,37 @@ of the call.
   a_boolean folded = FALSE;
 
   if (constexpr_call_folding_should_be_done()) {
-    an_error_code failure_warning;
-    a_constant    result_con;
-    a_boolean     need_backing_expr =
-                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-    if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                            &result_con, &failure_warning)) {
-      folded = TRUE;
-      make_constant_operand(&result_con, result);
-      result->position = *pos;
-      if (is_reference_type(result->type)) {
-        a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
-        add_reference_indirection(result);
-        if (is_rvalue_ref) {
-          /* A call of a function that returns an rvalue reference is an
-             xvalue. */
-          conv_rvalue_reference_result_to_xvalue(result);
-        }  /* if */
-      } else if (!curr_expr_kind_is_const() &&
-                 is_class_struct_union_type(result->type)) {
-        temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
+    a_constant  result_con;
+    if (relaxed_constexpr_enabled) {
+      folded = interpret_constexpr_call(call_expr, &result_con);
+      if (folded) {
+        make_constant_operand(&result_con, result);
+        result->position = *pos;
       }  /* if */
-    } else if (failure_warning != ec_no_error) {
-      expr_pos_warning(failure_warning, pos);
+    } else {
+      an_error_code failure_warning;
+      a_boolean     need_backing_expr =
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+      if (fold_constexpr_call(call_expr, need_backing_expr, pos,
+                              &result_con, &failure_warning)) {
+        folded = TRUE;
+        make_constant_operand(&result_con, result);
+        result->position = *pos;
+        if (is_reference_type(result->type)) {
+          a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
+          add_reference_indirection(result);
+          if (is_rvalue_ref) {
+            /* A call of a function that returns an rvalue reference is an
+               xvalue. */
+            conv_rvalue_reference_result_to_xvalue(result);
+          }  /* if */
+        } else if (!curr_expr_kind_is_const() &&
+                   is_class_struct_union_type(result->type)) {
+          temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
+        }  /* if */
+      } else if (failure_warning != ec_no_error) {
+        expr_pos_warning(failure_warning, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   return folded;
@@ -18742,7 +18751,8 @@ cases so we don't do it here.
             }  /* if */
           }  /* if */
           if (var != NULL) {
-            possibly_constant_with_constexpr = (var->is_parameter ||
+            possibly_constant_with_constexpr = (relaxed_constexpr_enabled ||
+                                                var->is_parameter ||
                                                 var->constant_valued);
           }  /* if */
         }  /* if */
