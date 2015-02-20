@@ -12315,6 +12315,95 @@ now.
   }  /* if */
 }  /* instantiate_field_initializer_if_needed */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+static void instantiate_subordinate_default_arg(
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp,
+		a_routine_ptr				templ_rout,
+		a_param_type_ptr			templ_ptp,
+		a_def_arg_expr_fixup_ptr		daefp,
+		a_type_ptr				templ_rout_type)
+/*
+When we generate source sequence entries for class template instantiations,
+a declaration of a member function template in the instantiated class must
+have default argument values for the default arguments that are used.
+
+So, for a class such as:
+
+  template<typename T> struct A {
+    template<typename U> A(U, const T& = T());
+  };
+  A<int> a('x');
+
+The class generated for the instantiation of A<int> must look like:
+
+  template<> struct A< int>  {
+    template< class U> A(U, const int & = ((int)0));
+  };
+
+This is accomplished by doing something similar to a prototype instantiation
+for the default argument, but in the context of the instantiated class.
+
+Instantiate the default argument of the parameter specified by templ_ptp.
+The fixup information for that argument (including the cache information)
+is specified by daefp.  template_sym is the symbol for the subordinate
+template (A<int>::A in the example above) and tssp is the corresponding
+supplement.  templ_rout is the routine entry for the prototype instantiation
+of the routine.  templ_rout_type is the type to be updated with the default
+argument that is generated.
+*/
+{
+  a_push_scope_options_set	ps_options = PS_NONREAL_INSTANTIATION;
+  a_symbol_ptr			prototype_scope_symbols;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position		saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_symbol_ptr			rout_sym;
+
+  rout_sym = symbol_for(templ_rout);
+  check_assertion(rout_sym != NULL);
+  /* Push the template instantiation scope for the context in which the
+     default argument is to be evaluated. */
+  (void)push_template_instantiation_scope(daefp->cache.decl_info,
+                                          (a_type_ptr)NULL, templ_rout,
+                                          rout_sym,
+                                          template_sym,
+                                          templ_rout->template_arg_list,
+                                          /*push_lex_state=*/TRUE,
+                                          ps_options);
+  /* The function prototype scope should be reactivated and its symbols
+     reentered because parameter names hide names from enclosing scopes
+     and, moreover, may not be used in default argument expressions. */
+  (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                   templ_rout_type, (a_routine_ptr)NULL);
+  prototype_scope_symbols = tssp->
+                            variant.function.func_info.prototype_scope_symbols;
+  if (prototype_scope_symbols != NULL) {
+    reactivate_prototype_scope_symbols(prototype_scope_symbols);
+  }  /* if */
+  begin_deferral_of_access_checks();
+  /* Rescan the default argument tokens from the cache. */
+  rescan_reusable_cache(&daefp->cache.tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  delayed_scan_of_default_arg_expr(templ_ptp, rout_sym,
+                                   /*check_for_errors=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  perform_deferred_access_checks_for_function(templ_rout);
+  end_deferral_of_access_checks();
+  /* Pop the reactivated function prototype scope off the stack. */
+  pop_scope();
+  /* Pop the template instantiation scope. */
+  pop_template_instantiation_scope();
+}  /* instantiate_subordinate_default_arg */
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void instantiate_default_argument(a_symbol_ptr		rout_sym,
 				  a_param_type_ptr	param)
@@ -12328,6 +12417,8 @@ instantiated.
 {
   a_def_arg_expr_fixup_ptr		daefp;
   a_param_type_ptr			templ_ptp;
+  a_param_type_ptr			templ_decl_ptp = NULL;
+  a_type_ptr				templ_declared_type = NULL;
   a_routine_ptr				templ_rout;
   a_routine_ptr				rout_ptr;
   a_type_ptr				templ_rout_type;
@@ -12367,12 +12458,25 @@ instantiated.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   templ_rout = tssp->variant.function.routine;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  templ_declared_type = tssp->variant.function.func_info.declared_type;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   templ_rout_type = skip_typerefs(templ_rout->type);
   daefp = tssp->variant.function.def_arg_expr_list;
   /* Find the param type entry for the "prototype" template routine that
-     corresponds to the given parameter (param). */
+     corresponds to the given parameter (param).  Also find the param
+     type entry from the declared type (if non-NULL). */
   templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
-  for (; templ_ptp != NULL; templ_ptp = templ_ptp->next) {
+  if (templ_declared_type != NULL) {
+    templ_decl_ptp = templ_declared_type->
+                                   variant.routine.extra_info->param_type_list;
+  }  /* if */
+  for (; templ_ptp != NULL;
+      templ_ptp = templ_ptp->next,
+        templ_decl_ptp = templ_decl_ptp == NULL ? NULL
+                                                : templ_decl_ptp->next) {
     if (templ_ptp->param_num == param->param_num) break;
     /* Only skip to the next default argument fixup entry when we encounter
        a parameter with a default argument. */
@@ -12398,6 +12502,20 @@ instantiated.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (prototype_instantiations_in_il &&
+        tssp->prototype_template != NULL && templ_decl_ptp != NULL &&
+        templ_decl_ptp->default_arg_expr == NULL) {
+      /* Instantiate a version of this default argument for the template
+         declaration of the current enclosing class.  The declared type
+         (and as a result templ_decl_ptp) can be NULL in some error cases. */
+      instantiate_subordinate_default_arg(template_sym, tssp, templ_rout,
+                                          templ_decl_ptp, daefp,
+                                          templ_declared_type);
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (rout_ptr->is_prototype_instantiation) {
       /* The routine being called is a prototype instantiation.  This
          can occur for a nondependent call in a prototype instantiation. */

@@ -1,5 +1,31 @@
 Version 4.11
 
+2/20/15  [EDGcpfe/15849]
+C++-generating back end: Missing function template default argument when
+using CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+and when prototype instantiations are used to generate template definitions
+in the C++-generating back end, the code generated for an instantiation
+of a class template omitted default arguments of function templates.
+
+So, for a class such as:
+
+  template<typename T> struct A {
+    template<typename U> A(U, const T& = T());
+  };
+  A<int> a('x');
+
+The class generated for the instantiation of A<int> must look like:
+
+  template<> struct A< int>  {
+    template< class U> A(U, const int & = ((int)0));
+  };
+
+The default argument had been missing from the declaration of A<int>::A.
+Now fixed.
+
+
 2/19/15  [EDGcpfe/16036]
 clang compatibility: empty argument to __has_feature/__has_extension
 
