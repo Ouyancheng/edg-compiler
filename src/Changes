@@ -1,5 +1,25 @@
 Version 4.11
 
+2/20/15  [EDGcpfe/15544]
+Variadic deduction failure with explicitly specified template template argument
+
+A deduction failure could occur when a non-variadic template was used as
+an explicit template argument for a template template parameter with a
+variadic argument list.  Now fixed.
+
+  template< class T > T&& f( T& t );
+  template <class T1, class T2> struct A {
+    A(T1,T2);
+  };
+  template <template <typename...> class TTP, typename... Args>
+  TTP<Args...> g(Args &&... args) {
+    return TTP<Args...>(f<Args>(args)...);
+  }
+  int main() {
+    g<A>(1, 2);
+  }
+
+
 2/20/15  [EDGcpfe/15849]
 C++-generating back end: Missing function template default argument when
 using CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

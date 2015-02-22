@@ -10280,6 +10280,8 @@ associated parameter.
   a_boolean		copy_arg_operands = FALSE;
   a_template_arg_ptr	pack_tap = NULL;
   a_boolean		is_generic = FALSE;
+  a_boolean		preserve_packs =
+                                  (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Determine whether a generic type is acceptable as a substituted template
@@ -10307,7 +10309,7 @@ associated parameter.
     next_tap = tap == NULL ? NULL : tap->next;
     /* Exit the loop if we hit a start of pack expansion with no following
        arguments and we are already processing a pack. */
-    if ((options & CTWS_PRESERVE_DEDUCED_PACKS) == 0 && added_placeholder &&
+    if (!preserve_packs && added_placeholder &&
         tap != NULL && is_start_of_pack_expansion_templ_arg(tap) &&
         tpp != NULL && tpp->is_pack && tap->next == NULL) {
       break;
@@ -10358,12 +10360,12 @@ associated parameter.
          arguments that follow.  Also, don't copy the placeholder if the
          parameter is not a pack. */
       if (have_params) {
-        if (is_start_of_pack_expansion_templ_arg(tap) &&
+        if (is_start_of_pack_expansion_templ_arg(tap) && !preserve_packs &&
             (tpp == NULL || !tpp->is_pack)) {
           goto end_of_loop;
         }  /* if */
         if (tpp == NULL) {
-          *copy_error = TRUE;
+          if (!preserve_packs) *copy_error = TRUE;
           break;
         }  /* if */
       }  /* if */
@@ -10426,8 +10428,7 @@ end_of_loop:
       !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
     *copy_error = TRUE;
   }  /* if */
-  if (!*copy_error && pack_tap != NULL &&
-      (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+  if (!*copy_error && pack_tap != NULL && preserve_packs) {
     /* When we are preserving deduced packs, append a template argument
        representing the pack to the end of the argument list so that
        additional arguments can be deduced. */
@@ -11898,7 +11899,7 @@ during wrapup processing by compare_function_templates.
     if (tssp->is_variadic) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
          we may not yet have arguments. */
-      ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
+      ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS | CTWS_PARTIAL_ARG_LIST_OKAY;
       preserve_deduced_packs = TRUE;
     }  /* if */
   }  /* if */
