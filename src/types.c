@@ -5067,7 +5067,7 @@ equivalent templates, such as T in "T<int>" and "T<int>".
        underlying templates. */
     if (equiv_templates_given_supplement(sym_1->variant.template_info,
                                          sym_2->variant.template_info,
-                                         ET_NO_OPTIONS)) {
+                                         ET_NO_OPTIONS, ETP_NO_OPTIONS)) {
       result = TRUE;
     }  /* if */
   }  /* if */

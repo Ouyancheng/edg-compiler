@@ -1,5 +1,23 @@
 Version 4.11
 
+2/20/15  [EDGcpfe/15591]
+Variadic deduction failure with non-variadic template template argument
+
+A deduction failure could occur if a template with a non-variadic
+template parameter was passed to a template template parameter with
+a template parameter list that was variadic.  For example, the case below
+resulted in spurious "no instance ... matches" errors, but was accepted
+if the commented-out ellipses were present.  Now fixed.
+
+  template <template <class /*...*/> class T> class A  {};
+  template <template <class /*...*/> class... T> class B {};
+  template <template <template <class...> class...> class T> void f(){}
+  int main() {
+    f<A>();
+    f<B>();
+  }
+
+
 2/20/15  [EDGcpfe/15544]
 Variadic deduction failure with explicitly specified template template argument
 

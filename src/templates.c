@@ -5885,7 +5885,8 @@ done:
 a_boolean equiv_templates_given_supplement(
 			a_template_symbol_supplement_ptr	tssp1,
 			a_template_symbol_supplement_ptr	tssp2,
-			an_equiv_templates_options_set		options)
+			an_equiv_templates_options_set		options,
+			an_equiv_templ_param_options_set	etp_options)
 /*
 Return TRUE if tssp1 and tssp2 are equivalent.  If either of the
 templates is a "real" template, the pointers must refer to the same
@@ -5893,7 +5894,9 @@ template.  If they are both "nonreal" (either nonreal members or template
 template parameters), the two templates are equivalent if they have
 equivalent template parameter lists.  options is a set of flags
 that control the way in which certain comparisons are done.  See the
-definition of the ET flags in templates.h for more information.
+definition of the ET flags in templates.h for more information.  etp_options
+is a set of flags to be passed to equiv_template_param_lists when it is
+called from this routine.
 */
 {
   a_boolean	result = FALSE;
@@ -5942,8 +5945,7 @@ definition of the ET flags in templates.h for more information.
     result = !compare_parameters ||
              equiv_template_param_lists(tssp1->cache.decl_info->parameters,
                                         tssp2->cache.decl_info->parameters,
-				        /*issue_errors=*/FALSE,
-					ETP_NO_OPTIONS,
+				        /*issue_errors=*/FALSE, etp_options,
 				        (a_source_position*)NULL, es_error);
   }  /* if */
   return result;
@@ -5970,7 +5972,8 @@ for more information.
     templ2 = canonical_template_entry_of(templ2);
     tssp1 = template_supplement_for_template(templ1);
     tssp2 = template_supplement_for_template(templ2);
-    result = equiv_templates_given_supplement(tssp1, tssp2, options);
+    result = equiv_templates_given_supplement(tssp1, tssp2, options,
+                                              ETP_NO_OPTIONS);
   }  /* if */
   return result;
 }  /* equiv_templates */
@@ -8404,7 +8407,7 @@ match is found.
       /* The template template is not a template template parameter.  Just make
          sure the templates match. */
       match = equiv_templates_given_supplement(tssp, templ_tssp,
-                                               ET_NO_OPTIONS);
+                                               ET_NO_OPTIONS, ETP_NO_OPTIONS);
     }  /* if */
   }  /* if */
   return match;
@@ -15387,7 +15390,7 @@ can match zero or more parameters from new_list.
       check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
       err = !equiv_templates_given_supplement(old_tpp->variant.templ,
                                               new_tpp->variant.templ,
-                                              ET_NO_OPTIONS);
+                                              ET_NO_OPTIONS, options);
     }  /* if */
     if (err) {
       if (issue_errors) {
