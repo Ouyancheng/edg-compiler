@@ -2450,6 +2450,12 @@ EXTERN a_boolean
 			   variables as constants.  gcc allows this, but only
 			   with -O1. */
 
+EXTERN a_boolean
+		define_portable_feature_test_macros;
+			/* When TRUE, the front end will define the
+			   appropriate feature test macros described in
+			   document WG21 SG10 SD-6. */
+
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes
 other than C++11 (where it is by default TRUE).  Does not affect the value
@@ -2458,14 +2464,6 @@ of the flag in Microsoft, GNU, and Sun modes.
 #ifndef DEFAULT_VARIADIC_TEMPLATES_ENABLED
 #define DEFAULT_VARIADIC_TEMPLATES_ENABLED FALSE
 #endif /* DEFAULT_VARIADIC_TEMPLATES_ENABLED */
-
-/*
-Flag that determines whether the front end will define the appropriate
-feature test macros described in document WG21 SG10 SD-6.
-*/
-#ifndef DEFINE_PORTABLE_FEATURE_TEST_MACROS
-#define DEFINE_PORTABLE_FEATURE_TEST_MACROS TRUE
-#endif /* ifndef DEFINE_PORTABLE_FEATURE_TEST_MACROS */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously

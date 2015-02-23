@@ -9542,34 +9542,34 @@ command line -D options.
     attribute_deprecated_with_message = (gnu_version >= 40500);
     decltype_keyword_enabled = decltype_enabled &&
                                               !enable_underscore_decltype_only;
-#if DEFINE_PORTABLE_FEATURE_TEST_MACROS
-    /* Add definitions as described by WG21 SG10 SD-6 for the features that
-       are enabled in the current execution of the front end. */
-    for (i = 0; i < (int)NUM_FEATURES; ++i) {
-      if (feature_support_list[i].macro_name != NULL &&
-          feature_support_list[i].enabled != NULL &&
-          *feature_support_list[i].enabled) {
-        /* The feature is supported in the current execution of the front
-           end.  Define the macro with the appropriate value. */
-        (void)enter_predef_macro(feature_support_list[i].macro_value,
-                                 feature_support_list[i].macro_name,
+    if (define_portable_feature_test_macros) {
+      /* Add definitions as described by WG21 SG10 SD-6 for the features
+         that are enabled in the current execution of the front end. */
+      for (i = 0; i < (int)NUM_FEATURES; ++i) {
+        if (feature_support_list[i].macro_name != NULL &&
+            feature_support_list[i].enabled != NULL &&
+            *feature_support_list[i].enabled) {
+          /* The feature is supported in the current execution of the front
+             end.  Define the macro with the appropriate value. */
+          (void)enter_predef_macro(feature_support_list[i].macro_value,
+                                   feature_support_list[i].macro_name,
+                                   /*cannot_be_redefined=*/TRUE,
+                                   /*ref_suppresses_pch_file=*/FALSE);
+        }  /* if */
+      }  /* for */
+      /* __cpp_constexpr must be handled specially, as it will have
+         different values depending on whether C++11 or C++14 constexpr
+         features are supported. */
+      if (relaxed_constexpr_enabled) {
+        (void)enter_predef_macro("201304", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (constexpr_enabled) {
+        (void)enter_predef_macro("200704", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
-    }  /* for */
-    /* __cpp_constexpr must be handled specially, as it will have different
-       values depending on whether C++11 or C++14 constexpr features are
-       supported. */
-    if (relaxed_constexpr_enabled) {
-      (void)enter_predef_macro("201304", "__cpp_constexpr",
-                               /*cannot_be_redefined=*/TRUE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-    } else if (constexpr_enabled) {
-      (void)enter_predef_macro("200704", "__cpp_constexpr",
-                               /*cannot_be_redefined=*/TRUE,
-                               /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-#endif /* DEFINE_PORTABLE_FEATURE_TEST_MACROS */
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
   { a_boolean	long_long_is_disabled = !LONG_LONG_ALLOWED;

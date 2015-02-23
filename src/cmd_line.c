@@ -10879,6 +10879,7 @@ variables declared in cmd_line.h.
   gnu_bases_operators_enabled = FALSE;
   preserve_lvalues_with_same_type_casts = FALSE;
   std_override_modifiers_enabled = FALSE;
+  define_portable_feature_test_macros = TRUE;
 }  /* cmd_line_static_var_init */
 
 

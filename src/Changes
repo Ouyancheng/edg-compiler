@@ -1,5 +1,16 @@
 Version 4.11
 
+2/23/15  [EDGcpfe/16043]
+Runtime control of feature-test macro definitions
+
+Whether or not the standard feature test macros (see EDGcpfe/14634) are
+defined was previously determined by a configuration macro,
+DEFINE_PORTABLE_FEATURE_TEST_MACROS.  This has now been changed to depend
+instead on the value of the global variable
+define_portable_feature_test_macros so that it can be controlled at the
+time the front end is run instead of only when it is built.
+
+
 2/23/15  [EDGcpfe/15753]
 C++-generating back end: qualification of members of nonreal classes
 
