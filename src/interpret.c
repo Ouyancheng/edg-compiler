@@ -63,7 +63,6 @@ typedef struct a_constexpr_storage {
   a_byte	*next_available_byte;
   unsigned long	bytes_left;
 } a_constexpr_storage;
-#endif /*FIXME*/
 
 
 /*
@@ -72,6 +71,7 @@ variable or temporary.
 */
 #define get_constexpr_storage(il_ptr)  /* TODO */
 
+#endif /*FIXME*/
 
 
 /*ARGSUSED*/  /*FIXME*/
