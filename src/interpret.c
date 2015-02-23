@@ -16,6 +16,14 @@ interpret.c -- IL interpreter for constexpr functions
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
+
+#include "interpret.h"
+
 
 /*
 Structure maintaining data about the IL interpreter across a complete
@@ -38,13 +46,14 @@ static void init_interpreter_state(an_interpreter_state  *ips)
 }  /* init_interpreter_state */
 
 
+/*ARGSUSED*/  /*FIXME*/
 static void release_interpreter_state(an_interpreter_state  *ips)
 /*
 */
 {
 }  /* release_interpreter_state */
 
-
+#if /*FIXME*/0
 /*
 Structure tracking storage allocated for the interpreter's use.  This can be
 storage for variable and temporaries, as well as layout data for classes,
@@ -54,6 +63,7 @@ typedef struct a_constexpr_storage {
   a_byte	*next_available_byte;
   unsigned long	bytes_left;
 } a_constexpr_storage;
+#endif /*FIXME*/
 
 
 /*
@@ -64,6 +74,7 @@ variable or temporary.
 
 
 
+/*ARGSUSED*/  /*FIXME*/
 a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
                                    a_constant_ptr        result_con)
 /*
