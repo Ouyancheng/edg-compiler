@@ -1,5 +1,21 @@
 Version 4.11
 
+2/23/15  [EDGcpfe/15753]
+C++-generating back end: qualification of members of nonreal classes
+
+In C++-generating back end configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, a qualified reference to a
+nonstatic data member of a nonreal class was generated using an unqualified
+name.  This is now fixed.  For example:
+
+  struct A { int i; };
+  template<typename T> struct B : T {
+    void g() {
+      this->A::i = 3;  // Previously generated as this->i
+    }
+  };
+
+
 2/20/15  [EDGcpfe/15591]
 Variadic deduction failure with non-variadic template template argument
 

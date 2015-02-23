@@ -8685,7 +8685,7 @@ the expression reflects an implicit member access ("this->y"), so the
       selection_class = object_expr->type;
     }  /* if */
     selection_class = skip_typerefs(selection_class);
-    if (selection_class->kind == (a_type_kind)tk_template_param) {
+    if (is_template_param_or_nonreal_class_type(selection_class)) {
       /* We need special handling for a case like
 
              struct S { int i; };
