@@ -16415,22 +16415,6 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
 
   if (cpp11_sfinae_enabled) {
     /* C++11 SFINAE rules: do the substitution by rescanning. */
-    a_boolean  saved_cpp11_sfinae_ignore_access = FALSE,
-               restore_sfinae_ignore_access = FALSE;
-    if (microsoft_mode && (options & CTWS_RETURN_TYPE) &&
-        cpp11_sfinae_ignore_access &&
-        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-        scope_is(&scope_stack[depth_innermost_instantiation_scope-1],
-                 sck_class_reactivation)) {
-      /* Microsoft compilers treat access errors in decltype constructs
-         appearing in member function return types as SFINAE errors, even
-         though in other contexts access SFINAE is not implemented.  (It also
-         treats all kinds of other errors as SFINAE errors in that context.)
-         Temporarily enable access SFINAE to approximate that behavior. */
-      saved_cpp11_sfinae_ignore_access = cpp11_sfinae_ignore_access;
-      cpp11_sfinae_ignore_access = FALSE;
-      restore_sfinae_ignore_access = TRUE;
-    }  /* if */
     new_type = decltype_of_expr_with_substitution(type,
                                                   expr,
                                                   template_arg_list,
@@ -16438,9 +16422,6 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
                                                   options,
                                                   copy_error,
                                                   ctws_state);
-    if (restore_sfinae_ignore_access) {
-      cpp11_sfinae_ignore_access = saved_cpp11_sfinae_ignore_access;
-    }  /* if */
   } else {
     /* Pre-C++11 SFINAE rules apply, so deduction fails. */
     *copy_error = TRUE;

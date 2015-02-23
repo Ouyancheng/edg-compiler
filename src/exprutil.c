@@ -6032,8 +6032,15 @@ diagnostics, if that changes the control flow.
   } else if (expr_stack != NULL) {
     if (expr_stack->template_deduction_context) {
       /* Depending on configuration and command-line options, access errors
-         may or may not cause deduction failure. */
-      if (!cpp11_sfinae_enabled || cpp11_sfinae_ignore_access) {
+         may or may not cause deduction failure.  In Microsoft mode, an
+         additional wrinkle applies: Even though Microsoft (as of version
+         19.00) does not treat access errors as SFINAE errors in general, it
+         does effectively do so for access errors in decltype constructs
+         appearing in return types. */
+      if (!cpp11_sfinae_enabled || 
+          (cpp11_sfinae_ignore_access &&
+           !(microsoft_mode && scope_stack_top().in_decltype_context &&
+             (expr_stack->rcblock->options & CTWS_RETURN_TYPE) != 0))) {
         check_access = FALSE;
       }  /* if */
     }  /* if */
