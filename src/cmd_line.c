@@ -5906,11 +5906,6 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
 #endif /* defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
-#if defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS)
-  define_numeric_valued_macro(DEFINE_PORTABLE_FEATURE_TEST_MACROS);
-#else /* !defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS) */
-  comment_undefined_macro_name(DEFINE_PORTABLE_FEATURE_TEST_MACROS);
-#endif /* defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS) */
 #if defined(DEFINE_STDC_IN_MICROSOFT_MODE)
   define_numeric_valued_macro(DEFINE_STDC_IN_MICROSOFT_MODE);
 #else /* !defined(DEFINE_STDC_IN_MICROSOFT_MODE) */

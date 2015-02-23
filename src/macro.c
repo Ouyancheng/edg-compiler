@@ -9793,14 +9793,13 @@ command line -D options.
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-#if DEFINE_PORTABLE_FEATURE_TEST_MACROS
-  } else if (C_dialect == C_dialect_cplusplus) {
+  } else if (C_dialect == C_dialect_cplusplus &&
+             define_portable_feature_test_macros) {
     /* __has_include is a WG21 SG10 recommendation and must be defined even
        if we are not in clang mode. */
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-#endif /* DEFINE_PORTABLE_FEATURE_TEST_MACROS */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
