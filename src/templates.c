@@ -12478,9 +12478,9 @@ instantiated.
                                    variant.routine.extra_info->param_type_list;
   }  /* if */
   for (; templ_ptp != NULL;
-      templ_ptp = templ_ptp->next,
-        templ_decl_ptp = templ_decl_ptp == NULL ? NULL
-                                                : templ_decl_ptp->next) {
+       templ_ptp = templ_ptp->next,
+         templ_decl_ptp = templ_decl_ptp == NULL ? NULL
+                                                 : templ_decl_ptp->next) {
     if (templ_ptp->param_num == param->param_num) break;
     /* Only skip to the next default argument fixup entry when we encounter
        a parameter with a default argument. */
