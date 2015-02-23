@@ -4749,12 +4749,15 @@ fix them.
         }  /* if */
         if (*expr != NULL && !in_file_scope(*expr)) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          make_local_expr_node_ref(
+          a_scope_ptr sp = get_innermost_function_scope();
+          if (sp != NULL) {
+            make_local_expr_node_ref(
                  *expr,
                  (kind == (a_template_param_constant_kind)tpck_expression)
                              ? (a_local_expr_node_ref_kind)lerk_tpl_param_expr
                              : (a_local_expr_node_ref_kind)lerk_generic_sizeof,
-                 (char*)cp, get_innermost_function_scope());
+                 (char*)cp, sp);
+          }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           *expr = NULL;
         }  /* if */
