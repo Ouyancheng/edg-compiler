@@ -1512,6 +1512,10 @@ Restore the current source sequence list scan state from *state.
 }  /* restore_source_sequence_scan_state */
 
 
+static void replace_inaccessible_type_with_accessible_typedef(
+                                             a_source_correspondence_ptr *scp);
+
+
 static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
                                             a_boolean          ignore_context)
 /*
@@ -1520,13 +1524,32 @@ publicly or in the current context, depending on the value of
 ignore_context) or if the argument contains no names, FALSE otherwise.
 */
 {
-  a_boolean is_accessible = TRUE;
+  a_boolean                   is_accessible = TRUE;
+  a_source_correspondence_ptr scp;
 
   switch (argp->kind) {
   case tak_type:
-    is_accessible = entity_name_is_accessible(
-                                           &argp->variant.type->source_corresp,
-                                           iek_type, ignore_context);
+    scp = &argp->variant.type->source_corresp;
+    is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context);
+    if (!is_accessible) {
+      /* Check to see if this is a typedef whose underlying type is
+         accessible.  If so, the underlying type will be used instead of
+         the actual argument when putting out the template-id, so the
+         argument should be considered accessible for that purpose. */
+      if (type_is_typedef(argp->variant.type)) {
+        a_type_ptr tp = skip_typerefs(argp->variant.type);
+        is_accessible = entity_name_is_accessible(&tp->source_corresp,
+                                                  iek_type, ignore_context);
+      }  /* if */
+    }  /* if */
+    if (!is_accessible) {
+      /* Check for an accessible typedef.  If there is one, it will be
+         used instead of the actual argument when putting out the
+         template-id, so the argument should be considered accessible for
+         that purpose. */
+      replace_inaccessible_type_with_accessible_typedef(&scp);
+      is_accessible = (scp != &argp->variant.type->source_corresp);
+    }  /* if */
     break;
   case tak_nontype:
     if (!argp->is_array_bound_of_unknown_type &&

@@ -1,5 +1,31 @@
 Version 4.11
 
+2/25/15  [EDGcpfe/16018]
+C++-generating back end: typedef members of template instances first
+referenced with inaccessible arguments
+
+The C++-generating back end previously considered a typedef member of a
+template instance to be inaccessible if the first reference to that
+instance used an inaccessible type name as a template argument, even if
+that argument could be specified using an accessible type name.  As a
+result, the generated output sometimes inappropriately used the underlying
+type of the member typedef, even if the name of that type was inaccessible.
+This is now fixed.  For example:
+
+  struct A {
+  protected:
+    static int f();
+  };
+  template<typename T> struct B : A {
+    typedef decltype(f()) fT;  // fT is public
+  };
+  class C {
+    typedef int CT;
+    typedef B<CT> BCT;  // B<int> first instantiated using private argument
+  };
+  B<int>::fT b;  // Previously generated as "decltype((f())) b"
+
+
 2/24/15  [EDGcpfe/16044]
 C++-generating back end: defaulted function template declarations
 
