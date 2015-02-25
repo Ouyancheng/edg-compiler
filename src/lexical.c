@@ -20304,12 +20304,10 @@ not be returned.
   } else if (curr_token == tok_assign &&
              deleted_or_defaulted_def_next(&defaulted)) {
     /* Cache "= delete" or "= default" (leave the semicolon for the caller). */
-    a_boolean	defaulted;
     if (start_pos != NULL) *start_pos = pos_curr_token;
     cache_curr_token(p_token_cache);
     (void)get_token();
     cache_curr_token(p_token_cache);
-    defaulted = curr_token == tok_default;
     (void)get_token();
     if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
