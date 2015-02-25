@@ -20900,14 +20900,18 @@ Make the string version of the template specified by sym and tssp.
       }  /* while */
       if (first_token != NULL &&
           ((a_token_kind)first_token->token == tok_colon ||
-           (a_token_kind)first_token->token == tok_try)) {
+           (a_token_kind)first_token->token == tok_try ||
+           ((a_token_kind)first_token->token == tok_assign &&
+            first_token->next != NULL &&
+            (a_token_kind)first_token->next->token == tok_default))) {
         /* There can sometimes be an overlap between the template
            declaration cache and the template body cache.  Such an
-           overlap does not cause problems for the normal
-           processing, but must be eliminated when template
-           strings are created.  Split the declaration cache at
-           the first token of the body cache and discard the
-           duplicated tokens. */
+           overlap does not cause problems for the normal processing,
+           but must be eliminated when template strings are created.
+           Split the declaration cache at the first token of the body
+           cache and discard the duplicated tokens.  The cases tested for
+           above are the start of a ctor-initializer (":"), a function try
+           block ("try"), and a defaulted function ("= default"). */
         a_token_cache		dummy_cache;
         a_token_sequence_number	tsn_to_split;
         tsn_to_split = first_token->token_sequence_number;

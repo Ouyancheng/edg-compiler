@@ -1,5 +1,20 @@
 Version 4.11
 
+2/24/15  [EDGcpfe/16044]
+C++-generating back end: defaulted function template declarations
+
+A defaulted function template declaration was not represented properly
+in the string representation of templates, resulting in incorrect
+C++-generating back end output.  In addition, the trailing ";" was
+omitted.  Now fixed.
+
+  template < typename T> struct A {
+    A(){}
+  };
+  // Formerly emitted as "... = default = default"
+  template <typename T> A<T>::A(const A&) = default;
+
+
 2/23/15  [EDGcpfe/16043]
 Runtime control of feature-test macro definitions
 
