@@ -1,6 +1,6 @@
 Version 4.11
 
-2/26/13  [EDGcpfe/16014]
+2/26/15  [EDGcpfe/16014]
 GNU compatibility: corrected function signatures for __atomic builtins
 
 A number of errors were found in the function signatures for the following GNU
