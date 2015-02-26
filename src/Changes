@@ -2011,7 +2011,7 @@ modes (previously an error was issued).  For example:
   };
 
 
-11/24/14 [EDGcpfe/14726]
+11/24/14 [EDGcpfe/15603]
 Backing expressions for implicitly converted constants
 
 The changes for EDGcpfe/14588 caused the front end not to record a backing
