@@ -486,7 +486,7 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
 #endif /* INT128_EXTENSIONS_ALLOWED */
   a_type_ptr       no_return_type, boolean_type;
   a_type_ptr       void_volatile_star_type, void_const_volatile_star_type;
-  a_type_ptr       int_type, size_t_type;
+  a_type_ptr       int_type, size_t_type, void_star_type;
 
   /* Construct unsigned integer types of size 1, 2, 4, and 8, respectively. */
   u2_kind = int_kind_for_bit_size(2*CHAR_BIT, /*is_signed=*/FALSE);
@@ -509,6 +509,7 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
   }  /* if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
   no_return_type = void_type();
+  void_star_type = make_pointer_type(void_type());
   void_volatile_star_type = 
              make_pointer_type(make_qualified_type(void_type(), TQ_VOLATILE));
   void_const_volatile_star_type = 
@@ -527,15 +528,14 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
     enter_gnu_builtin_func1(_atomic_thread_fence, no_return, int);
     enter_gnu_builtin_func1(_atomic_signal_fence, no_return, int);
     enter_gnu_builtin_func3(_atomic_load, no_return,
-                            void_volatile_star, void_const_volatile_star, int);
+                            void_const_volatile_star, void_star, int);
     enter_gnu_builtin_func3(_atomic_store, no_return, 
-                            void_volatile_star, void_const_volatile_star, int);
+                            void_volatile_star, void_star, int);
     enter_gnu_builtin_func4(_atomic_exchange, no_return,
-                            void_volatile_star, void_const_volatile_star,
-                            void_volatile_star, int);
-    enter_gnu_builtin_func6(_atomic_compare_exchange, boolean,
-                            void_volatile_star, void_volatile_star,
-                            void_const_volatile_star, boolean, int, int);
+                            void_volatile_star, void_star, void_star, int);
+    enter_gnu_builtin_func5(_atomic_compare_exchange, boolean,
+                            void_volatile_star, void_star,
+                            void_star, int, int);
     enter_gnu_builtin_func2(_atomic_clear, no_return, void_volatile_star, int);
     enter_gnu_builtin_func2(_atomic_test_and_set, boolean,
                             void_volatile_star, int);
@@ -559,11 +559,11 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
     enter_gnu_builtin_func2(_atomic_load_1, u1,
                             void_const_volatile_star, int);
     enter_gnu_builtin_func3(_atomic_store_1, no_return,
-                            void_const_volatile_star, u1, int);
+                            void_volatile_star, u1, int);
     enter_gnu_builtin_func3(_atomic_exchange_1, u1,
-                            void_const_volatile_star, u1, int);
+                            void_volatile_star, u1, int);
     enter_gnu_builtin_func6(_atomic_compare_exchange_1, boolean,
-                            void_volatile_star, void_const_volatile_star, u1,
+                            void_volatile_star, void_star, u1,
                             boolean, int, int);
     enter_gnu_builtin_func3(_atomic_add_fetch_1, u1,
                             void_volatile_star, u1, int);
@@ -593,11 +593,11 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
     enter_gnu_builtin_func2(_atomic_load_2, u2,
                             void_const_volatile_star, int);
     enter_gnu_builtin_func3(_atomic_store_2, no_return,
-                            void_const_volatile_star, u2, int);
+                            void_volatile_star, u2, int);
     enter_gnu_builtin_func3(_atomic_exchange_2, u2,
-                            void_const_volatile_star, u2, int);
+                            void_volatile_star, u2, int);
     enter_gnu_builtin_func6(_atomic_compare_exchange_2, boolean,
-                            void_volatile_star, void_const_volatile_star, u2,
+                            void_volatile_star, void_star, u2,
                             boolean, int, int);
     enter_gnu_builtin_func3(_atomic_add_fetch_2, u2,
                             void_volatile_star, u2, int);
@@ -627,11 +627,11 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
     enter_gnu_builtin_func2(_atomic_load_4, u4,
                             void_const_volatile_star, int);
     enter_gnu_builtin_func3(_atomic_store_4, no_return,
-                            void_const_volatile_star, u4, int);
+                            void_volatile_star, u4, int);
     enter_gnu_builtin_func3(_atomic_exchange_4, u4,
-                            void_const_volatile_star, u4, int);
+                            void_volatile_star, u4, int);
     enter_gnu_builtin_func6(_atomic_compare_exchange_4, boolean,
-                            void_volatile_star, void_const_volatile_star, u4,
+                            void_volatile_star, void_star, u4,
                             boolean, int, int);
     enter_gnu_builtin_func3(_atomic_add_fetch_4, u4,
                             void_volatile_star, u4, int);
@@ -661,11 +661,11 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
     enter_gnu_builtin_func2(_atomic_load_8, u8,
                             void_const_volatile_star, int);
     enter_gnu_builtin_func3(_atomic_store_8, no_return,
-                            void_const_volatile_star, u8, int);
+                            void_volatile_star, u8, int);
     enter_gnu_builtin_func3(_atomic_exchange_8, u8,
-                            void_const_volatile_star, u8, int);
+                            void_volatile_star, u8, int);
     enter_gnu_builtin_func6(_atomic_compare_exchange_8, boolean,
-                            void_volatile_star, void_const_volatile_star, u8,
+                            void_volatile_star, void_star, u8,
                             boolean, int, int);
     enter_gnu_builtin_func3(_atomic_add_fetch_8, u8,
                             void_volatile_star, u8, int);
@@ -697,11 +697,11 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
       enter_gnu_builtin_func2(_atomic_load_16, u16,
                               void_const_volatile_star, int);
       enter_gnu_builtin_func3(_atomic_store_16, no_return,
-                              void_const_volatile_star, u16, int);
+                              void_volatile_star, u16, int);
       enter_gnu_builtin_func3(_atomic_exchange_16, u16,
-                              void_const_volatile_star, u16, int);
+                              void_volatile_star, u16, int);
       enter_gnu_builtin_func6(_atomic_compare_exchange_16, boolean,
-                              void_volatile_star, void_const_volatile_star,
+                              void_volatile_star, void_star,
                               u16, boolean, int, int);
       enter_gnu_builtin_func3(_atomic_add_fetch_16, u16,
                               void_volatile_star, u16, int);
