@@ -1120,12 +1120,16 @@ Return TRUE if the indicated scope is currently on the name context stack.
     if (ncp->assoc_scope == scope) {
       scope_in_stack = TRUE;
     } else if (scope->kind == (a_scope_kind)sck_namespace &&
-               scope->variant.assoc_namespace->is_inline) {
+               scope->variant.assoc_namespace->is_inline &&
+               !has_name_before_mangling(scope->variant.assoc_namespace)) {
       /* An inline namespace is considered to be on the stack if its
-         innermost containing non-inline namespace is. */
+         innermost containing non-inline namespace is, so if the inline
+         namespace is unnamed and we're inside the containing namespace,
+         we want to suppress that qualifier. */
       a_namespace_ptr parent_namespace =
                       parent_namespace_or_null(scope->variant.assoc_namespace);
-      while (parent_namespace != NULL && parent_namespace->is_inline) {
+      while (parent_namespace != NULL && parent_namespace->is_inline &&
+             !has_name_before_mangling(parent_namespace)) {
         parent_namespace = parent_namespace_or_null(parent_namespace);
       }  /* while */
       if (parent_namespace != NULL && ncp->assoc_scope ==

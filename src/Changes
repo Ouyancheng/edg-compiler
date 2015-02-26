@@ -1,5 +1,24 @@
 Version 4.11
 
+2/25/13  [EDGcpfe/16013]
+C++-generating back end: qualified names of members of named inline namespaces
+
+The change for EDGcpfe/15043, included in version 4.10, erroneously
+suppressed qualification when forming the names of members of named inline
+namespaces, which could result in incorrect generated code.  This is now
+fixed.  For example, with --c++11:
+
+  namespace N {
+    inline namespace M {
+      template<typename T> struct S;
+    }
+    template <typename T> struct M::S {  // Previously omitted "M::", thus
+      void f();                          // defining N::S, not N::M::S...
+    };
+    template<> void S<int>::f();         // ...and making S ambiguous here
+  }
+
+
 2/25/15  [EDGcpfe/16018]
 C++-generating back end: typedef members of template instances first
 referenced with inaccessible arguments
