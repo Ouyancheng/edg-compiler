@@ -290,7 +290,7 @@ static an_attr_descr known_attr_table[] = {
   { "warning", "(sn)", "gx(40000-)", ak_warning },
   { "weak", "", "gx", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
-  { "abi_tag", "(sn+)", "gx(40800-)", ak_abi_tag },
+  { "abi_tag", "?(sn+)", "gx(40800-)", ak_abi_tag },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -659,7 +659,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_warning, "r", NO_APPL_FN },
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
-  { ak_abi_tag, "r|c", apply_abi_tag_attr },
+  { ak_abi_tag, "r|c|n", apply_abi_tag_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
@@ -6800,7 +6800,31 @@ to match GNU's behavior).
        it affects only mangling). */
     pos_warning(ec_abi_tag_ignored_in_C_mode, &ap->position);
     make_attr_unrecognized(ap);
+  } else if (entity_kind == iek_namespace) {
+    /* The abi_tag is being applied to a (presumably inline) namespace. */
+    if (gnu_version < 50000) {
+      /* Support for abi_tag attributes on inline namespaces was added in
+         GNU 5.0.0. */
+      pos_warning(ec_attributes_ignored, &ap->position);
+      make_attr_unrecognized(ap);
+    } else {
+      /* When used on an inline namespace, -Wabi-tag considers declarations
+         in that namespace to have an ABI tag that is based on the namespace
+         name; it does not affect mangling.  Until the -Wabi-tag option is
+         emulated, ignore the attribute. */
+      if (ap->arguments != NULL) {
+        /* Arguments are allowed by GNU, but have no effect. */
+        pos_remark(ec_attributes_ignored, &ap->position);
+      }  /* if */
+    }  /* if */
+  } else if (ap->arguments == NULL) {
+    /* abi_tag attributes can have no arguments for inline namespaces, but
+       not for routines or types. */
+    pos_st_error(ec_invalid_empty_attribute_arg_list, &ap->position, ap->name);
+    make_attr_unrecognized(ap);
   } else {
+    /* Do processing for abi_tag attributes that are applied to routines
+       or class types. */
     a_source_correspondence_ptr scp = (a_source_correspondence*)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
     a_boolean           redeclaration = FALSE;

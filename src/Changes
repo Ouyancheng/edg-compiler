@@ -1,5 +1,16 @@
 Version 4.11
 
+2/26/15  [EDGcpfe/16037]
+GNU compatibility: accept the abi_tag attribute on inline namespaces
+
+g++ 5.0.0 accepts the abi_tag attribute on inline namespaces, and now
+so does the front end.  At the current time, no action (other than recording
+the attribute) is taken.  See also the Changes entry for EDGcpfe/15897.
+For example (with --gnu_version 50000):
+
+  inline namespace __cxx11 __attribute__((abi_tag)) { }
+
+
 2/26/15  [EDGcpfe/16014]
 GNU compatibility: corrected function signatures for __atomic builtins
 
