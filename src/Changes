@@ -24,7 +24,7 @@ __atomic_compare_exchange_8, __atomic_store_16, __atomic_exchange_16, and
 __atomic_compare_exchange_16.  Now fixed.
 
 
-2/25/13  [EDGcpfe/16013]
+2/25/15  [EDGcpfe/16013]
 C++-generating back end: qualified names of members of named inline namespaces
 
 The change for EDGcpfe/15043, included in version 4.10, erroneously
