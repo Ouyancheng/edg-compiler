@@ -9354,10 +9354,11 @@ allocated and returned.  ceblock gives context information for the
 evaluation (e.g., parameter values).
 */
 {
-  a_constant_ptr result_con = NULL;
-  a_constant     char_con;
-  a_boolean      type_mismatch = FALSE;
-  a_boolean      err = FALSE;
+  a_constant_ptr           result_con = NULL;
+  a_constant               char_con;
+  a_boolean                type_mismatch = FALSE;
+  a_boolean                err = FALSE;
+  an_expr_copy_options_set copy_options = CE_NO_OPTIONS;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -9643,6 +9644,7 @@ evaluation (e.g., parameter values).
           set_integer_constant(&char_con, char_val,
                                target_type->variant.integer.int_kind);
           result_con = &char_con;
+          copy_options = CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL;
         }  /* if */
       }  /* if */
       if (err) {
@@ -9658,7 +9660,8 @@ evaluation (e.g., parameter values).
           copy_constant_for_constexpr_evaluation(result_con, target_con);
           result_con = target_con;
         } else {
-          result_con = copy_unshared_constant(result_con);
+          result_con = copy_constant_full(result_con, (a_constant_ptr)NULL,
+                                          copy_options);
         }  /* if */
       } else {
         /* We ran off the end of the aggregate initializer, so the
@@ -9671,7 +9674,8 @@ evaluation (e.g., parameter values).
         } else {
           a_constant zero_con;
           if (make_value_initialized_constant(target_type, &zero_con)) {
-            result_con = copy_unshared_constant(&zero_con);
+            result_con = copy_constant_full(&zero_con, (a_constant_ptr)NULL,
+                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
           }  /* if */
         }  /* if */
       }  /* if */
