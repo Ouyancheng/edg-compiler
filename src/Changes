@@ -1,5 +1,35 @@
 Version 4.11
 
+2/27/15  [EDGcpfe/16056]
+Accessing the IL prefix of IL entities that were not allocated
+
+When an IL entity is allocated, a small portion of memory that precedes the IL
+entity itself (the entity prefix) is used for various housekeeping tasks.
+In some cases the front end uses structures that are typically used for
+IL entities, like a_constant, on the stack rather than as part of the IL
+itself.  In such cases, the front end must not attempt to access the prefix
+of these entities (as they will likely point to unrelated items on the stack).
+A number of these cases were identified and have now been fixed.
+
+To prevent future instances, a check is now made when requesting the address of
+a prefix for an IL entity to ensure that the entity has indeed been allocated
+(only when EXPENSIVE_CHECKING is TRUE).
+
+In some instances, the following example had resulted in an unlowered
+ck_complex constant, which had caused an assertion failure (in dump_constant)
+in configurations where LOWER_COMPLEX is TRUE (with --g++):
+
+  struct C {
+    union {
+      int a;
+      int b;
+    };
+    _Complex float c;
+    C() : c(){}
+  };
+  C x;
+
+
 2/26/15  [EDGcpfe/16037]
 GNU compatibility: accept the abi_tag attribute on inline namespaces
 

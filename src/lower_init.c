@@ -1510,29 +1510,35 @@ of an initialization operation.
 }  /* make_address_of_init_entity_node */
 
 
-static void make_lowered_zero_of_proper_type(a_type_ptr desired_type,
-                                             a_constant *zero_constant)
+static an_expr_node_ptr alloc_node_for_lowered_zero_of_proper_type(
+                                                       a_type_ptr desired_type)
 /*
-Make a zero constant of type desired_type (a scalar type) and put it in
-*zero_constant.  No IL allocation is done.  This routine is also handy
-for making NULL pointer constants.  This wrapper over
-make_zero_of_proper_type handles returning a -1 constant for a
-NULL pointer-to-data member in the IA-64 ABI.  Note that the type of the
-constant that is returned may be a lowered version of desired_type (and not
-desired_type itself).
+Allocate an expression node for a zero constant of type desired_type (a scalar
+type) and return it.  This routine is also handy for making NULL pointer
+constants.  This wrapper over make_zero_of_proper_type handles returning a -1
+constant for a NULL pointer-to-data member in the IA-64 ABI.  Note that the
+type of the constant that is returned may be a lowered version of desired_type
+(and not desired_type itself).
 */
 {
-  make_zero_of_proper_type(desired_type, zero_constant);
+  a_constant        zero_constant;
+  a_constant_ptr    cp;
+  an_expr_node_ptr  expr;
+
+  make_zero_of_proper_type(desired_type, &zero_constant);
+  expr = alloc_node_for_constant(&zero_constant);
+  cp = expr->variant.constant;
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
-    if (zero_constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
       /* An un-lowered pointer-to-data-member type; generate a lowered
          constant of the appropriate type. */
-      lower_ptr_to_member_constant(zero_constant);
+      mark_as_not_visited(cp);
+      lower_ptr_to_member_constant(cp);
     } else {
       /* Type has already been lowered; select the appropriate constant
          value to represent a NULL pointer-to-data-member. */
-      check_assertion(zero_constant->kind == (a_constant_repr_kind)ck_integer);
-      set_integer_constant(zero_constant,
+      check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
+      set_integer_constant(cp,
 #if IA64_ABI
                            (a_host_large_integer)-1,
 #else /* !IA64_ABI */
@@ -1544,10 +1550,12 @@ desired_type itself).
   } else if (is_complex_type(desired_type)) {
     /* Make sure a zero complex constant is lowered (note that the
        type of the constant is also lowered here). */
-    lower_constant(zero_constant);
+    mark_as_not_visited(cp);
+    lower_constant(cp);
 #endif /* LOWER_COMPLEX */
   }  /* if */
-}  /* make_lowered_zero_of_proper_type */
+  return expr;
+}  /* alloc_node_for_lowered_zero_of_proper_type */
 
 
 static void add_init_assignment(a_dynamic_init_ptr     dip,
@@ -1584,10 +1592,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
   switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
     case dik_zero:
       /* Set the entity to zero (default initialization). */
-      { a_constant     zero_constant;
-        make_lowered_zero_of_proper_type(entity_type, &zero_constant);
-        init_val_node = alloc_node_for_constant(&zero_constant);
-      }
+      init_val_node = alloc_node_for_lowered_zero_of_proper_type(entity_type);
       break;
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */

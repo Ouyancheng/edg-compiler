@@ -5052,6 +5052,8 @@ if the constant has already been pre-lowered or in C mode).
 void lower_constant(a_constant_ptr constant)
 /*
 Do IL lowering of the indicated constant and everything under it.
+Note that the constant must be in the IL and not on the stack (because the
+IL prefix is accessed).
 */
 {
   a_variable_ptr temp_var;

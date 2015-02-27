@@ -1796,6 +1796,23 @@ prefix field.)
 
 #endif /* DEBUG */
 
+#if EXPENSIVE_CHECKING
+
+extern an_il_entry_prefix_ptr expensive_il_entry_prefix_of(char *ptr)
+/*
+Return a pointer to the prefix of the given IL entry, but check to make sure
+the IL entry actually has a prefix (i.e., that it's not mistakenly allocated
+on the stack).
+*/
+{
+  an_il_entry_prefix_ptr result =
+                     (an_il_entry_prefix_ptr)(ptr - SPACE_FOR_IL_ENTRY_PREFIX);
+  check_assertion(result->magic_number == IL_ENTRY_MAGIC_NUMBER);
+  return result;
+}  /* expensive_il_entry_prefix_of */
+
+#endif /* EXPENSIVE_CHECKING */
+
 void mem_manage_one_time_init(void)
 /*
 Do one-time initialization of variables related to the mem_manage routines.

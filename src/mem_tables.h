@@ -141,6 +141,14 @@ typedef struct an_il_entry_prefix {
 			/* For debugging purposes, a sequence number assigned
 			   when this block was allocated. */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#if EXPENSIVE_CHECKING
+  uint32_t      magic_number;
+                        /* For debugging purposes, set when an IL entity is
+                           allocated to a known value, then tested when
+                           accessing the IL prefix (to ensure that the entity
+                           is not mistakenly on the stack, in which case it
+                           has no prefix). */
+#endif /* EXPENSIVE_CHECKING */
 } an_il_entry_prefix;
 
 /*
@@ -208,19 +216,33 @@ EXTERN unsigned long
 #define init_alloc_seq_number(epp) /* Nothing */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
+/*
+Macro used by clear_il_entry_prefix to set the magic number to indicate
+that this is indeed an IL entity.
+*/
+#if EXPENSIVE_CHECKING
+#define IL_ENTRY_MAGIC_NUMBER 0xbdbdbdbd  /* Value unlikely to be on stack. */
+#define init_magic_number(epp) \
+  ((epp)->magic_number) = IL_ENTRY_MAGIC_NUMBER
+#else /* !EXPENSIVE_CHECKING */
+#define init_magic_number(epp) /* Nothing */
+#endif /* EXPENSIVE_CHECKING */
 
 /*
 Initialize an IL entry prefix to default values.  ptr is a pointer (of
 any type) to the location containing the prefix.  is_in_file_scope is TRUE if
 the entry has been allocated in the file scope memory region, FALSE otherwise.
 in_sec_trans_unit is TRUE if the entry has been allocated in a memory
-region of a secondary translation unit, FALSE otherwise.
+region of a secondary translation unit, FALSE otherwise.  Note that
+initialization of the magic number occurs early because subsequent macros 
+depend on it being set properly.
 */
 #define clear_il_entry_prefix(ptr, is_in_file_scope, in_sec_trans_unit) \
 { an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
   epp->file_scope = is_in_file_scope;                                 \
   epp->secondary_trans_unit = in_sec_trans_unit;		      \
   epp->il_walk_flag = 0;                                              \
+  init_magic_number(epp);                                             \
   clear_il_lowering_flag(epp);                                        \
   clear_keep_in_il_flag(epp);                                         \
   clear_entry_written_flag(epp);                                      \
@@ -241,10 +263,22 @@ typedef unsigned long /* Should be an unsigned type. */
 #define SPACE_FOR_IL_ENTRY_PREFIX                                     \
  ((((sizeof(an_il_entry_prefix)-1)/HOST_IL_ENTRY_PREFIX_ALIGNMENT)+1)*       \
   HOST_IL_ENTRY_PREFIX_ALIGNMENT)
-/* Macro to allow reference to the IL entry prefix that precedes
-   the IL entry at ptr. */
+/* Macros to allow reference to the IL entry prefix that precedes
+   the IL entry at ptr.  The usual macro, il_entry_prefix_of, will verify
+   that the pointer is indeed an allocated IL entry when EXPENSIVE_CHECKING
+   is TRUE.  The il_entry_prefix_of_no_check macro can be used in cases
+   where no checking is desired (such as when getting the address of the
+   prefix in order to initialize it). */
+#if EXPENSIVE_CHECKING
+extern an_il_entry_prefix_ptr expensive_il_entry_prefix_of(char *ptr);
+#define il_entry_prefix_of(ptr) (*(expensive_il_entry_prefix_of((char *)ptr)))
+#define il_entry_prefix_of_no_check(ptr)                              \
+  (*(an_il_entry_prefix_ptr)((char *)(ptr) - SPACE_FOR_IL_ENTRY_PREFIX))
+#else /* !EXPENSIVE_CHECKING */
 #define il_entry_prefix_of(ptr)                                       \
   (*(an_il_entry_prefix_ptr)((char *)(ptr) - SPACE_FOR_IL_ENTRY_PREFIX))
+#define il_entry_prefix_of_no_check(ptr) il_entry_prefix_of(ptr)
+#endif /* EXPENSIVE_CHECKING */
 
 #if ORPHAN_PROCESSING_NEEDED
 /* If orphan processing is needed, each IL entry in the file scope
