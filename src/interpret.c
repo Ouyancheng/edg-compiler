@@ -714,6 +714,9 @@ type kinds.
 {
   /* FIXME */
   unexpected_condition();
+#if !defined(_lint)
+  return 0;
+#endif /* FIXME */
 }  /* f_value_bytes_for_type */
 
 #define value_bytes_for_type(tp)                                             \
@@ -808,10 +811,9 @@ stmt is a return statement).  Otherwise, return TRUE.
       break;
     case stmk_return:
       if (stmt->expr != NULL) {
-        a_boolean  dummy_flag;
         do_constexpr_full_expression(ips, stmt->expr,
                                      ips->curr_call_frame->result_storage,
-                                     dummy_flag);
+                                     result);
       } else {
         /* Handle return_dynamic_init case. FIXME */
         unexpected_condition();
@@ -877,7 +879,12 @@ accordingly.
       a_byte_count  n_bytes = value_bytes_for_type(tp);
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      do_constexpr_expression(ips, arg, arg_bytes);
+      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        /* Undo the mappings so far. */
+        a_variable_ptr  up = callee_scope->variant.routine.parameters;
+        for (; up != param; up = up->next) unmap_stack_bytes(ips, up);
+        goto reclaim_arg_storage;
+      }  /* if */
       map_stack_bytes(ips, param, arg_bytes);
     }  /* for */
     /* Set up the call frame. */
@@ -896,6 +903,7 @@ accordingly.
     for (; param != NULL && param->is_parameter; param = param->next) {
       unmap_stack_bytes(ips, param);
     }  /* for */
+reclaim_arg_storage:
     restore_storage_stack(ips, saved_stack);
   }  /* if */
   return ips->diagnostic == NULL;
