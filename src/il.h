@@ -2395,6 +2395,8 @@ extern char *db_name_str_full(a_source_correspondence *scp,
 extern char *db_name_str(a_source_correspondence *sc,
                          an_il_entry_kind        kind);
 
+extern void db_scp(char  *entity);
+
 extern void db_entity_info(char             *entry,
                            an_il_entry_kind kind);
 

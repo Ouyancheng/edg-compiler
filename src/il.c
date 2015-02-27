@@ -446,6 +446,35 @@ entity is not from the primary translation unit.
 #if !STANDALONE_UTILITY_PROGRAM
 #if DEBUG
 
+void db_scp(char  *entity)
+/*
+Output a brief description of the given entity (which is assumed to start with
+a source correspondence).
+*/
+{
+  a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)entity;
+  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
+  a_line_number                line;
+  a_const_char                 *file_name, *full_name;
+  a_boolean                    at_end_of_source;
+
+  if (scp->assoc_info != NULL) {
+    db_symbol_name(sym);
+    fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
+  } else {
+    db_name(scp);
+  }  /* if */
+  conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
+                            &full_name, &line, &at_end_of_source);
+  if (line != 0) {
+    fprintf(f_debug, " in file %s (line %lu)\n", file_name,
+            (unsigned long)line);
+  } else {
+    fprintf(f_debug, " (built-in; line %lu)\n", (unsigned long)line);
+  }  /* if */
+}  /* db_scp */
+
+
 void db_entity_info(char             *entry,
                     an_il_entry_kind kind)
 /*

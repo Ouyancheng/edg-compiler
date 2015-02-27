@@ -506,18 +506,6 @@ Macros to push and pop call frames.
 #define hash_il_ptr(ptr)                                                     \
    (((uintptr_t)ptr >> HASH_PTR_SHIFT) % NUM_DATA_MAP_HASH_HEADERS)
 
-#if DEBUG
-
-uintptr_t db_hash_ptr(void  *ptr)
-/*
-Debug routine to compute a hash value from within a debugger.
-*/
-{
-  return hash_il_ptr(ptr);
-}  /* db_hash_ptr */
-
-#endif /* DEBUG */
-
 static a_byte* find_overflow_entry(a_data_map    *map,
                                    a_byte        *il_ptr,
                                    a_byte_count  idx)
@@ -704,28 +692,204 @@ If an older mapping exists for iptr, that mapping becomes active again.
   unmap_ptr(&(ips)->map, iptr)
 
 
-/*ARGSUSED*/ /*FIXME*/
-static a_byte_count f_value_bytes_for_type(a_type_ptr  tp)
-/*
-Return the number of bytes needed to represent a value of the given type.
-Always called through the macro value_bytes_for_type, which handles some common
-type kinds.
-*/
-{
-  /* FIXME */
-  unexpected_condition();
-#if !defined(_lint)
-  return 0;
-#endif /* FIXME */
-}  /* f_value_bytes_for_type */
+typedef struct a_constexpr_data_address {
+  a_byte
+		*address;
+			/* The address in interpreter storage of the thing
+			   pointed to, or NULL if is_runtime_constant is
+			   TRUE. */
+  sizeof_t
+		is_array:1;
+			/* TRUE if this is a pointer to an
+			   array element. */
+  sizeof_t
+		is_runtime_constant:1;
+			/* TRUE if this is a pointer that is constant
+			   at run time, but not a pointer into interpreter
+			   storage.  Normally, a pointer to a static-duration
+			   variable of some kind. */
+  sizeof_t
+		cannot_dereference:1;
+			/* TRUE if this address cannot be dereferenced. */
+  sizeof_t
+		length: 24;
+			/* If is_array is TRUE, the number of
+			   elements in the array. */
+  union {
+    a_byte
+		*base_address;
+			/* For an array, the address of element #0. */
+    a_type_ptr
+		complete_class;
+			/* For a class type, the complete class type
+			   to use for polymorphic dispatch. */
+    a_constant_ptr
+		runtime_constant;
+			/* For constant addresses of run-time entities. */
+  } variant;
+} a_constexpr_data_address;
 
-#define value_bytes_for_type(tp)                                             \
+
+typedef struct a_constexpr_ptr_to_mem_function {
+  a_routine_ptr	member_function;
+			/* The member function referred to. */
+  a_byte_count
+		this_class_adjustment;
+			/* The adjustment needed to the "this" pointer. */
+} a_constexpr_ptr_to_mem_function;
+
+
+/*
+Macro defining the largest allowed size of a type in the interpreter.
+*/
+#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
+
+
+/*
+Macro producing TRUE if the given tk_pointer type is a pointer or reference to
+a function type.
+*/
+#define ptr_or_ref_is_to_function(tp)                                        \
+  (skip_typerefs(tp->variant.pointer.type)->kind == (a_type_kind)tk_routine)
+
+
+/*
+Macro producing TRUE if the given tk_ptr_to_member type is a pointer-to-member-
+function type.
+*/
+#define ptr_to_mem_is_to_function(tp)                                        \
+  (skip_typerefs(tp->variant.ptr_to_member.type)->kind ==                    \
+                                                    (a_type_kind)tk_routine)
+
+/*
+Macro returning the number of bytes needed to represent a value of a given type
+in interpreter storage.  In the case of a class type, the layout is computed if
+needed.  Array or class types that are too large trigger an interpretation
+failure (*ips is updated accordingly).
+*/
+#define value_bytes_for_type(ips, tp)                                        \
   ((tp)->kind == (a_type_kind)tk_integer ?                                   \
        sizeof(an_integer_value) :                                            \
    (tp)->kind == (a_type_kind)tk_float ?                                     \
        sizeof(an_internal_float_value) :                                     \
    /* else */                                                                \
-       f_value_bytes_for_type(tp))
+       f_value_bytes_for_type(ips, tp))
+
+
+/*ARGSUSED*/  /*FIXME:delete once errors are recorded. */
+static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
+                                           a_type_ptr            tp)
+/*
+Return the number of bytes needed to represent a value of the given type.
+Always called through the macro value_bytes_for_type, which handles some common
+type kinds.  If the number of bytes is too large, interpretation fails.
+*/
+{
+  a_byte_count  result;
+
+redo:
+  switch (tp->kind) {
+    case tk_integer:
+      result = sizeof(an_integer_value);
+      break;
+    case tk_float:
+      result = sizeof(an_internal_float_value);
+      break;
+    case tk_pointer:
+      if (ptr_or_ref_is_to_function(tp)) {
+        result = sizeof(a_routine_ptr);
+      } else {
+        result = sizeof(a_constexpr_data_address);
+      }  /* if */
+      break;
+    case tk_array:
+      {
+        a_targ_size_t  n_elems = num_array_elements(tp);
+        a_type_ptr     etp = underlying_array_element_type(tp);
+        result = value_bytes_for_type(ips, etp);
+        etp = skip_typerefs(etp);
+        if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
+          /* FIXME: Interpretation failure. */
+          unexpected_condition();
+        } else {
+          result *= n_elems;
+        }  /* if */
+      }
+      break;
+    case tk_class:
+    case tk_struct:
+      /* FIXME */
+      break;
+    case tk_union:
+      /* FIXME */
+      break;
+    case tk_typeref:
+      tp = tp->variant.typeref.type;
+      goto redo;
+    case tk_ptr_to_member:
+      if (ptr_to_mem_is_to_function(tp)) {
+        result = sizeof(a_constexpr_ptr_to_mem_function);
+      } else {
+        /* Pointer-to-data-member objects are represented as an "offset+1"
+           value. */
+        result = sizeof(a_byte_count);
+      }  /* if */
+      break;
+    case tk_nullptr:
+      result = 1;  /* FIXME? */
+      break;
+    case tk_error:
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:       /* All fixed-point types. */
+#endif /* FIXED_POINT_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* FIXME: Interpretation failure. */
+    case tk_void:
+    case tk_routine:
+    case tk_template_param:
+    case tk_unknown:
+    default:
+      unexpected_condition();
+  }  /* switch */
+#if !defined(_lint)
+  return 0;
+#endif /* FIXME */
+}  /* f_value_bytes_for_type */
+
+#if DEBUG
+
+uintptr_t db_hash_ptr(void  *ptr)
+/*
+Debug routine to compute a hash value from within a debugger.
+*/
+{
+  return hash_il_ptr(ptr);
+}  /* db_hash_ptr */
+
+
+void db_call_stack(an_interpreter_state  *ips)
+/*
+Output a summary of the interpreted call stack.
+*/
+{
+  unsigned          num = 0;
+  a_call_frame_ptr  frame = ips->curr_call_frame;
+
+  while (frame != NULL) {
+    (void)fprintf(f_debug, "%4u: ", num++);
+    db_scp((char*)frame->routine);
+  }  /* while */
+}  /* db_call_stack */
+
+#endif /* DEBUG */
+
+
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
@@ -764,7 +928,7 @@ Interpret the given block statement and its associated scope (if any).
        already allocated and mapped. */
     a_variable_ptr  vp = scope->nonstatic_variables;
     for (; vp != NULL; vp = vp->next) {
-      a_byte_count  n_bytes = value_bytes_for_type(vp->type);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
       a_byte        *var_storage;
       if (!local_storage) {
         save_storage_stack(ips, saved_stack);
@@ -876,7 +1040,7 @@ accordingly.
     save_storage_stack(ips, saved_stack);
     for (arg = arg_nodes; arg != NULL; arg = arg->next, param = param->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(tp);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp);
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
       if (!do_constexpr_expression(ips, arg, arg_bytes)) {
@@ -949,7 +1113,7 @@ return FALSE and update the *ips accordingly.
         /* A variable used as an rvalue: Copy its associated value bytes. */
         a_variable_ptr  var = expr->variant.variable;
         a_type_ptr      tp = skip_typerefs(expr->type);
-        a_byte_count    n_bytes = value_bytes_for_type(tp);
+        a_byte_count    n_bytes = value_bytes_for_type(ips, tp);
         a_byte          *var_bytes;
         get_stack_bytes(ips, var, var_bytes);
         if (var_bytes != NULL) {
@@ -971,7 +1135,6 @@ return FALSE and update the *ips accordingly.
 }  /* do_constexpr_expression */
 
 
-/*ARGSUSED*/  /*FIXME*/
 a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
                                    a_constant_ptr        result_con)
 /*
@@ -980,7 +1143,6 @@ successful, and produce the resulting the value in result_con.  Otherwise,
 return FALSE.
 */
 {
-  /* FIXME */
   a_boolean             result = FALSE;
   an_interpreter_state  ips;
   a_byte                *result_storage;
