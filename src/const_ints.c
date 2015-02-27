@@ -1963,6 +1963,20 @@ a single printf command in the caller.
   if (++bufpos == 5) bufpos = 0;
   return &buffer[old_bufpos][0];
 }  /* db_format_integer_value */
+
+
+void db_signed_integer_value(an_integer_value  *value)
+/*
+Print a signed integer value representation in decimal form.
+*/
+{
+  a_host_large_integer  host_val;
+  a_boolean             err;
+
+  conv_integer_value_to_host_large_integer(
+                                 value, /*is_signed=*/TRUE, &host_val, &err);
+  (void)fprintf(f_debug, "%ld %s\n", host_val, err ? "(Error)" : "");
+}  /* db_print_integer_value */
 #endif /* DEBUG */
 
 
