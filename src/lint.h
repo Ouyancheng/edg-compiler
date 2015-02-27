@@ -1197,9 +1197,9 @@ extern int fileno(FILE *);
 #if IDENT_DIRECTIVE_AND_PRAGMA
 /*lint -esym(769,a_pragma_kind_tag::pk_ident)*/
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE
 /*lint -esym(755,il_entry_prefix_of_no_check)*/
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #endif /* ifndef LINT_H */
 
