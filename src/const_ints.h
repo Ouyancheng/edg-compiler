@@ -280,6 +280,8 @@ extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
 
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
+
+extern void db_signed_integer_value(an_integer_value  *value);
 #endif /* DEBUG */
 
 /*

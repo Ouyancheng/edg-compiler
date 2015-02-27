@@ -375,8 +375,9 @@ Release the storage allocate for the given interpreter state.
 /*
 Macro producing the number of stack storage bytes left in the current block.
 */
-#define constexpr_stack_bytes_left(sss)                                      \
-  (CONSTEXPR_STACK_BLOCK_SIZE - ((sss)->top - (sss)->curr_block))
+#define stack_bytes_left(sss)                                                \
+  ((a_byte_count)(CONSTEXPR_STACK_BLOCK_SIZE -                               \
+                                          ((sss)->top - (sss)->curr_block)))
 
 
 static void add_storage_stack_block(a_storage_stack_state  *sss)
@@ -423,7 +424,7 @@ a previously saved stack state.
     } else {                                                                 \
       a_byte_count  size = n_bytes;                                          \
       do_host_alignment(size);                                               \
-      if (size > constexpr_stack_bytes_left(sss)) {                          \
+      if (size > stack_bytes_left(sss)) {                                    \
         add_storage_stack_block(sss);                                        \
       }  /* if */                                                            \
       (storage_ptr) = (sss)->top;                                            \
@@ -519,7 +520,7 @@ Debug routine to compute a hash value from within a debugger.
 
 static a_byte* find_overflow_entry(a_data_map    *map,
                                    a_byte        *il_ptr,
-                                   a_byte_count  index)
+                                   a_byte_count  idx)
 /*
 Search map for an overflow entry mapping il_ptr, starting at the entry at the
 given index.
@@ -529,19 +530,19 @@ given index.
   a_data_map_entry  *table = map->table;
 
   for (;;) {
-    if (table[index].il_ptr == il_ptr) {
+    if (table[idx].il_ptr == il_ptr) {
       /* We found the searched-for entry. */
       a_map_index  hash_idx = hash_il_ptr(il_ptr);
-      result = table[index].data_ptr;
+      result = table[idx].data_ptr;
       /* Make this the new principal entry (by swapping). */
-      table[index].il_ptr = table[hash_idx].il_ptr;
-      table[index].data_ptr = table[hash_idx].data_ptr;
+      table[idx].il_ptr = table[hash_idx].il_ptr;
+      table[idx].data_ptr = table[hash_idx].data_ptr;
       table[hash_idx].il_ptr = il_ptr;
       table[hash_idx].data_ptr = result;
       break;
     } else {
-      index = table[index].next_index;
-      if (index == 0) {
+      idx = table[idx].next_index;
+      if (idx == 0) {
         /* We've exhausted the list of entries. */
         result = NULL;
         break;
@@ -634,7 +635,7 @@ it is unmapped).
 
 static void unmap_overflow_entry(a_data_map   *map,
                                  a_byte       *il_ptr,
-                                 a_map_index  index)
+                                 a_map_index  idx)
 /*
 Find il_ptr in the overflow section of the given map and remove the associated
 entry.
@@ -644,20 +645,20 @@ entry.
   a_map_index       last_index = 0;
 
   for (;;) {
-    if (table[index].il_ptr == il_ptr) {
+    if (table[idx].il_ptr == il_ptr) {
       /* We found the searched-for entry.  Unlink it. */
       if (last_index == 0) {
         last_index = hash_il_ptr(il_ptr);
       }  /* if */
-      table[last_index].next_index = table[index].next_index;
+      table[last_index].next_index = table[idx].next_index;
       /* Recycle the unlinked entry. */
-      table[index].next_index = map->next_free;
-      map->next_free = index;
+      table[idx].next_index = map->next_free;
+      map->next_free = idx;
       break;
     } else {
-      last_index = index;
-      index = table[index].next_index;
-      if (index == 0) {
+      last_index = idx;
+      idx = table[idx].next_index;
+      if (idx == 0) {
         /* We've exhausted the list of entries. */
         break;
       }  /* if */
@@ -703,6 +704,7 @@ If an older mapping exists for iptr, that mapping becomes active again.
   unmap_ptr(&(ips)->map, iptr)
 
 
+/*ARGSUSED*/ /*FIXME*/
 static a_byte_count f_value_bytes_for_type(a_type_ptr  tp)
 /*
 Return the number of bytes needed to represent a value of the given type.
@@ -712,7 +714,6 @@ type kinds.
 {
   /* FIXME */
   unexpected_condition();
-  return 0;
 }  /* f_value_bytes_for_type */
 
 #define value_bytes_for_type(tp)                                             \
@@ -847,7 +848,6 @@ accordingly.
   if (callee == NULL) {
     /* FIXME: Interpret callee_node to get the callee. */
     unexpected_condition();
-    check_assertion(callee != NULL);
   }  /* if */
   /* Retrieve the routine scope, or issue an error. */
   callee_region = callee->assoc_scope;
@@ -917,6 +917,9 @@ return FALSE and update the *ips accordingly.
     case enk_operation:
       {
         switch (expr->variant.operation.kind) {
+          case eok_assign:
+            /* FIXME */
+            break;
           default:
             unexpected_condition();  /* FIXME: handle errors. */
         }  /* switch */

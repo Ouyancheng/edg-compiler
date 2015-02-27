@@ -19,6 +19,9 @@ interpret.h -- Interface to IL interpreter for constexpr functions
 a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
                                    a_constant_ptr        result_con);
 
+#if DEBUG
+uintptr_t db_hash_ptr(void  *ptr);
+#endif /* DEBUG */
 #endif /* ifndef INTERPRET_H */
 
 

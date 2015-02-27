@@ -1975,7 +1975,7 @@ Print a signed integer value representation in decimal form.
 
   conv_integer_value_to_host_large_integer(
                                  value, /*is_signed=*/TRUE, &host_val, &err);
-  (void)fprintf(f_debug, "%ld %s\n", host_val, err ? "(Error)" : "");
+  (void)fprintf(f_debug, "%ld %s\n", (long)host_val, err ? "(Error)" : "");
 }  /* db_print_integer_value */
 #endif /* DEBUG */
 
