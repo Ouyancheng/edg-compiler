@@ -873,13 +873,15 @@ Debug routine to compute a hash value from within a debugger.
 }  /* db_hash_ptr */
 
 
-void db_call_stack(an_interpreter_state  *ips)
+void db_call_stack(void  *ips)
 /*
-Output a summary of the interpreted call stack.
+Output a summary of the interpreted call stack.  ips is a pointer to an
+interpreter state converted to an_interpreter_state* (to avoid having to
+expose an_interpreter_state in outside this source file).
 */
 {
   unsigned          num = 0;
-  a_call_frame_ptr  frame = ips->curr_call_frame;
+  a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
 
   while (frame != NULL) {
     (void)fprintf(f_debug, "%4u: ", num++);
