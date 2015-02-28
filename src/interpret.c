@@ -698,6 +698,7 @@ typedef struct a_constexpr_data_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_constant is
 			   TRUE. */
+#if /*FIXME: enable when used*/0
   a_bit_field
 		is_array:1;
 			/* TRUE if this is a pointer to an
@@ -727,8 +728,11 @@ typedef struct a_constexpr_data_address {
 		runtime_constant;
 			/* For constant addresses of run-time entities. */
   } variant;
+#endif /*0*/
 } a_constexpr_data_address;
 
+/*FIXME: delete when field is used*/
+/*lint -esym(754,a_constexpr_data_address::address)*/
 
 typedef struct a_constexpr_ptr_to_mem_function {
   a_routine_ptr	member_function;
@@ -857,9 +861,7 @@ redo:
     default:
       unexpected_condition();
   }  /* switch */
-#if !defined(_lint)
   return 0;
-#endif /* FIXME */
 }  /* f_value_bytes_for_type */
 
 #if DEBUG
