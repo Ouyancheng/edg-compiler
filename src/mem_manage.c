@@ -1796,7 +1796,7 @@ prefix field.)
 
 #endif /* DEBUG */
 
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && 0 /*FIXME*/
 
 extern an_il_entry_prefix_ptr expensive_il_entry_prefix_of(char *ptr)
 /*

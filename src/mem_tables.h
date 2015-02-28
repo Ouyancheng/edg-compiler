@@ -141,7 +141,7 @@ typedef struct an_il_entry_prefix {
 			/* For debugging purposes, a sequence number assigned
 			   when this block was allocated. */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && 0 /*FIXME*/
   uint32_t      magic_number;
                         /* For debugging purposes, set when an IL entity is
                            allocated to a known value, then tested when
@@ -220,7 +220,7 @@ EXTERN unsigned long
 Macro used by clear_il_entry_prefix to set the magic number to indicate
 that this is indeed an IL entity.
 */
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && 0 /*FIXME*/
 #define IL_ENTRY_MAGIC_NUMBER 0xbdbdbdbd  /* Value unlikely to be on stack. */
 #define init_magic_number(epp) \
   ((epp)->magic_number) = IL_ENTRY_MAGIC_NUMBER
@@ -269,7 +269,7 @@ typedef unsigned long /* Should be an unsigned type. */
    is TRUE.  The il_entry_prefix_of_no_check macro can be used in cases
    where no checking is desired (such as when getting the address of the
    prefix in order to initialize it). */
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && 0 /*FIXME*/
 extern an_il_entry_prefix_ptr expensive_il_entry_prefix_of(char *ptr);
 #define il_entry_prefix_of(ptr) (*(expensive_il_entry_prefix_of((char *)ptr)))
 #define il_entry_prefix_of_no_check(ptr)                              \
