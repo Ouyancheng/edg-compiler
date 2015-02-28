@@ -698,20 +698,20 @@ typedef struct a_constexpr_data_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_constant is
 			   TRUE. */
-  sizeof_t
+  a_bit_field
 		is_array:1;
 			/* TRUE if this is a pointer to an
 			   array element. */
-  sizeof_t
+  a_bit_field
 		is_runtime_constant:1;
 			/* TRUE if this is a pointer that is constant
 			   at run time, but not a pointer into interpreter
 			   storage.  Normally, a pointer to a static-duration
 			   variable of some kind. */
-  sizeof_t
+  a_bit_field
 		cannot_dereference:1;
 			/* TRUE if this address cannot be dereferenced. */
-  sizeof_t
+  unsigned int
 		length: 24;
 			/* If is_array is TRUE, the number of
 			   elements in the array. */
