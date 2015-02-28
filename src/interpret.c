@@ -731,8 +731,6 @@ typedef struct a_constexpr_data_address {
 #endif /*0*/
 } a_constexpr_data_address;
 
-/*FIXME: delete when field is used*/
-/*lint -esym(754,a_constexpr_data_address::address)*/
 
 typedef struct a_constexpr_ptr_to_mem_function {
   a_routine_ptr	member_function;
@@ -741,6 +739,13 @@ typedef struct a_constexpr_ptr_to_mem_function {
 		this_class_adjustment;
 			/* The adjustment needed to the "this" pointer. */
 } a_constexpr_ptr_to_mem_function;
+
+
+/*FIXME: delete when fields are used*/
+/*lint -esym(754,a_constexpr_data_address::address)*/
+/*lint -esym(754,a_constexpr_ptr_to_mem_function::member_function)*/
+/*lint -esym(754,a_constexpr_ptr_to_mem_function::this_class_adjustment)*/
+
 
 
 /*
@@ -813,10 +818,11 @@ redo:
         result = value_bytes_for_type(ips, etp);
         etp = skip_typerefs(etp);
         if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
+          /* Too many elements. */
           /* FIXME: Interpretation failure. */
           unexpected_condition();
         } else {
-          result *= n_elems;
+          result *= (a_byte_count)n_elems;
         }  /* if */
       }
       break;
