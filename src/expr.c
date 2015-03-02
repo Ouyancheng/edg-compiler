@@ -37570,7 +37570,15 @@ expression context.  Return either *is_constant TRUE and a constant value in
   }  /* if */
   /* Check that the expression is integral or enum. */
   if (!is_template_param_type(result.type)) {
-    (void)check_integral_or_enum_operand(&result);
+    if (is_new_or_delete_bound && (cpp14_mode || microsoft_mode) &&
+        skip_typerefs(result.type)->kind == (a_type_kind)tk_float) {
+      /* A (real) floating-point type: Okay in C++14 and Microsoft modes.
+         Convert the operand to size_t. */
+      cast_operand(integer_type(targ_size_t_int_kind), &result,
+                     /*is_implicit_cast=*/TRUE);
+    } else {
+      (void)check_integral_or_enum_operand(&result);
+    }  /* if */
   }  /* if */
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
