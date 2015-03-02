@@ -14673,9 +14673,12 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->param_id_list =
                                 tssp->variant.function.func_info.param_id_list;
   func_info->keep_param_id_list = TRUE;
-  if (dps->type->kind == (a_type_kind)tk_routine) {
+  if (dps->type->kind == (a_type_kind)tk_routine &&
+      !is_real_instantiation_context()) {
     /* If necessary, register the prototype routine to have its exception
-       specification instantiated when the class is completed. */
+       specification instantiated when the class is completed.  (Don't do this
+       when doing a real instantiation of an enclosing class template since it
+       could trigger premature diagnostics.) */
     a_routine_type_supplement_ptr
              rtsp = dps->type->variant.routine.extra_info;
     if (rtsp->exception_specification != NULL &&

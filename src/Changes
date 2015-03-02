@@ -1,5 +1,24 @@
 Version 4.11
 
+3/2/15   [EDGcpfe/16046]
+Prototype instantiations of exception specifications of member templates
+
+The front end previously erroneously performed a prototype instantiation of
+the exception specification of a member function template when doing a real
+instantiation of the enclosing class template.  This could result in premature
+errors (i.e., errors that only should be issued if the member template is
+really used).  For example:
+
+  template<class T> struct X {
+    X();
+    template<class U> X(U) noexcept(noexcept(T().x())) {}
+  };
+  X<int> d;  // Previously triggered a spurious error about T() not having
+             // a class type.  Now okay.
+
+This is now fixed.
+
+
 3/2/15   [EDGcpfe/16045]
 Floating-point bound in array new-expression
 
