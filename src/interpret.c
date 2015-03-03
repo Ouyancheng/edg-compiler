@@ -93,15 +93,6 @@ mapping becomes available again.
 FIXME: Add note about second "persistent" data map when it's introduced.
 */
 
-#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
-/*
-Some versions of GCC 4.x issue spurious "uninitialized" diagnostics when the
-optimizer is enabled (on code where unneeded initialization is undesirable
-because of performance concerns).
-*/
-#pragma GCC diagnostic ignored "-Wuninitialized"
-#endif /* defined(__GCC__) */
-
 typedef unsigned int a_byte_count;
 
 /*
@@ -469,6 +460,18 @@ Macros to save and restore an allocation stack state.
     }  /* while */                                                           \
     (ips)->storage_stack = (state);                                          \
   }
+
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
+/*
+Some versions of GCC 4.x issue spurious "uninitialized" diagnostics when the
+optimizer is enabled (on code where unneeded initialization is undesirable
+because of performance concerns).
+*/
+#define init_storage_stack_state_to_silence_GCC(sss)                         \
+  ((sss).top = (sss).curr_block = (sss).large_blocks = NULL)
+#else /* !defined(__GNUC__) && ... */
+#define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
+#endif /* defined(__GNUC__) && ... */
 
 
 /*
@@ -941,6 +944,7 @@ Interpret the given block statement and its associated scope (if any).
   a_storage_stack_state  saved_stack;
   a_statement_ptr        stmt = block_stmt->variant.block.statements;
 
+  init_storage_stack_state_to_silence_GCC(saved_stack);
   if (scope != NULL) {
     /* Allocate storage for variables, and map the variables to that
        storage.  Don't do this for parameter variables since they're
