@@ -93,6 +93,15 @@ mapping becomes available again.
 FIXME: Add note about second "persistent" data map when it's introduced.
 */
 
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
+/*
+Some versions of GCC 4.x issue spurious "uninitialized" diagnostics when the
+optimizer is enabled (on code where unneeded initialization is undesirable
+because of performance concerns).
+*/
+#pragma GCC diagnostic ignored "-Wuninitialized"
+#endif /* defined(__GCC__) */
+
 typedef unsigned int a_byte_count;
 
 /*
