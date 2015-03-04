@@ -1180,6 +1180,7 @@ return FALSE.
     result_storage = (a_byte*)&result_con->variant.float_value;
   } else {
     /* FIXME: Handle other type kinds */
+    result_storage = NULL;
     unexpected_condition();
   }  /* if */
   result_con->type = result_type;
