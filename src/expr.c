@@ -14499,8 +14499,11 @@ indication in *rcblock).
     }  /* if */
   }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
-     header file. */
-  if (!err && !is_cli_typeid && is_incomplete_type(type_of_type_info)) {
+     header file.  In Clang mode, a declaration is sufficient. */
+  if (!err && !is_cli_typeid &&
+      (clang_mode ?
+            (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :
+            is_incomplete_type(type_of_type_info))) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);
   }  /* if */
   /* Push an entry on the expression stack so the operand will be handled

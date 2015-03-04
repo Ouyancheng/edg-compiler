@@ -1,5 +1,23 @@
 Version 4.11
 
+3/4/15   [EDGcpfe/16057]
+Clang compatibility: Explicit declaration of type_info
+
+Using the typeid operator without including the standard header <typeinfo> is
+ordinarily an error.  The front end assumes that the <typeinfo> header has
+been included if the standard type_info type is defined.  Clang, however,
+only requires that the type is declared; not defined.  For example (assuming
+DEFAULT_TYPE_INFO_IN_NAMESPACE_STD is configured to FALSE):
+
+  struct type_info;  // Declared but not defined.
+  namespace std { using ::type_info; }
+  struct S { virtual ~S(); } s;
+  std::type_info const &ti = typeid(s);  // Now accepted in Clang mode.
+
+This case is now accepted in Clang mode (but still an error in other C++
+modes).
+
+
 3/2/15   [EDGcpfe/16046]
 Prototype instantiations of exception specifications of member templates
 
