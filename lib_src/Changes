@@ -1,3 +1,20 @@
+Version 4.11
+
+3/5/15  [EDGcpfe/14687]
+C++14: Support for sized global deallocation
+
+Definitions for the sized global deallocation operators, namely
+operator ::delete(void*, size_t) and operator ::delete[](void*, size_t)
+have been added.  These routines simply call their un-sized versions
+at the present time.
+
+Note that these definitions are conditional upon the value of the
+__cpp_sized_deallocation feature test macro, and as such the runtime library
+must be built with the --c++14 option (if these library routines are to be
+included).
+
+
+-------------------------------------------------------------------------------
 Version 4.10, December 23, 2014
 
 12/16/14 [EDGcpfe/15838]

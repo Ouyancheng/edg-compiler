@@ -20,23 +20,24 @@ Any use of this software is at the user's own risk.
 */
 /*
 
-C++ operator delete(void*, void*);
+C++ operator delete(void *, size_t);
 
 */
 
 #include "basics.h"
 #include "runtime.h"
 
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+#if __cpp_sized_deallocation >= 201309
 
-void operator delete(void *, void *) THROW_NOTHING()
+void operator delete(void *ptr, size_t size) THROW_NOTHING()
 /*
-Placement operator delete -- does nothing.
+Free the memory pointed to by ptr.  size specifies the size of the object.
 */
 {
-}  /* operator delete (void*, void*) */
+  operator delete(ptr);
+}  /* operator delete */
 
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#endif /* __cpp_sized_deallocation >= 201309 */
 
 /******************************************************************************
 *                                                             \  ___  /       *

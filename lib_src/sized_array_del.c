@@ -20,23 +20,29 @@ Any use of this software is at the user's own risk.
 */
 /*
 
-C++ operator delete(void*, void*);
+C++ operator delete[](void *, size_t);
 
 */
+
 
 #include "basics.h"
 #include "runtime.h"
 
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-void operator delete(void *, void *) THROW_NOTHING()
+#if __cpp_sized_deallocation >= 201309
+
+void operator delete[](void *ptr, size_t size) THROW_NOTHING()
 /*
-Placement operator delete -- does nothing.
+Default array operator delete with size.  Just call the normal operator delete.
 */
 {
-}  /* operator delete (void*, void*) */
+  operator delete[](ptr);
+}  /* operator delete[] */
 
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#endif /* __cpp_sized_deallocation >= 201309 */
+
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
