@@ -1,5 +1,21 @@
 Version 4.11
 
+3/4/15   [EDGcpfe/16065]
+GNU compatibility: builtin function signatures
+
+Tracking the function signatures of the GNU builtins has always been a
+difficult process as the functions sometimes have different signatures than
+what is documented, and the signatures occasionally change from one version of
+GNU to another.  To help in this process, an automated script has been
+written to extract the definitions from sys_predef.c and generate test cases
+for each builtin definition.  With the help of this automated testing process,
+we've made a number of changes to function signatures as well as ensuring that
+builtins are only available in the appropriate GNU emulation modes (there were
+a number of builtins that had been available in the EDG front end but were not
+actually available in the corresponding GNU compiler).  This should align the
+front end much better with the actual behavior of recent GNU compilers.
+
+
 3/4/15   [EDGcpfe/16057]
 Clang compatibility: Explicit declaration of type_info
 
