@@ -218,6 +218,54 @@ to handle the recursive walk through base classes.
 }  /* r_require_definitions_of_virtual_functions_in_class */
 
 
+static void define_virtual_generated_dtor_if_needed(a_type_ptr  class_type)
+/*
+If the given class has a virtual compiler-generated destructor, force the
+definition of the latter if needed (i.e., if no decider function is known to
+trigger its definition elsewhere).
+*/
+{
+  a_symbol_ptr  dtor_sym =
+                        class_symbol_supp(symbol_for(class_type))->destructor;
+
+  if (dtor_sym != NULL) {
+    a_routine_ptr  dtor = dtor_sym->variant.routine.ptr;
+    if (dtor->compiler_generated && dtor->is_virtual &&
+        !routine_has_been_defined(dtor)) {
+      /* A virtual, generated destructor that hasn't been defined yet. */
+      a_boolean  generate = FALSE;
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
+      if (class_type->variant.class_struct_union.is_template_class &&
+          !class_type->variant.class_struct_union.is_specialized) {
+        /* For instantiated classes, we cannot rely on a definition of a
+           "decider" function since it would itself require instantiation.
+           So generate the destructor unconditionally. */
+        generate = TRUE;
+      } else
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410 */
+      /* Do not insert code here. */
+      {
+        /* Not an instantiated class: Check the decider function (if any). */
+        a_routine_ptr decider = vtbl_decider_function_for_class(
+                                                          class_type,
+                                                          (a_boolean *)NULL);
+        if (decider != NULL && !routine_has_been_defined(decider)) {
+          /* The vtable is not being put out in this compilation, so don't
+             force the definition of the destructor here.  If the decider
+             function gets defined later, we'll get back to this code and
+             decide at that point to put out the destructor definition. */
+        } else {
+          generate = TRUE;
+        }  /* if */
+      }  /* if */
+      if (generate) {
+        define_special_member_function(dtor);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* define_virtual_generated_dtor_if_needed */
+
+
 void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
 /*
 Require definitions for all virtual functions in class_type (including
@@ -228,50 +276,44 @@ compilation.
 */
 {
   class_type = skip_typerefs(class_type);
-  if (class_type->variant.class_struct_union.
-                             any_virtual_functions_including_in_base_classes) {
-    a_class_symbol_supplement_ptr cssp =
-                                       symbol_supplement_for_class(class_type);
-
-    if (cssp->destructor != NULL) {
-      a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
-      if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
-          !routine_has_been_defined(dtor_rout)) {
-        /* Force generation of a compiler-generated virtual destructor if
-           needed.  This is done only at the top level because virtual
-           destructors in base classes would be overridden and therefore would
-           not be pointed to from the virtual function table in the derived
-           class. */
-        a_boolean  generate = FALSE;
-#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
-        if (class_type->variant.class_struct_union.is_template_class &&
-            !class_type->variant.class_struct_union.is_specialized) {
-          /* For instantiated classes, we cannot rely on a definition of a
-             "decider" function since it would itself require instantiation.
-             So generate the destructor unconditionally. */
-          generate = TRUE;
-        } else
-#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410 */
-        /* Do not insert code here. */
-        {
-          /* Not an instantiated class: Check the decider function (if any). */
-          a_routine_ptr decider = vtbl_decider_function_for_class(
-                                                            class_type,
-                                                            (a_boolean *)NULL);
-          if (decider != NULL && !routine_has_been_defined(decider)) {
-            /* The vtable is not being put out in this compilation, so don't
-               force the definition of the destructor here.  If the decider
-               function gets defined later, we'll get back to this code and
-               decide at that point to put out the destructor definition. */
-          } else {
-            generate = TRUE;
-          }  /* if */
+  if (class_type->variant.class_struct_union
+                         .any_virtual_functions_including_in_base_classes) {
+    /* If this class has a virtual implicitly-generated destructor its body
+       may have to be generated too.  This is typically done only at the
+       top level because virtual destructors in base classes would be
+       overridden and therefore would not be pointed to from the virtual
+       function table in the derived class.  However, Clang and early
+       versions of GCC also have construction vtables point to the
+       destructors between the most derived class and any virtual base
+       classes (in the IA-64 ABI). */
+    define_virtual_generated_dtor_if_needed(class_type);
+#if IA64_ABI
+    if (((gpp_mode && gnu_version < 40900) || clang_mode) &&
+        class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Look for virtual base classes and define generated virtual destructors
+         on its (possibly multiple) derivation paths (not including the virtual
+         base itself).  For example:
+           struct A { virtual ~A(); };
+           struct B: virtual A {};
+           struct C: B { virtual ~C() ;  };
+           struct D: public C { virtual ~D(); };
+           D::~D() {}  // Decider function triggers Vtable generation.
+         Here, the body of B::~B() is generated by Clang and some versions of
+         GCC. */
+      a_base_class_ptr  bcp;
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual) {
+          a_base_class_derivation_ptr  der;
+          for (der = bcp->derivation; der != NULL; der = der->next) {
+            a_derivation_step_ptr  step = der->path;
+            for (; !step->base_class->is_virtual; step = step->next) {
+              define_virtual_generated_dtor_if_needed(step->base_class->type);
+            }  /* for */
+          }  /* for */
         }  /* if */
-        if (generate) {
-          define_special_member_function(dtor_rout);
-        }  /* if */
-      }  /* if */
+      }  /* for */
     }  /* if */
+#endif /* IA64_ABI */
     r_require_definitions_of_virtual_functions_in_class(class_type);
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */

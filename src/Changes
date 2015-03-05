@@ -1,5 +1,30 @@
 Version 4.11
 
+3/5/15   [EDGcpfe/15227]
+Clang/GNU compatibility: Virtual generated destructors and virtual bases
+
+In Clang C++ mode and in GNU C++ modes with gnu_version < 40900, the front end
+now forces the definition of a virtual implicitly-generated destructor for a
+class X if that class has a virtual base class and is itself a direct or
+indirect nonvirtual base class of a derived class whose virtual function table
+will be emitted if lowering is enabled.  (This only applies to the IA-64 ABI.)
+For example:
+
+  struct A { virtual ~A(); };
+  struct B1 : virtual A {};
+  struct B2 : virtual A {};
+  struct C1 : B1 { virtual ~C1() ;  };
+  struct C2 : B2 { virtual ~C2() ;  };
+  struct D : C1, C2 { virtual ~D(); };
+  D::~D() {}
+
+Here, the definition of the "decider" function D::~D() of class D would trigger
+the emission of D's virtual function table if lowering were enabled.  The base
+classes B1 and B2 each have a virtual base class and a generated virtual
+destructor: Those generated destructors are now defined in this translation
+unit in Clang mode and in some GNU C++ modes.
+
+
 3/4/15   [EDGcpfe/16065]
 GNU compatibility: builtin function signatures
 
