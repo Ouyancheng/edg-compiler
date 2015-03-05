@@ -741,7 +741,7 @@ of GNU.
     }  /* builtin-test:if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
   }  /* if */
-    if (gnu_version >= 40100) {
+  if (gnu_version >= 40100) {
     enter_gnu_builtin_func0(_sync_synchronize, no_return);
     enter_gnu_builtin_vararg_func0(_sync_fetch_and_add, no_return);
     enter_gnu_builtin_vararg_func0(_sync_fetch_and_sub, no_return);
