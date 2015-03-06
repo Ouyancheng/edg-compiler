@@ -1,5 +1,15 @@
 Version 4.11
 
+3/6/15  [EDGcpfe/16066]
+Clang compatibility: aggregate initialization of _Complex in C mode
+
+The clang compiler allows aggregate initialization of a _Complex variable
+in C mode (though GNU does not).  Previously this had caused an assertion
+failure (in lower_c99_constant).  For example (with --c --clang):
+
+  _Complex float x = { 1.0f, 1.0f };  // Now accepted in Clang C mode.
+
+
 3/6/15  [EDGcpfe/16069]
 Build problem when ABI_COMPATIBILITY_VERSION < 402
 

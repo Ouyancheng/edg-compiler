@@ -1267,6 +1267,17 @@ floating point elements.
 }  /* make_lowered_complex_type */
 
 
+static a_type_ptr get_lowered_complex_field_type(a_type_ptr type)
+/*
+Given a lowered complex type, return the type of the _Vals field (which is
+the only field in the type).
+*/
+{
+  check_assertion(is_class_or_struct(type));
+  return type->variant.class_struct_union.field_list->type;
+}  /* get_lowered_complex_field_type */
+
+
 a_type_ptr lowered_complex_type(a_float_kind fkind)
 /*
 Return the structure used to represent a complex type of the kind fkind in
@@ -3447,13 +3458,13 @@ allocated in file scope, the lowered structure must also be placed there.)
 
 void lower_c99_complex_aggregate_constant(a_constant_ptr constant)
 /*
-In some GNU C++ modes, initializer-list syntax can be used to initialize
-a complex object.  In such cases the front end provides an aggregate with
-two values (for the real and imaginary components).  The lowered type for
-a complex object is a structure that contains an array of two elements, so
-re-write the aggregate constant to include another level of aggregate so that
-it'll match the lowered complex type.  Note that the elements of the original
-constant are not lowered here.
+In some GNU C++ modes (as well as clang C mode), initializer-list syntax can be
+used to initialize a complex object.  In such cases the front end provides an
+aggregate with two values (for the real and imaginary components).  The lowered
+type for a complex object is a structure that contains an array of two
+elements, so re-write the aggregate constant to include another level of
+aggregate so that it'll match the lowered complex type.  Note that the elements
+of the original constant are not lowered here.
 */
 {
   a_constant_ptr copy_con;
@@ -3465,6 +3476,7 @@ constant are not lowered here.
   constant->variant.aggregate.first_constant = copy_con;
   constant->variant.aggregate.last_constant = copy_con;
   constant->type = lowered_complex_type(constant->type->variant.float_kind);
+  copy_con->type = get_lowered_complex_field_type(constant->type);
 }  /* lower_c99_complex_aggregate_constant */
 
 #endif /* LOWER_COMPLEX */
@@ -3499,7 +3511,12 @@ replace them by a representation compatible with C89.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_aggregate:
 #if LOWER_COMPLEX
-      check_assertion(!is_complex_type(constant->type));
+      if (is_complex_type(constant->type)) {
+          /* Clang allows the use of aggregate syntax to initialize the real
+             and imaginary portions of a complex object in C mode.  Convert the
+             aggregate constant to the proper format before lowering. */
+        lower_c99_complex_aggregate_constant(constant);
+      }  /* if */
 #endif /* LOWER_COMPLEX */
       lower_c99_constant_list(constant->variant.aggregate.first_constant);
       break;
