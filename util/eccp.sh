@@ -1509,7 +1509,7 @@ process_option()
           ;;
         -b | --c++ | \
 	--c++03 | --c++0x | --no_c++0x | --c++11 | --no_c++11 | --c++14 | \
-	--cfront_2.1 | --cfront_3.0 | --g++ | --no_g++ | --clang | --no_clang)
+	--cfront_2.1 | --cfront_3.0 | --g++ | --no_g++)
           c_mode=0
           ;;
 	--no_preproc_only)

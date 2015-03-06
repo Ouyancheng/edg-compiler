@@ -1,5 +1,12 @@
 Version 4.11
 
+3/6/15   [EDGcpfe/16068]
+eccp script hadn't allowed Clang C mode
+
+Changes to the eccp script to allow Clang emulation mode inadvertently
+neglected to allow Clang C emulation mode (i.e., --c --clang).  Now fixed.
+
+
 1/28/15  [EDGcpfe/15939]
 Demangling support for decltype(auto)
 
