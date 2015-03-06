@@ -1267,17 +1267,6 @@ floating point elements.
 }  /* make_lowered_complex_type */
 
 
-static a_type_ptr get_lowered_complex_field_type(a_type_ptr type)
-/*
-Given a lowered complex type, return the type of the _Vals field (which is
-the only field in the type).
-*/
-{
-  check_assertion(is_class_or_struct(type));
-  return type->variant.class_struct_union.field_list->type;
-}  /* get_lowered_complex_field_type */
-
-
 a_type_ptr lowered_complex_type(a_float_kind fkind)
 /*
 Return the structure used to represent a complex type of the kind fkind in
@@ -3476,7 +3465,7 @@ of the original constant are not lowered here.
   constant->variant.aggregate.first_constant = copy_con;
   constant->variant.aggregate.last_constant = copy_con;
   constant->type = lowered_complex_type(constant->type->variant.float_kind);
-  copy_con->type = get_lowered_complex_field_type(constant->type);
+  copy_con->type = complex_vals_field(constant->type)->type;
 }  /* lower_c99_complex_aggregate_constant */
 
 #endif /* LOWER_COMPLEX */
