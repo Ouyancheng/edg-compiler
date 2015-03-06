@@ -3526,6 +3526,7 @@ add mangling for an eok_address_of operation.
       }  /* if */
       close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 402
   } else if (rinfo != NULL && rinfo->ud_suffix != NULL) {
     /* This is a ck_template_param/tpck_unknown_function for a UDL operator
        function; give it a special mangling. */
@@ -3538,6 +3539,7 @@ add mangling for an eok_address_of operation.
                                          /*suppress_operation_indicator=*/TRUE,
                                          /*suppress_underscores=*/FALSE,
                                          mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   } else if (rinfo != NULL && rinfo->template_arg_list != NULL) {
     /* This is an unqualified, template-dependent routine, which is mangled
        with <unresolved-name>.  It can't be a conversion function or

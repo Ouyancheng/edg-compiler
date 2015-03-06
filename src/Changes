@@ -1,5 +1,13 @@
 Version 4.11
 
+3/6/15  [EDGcpfe/16069]
+Build problem when ABI_COMPATIBILITY_VERSION < 402
+
+As a result of the changes for EDGcpfe/14701, attempting to build the
+front end in certain configurations where ABI_COMPATIBILITY_VERSION < 402
+could cause a compilation error in lower_name.c.  Now fixed.
+
+
 3/6/15  [EDGcpfe/14687]
 C++14: Sized global deallocation
 
