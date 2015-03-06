@@ -9343,17 +9343,27 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 }  /* find_default_operator_new_sym */
 
 
-a_boolean is_default_operator_delete(a_routine_ptr routine)
+a_boolean is_default_operator_delete(a_routine_ptr routine,
+                                     a_boolean     *is_sized_delete)
 /*
 Return TRUE if the indicated routine (an operator delete function) is
-a default operator delete function (including the class variant with
-a second parameter of type size_t).
+a default operator delete function (including the variant with
+a second parameter of type size_t).  *is_sized_delete is set to TRUE
+if the routine is of the two-parameter variety (i.e., has a
+second parameter of type size_t) and is set to FALSE otherwise.
+Note that this routine does not report whether the routine is a "usual
+deallocation function" -- only that it is a candidate to be one.  In
+particular, this routine will return TRUE for a two-parameter class
+member operator delete, but the presence of a one-parameter class
+member operator delete would disqualify the two-parameter class from
+being a "usual deallocation function" (see [basic.stc.dynamic.deallocation]).
 */
 {
   a_boolean                      is_default = FALSE;
   a_routine_type_supplement_ptr  rtsp;
   a_param_type_ptr               ptp;
 
+  *is_sized_delete = FALSE;
   rtsp = skip_typerefs(routine->type)->variant.routine.extra_info;
   if (rtsp->has_ellipsis) {
     /* An operator delete declared with ellipsis can't be a default operator
@@ -9364,18 +9374,21 @@ a second parameter of type size_t).
     if (ptp->next == NULL) {
       /* operator delete(void *), a default operator delete. */
       is_default = TRUE;
-    } else if (routine->source_corresp.is_class_member) {
+    } else if (routine->source_corresp.is_class_member ||
+               (sized_deallocation_enabled &&
+                !is_class_or_namespace_member(routine))) {
       /* Look for a class member operator delete with a second parameter of
-         type size_t. */
+         type size_t, or, in C++14 mode, a global operator delete with a
+         second parameter of type size_t. */
       ptp = ptp->next;
       if (ptp->next == NULL) {
         /* The function has two parameters. */
         a_type_ptr param_type = skip_typerefs(ptp->type);
-
         if (is_integral_type(param_type) &&
             param_type->variant.integer.int_kind == targ_size_t_int_kind) {
           /* operator delete(void *, size_t), a default operator delete. */
           is_default = TRUE;
+          *is_sized_delete = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9385,13 +9398,16 @@ a second parameter of type size_t).
 
 
 a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
+                                              a_type_ptr   delete_type,
                                               a_boolean    *ambiguous)
 /*
 Given the symbol for an operator delete() (which may be overloaded and/or
-be a projection symbol), find the default version (usually the single-argument
-version) and return a pointer to its symbol (which may be a projection
-symbol), or NULL if it is not found or there is an ambiguity.  If there is an
-ambiguity return *ambiguous set to TRUE.
+be a projection symbol), find the default version (which may be the
+single-argument or two-argument version) and return a pointer to its symbol
+(which may be a projection symbol), or NULL if it is not found or there is an
+ambiguity.  delete_type is the type of the object being deleted (not the
+delete expression -- which is a pointer).  If there is an ambiguity return
+*ambiguous set to TRUE.
 */
 {
   an_overload_set_traversal_block
@@ -9399,6 +9415,7 @@ ambiguity return *ambiguous set to TRUE.
   a_boolean      ambiguous_alternate = FALSE, is_class_member;
   a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
   a_routine_ptr  rp;
+  a_boolean      is_sized_delete, use_alternate = FALSE;
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
@@ -9420,12 +9437,10 @@ ambiguity return *ambiguous set to TRUE.
     if (is_function_symbol(fund_sym)) {
       /* See if this is a default operator delete. */
       rp = fund_sym->variant.routine.ptr;
-      if (is_default_operator_delete(rp)) {
+      if (is_default_operator_delete(rp, &is_sized_delete)) {
         /* This is a default operator delete.  See whether it is the single-
            parameter version or the two-parameter version. */
-        a_param_type_ptr ptp = skip_typerefs(rp->type)->
-                                  variant.routine.extra_info->param_type_list;
-        if (ptp->next == NULL) {
+        if (!is_sized_delete) {
           /* "operator delete(void *)" is always the default version. */
           if (default_sym == NULL) {
             default_sym = sym;
@@ -9453,9 +9468,43 @@ ambiguity return *ambiguous set to TRUE.
   }  /* for */
   if (*ambiguous) {
     default_sym = NULL;
+  } else if (alternate_default_sym != NULL && default_sym != NULL &&
+             sized_deallocation_enabled && !is_class_member &&
+             !is_incomplete_type(delete_type)) {
+    /* If a two-parameter usual deallocation function is found as well as
+       a single-parameter usual deallocation function, use the two-parameter
+       version (but do this only for the global versions -- when both
+       default versions are present in a class the two-parameter version
+       is not considered a "usual deallocation function"). */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    check_assertion(alternate_default_sym->kind == (a_symbol_kind)sk_routine &&
+                    alternate_default_sym->variant.routine.ptr->special_kind ==
+                                        (a_special_function_kind)sfk_operator);
+    if (alternate_default_sym->variant.routine.ptr->variant.opname_kind ==
+                                           (an_opname_kind)onk_array_delete &&
+        !new_or_delete_type_requires_array_handling(delete_type,
+#if IA64_ABI
+                                                    /*check_constructor=*/FALSE
+#else /* !IA64_ABI */
+                                                    /*check_constructor=*/TRUE
+#endif /* IA64_ABI */
+                                                                           )) {
+        /* In cases where the deallocation is for an array and the size of the
+           array is not known (because there's no cookie stored at the
+           beginning of the array), don't use the sized allocation routine.
+           For example: "delete [] new int[5]". */
+      } else
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+      /* Do not insert code here. */
+      {
+        use_alternate = TRUE;
+      }  /* if */
   } else if (is_class_member && default_sym == NULL) {
     /* No ordinary default operator delete has been found, but maybe an
        alternative version was declared.  If so, return it. */
+    use_alternate = TRUE;
+  }  /* if */
+  if (use_alternate) {
     if (ambiguous_alternate) {
       *ambiguous = TRUE;
     } else {
@@ -9468,6 +9517,7 @@ ambiguity return *ambiguous set to TRUE.
 
 a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym,
                                                     a_type_ptr   class_type,
+                                                    a_type_ptr   delete_type,
                                                     a_boolean    template_okay,
                                                     a_boolean    *ambiguous,
                                                     a_symbol_ptr *overload_sym)
@@ -9477,13 +9527,14 @@ symbol or an overload set.  Looking in the scope of class_type, or in the
 global scope if class_type is NULL, find and return the corresponding
 operator delete function (i.e., the operator delete function with identical
 parameter types as the operator new function, excluding the first parameter
-in each).  Return NULL if no match is found or if there is an ambiguity; in
-the latter case, return *ambiguous set to TRUE.  If template_okay is TRUE,
-simply return the symbol for a matching function template, if appropriate;
-otherwise, return the symbol for the instance.  Also return in *overload_sym
-the result of looking up the delete operator; it may be the same as the
-symbol that is returned as the corresponding operator delete symbol, but it
-may an overload symbol instead.
+in each).  delete_type is the type of the object to be deleted.  Return NULL if
+no match is found or if there is an ambiguity; in the latter case, return
+*ambiguous set to TRUE.  If template_okay is TRUE, simply return the symbol
+for a matching function template, if appropriate; otherwise, return the symbol
+for the instance.  Also return in *overload_sym the result of looking up the
+delete operator; it may be the same as the symbol that is returned as the
+corresponding operator delete symbol, but it may be an overload symbol
+instead.
 */
 {
   a_symbol_ptr                    sym = NULL;
@@ -9526,7 +9577,9 @@ may an overload symbol instead.
     if (op_new_param_type_list->next == NULL && !op_new_has_ellipsis) {
       /* This is default (single-argument) operator new, so find the default
          operator delete. */
-      corresp_op_delete_sym = find_default_operator_delete_sym(sym, ambiguous);
+      corresp_op_delete_sym = find_default_operator_delete_sym(sym,
+                                                               delete_type,
+                                                               ambiguous);
     } else {
       /* Placement new.  We need to examine all the delete operators and look
          for a type match. */
@@ -9714,18 +9767,20 @@ associated function type and must be a tk_routine entry (i.e., not a typeref).
 }  /* make_predeclared_function_symbol */
 
 
-void make_global_operator_new_or_delete_symbol(an_opname_kind  opname)
+void make_global_operator_new_or_delete_symbol(an_opname_kind  opname,
+                                               a_boolean       sized_version)
 /*
 Create a symbol and routine entry for ::operator new, ::operator new[],
-::operator delete, or ::operator delete[].  These are entered into the
-symbol table as part of initialization, so the locator has a default value
-(as used with keywords).  The routine entry is marked as compiler generated;
-if a user declaration appears later, the compiler-generated flag should be
-cleared.
+::operator delete, or ::operator delete[].  When sized_version is TRUE
+(for operator delete only), a second argument, of type size_t, is added.
+These are entered into the symbol table as part of initialization, so the
+locator has a default value (as used with keywords).  The routine entry is
+marked as compiler generated; if a user declaration appears later, the
+compiler-generated flag should be cleared.
 */
 {
   a_symbol_locator               locator;
-  a_type_ptr                     return_type, param1_type;
+  a_type_ptr                     return_type, param1_type, param2_type = NULL;
   a_symbol_ptr                   sym;
   a_routine_type_supplement_ptr  rtsp;
 
@@ -9736,6 +9791,7 @@ cleared.
      create the symbol header. */
   make_opname_locator(opname, &locator, &null_source_position);
   if (is_new_operator(opname)) {
+    check_assertion(!sized_version);
     /* Return type for operator new is void *. */
     return_type = make_pointer_type(void_type());
     /* Type of the one parameter for operator new is size_t. */
@@ -9745,6 +9801,11 @@ cleared.
     return_type = void_type();
     /* Type of the one parameter for operator delete is void *. */
     param1_type = make_pointer_type(void_type());
+    if (sized_version) {
+      /* Global sized deallocation routines take a second parameter of type
+         size_t. */
+      param2_type = integer_type(targ_size_t_int_kind);
+    }  /* if */
   }  /* if */
   /* In Microsoft mode, array versions of the operators are never directly
      predeclared.  Instead, alias symbols for the array versions are sometimes
@@ -9755,7 +9816,7 @@ cleared.
                      opname == (an_opname_kind)onk_array_delete)));
   sym = make_predeclared_function_symbol(
                  &locator,
-                 make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
+                 make_routine_type(return_type, param1_type, param2_type,
                                    (a_type_ptr)NULL, (a_type_ptr)NULL));
   if (microsoft_mode) {
     if (microsoft_version >= 1400) {

@@ -1123,6 +1123,11 @@ EXTERN a_boolean
 			   in lambda expressions. */
 
 EXTERN a_boolean
+		sized_deallocation_enabled;
+			/* TRUE if C++14 sized deallocation should be
+			   enabled. */
+
+EXTERN a_boolean
 		rvalue_references_enabled;
 			/* TRUE if C++11 rvalue references should be accepted
 			   in C++. */

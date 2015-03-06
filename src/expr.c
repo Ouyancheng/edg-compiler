@@ -15957,6 +15957,7 @@ the delete routine is ambiguous (an error will have been issued).
   a_routine_ptr delete_routine = NULL;
   a_type_ptr    class_type;
   a_symbol_ptr  delete_sym, overload_delete_sym;
+  a_boolean     is_sized_delete;
 
   *ambiguous = FALSE;
   /* Select the delete routine that corresponds to the new routine selected. */
@@ -15966,6 +15967,7 @@ the delete routine is ambiguous (an error will have been issued).
   }  /* if */
   delete_sym = find_corresponding_operator_delete_sym(new_sym,
                                                       class_type,
+                                                      base_new_type,
                                                       /*template_okay=*/FALSE,
                                                       ambiguous,
                                                       &overload_delete_sym);
@@ -15985,8 +15987,9 @@ the delete routine is ambiguous (an error will have been issued).
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
-    if (placement_new && is_two_argument_delete(delete_routine) &&
-        is_default_operator_delete(delete_routine) &&
+    if (placement_new &&
+        is_default_operator_delete(delete_routine, &is_sized_delete) &&
+        is_sized_delete &&
         (clang_mode || (!microsoft_mode && !gpp_mode))) {
       /* Core issue 429: Give an error if a placement new operation results
          in the selection of a non-placement operator delete function (i.e.,
@@ -17834,7 +17837,7 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     if (array_new) {
-      /* If a allocating an array and a runtime routine will be used, the
+      /* If allocating an array and a runtime routine will be used, the
          "new" routine can be implicit if it is the default global new[]. */
       if (new_or_delete_type_requires_array_handling(
                                                  base_new_type,
@@ -18787,6 +18790,7 @@ if the selected delete routine is ambiguous.
       if (operator_delete_set == NULL ||
           (microsoft_version >= 1300 &&
            find_default_operator_delete_sym(operator_delete_set,
+                                            delete_type,
                                             &ambiguous) == NULL &&
            !ambiguous)) {
         /* In Microsoft mode, if no array delete is found, search for a
@@ -18805,6 +18809,7 @@ if the selected delete routine is ambiguous.
     /* Pick the default operator delete out of an overload set, if any. */
     operator_delete_symbol =
                          find_default_operator_delete_sym(operator_delete_set,
+                                                          delete_type,
                                                           &ambiguous);
     if (ambiguous) {
       /* The symbol is ambiguous. */
@@ -18876,7 +18881,7 @@ in *rcblock).
   a_dynamic_init_ptr dip;
   a_new_delete_supplement_ptr
                      rescan_ndsp, ndsp;
-  a_boolean          handle_type_case = FALSE;
+  a_boolean          handle_type_case = FALSE, is_sized_delete;
 
   db_enter(4, "scan_delete_operator");
 
@@ -19114,13 +19119,21 @@ in *rcblock).
           /* In Microsoft mode, because the non-array delete routine can be
              used for an array delete, the symbol can be NULL. */
           if (sym != NULL) {
-            sym = find_default_operator_delete_sym(sym, &ambiguous);
+            sym = find_default_operator_delete_sym(sym, base_delete_type,
+                                                   &ambiguous);
           }  /* if */
           if (sym != NULL && delete_routine == sym->variant.routine.ptr &&
               /* See core issue 412: avoid problems if user-provided delete is
                  inline. */
               !delete_routine->is_inline) {
-            delete_routine = NULL;
+            if (sized_deallocation_enabled &&
+                is_default_operator_delete(delete_routine, &is_sized_delete) &&
+                is_sized_delete) {
+              /* If a sized deallocation routine has been found, use that. */
+            } else {
+              /* Use the default delete routine. */
+              delete_routine = NULL;
+            }  /* if */
           }  /* if */
           /* Mark the destructor as referenced if it is virtual, because
              the call from the runtime routine will not be virtual (nor

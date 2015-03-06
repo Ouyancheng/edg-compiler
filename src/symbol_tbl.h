@@ -5042,14 +5042,17 @@ extern void make_type_conversion_locator(a_type_ptr         type,
 extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
                                                   a_boolean    *ambiguous);
 
-extern a_boolean is_default_operator_delete(a_routine_ptr routine);
+extern a_boolean is_default_operator_delete(a_routine_ptr routine,
+                                            a_boolean     *is_sized_delete);
 
 extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
+                                                     a_type_ptr   delete_type,
                                                      a_boolean    *ambiguous);
 
 extern a_symbol_ptr find_corresponding_operator_delete_sym(
                                                   a_symbol_ptr op_new_sym,
                                                   a_type_ptr   class_type,
+                                                  a_type_ptr   delete_type,
                                                   a_boolean    template_okay,
                                                   a_boolean    *ambiguous,
                                                   a_symbol_ptr *overload_sym);
@@ -5058,7 +5061,9 @@ extern a_symbol_ptr make_predeclared_function_symbol(
                                               a_symbol_locator  *locator,
                                               a_type_ptr        rout_type);
 
-extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
+extern void make_global_operator_new_or_delete_symbol(
+                                                an_opname_kind  opname,
+                                                a_boolean       sized_version);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

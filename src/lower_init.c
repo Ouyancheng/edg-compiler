@@ -113,6 +113,7 @@ static void turn_off_freeing_of_storage_on_exception(
                              a_new_delete_supplement_ptr ndsp,
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
+                             an_expr_node_ptr            size_arg,
                              a_routine_ptr               new_routine,
                              an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location);
@@ -3167,7 +3168,9 @@ IA-64 ABI; see comments below.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       check_assertion(delete_sym != NULL && !is_two_arg_delete);
-      delete_sym = find_default_operator_delete_sym(delete_sym, &ambiguous);
+      delete_sym = find_default_operator_delete_sym(delete_sym,
+                                                  type_pointed_to(entity_type),
+                                                  &ambiguous);
       check_assertion(delete_sym != NULL);
       delete_routine = delete_sym->variant.routine.ptr;
     }  /* if */
@@ -9988,9 +9991,9 @@ initialize required temporary variables and must occur before any of the
 temporary values are used (i.e., before any run-time library calls).  Note that
 the caller often discards the first argument that is created herein, so
 make_reusable_copy can't be used (instead, a temporary is explicitly created
-and its initialization put in insert_location).  Note that the returned
-expression has an indeterminate integral type (which may be signed or
-unsigned).
+and its initialization put in insert_location).  Note that the type of the
+*num_elem_node expression has an indeterminate integral type (which may be
+signed or unsigned).
 */
 {
   an_expr_node_ptr      number_of_elements, number_of_bytes, temp_node;
@@ -10500,7 +10503,7 @@ arrays with class elements.
     /* Now that the entity is initialized, turn off the freeing on
        exception. */
     turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                             new_routine,
+                                             args, new_routine,
                                              init_insert_location.variant.expr,
                                              &insert_location);
     /* Insert the value of the temporary as the final value of the
@@ -10652,6 +10655,7 @@ static void turn_off_freeing_of_storage_on_exception(
                              a_new_delete_supplement_ptr ndsp,
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
+                             an_expr_node_ptr            size_arg,
                              a_routine_ptr               new_routine,
                              an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location)
@@ -10661,7 +10665,9 @@ location after the initialization related to the "new" has been done,
 so do the second part of the processing begun by
 set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
 allocated storage.  delete_args points to the list of arguments for a placement
-delete call, if one is needed.  If new_routine is non-NULL, it is the placement
+delete call, if one is needed.  size_arg is an expression for the number of
+bytes that were allocated by the new routine (to be used if the deallocation
+routine requires a size).  If new_routine is non-NULL, it is the placement
 new routine that is being called to allocate the memory.
 
 In the case of an initialized array (e.g., "new A[4] {1, 2}"), the caller
@@ -10726,7 +10732,16 @@ as well as any additional code needed to process the deletion.
         /* Put a pointer to the allocated storage on the front of the argument
            list for the delete routine.  Add any placement delete args if
            necessary. */
-        entity_node->next = delete_args;
+        if (is_two_argument_delete(dyn_init_to_free_storage->destructor) &&
+            delete_args == NULL) {
+          /* If a sized deallocation function is used, copy the size argument
+             that was used for the new operation. */
+          check_assertion(size_arg != NULL);
+          entity_node->next = make_reusable_copy(size_arg,
+                                                 /*vars_can_change=*/TRUE);
+        } else {
+          entity_node->next = delete_args;
+        }  /* if */
         /* Make a call of the appropriate delete routine. */
         delete_call = make_call_node(dyn_init_to_free_storage->destructor,
                                      entity_node);
@@ -11017,7 +11032,7 @@ The subtree of the node has not yet been lowered.
         /* Now that the entity is initialized, turn off the freeing on
            exception. */
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                             (a_routine_ptr)NULL,
+                                             args, (a_routine_ptr)NULL,
                                              init_insert_location.variant.expr,
                                              &insert_location);
       }  /* if */

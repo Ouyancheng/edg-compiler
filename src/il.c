@@ -20214,7 +20214,7 @@ indicated new or delete, or NULL if the routine cannot be determined.
         a_boolean      ambiguous;
         a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
         check_assertion(sym != NULL);
-        sym = find_default_operator_delete_sym(sym, &ambiguous);
+        sym = find_default_operator_delete_sym(sym, base_type, &ambiguous);
         check_assertion(sym != NULL &&
                         is_simple_function_symbol(sym));
         rout = sym->variant.routine.ptr;

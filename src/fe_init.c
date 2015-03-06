@@ -388,15 +388,28 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol
        table initialization) because routine entries are also created. */
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new,
+                                              /*sized_version=*/FALSE);
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
+                                              /*sized_version=*/FALSE);
+    if (sized_deallocation_enabled) {
+      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
+                                                /*sized_version=*/TRUE);
+    }  /* if */
     if (!microsoft_mode && array_new_and_delete_enabled) {
       /* Add symbols for the array versions, too.  (Although this is not done
          explicitly in Microsoft mode, the symbols are sometimes created
          implicitly when the corresponding non-array versions are created.) */
-      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
+      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new,
+                                                /*sized_version=*/FALSE);
       make_global_operator_new_or_delete_symbol(
-                                             (an_opname_kind)onk_array_delete);
+                                             (an_opname_kind)onk_array_delete,
+                                             /*sized_version=*/FALSE);
+      if (sized_deallocation_enabled) {
+        make_global_operator_new_or_delete_symbol(
+                                             (an_opname_kind)onk_array_delete,
+                                             /*sized_version=*/TRUE);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Enter other predeclared symbols, as required by the implementation. */

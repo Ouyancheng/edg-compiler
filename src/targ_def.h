@@ -2914,6 +2914,17 @@ result in undefined behavior in generated code).
 #endif /* ifndef RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK */
 
 /*
+Flag that is TRUE if the runtime library supports global sized deallocation
+functions, i.e.,
+
+  void operator delete(void *ptr, size_t size);
+  void operator delete[](void *ptr, size_t size);
+*/
+#ifndef RUNTIME_SUPPORTS_SIZED_DEALLOCATION
+#define RUNTIME_SUPPORTS_SIZED_DEALLOCATION TRUE
+#endif /* RUNTIME_SUPPORTS_SIZED_DEALLOCATION */
+
+/*
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for a GNU compiler (gcc or g++).
 */

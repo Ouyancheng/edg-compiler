@@ -3095,6 +3095,7 @@ default mode (e.g., exception handling).
 #if /*FIXME*/0
     relaxed_constexpr_enabled = TRUE;
 #endif /*FIXME*/
+    sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -7112,6 +7113,11 @@ file.
 #else /* !defined(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK) */
   comment_undefined_macro_name(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK);
 #endif /* defined(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK) */
+#if defined(RUNTIME_SUPPORTS_SIZED_DEALLOCATION)
+  define_numeric_valued_macro(RUNTIME_SUPPORTS_SIZED_DEALLOCATION);
+#else /* !defined(RUNTIME_SUPPORTS_SIZED_DEALLOCATION) */
+  comment_undefined_macro_name(RUNTIME_SUPPORTS_SIZED_DEALLOCATION);
+#endif /* defined(RUNTIME_SUPPORTS_SIZED_DEALLOCATION) */
 #if defined(RUNTIME_USES_NAMESPACES)
   define_numeric_valued_macro(RUNTIME_USES_NAMESPACES);
 #else /* !defined(RUNTIME_USES_NAMESPACES) */
@@ -10031,8 +10037,22 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
+#if RUNTIME_SUPPORTS_SIZED_DEALLOCATION
+  if (building_runtime) {
+    if (cpp14_mode) {
+      /* The runtime relies on feature test macros being enabled. */
+      check_assertion(define_portable_feature_test_macros);
+    } else {
+      /* C++14 mode must be enabled when building a runtime library that
+         supports the sized global deallocation feature. */
+      command_line_error(ec_cl_must_specify_cpp14_mode);
+    }  /* if */
+  }  /* if */
+#else /* !RUNTIME_SUPPORTS_SIZED_DEALLOCATION */
+  check_assertion(!sized_deallocation_enabled);
+#endif /* RUNTIME_SUPPORTS_SIZED_DEALLOCATION */
 #if CPP11_IL_EXTENSIONS_SUPPORTED
-  if (building_runtime && !cpp11_mode) {
+  if (building_runtime && !(cpp11_mode || cpp14_mode)) {
     /* If the front end is configured to allow C++11 mode constructs, the
        runtime library must be built to handle it. */
     command_line_error(ec_cl_must_specify_cpp11_mode);
@@ -10875,6 +10895,7 @@ variables declared in cmd_line.h.
   preserve_lvalues_with_same_type_casts = FALSE;
   std_override_modifiers_enabled = FALSE;
   define_portable_feature_test_macros = TRUE;
+  sized_deallocation_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

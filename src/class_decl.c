@@ -18601,7 +18601,7 @@ found is ambiguous, return it and also return *ambiguous TRUE.
   check_assertion(sym != NULL);
   if (!*ambiguous) {
     /* Since delete might be overloaded, find the default version. */
-    other_sym = find_default_operator_delete_sym(sym, ambiguous);
+    other_sym = find_default_operator_delete_sym(sym, class_type, ambiguous);
     if (!*ambiguous) sym = other_sym;
   }  /* if */
   return sym;
@@ -26717,17 +26717,25 @@ instance record associated with this instantiation.
 
 a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
 /*
-Return TRUE if the indicated delete routine is of the two-argument form.
+Return TRUE if the indicated delete routine is of the two-argument form
+(i.e., the one with two arguments, the second of which has type size_t).
 */
 {
-  a_boolean                     is_two_arg;
+  a_boolean                     is_two_arg = FALSE;
   a_routine_type_supplement_ptr delete_routine_rtsp =
                                         f_skip_typerefs(delete_routine->type)->
                                                     variant.routine.extra_info;
   a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
+  a_type_ptr                    param_type;
 
   check_assertion(param1 != NULL);
-  is_two_arg = (param1->next != NULL);
+  if (param1->next != NULL) {
+    param_type = skip_typerefs(param1->next->type);
+    if (is_integral_type(param_type) &&
+        param_type->variant.integer.int_kind == targ_size_t_int_kind) {
+      is_two_arg = TRUE;
+    }  /* if */
+  }  /* if */
   return is_two_arg;
 }  /* is_two_argument_delete */
 
@@ -26788,7 +26796,8 @@ in the class designated by tag_sym.
     if (del_sym != NULL) {
       a_symbol_ptr default_del_sym;
       /* Pick the default operator delete (if any) out of the overload set. */
-      default_del_sym = find_default_operator_delete_sym(del_sym, &ambiguous);
+      default_del_sym = find_default_operator_delete_sym(del_sym, class_type,
+                                                         &ambiguous);
       if (array_pass && !ambiguous && default_del_sym != NULL) {
         /* Note whether the class operator delete[] is of the two-argument
            form. */
@@ -26835,6 +26844,7 @@ in the class designated by tag_sym.
           if (fund_sym->kind == (a_symbol_kind)sk_constant) continue;
           del_sym = find_corresponding_operator_delete_sym(
                                                      fund_sym, class_type,
+                                                     class_type,
                                                      /*template_okay=*/TRUE,
                                                      &ambiguous, &ovl_sym);
           if ((del_sym == NULL || !del_sym->is_class_member) && !ambiguous) {

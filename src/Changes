@@ -1,5 +1,35 @@
 Version 4.11
 
+3/6/15  [EDGcpfe/14687]
+C++14: Sized global deallocation
+
+The front end now implements the C++14 sized global deallocation feature as
+described in N3778.  Two new global operator delete functions are pre-defined:
+operator delete(void*, size_t) and operator delete[](void*, size_t).  In
+the following case, the sized deallocation function is now chosen (with
+--c++14), resulting in "global sized" being printed:
+
+  extern "C" int printf(const char *,...);
+  void operator delete(void *) {                    // Previously selected
+    printf("global\n");
+  }
+  void operator delete(void *, __EDG_SIZE_TYPE__) { // Selected with --c++14
+    printf("global sized\n");
+  }
+  int main() {
+    int *p = new int;
+    delete p;
+    return 0;
+  }
+
+Note that the __cpp_sized_deallocation feature test macro is used in the
+runtime library and in new.stdh to conditionally compile support for this
+feature and as a result, the feature-test macros must be enabled when building
+the runtime library.  Additionally, the --c++14 command-line option must
+be specified when building the runtime library (when
+RUNTIME_SUPPORTS_SIZED_DEALLOCATION is TRUE).
+
+
 3/5/15   [EDGcpfe/15227]
 Clang/GNU compatibility: Virtual generated destructors and virtual bases
 
