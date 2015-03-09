@@ -12607,8 +12607,10 @@ of a subscript operation).
   record_operator_position_in_rescan_info(result, operator_position,
                                           operator_tok_seq_number,
                                           operator_position_2);
+#if GNU_EXTENSIONS_ALLOWED
   release_local_constant(&con_1);
   release_local_constant(&con_2);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* do_binary_operation_full */
 
 
