@@ -4383,32 +4383,32 @@ for source and destination type).
           && !is_imaginary_type(dest_type)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
          ) {
-        a_constant fp_constant;
-        a_boolean  complex_dest = FALSE;
+        a_constant_ptr fp_constant = local_constant();
+        a_boolean      complex_dest = FALSE;
 #if C99_IL_EXTENSIONS_SUPPORTED
         complex_dest = is_complex_type(dest_type);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         con_check_done = TRUE;
         if (complex_dest) { 
 #if C99_IL_EXTENSIONS_SUPPORTED
-          clear_constant(&fp_constant, (a_constant_repr_kind)ck_complex); 
+          clear_constant(fp_constant, (a_constant_repr_kind)ck_complex); 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else { 
-          clear_constant(&fp_constant, (a_constant_repr_kind)ck_float); 
+          clear_constant(fp_constant, (a_constant_repr_kind)ck_float); 
         } 
-        fp_constant.type = dest_type; 
+        fp_constant->type = dest_type; 
         if (complex_dest) { 
 #if C99_IL_EXTENSIONS_SUPPORTED
-          conv_integer_value_to_float(&source_constant->variant.integer_value, 
-                                      int_constant_is_signed(source_constant), 
-                                      &fp_constant.variant.complex_value->real,
-                                      dest_type->variant.float_kind, 
-                                      &err); 
+          conv_integer_value_to_float(
+                                     &source_constant->variant.integer_value, 
+                                     int_constant_is_signed(source_constant), 
+                                     &fp_constant->variant.complex_value->real,
+                                     dest_type->variant.float_kind, &err); 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else { 
           conv_integer_value_to_float(&source_constant->variant.integer_value, 
                                       int_constant_is_signed(source_constant), 
-                                      &fp_constant.variant.float_value, 
+                                      &fp_constant->variant.float_value, 
                                       dest_type->variant.float_kind, 
                                       &err); 
         }  /* if */
@@ -4417,22 +4417,24 @@ for source and destination type).
              anything due to precision issues. */
           an_error_code     local_err_code;
           an_error_severity err_severity;
-          a_constant        int_constant;
-          clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
-          int_constant.type = source_constant->type;
-          conv_float_to_integer(&fp_constant,
-                                &int_constant,
+          a_constant_ptr    int_constant = local_constant();
+          clear_constant(int_constant, (a_constant_repr_kind)ck_integer);
+          int_constant->type = source_constant->type;
+          conv_float_to_integer(fp_constant,
+                                int_constant,
                                 &local_err_code,
                                 &err_severity,
                                 &depends_on_fp_mode,
                                 /*constant_context=*/FALSE);
           if (local_err_code == ec_no_error &&
-              cmp_integer_constants(source_constant, &int_constant) == 0) {
+              cmp_integer_constants(source_constant, int_constant) == 0) {
             is_narrowing = FALSE;
           } else {
             fp_precision_check_failed = TRUE;
           }  /* if */
+          release_local_constant(&int_constant);
         }  /* if */
+        release_local_constant(&fp_constant);
       } else if (dependent_constant) {
         /* A dependent constant might have a value that can be converted
            without loss. */

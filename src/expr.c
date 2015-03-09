@@ -3935,11 +3935,11 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
     a_routine_ptr    routine = routine_from_function_expr(args);
     args = args->next;
     if (routine != NULL) {
-      an_error_code err_code;
-      a_constant    result;
+      an_error_code  err_code;
+      a_constant_ptr result = local_constant();
       folded = fold_gnu_builtin_function_call_if_possible(routine, args,
                                                           call,
-                                                          &result,
+                                                          result,
                                                           &err_code);
       if (err_code != ec_no_error) {
         check_assertion(!folded);
@@ -3949,15 +3949,16 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
         /* Replace the call with a constant result. */
         an_operand orig_op;
         copy_operand(op, &orig_op);
-        make_constant_operand(&result, op);
+        make_constant_operand(result, op);
         restore_operand_details(op, &orig_op);
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-            result.kind != (a_constant_repr_kind)ck_template_param) {
+            result->kind != (a_constant_repr_kind)ck_template_param) {
           /* Record the call as a backing expression, but not when the
              call was put into a template parameter constant result. */
           op->variant.constant.expr = call;
         }  /* if */
       }  /* if */
+      release_local_constant(&result);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4024,7 +4025,7 @@ the chosen expression.  Only available in C mode.
 {
   a_boolean            evaluate_2nd_arg, evaluate_3rd_arg, err = FALSE;
   an_operand           selector_op;
-  a_constant           selector;
+  a_constant_ptr       selector = local_constant();
   an_expr_stack_entry  expr_stack_entry;
 
   check_assertion(C_mode());
@@ -4042,17 +4043,18 @@ the chosen expression.  Only available in C mode.
     error_in_operand(ec_expr_not_scalar, &selector_op);
     err = TRUE;
   }  /* if */
-  extract_constant_from_operand(&selector_op, &selector);
+  extract_constant_from_operand(&selector_op, selector);
   /* Now scan the second and third argument: One is discarded and the other
      is returned through *result (except in error cases, where both operands
      are discarded). */
-  evaluate_2nd_arg = !err && !is_false_constant(&selector);
+  evaluate_2nd_arg = !err && !is_false_constant(selector);
   evaluate_3rd_arg = !err && !evaluate_2nd_arg;
   if (err) {
     make_error_operand(result);
   }  /* if */
   scan_expr_for_builtin_choose_expr(result, evaluate_2nd_arg, &err);
   scan_expr_for_builtin_choose_expr(result, evaluate_3rd_arg, &err);
+  release_local_constant(&selector);
 }  /* scan_and_process_builtin_choose_expr_args */
 
 
@@ -4074,7 +4076,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
   a_routine_ptr            rp = routine_from_function_operand(operand);
   a_builtin_function_kind  bfk;
   a_type_ptr               result_type;
-  a_constant               result;
+  a_constant_ptr           result = local_constant();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position        end_position, lparen_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4242,9 +4244,9 @@ call, and rcblock->argument_list to the previously-scanned argument list.
               (always_fold_calls_to_builtin_constant_p &&
                !in_potential_constant_constexpr_context()) ||
               in_constant_expression) {
-            set_integer_constant(&result, (a_host_large_integer)result_value,
+            set_integer_constant(result, (a_host_large_integer)result_value,
                                  result_type->variant.integer.int_kind);
-            make_constant_operand(&result, result_op);
+            make_constant_operand(result, result_op);
           } else {
             /* Leave an actual call in the IL.  (The usual transformations --
                including promotion -- are needed.) */
@@ -4275,11 +4277,11 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                          &arg.position);
         }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
-        set_integer_constant(&result,
+        set_integer_constant(result,
                              (a_host_large_integer)
                                              gnu_type_class_for_type(arg.type),
                              result_type->variant.integer.int_kind);
-        make_constant_operand(&result, result_op);
+        make_constant_operand(result, result_op);
         break;
       default:
         unexpected_condition();
@@ -4305,6 +4307,7 @@ result_built:
   check_assertion(is_constant_operand(result_op) ||
                   is_error_operand(result_op) ||
                   !curr_expr_kind_is_const());
+  release_local_constant(&result);
 }  /* scan_gnu_builtin_pseudo_call */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
@@ -4615,15 +4618,16 @@ that the final call needs to be cast to the indicated type.
         /* For generic __atomic_... functions, the size of the operand
            pointed to is passed via an implicitly-inserted first argument. */
         an_operand        size_operand;
-        a_constant        size_constant;
+        a_constant_ptr    size_constant = local_constant();
         an_expr_node_ptr  expr_arg;
-        set_integer_constant(&size_constant,
+        set_integer_constant(size_constant,
                              (a_host_large_integer)dispatch_type->size,
                              targ_size_t_int_kind);
-        make_constant_operand(&size_constant, &size_operand);
+        make_constant_operand(size_constant, &size_operand);
         expr_arg = make_node_from_operand_for_expr_list(&size_operand);
         *arg_list = expr_arg;
         end_arg_list = expr_arg;
+        release_local_constant(&size_constant);
       } /* if */
       /* Convert the prescanned arguments to the type expected by the
          function (if needed) and build the argument list in expression
@@ -5601,15 +5605,16 @@ give the starting and ending source positions for the field reference
     /* See if the field selection folds to a constant (usually this happens
        on the glvalue-to-prvalue conversion, but in this case we're building
        a prvalue immediately). */
-    a_constant constant;
+    a_constant_ptr constant = local_constant();
     check_assertion(is_expression_operand(result) && is_a_prvalue(result));
     if (fold_constexpr_member_selection(result->variant.expression,
-                                        &constant, &result->position)) {
+                                        constant, &result->position)) {
       an_operand orig_operand;
       copy_operand(result, &orig_operand);
-      make_constant_operand(&constant, result);
+      make_constant_operand(constant, result);
       restore_operand_details(result, &orig_operand);
     }  /* if */
+    release_local_constant(&constant);
   }  /* if */
 }  /* make_field_selection_operand */
 
@@ -8265,7 +8270,7 @@ it is set to NULL.
   if (is_overloadable_type_first_operand(operand)) {
     /* Look for C++ operator overloading cases. */
     an_operand     gen_operand, *second_operand;
-    a_constant     gen_constant;
+    a_constant_ptr gen_constant = local_constant();
     a_boolean      try_anachronism = FALSE;
     a_boolean      has_predef_meaning = is_enum_type(operand->type);
     an_opname_kind kind;
@@ -8277,9 +8282,9 @@ it is set to NULL.
       } else {
         /* For postfix, the usual operator function is a two-argument
            function, with a zero passed for the second argument. */
-        set_integer_constant(&gen_constant, (a_host_large_integer)0L,
+        set_integer_constant(gen_constant, (a_host_large_integer)0L,
                              (an_integer_kind)ik_int);
-        make_constant_operand(&gen_constant, &gen_operand);
+        make_constant_operand(gen_constant, &gen_operand);
         second_operand = &gen_operand;
         /* If that function fails, we'll try the anachronism of using the
            one-argument function. */
@@ -8289,9 +8294,9 @@ it is set to NULL.
       /* For declspec properties, use operator+ and operator-, with an
          implied "1" as the second operand. */
       kind = (an_opname_kind)(is_increment ? onk_plus : onk_minus);
-      set_integer_constant(&gen_constant, (a_host_large_integer)1L,
+      set_integer_constant(gen_constant, (a_host_large_integer)1L,
                            (an_integer_kind)ik_int);
-      make_constant_operand(&gen_constant, &gen_operand);
+      make_constant_operand(gen_constant, &gen_operand);
       second_operand = &gen_operand;
     }  /* if */
     check_for_operator_overloading(kind,
@@ -8332,6 +8337,7 @@ it is set to NULL.
                                      result);
       *temp_init_expr = NULL;
     }  /* if */
+    release_local_constant(&gen_constant);
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
 
@@ -8404,14 +8410,14 @@ any use of the temporary.  The overall result is placed in *result.
 
   if (!is_overloaded) {
     /* Add the code to add 1 to the value fetched by the "get" call. */
-    a_constant            one_constant;
+    a_constant_ptr        one_constant = local_constant();
     an_operand            one_operand;
     a_type_ptr            result_type;
     an_expr_operator_kind op;
     /* Make a constant "1" of the right type. */
-    set_integer_constant(&one_constant, (a_host_large_integer)1L,
+    set_integer_constant(one_constant, (a_host_large_integer)1L,
                          (an_integer_kind)ik_int);
-    make_constant_operand(&one_constant, &one_operand);
+    make_constant_operand(one_constant, &one_operand);
     /* Determine the result type. */
     result_type = determine_arithmetic_conversions(operand, &one_operand);
     /* Change the type of the operands as needed (usually to the result
@@ -8422,6 +8428,7 @@ any use of the temporary.  The overall result is placed in *result.
     /* Generate the IL for the operation. */
     do_binary_operation(op, operand, &one_operand, result_type, result,
                         operator_position, NO_TOKEN_SEQUENCE_NUMBER);
+    release_local_constant(&one_constant);
   }  /* if */
   if (!is_post) {
     /* For a prefix operator, remember the result of the get()+1 computation
@@ -9439,7 +9446,7 @@ current token on entry.
 */
 {
   a_label_ptr	    label = NULL;
-  a_constant        constant;
+  a_constant_ptr    constant = local_constant();
   a_source_position start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
@@ -9493,8 +9500,8 @@ current token on entry.
     make_error_operand(result);
   } else {
     /* Create a constant operand representing the label. */
-    set_label_address_constant(label, &constant);
-    make_constant_operand(&constant, result);
+    set_label_address_constant(label, constant);
+    make_constant_operand(constant, result);
   }  /* else */
   result->state = (an_operand_state)os_prvalue;
 
@@ -9505,6 +9512,7 @@ current token on entry.
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+  release_local_constant(&constant);
   db_exit();
 }  /* scan_address_of_label_expression */
 
@@ -10302,10 +10310,11 @@ indication in *rcblock).
   } else {
     /* For a real instantiation or a rescan, return the constant size of
        the parameter pack. */
-    a_constant constant;
-    set_unsigned_integer_constant(&constant, result_count,
+    a_constant_ptr constant = local_constant();
+    set_unsigned_integer_constant(constant, result_count,
                                   targ_size_t_int_kind);
-    make_constant_operand(&constant, result);
+    make_constant_operand(constant, result);
+    release_local_constant(&constant);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -10355,7 +10364,7 @@ previously-scanned sizeof expression, and return the result in *result
   a_source_position     end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand            operand;
-  a_constant            constant;
+  a_constant_ptr        constant = local_constant();
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr            sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
@@ -10702,11 +10711,11 @@ previously-scanned sizeof expression, and return the result in *result
   if (err) {
     /* Already handled */
   } else if (use_special_upc_size) {
-    set_unsigned_integer_constant(&constant,
+    set_unsigned_integer_constant(constant,
                                   /*lint --e(571) cast of signed to unsigned */
                                   (a_host_large_unsigned)special_upc_size,
                                   targ_size_t_int_kind);
-    make_constant_operand(&constant, result);
+    make_constant_operand(constant, result);
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not add code here. */
@@ -10774,26 +10783,27 @@ previously-scanned sizeof expression, and return the result in *result
     /* The result of a sizeof is an integer indicating the size of the operand
        in bytes, of type size_t (see ISO C 6.3.3.4 and <stddef.h>). */
     if (is_error_type(sizeof_type)) {
-      set_error_constant(&constant);
+      set_error_constant(constant);
     } else {
       if (template_case) {
         /* For the size of a template type, use a ck_template_param. */
-        clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
-        set_template_param_constant_kind(&constant,
+        clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+        set_template_param_constant_kind(constant,
                                   (a_template_param_constant_kind)tpck_sizeof);
-        constant.variant.template_param.variant.templ_sizeof.type= sizeof_type;
+        constant->variant.template_param.variant.templ_sizeof.type =
+                                                                   sizeof_type;
         if (!is_type) {
           prep_generic_operand(&operand);
-          constant.variant.template_param.variant.templ_sizeof.expr =
+          constant->variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
           operand_was_used = TRUE;
         }  /* if */
-        constant.type = integer_type(targ_size_t_int_kind);
+        constant->type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
         a_type_ptr stripped_sizeof_type = skip_typerefs(sizeof_type);
         set_unsigned_integer_constant(
-                             &constant,
+                             constant,
                              (a_host_large_unsigned)stripped_sizeof_type->size,
                              targ_size_t_int_kind);
         /* Make a sizeof expression that sits behind the constant and
@@ -10811,16 +10821,16 @@ previously-scanned sizeof expression, and return the result in *result
                the expression in all cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
-          constant.expr = make_sizeof_expr(/*is_alignof=*/FALSE,
-                                           is_type, sizeof_type,
-                                           &operand,
-                                           (an_operand *)NULL);
+          constant->expr = make_sizeof_expr(/*is_alignof=*/FALSE,
+                                            is_type, sizeof_type,
+                                            &operand,
+                                            (an_operand *)NULL);
           operand_was_used = !is_type;
           switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
       }  /* if */
     }  /* if */
-    make_constant_operand(&constant, result);
+    make_constant_operand(constant, result);
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (multiply_by_threads_needed && !err && !is_error_operand(result)) {
@@ -10854,6 +10864,7 @@ previously-scanned sizeof expression, and return the result in *result
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
 end_of_routine:
+  release_local_constant(&constant);
   db_exit();
 }  /* scan_sizeof_operator */
 
@@ -10886,7 +10897,7 @@ result in *result (or an error indication in *rcblock).
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
-  a_constant          constant;
+  a_constant_ptr      constant = local_constant();
   a_boolean           is_parenthesized = FALSE, is_type = FALSE, is_std_syntax;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
@@ -11056,27 +11067,27 @@ result in *result (or an error indication in *rcblock).
   /* The result of alignof (or __ALIGNOF__, etc.) is an integer indicating the
      alignment of the operand, of type size_t. */
   if (is_error) {
-    set_error_constant(&constant);
+    set_error_constant(constant);
   } else if (template_case) {
     /* For the alignment of a template-dependent type, use a
        ck_template_param. */
-    clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(&constant,
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(constant,
                                  (a_template_param_constant_kind)tpck_alignof);
-    constant.variant.template_param.variant.templ_sizeof.type = alignof_type;
-    constant.variant.template_param.variant.templ_sizeof.is_std_alignof =
+    constant->variant.template_param.variant.templ_sizeof.type = alignof_type;
+    constant->variant.template_param.variant.templ_sizeof.is_std_alignof =
                                                                  is_std_syntax;
     if (!is_type) {
       prep_generic_operand(&operand);
-      constant.variant.template_param.variant.templ_sizeof.expr =
+      constant->variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
       operand_was_used = TRUE;
     }  /* if */
-    constant.type = integer_type(targ_size_t_int_kind);
+    constant->type = integer_type(targ_size_t_int_kind);
   } else {
     /* Normal case; known constant alignof. */
     set_unsigned_integer_constant(
-                     &constant, (a_host_large_unsigned)alignof_value,
+                     constant, (a_host_large_unsigned)alignof_value,
                      targ_size_t_int_kind);
     /* Make an alignof expression that sits behind the constant and
        gives the original expression. */
@@ -11093,15 +11104,15 @@ result in *result (or an error indication in *rcblock).
            the expression in all cases, and just record the type. */
         is_type = TRUE;
       }  /* if */
-      constant.expr = make_sizeof_expr(/*is_alignof=*/TRUE,
-                                       is_type, alignof_type,
-                                       &operand,
-                                       (an_operand *)NULL);
+      constant->expr = make_sizeof_expr(/*is_alignof=*/TRUE,
+                                        is_type, alignof_type,
+                                        &operand,
+                                        (an_operand *)NULL);
       operand_was_used = !is_type;
       switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
     }  /* if */
   }  /* if */
-  make_constant_operand(&constant, result);
+  make_constant_operand(constant, result);
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
@@ -11114,7 +11125,7 @@ result in *result (or an error indication in *rcblock).
   pop_expr_stack();
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
-
+  release_local_constant(&constant);
   db_exit();
 }  /* scan_alignof_operator */
 
@@ -11292,8 +11303,8 @@ indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (valid_type && !is_error_operand(&local_result)) {
-    a_constant  offset_constant;
-    a_boolean   nonconstant_offset;
+    a_constant_ptr offset_constant = local_constant();
+    a_boolean      nonconstant_offset;
     /* Build the first operand as a type node. */
     args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
     args->type = void_type();
@@ -11309,7 +11320,7 @@ indication in *rcblock).
                                        (a_builtin_operation_kind)bok_offsetof;
     node->variant.builtin_operation.operands = args;
     fold_builtin_operation_if_possible(
-                     node, &offset_constant,
+                     node, offset_constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
                      &start_position, &nonconstant_offset);
     if (nonconstant_offset) {
@@ -11317,9 +11328,10 @@ indication in *rcblock).
       make_expression_operand(node, result);
     } else {
       /* The offset is a (possibly template-dependent) constant. */
-      make_constant_operand(&offset_constant, result);
+      make_constant_operand(offset_constant, result);
       result->type = result->variant.constant.type;
     }  /* if */
+    release_local_constant(&offset_constant);
   } else {
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&local_result);
@@ -12316,15 +12328,16 @@ __builtin_complex construct.
         op2_is_real && is_constant_node(node2)) {
       /* __builtin_complex is applied to two constant values: Produce a
          constant result. */
-      a_constant  result_con;
-      clear_constant(&result_con, (a_constant_repr_kind)ck_complex);
-      result_con.type = result_type;
-      result_con.variant.complex_value->real = node1->variant.constant
+      a_constant_ptr  result_con = local_constant();
+      clear_constant(result_con, (a_constant_repr_kind)ck_complex);
+      result_con->type = result_type;
+      result_con->variant.complex_value->real = node1->variant.constant
                                                     ->variant.float_value;
-      result_con.variant.complex_value->imag = node2->variant.constant
+      result_con->variant.complex_value->imag = node2->variant.constant
                                                     ->variant.float_value;
-      result_con.expr = expr;
-      make_constant_operand(&result_con, result);
+      result_con->expr = expr;
+      make_constant_operand(result_con, result);
+      release_local_constant(&result_con);
     } else {
       record_position_in_expr_for_rescan(expr, &start_pos,
                                          end_position_or_null(&end_pos));
@@ -14058,7 +14071,7 @@ previously-scanned noexcept expression, and return the result in
   an_expr_stack_entry expr_stack_entry;
   an_operand          operand;
   int                 noexcept_value;
-  a_constant          result_constant;
+  a_constant_ptr      result_constant = local_constant();
   a_boolean           dependent_case;
   a_memory_region_number
                       region_to_switch_back_to;
@@ -14124,29 +14137,29 @@ previously-scanned noexcept expression, and return the result in
   if (dependent_case) {
     /* The result value is dependent, or at least it needs to be reanalyzed
        on a rescan.  The result is a template-dependent constant. */
-    clear_constant(&result_constant, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(&result_constant,
+    clear_constant(result_constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(result_constant,
                               (a_template_param_constant_kind)tpck_noexcept);
-    result_constant.variant.template_param.variant.templ_sizeof.expr =
+    result_constant->variant.template_param.variant.templ_sizeof.expr =
                                                                   operand_expr;
-    result_constant.type = bool_type();
+    result_constant->type = bool_type();
   } else {
     /* Not a dependent case. */
     /* See if the expression contains something that might throw. */
     noexcept_value = !expr_might_throw(operand_expr);
     /* The result is a bool constant false or true. */
-    set_integer_constant(&result_constant,
+    set_integer_constant(result_constant,
                          (a_host_large_integer)noexcept_value,
                          bool_type()->variant.integer.int_kind);
-    result_constant.type = bool_type();
+    result_constant->type = bool_type();
     if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      result_constant.expr = make_operator_node(
+      result_constant->expr = make_operator_node(
                                            (an_expr_operator_kind)eok_noexcept,
                                            bool_type(),
                                            operand_expr);
     }  /* if */
   }  /* if */
-  make_constant_operand(&result_constant, result);
+  make_constant_operand(result_constant, result);
   if (rcblock == NULL) {
     /* Check for and pass over the right parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14164,6 +14177,7 @@ previously-scanned noexcept expression, and return the result in
   pop_expr_stack();
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
+  release_local_constant(&result_constant);
   db_exit();
 }  /* scan_noexcept_operator */
 
@@ -14321,36 +14335,37 @@ enk_typeid entry should be created.
   if (make_constant) {
     /* Create a constant (either ck_address/abk_typeid or ck_template_param/
        tpck_typeid). */
-    a_constant  typeid_con;
+    a_constant_ptr  typeid_con = local_constant();
     if (!template_case) {
       /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
-      make_typeid_constant(typeid_type, is_cli_typeid, &typeid_con);
+      make_typeid_constant(typeid_type, is_cli_typeid, typeid_con);
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
-      clear_constant(&typeid_con, (a_constant_repr_kind)ck_template_param);
+      clear_constant(typeid_con, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(
-                    &typeid_con, (a_template_param_constant_kind)tpck_typeid);
-      typeid_con.variant.template_param.variant.templ_sizeof.type =
+                     typeid_con, (a_template_param_constant_kind)tpck_typeid);
+      typeid_con->variant.template_param.variant.templ_sizeof.type =
                                                                   typeid_type;
       if (typeid_expr != NULL) {
-        typeid_con.variant.template_param.variant.templ_sizeof.expr =
+        typeid_con->variant.template_param.variant.templ_sizeof.expr =
                                                                   typeid_expr;
       }  /* if */
-      typeid_con.type = constant_type;
+      typeid_con->type = constant_type;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_cli_typeid) {
-      make_constant_operand(&typeid_con, result);
+      make_constant_operand(typeid_con, result);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      typeid_node = alloc_node_for_constant(&typeid_con);
+      typeid_node = alloc_node_for_constant(typeid_con);
       /* Put the constant under a "*" operator to get an lvalue. */
       typeid_node = add_indirection_to_node(typeid_node);
       make_glvalue_expression_operand(typeid_node, result);
     }  /* if */
+    release_local_constant(&typeid_con);
   } else {
     /* Normal case: Create an enk_typeid expression. */
     typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
@@ -15046,33 +15061,35 @@ indication in *rcblock).  after_keyword is ignored in that case.
   if (err) {
     make_error_operand(result);
   } else {
-    a_constant uuidof_con;
-    a_type_ptr const_guid_type = make_qualified_type(
+    a_constant_ptr uuidof_con = local_constant();
+    a_type_ptr     const_guid_type = make_qualified_type(
                                                type_of_guid,
                                                (a_type_qualifier_set)TQ_CONST);
     if (template_case) {
       /* For __uuidof a template type, use a ck_template_param. */
-      clear_constant(&uuidof_con, (a_constant_repr_kind)ck_template_param);
-      set_template_param_constant_kind(&uuidof_con,
+      clear_constant(uuidof_con, (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(uuidof_con,
                                   (a_template_param_constant_kind)tpck_uuidof);
-      uuidof_con.variant.template_param.variant.templ_sizeof.type= uuidof_type;
+      uuidof_con->variant.template_param.variant.templ_sizeof.type =
+                                                                   uuidof_type;
       if (!is_type) {
         prep_generic_operand(&operand);
-        uuidof_con.variant.template_param.variant.templ_sizeof.expr =
+        uuidof_con->variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
         operand_was_used = TRUE;
       }  /* if */
-      uuidof_con.type = make_pointer_type(const_guid_type);
+      uuidof_con->type = make_pointer_type(const_guid_type);
     } else {
       /* Create an expression node that is the value of a ck_address/abk_uuidof
          constant.  The value of such a constant is the address of the lvalue
          that is the result of the __uuidof operation. */
-      make_uuidof_constant(uuidof_type, &uuidof_con);
+      make_uuidof_constant(uuidof_type, uuidof_con);
     }  /* if */
     /* is_uuidof_expr has to match the structure of what's created here. */
     make_glvalue_expression_operand(add_indirection_to_node(
-                                         alloc_node_for_constant(&uuidof_con)),
+                                         alloc_node_for_constant(uuidof_con)),
                                     result);
+    release_local_constant(&uuidof_con);
   }  /* if */
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
@@ -15697,12 +15714,12 @@ Microsoft, Sun) allow extended forms of integer constants.
 */
 {
   an_expr_stack_entry expr_stack_entry;
-  a_constant          con;
+  a_constant_ptr      con = local_constant();
   an_expr_stack_entry *saved_expr_stack = NULL;
 
   db_enter(4, "scan_extended_integral_constant_expression");
   if (constant == NULL) {
-    constant = &con;
+    constant = con;
   }  /* if */
   if (top_level) save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
@@ -15742,6 +15759,7 @@ Microsoft, Sun) allow extended forms of integer constants.
     curr_construct_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  release_local_constant(&con);
   db_exit();
 }  /* scan_extended_integral_constant_expression */
 
@@ -16978,7 +16996,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         zero_initialization, has_new_initializer = FALSE;
   a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
-  a_constant        sizeof_constant;
+  a_constant_ptr    sizeof_constant = local_constant();
   an_arg_list_elem_ptr
                     arg_list = NULL, sizeof_alep;
   an_expr_node_ptr  dummy;
@@ -17646,10 +17664,10 @@ expression, and return the result in *result (or an error indication in
          or
            new int
       */
-      set_integer_constant(&sizeof_constant,
+      set_integer_constant(sizeof_constant,
                            (a_host_large_integer)unqual_new_type->size,
                            targ_size_t_int_kind);
-      make_constant_operand(&sizeof_constant, &sizeof_operand);
+      make_constant_operand(sizeof_constant, &sizeof_operand);
     }  /* if */
     /* Add the sizeof operand to the front of the list of expressions
        (if any) from the "placement" option.  This gives the full set
@@ -18644,9 +18662,10 @@ handle_empty_parens_new_initializer:
         new_type);
       if (curr_expr_is_cli_attribute_argument()) {
         /* Make an operand for the C++/CLI array constant. */
-        a_constant cli_array_constant;
-        make_cli_array_constant(gcnew_node, &cli_array_constant);
-        make_constant_operand(&cli_array_constant, result);
+        a_constant_ptr cli_array_constant = local_constant();
+        make_cli_array_constant(gcnew_node, cli_array_constant);
+        make_constant_operand(cli_array_constant, result);
+        release_local_constant(&cli_array_constant);
       } else {
         /* Make an operand for the result. */
         make_expression_operand(gcnew_node, result);
@@ -18742,6 +18761,7 @@ handle_empty_parens_new_initializer:
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   /* Make sure we restored the initializer cache if we saved it. */
   check_assertion(saved_initializer_cache == NULL);
+  release_local_constant(&sizeof_constant);
   db_exit();
 }  /* scan_new_operator */
 
@@ -18876,7 +18896,7 @@ in *rcblock).
   a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
   a_routine_ptr      delete_routine = NULL, dtor_routine = NULL;
   an_operand         operand;
-  a_constant         constant;
+  a_constant_ptr     constant = local_constant();
   an_expr_node_ptr   expr;
   a_dynamic_init_ptr dip;
   a_new_delete_supplement_ptr
@@ -18943,7 +18963,7 @@ in *rcblock).
         scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
                                               /*is_top_level_vla_bound=*/FALSE,
                                              /*is_evaluated_sizeof_arg=*/FALSE,
-                                              &is_constant, &expr, &constant);
+                                              &is_constant, &expr, constant);
         /* The expression is ignored. */
       }  /* if */
       (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -19192,6 +19212,7 @@ in *rcblock).
   set_operand_position(result, &start_position, &operand.end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  release_local_constant(&constant);
   db_exit();
 }  /* scan_delete_operator */
 
@@ -22183,9 +22204,10 @@ in *rcblock).
     if (real_part) {
       copy_operand(&operand, result);
     } else {
-      a_constant  zero;
-      make_zero_of_proper_type(operand.type, &zero);
-      make_constant_operand(&zero, result);
+      a_constant_ptr  zero = local_constant();
+      make_zero_of_proper_type(operand.type, zero);
+      make_constant_operand(zero, result);
+      release_local_constant(&zero);
     }  /* if */
     expr_pos_warning(ec_real_and_imag_applied_to_real_value, &start_position);
   } else if (is_complex_type(operand.type)) {
@@ -23223,16 +23245,16 @@ empty_parentheses:
                                                         start_position);
           if (constexpr_enabled && curr_expr_kind_is_const()) {
             /* Return an empty aggregate in a constexpr constant expression. */
-            a_constant local_constant;
-            if (!make_value_initialized_constant(type_cast_to,
-                                                 &local_constant)) {
+            a_constant_ptr local_con = local_constant();
+            if (!make_value_initialized_constant(type_cast_to, local_con)) {
               unexpected_condition();
             }  /* if */
-            local_constant.is_result_of_constexpr_call = TRUE;
+            local_con->is_result_of_constexpr_call = TRUE;
             if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-              local_constant.expr = temp_init_node;
+              local_con->expr = temp_init_node;
             }  /* if */
-            make_constant_operand(&local_constant, result);
+            make_constant_operand(local_con, result);
+            release_local_constant(&local_con);
           } else {
             make_expression_operand(temp_init_node, result);
           }  /* if */
@@ -25331,21 +25353,22 @@ operand.
 */
 {
   an_operand       orig_operand;
-  a_constant       zero_constant;
+  a_constant_ptr   zero_constant = local_constant();
   an_expr_node_ptr zero_node, void_node, comma_node;
 
   /* Save the operand's source position, etc. */
   orig_operand = *operand;
   /* Turn the void operand into (operand, (type)0) so its type matches
      that of the other operand. */
-  make_zero_of_proper_type(result_type, &zero_constant);
-  zero_node = alloc_node_for_constant(&zero_constant);
+  make_zero_of_proper_type(result_type, zero_constant);
+  zero_node = alloc_node_for_constant(zero_constant);
   void_node = make_node_from_operand(operand);
   void_node->next = zero_node;
   comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                   result_type, void_node);
   make_expression_operand(comma_node, operand);
   restore_operand_details(operand, &orig_operand);
+  release_local_constant(&zero_constant);
 }  /* adjust_void_operand_for_microsoft_void_vs_scalar_conditional */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -31204,7 +31227,7 @@ handle_identifier:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_null:
-      { a_constant      null_constant;
+      { a_constant_ptr  null_constant = local_constant();
         an_integer_kind ikind;
         a_targ_size_t   ptr_size;
         /* Pick an integer that is the same size as a "void *" pointer,
@@ -31213,9 +31236,10 @@ handle_identifier:
         ikind = int_kind_for_bit_size((unsigned int)(ptr_size * targ_char_bit),
                                       /*is_signed=*/TRUE);
         if (ikind == (an_integer_kind)ik_none) ikind = (an_integer_kind)ik_int;
-        make_zero_of_proper_type(integer_type(ikind), &null_constant);
-        null_constant.null_keyword = TRUE;
-        make_constant_operand(&null_constant, &local_result);
+        make_zero_of_proper_type(integer_type(ikind), null_constant);
+        null_constant->null_keyword = TRUE;
+        make_constant_operand(null_constant, &local_result);
+        release_local_constant(&null_constant);
       }
       (void)get_token();
       break;
@@ -31225,8 +31249,8 @@ handle_identifier:
     case tok_native_nullptr:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       {
-        a_constant nullptr_constant;
-        a_type_ptr tp;
+        a_constant_ptr nullptr_constant = local_constant();
+        a_type_ptr     tp;
         /* The C++/CLI nullptr keyword has the managed nullptr type; otherwise
            (including the C++/CLI __nullptr keyword and the C++/CX nullptr
            keyword), the type is std::nullptr_t. */
@@ -31235,13 +31259,14 @@ handle_identifier:
         } else {
           tp = standard_nullptr_type();
         }  /* if */
-        make_zero_of_proper_type(tp, &nullptr_constant);
-        nullptr_constant.nullptr_keyword = (curr_token == tok_nullptr);
+        make_zero_of_proper_type(tp, nullptr_constant);
+        nullptr_constant->nullptr_keyword = (curr_token == tok_nullptr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        nullptr_constant.native_nullptr_keyword =
+        nullptr_constant->native_nullptr_keyword =
                                             (curr_token == tok_native_nullptr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        make_constant_operand(&nullptr_constant, &local_result);
+        make_constant_operand(nullptr_constant, &local_result);
+        release_local_constant(&nullptr_constant);
       }
       (void)get_token();
       break;
@@ -32114,10 +32139,11 @@ end_expr:
          the operand type, not, e.g., class types. */
       if (is_scalar_type(result->type) ||
           is_template_param_type(result->type)) {
-        a_constant constant;
-        make_zero_of_proper_type(result->type, &constant);
-        make_constant_operand(&constant, result);
+        a_constant_ptr constant = local_constant();
+        make_zero_of_proper_type(result->type, constant);
+        make_constant_operand(constant, result);
         copy_operand_position(&local_result, result);
+        release_local_constant(&constant);
       } else {
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
@@ -32701,17 +32727,17 @@ overflow), FALSE is returned and *value is undefined.  Otherwise, TRUE is
 returned.
 */
 {
-  a_constant         constant;
+  a_constant_ptr     constant = local_constant();
   a_boolean          okay = TRUE;
   a_source_position  pos;
 
   pos = pos_curr_token;
-  scan_integral_constant_expression(&constant);
-  switch (constant.kind) {
+  scan_integral_constant_expression(constant);
+  switch (constant->kind) {
     case ck_integer:
-      if (sign_of_integer_constant(&constant) >= 0) {
+      if (sign_of_integer_constant(constant) >= 0) {
         a_boolean  overflow;
-        *value = unsigned_value_of_integer_constant(&constant, &overflow);
+        *value = unsigned_value_of_integer_constant(constant, &overflow);
         /* Check for overflow. */
         if (overflow) {
           pos_error(ec_subscript_out_of_range, &pos);
@@ -32734,6 +32760,7 @@ returned.
       unexpected_condition_str(
                             "scan_array_designator_value: bad constant kind");
   }  /* switch */
+  release_local_constant(&constant);
   return okay;
 }  /* scan_array_designator_value */
 
@@ -35298,7 +35325,7 @@ created, needed to reactivate that scope.
   a_type_ptr          element_type;
   a_boolean           multi_dim = FALSE;
   an_operand          operand, size_operand;
-  a_constant          size_constant;
+  a_constant_ptr      size_constant = local_constant();
   a_variable_ptr      temp_var, cend_var;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           need_expr_stack_pop = FALSE;
@@ -35353,11 +35380,11 @@ created, needed to reactivate that scope.
       cast_operand(make_pointer_type(element_type), &operand,
                    /*is_implicit_cast=*/TRUE);
     }  /* if */
-    set_integer_constant(&size_constant,
+    set_integer_constant(size_constant,
                          (a_host_large_integer)
                                            num_array_elements(collection_type),
                          targ_size_t_int_kind);
-    make_constant_operand(&size_constant, &size_operand);
+    make_constant_operand(size_constant, &size_operand);
     build_binary_result_operand(&operand, &size_operand,
                                 (an_expr_operator_kind)eok_padd,
                                 operand.type, &operand);
@@ -35399,6 +35426,7 @@ created, needed to reactivate that scope.
   }  /* if */
   /* Pop the expression stack for error cases. */
   if (need_expr_stack_pop) pop_expr_stack();
+  release_local_constant(&size_constant);
 }  /* check_for_each_array_pattern */
 
 
@@ -35991,7 +36019,7 @@ an error and returns FALSE.
   a_type_ptr          expr_type;
   a_type_ptr          element_type;
   an_operand          operand, size_operand, elem_size_operand;
-  a_constant          size_constant;
+  a_constant_ptr      size_constant = local_constant();
   a_variable_ptr      begin_var, end_var;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           need_expr_stack_pop = FALSE, passed = TRUE;
@@ -36042,20 +36070,20 @@ an error and returns FALSE.
       /* Build a node representing sizeof(array)/sizeof(element). */
       (void)make_sizeof_expr(/*is_alignof=*/FALSE, /*is_type=*/TRUE, expr_type,
                              (an_operand*)NULL, &size_operand);
-      set_integer_constant(&size_constant,
+      set_integer_constant(size_constant,
                            (a_host_large_integer)
                                             skip_typerefs(element_type)->size,
                            targ_size_t_int_kind);
-      make_constant_operand(&size_constant, &elem_size_operand);
+      make_constant_operand(size_constant, &elem_size_operand);
       build_binary_result_operand(&size_operand, &elem_size_operand,
                                   (an_expr_operator_kind)eok_divide,
                                   size_operand.type, &size_operand);
     } else {
-      set_integer_constant(&size_constant,
+      set_integer_constant(size_constant,
                            (a_host_large_integer)skip_typerefs(expr_type)->
                                       variant.array.variant.number_of_elements,
                            targ_size_t_int_kind);
-      make_constant_operand(&size_constant, &size_operand);
+      make_constant_operand(size_constant, &size_operand);
     }  /* if */
     build_binary_result_operand(&operand, &size_operand,
                                 (an_expr_operator_kind)eok_padd,
@@ -36070,6 +36098,7 @@ an error and returns FALSE.
   }  /* if */
   /* Pop the expression stack for error cases. */
   if (need_expr_stack_pop) pop_expr_stack();
+  release_local_constant(&size_constant);
   return passed;
 }  /* check_range_based_for_array_case */
 
@@ -37693,14 +37722,14 @@ required adjustment to make that possible.
        This should only come up in constant expressions where no automatic
        variables can be referenced anyway, so the file-scope parts should
        just be expression nodes and should be gone in the copy. */
-    a_constant old_constant;
-    copy_constant(constant, &old_constant);
-    (void)copy_constant_full(&old_constant, constant,
-                             (CE_COPIED_CONSTANTS_MAY_BE_SHARED |
-                              CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL));
+    a_constant_ptr old_constant = local_constant();
+    copy_constant(constant, old_constant);
+    (void)copy_constant_full(old_constant, constant,
+                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
     check_assertion_str2(!has_non_file_scope_ref(constant),
                          "extract_constant_from_operand_with_fs_fixup:",
                          "copied constant still has func scope ref");
+    release_local_constant(&old_constant);
   }  /* if */
 }  /* extract_constant_from_operand_with_fs_fixup */
 
@@ -39559,18 +39588,20 @@ As indicated, this is initialization with the "=" semantics
                                    &dps->init_state.init_dip);
   if (constexpr_enabled && dps->init_state.init_dip != NULL &&
       dps->init_state.initializer_must_be_constant) {
-    a_constant  folded_value;
+    a_constant_ptr      folded_value = local_constant();
     a_dynamic_init_ptr  dip = dps->init_state.init_dip;
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant &&
         fold_constexpr_dynamic_init(dip, dps->type, &result.position,
-                                    &folded_value)) {
+                                    folded_value)) {
       an_expr_node_ptr    expr = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         expr = dip->variant.expression;
       }  /* if */
       set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, alloc_unshared_constant(&folded_value));
+      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
       dip->variant.constant->expr = expr;
+    } else {
+      release_local_constant(&folded_value);
     }  /* if */     
   }  /* if */
   wrap_up_init_state_initialization(&dps->init_state, &result.position);
@@ -39942,7 +39973,7 @@ selector type.
 {
   a_constant_ptr      constant_ptr = NULL;
   an_operand          operand;
-  a_constant          constant;
+  a_constant_ptr      constant = local_constant();
   a_source_position   label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
@@ -39962,30 +39993,30 @@ selector type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !constexpr_enabled) {
     /* MSVC++ allows things like (void *)1 as case label constants. */
-    a_boolean  did_not_fold;
-    a_constant orig_constant;
-    scan_microsoft_case_label_constant_expression(&constant);
-    copy_constant(&constant, &orig_constant);
-    type_change_constant(&constant, switch_type,
+    a_boolean      did_not_fold;
+    a_constant_ptr orig_constant = local_constant();
+    scan_microsoft_case_label_constant_expression(constant);
+    copy_constant(constant, orig_constant);
+    type_change_constant(constant, switch_type,
                          /*is_implicit_cast=*/TRUE,
                          /*maintain_expression=*/TRUE,
                          &did_not_fold, &label_position);
     check_assertion(!did_not_fold);
-    if (!cast_identical_types(orig_constant.type, switch_type) &&
-        !(constant.expr != NULL &&
-          is_cast_operation_node(constant.expr))) {
+    if (!cast_identical_types(orig_constant->type, switch_type) &&
+        !(constant->expr != NULL &&
+          is_cast_operation_node(constant->expr))) {
       /* Create a cast node to use as a backing expression for the
          constant.  Inhibit normal diagnostics during that process, since
          they will already have been issued. */
       a_boolean saved_suppress = expr_stack->suppress_diagnostics;
       a_boolean saved_any_error = expr_stack->any_suppressed_error;
       expr_stack->suppress_diagnostics = TRUE;
-      if (constant.expr == NULL) {
+      if (constant->expr == NULL) {
         /* Make a node that can be used as the operand of the cast. */
-        constant.expr = alloc_node_for_constant(&orig_constant);
+        constant->expr = alloc_node_for_constant(orig_constant);
       }  /* if */
-      break_constant_source_corresp(&constant);
-      add_cast_to_node(&constant.expr, switch_type,
+      break_constant_source_corresp(constant);
+      add_cast_to_node(&constant->expr, switch_type,
                        /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
                        /*is_implicit_cast=*/TRUE,
                        /*is_reinterpret_cast=*/FALSE,
@@ -39996,6 +40027,7 @@ selector type.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    release_local_constant(&orig_constant);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -40027,13 +40059,14 @@ selector type.
                                                      (BTK_INTEGRAL | BTK_ENUM),
                                           /*is_array_bound=*/FALSE,
                                           /*is_enum=*/FALSE,
-                                          &constant);
+                                          constant);
   }  /* if */
-  wrap_up_constant_full_expression(&constant, &label_position);
-  if (is_error_constant(&constant)) {
+  wrap_up_constant_full_expression(constant, &label_position);
+  if (is_error_constant(constant)) {
     /* Error; constant_ptr is left NULL. */
+    release_local_constant(&constant);
   } else {
-    constant_ptr = alloc_unshared_constant(&constant);
+    constant_ptr = move_local_constant_to_il(&constant);
     constant_ptr->source_corresp.decl_position = label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     constant_ptr->end_position = end_position;
@@ -40119,16 +40152,16 @@ the __uuidof keyword.
   if (is_error_operand(&result)) {
     uuid_str = NULL;
   } else {
-    a_type_ptr uuidof_type = NULL;
-    a_constant con;
+    a_type_ptr     uuidof_type = NULL;
+    a_constant_ptr con = local_constant();
     check_assertion(is_an_lvalue(&result) &&
                     is_expression_operand(&result));
-    if (constant_glvalue_address(result.variant.expression, &con,
+    if (constant_glvalue_address(result.variant.expression, con,
                                  /*address_escapes=*/FALSE)) {
-      check_assertion(con.kind == (a_constant_repr_kind)ck_address &&
-                      con.variant.address.kind ==
+      check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
+                      con->variant.address.kind ==
                                              (an_address_base_kind)abk_uuidof);
-      uuidof_type = con.variant.address.variant.type;
+      uuidof_type = con->variant.address.variant.type;
     } else {
       unexpected_condition();
     }  /* if */
@@ -40139,6 +40172,7 @@ the __uuidof keyword.
       uuid_str = uuid_string_of_type(uuidof_type);
       check_assertion(uuid_str != NULL);
     }  /* if */
+    release_local_constant(&con);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL

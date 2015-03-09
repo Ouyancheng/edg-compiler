@@ -1580,7 +1580,7 @@ is used for the increment/decrement).
   a_const_char          **routine_names = NULL;
   a_routine_ptr         *routines = NULL;
   a_float_kind          fkind;
-  a_constant            con;
+  a_constant_ptr        con = local_constant();
 
   check_assertion(op1->is_lvalue && is_complex_type(return_type));
   switch (op) {
@@ -1609,8 +1609,8 @@ is used for the increment/decrement).
   }  /* switch */
   fkind = return_type->variant.float_kind;
   /* Create a complex constant 1.0+0.0i of the appropriate type. */
-  set_complex_constant(fkind, "1.0", "0.0", &con);
-  con_node = alloc_node_for_constant(&con);
+  set_complex_constant(fkind, "1.0", "0.0", con);
+  con_node = alloc_node_for_constant(con);
   /* Mark the constant as un-lowered, then lower it.  This will replace the
      constant expression with a file scope static temporary that will be used
      in place of the constant. */
@@ -1679,6 +1679,7 @@ is used for the increment/decrement).
     op_node = make_comma_node(op_node, var_rvalue_expr(temp_var));
   }  /* if */
   overwrite_node(expr, op_node);
+  release_local_constant(&con);
 }  /* lower_c99_xincr_decr */
 
 
@@ -2093,12 +2094,13 @@ Transform the given complex cast expression into a function call
       /* A real, fixed-point, or integral value converted to an imaginary type
          is always zero.  Use a comma operator to preserve side-effects of the
          source expression. */
-      a_constant        zero_constant;
+      a_constant_ptr    zero_constant = local_constant();
       an_expr_node_ptr  new_expr;
       make_zero_of_proper_type(float_type(dst_type->variant.float_kind),
-                               &zero_constant);
-      new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+                               zero_constant);
+      new_expr = make_comma_node(src, alloc_node_for_constant(zero_constant));
       overwrite_node(expr, new_expr);
+      release_local_constant(&zero_constant);
     } else {
       /* Nothing to be done (imaginary->imaginary). */
       check_assertion(is_imaginary_type(src_type));
@@ -2134,11 +2136,12 @@ Transform the given complex cast expression into a function call
       /* An imaginary value converted to a real or integral type is always
          zero.  Use a comma operator to preserve side-effects of the source
          expression. */
-      a_constant        zero_constant;
+      a_constant_ptr    zero_constant = local_constant();
       an_expr_node_ptr  new_expr;
-      make_zero_of_proper_type(dst_type, &zero_constant);
-      new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+      make_zero_of_proper_type(dst_type, zero_constant);
+      new_expr = make_comma_node(src, alloc_node_for_constant(zero_constant));
       overwrite_node(expr, new_expr);
+      release_local_constant(&zero_constant);
     } else {
       unexpected_condition();
     }  /* if */
@@ -2432,7 +2435,7 @@ destination) to a runtime call).
   a_float_kind      fkind;
   unsigned long     fxmask;
   int               shift_amount = 0;
-  a_constant        zero_constant;
+  a_constant_ptr    zero_constant = local_constant();
 
   if (is_void_type(dst_type)) {
     /* A cast to void.  Nothing needs to be done. */
@@ -2447,17 +2450,17 @@ destination) to a runtime call).
 #if LOWER_COMPLEX
     dst_type = float_type(base_dst_type->variant.float_kind);
 #endif /* LOWER_COMPLEX */
-    make_zero_of_proper_type(dst_type, &zero_constant);
-    new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+    make_zero_of_proper_type(dst_type, zero_constant);
+    new_expr = make_comma_node(src, alloc_node_for_constant(zero_constant));
     overwrite_node(expr, new_expr);
   } else if (is_imaginary_type(src_type)) {
     /* An imaginary value converted to a fixed-point type is always zero.
        Use a comma operator to preserve side-effects of the source
        expression. */
     check_assertion(is_fixed_point_type(dst_type));
-    make_zero_of_proper_type(dst_type, &zero_constant);
-    lower_c99_fixed_point_constant(&zero_constant);
-    new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+    make_zero_of_proper_type(dst_type, zero_constant);
+    lower_c99_fixed_point_constant(zero_constant);
+    new_expr = make_comma_node(src, alloc_node_for_constant(zero_constant));
     overwrite_node(expr, new_expr);
   } else {
     /* Generate a call to the runtime cast routine.  There's a primary
@@ -2531,6 +2534,7 @@ destination) to a runtime call).
     /* Overwrite the original node with the lowered expression. */
     overwrite_node(expr, new_expr);
   }  /* if */
+  release_local_constant(&zero_constant);
 }  /* lower_c99_fixed_point_cast */
 
 #endif /* LOWER_FIXED_POINT */

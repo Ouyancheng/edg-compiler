@@ -1,5 +1,56 @@
 Version 4.11
 
+3/9/15  [EDGcpfe/16056]
+Copies of a_constant not allocated in IL memory
+
+Various places in the front end previously used local copies of a_constant
+for various reasons.  If such an object was passed as the source constant
+in copy_constant_full, it was necessary to pass the options value
+CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL to prevent attempting to copy a flag
+from the (nonexistent) IL entry prefix that precedes all entries allocated
+in IL memory.  Failure to do so could result in segfaults and other
+unpredictable results.
+
+Because this mechanism was fragile and error-prone, particularly in light
+of constexpr processing where it was difficult or impossible to track
+whether a given a_constant entry was allocated in IL memory or was a local
+variable, local a_constant variables are no longer used in the front end.
+Instead, scratch a_constant entries are requested using the new function
+local_constant and recycled via the release_local_constant function.  As an
+optimization, in cases when a local constant would have been passed to
+alloc_unshared_constant, a new function move_local_constant_to_il can be
+called to use the local constant directly in the IL if possible or to make
+a copy if necessary.  In CHECKING configurations, an end-of-processing
+check is made that calls to local_constant and release_local_constant or
+move_local_constant_to_il are balanced.  For example, code that was
+previously structured as
+
+  { a_constant c;
+    /* Use c as an object. */
+  }
+
+should now be written as
+
+  { a_constant_ptr c = local_constant();
+    /* use c as a pointer. */
+    release_local_constant(&c);
+  }
+
+and code that was previously
+
+  { a_constant c;
+    /* ... */
+    IL_ptr = alloc_unshared_constant(&c);
+  }
+
+should now be
+
+  { a_constant_ptr c = local_constant();
+    /* ... */
+    IL_ptr = move_local_constant_to_il(&c);
+  }
+
+
 3/9/15  [EDGcpfe/16067]
 Invalid IL generated when lowering zeroed _Complex member
 

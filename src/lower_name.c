@@ -2309,7 +2309,7 @@ the original expression may have additional flags that might affect mangling
     /* This case may need to be expanded for noexcept, but recent versions
        of GNU don't yet mangle noexcept, so there's nothing to compare it
        against. */
-    a_constant           con;
+    a_constant_ptr       con = local_constant();
     a_host_large_integer value;
     if (kind == (a_template_param_constant_kind)tpck_sizeof) {
       value = expr == NULL ? type->size : expr->type->size;
@@ -2317,12 +2317,13 @@ the original expression may have additional flags that might affect mangling
       check_assertion(kind == (a_template_param_constant_kind)tpck_alignof);
       value = expr == NULL ? type->alignment : expr->type->alignment;
     }  /* if */
-    set_integer_constant(&con, value, targ_size_t_int_kind);
-    mangled_encoding_for_constant(&con,
+    set_integer_constant(con, value, targ_size_t_int_kind);
+    mangled_encoding_for_constant(con,
                                   /*old_form=*/FALSE,
                                   /*in_dependent_expr=*/FALSE,
                                   /*suppress_address_of=*/FALSE,
                                   mctl);
+    release_local_constant(&con);
     goto end_of_routine;
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
@@ -4290,15 +4291,16 @@ Output the mangling for an expression that is a placeholder for
 something in error or skipped over.  The mangling used is a constant zero.
 */
 {
-  a_constant zero_constant;
+  a_constant_ptr zero_constant = local_constant();
 
   make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
-                           &zero_constant);
-  mangled_encoding_for_constant(&zero_constant,
+                           zero_constant);
+  mangled_encoding_for_constant(zero_constant,
                                 /*old_form=*/FALSE,
                                 /*in_dependent_expr=*/FALSE,
                                 /*suppress_address_of=*/FALSE,
                                 mctl);
+  release_local_constant(&zero_constant);
 }  /* add_mangling_for_placeholder_expression */
 
 
@@ -5288,7 +5290,7 @@ expression.
   an_expr_node_ptr selector = NULL, selection = NULL, operand;
   a_boolean        use_unresolved_name_mangling = TRUE;
 #if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404
-  a_constant       dummy_constant;
+  a_constant_ptr   dummy_constant = local_constant();
   an_expr_node     dummy_expr;
 #endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404 */
 
@@ -5353,10 +5355,10 @@ expression.
           /* Originally, an enk_param_ref wasn't used in the internal
              representation for implicit "this", so recreate the mangling for
              the old internal representation (i.e., "((A *)0)->"). */
-          make_zero_of_proper_type(operand->type, &dummy_constant);
+          make_zero_of_proper_type(operand->type, dummy_constant);
           clear_expr_node(&dummy_expr, (an_expr_node_kind)enk_constant);
-          dummy_expr.variant.constant = &dummy_constant;
-          dummy_expr.type = dummy_constant.type;
+          dummy_expr.variant.constant = dummy_constant;
+          dummy_expr.type = dummy_constant->type;
           selector = &dummy_expr;
 #endif /* ABI_COMPATIBILITY_VERSION >= 404 */
         }  /* if */
@@ -5419,6 +5421,9 @@ expression.
   }  /* if */
 #if !IA64_ABI
   if (selector != NULL) add_to_mangled_name('O', mctl);
+#if ABI_COMPATIBILITY_VERSION < 404
+  release_local_constant(&dummy_constant);
+#endif /* ABI_COMPATIBILITY_VERSION < 404 */
 #endif /* !IA64_ABI */
 }  /* mangled_selection_operation */
 

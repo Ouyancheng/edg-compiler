@@ -1202,7 +1202,7 @@ variable is returned.
 {
   char           *name = make_typeinfo_name(type);
   sizeof_t       name_length = strlen(name) + 1;
-  a_constant     constant;
+  a_constant_ptr constant = local_constant();
   a_constant_ptr string_con, addr_con;
 #if IA64_ABI
   char           *var_name;
@@ -1212,13 +1212,13 @@ variable is returned.
 #endif /* IA64_ABI */
 
   /* Generate a string constant. */
-  clear_constant(&constant, (a_constant_repr_kind)ck_string);
-  constant.type = string_type((a_targ_size_t)name_length);
-  constant.variant.string.length = (a_targ_size_t)name_length;
-  constant.variant.string.value  = name;
+  clear_constant(constant, (a_constant_repr_kind)ck_string);
+  constant->type = string_type((a_targ_size_t)name_length);
+  constant->variant.string.length = (a_targ_size_t)name_length;
+  constant->variant.string.value  = name;
 #if IA64_ABI
   /* An initial value string cannot be shared. */
-  string_con = alloc_unshared_constant(&constant);
+  string_con = alloc_unshared_constant(constant);
   /* Make the variable const even if strings are not const. */
   var_type = make_qualified_type(string_con->type, TQ_CONST);
   /* Store the constant in a variable; the IA64 ABI requires that the name
@@ -1234,7 +1234,7 @@ variable is returned.
                                               (a_storage_class)sc_unspecified :
                                               (a_storage_class)sc_static);
   typeinfo_name_var->source_corresp.name_has_been_mangled = TRUE;
-  set_variable_address_constant(typeinfo_name_var, &constant, 
+  set_variable_address_constant(typeinfo_name_var, constant, 
                                 /*set_address_taken_flag=*/TRUE);
   /* Initialize the variable. */
   typeinfo_name_var->init_kind = (an_init_kind)initk_static;
@@ -1249,17 +1249,17 @@ variable is returned.
   }  /* if */
 #else /* !IA64_ABI */
   /* Generate a constant for the address of the string. */
-  string_con = alloc_shareable_constant(&constant);
-  set_constant_address_constant(string_con, &constant);
+  string_con = alloc_shareable_constant(constant);
+  set_constant_address_constant(string_con, constant);
 #endif /* !IA64_ABI */
   /* Do the array->pointer decay.  Note that the field in the typeinfo
      structure is const, and we also add const here if string literals
      are not const. */
-  implicit_cast(&constant,
+  implicit_cast(constant,
                 make_pointer_type(make_qualified_type(
                                         integer_type((an_integer_kind)ik_char),
                                         TQ_CONST)));
-  addr_con = alloc_unshared_constant(&constant);
+  addr_con = move_local_constant_to_il(&constant);
   return addr_con;
 }  /* make_typeinfo_name_constant */
 
@@ -2334,7 +2334,7 @@ conversion in cases where their value is not used.
   an_expr_node_ptr new_expr, null_constant_node, test_node;
   an_expr_node_ptr vptr_expr;
   a_variable_ptr   typeinfo_var;
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
 #if IA64_ABI
   an_expr_node_ptr minus_one_expr, bad_typeid_expr;
   a_boolean        non_null, save_assume_references_cannot_be_null = FALSE;
@@ -2449,8 +2449,8 @@ conversion in cases where their value is not used.
       bad_typeid_expr = make_call_node(bad_typeid_routine,
                                        (an_expr_node_ptr)NULL);
       make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
-                               &null_constant);
-      null_constant_node = alloc_node_for_constant(&null_constant);
+                               null_constant);
+      null_constant_node = alloc_node_for_constant(null_constant);
       bad_typeid_expr = make_comma_node(bad_typeid_expr, null_constant_node);
       /* Assemble the "?" operation. */
       test_node = boolean_controlling_expr(typeid_expr);
@@ -2461,8 +2461,8 @@ conversion in cases where their value is not used.
     }  /* if */
 #else /* !IA64_ABI */
     /* Make a NULL pointer constant of the vptr type. */
-    make_zero_of_proper_type(vptr_expr->type, &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
+    make_zero_of_proper_type(vptr_expr->type, null_constant);
+    null_constant_node = alloc_node_for_constant(null_constant);
     /* Assemble the "?" operation. */
     test_node = boolean_controlling_expr(typeid_expr);
     test_node->next = vptr_expr;
@@ -2486,6 +2486,7 @@ conversion in cases where their value is not used.
   }  /* if */
   /* Overwrite the enk_typeid node. */
   overwrite_node(expr, new_expr);
+  release_local_constant(&null_constant);
 }  /* lower_typeid */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -4842,9 +4843,10 @@ statement if necessary.
       spec_array_ptr = make_pointer_type(make_exception_type_spec_type());
       if (spec_array_var == NULL) {
         /* No types can be thrown, so use a NULL pointer. */
-        a_constant null_constant;
-        make_zero_of_proper_type(spec_array_ptr, &null_constant);
-        spec_array_node = alloc_node_for_constant(&null_constant);
+        a_constant_ptr null_constant = local_constant();
+        make_zero_of_proper_type(spec_array_ptr, null_constant);
+        spec_array_node = alloc_node_for_constant(null_constant);
+        release_local_constant(&null_constant);
       } else {
         /* Use the address of the first element of the array. */
         spec_array_node = array_first_element_addr_expr(spec_array_var);
@@ -5272,7 +5274,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   an_expr_node_ptr   setjmp_call;
   an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
   an_expr_node_ptr   try_frame_rtinfo, try_frame_region_number;
-  a_constant         null_constant;
+  a_constant_ptr     null_constant = local_constant();
 
   /* Put the address of the catch types description array into the stack
      frame. */
@@ -5292,10 +5294,10 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   } else {
     /* Internal try -- no catch_array_var. */
     make_zero_of_proper_type(ehse_try_catch_entries_field->type,
-                             &null_constant);
+                             null_constant);
     (void)insert_assignment_statement(try_frame_catch_entries,
                                       (an_expr_operator_kind)eok_assign,
-                                      alloc_node_for_constant(&null_constant),
+                                      alloc_node_for_constant(null_constant),
                                       insert_location);
   }  /* if */
   /* Set the rtinfo field (which points to runtime information) to NULL. */
@@ -5306,10 +5308,10 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                                                   ehse_variant_field),
                       ehse_try_field),
                     ehse_try_rtinfo_field);
-  make_zero_of_proper_type(ehse_try_rtinfo_field->type, &null_constant);
+  make_zero_of_proper_type(ehse_try_rtinfo_field->type, null_constant);
   (void)insert_assignment_statement(try_frame_rtinfo,
                                     (an_expr_operator_kind)eok_assign,
-                                    alloc_node_for_constant(&null_constant),
+                                    alloc_node_for_constant(null_constant),
                                     insert_location);
   /* Set the region_number field to the region number at entry to the try
      block.  This tells the runtime where to stop the cleanup process to
@@ -5348,6 +5350,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
   *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                             setjmp_call->type, setjmp_call);
+  release_local_constant(&null_constant);
 }  /* initialize_eh_stack_entry_for_try */
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
@@ -5830,7 +5833,7 @@ instead.
   a_type_ptr                   type;
   an_accessible_base_class_ptr abcp;
   a_constant_ptr               string_con = NULL;
-  a_constant                   constant;
+  a_constant_ptr               constant = local_constant();
   char                         *pstr;
 
   /* No constant is needed if there are no accessible base classes
@@ -5848,12 +5851,14 @@ instead.
     /* Build the string constant. */
     pstr = alloc_text_of_string_literal(curr_size_access_string_buffer);
     (void)strcpy(pstr, temp_text_buffer);
-    clear_constant(&constant, (a_constant_repr_kind)ck_string);
-    constant.type = string_type((a_targ_size_t)curr_size_access_string_buffer);
-    constant.variant.string.length = curr_size_access_string_buffer;
-    constant.variant.string.value  = pstr;
-    string_con = alloc_shareable_constant(&constant);
+    clear_constant(constant, (a_constant_repr_kind)ck_string);
+    constant->type =
+                    string_type((a_targ_size_t)curr_size_access_string_buffer);
+    constant->variant.string.length = curr_size_access_string_buffer;
+    constant->variant.string.value  = pstr;
+    string_con = alloc_shareable_constant(constant);
   }  /* if */
+  release_local_constant(&constant);
   return string_con;
 }  /* make_throw_access_string */
 
@@ -5959,18 +5964,19 @@ Lower an enk_throw expression node.
     /* Make a string to describe the accessible base classes, and pass
        its address to the runtime routine. */
     { an_expr_node_ptr access_node;
-      a_constant       access_con;
+      a_constant_ptr   access_con = local_constant();
       a_constant_ptr   string_con;
       string_con = make_throw_access_string(expr);
       if (string_con == NULL) {
         /* No access string.  Use a NULL pointer. */
-        make_zero_of_proper_type(char_star_type(), &access_con);
+        make_zero_of_proper_type(char_star_type(), access_con);
       } else {
-        set_constant_address_constant(string_con, &access_con);
-        implicit_cast(&access_con, char_star_type());
+        set_constant_address_constant(string_con, access_con);
+        implicit_cast(access_con, char_star_type());
       }  /* if */
-      access_node = alloc_node_for_constant(&access_con);
+      access_node = alloc_node_for_constant(access_con);
       flags_node->next = access_node;
+      release_local_constant(&access_con);
     }
 #endif /* !ABI_CHANGES_FOR_RTTI */
     /* Make the __throw_setup call. */

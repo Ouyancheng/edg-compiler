@@ -6474,7 +6474,7 @@ variable.
 
   if (!C_mode() && vp != NULL && !dps->init_state.init_error &&
       is_potentially_constant_valued_variable(vp)) {
-    a_constant ref_val;
+    a_constant_ptr ref_val = local_constant();
     /* See if the variable is initialized with a constant. */
     a_constant_ptr con_val = initializer_constant(vp);
     if (con_val != NULL) {
@@ -6486,7 +6486,7 @@ variable.
                  constant_value_at_address(
                                           con_val,
                                           (a_constexpr_evaluation_block *)NULL,
-                                          &ref_val) == NULL) {
+                                          ref_val) == NULL) {
         /* A reference that is not constexpr is constant-valued only if the
            constant reference address points at a constant. */
       } else {
@@ -6494,6 +6494,7 @@ variable.
       }  /* if */
     }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;
+    release_local_constant(&ref_val);
   }  /* if */
 }  /* check_constant_valued_variable */
 
@@ -12630,7 +12631,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
   a_boolean            err = FALSE;
   a_source_range       linkage_spec_range;
 #if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
-  a_constant           string_constant;
+  a_constant_ptr       string_constant = local_constant();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
 
   db_enter(3, "linkage_specification");
@@ -12643,7 +12644,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
-  string_constant = const_for_curr_token;
+  *string_constant = const_for_curr_token;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   linkage_spec_range.end = end_pos_curr_token;
@@ -12671,7 +12672,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
     /* Add a source sequence entry to indicate the start of the block (with a
        matching end-of-construct entry to follow below). */
     a_linkage_spec_block_ptr  lsbp = alloc_linkage_spec_block();
-    lsbp->name_string = alloc_unshared_constant(&string_constant);
+    lsbp->name_string = move_local_constant_to_il(&string_constant);
     lsbp->name_linkage = kind;
     lsbp->position = linkage_spec_range.start;
     add_to_source_sequence_list((char*)lsbp,
@@ -12743,8 +12744,10 @@ specifier is restored.  dps describes the linkage-specification declaration.
          is a dependency in precompiled header processing on the state
          maintained in the scope stack entry). */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+    release_local_constant(&string_constant);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
   }  /* if */
-
   db_exit();
 }  /* linkage_specification */
 
@@ -13152,7 +13155,7 @@ are invalid: If *p_attributes is non-NULL issue an error and set *p_attributes
 to NULL.
 */
 {
-  a_constant                asm_string;
+  a_constant_ptr            asm_string = local_constant();
   an_asm_entry_ptr          ap = NULL;
   a_source_position         asm_pos;
 #if GNU_EXTENSIONS_ALLOWED
@@ -13183,12 +13186,12 @@ to NULL.
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
-    clear_constant(&asm_string, (a_constant_repr_kind)ck_string);
+    clear_constant(asm_string, (a_constant_repr_kind)ck_string);
     /* The asm string is already allocated in IL memory. */
-    asm_string.variant.string.value = curr_token_asm_string;
-    asm_string.variant.string.length =
+    asm_string->variant.string.value = curr_token_asm_string;
+    asm_string->variant.string.length =
                             (a_targ_size_t)(strlen(curr_token_asm_string)) + 1;
-    asm_string.type = string_type(asm_string.variant.string.length);
+    asm_string->type = string_type(asm_string->variant.string.length);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13241,11 +13244,11 @@ to NULL.
       syntax_error(ec_wide_string_invalid_in_asm);
       err = TRUE;
     } else {
-      copy_constant(&const_for_curr_token, &asm_string);
+      copy_constant(&const_for_curr_token, asm_string);
       (void)get_token_with_colon_separation(&seen_tok_colon_colon);
     }  /* if */
     if (err) {
-      set_error_constant(&asm_string);
+      set_error_constant(asm_string);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Check for operands spec. */
@@ -13301,7 +13304,7 @@ to NULL.
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
     ap = alloc_asm_entry();
-    ap->asm_string = alloc_unshared_constant(&asm_string);
+    ap->asm_string = move_local_constant_to_il(&asm_string);
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
 #if GNU_EXTENSIONS_ALLOWED
     ap->gnu_asm_form = gnu_asm_form;
@@ -13330,8 +13333,9 @@ to NULL.
       add_to_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+  } else {
+    release_local_constant(&asm_string);
   }  /* if */
-
   db_exit();
   return ap;
 }  /* asm_declaration */
@@ -13611,7 +13615,7 @@ Issue an error incorporating the string literal if the constant-expression
 is "false".  If leave_semicolon is TRUE, do not consume the final token.
 */
 {
-  a_constant         assert_con;
+  a_constant_ptr     assert_con = local_constant();
   a_source_position  pos;
 
   cannot_bind_to_curr_construct();
@@ -13625,7 +13629,7 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
   (void)required_token(tok_lparen, ec_exp_lparen);
   /* Scan the first argument, which must be a constant expression convertible
      to bool. */
-  scan_bool_constant_expression(&assert_con);
+  scan_bool_constant_expression(assert_con);
   /* Scan the second argument, which must be a string literal. */
   remove_stop_token(tok_comma);
   (void)required_token(tok_comma, ec_exp_comma);
@@ -13636,12 +13640,12 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
        nondependent), and (in some configurations) record it. */
     /* In Microsoft mode, we do not check the assertion in "nonreal
        instantiations". */
-    if (is_error_constant(&assert_con) ||
+    if (is_error_constant(assert_con) ||
         is_error_constant(&const_for_curr_token)) {
       /* An error should already have been issued. */
       expect_error();
-    } else if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
-               is_false_constant(&assert_con) &&
+    } else if (assert_con->kind != (a_constant_repr_kind)ck_template_param &&
+               is_false_constant(assert_con) &&
                !(microsoft_mode &&
                  scope_stack_top().in_nonreal_instantiation)) {
       /* The assertion failed: Issue an error. */
@@ -13651,7 +13655,7 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
     } else {
       /* Record the assertion in the IL. */
       a_static_assertion_ptr  entry = alloc_static_assertion();
-      entry->condition = alloc_shareable_constant(&assert_con);
+      entry->condition = alloc_shareable_constant(assert_con);
       entry->string_literal = alloc_shareable_constant(&const_for_curr_token);
       entry->position = pos;
       add_to_source_sequence_list((char*)entry,
@@ -13667,6 +13671,7 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   remove_stop_token(tok_semicolon);
+  release_local_constant(&assert_con);
 }  /* static_assert_declaration */
 
 

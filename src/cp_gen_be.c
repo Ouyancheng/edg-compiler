@@ -6934,7 +6934,7 @@ is the one associated with the definition of the enum.
 {
   a_type_ptr     base_type;
   a_constant_ptr enum_con;
-  a_constant     next_enum_value;
+  a_constant_ptr next_enum_value = local_constant();
   a_boolean      explicit_enum_expr;
   a_boolean      next_value_calc_overflowed = FALSE;
 
@@ -6978,9 +6978,9 @@ is the one associated with the definition of the enum.
     an_integer_value one;
     set_integer_value(&one, (a_host_large_integer)1);
     /* Start with an expected value of 0 next. */
-    next_enum_value = *enum_con;
+    *next_enum_value = *enum_con;
     if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
-      set_integer_value(&next_enum_value.variant.integer_value,
+      set_integer_value(&next_enum_value->variant.integer_value,
                         (a_host_large_integer)0);
     } else if (enum_con->kind == (a_constant_repr_kind)ck_template_param &&
                enum_con->variant.template_param.kind ==
@@ -7010,7 +7010,7 @@ is the one associated with the definition of the enum.
       /* Output the value if it's not the next value in sequence. */
       if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
         /* This is an integral constant. */
-        if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
+        if (next_enum_value->kind == (a_constant_repr_kind)ck_integer) {
           /* The previous constant was also integral, so we only need an
              explicit expression if this constant does not have the
              expected value, i.e., one more than the previous one.  An
@@ -7019,7 +7019,7 @@ is the one associated with the definition of the enum.
              expressions for enumerations with a boolean "base type". */
           explicit_enum_expr =
                    next_value_calc_overflowed ||
-                   (cmp_integer_constants(enum_con, &next_enum_value) != 0) ||
+                   (cmp_integer_constants(enum_con, next_enum_value) != 0) ||
                    (cli_or_cx_enabled && base_type != NULL &&
                     is_bool_type(base_type));
         } else {
@@ -7071,7 +7071,7 @@ is the one associated with the definition of the enum.
           octl.suppress_name_in_template_cast_enum_const =
                                                       saved_suppress_name_flag;
         }  /* if */
-        next_enum_value = *enum_con;
+        *next_enum_value = *enum_con;
       }  /* if */
       enum_con = enum_con->next;
       is_initial_implicit_zero = FALSE;
@@ -7079,8 +7079,8 @@ is the one associated with the definition of the enum.
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
       write_tok_str(", ");
-      if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
-        add_integer_values(&next_enum_value.variant.integer_value, &one,
+      if (next_enum_value->kind == (a_constant_repr_kind)ck_integer) {
+        add_integer_values(&next_enum_value->variant.integer_value, &one,
                            /*is_signed=*/FALSE, &next_value_calc_overflowed);
       }  /* if */
     }  /* for */
@@ -7102,6 +7102,7 @@ is the one associated with the definition of the enum.
   write_tok_ch('}');
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
+  release_local_constant(&next_enum_value);
 }  /* gen_enum_definition */
 
 

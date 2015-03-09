@@ -939,6 +939,7 @@ folded to another error constant.
        the result. */
     set_error_constant(result);
   } else {
+    a_constant_ptr   offset = local_constant();
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;
     copy_constant(constant_1, result);
@@ -982,8 +983,7 @@ folded to another error constant.
            is_object_pointer is TRUE, to allow the usual idiom for the
            offsetof macro to work. */
       } else {
-        a_constant offset;
-        get_pointer_offset(constant_1, &offset);
+        get_pointer_offset(constant_1, offset);
         if (any_virtual_steps_in_derivation(base_class)) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
@@ -1004,12 +1004,12 @@ folded to another error constant.
         /* Take the pointer offset, ... */
         /* ... add the offset to the base class, ... */
         set_unsigned_integer_value(&base_class_offset, base_class->offset);
-        add_integer_values(&offset.variant.integer_value, &base_class_offset,
-                           int_constant_is_signed(&offset), &err);
+        add_integer_values(&offset->variant.integer_value, &base_class_offset,
+                           int_constant_is_signed(offset), &err);
         /* ... and put the offset into the result pointer constant.  Note
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
-        set_pointer_offset(result, &offset, &err);
+        set_pointer_offset(result, offset, &err);
       }  /* if */
     }  /* for */
     /* Set the constant type.  It includes all the type qualifiers from the
@@ -1030,6 +1030,7 @@ folded to another error constant.
       check_assertion(!local_error_detected);
     }  /* if */
     result->expr = expr;
+    release_local_constant(&offset);
   }  /* if */
 }  /* fold_base_class_cast */
 
@@ -1083,23 +1084,24 @@ ec_no_error if there was no error.
     if (is_null_pointer_value(constant_1)) {
       /* Preserve a NULL pointer. */
     } else {
-      a_constant offset;
+      a_constant_ptr offset = local_constant();
 #if CHECKING
       if (any_virtual_steps_in_derivation(bcp)) {
         internal_error("fold_derived_class_cast: virtual base class");
       }  /* if */
 #endif /* CHECKING */
       /* Determine the pointer offset, ... */
-      get_pointer_offset(result, &offset);
+      get_pointer_offset(result, offset);
       /* ... subtract the offset to the base class, ... */
       set_unsigned_integer_value(&base_class_offset, bcp->offset);
-      subtract_integer_values(&offset.variant.integer_value,
+      subtract_integer_values(&offset->variant.integer_value,
                               &base_class_offset,
-                              int_constant_is_signed(&offset), &err);
+                              int_constant_is_signed(offset), &err);
       /* ... and put the offset into the result pointer constant.  Note
          that no overflow/object-size checking is needed, since the base
          class has to be within the underlying object. */
-      set_pointer_offset(result, &offset, &err);
+      set_pointer_offset(result, offset, &err);
+      release_local_constant(&offset);
     }  /* if */
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
     /* Update the backing expression if one was present. */
@@ -1813,7 +1815,7 @@ for any diagnostics issued.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
-  a_constant        new_constant;
+  a_constant_ptr    new_constant = local_constant();
   an_error_code     err_code;
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
@@ -1825,14 +1827,14 @@ for any diagnostics issued.
   if (error_detected != NULL) *error_detected = ec_no_error;
   err_code = ec_no_error;
   err_severity = es_warning;
-  clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
+  clear_constant(new_constant, (a_constant_repr_kind)ck_error);
   /* Preserve the null_pointer_constant_ruled_out flag. */
-  new_constant.null_pointer_constant_ruled_out =
+  new_constant->null_pointer_constant_ruled_out =
                                      constant->null_pointer_constant_ruled_out;
 
   /* Put the new type in the destination constant (preserving typedefs
      if any; that's important). */
-  new_constant.type = new_type_with_typedefs = new_type;
+  new_constant->type = new_type_with_typedefs = new_type;
   /* Remove any type qualifiers or typedefs from the types involved. */
   constant_type = skip_typerefs(constant->type);
   new_type = skip_typerefs(new_type);
@@ -1840,7 +1842,7 @@ for any diagnostics issued.
   if (is_error_constant(constant) || is_error_type(new_type)) {
     /* Changing to an error type, or the old constant is an error constant,
        so produce an error constant as result. */
-    set_error_constant(&new_constant);
+    set_error_constant(new_constant);
     goto exit;
   }  /* if */
   /* Not using context_may_have_dependent_types here because we can get
@@ -1852,15 +1854,15 @@ for any diagnostics issued.
   if (identical_types(constant_type, new_type) &&
       (is_implicit_cast || !template_case)) {
     /* The current and new types are the same, so no change is required. */
-    copy_constant(constant, &new_constant);
+    copy_constant(constant, new_constant);
     /* Put in the actual type wanted, as it may have typedefs. */
-    new_constant.type = new_type_with_typedefs;
+    new_constant->type = new_type_with_typedefs;
     goto exit;
   }  /* if */
   if (template_case) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
-    make_template_param_cast_constant(constant, &new_constant, new_type,
+    make_template_param_cast_constant(constant, new_constant, new_type,
                                       !is_implicit_cast);
     goto exit;
   }  /* if */
@@ -1874,8 +1876,8 @@ for any diagnostics issued.
       *did_not_fold = TRUE;
       goto exit;
     }  /* if */
-    set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
-    set_integer_value(&new_constant.variant.integer_value,
+    set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&new_constant->variant.integer_value,
                       (a_host_large_integer)!is_false_constant(constant));
     goto exit;
   }  /* if */
@@ -1883,10 +1885,10 @@ for any diagnostics issued.
     /* Conversion to a nullptr type.  There is only one "value" of a
        nullptr type, so the result is an integer with value 0, just like
        old-style null pointer constants. */
-    set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
-    set_integer_value(&new_constant.variant.integer_value,
+    set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&new_constant->variant.integer_value,
                       (a_host_large_integer)0);
-    new_constant.implicit_cast = TRUE;
+    new_constant->implicit_cast = TRUE;
     goto exit;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1910,8 +1912,8 @@ for any diagnostics issued.
         /* Within the context of a C++/CLI attribute argument expression,
            boxing conversions from a valid attribute parameter type are
            folded to a constant. */
-        copy_constant(constant, &new_constant);
-        implicit_or_explicit_cast(&new_constant, new_type, is_implicit_cast);
+        copy_constant(constant, new_constant);
+        implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
       } else {
         /* A C++/CLI boxing conversion cannot be folded to a constant. */
         *did_not_fold = TRUE;
@@ -1921,8 +1923,8 @@ for any diagnostics issued.
       if (impl_handle_conversion(constant_type, new_type,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                  (a_std_conv_descr *)NULL)) {
-        copy_constant(constant, &new_constant);
-        implicit_or_explicit_cast(&new_constant, new_type, is_implicit_cast);
+        copy_constant(constant, new_constant);
+        implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
         goto exit;
       } else if (is_handle_type(constant_type)) {
         *did_not_fold = TRUE;
@@ -1962,7 +1964,7 @@ for any diagnostics issued.
        early -- like this -- to catch ((unsigned)((int)&x)).  That case
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
-    conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
+    conv_pointer_to_whatever(constant, new_constant, check_cast_access,
                              check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              /*is_object_pointer=*/FALSE,
@@ -1979,7 +1981,7 @@ for any diagnostics issued.
       switch(new_type->kind) {
         case tk_integer:
           /* Converting integer to integer. */
-          conv_integer_to_integer(constant, &new_constant, is_implicit_cast,
+          conv_integer_to_integer(constant, new_constant, is_implicit_cast,
                                   &err_code, &err_severity);
           break;
         case tk_float:
@@ -1988,24 +1990,24 @@ for any diagnostics issued.
         case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           /* Converting integer to float. */
-          conv_integer_to_float(constant, &new_constant,
+          conv_integer_to_float(constant, new_constant,
                                 &err_code, &err_severity);
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           /* Converting integer to fixed-point. */
-          conv_integer_to_fixed_point(constant, &new_constant,
+          conv_integer_to_fixed_point(constant, new_constant,
                                       &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
         case tk_pointer:
           /* Converting integer to pointer. */
-          conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
+          conv_integer_to_pointer(constant, new_constant, is_implicit_cast,
                                   &err_code, &err_severity);
           break;
         case tk_ptr_to_member:
           /* Converting integer to pointer-to-member. */
-          conv_integer_to_ptr_to_member(constant, &new_constant,
+          conv_integer_to_ptr_to_member(constant, new_constant,
                                         is_implicit_cast);
           break;
         default:
@@ -2019,7 +2021,7 @@ for any diagnostics issued.
       switch (new_type->kind) {
         case tk_integer:
           /* Converting float to integer. */
-          conv_float_to_integer(constant, &new_constant,
+          conv_float_to_integer(constant, new_constant,
                                 &err_code, &err_severity,
                                 &depends_on_fp_mode, constant_context);
           break;
@@ -2031,14 +2033,14 @@ for any diagnostics issued.
         case tk_complex:
           /* Converting float to complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          conv_float_to_float(constant, &new_constant,
+          conv_float_to_float(constant, new_constant,
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           /* Converting float to fixed-point. */
-          conv_float_to_fixed_point(constant, &new_constant,
+          conv_float_to_fixed_point(constant, new_constant,
                                     &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -2053,7 +2055,7 @@ for any diagnostics issued.
       switch (new_type->kind) {
         case tk_integer:
           /* Converting imaginary to integer (produces zero). */
-          conv_float_to_integer(constant, &new_constant,
+          conv_float_to_integer(constant, new_constant,
                                 &err_code, &err_severity,
                                 &depends_on_fp_mode, constant_context);
           break;
@@ -2063,14 +2065,14 @@ for any diagnostics issued.
           /* Converting imaginary to imaginary. */
         case tk_complex:
           /* Converting imaginary to complex. */
-          conv_float_to_float(constant, &new_constant,
+          conv_float_to_float(constant, new_constant,
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           /* Imaginary to fixed-point. */
-          conv_float_to_fixed_point(constant, &new_constant,
+          conv_float_to_fixed_point(constant, new_constant,
                                     &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -2084,7 +2086,7 @@ for any diagnostics issued.
       switch (new_type->kind) {
         case tk_integer:
           /* Converting complex to integer. */
-          conv_float_to_integer(constant, &new_constant,
+          conv_float_to_integer(constant, new_constant,
                                 &err_code, &err_severity,
                                 &depends_on_fp_mode, constant_context);
           break;
@@ -2094,14 +2096,14 @@ for any diagnostics issued.
           /* Converting complex to imaginary. */
         case tk_complex:
           /* Converting complex to complex. */
-          conv_float_to_float(constant, &new_constant,
+          conv_float_to_float(constant, new_constant,
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           /* Complex to fixed-point. */
-          conv_float_to_fixed_point(constant, &new_constant,
+          conv_float_to_fixed_point(constant, new_constant,
                                     &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -2117,7 +2119,7 @@ for any diagnostics issued.
       switch (new_type->kind) {
         case tk_integer:
           /* Converting fixed-point to integer. */
-          conv_fixed_point_to_integer(constant, &new_constant,
+          conv_fixed_point_to_integer(constant, new_constant,
                                       &err_code, &err_severity);
           break;
         case tk_float:
@@ -2128,12 +2130,12 @@ for any diagnostics issued.
         case tk_complex:
           /* Fixed-point to complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          conv_fixed_point_to_float(constant, &new_constant,
+          conv_fixed_point_to_float(constant, new_constant,
                                     &err_code, &err_severity);
           break;
         case tk_fixed_point:
           /* Converting fixed-point to fixed-point. */
-          conv_fixed_point_to_fixed_point(constant, &new_constant,
+          conv_fixed_point_to_fixed_point(constant, new_constant,
                                           &err_code, &err_severity);
           break;
         default:
@@ -2145,7 +2147,7 @@ for any diagnostics issued.
 
     case tk_pointer:
       /* Converting from pointer. */
-      conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
+      conv_pointer_to_whatever(constant, new_constant, check_cast_access,
                                check_ambiguity, is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                /*is_object_pointer=*/FALSE,
@@ -2156,7 +2158,7 @@ for any diagnostics issued.
 
     case tk_ptr_to_member:
       /* Converting from pointer-to-member to pointer-to-member. */
-      conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
+      conv_ptr_to_member_to_ptr_to_member(constant, new_constant,
                                           is_implicit_cast,
                                           check_cast_access,
                                           is_reinterpret_cast,
@@ -2169,7 +2171,7 @@ for any diagnostics issued.
       /* The old constant is an error constant. */
       /* Change the type of the new constant back to the original type of the
 	 error constant, i.e., error. */
-      new_constant.type = constant->type;
+      new_constant->type = constant->type;
       break;
 
     case tk_nullptr:
@@ -2179,13 +2181,13 @@ for any diagnostics issued.
          null pointer constant. */
       check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
       if (new_type->kind == (a_constant_repr_kind)tk_pointer) {
-        conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
+        conv_integer_to_pointer(constant, new_constant, is_implicit_cast,
                                 &err_code, &err_severity);
       } else if (new_type->kind == (a_constant_repr_kind)tk_ptr_to_member) {
-        conv_integer_to_ptr_to_member(constant, &new_constant,
+        conv_integer_to_ptr_to_member(constant, new_constant,
                                       is_implicit_cast);
       } else if (new_type->kind == (a_constant_repr_kind)tk_integer) {
-        conv_integer_to_integer(constant, &new_constant, is_implicit_cast,
+        conv_integer_to_integer(constant, new_constant, is_implicit_cast,
                                 &err_code, &err_severity);
       } else {
         unexpected_condition_str(
@@ -2199,7 +2201,7 @@ for any diagnostics issued.
          identical types are handled earlier in this routine. */
       check_assertion(is_or_contains_error_type(constant_type) ||
                       is_or_contains_error_type(new_type));
-      new_constant.type = new_type_with_typedefs;
+      new_constant->type = new_type_with_typedefs;
       break;
     default:
       unexpected_condition_str("type_change_constant_full: from bad type");
@@ -2220,7 +2222,7 @@ exit:
     /* Microsoft C++ mode: any explicit cast makes a constant not a null
        pointer constant.  In particular, (int)0 is not a null pointer
        constant.  This was fixed in MSVC++ 7.1. */
-    new_constant.null_pointer_constant_ruled_out = TRUE;
+    new_constant->null_pointer_constant_ruled_out = TRUE;
   } else if (is_integral_or_enum_type(new_type) &&
              is_arithmetic_or_enum_type(constant_type)) {
     /* Arithmetic --> integral.  Okay. */
@@ -2231,14 +2233,14 @@ exit:
   } else {
    /* Anything else: this constant cannot be part of a null pointer
       constant. */
-    new_constant.null_pointer_constant_ruled_out = TRUE;
+    new_constant->null_pointer_constant_ruled_out = TRUE;
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "type_change_constant of ");
     db_constant(constant);
     fprintf(f_debug, ", result = ");
-    db_constant(&new_constant);
+    db_constant(new_constant);
     if (err_code != ec_no_error) {
       fprintf(f_debug, " with ");
       if (err_severity == es_error) {
@@ -2256,7 +2258,7 @@ exit:
     /* There was an error or warning. */
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              evaluated_context, did_not_fold,
-                             error_detected, err_pos, &new_constant);
+                             error_detected, err_pos, new_constant);
     if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */
   if (depends_on_fp_mode && !constant_context) {
@@ -2271,22 +2273,23 @@ exit:
        is always an eok_cast, so this shouldn't be used if there's the
        possibility that a base-class cast or the like is involved. */
     if (is_implicit_cast &&
-        identical_types(constant->type, new_constant.type)) {
-      new_constant.expr = constant->expr;
+        identical_types(constant->type, new_constant->type)) {
+      new_constant->expr = constant->expr;
     } else {
       an_expr_node_ptr cast_expr =
                             make_operator_node((an_expr_operator_kind)eok_cast,
-                                               new_constant.type,
+                                               new_constant->type,
                                                constant->expr);
       cast_expr->variant.operation.compiler_generated = is_implicit_cast;
       cast_expr->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
-      new_constant.expr = cast_expr;
+      new_constant->expr = cast_expr;
     }  /* if */
   } else {
-    new_constant.expr = NULL;
+    new_constant->expr = NULL;
   }  /* if */
   /* Return the new constant value. */
-  copy_constant(&new_constant, constant);
+  copy_constant(new_constant, constant);
+  release_local_constant(&new_constant);
   db_exit();
 }  /* type_change_constant_full */
 
@@ -4677,7 +4680,7 @@ detected, or *err_code == ec_no_error if everything went fine.
 */
 {
   a_targ_size_t    size;
-  a_constant       offset;
+  a_constant_ptr   offset = local_constant();
   a_boolean        err = FALSE, offset_is_signed = FALSE;
   a_boolean        integer_case = FALSE;
 
@@ -4710,13 +4713,13 @@ detected, or *err_code == ec_no_error if everything went fine.
     check_assertion_str(size != 0 || gnu_mode, "do_padd: size is zero");
   }  /* if */
   /* Get the offset from the first constant. */
-  get_pointer_offset(constant_1, &offset);
+  get_pointer_offset(constant_1, offset);
   /* When dealing with an address cast to an integral type, treat the
      offset as having the signedness of the type cast to. */
   offset_is_signed = integer_case ? int_constant_is_signed(constant_1) :
-                                    int_constant_is_signed(&offset);
+                                    int_constant_is_signed(offset);
   /* Perform the necessary multiply-add or multiply-subtract. */
-  accum_array_offset(&offset, offset_is_signed,
+  accum_array_offset(offset, offset_is_signed,
                      (op == (an_expr_operator_kind)eok_psubtract ||
                       op == (an_expr_operator_kind)eok_subtract),
                       constant_2, size, (integer_case && !offset_is_signed),
@@ -4724,7 +4727,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   if (!err && !*did_not_fold) {
     /* Build the result pointer constant. */
     copy_constant(constant_1, result);
-    set_pointer_offset(result, &offset, &err);
+    set_pointer_offset(result, offset, &err);
     /* If this was an unsigned integer operation, overflow is ignored. */
     if (integer_case && !offset_is_signed) err = FALSE;
   }  /* if */
@@ -4758,6 +4761,7 @@ have_result:
   db_binary_operation(db_operator_names[op],
                       constant_1, constant_2, result, *err_code);
 #endif /* DEBUG */
+  release_local_constant(&offset);
 }  /* do_padd */
 
 
@@ -4778,7 +4782,8 @@ if everything went fine.  Also handles address constants cast to an
 integral type, as in "(int)&x - (int)&x".
 */
 {
-  a_constant       offset_2, offset_1;
+  a_constant_ptr   offset_2 = local_constant();
+  a_constant_ptr   offset_1 = local_constant();
   an_integer_value difference, size_intval;
   a_type_ptr       object_type;
   a_boolean        err, offset_1_is_signed, offset_2_is_signed;
@@ -4817,14 +4822,14 @@ integral type, as in "(int)&x - (int)&x".
   } else {
     /* The pointers are in the same base object, so the difference of
        their offsets can be taken. */
-    get_pointer_offset(constant_1, &offset_1);
-    offset_1_is_signed = int_constant_is_signed(&offset_1);
-    get_pointer_offset(constant_2, &offset_2);
-    offset_2_is_signed = int_constant_is_signed(&offset_2);
-    difference = offset_1.variant.integer_value;
+    get_pointer_offset(constant_1, offset_1);
+    offset_1_is_signed = int_constant_is_signed(offset_1);
+    get_pointer_offset(constant_2, offset_2);
+    offset_2_is_signed = int_constant_is_signed(offset_2);
+    difference = offset_1->variant.integer_value;
     subtract_mixed_signed_integer_values(&difference,
                                          offset_1_is_signed,
-                                         &offset_2.variant.integer_value,
+                                         &offset_2->variant.integer_value,
                                          offset_2_is_signed, &err);
     if (!err) {
       /* Divide the difference by the size of the objects pointed to.
@@ -4868,6 +4873,8 @@ integral type, as in "(int)&x - (int)&x".
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  release_local_constant(&offset_2);
+  release_local_constant(&offset_1);
 } /* do_pdiff */
 
 
@@ -4887,9 +4894,9 @@ constant_2 are compared according to the indicated operator, and
 set if the operation cannot be folded.
 */
 {
-  a_constant offset_1, offset_2;
-  int        result_value = 0;
-  int        cmp;
+  a_constant_ptr offset_1 = local_constant(), offset_2 = local_constant();
+  int            result_value = 0;
+  int            cmp;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
@@ -4931,10 +4938,10 @@ set if the operation cannot be folded.
     }  /* if */
   } else {
     /* The pointers are in the same base object, so they can be compared. */
-    get_pointer_offset(constant_1, &offset_1);
-    get_pointer_offset(constant_2, &offset_2);
+    get_pointer_offset(constant_1, offset_1);
+    get_pointer_offset(constant_2, offset_2);
     /* Compare the offsets, then generate a result value. */
-    cmp = cmp_integer_constants(&offset_1, &offset_2);
+    cmp = cmp_integer_constants(offset_1, offset_2);
     switch (op) {
       case eok_eq:  result_value = (cmp == 0); break;
       case eok_ne:  result_value = (cmp != 0); break;
@@ -4958,6 +4965,8 @@ set if the operation cannot be folded.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  release_local_constant(&offset_1);
+  release_local_constant(&offset_2);
 }  /* do_pcompare */
 
 
@@ -5049,7 +5058,7 @@ based constants are handled by converting them to integer constants, and
 then converting the result back to being THREADS-based if appropriate.
 */
 {
-  a_constant  tmp;
+  a_constant_ptr  tmp = local_constant();
 
   check_assertion(upc_dynamic_threads());
   if (constant_1->kind == (a_constant_repr_kind)ck_upc_threads &&
@@ -5063,15 +5072,15 @@ then converting the result back to being THREADS-based if appropriate.
     a_constant_ptr  nonthread_constant;
     if (constant_2->kind == (a_constant_repr_kind)ck_upc_threads) {
       /* E.g., 3*THREADS. */
-      convert_upc_threads_constant_to_integer(constant_2, &tmp);
-      constant_2 = &tmp;
+      convert_upc_threads_constant_to_integer(constant_2, tmp);
+      constant_2 = tmp;
       nonthread_constant = constant_1;
     } else {
       /* E.g., THREADS*3. */
       check_assertion(constant_1->kind ==
                                         (a_constant_repr_kind)ck_upc_threads);
-      convert_upc_threads_constant_to_integer(constant_1, &tmp);
-      constant_1 = &tmp;
+      convert_upc_threads_constant_to_integer(constant_1, tmp);
+      constant_1 = tmp;
       nonthread_constant = constant_2;
     }  /* if */
     switch (op) { 
@@ -5113,6 +5122,7 @@ then converting the result back to being THREADS-based if appropriate.
         break; 
     }  /* switch */ 
   }  /* if */
+  release_local_constant(&tmp);
 }  /* binary_upc_threads_operation */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -5707,9 +5717,9 @@ returned for template-dependent cases).  This folding operation is not done
 through the usual interface because a field cannot be passed as a constant.
 */
 {
-  a_boolean  is_constant = TRUE;
-  a_constant offset;
-  a_boolean  err;
+  a_boolean      is_constant = TRUE;
+  a_constant_ptr offset = local_constant();
+  a_boolean      err;
 
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
@@ -5721,26 +5731,27 @@ through the usual interface because a field cannot be passed as a constant.
     is_constant = FALSE;
   } else {
     /* Take the pointer offset, ... */
-    get_pointer_offset(constant_1, &offset);
+    get_pointer_offset(constant_1, offset);
     /* ... and add the offset of the field. */
-    accum_field_offset(&offset, field, &err);
+    accum_field_offset(offset, field, &err);
     /* Put the offset into the result pointer constant.  Note that no
        overflow/object-size checking is needed, since the field has to be
        within the underlying object. */
-    set_pointer_offset(result, &offset, &err);
+    set_pointer_offset(result, offset, &err);
     implicit_cast(result, result_type);
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "fold_field_selection: offset = ");
     if (is_constant) {
-      db_constant(&offset);
+      db_constant(offset);
     } else {
       fprintf(f_debug, "<nonconstant>");
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* CHECKING */
+  release_local_constant(&offset);
   return is_constant;
 }  /* fold_field_selection */
 
@@ -5765,8 +5776,8 @@ constexpr expansion, and the block provides context information.
   a_boolean        is_constant = FALSE;
   an_expr_node_ptr ptr_op = expr->variant.operation.operands;
   an_expr_node_ptr int_op = ptr_op->next;
-  a_constant       ptr_con;
-  a_constant       int_con;
+  a_constant_ptr   ptr_con = local_constant();
+  a_constant_ptr   int_con = local_constant();
   a_constant_ptr   int_con_ptr = NULL;
 
   *template_constant = FALSE;
@@ -5777,14 +5788,14 @@ constexpr expansion, and the block provides context information.
   }  /* if */
   /* See if we have or can get a constant for the integer operand. */
   if (ceblock != NULL) {
-    if (fold_expr(int_op, ceblock, &int_con)) {
-      int_con_ptr = &int_con;
+    if (fold_expr(int_op, ceblock, int_con)) {
+      int_con_ptr = int_con;
     }  /* if */
   } else if (is_constant_node(int_op)) {
     int_con_ptr = int_op->variant.constant;
   }  /* if */
   if (int_con_ptr != NULL &&
-      constant_prvalue_pointer_full(ptr_op, ceblock, &ptr_con,
+      constant_prvalue_pointer_full(ptr_op, ceblock, ptr_con,
                                     address_escapes, options,
                                     template_constant)) {
     /* Both operands are constant; fold to a constant address. */
@@ -5792,10 +5803,10 @@ constexpr expansion, and the block provides context information.
     an_error_severity err_severity;
     a_boolean         did_not_fold;
     if (int_con_ptr->kind == (a_constant_repr_kind)ck_template_param ||
-        ptr_con.kind  == (a_constant_repr_kind)ck_template_param) {
+        ptr_con->kind  == (a_constant_repr_kind)ck_template_param) {
       /* At least one constant is a template parameter, so we're not going
          to fold this to a constant address. */
-    } else if (is_error_constant(&ptr_con) ||
+    } else if (is_error_constant(ptr_con) ||
                is_error_constant(int_con_ptr)) {
       /* At least one constant is an error.  Set the result to be an
          error constant as well and indicate that the expression is a
@@ -5803,7 +5814,7 @@ constexpr expansion, and the block provides context information.
       set_error_constant(con);
       is_constant = TRUE;
     } else {
-      do_padd(&ptr_con, expr->variant.operation.kind, int_con_ptr, con,
+      do_padd(ptr_con, expr->variant.operation.kind, int_con_ptr, con,
               &did_not_fold, &err_code, &err_severity);
       if (!did_not_fold &&
           (err_code == ec_no_error || err_severity == es_warning)) {
@@ -5811,6 +5822,8 @@ constexpr expansion, and the block provides context information.
       }  /* if */
     }  /* if */
   }  /* if */
+  release_local_constant(&ptr_con);
+  release_local_constant(&int_con);
   return is_constant;
 }  /* constant_padd_or_subscript */
 
@@ -5967,7 +5980,7 @@ a constexpr expansion, and the block provides context information.
       { an_expr_node_ptr      op1 = expr->variant.operation.operands;
         an_expr_node_ptr      op2 = op1->next;
         an_expr_operator_kind op = expr->variant.operation.kind;
-        a_constant            conaddr1;
+        a_constant_ptr        conaddr1 = local_constant();
         op1 = skip_parens(op1);
         if (op2 != NULL) op2 = skip_parens(op2);
         switch (op) {
@@ -5977,12 +5990,12 @@ a constexpr expansion, and the block provides context information.
                x.*y.  If the left operand is a glvalue with a constant
                address, we can develop an address for the field. */
             if ((is_glvalue_node(op1) &&
-                 constant_glvalue_address_full(op1, ceblock, &conaddr1,
+                 constant_glvalue_address_full(op1, ceblock, conaddr1,
                                                address_escapes,
                                                options, template_constant)) ||
                 (ceblock != NULL &&
                  fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
-                                  &conaddr1))) {
+                                  conaddr1))) {
               if (op == (an_expr_operator_kind)eok_dot_field) {
                 goto handle_field_selection;
               } else {
@@ -6001,7 +6014,7 @@ a constexpr expansion, and the block provides context information.
                 local_options |= CAO_FOR_LVALUE_MEMBER_ACCESS;
               }  /* if */
               if (is_pointer_type(op1->type) &&
-                  constant_prvalue_pointer_full(op1, ceblock, &conaddr1,
+                  constant_prvalue_pointer_full(op1, ceblock, conaddr1,
                                                 address_escapes, local_options,
                                                 template_constant)) {
                 if (op == (an_expr_operator_kind)eok_points_to_field) {
@@ -6024,7 +6037,7 @@ handle_field_selection:
               } else {
                 /* Not a bit field, or a bit field whose address can be taken
                    because it falls on byte boundaries. */
-                if (fold_field_selection(&conaddr1, field,
+                if (fold_field_selection(conaddr1, field,
                                          make_pointer_type(expr->type),
                                          con)) {
                   is_constant_addr = TRUE;
@@ -6033,12 +6046,12 @@ handle_field_selection:
             }
             break;
 handle_pm_field_selection:
-            { a_constant     pm_constant;
+            { a_constant_ptr pm_constant = local_constant();
               a_constant_ptr op2_con = NULL;
-              if (ceblock != NULL && fold_expr(op2, ceblock, &pm_constant)) {
+              if (ceblock != NULL && fold_expr(op2, ceblock, pm_constant)) {
                 /* We're in a constexpr function and the operand can be
                    folded to a constant. */
-                op2_con = &pm_constant;
+                op2_con = pm_constant;
               } else if (is_constant_node(op2)) {
                 /* We're not in a constexpr function, so we can't call
                    fold_expr, but we can fold this expression if the
@@ -6052,12 +6065,13 @@ handle_pm_field_selection:
                 /* The second operand is a constant, so we can fold the
                    access. */
                 if (fold_field_selection(
-                               &conaddr1,
+                               conaddr1,
                                op2_con->variant.ptr_to_member.variant.field,
                                make_pointer_type(expr->type), con)) {
                   is_constant_addr = TRUE;
                 }  /* if */
               }  /* if */
+              release_local_constant(&pm_constant);
             }  /* if */
             break;
           case eok_subscript:
@@ -6082,11 +6096,11 @@ handle_pm_field_selection:
             /* Reference "*" operation.  If the operand is a constant
                address, we can use it as the address of the lvalue. */
             if (is_reference_type(op1->type) &&
-                constant_prvalue_pointer_full(op1, ceblock, &conaddr1,
+                constant_prvalue_pointer_full(op1, ceblock, conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               is_constant_addr = TRUE;
-              copy_constant(&conaddr1, con);
+              copy_constant(conaddr1, con);
               con->type = make_pointer_type(type_pointed_to(op1->type));
               /* The backing expression of con, if any, is that of op1,
                  designating the reference.  That is not consistent with a
@@ -6098,7 +6112,7 @@ handle_pm_field_selection:
           case eok_base_class_cast:
             /* A cast of a class glvalue to a base class. */
             check_assertion(is_glvalue_node(op1));
-            if (constant_glvalue_address_full(op1, ceblock, &conaddr1,
+            if (constant_glvalue_address_full(op1, ceblock, conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               /* The operand has a constant address.  Fold the base class
@@ -6107,7 +6121,7 @@ handle_pm_field_selection:
                   *template_constant) {
                 /* The type cast to is dependent or the source is dependent,
                    so add a template param cast. */
-                make_template_param_cast_constant(&conaddr1, con, expr->type,
+                make_template_param_cast_constant(conaddr1, con, expr->type,
                                                   !expr->variant.operation.
                                                            compiler_generated);
                 *template_constant = TRUE;
@@ -6120,7 +6134,7 @@ handle_pm_field_selection:
                                 is_class_struct_union_type(expr->type));
                 bcp = find_base_class_of(op1->type, expr->type);
                 check_assertion(bcp != NULL);
-                fold_base_class_cast(&conaddr1, bcp, expr->type, con,
+                fold_base_class_cast(conaddr1, bcp, expr->type, con,
                                      /*check_cast_access=*/FALSE,
                                      /*check_ambiguity=*/FALSE,
                                      (a_boolean)expr->variant.operation.
@@ -6143,7 +6157,7 @@ handle_pm_field_selection:
             if ((!(cpp11_mode &&
                    expr->variant.operation.is_reinterpret_cast) ||
                  (microsoft_mode ||(gpp_mode && gnu_version >= 40600))) &&
-                constant_glvalue_address_full(op1, ceblock, &conaddr1,
+                constant_glvalue_address_full(op1, ceblock, conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
@@ -6156,12 +6170,12 @@ handle_pm_field_selection:
                   *template_constant) {
                 /* The type cast to is dependent or the source is dependent,
                    so add a template param cast. */
-                make_template_param_cast_constant(&conaddr1, con, new_type,
+                make_template_param_cast_constant(conaddr1, con, new_type,
                                                   !expr->variant.operation.
                                                            compiler_generated);
                 *template_constant = TRUE;
               } else {
-                copy_constant(&conaddr1, con);
+                copy_constant(conaddr1, con);
                 implicit_or_explicit_cast(
                                    con, new_type,
                                    expr->variant.operation.compiler_generated);
@@ -6215,6 +6229,7 @@ handle_pm_field_selection:
             /* Other operators cannot be folded. */
             break;
         }  /* switch */
+        release_local_constant(&conaddr1);
       }
       break;
     case enk_param_ref:
@@ -6240,10 +6255,11 @@ have_result:
         con->kind != (a_constant_repr_kind)ck_template_param) {
       /* Make sure there is a ck_template_param on top of a template-dependent
          case. */
-      a_constant local_constant;
-      copy_constant(con, &local_constant);
-      make_template_param_cast_constant(&local_constant, con, con->type,
+      a_constant_ptr local_con = local_constant();
+      copy_constant(con, local_con);
+      make_template_param_cast_constant(local_con, con, con->type,
                                         /*is_explicit=*/FALSE);
+      release_local_constant(&local_con);
     }  /* if */
   }  /* if */
   return is_constant_addr;
@@ -6469,7 +6485,7 @@ context information.
       break;
     case enk_operation:
       { an_expr_node_ptr op1 = expr->variant.operation.operands;
-        a_constant       conaddr1;
+        a_constant_ptr   conaddr1 = local_constant();
         op1 = skip_parens(op1);
         switch (expr->variant.operation.kind) {
           case eok_address_of:
@@ -6528,7 +6544,7 @@ context information.
             /* Cast of a pointer to a base class pointer. */
             /* Casts of a class lvalue or rvalue shouldn't get here. */
 cast_case:
-            if (constant_prvalue_pointer_full(op1, ceblock, &conaddr1,
+            if (constant_prvalue_pointer_full(op1, ceblock, conaddr1,
                                               address_escapes,
                                               options, template_constant) &&
                 !*template_constant) {
@@ -6539,7 +6555,7 @@ cast_case:
               con->type = expr->type;
               /* Access checking is not done because it was already
                  done when the expression was put together. */
-              conv_pointer_to_whatever(&conaddr1, con,
+              conv_pointer_to_whatever(conaddr1, con,
                                        /*check_cast_access=*/FALSE,
                                        /*check_ambiguity=*/FALSE,
                                        (a_boolean)expr->variant.operation.
@@ -6563,6 +6579,7 @@ cast_case:
             /* Other operators cannot be folded. */
             break;
         }  /* switch */
+        release_local_constant(&conaddr1);
       }
       break;
     default:
@@ -6576,10 +6593,11 @@ have_result:
         con->kind != (a_constant_repr_kind)ck_template_param) {
       /* Make sure there is a ck_template_param on top of a template-dependent
          case. */
-      a_constant local_constant;
-      copy_constant(con, &local_constant);
-      make_template_param_cast_constant(&local_constant, con, con->type,
+      a_constant_ptr local_con = local_constant();
+      copy_constant(con, local_con);
+      make_template_param_cast_constant(local_con, con, con->type,
                                         /*is_explicit=*/FALSE);
+      release_local_constant(&local_con);
     }  /* if */
   }  /* if */
   return is_constant_ptr;
@@ -8582,8 +8600,8 @@ Note that in some cases, the builtin function is never folded;
 the folding mechanism is used as a way to validate argument values.
 */
 {
-  a_boolean  folded = FALSE;
-  a_constant result;
+  a_boolean      folded = FALSE;
+  a_constant_ptr result = local_constant();
 
   *err_code = ec_no_error;
   if (rp->implicit_alias) {
@@ -8609,7 +8627,7 @@ the folding mechanism is used as a way to validate argument values.
         /* Usually folded in scan_gnu_builtin_pseudo_call, but for
            folding of constexpr calls we can get here. */
         check_assertion(is_integral_type(result_type) && args != NULL);
-        set_integer_constant(&result,
+        set_integer_constant(result,
                              (a_host_large_integer)is_constant_node(args),
                              result_type->variant.integer.int_kind);
         folded = TRUE;
@@ -8621,9 +8639,9 @@ the folding mechanism is used as a way to validate argument values.
            that is available, or the largest possible value of the
            associated floating-point type.) */
         if (args == NULL && is_floating_type(result_type)) {
-          clear_constant(&result, (a_constant_repr_kind)ck_float);
-          result.type = result_type;
-          folded = make_huge_fp_val(&result.variant.float_value,
+          clear_constant(result, (a_constant_repr_kind)ck_float);
+          result->type = result_type;
+          folded = make_huge_fp_val(&result->variant.float_value,
                                     result_type->variant.float_kind);
         }  /* if */
         break;
@@ -8647,9 +8665,9 @@ the folding mechanism is used as a way to validate argument values.
                 kind == (a_builtin_function_kind)bfk_nansl) {
               signaling = TRUE;
             }  /* if */
-            clear_constant(&result, (a_constant_repr_kind)ck_float);
-            result.type = result_type;
-            folded = make_fp_nan(&result.variant.float_value,
+            clear_constant(result, (a_constant_repr_kind)ck_float);
+            result->type = result_type;
+            folded = make_fp_nan(&result->variant.float_value,
                                  result_type->variant.float_kind,
                                  signaling);
           }  /* if */
@@ -8660,9 +8678,9 @@ the folding mechanism is used as a way to validate argument values.
       case bfk_infl:
         /* A positive infinity value. */
         if (args == NULL && is_floating_type(result_type)) {
-          clear_constant(&result, (a_constant_repr_kind)ck_float);
-          result.type = result_type;
-          folded = make_fp_infinity(&result.variant.float_value,
+          clear_constant(result, (a_constant_repr_kind)ck_float);
+          result->type = result_type;
+          folded = make_fp_infinity(&result->variant.float_value,
                                     result_type->variant.float_kind);
         }  /* if */
         break;
@@ -8686,7 +8704,7 @@ the folding mechanism is used as a way to validate argument values.
 #endif /* LONG_LONG_ALLOWED */
         /* Bit counting functions. */
         if (args != NULL && args2 == NULL) {
-          folded = fold_bit_count_operation_if_possible(rp, args, &result);
+          folded = fold_bit_count_operation_if_possible(rp, args, result);
         }  /* if */
         break;
 #if TARG_HAS_IEEE_FLOATING_POINT
@@ -8709,7 +8727,7 @@ the folding mechanism is used as a way to validate argument values.
                    !is_template_param_type(args->type)) {
           *err_code = ec_call_requires_floating_point_argument;
         } else {
-          folded = fold_fptest_if_possible(rp, args, &result);
+          folded = fold_fptest_if_possible(rp, args, result);
         }  /* if */
         break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
@@ -8751,7 +8769,7 @@ the folding mechanism is used as a way to validate argument values.
               if (scon->variant.string.value[len] == '\0') {
                 /* Found first null character, so we know the length. */
                 folded = TRUE;
-                set_integer_constant(&result,
+                set_integer_constant(result,
                                      (a_host_large_integer)len,
                                      skip_typerefs(result_type)->
                                                      variant.integer.int_kind);
@@ -8771,16 +8789,16 @@ the folding mechanism is used as a way to validate argument values.
               is_integral_type(con->type) &&
               is_integral_type(result_type)) {
             a_boolean err = FALSE;
-            copy_constant(con, &result);
+            copy_constant(con, result);
             /* Probably no type difference between the parameter type and
                the result type, but change it just in case. */
-            result.type = result_type;
+            result->type = result_type;
             if (sign_of_integer_constant(con) < 0) {
               /* Negate a negative value. */
-              negate_integer_value(&result.variant.integer_value, &err);
+              negate_integer_value(&result->variant.integer_value, &err);
               if (!err &&
-                  !in_range_for_integer_kind(&result, &result,
-                       skip_typerefs(result.type)->variant.integer.int_kind)) {
+                  !in_range_for_integer_kind(result, result,
+                      skip_typerefs(result->type)->variant.integer.int_kind)) {
                 err = TRUE;
               }  /* if */
             }  /* if */
@@ -8802,20 +8820,21 @@ the folding mechanism is used as a way to validate argument values.
             a_boolean    err = FALSE, depends_on_fp_mode = FALSE;
             a_type_ptr   float_tp = skip_typerefs(result_type);
             a_float_kind float_kind = float_tp->variant.float_kind;
-            copy_constant(con, &result);
+            copy_constant(con, result);
             /* Probably no type difference between the parameter type and
                the result type, but change it just in case. */
-            result.type = float_tp;
-            if (fp_is_negative(float_kind, &result.variant.float_value)) {
+            result->type = float_tp;
+            if (fp_is_negative(float_kind, &result->variant.float_value)) {
               /* Negate a negative value. */
-              a_constant fp_con;
-              copy_constant(con, &fp_con);
+              a_constant_ptr fp_con = local_constant();
+              copy_constant(con, fp_con);
               fp_negate(float_kind,
-                        &fp_con.variant.float_value,
-                        &result.variant.float_value,
+                        &fp_con->variant.float_value,
+                        &result->variant.float_value,
                         &err,
                         &depends_on_fp_mode);
               if (depends_on_fp_mode) err = TRUE;
+              release_local_constant(&fp_con);
             }  /* if */
             if (!err) folded = TRUE;
           }  /* if */
@@ -8839,7 +8858,7 @@ the folding mechanism is used as a way to validate argument values.
                  be covered. */
               folded = fold_pow_if_possible(args->variant.constant,
                                             args2->variant.constant,
-                                            &result, result_type);
+                                            result, result_type);
             }  /* if */
           }  /* if */
         }
@@ -8857,7 +8876,7 @@ the folding mechanism is used as a way to validate argument values.
         check_assertion(args2 != NULL);
         folded = fold_lock_free_query_if_possible(
                                            rp->variant.builtin_function_kind,
-                                           args, args2, &result, result_type);
+                                           args, args2, result, result_type);
         break;
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
       case bfk_assume_aligned:
@@ -8895,10 +8914,11 @@ the folding mechanism is used as a way to validate argument values.
   if (!folded && is_dependent_list_of_constant_nodes(args)) {
     /* A call on a list of dependent constants can be folded to a
        ck_template_param constant. */
-    make_template_param_expr_constant(call_expr, &result);
+    make_template_param_expr_constant(call_expr, result);
     folded = TRUE;
   }  /* if */
-  if (folded) copy_constant(&result, result_con);
+  if (folded) copy_constant(result, result_con);
+  release_local_constant(&result);
   return folded;
 }  /* fold_gnu_builtin_function_call_if_possible */
 
@@ -9099,12 +9119,14 @@ in *result_con and return TRUE; otherwise, return FALSE.
          elem_con = elem_con->next) {
       a_constant_ptr new_elem_con = NULL;
       if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        a_constant con;
+        a_constant_ptr con = local_constant();
         if (fold_dynamic_init(elem_con->variant.dynamic_init,
                               elem_con->type,
                               ceblock,
-                              &con)) {
-          new_elem_con = alloc_unshared_constant(&con);
+                              con)) {
+          new_elem_con = move_local_constant_to_il(&con);
+        } else {
+          release_local_constant(&con);
         }  /* if */
       } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         /* A repeated constant.  If the repeated constant is a
@@ -9112,13 +9134,13 @@ in *result_con and return TRUE; otherwise, return FALSE.
            folds successfully, or for other kinds of repeated
            constants, copy this constant and the repeated constant. */
         a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
-        a_constant     init_con;
+        a_constant_ptr init_con = local_constant();
         if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
           if (fold_dynamic_init(rep_con->variant.dynamic_init,
-                                rep_con->type, ceblock, &init_con)) {
+                                rep_con->type, ceblock, init_con)) {
             /* The repeated dynamic initialization folded to a constant,
                so use that in folding this constant. */
-            rep_con = &init_con;
+            rep_con = init_con;
           } else {
             /* The repeated dynamic initialization could not be folded,
                so this initialization cannot be folded. */
@@ -9130,14 +9152,17 @@ in *result_con and return TRUE; otherwise, return FALSE.
           new_elem_con->variant.init_repeat.constant =
                                               alloc_unshared_constant(rep_con);
         }  /* if */
+        release_local_constant(&init_con);
       } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
         /* Just make a copy of the designator (the field and element
            number are constant and don't change). */
         new_elem_con = alloc_unshared_constant(elem_con);
       } else if (elem_con->kind == (a_constant_repr_kind)ck_aggregate) {
-        a_constant elem_aggr_con;
-        if (fold_aggregate_constant(elem_con, ceblock, &elem_aggr_con)) {
-          new_elem_con = alloc_unshared_constant(&elem_aggr_con);
+        a_constant_ptr elem_aggr_con = local_constant();
+        if (fold_aggregate_constant(elem_con, ceblock, elem_aggr_con)) {
+          new_elem_con = move_local_constant_to_il(&elem_aggr_con);
+        } else {
+          release_local_constant(&elem_aggr_con);
         }  /* if */
       } else {
         /* Normal constant. */
@@ -9354,11 +9379,10 @@ allocated and returned.  ceblock gives context information for the
 evaluation (e.g., parameter values).
 */
 {
-  a_constant_ptr           result_con = NULL;
-  a_constant               char_con;
-  a_boolean                type_mismatch = FALSE;
-  a_boolean                err = FALSE;
-  an_expr_copy_options_set copy_options = CE_NO_OPTIONS;
+  a_constant_ptr result_con = NULL;
+  a_constant_ptr char_con = local_constant();
+  a_boolean      type_mismatch = FALSE;
+  a_boolean      err = FALSE;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -9641,10 +9665,9 @@ evaluation (e.g., parameter values).
           char_val = (a_host_large_integer)extract_character_from_string(
                                             start_of_char_within_string,
                                             (unsigned int)(target_type->size));
-          set_integer_constant(&char_con, char_val,
+          set_integer_constant(char_con, char_val,
                                target_type->variant.integer.int_kind);
-          result_con = &char_con;
-          copy_options = CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL;
+          result_con = char_con;
         }  /* if */
       }  /* if */
       if (err) {
@@ -9660,8 +9683,7 @@ evaluation (e.g., parameter values).
           copy_constant_for_constexpr_evaluation(result_con, target_con);
           result_con = target_con;
         } else {
-          result_con = copy_constant_full(result_con, (a_constant_ptr)NULL,
-                                          copy_options);
+          result_con = copy_unshared_constant(result_con);
         }  /* if */
       } else {
         /* We ran off the end of the aggregate initializer, so the
@@ -9672,15 +9694,16 @@ evaluation (e.g., parameter values).
             result_con = target_con;
           }  /* if */
         } else {
-          a_constant zero_con;
-          if (make_value_initialized_constant(target_type, &zero_con)) {
-            result_con = copy_constant_full(&zero_con, (a_constant_ptr)NULL,
-                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+          a_constant_ptr zero_con = local_constant();
+          if (make_value_initialized_constant(target_type, zero_con)) {
+            result_con = copy_unshared_constant(zero_con);
           }  /* if */
+          release_local_constant(&zero_con);
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
+  release_local_constant(&char_con);
   return result_con;
 }  /* constant_value_at_address */
 
@@ -9696,20 +9719,21 @@ the variable to which p points has a constant value, return that value.
 */
 {
   a_constant_ptr result_con = NULL;
-  a_constant     addr_con;
+  a_constant_ptr addr_con = local_constant();
   a_constexpr_evaluation_block ceblock;
 
   clear_constexpr_evaluation_block(&ceblock, pos);
   if (constexpr_enabled &&
-      constant_glvalue_address_full(expr, &ceblock, &addr_con,
+      constant_glvalue_address_full(expr, &ceblock, addr_con,
                                     /*address_escapes=*/FALSE,
                                     CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                     (a_boolean *)NULL)) {
     result_con = constant_value_at_address(
-                                          &addr_con,
+                                          addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
                                           (a_constant_ptr)NULL);
   }  /* if */
+  release_local_constant(&addr_con);
   return result_con;
 }  /* constant_value_addressed_by_node */
 
@@ -9772,7 +9796,8 @@ ceblock gives context information for the evaluation.
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
     an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
-    a_constant            op1_constant, op2_constant;
+    a_constant_ptr        op1_constant = local_constant();
+    a_constant_ptr        op2_constant = local_constant();
     a_constant_ptr        obj_expr_con;
     a_boolean             op1_folded = FALSE, op2_folded = FALSE;
     switch (op) {
@@ -9781,8 +9806,8 @@ ceblock gives context information for the evaluation.
         /* Indirection through a pointer or reference.  If the operand
            folds to a constant that addresses a constant value, the
            expression can be folded. */
-        if (fold_expr(op1, ceblock, &op1_constant) &&
-            constant_value_at_address(&op1_constant,
+        if (fold_expr(op1, ceblock, op1_constant) &&
+            constant_value_at_address(op1_constant,
                                       (a_constexpr_evaluation_block *)NULL,
                                       result_con) != NULL) {
           folded = TRUE;
@@ -9797,10 +9822,10 @@ ceblock gives context information for the evaluation.
         break;
       case eok_question:
         /* "?" operator. */
-        op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        op1_folded = fold_expr(op1, ceblock, op1_constant);
         if (op1_folded &&
-            constant_bool_value_known_at_compile_time(&op1_constant)) {
-          if (is_false_constant(&op1_constant)) {
+            constant_bool_value_known_at_compile_time(op1_constant)) {
+          if (is_false_constant(op1_constant)) {
             /* First operand is false, so result is op3. */
             folded = fold_expr(op2->next, ceblock, result_con);
           } else {
@@ -9813,44 +9838,44 @@ ceblock gives context information for the evaluation.
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
         if (is_glvalue_node(op1) ?
-              fold_glvalue_expr(op1, ceblock, &op1_constant) :
-              fold_expr(op1, ceblock, &op1_constant)) {
+              fold_glvalue_expr(op1, ceblock, op1_constant) :
+              fold_expr(op1, ceblock, op1_constant)) {
           folded = fold_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       case eok_land:
       case eok_lor:
         /* && or || operator. */
-        op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        op1_folded = fold_expr(op1, ceblock, op1_constant);
         if (op1_folded &&
-            constant_bool_value_known_at_compile_time(&op1_constant)) {
+            constant_bool_value_known_at_compile_time(op1_constant)) {
           a_boolean result = FALSE;
           if (op == (an_expr_operator_kind)eok_land) {
             /* && operator. */
-            if (is_false_constant(&op1_constant)) {
+            if (is_false_constant(op1_constant)) {
               /* First operand is false, so result is false. */
               folded = TRUE;
               result = FALSE;
             } else {
               /* First operand is true, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, &op2_constant) &&
-                  constant_bool_value_known_at_compile_time(&op2_constant)) {
+              if (fold_expr(op2, ceblock, op2_constant) &&
+                  constant_bool_value_known_at_compile_time(op2_constant)) {
                 folded = TRUE;
-                result = !is_false_constant(&op2_constant);
+                result = !is_false_constant(op2_constant);
               }  /* if */
             }  /* if */
           } else {
             /* || operator. */
-            if (!is_false_constant(&op1_constant)) {
+            if (!is_false_constant(op1_constant)) {
               /* First operand is true, so result is true. */
               folded = TRUE;
               result = TRUE;
             } else {
               /* First operand is false, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, &op2_constant) &&
-                  constant_bool_value_known_at_compile_time(&op2_constant)) {
+              if (fold_expr(op2, ceblock, op2_constant) &&
+                  constant_bool_value_known_at_compile_time(op2_constant)) {
                 folded = TRUE;
-                result = !is_false_constant(&op2_constant);
+                result = !is_false_constant(op2_constant);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -9881,7 +9906,7 @@ ceblock gives context information for the evaluation.
       case eok_pm_field:
         /* a.field or a.*field. */
         op1_folded = fold_object_expr(op1, ceblock, /*want_addr=*/FALSE,
-                                      &op1_constant);
+                                      op1_constant);
         if (op == (an_expr_operator_kind)eok_dot_field) {
           goto field_selection;
         } else {
@@ -9891,7 +9916,7 @@ ceblock gives context information for the evaluation.
       case eok_pm_points_to_field:
         /* p->field or p->*field.  Try to fold the left operand to a
            constant, then try to fold the field selection. */
-        op1_folded = fold_expr(op1, ceblock, &op1_constant);
+        op1_folded = fold_expr(op1, ceblock, op1_constant);
         if (!op1_folded && op1->kind == (an_expr_node_kind)enk_variable &&
             op1->variant.variable->is_this_parameter &&
             (obj_expr_con =
@@ -9899,7 +9924,7 @@ ceblock gives context information for the evaluation.
           /* This member access expression refers to a field of an object
              currently being initialized.  Use the address of that
              in-progress constant as the pointer. */
-          set_temporary_address_constant(obj_expr_con, &op1_constant);
+          set_temporary_address_constant(obj_expr_con, op1_constant);
           op1_folded = TRUE;
         }  /* if */
         if (op == (an_expr_operator_kind)eok_pm_points_to_field) {
@@ -9909,7 +9934,7 @@ field_selection:
         if (op1_folded) {
           a_boolean points_to =
                             (op == (an_expr_operator_kind)eok_points_to_field);
-          if (fold_constant_field_selection(&op1_constant, points_to,
+          if (fold_constant_field_selection(op1_constant, points_to,
                                             op2->variant.field, result_con)) {
             folded = TRUE;
           }  /* if */
@@ -9917,20 +9942,21 @@ field_selection:
         break;
 pm_field_selection:
         if (op1_folded) {
-          a_constant pm_constant;
-          if (fold_expr(op2, ceblock, &pm_constant) &&
-              pm_constant.kind == (a_constant_repr_kind)ck_ptr_to_member &&
-              !pm_constant.variant.ptr_to_member.is_function_ptr &&
-              pm_constant.variant.ptr_to_member.variant.field != NULL) {
+          a_constant_ptr pm_constant = local_constant();
+          if (fold_expr(op2, ceblock, pm_constant) &&
+              pm_constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+              !pm_constant->variant.ptr_to_member.is_function_ptr &&
+              pm_constant->variant.ptr_to_member.variant.field != NULL) {
             a_boolean points_to =
                          (op == (an_expr_operator_kind)eok_pm_points_to_field);
             if (fold_constant_field_selection(
-                               &op1_constant, points_to,
-                               pm_constant.variant.ptr_to_member.variant.field,
-                               result_con)) {
+                              op1_constant, points_to,
+                              pm_constant->variant.ptr_to_member.variant.field,
+                              result_con)) {
               folded = TRUE;
             }  /* if */
           }  /* if */
+          release_local_constant(&pm_constant);
         }  /* if */
         break;
       case eok_address_of:
@@ -9958,8 +9984,8 @@ pm_field_selection:
            C++11 constant expression.) */
         if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
             identical_types_ignoring_qualifiers(expr->type, op1->type) &&
-            fold_glvalue_expr(op1, ceblock, &op1_constant) &&
-            constant_value_at_address(&op1_constant,
+            fold_glvalue_expr(op1, ceblock, op1_constant) &&
+            constant_value_at_address(op1_constant,
                                       (a_constexpr_evaluation_block *)NULL,
                                       result_con) != NULL) {
           folded = TRUE;
@@ -9968,23 +9994,23 @@ pm_field_selection:
         break;
       case eok_base_class_cast:
         /* A cast of a prvalue to one of its base class subobjects. */
-        if (fold_expr(op1, ceblock, &op1_constant)) {
-          if (op1_constant.kind == (a_constant_repr_kind)ck_template_param) {
+        if (fold_expr(op1, ceblock, op1_constant)) {
+          if (op1_constant->kind == (a_constant_repr_kind)ck_template_param) {
             /* A dependent constant.  Just change the type. */
-            type_change_constant(&op1_constant, expr->type,
+            type_change_constant(op1_constant, expr->type,
                                  expr->variant.operation.compiler_generated,
                                  /*maintain_expression=*/TRUE, &did_not_fold,
                                  &pos);
             if (!did_not_fold) {
               folded = TRUE;
-              copy_constant_for_constexpr_evaluation(&op1_constant,
+              copy_constant_for_constexpr_evaluation(op1_constant,
                                                      result_con);
             }  /* if */
-          } else if (op1_constant.kind == (a_constant_repr_kind)ck_address) {
+          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address) {
             /* An address constant.  Fold the base class cast into it. */
             if (is_template_dependent_type(expr->type)) {
               make_template_param_cast_constant(
-                                  &op1_constant, result_con, expr->type,
+                                  op1_constant, result_con, expr->type,
                                   !expr->variant.operation.compiler_generated);
               folded = TRUE;
             } else {
@@ -9998,7 +10024,7 @@ pm_field_selection:
               derived_type = skip_typerefs(derived_type);
               bcp = find_base_class_of(derived_type, base_type);
               check_assertion(bcp != NULL);
-              fold_base_class_cast(&op1_constant, bcp, expr->type, result_con,
+              fold_base_class_cast(op1_constant, bcp, expr->type, result_con,
                                    /*check_cast_access=*/FALSE,
                                    /*check_ambiguity=*/FALSE,
                                    expr->variant.operation.compiler_generated,
@@ -10008,13 +10034,14 @@ pm_field_selection:
                 folded = TRUE;
               }  /* if */
             }  /* if */
-          } else if (op1_constant.kind == (a_constant_repr_kind)ck_aggregate) {
+          } else if (op1_constant->kind ==
+                                          (a_constant_repr_kind)ck_aggregate) {
             a_constant_ptr base_con;
             /* Scan through the base class subaggregates looking for one that
                matches the type to which the operand is being cast.  Because
                eok_base_class_cast operations only traverse a single level,
                we only need to look at the top-level subaggregates. */
-            for (base_con = op1_constant.variant.aggregate.first_constant;
+            for (base_con = op1_constant->variant.aggregate.first_constant;
                  !folded && base_con != NULL &&
                       base_con->constant_for_base_class_from_constexpr_folding;
                  base_con = base_con->next) {
@@ -10035,12 +10062,12 @@ pm_field_selection:
         /* "Normal" operators.  For these, the operands have to be "real"
             constants (not dynamic initializations) for folding to be
             possible. */
-        op1_folded = (fold_expr(op1, ceblock, &op1_constant) &&
-                      op1_constant.kind !=
+        op1_folded = (fold_expr(op1, ceblock, op1_constant) &&
+                      op1_constant->kind !=
                                         (a_constant_repr_kind)ck_dynamic_init);
         if (op2 != NULL) {
-          op2_folded = (fold_expr(op2, ceblock, &op2_constant) &&
-                        op2_constant.kind !=
+          op2_folded = (fold_expr(op2, ceblock, op2_constant) &&
+                        op2_constant->kind !=
                                         (a_constant_repr_kind)ck_dynamic_init);
         }  /* if */
         if (op1_folded && (op2_folded || op2 == NULL)) {
@@ -10056,7 +10083,7 @@ pm_field_selection:
             case eok_imag_part:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
               /* Foldable unary operators. */
-              unary_operation(op, &op1_constant, expr->type,
+              unary_operation(op, op1_constant, expr->type,
                               result_con,
                               /*constant_context=*/TRUE,
                               /*evaluated_context=*/TRUE,
@@ -10102,7 +10129,7 @@ pm_field_selection:
             case eok_padd:
             case eok_psubtract:
               /* Foldable binary (two-operand) operators. */
-              binary_operation(op, &op1_constant, &op2_constant, expr->type,
+              binary_operation(op, op1_constant, op2_constant, expr->type,
                                result_con,
                                /*constant_context=*/TRUE,
                                /*evaluated_context=*/TRUE,
@@ -10119,8 +10146,8 @@ pm_field_selection:
                  except that if the result of the operation is not an
                  lvalue, it is the value pointed to by the result of the
                  addition is desired. */
-              binary_operation((an_expr_operator_kind)eok_padd, &op1_constant,
-                               &op2_constant, expr->type, result_con,
+              binary_operation((an_expr_operator_kind)eok_padd, op1_constant,
+                               op2_constant, expr->type, result_con,
                                /*constant_context=*/TRUE,
                                /*evaluated_context=*/TRUE,
                                &did_not_fold,
@@ -10132,18 +10159,19 @@ pm_field_selection:
                 if (!is_glvalue_node(expr)) {
                   /* The value, not the address, of the element is
                      desired. */
-                  a_constant value_con;
+                  a_constant_ptr value_con = local_constant();
                   if (constant_value_at_address(
                                           result_con,
                                           (a_constexpr_evaluation_block *)NULL,
-                                          &value_con) != NULL) {
+                                          value_con) != NULL) {
                     /* The addressed element is a constant; use it. */
-                    copy_constant(&value_con, result_con);
+                    copy_constant(value_con, result_con);
                   } else {
                     /* The addressed element is not a constant, so the
                        operation cannot be folded. */
                     folded = FALSE;
                   }  /* if */
+                  release_local_constant(&value_con);
                 }  /* if */
               }  /* if */
               break;
@@ -10153,19 +10181,19 @@ pm_field_selection:
               /* Cast. */
               if (is_incomplete_type(expr->type)) {
                 /* Can't fold something like a cast to void. */
-              } else if (is_pointer_type(op1_constant.type) &&
-                         is_void_type(type_pointed_to(op1_constant.type)) &&
+              } else if (is_pointer_type(op1_constant->type) &&
+                         is_void_type(type_pointed_to(op1_constant->type)) &&
                          is_pointer_to_object_type(expr->type)) {
                 /* Core issue 1312: can't fold a cast from pointer-to-void to
                    pointer-to-object. */
               } else if (could_be_dependent_class_type(expr->type) ||
                          is_instantiation_dependent_type(expr->type) ||
-                         could_be_dependent_class_type(op1_constant.type)) {
+                         could_be_dependent_class_type(op1_constant->type)) {
                 /* Don't fold casts involving dependent class types unless
                    the types are the same except for cv-qualifiers. */
                 if (identical_types_ignoring_qualifiers(expr->type,
-                                                        op1_constant.type)) {
-                  op1_constant.type = expr->type;
+                                                        op1_constant->type)) {
+                  op1_constant->type = expr->type;
                 }  /* if */
               } else {
                 a_boolean  evaluated = TRUE, constant_context = FALSE;
@@ -10175,7 +10203,7 @@ pm_field_selection:
                                      curr_expr_kind_is(ek_template_arg);
                 }  /* if */
                 type_change_constant_full(
-                                    &op1_constant, expr->type,
+                                    op1_constant, expr->type,
                                     expr->variant.operation.compiler_generated,
                                     constant_context,
                                     evaluated,
@@ -10190,7 +10218,7 @@ pm_field_selection:
                                     &pos);
                 if (!did_not_fold) {
                   folded = TRUE;
-                  copy_constant(&op1_constant, result_con);
+                  copy_constant(op1_constant, result_con);
                 }  /* if */
               }  /* if */
               break;
@@ -10206,6 +10234,8 @@ pm_field_selection:
         }  /* if */
         break;
     }  /* switch */
+    release_local_constant(&op1_constant);
+    release_local_constant(&op2_constant);
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     folded = fold_dynamic_init(expr->variant.init.dynamic_init,
                                expr->type,
@@ -10229,7 +10259,7 @@ ceblock gives context information for the evaluation.
 */
 {
   a_boolean  folded = FALSE;
-  a_constant local_constant;
+  a_constant_ptr local_con = local_constant();
   a_boolean  do_not_call_back = ceblock->do_not_call_back;
 
   ceblock->do_not_call_back = FALSE;
@@ -10263,7 +10293,7 @@ ceblock gives context information for the evaluation.
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
     an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
-    a_constant            op1_constant;
+    a_constant_ptr        op1_constant = local_constant();
     switch (op) {
       case eok_call:
       case eok_dot_member_call:
@@ -10284,17 +10314,17 @@ ceblock gives context information for the evaluation.
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
         if (is_glvalue_node(op1) ?
-              fold_glvalue_expr(op1, ceblock, &op1_constant) :
-              fold_expr(op1, ceblock, &op1_constant)) {
+              fold_glvalue_expr(op1, ceblock, op1_constant) :
+              fold_expr(op1, ceblock, op1_constant)) {
           folded = fold_glvalue_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       case eok_question:
         /* If the first operand of a "?" has a known value, we can return
            the address of the second or third operand. */
-        if (fold_expr(op1, ceblock, &op1_constant) &&
-            constant_bool_value_known_at_compile_time(&op1_constant)) {
-          if (is_false_constant(&op1_constant)) {
+        if (fold_expr(op1, ceblock, op1_constant) &&
+            constant_bool_value_known_at_compile_time(op1_constant)) {
+          if (is_false_constant(op1_constant)) {
             /* First operand is false, so result is op3. */
             folded = fold_glvalue_expr(op2->next, ceblock, result_con);
           } else {
@@ -10306,6 +10336,7 @@ ceblock gives context information for the evaluation.
       default:
         break;
     }  /* switch */
+    release_local_constant(&op1_constant);
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     /* A temp-init with a non-volatile type and a constant value can be
        considered a constant, and the address of a temporary containing the
@@ -10315,13 +10346,14 @@ ceblock gives context information for the evaluation.
         fold_dynamic_init(dip,
                           expr->type,
                           ceblock,
-                          &local_constant)) {
+                          local_con)) {
       folded = TRUE;
       set_expiring_temporary_address_constant(
-                                     alloc_shareable_constant(&local_constant),
+                                     alloc_shareable_constant(local_con),
                                      dip, result_con);
     }  /* if */
   }  /* if */
+  release_local_constant(&local_con);
   return folding_result(folded);
 }  /* fold_glvalue_expr */
 
@@ -10363,13 +10395,14 @@ member function call.
     if (fold_glvalue_expr(expr, ceblock, result_con)) {
       folded = TRUE;
       if (!want_addr) {
-        a_constant pointed_to_con;
+        a_constant_ptr pointed_to_con = local_constant();
         if (constant_value_at_address(result_con, ceblock,
-                                      &pointed_to_con) != NULL) {
-          copy_constant(&pointed_to_con, result_con);
+                                      pointed_to_con) != NULL) {
+          copy_constant(pointed_to_con, result_con);
         } else {
           folded = FALSE;
         }  /* if */
+        release_local_constant(&pointed_to_con);
       }  /* if */
     } else if (!want_addr && is_variable_node(expr)) {
       /* An lvalue variable node for a parameter or constexpr variable
@@ -10660,17 +10693,18 @@ usually be called instead.
   if (routine == NULL) {
     /* Check to see if we can fold the expression to a constant that
        designates a routine. */
-    a_constant rout_constant;
-    if (fold_expr(args, ceblock, &rout_constant)) {
-      if (con_is_exact_addr_of_routine(&rout_constant)) {
-        routine = rout_constant.variant.address.variant.routine;
-      } else if (rout_constant.kind ==
+    a_constant_ptr rout_constant = local_constant();
+    if (fold_expr(args, ceblock, rout_constant)) {
+      if (con_is_exact_addr_of_routine(rout_constant)) {
+        routine = rout_constant->variant.address.variant.routine;
+      } else if (rout_constant->kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&
-                 rout_constant.variant.ptr_to_member.is_function_ptr &&
-                 !rout_constant.implicit_cast) {
-        routine = rout_constant.variant.ptr_to_member.variant.routine;
+                 rout_constant->variant.ptr_to_member.is_function_ptr &&
+                 !rout_constant->implicit_cast) {
+        routine = rout_constant->variant.ptr_to_member.variant.routine;
       }  /* if */
     }  /* if */
+    release_local_constant(&rout_constant);
   }  /* if */
   args = args->next;
   if (incr_constexpr_call_depth(ceblock, &call_block)) {
@@ -10693,13 +10727,13 @@ usually be called instead.
         an_error_code    err_code;
         an_expr_node_ptr new_arg_list = NULL, *p_last = &new_arg_list;
         an_expr_node_ptr arg, new_arg;
+        a_constant_ptr   arg_con = local_constant();
         /* Create an argument list with folded constant values for the
            arguments. */
         for (arg = args; arg != NULL; arg = arg->next) {
-          a_constant arg_con;
           if (is_glvalue_node(arg)) goto gnu_builtin_fail;
-          if (!fold_expr(arg, ceblock, &arg_con)) goto gnu_builtin_fail;
-          new_arg = alloc_node_for_constant(&arg_con);
+          if (!fold_expr(arg, ceblock, arg_con)) goto gnu_builtin_fail;
+          new_arg = alloc_node_for_constant(arg_con);
           *p_last = new_arg;
           p_last = &new_arg->next;
         }  /* for */
@@ -10712,6 +10746,7 @@ usually be called instead.
           folded = TRUE;
         }  /* if */
 gnu_builtin_fail:;
+        release_local_constant(&arg_con);
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10840,6 +10875,7 @@ prevents folding.  ceblock gives context information for the evaluation.
   a_field_ptr            field;
   a_boolean              okay = TRUE;
   an_aggr_init_con_elem  aggr_init_con;
+  a_constant_ptr         member_con = local_constant();
 
   check_assertion(is_immediate_class_type(class_type));
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -10851,8 +10887,7 @@ prevents folding.  ceblock gives context information for the evaluation.
                             class_type->variant.class_struct_union.field_list);
        field != NULL;
        field = next_non_generated_initializable_field(field->next)) {
-    a_constant  member_con;
-    a_field_ptr ctor_init_field = NULL;
+    a_field_ptr    ctor_init_field = NULL;
     if (ctor_init != NULL) {
       check_assertion(ctor_init->kind == (a_constructor_init_kind)cik_field);
       ctor_init_field = ctor_init->variant.field;
@@ -10903,17 +10938,17 @@ prevents folding.  ceblock gives context information for the evaluation.
          union is empty.  It will typically take one ctor-init, for one
          member of the union.  It may take several ctor-inits, for an
          anonymous struct. */
-      clear_constant(&member_con, (a_constant_repr_kind)ck_aggregate);
-      member_con.type = field->type;
+      clear_constant(member_con, (a_constant_repr_kind)ck_aggregate);
+      member_con->type = field->type;
       if (!init_class_aggr_con_from_ctor_init_list(field->type,
                                                    ceblock,
                                                    &ctor_init,
-                                                   &member_con)) {
+                                                   member_con)) {
         /* There was some error in processing. */
         okay = FALSE;
         break;
       }  /* if */
-      add_constant_to_aggregate(alloc_unshared_constant(&member_con),
+      add_constant_to_aggregate(alloc_unshared_constant(member_con),
                                 aggr_con);
     } else {
       /* Normal case, not an anonymous parent object.  Initialize directly. */
@@ -10941,11 +10976,11 @@ prevents folding.  ceblock gives context information for the evaluation.
         check_assertion(dip != NULL);
         /* Try to fold the initialization to a constant. */
         if (!fold_dynamic_init(dip, ctor_init_field->type,
-                               ceblock, &member_con)) {
+                               ceblock, member_con)) {
           okay = FALSE;
           break;
         }  /* if */
-        add_constant_to_aggregate(alloc_unshared_constant(&member_con),
+        add_constant_to_aggregate(alloc_unshared_constant(member_con),
                                   aggr_con);
         ctor_init = ctor_init->next;
       }  /* if */
@@ -10955,6 +10990,7 @@ prevents folding.  ceblock gives context information for the evaluation.
   }  /* for */
   *p_ctor_init_list = ctor_init;
   pop_aggr_init_constant(&aggr_init_con);
+  release_local_constant(&member_con);
   return okay;
 }  /* init_class_aggr_con_from_ctor_init_list */
 
@@ -11009,7 +11045,8 @@ fold_constexpr_ctor should usually be called instead.
       if (not_foldable) {
         /* Some problem that prevents folding. */
       } else {
-        a_constant aggr_con;
+        a_constant_ptr aggr_con = local_constant();
+        a_constant_ptr con = local_constant();
         if (ctor_routine->is_delegating_ctor) {
           /* The constructor delegates to another constructor.  Fold the
              delegating initializer. */
@@ -11019,15 +11056,15 @@ fold_constexpr_ctor should usually be called instead.
                           ctor_init->kind ==
                                      (a_constructor_init_kind)cik_delegation);
           folded = fold_dynamic_init(ctor_init->initializer,
-                                     class_type, ceblock, &aggr_con);
+                                     class_type, ceblock, aggr_con);
           if (!folded) goto fail;
         } else {
           /* Substitute values for parameters and attempt to fold the
              ctor-initializers.  Each one provides a value for one base
              class or nonstatic data member. */
           a_constructor_init_ptr ctor_init;
-          clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
-          aggr_con.type = class_type;
+          clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
+          aggr_con->type = class_type;
           /* Add a member constant for each ctor-init for a base class. */
           for (ctor_init =
                     scope->variant.routine.variant.constexpr_constructor_inits;
@@ -11037,24 +11074,23 @@ fold_constexpr_ctor should usually be called instead.
                   ctor_init->kind ==
                              (a_constructor_init_kind)cik_direct_base_class);
                ctor_init = ctor_init->next) {
-            a_constant con;
             /* Try to fold the initialization to a constant. */
             if (!fold_dynamic_init(ctor_init->initializer,
                                    ctor_init->variant.base_class->type,
-                                   ceblock, &con)) {
+                                   ceblock, con)) {
               goto fail;
             }  /* if */
-            con.constant_for_base_class_from_constexpr_folding = TRUE;
+            con->constant_for_base_class_from_constexpr_folding = TRUE;
             /* Add the constant at the end of the aggregate. */
-            add_constant_to_aggregate(alloc_unshared_constant(&con),
-                                      &aggr_con);
+            add_constant_to_aggregate(alloc_unshared_constant(con),
+                                      aggr_con);
           }  /* for */
           /* Now process the ctor-inits for the nonstatic data members of
              the class. */
           if (!init_class_aggr_con_from_ctor_init_list(class_type,
                                                        ceblock,
                                                        &ctor_init,
-                                                       &aggr_con)) {
+                                                       aggr_con)) {
             /* There was some error in processing. */
             goto fail;
           }  /* if */
@@ -11062,7 +11098,7 @@ fold_constexpr_ctor should usually be called instead.
           check_assertion(ctor_init == NULL);
         }  /* if */
         /* We succeeded in generating a constant for the class value. */
-        if (contains_dangling_pointer(&aggr_con, ceblock->active_calls,
+        if (contains_dangling_pointer(aggr_con, ceblock->active_calls,
                                       /*end_of_full_expr=*/FALSE)) {
           /* The constant produced has a dangling pointer, so it's not
              considered constant. */
@@ -11070,10 +11106,12 @@ fold_constexpr_ctor should usually be called instead.
           ceblock->failure_warning = ec_constexpr_dangling_pointer;
         } else {
           folded = TRUE;
-          copy_constant(&aggr_con, result_con);
+          copy_constant(aggr_con, result_con);
           result_con->is_result_of_constexpr_call = TRUE;
         }  /* if */
 fail:;
+        release_local_constant(&con);
+        release_local_constant(&aggr_con);
       }  /* if */
       free_constexpr_remap_list(ceblock->remap_list);
       ceblock->remap_list = saved_remap_list;
@@ -11378,14 +11416,14 @@ errors.
       /* The object expression has a literal type.  Now check to see if it
          is a compile-time constant and, if so, set obj_expr_con to point
          to it. */
-      a_constant     local_con;
+      a_constant_ptr local_con = local_constant();
       a_constant_ptr obj_expr_con = NULL;
       if (pointer_case) {
         /* eok_points_to_field case.  Check to see if we have a pointer
            constant as the left operand. */
-        if (constant_prvalue_pointer(obj_expr, &local_con,
+        if (constant_prvalue_pointer(obj_expr, local_con,
                                      /*address_escapes=*/FALSE)) {
-          obj_expr_con = &local_con;
+          obj_expr_con = local_con;
         }  /* if */
       } else if (is_glvalue_node(obj_expr)) {
         /* The member selection can be folded if the object expression
@@ -11396,13 +11434,13 @@ errors.
         obj_expr_con = obj_expr->variant.constant;
       } else if (expr->is_xvalue &&
                  fold_constexpr_expr(obj_expr, /*treat_as_object=*/FALSE,
-                                     pos, &local_con)) {
+                                     pos, local_con)) {
         /* ... or if the member access produces an xvalue and the object
            expression can be folded to a class value constant.  (We only do
            this folding for xvalue expressions because an lvalue
            expression, as member access expressions produced before core
            issue 616, can appear where constants are not allowed.) */
-        obj_expr_con = &local_con;
+        obj_expr_con = local_con;
       }  /* if */
       /* If we have a constant for the first operand, see if we can fold the
          whole selection to a constant result. */
@@ -11412,6 +11450,7 @@ errors.
                                         result_con)) {
         folded = TRUE;
       }  /* if */
+      release_local_constant(&local_con);
     }  /* if */
   }  /* if */
   return folding_result(folded);

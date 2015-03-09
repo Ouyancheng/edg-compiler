@@ -1539,10 +1539,10 @@ typedef struct a_member_decl_info {
 			/* Size of the start of the ":" of the bit field
 			   size. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_constant	bit_field_size;
-			/* Constant that represents the bit field size.  This
-			   field must only be used when is_bit_field is
-			   TRUE. */
+  a_constant_ptr
+		bit_field_size;
+			/* Constant that represents the bit field size.  NULL
+			   unless is_bit_field is TRUE. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr
 		named_overrides;
@@ -1600,7 +1600,7 @@ a class member declaration as it appears.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   mdip->bit_field_size_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* bit_field_size is only set when is_bit_field is TRUE. */
+  mdip->bit_field_size = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   mdip->named_overrides = NULL;
   mdip->suspended_pragmas = NULL;
@@ -3463,7 +3463,7 @@ of a constant-expression.
     }  /* for */
     if (*p_ifp != NULL) {
       a_decl_parse_state           dps;
-      a_constant                   constant;
+      a_constant_ptr               constant = local_constant();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
@@ -3481,9 +3481,9 @@ of a constant-expression.
                                                  /*is_template_based=*/FALSE,
                                                  /*extend_namespace=*/TRUE);
       rescan_reusable_cache(ifp->token_cache);
-      scan_member_constant_initializer_expression(&dps, &constant);
+      scan_member_constant_initializer_expression(&dps, constant);
       var->init_kind = (an_init_kind)initk_static;
-      var->initializer.constant = alloc_unshared_constant(&constant);
+      var->initializer.constant = move_local_constant_to_il(&constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       var->initializer_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -15824,7 +15824,7 @@ specific information about the member declaration, respectively.
         ((list_init_enabled || is_immediate_managed_class_type(class_type)) &&
          next_token() == tok_lbrace))) ||
       (list_init_enabled && curr_token == tok_lbrace)) {
-    a_constant         constant;
+    a_constant_ptr     constant = local_constant();
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
@@ -15919,13 +15919,13 @@ specific information about the member declaration, respectively.
         decl_state->auto_type_specifier_seen = saved_auto_type_specifier_seen;
       } else {
         /* Scan the constant expression. */
-        scan_member_constant_initializer_expression(decl_state, &constant);
+        scan_member_constant_initializer_expression(decl_state, constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         decl_info->decl_pos_block.var_init_range.end =
                                                   curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         var->init_kind = (an_init_kind)initk_static;
-        var->initializer.constant = alloc_unshared_constant(&constant);
+        var->initializer.constant = move_local_constant_to_il(&constant);
       }  /* if */
       check_constant_valued_variable(decl_state);
     } else {
@@ -15948,6 +15948,10 @@ specific information about the member declaration, respectively.
     if (restore_member_visibility) {
       /* Restore the member's visibility. */
       decl_state->sym->is_invisible = FALSE;
+    }  /* if */
+    if (constant != NULL) {
+      /* If the constant was not moved to the IL above, release it now. */
+      release_local_constant(&constant);
     }  /* if */
   } else if (var->is_constexpr) {
     /* A constexpr static data member declaration must have an initializer:
@@ -17064,7 +17068,7 @@ must be unsigned.
 */
 {
   a_boolean      use_signed = FALSE, smallest_is_negative;
-  a_constant     smallest, largest;
+  a_constant_ptr smallest, largest;
   unsigned long  bits_needed, bits_needed_largest, bits_needed_smallest;
   a_constant_ptr enum_con;
 
@@ -17081,19 +17085,19 @@ must be unsigned.
        going to scan the whole constant list; therefore it's okay to always
        scan the whole list even though some errors could be detected during
        the scan. */
-    smallest = *enum_con;
-    largest = *enum_con;
+    smallest = enum_con;
+    largest = enum_con;
     for (;;) {
       enum_con = enum_con->next;
       if (enum_con == NULL) break;
-      if (cmp_integer_constants(enum_con, &smallest) < 0) smallest = *enum_con;
-      if (cmp_integer_constants(enum_con, &largest)  > 0) largest  = *enum_con;
+      if (cmp_integer_constants(enum_con, smallest) < 0) smallest = enum_con;
+      if (cmp_integer_constants(enum_con, largest)  > 0) largest  = enum_con;
     }  /* for */
     /* Determine the number of bits needed to represent largest value. */
     bits_needed_largest =
-                        bits_required_to_represent_integer_constant(&largest);
+                        bits_required_to_represent_integer_constant(largest);
     /* See if the smallest value is negative. */
-    smallest_is_negative = (sign_of_integer_constant(&smallest) < 0);
+    smallest_is_negative = (sign_of_integer_constant(smallest) < 0);
     if (targ_enum_bit_fields_are_always_unsigned) {
       /* Enum bit fields are always unsigned (many ABIs require this). */
       use_signed = FALSE;
@@ -17120,14 +17124,14 @@ must be unsigned.
            never get here for a bit field of length one. */
         use_signed = !targ_nonnegative_enum_bit_field_is_unsigned;
       }  /* if */
-      if (use_signed && sign_of_integer_constant(&largest) > 0) {
+      if (use_signed && sign_of_integer_constant(largest) > 0) {
         /* Using a signed bit field and the largest is positive, so the
            largest value really requires one more bit for a zero sign. */
         bits_needed_largest++;
       }  /* if */
       /* Determine the number of bits needed. */
       bits_needed_smallest =
-                        bits_required_to_represent_integer_constant(&smallest);
+                        bits_required_to_represent_integer_constant(smallest);
       if (bits_needed_largest > bits_needed_smallest) {
         bits_needed = bits_needed_largest;
       } else {
@@ -17847,8 +17851,9 @@ be entered.
   }  /* if */
   if (field->is_bit_field) {
     /* Scan the bit-field size and determine the bit-field type. */
-    apply_bit_field_size(field, &decl_info->bit_field_size,
+    apply_bit_field_size(field, decl_info->bit_field_size,
                          &unnamed_field, &member_type, locator);
+    release_local_constant(&decl_info->bit_field_size);
   }  /* if */
   /* Copy the type (which may have been changed by apply_bit_field_size) into
      the field entry. */
@@ -18288,8 +18293,9 @@ information about the member declaration, respectively.
     /* Advance past the colon. */
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
+    decl_info->bit_field_size = local_constant();
     scan_fs_integral_constant_expression((a_type_ptr)NULL, /*is_enum=*/FALSE,
-                                          &decl_info->bit_field_size);
+                                         decl_info->bit_field_size);
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_attributes_enabled) {
       scan_gnu_declarator_attributes(dps);
@@ -27974,11 +27980,12 @@ flag is set in the class symbol supplement of the given type.
            constructor.  However, value-initialization does produce a constant
            B value, and because of this existing practice is to treat B as a
            literal type (this is also core issue 1452). */
-        a_constant  val;
+        a_constant_ptr  val = local_constant();
         if (!cssp->has_user_provided_default_constructor &&
-            make_value_initialized_constant(type, &val)) {
+            make_value_initialized_constant(type, val)) {
           cssp->known_to_be_a_literal_type = TRUE;
         }  /* if */
+        release_local_constant(&val);
       }  /* if */
       if (!cssp->known_to_be_a_literal_type) {
         /* If we haven't concluded that the type is a literal type by now, it
@@ -28361,18 +28368,19 @@ alignment of those fields).
       an_attribute_ptr        ap = alloc_attribute();
       an_attribute_arg_ptr    aap = alloc_attribute_arg();
       a_memory_region_number  region_to_switch_back_to;
-      a_constant              constant;
+      a_constant_ptr          constant = local_constant();
       set_unsigned_integer_constant(
-                       &constant, (a_host_large_unsigned)max_member_alignment,
-                       (an_integer_kind)ik_unsigned_long);
+                         constant, (a_host_large_unsigned)max_member_alignment,
+                         (an_integer_kind)ik_unsigned_long);
       ap->kind = (a_byte_attribute_kind)ak_pragma_pack_state;
       ap->on_primary_declaration = TRUE;
       ap->arguments = aap;
       aap->kind = (an_attribute_arg_kind)aak_constant;
       switch_to_file_scope_region(&region_to_switch_back_to);
-      aap->variant.constant = alloc_shareable_constant(&constant);
+      aap->variant.constant = alloc_shareable_constant(constant);
       switch_back_to_original_region(region_to_switch_back_to);
       *last_attribute_link(&class_type->source_corresp.attributes) = ap;
+      release_local_constant(&constant);
     }  /* if */
   }  /* if */
 }  /* record_max_member_alignment_if_needed */

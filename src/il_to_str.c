@@ -3023,7 +3023,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_boolean       need_negative_close_paren = FALSE;
   a_boolean       err, minus_1_trick = FALSE;
   a_constant_ptr  eff_constant = constant;
-  a_constant      local_constant;
+  a_constant_ptr  local_con = local_constant();
   a_type_ptr      con_type = skip_typerefs(constant->type);
   a_boolean       integer_type_constant =
                                    (con_type->kind == (a_type_kind)tk_integer);
@@ -3084,20 +3084,20 @@ precedence confusion.  Do the output in the way described by octl.
          cannot be represented as a positive constant preceded by a minus
          sign.  For those cases, use the -INT_MAX-1 trick.  One reason
          we do this is so that the type of the constant is right. */
-      local_constant = *constant;
-      negate_integer_value(&local_constant.variant.integer_value, &err);
+      *local_con = *constant;
+      negate_integer_value(&local_con->variant.integer_value, &err);
       /* coverity[uninit_use_in_call] */
       if (!err &&
-          le_max_integer_value_of_kind(&local_constant.variant.integer_value,
+          le_max_integer_value_of_kind(&local_con->variant.integer_value,
                                        /*is_signed=*/TRUE, ikind)) {
         /* The negative of the constant is a legal constant. */
       } else {
         /* The negative of the constant is not legal.  Use the -INT_MAX-1
            trick. */
         minus_1_trick = TRUE;
-        local_constant = *constant;
-        eff_constant = &local_constant;
-        incr_integer_value(&local_constant.variant.integer_value);
+        *local_con = *constant;
+        eff_constant = local_con;
+        incr_integer_value(&local_con->variant.integer_value);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3149,6 +3149,7 @@ precedence confusion.  Do the output in the way described by octl.
 close_paren_if_needed:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
+  release_local_constant(&local_con);
 }  /* form_integer_constant */
 
 

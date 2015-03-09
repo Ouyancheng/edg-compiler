@@ -734,7 +734,7 @@ because of remapped variables.
                         vrip;
   a_constant_ptr        con;
   an_expr_node_ptr      constant_expr;
-  a_constant            constant;
+  a_constant_ptr        constant = local_constant();
   a_boolean             is_non_null, has_constant_value = FALSE;
 
   if (kind == (an_expr_node_kind)enk_variable) {
@@ -852,7 +852,7 @@ because of remapped variables.
             /* Setting evaluated_context to FALSE suppresses warnings on
                errors like division by zero.  Instead, did_not_fold is
                returned TRUE. */
-            binary_operation(op, con, con2, expr_type, &constant,
+            binary_operation(op, con, con2, expr_type, constant,
                              /*constant_context=*/FALSE,
                              /*evaluated_context=*/FALSE,
                              &did_not_fold,
@@ -875,7 +875,7 @@ because of remapped variables.
             /* Setting evaluated_context to FALSE suppresses warnings on
                errors like division by zero.  Instead, did_not_fold is
                returned TRUE. */
-            unary_operation(op, con, expr_type, &constant,
+            unary_operation(op, con, expr_type, constant,
                             /*constant_context=*/FALSE,
                             /*evaluated_context=*/FALSE,
                             &did_not_fold,
@@ -916,7 +916,7 @@ because of remapped variables.
           has_constant_value = TRUE;
           temp_value = (a_host_large_integer)
                               ((op == (an_expr_operator_kind)eok_ne)? 1L : 0L);
-          set_integer_constant(&constant, temp_value,
+          set_integer_constant(constant, temp_value,
                                (an_integer_kind)ik_int);
         }  /* if */
       }  /* if */
@@ -936,19 +936,20 @@ because of remapped variables.
                                       &is_non_null) &&
         is_non_null) {
       has_constant_value = TRUE;
-      set_integer_constant(&constant, (a_host_large_integer)1L,
+      set_integer_constant(constant, (a_host_large_integer)1L,
                            (an_integer_kind)ik_int);
     }  /* if */
   }  /* if */
   if (has_constant_value) {
     /* Replace the expression by a constant value. */
-    constant.type = expr_type;
+    constant->type = expr_type;
     /* Avoid problems like a function-scope constant pointing to a file-scope
        backing expression. */
-    constant.expr = NULL;
+    constant->expr = NULL;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-    expr->variant.constant = alloc_shareable_constant(&constant);
+    expr->variant.constant = alloc_shareable_constant(constant);
   }  /* if */
+  release_local_constant(&constant);
 }  /* adjust_copied_expression_for_inlining */
 
 
@@ -1074,7 +1075,7 @@ otherwise, do no copying and return FALSE.
           if (!vrip->remapping_used) temp_elim_possible = TRUE;
         }  /* if */
         if (temp_elim_possible) {
-          a_constant constant;
+          a_constant_ptr constant = local_constant();
           /* Change the remapping of the temporary.  Note that changing the
              remapping means that the temporary variable will not be
              added to the scope at the end of the current inline expansion,
@@ -1088,9 +1089,10 @@ otherwise, do no copying and return FALSE.
           vrip->variant.expr = operand2;
           /* Eliminate the assignment node by replacing it with a zero
              of the right type. */
-          make_zero_of_proper_type(expr->type, &constant);
+          make_zero_of_proper_type(expr->type, constant);
           set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-          expr->variant.constant = alloc_shareable_constant(&constant);
+          expr->variant.constant = alloc_shareable_constant(constant);
+          release_local_constant(&constant);
         } else {
           /* The operation cannot be eliminated, so finish the rewriting,
              leaving an updated assignment in place. */
@@ -1794,7 +1796,7 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
                  because it ends with a throw).  In that case, add a zero
                  cast to the right type. */
               if (!il_identical_types(expr->type, inlined_call_expr->type)) {
-                a_constant       zero_constant;
+                a_constant_ptr   zero_constant = local_constant();
                 a_type_ptr       needed_type = expr->type;
                 an_expr_node_ptr zero_node;
                 a_boolean        class_case =
@@ -1807,11 +1809,12 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
                      indirect through it. */
                   needed_type = make_pointer_type(needed_type);
                 }  /* if */
-                make_zero_of_proper_type(needed_type, &zero_constant);
-                zero_node = alloc_node_for_constant(&zero_constant);
+                make_zero_of_proper_type(needed_type, zero_constant);
+                zero_node = alloc_node_for_constant(zero_constant);
                 if (class_case) zero_node = add_indirection_to_node(zero_node);
                 insert_expr(zero_node, &insert_location);
                 inlined_call_expr = insert_location.variant.expr;
+                release_local_constant(&zero_constant);
               }  /* if */
             }  /* if */
             /* Replace the original call node by overwriting it with the

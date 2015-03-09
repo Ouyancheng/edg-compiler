@@ -1722,7 +1722,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
 {
   a_constant_ptr	result = NULL;
   a_boolean		valid_token = TRUE;
-  a_constant		constant;
+  a_constant_ptr	constant = local_constant();
 
   *err = FALSE;
   if (curr_token == tok_string_literal) {
@@ -1731,8 +1731,8 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
          have been issued already. */
       check_assertion(total_errors != 0);
       *err = TRUE;
-      set_error_constant(&constant);
-      result = &constant;
+      set_error_constant(constant);
+      result = constant;
     } else {
       result = &const_for_curr_token;
     }  /* if */
@@ -1749,12 +1749,12 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     }  /* if */
     /* Add space for the null terminator. */
     length = strlen(str) + 1;
-    clear_constant(&constant, (a_constant_repr_kind)ck_string);
-    constant.type = string_type((a_targ_size_t)length);
-    constant.variant.string.length = (a_targ_size_t)length;
-    constant.variant.string.value =
+    clear_constant(constant, (a_constant_repr_kind)ck_string);
+    constant->type = string_type((a_targ_size_t)length);
+    constant->variant.string.length = (a_targ_size_t)length;
+    constant->variant.string.value =
                           copy_string_to_region(file_scope_region_number, str);
-    result = &constant;
+    result = constant;
   } else {
     /* Some other token kind */
     valid_token = FALSE;
@@ -1763,6 +1763,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   if (valid_token) (void)get_token();
   /* Get a shared version of the result constant. */
   if (result != NULL) result = alloc_shareable_constant(result);
+  release_local_constant(&constant);
   return result;
 }  /* get_string_consant_for_token */
 
@@ -1774,19 +1775,20 @@ scanned.
 */
 {
   a_host_large_integer	value = 0;
-  a_constant		constant;
+  a_constant_ptr	constant = local_constant();
 
   /* The argument can be an expression, but must be constant. */
-  scan_integral_constant_expression(&constant);
-  if (!is_error_constant(&constant)) {
+  scan_integral_constant_expression(constant);
+  if (!is_error_constant(constant)) {
     a_boolean	err;
-    value = value_of_integer_constant(&constant, &err);
+    value = value_of_integer_constant(constant, &err);
     if (err || value > LONG_MAX || value < LONG_MIN) { /*lint !e685*/
       /* Attribute values should be small integers.  Issue an error on an
          attempt to use a very large integer. */
       error(ec_integer_too_large);
     }  /* if */
   }  /* if */
+  release_local_constant(&constant);
   return (long)value;
 }  /* scan_ms_attribute_integer_arg */
 

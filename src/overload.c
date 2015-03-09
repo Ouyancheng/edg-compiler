@@ -3448,14 +3448,14 @@ have_level:;
            for addresses of functions (e.g., non-template static member
            functions of class templates). */
         a_constant_ptr conptr = NULL;
-        a_constant     con;
+        a_constant_ptr con = local_constant();
         if (is_constant_operand(arg_operand)) {
           conptr = &arg_operand->variant.constant;
         } else if (is_expression_operand(arg_operand) &&
                    is_a_prvalue(arg_operand) &&
                    constant_prvalue_pointer(arg_operand->variant.expression,
-                                            &con, /*address_escapes=*/FALSE)) {
-          conptr = &con;
+                                            con, /*address_escapes=*/FALSE)) {
+          conptr = con;
         }  /* if */
         if (conptr != NULL &&
             con_is_exact_addr_of_routine(conptr)) {
@@ -3464,6 +3464,7 @@ have_level:;
             arg_summary->template_symbol = symbol_for(rout);
           }  /* if */
         }  /* if */
+        release_local_constant(&con);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18010,21 +18011,22 @@ the class type is already correct and nothing should be done to it.
     /* Make the source a prvalue. */
     do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
   } else if (constexpr_enabled) {
-    a_constant result_con;
+    a_constant_ptr result_con = local_constant();
     if (curr_expr_kind_is_const() &&
         is_expression_operand(source_operand) &&
         fold_constant_base_class_cast(source_operand->variant.expression,
-                                      &result_con) != NULL) {
+                                      result_con) != NULL) {
       /* Produce a constant value, doing the slice, for a base class cast
          over a constant class value. */
       an_operand orig_operand;
       orig_operand = *source_operand;
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-        result_con.expr = source_operand->variant.expression;
+        result_con->expr = source_operand->variant.expression;
       }  /* if */
-      make_constant_operand(&result_con, source_operand);
+      make_constant_operand(result_con, source_operand);
       restore_operand_details(source_operand, &orig_operand);
     }  /* if */
+    release_local_constant(&result_con);
   }  /* if */
 }  /* prep_class_bitwise_copy_operand */
 
@@ -18287,9 +18289,9 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   } else if (kind == (a_dynamic_init_kind)dik_bitwise_copy) {
     dip->variant.bitwise_copy.source = make_node_from_operand(operand);
   } else {
-    a_constant con;
-    extract_constant_from_operand(operand, &con);
-    set_dynamic_init_constant(dip, alloc_unshared_constant(&con));
+    a_constant_ptr con = local_constant();
+    extract_constant_from_operand(operand, con);
+    set_dynamic_init_constant(dip, move_local_constant_to_il(&con));
   }  /* if */
   /* Make an operand for the overall expression. */
   make_lvalue_or_rvalue_expression_operand(temp_init_node, operand);
@@ -21140,7 +21142,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
   a_boolean          array_case = FALSE;
   a_boolean          err = FALSE, generate_il, issue_errors;
   an_expr_node_ptr   expr;
-  a_constant         con;
+  a_constant_ptr     con = local_constant();
   a_dynamic_init_ptr dip = NULL;
 
   if (is != NULL) {
@@ -21191,7 +21193,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
                                    (a_dynamic_init_kind)dik_zero,
                                    pos,
                                    &local_dip);
-      make_template_param_expr_constant(expr, &con);
+      make_template_param_expr_constant(expr, con);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&
@@ -21239,12 +21241,12 @@ TRUE, the result *p_dip and *p_constant are not constructed.
         if (constexpr_enabled && curr_expr_kind_is_const()) {
           /* In a constexpr constant expression, return an empty
              aggregate constant. */
-          if (!make_value_initialized_constant(unqual_dest_type, &con)) {
+          if (!make_value_initialized_constant(unqual_dest_type, con)) {
             unexpected_condition();
           }  /* if */
-          con.is_result_of_constexpr_call = TRUE;
+          con->is_result_of_constexpr_call = TRUE;
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-            add_temp_init_backing_expression(&con, dip);
+            add_temp_init_backing_expression(con, dip);
           } /* if */
           dip = NULL;
         }  /* if */
@@ -21266,7 +21268,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
             folded_con->is_result_of_constexpr_call) {
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
-          copy_constant(folded_con, &con);
+          copy_constant(folded_con, con);
           if (is != NULL && dip->is_partially_initialized) {
             is->partial_initializer = TRUE;
           }  /* if */
@@ -21282,7 +21284,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
     check_assertion(is_scalar_type(dest_type) ||
                     is_ptr_to_member_type(dest_type));
     if (generate_il) {
-      if (!make_value_initialized_constant(unqual_dest_type, &con)) {
+      if (!make_value_initialized_constant(unqual_dest_type, con)) {
         unexpected_condition();
       }  /* if */
     }  /* if */
@@ -21293,7 +21295,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
     if (dip != NULL) {
       set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
     } else {
-      set_error_constant(&con);
+      set_error_constant(con);
     }  /* if */
   }  /* if */
   if (array_case) {
@@ -21350,9 +21352,13 @@ TRUE, the result *p_dip and *p_constant are not constructed.
     *p_dip = dip;
   } else {
     *is_constant = TRUE;
-    *p_constant = alloc_unshared_constant(&con);
+    *p_constant = move_local_constant_to_il(&con);
   }  /* if */
   if (error_detected != NULL) *error_detected = err;
+  if (con != NULL) {
+    /* If con was not moved to the IL above, release it now. */
+    release_local_constant(&con);
+  }  /* if */
 }  /* value_initialization */
 
 
@@ -21680,9 +21686,9 @@ errors should be suppressed (i.e., SFINAE mode).
       } else {
         if (init_state.init_error) {
           /* There was some error. */
-          a_constant constant;
-          set_error_constant(&constant);
-          con = alloc_unshared_constant(&constant);
+          a_constant_ptr constant = local_constant();
+          set_error_constant(constant);
+          con = move_local_constant_to_il(&constant);
           if (!issue_errors) record_suppressed_error();
         } else {
           /* The initialization is to a constant. */
@@ -21983,10 +21989,11 @@ allocated unshared entry.  Copy position information from the operand into the
 allocated constant.
 */
 {
-  a_constant  con, *result;
+  a_constant_ptr con = local_constant();
+  a_constant_ptr result;
 
-  extract_constant_from_operand(operand, &con);
-  result = alloc_unshared_constant(&con);
+  extract_constant_from_operand(operand, con);
+  result = move_local_constant_to_il(&con);
   result->source_corresp.decl_position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = operand->end_position;
@@ -22508,12 +22515,12 @@ will be an lvalue instead of the usual prvalue.
                the dynamic init so it can be marked later or gotten back
                if we need the result in dynamic init form. */
             an_expr_node_ptr expr;
-            a_constant       con;
+            a_constant_ptr   con = local_constant();
             dip_to_reuse = dip_to_mark = dip;
             expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
                                         /*is_explicit_cast=*/is_cast);
-            make_template_param_expr_constant(expr, &con);
-            constant = alloc_unshared_constant(&con);
+            make_template_param_expr_constant(expr, con);
+            constant = move_local_constant_to_il(&con);
             dip = NULL;
           }  /* if */
         }  /* if */

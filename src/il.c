@@ -4742,7 +4742,7 @@ kept.
 }  /* break_constant_source_corresp */
 
 
-static void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp)
+void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp)
 /*
 The indicated allocated constant has just been created by copying from
 another constant.  If there are any memory region problems in the constant,
@@ -5289,26 +5289,27 @@ characters.  The constant is updated in place.
     unsigned int      char_size = (unsigned int)character_size[char_kind];
     a_targ_size_t     i, len = con->variant.string.length;
     a_const_char      *str = con->variant.string.value;
-    a_constant        char_val;
+    a_constant_ptr    char_val = local_constant();
 
-    clear_constant(&char_val, (a_constant_repr_kind)ck_integer);
-    char_val.type = character_type(char_kind);
+    clear_constant(char_val, (a_constant_repr_kind)ck_integer);
+    char_val->type = character_type(char_kind);
     set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
     for (i = 0; i < len; i += char_size) {
       a_constant_ptr char_con;
       /* Make a constant for one character of the string. */
       if (char_kind == (a_character_kind)chk_char) {
-        set_integer_value(&char_val.variant.integer_value,
+        set_integer_value(&char_val->variant.integer_value,
                           (a_host_large_integer)str[i]);
       } else {
         /* Wide string case. */
         unsigned long val = extract_character_from_string(str+i, char_size);
-        set_unsigned_integer_value(&char_val.variant.integer_value,
+        set_unsigned_integer_value(&char_val->variant.integer_value,
                                    (a_host_large_unsigned)val);
       }  /* if */
-      char_con = alloc_unshared_constant(&char_val);
+      char_con = alloc_unshared_constant(char_val);
       add_constant_to_aggregate(char_con, con);
     }  /* for */
+    release_local_constant(&char_val);
   }  /* if */
 }  /* explode_string_initializer */
 
@@ -5610,7 +5611,7 @@ copy_constant_full should be called to start a copy.
                               (options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
   a_boolean      force_copy = (constexpr_master_copy ||
                                old_constant->part_of_constexpr_master_expr);
-  a_constant     local_constant;
+  a_constant_ptr local_con = local_constant();
   an_expr_copy_options_set
                  options_unshared;
 
@@ -5622,7 +5623,7 @@ copy_constant_full should be called to start a copy.
   } else if (may_be_shared) {
     /* For the shareable constant case, build up the constant locally and
        do the allocation at the end of this routine. */
-    new_constant = &local_constant;
+    new_constant = local_con;
     copy_constant(old_constant, new_constant);
     new_constant_in_il = FALSE;
   } else {
@@ -5828,6 +5829,7 @@ copy_constant_full should be called to start a copy.
        the case). */
     copy_il_lowering_flag(old_constant, new_constant);
   }  /* if */
+  release_local_constant(&local_con);
   return new_constant; /*lint !e809*/
 }  /* i_copy_constant_full */
 
@@ -13333,10 +13335,10 @@ constant; otherwise, return NULL.
       }  /* if */
       if (expr != NULL) {
         /* Make a constant that refers to the dependent expression. */
-        a_constant con;
-        make_template_param_expr_constant(expr, &con);
-        con_val = copy_constant_full(&con, (a_constant *)NULL,
-                                     CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+        a_constant_ptr con = local_constant();
+        make_template_param_expr_constant(expr, con);
+        con_val = copy_unshared_constant(con);
+        release_local_constant(&con);
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
@@ -15035,11 +15037,11 @@ and return a pointer to it.
 */
 {
   an_expr_node_ptr node;
-  a_constant       constant;
+  a_constant_ptr   constant = local_constant();
 
-  set_integer_constant(&constant, (a_host_large_integer)value, kind);
-  node = alloc_node_for_constant(&constant);
-
+  set_integer_constant(constant, (a_host_large_integer)value, kind);
+  node = alloc_node_for_constant(constant);
+  release_local_constant(&constant);
   return node;
 }  /* node_for_integer_constant */
 
@@ -15052,11 +15054,11 @@ and return a pointer to it.
 */
 {
   an_expr_node_ptr node;
-  a_constant       constant;
+  a_constant_ptr   constant = local_constant();
 
-  set_integer_constant(&constant, value, kind);
-  node = alloc_node_for_constant(&constant);
-
+  set_integer_constant(constant, value, kind);
+  node = alloc_node_for_constant(constant);
+  release_local_constant(&constant);
   return node;
 }  /* node_for_host_large_integer */
 
@@ -15560,7 +15562,7 @@ in these template-parameter-substitution routines.
   } else if (expr->is_lvalue) {
     /* The expression is already an lvalue.  Just copy with substitution and
        return. */
-    a_constant     constant;
+    a_constant_ptr constant = local_constant();
     a_constant_ptr alloc_con;
     expr_copy = copy_template_param_expr(expr,
                                          template_arg_list,
@@ -15570,12 +15572,13 @@ in these template-parameter-substitution routines.
                                          options,
                                          copy_error,
                                          ctws_state,
-                                         &constant,
+                                         constant,
                                          &alloc_con);
     /* Force the copy to expression form. */
     expr_copy = alloc_copied_template_param_expr(expr_copy,
-                                                 &constant,
+                                                 constant,
                                                  alloc_con);
+    release_local_constant(&constant);
   } else {
     /* The expression is an rvalue.  There's no way to convert it to an
        lvalue.  Fail. */
@@ -15685,7 +15688,7 @@ for the parameter descriptions.
 {
   an_expr_node_ptr  new_args = NULL;
   an_expr_node_ptr  arg = args, *new_arg = &new_args;
-  a_constant        const_result;
+  a_constant_ptr    const_result = local_constant();
   a_constant_ptr    alloc_const_result;
 
   while (arg != NULL) {
@@ -15693,13 +15696,14 @@ for the parameter descriptions.
                             arg, template_arg_list, template_param_list,
                             (a_type_ptr)NULL,
                             source_pos, options, copy_error, ctws_state,
-                            &const_result, &alloc_const_result);
+                            const_result, &alloc_const_result);
     if (*copy_error) break;
-    *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
+    *new_arg = alloc_copied_template_param_expr(*new_arg, const_result,
                                                 alloc_const_result);
     arg = arg->next;
     new_arg = &((*new_arg)->next);
   }  /* while */
+  release_local_constant(&const_result);
   return new_args;
 }  /* copy_template_param_expr_list */
 
@@ -15993,6 +15997,9 @@ options is a set of name lookup options.
   a_boolean             non_constant_expr =
                                        (options & CTWS_NON_CONSTANT_EXPR) != 0;
 #endif /* CHECKING */
+  a_constant_ptr        constant_1 = local_constant();
+  a_constant_ptr        constant_2 = local_constant();
+  a_constant_ptr        constant_3 = local_constant();
 
   *alloc_con = NULL;
   if (cpp11_sfinae_enabled && expr_is_rescannable(expr)) {
@@ -16061,7 +16068,6 @@ options is a set of name lookup options.
         a_type_ptr       new_op1_type = NULL;
         a_type_ptr       new_op2_type = NULL;
         a_type_ptr       new_op3_type = NULL;
-        a_constant       constant_1, constant_2, constant_3;
         a_constant_ptr   alloc_con_1, alloc_con_2 = NULL, alloc_con_3 = NULL;
         a_boolean        folded_to_constant = FALSE;
         a_type_ptr       operation_type = expr->type;
@@ -16090,11 +16096,11 @@ options is a set of name lookup options.
                                                  options,
                                                  copy_error,
                                                  ctws_state,
-                                                 &constant_1,
+                                                 constant_1,
                                                  &alloc_con_1);
         if (!*copy_error) {
           new_op1_type = type_of_copied_template_expr(new_operand_1,
-                                                      &constant_1,
+                                                      constant_1,
                                                       alloc_con_1);
         }  /* if */
         if (operand_2 != NULL) {
@@ -16106,11 +16112,11 @@ options is a set of name lookup options.
                                                    options,
                                                    copy_error,
                                                    ctws_state,
-                                                   &constant_2,
+                                                   constant_2,
                                                    &alloc_con_2);
           if (!*copy_error) {
             new_op2_type = type_of_copied_template_expr(new_operand_2,
-                                                        &constant_2,
+                                                        constant_2,
                                                         alloc_con_2);
           }  /* if */
           operand_3 = operand_2->next;
@@ -16123,11 +16129,11 @@ options is a set of name lookup options.
                                                      options,
                                                      copy_error,
                                                      ctws_state,
-                                                     &constant_3,
+                                                     constant_3,
                                                      &alloc_con_3);
             if (!*copy_error) {
               new_op3_type = type_of_copied_template_expr(new_operand_3,
-                                                          &constant_3,
+                                                          constant_3,
                                                           alloc_con_3);
             }  /* if */
           }  /* if */
@@ -16142,13 +16148,13 @@ options is a set of name lookup options.
              it is one of the permitted ones; if not, substitution fails. */
           a_constant_ptr op1_con = new_operand_1 != NULL ? NULL :
                                    alloc_con_1 != NULL ? alloc_con_1 :
-                                   &constant_1;
+                                   constant_1;
           a_constant_ptr op2_con = new_operand_2 != NULL ? NULL :
                                    alloc_con_2 != NULL ? alloc_con_2 :
-                                   &constant_2;
+                                   constant_2;
           a_constant_ptr op3_con = new_operand_3 != NULL ? NULL :
                                    alloc_con_3 != NULL ? alloc_con_3 :
-                                   &constant_3;
+                                   constant_3;
           check_template_nullptr_operation(op, new_op1_type, op1_con,
                                            new_op2_type, op2_con, new_op3_type,
                                            op3_con, copy_error);
@@ -16158,9 +16164,9 @@ options is a set of name lookup options.
            after substitution. */
         do_conversions_on_operands_of_copied_template_expr(
                   op,
-                  &new_operand_1, &constant_1, &alloc_con_1,
-                  operand_2 != NULL, &new_operand_2, &constant_2, &alloc_con_2,
-                  operand_3 != NULL, &new_operand_3, &constant_3, &alloc_con_3,
+                  &new_operand_1, constant_1, &alloc_con_1,
+                  operand_2 != NULL, &new_operand_2, constant_2, &alloc_con_2,
+                  operand_3 != NULL, &new_operand_3, constant_3, &alloc_con_3,
                   source_pos, &operation_type,
                   copy_error);
         if (*copy_error) break;
@@ -16172,23 +16178,23 @@ options is a set of name lookup options.
              operand type. */
           operation_type = type_of_copied_template_expr(new_operand_1,
                                                         alloc_con_1,
-                                                        &constant_1);
+                                                        constant_1);
         }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
             new_operand_3 == NULL) {
           /* All the operands are constant. */
-          if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
-          if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
-          if (alloc_con_3 != NULL) copy_constant(alloc_con_3, &constant_3);
+          if (alloc_con_1 != NULL) copy_constant(alloc_con_1, constant_1);
+          if (alloc_con_2 != NULL) copy_constant(alloc_con_2, constant_2);
+          if (alloc_con_3 != NULL) copy_constant(alloc_con_3, constant_3);
           /* Do not fold if any of the constants is still a
              template parameter constant. */
-          if ((constant_1.kind != (a_constant_repr_kind)ck_template_param ||
+          if ((constant_1->kind != (a_constant_repr_kind)ck_template_param ||
                op == (an_expr_operator_kind)eok_cast) &&
               (operand_2 == NULL ||
-               constant_2.kind != (a_constant_repr_kind)ck_template_param) &&
+               constant_2->kind != (a_constant_repr_kind)ck_template_param) &&
               (operand_3 == NULL ||
-               constant_3.kind != (a_constant_repr_kind)ck_template_param)) {
+               constant_3->kind != (a_constant_repr_kind)ck_template_param)) {
             /* All the operands are constants and not template parameter
                constants.  Fold the operation. */
             a_boolean did_not_fold, template_constant;
@@ -16199,18 +16205,18 @@ options is a set of name lookup options.
               if (operand_3 != NULL) {
                 check_assertion(op == (an_expr_operator_kind)eok_question);
                 /* Three-operand operation, "?". */
-                if (is_false_constant(&constant_1)) {
+                if (is_false_constant(constant_1)) {
                   /* Operand 1 is false, so the result is operand 3. */
                   *alloc_con = alloc_con_3;
-                  if (alloc_con_3 == NULL) *constant = constant_3;
+                  if (alloc_con_3 == NULL) *constant = *constant_3;
                 } else {
                   /* Operand 1 is true, so the result is operand 2. */
                   *alloc_con = alloc_con_2;
-                  if (alloc_con_2 == NULL) *constant = constant_2;
+                  if (alloc_con_2 == NULL) *constant = *constant_2;
                 }  /* if */
               } else {
                 /* Two-operand operation. */
-                binary_operation(op, &constant_1, &constant_2,
+                binary_operation(op, constant_1, constant_2,
                                  operation_type, constant,
                                  /*constant_context=*/TRUE,
                                  /*evaluated_context=*/TRUE,
@@ -16226,14 +16232,14 @@ options is a set of name lookup options.
               a_boolean is_implicit_cast =
                                     expr->variant.operation.compiler_generated;
               a_boolean is_reinterpret_cast;
-              if (!substituted_cast_is_valid(&constant_1, operation_type,
+              if (!substituted_cast_is_valid(constant_1, operation_type,
                                              !is_implicit_cast,
                                              &is_reinterpret_cast)) {
                 *copy_error = TRUE;
               } else {
                 is_reinterpret_cast =
                                    expr->variant.operation.is_reinterpret_cast;
-                copy_constant(&constant_1, constant);
+                copy_constant(constant_1, constant);
                 type_change_constant_full(constant, operation_type,
                                           is_implicit_cast,
                                           /*constant_context=*/TRUE,
@@ -16252,11 +16258,11 @@ options is a set of name lookup options.
                 if (error_detected != ec_no_error) *copy_error = TRUE;
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_parens) {
-              copy_constant(&constant_1, constant);
+              copy_constant(constant_1, constant);
               *alloc_con = NULL;
             } else {
               /* One-operand operation. */
-              unary_operation(op, &constant_1, operation_type, constant,
+              unary_operation(op, constant_1, operation_type, constant,
                               /*constant_context=*/TRUE,
                               /*evaluated_context=*/TRUE,
                               &did_not_fold,
@@ -16286,13 +16292,13 @@ options is a set of name lookup options.
           /* Allocate the node for each operand if it has not been
              allocated yet. */
           new_operand_1 = alloc_copied_template_param_expr(
-                                      new_operand_1, &constant_1, alloc_con_1);
+                                      new_operand_1, constant_1, alloc_con_1);
           if (operand_2 != NULL) {
             new_operand_2 = alloc_copied_template_param_expr(
-                                      new_operand_2, &constant_2, alloc_con_2);
+                                      new_operand_2, constant_2, alloc_con_2);
             if (operand_3 != NULL) {
               new_operand_3 = alloc_copied_template_param_expr(
-                                      new_operand_3, &constant_3, alloc_con_3);
+                                      new_operand_3, constant_3, alloc_con_3);
             }  /* if */
           }  /* if */
           /* Link the operand expressions together and create a new
@@ -16419,6 +16425,9 @@ end_of_routine:
     expr_copy = error_node();
     *alloc_con = NULL;
   }  /* if */
+  release_local_constant(&constant_1);
+  release_local_constant(&constant_2);
+  release_local_constant(&constant_3);
   return expr_copy;
 }  /* copy_template_param_expr */
 
@@ -16705,15 +16714,17 @@ name lookup options.
       fcon = unk_sym->variant.constant;
       if (is_template_ref) {
         /* Add a tpck_template_ref for the template arguments. */
-        a_constant tcon;
-        clear_constant(&tcon, (a_constant_repr_kind)ck_template_param);
-        set_template_param_constant_kind(&tcon,
+        a_constant_ptr tcon = local_constant();
+        clear_constant(tcon, (a_constant_repr_kind)ck_template_param);
+        set_template_param_constant_kind(tcon,
                             (a_template_param_constant_kind)tpck_template_ref);
-        tcon.variant.template_param.variant.template_ref.con = fcon;
-        tcon.variant.template_param.variant.template_ref.arg_list=ref_arg_list;
-        tcon.type = type_of_unknown_templ_param_nontype;
-        fcon = alloc_shareable_constant(&tcon);
+        tcon->variant.template_param.variant.template_ref.con = fcon;
+        tcon->variant.template_param.variant.template_ref.arg_list =
+                                                                  ref_arg_list;
+        tcon->type = type_of_unknown_templ_param_nontype;
+        fcon = alloc_shareable_constant(tcon);
         unhandled_template_args = FALSE;
+        release_local_constant(&tcon);
       }  /* if */
       /* Add a tpck_cast to the guide type. */
       make_template_param_cast_constant(fcon, constant, guide_type,
@@ -17046,7 +17057,7 @@ name lookup options.
         { an_expr_node_ptr expr = generic_sizeof_arg_expr(con);
           if (expr != NULL) {
             /* There's an associated expression.  Do substitution on it. */
-            a_constant       sizeof_expr_con;
+            a_constant_ptr   sizeof_expr_con = local_constant();
             a_constant_ptr   alloc_sizeof_expr_con;
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
@@ -17056,7 +17067,7 @@ name lookup options.
                                             options | CTWS_NON_CONSTANT_EXPR,
                                             copy_error,
                                             ctws_state,
-                                            &sizeof_expr_con,
+                                            sizeof_expr_con,
                                             &alloc_sizeof_expr_con);
             if (expr == NULL) {
               /* The expression folds to a constant. */
@@ -17064,10 +17075,11 @@ name lookup options.
                 expr = alloc_node_for_allocated_constant(
                                                         alloc_sizeof_expr_con);
               } else {
-                expr = alloc_node_for_constant(&sizeof_expr_con);
+                expr = alloc_node_for_constant(sizeof_expr_con);
               }  /* if */
             }  /* if */
             new_type = expr->type;
+            release_local_constant(&sizeof_expr_con);
           } else {
             /* No associated expression, just a type. */
             new_type = copy_type_with_substitution(con->variant.template_param.
@@ -17261,7 +17273,7 @@ lookup options.
 */
 {
   a_constant_ptr con_copy = NULL;
-  a_constant     constant;
+  a_constant_ptr constant = local_constant();
 
   a_memory_region_number region_to_switch_back_to;
 
@@ -17293,12 +17305,12 @@ lookup options.
         check_assertion(expr_copy != NULL);
         if (is_glvalue_node(expr_copy)) {
           /* See if the glvalue has a constant address. */
-          if (constant_glvalue_address(expr_copy, &constant,
+          if (constant_glvalue_address(expr_copy, constant,
                                        /*address_escapes=*/TRUE)) {
             /* Yes.  Change the address constant type to a reference. */
             a_type_ptr ref_type = make_reference_type(
-                                               type_pointed_to(constant.type));
-            constant.type = ref_type;
+                                              type_pointed_to(constant->type));
+            constant->type = ref_type;
           } else {
             /* The lvalue address is not constant. */
             *copy_error = TRUE;
@@ -17319,25 +17331,25 @@ lookup options.
                                                      options,
                                                      copy_error,
                                                      ctws_state,
-                                                     &constant,
+                                                     constant,
                                                      &con_copy);
       if (!*copy_error && expr_copy != NULL) {
         /* We want a constant result, so convert to a constant (usually
            a tpck_expression constant). */
         if (is_error_node(expr_copy)) {
-          set_error_constant(&constant);
+          set_error_constant(constant);
         } else if (is_pointer_type(expr_copy->type) &&
-                   constant_prvalue_pointer(expr_copy, &constant,
+                   constant_prvalue_pointer(expr_copy, constant,
                                             /*address_escapes=*/TRUE)) {
           /* The expression has constant pointer value (possibly
              template-dependent), so return that constant. */
         } else {
-          make_template_param_expr_constant(expr_copy, &constant);
+          make_template_param_expr_constant(expr_copy, constant);
         }  /* if */
       }  /* if */
     }  /* if */
     if (*copy_error) {
-      set_error_constant(&constant);
+      set_error_constant(constant);
       con_copy = NULL;
     }  /* if */
   } else {
@@ -17351,12 +17363,13 @@ lookup options.
                                        options,
                                        copy_error,
                                        ctws_state,
-                                       &constant);
+                                       constant);
   }  /* if */
   if (con_copy == NULL) {
-    con_copy = alloc_shareable_constant(&constant);
+    con_copy = alloc_shareable_constant(constant);
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
+  release_local_constant(&constant);
   return con_copy;
 }  /* copy_template_param_con_with_substitution */
 
@@ -17367,9 +17380,9 @@ The given constant has kind ck_template_param.  We need to make it represent
 a constant that is the previous value incremented by one.
 */
 {
-  a_constant_ptr  prev_val = alloc_unshared_constant(con);
-  a_constant      one_val;
-  an_expr_node_ptr  operands;
+  a_constant_ptr   prev_val = alloc_unshared_constant(con);
+  a_constant_ptr   one_val = local_constant();
+  an_expr_node_ptr operands;
 
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
   con->type = prev_val->type;
@@ -17377,15 +17390,16 @@ a constant that is the previous value incremented by one.
                               (a_template_param_constant_kind)tpck_expression;
   /* Create a generic addition operation to increment the previous value. */
   operands = alloc_node_for_constant(prev_val);
-  set_integer_constant(&one_val, (a_host_large_integer)1,
+  set_integer_constant(one_val, (a_host_large_integer)1,
                        (an_integer_kind)ik_int);
-  operands->next = alloc_node_for_constant(&one_val);
+  operands->next = alloc_node_for_constant(one_val);
   con->variant.template_param.variant.expr =
                            make_operator_node((an_expr_operator_kind)eok_add,
                                               con->type,
                                               operands);
   con->variant.template_param.variant.expr->
                                    variant.operation.compiler_generated = TRUE;
+  release_local_constant(&one_val);
 }  /* increment_template_dependent_enum_constant */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -17532,26 +17546,27 @@ Make a placeholder lvalue expression whose type is "type".
 */
 {
   an_expr_node_ptr expr;
-  a_constant       zero_con;
+  a_constant_ptr   zero_con = local_constant();
   a_type_ptr       ptr_type = make_pointer_type(type);
 
   if (is_template_dependent_type(type)) {
     /* Force a template-dependent constant for the dependent type case. */
     a_constant_ptr con;
-    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
-    con = alloc_shareable_constant(&zero_con);
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), zero_con);
+    con = alloc_shareable_constant(zero_con);
     /* Cast is marked as explicit so the C++-generating back end won't
        elide it. */
     make_template_param_cast_constant(con,
-                                      &zero_con,
+                                      zero_con,
                                       ptr_type,
                                       /*is_explicit=*/TRUE);
   } else {
     /* Normal non-dependent case. */
-    make_zero_of_proper_type(ptr_type, &zero_con);
+    make_zero_of_proper_type(ptr_type, zero_con);
   }  /* if */
-  expr = alloc_node_for_constant(&zero_con);
+  expr = alloc_node_for_constant(zero_con);
   expr = add_indirection_to_node(expr);
+  release_local_constant(&zero_con);
   return expr;
 }  /* make_dummy_lvalue_expr */
 
@@ -19937,8 +19952,8 @@ doing nothing should be suppressed.
          which would mean a function call. */
       has_side_effects = TRUE;
       if (is_glvalue_node(node)) {
-        a_constant local_constant;
-        if (constant_glvalue_address(node, &local_constant,
+        a_constant_ptr local_con = local_constant();
+        if (constant_glvalue_address(node, local_con,
                                      /*address_escapes=*/FALSE)) {
           /* Don't consider an expression whose address is constant to have
              side effects.  This is a detail, but helps ensure that we get
@@ -19947,6 +19962,7 @@ doing nothing should be suppressed.
              constants. */
           has_side_effects = FALSE;
         }  /* if */
+        release_local_constant(&local_con);
       }  /* if */
     }  /* if */
   }  /* if */

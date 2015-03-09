@@ -2777,7 +2777,7 @@ if output_final_semi is TRUE.
 */
 {
   a_constant_ptr enum_con;
-  a_constant     next_enum_value;
+  a_constant_ptr next_enum_value = local_constant();
 
   check_assertion_str(is_immediate_enum_type(type),
                       "dump_enum_definition: not an enum type");
@@ -2810,29 +2810,29 @@ if output_final_semi is TRUE.
   write_tok_str(" {");
   /* Output the enumeration constants. */
   /* Start with an expected value of 0 next. */
-  next_enum_value = *enum_con;
-  set_integer_value(&next_enum_value.variant.integer_value,
+  *next_enum_value = *enum_con;
+  set_integer_value(&next_enum_value->variant.integer_value,
                     (a_host_large_integer)0);
   for (;;) {
     set_output_position(&enum_con->source_corresp.decl_position);
     /* Output the constant's name. */
     dump_constant_name(enum_con);
     /* Output the value if it's not the next value in sequence. */
-    if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
+    if (cmp_integer_constants(enum_con, next_enum_value) != 0) {
       write_tok_str(" = ");
       /* We use form_integer_constant because we want to handle the
          -INT_MAX-1 case, and we don't use gen_constant/form_constant
          because we want to suppress the cast to the enum type. */
       form_integer_constant(enum_con, /*suppress_cast=*/TRUE,
                             /*need_parens=*/TRUE, &octl);
-      next_enum_value = *enum_con;
+      *next_enum_value = *enum_con;
     }  /* if */
     enum_con = enum_con->next;
     /* Stop if at the end of the list of constants. */
     if (enum_con == NULL) break;
     /* Not the end of the list, so output a separator and keep looping. */
     write_tok_ch(',');
-    incr_integer_value(&next_enum_value.variant.integer_value);
+    incr_integer_value(&next_enum_value->variant.integer_value);
   }  /* for */
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
@@ -2845,6 +2845,7 @@ if output_final_semi is TRUE.
   write_endif_0_directive();
 done:;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  release_local_constant(&next_enum_value);
 }  /* dump_enum_definition */
 
 
@@ -7186,7 +7187,7 @@ block with state information for the processing.
   a_boolean            is_aggregate;
   a_boolean            suppress_brace_for_base_class_subobject = FALSE;
 #if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
-  a_constant           complex_constant;
+  a_constant_ptr       complex_constant = local_constant();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 
   type = skip_typerefs(type);
@@ -7219,13 +7220,13 @@ block with state information for the processing.
     check_assertion(constant->variant.aggregate.first_constant != NULL &&
                     (constant->variant.aggregate.first_constant->next ==
                      constant->variant.aggregate.last_constant));
-    clear_constant(&complex_constant, (a_constant_repr_kind)ck_complex);
-    complex_constant.type = constant->type;
-    complex_constant.variant.complex_value->real =
+    clear_constant(complex_constant, (a_constant_repr_kind)ck_complex);
+    complex_constant->type = constant->type;
+    complex_constant->variant.complex_value->real =
                constant->variant.aggregate.first_constant->variant.float_value;
-    complex_constant.variant.complex_value->imag =
+    complex_constant->variant.complex_value->imag =
                 constant->variant.aggregate.last_constant->variant.float_value;
-    constant = &complex_constant;
+    constant = complex_constant;
     is_aggregate = FALSE;
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
@@ -7654,6 +7655,9 @@ block with state information for the processing.
     }  /* if */
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  release_local_constant(&complex_constant);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 }  /* dump_initializer_part */
 
 

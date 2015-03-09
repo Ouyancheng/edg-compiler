@@ -960,6 +960,115 @@ region.
   return cp;
 }  /* fs_constant */
 
+#if CHECKING
+/*
+Counter for the number of local constants requested but not yet released,
+used for an end-of-processing check that none were leaked.
+*/
+static long local_constants_in_use;
+#endif /* CHECKING */
+
+a_constant_ptr local_constant(void)
+/*
+Returns a pointer to uninitialized storage in the file scope memory region
+that can be used for an a_constant object, either newly-allocated or reused
+via the available_local_constants list.  This is used instead of a local
+automatic object so that there will be an IL entry prefix preceding the
+object, which is needed in some cases when copying constants.  (The IL
+entry prefix of a reused local constant will be reinitialized, including
+setting a unique allocation sequence number if so configured.)  The caller
+of this routine is responsible to call release_local_constant when the
+object is no longer needed, to prevent memory leakage and to allow its
+reuse by this routine.
+*/
+{
+  a_constant_ptr result;
+
+  if (available_local_constants != NULL) {
+    /* Reuse a previously-allocated constant. */
+    result = available_local_constants;
+    available_local_constants = result->next;
+    clear_il_entry_prefix(&il_entry_prefix_of_no_check(result),
+                          /*is_in_file_scope=*/TRUE,
+                          !is_primary_translation_unit);
+  } else {
+    result = alloc_il_of_type(a_constant);
+  }  /* if */
+#if CHECKING
+  ++local_constants_in_use;
+#endif /* CHECKING */
+  return result;
+}  /* local_constant */
+
+
+void release_local_constant(a_constant_ptr *cpp)
+/*
+Add the constant pointed to by *cpp to the available_local_constants list
+so that it can be reused by local_constant (see above) and set *cpp to NULL
+to prevent inadvertent use.
+*/
+{
+  check_assertion(*cpp != NULL && in_file_scope(*cpp));
+  (*cpp)->next = available_local_constants;
+  available_local_constants = *cpp;
+  *cpp = NULL;
+#if CHECKING
+  --local_constants_in_use;
+#endif /* CHECKING */
+}  /* release_local_constant */
+
+
+a_constant_ptr move_local_constant_to_il(a_constant_ptr *cp)
+/*
+The local constant *cp is to be used in the IL.  If it need not be copied,
+return it directly; otherwise, make a copy in the current memory region and
+return that.  Set *cp to NULL to prevent its being inadvertently reused as
+a local constant and return the previous value.
+*/
+{
+  a_constant_ptr   result = *cp;
+
+  if (curr_il_region_number != file_scope_region_number) {
+    /* Local constants are allocated in the file scope memory region.  If
+       we are not in the file scope region, we need a new constant in this
+       one. */
+    result = alloc_cil_of_type(a_constant);
+    copy_constant(*cp, result);
+    release_local_constant(cp);
+  } else if (has_non_file_scope_ref(result)) {
+    /* If the (file-scope) constant refers to something in a local scope,
+       we need to copy the constant. */
+    release_local_constant(cp);
+    result = copy_constant_full(result, (a_constant_ptr)NULL, CE_NO_OPTIONS);
+  } else {
+    /* Just decrement the count of outstanding local constants and set the
+       caller's pointer to NULL. */
+#if CHECKING
+    --local_constants_in_use;
+#endif /* CHECKING */
+    *cp = NULL;
+  }  /* if */
+  /* Clear the source correspondence information.  This version of the
+     constant isn't the one directly associated with the source entity,
+     if any. */
+  break_constant_source_corresp(result);
+  fix_memory_region_problems_in_copied_constant(result);
+  return result;
+}  /* move_local_constant_to_il */
+
+#if CHECKING
+
+void check_local_constant_use(void)
+/*
+Check to make sure that all local constants requested were released and
+that no release requests were made for unrequested local constants.
+*/
+{
+  error_position = null_source_position;
+  check_assertion(local_constants_in_use == 0);
+}  /* check_local_constant_use */
+
+#endif /* CHECKING */
 
 a_param_type_ptr alloc_param_type(a_type_ptr type)
 /*
@@ -5637,6 +5746,7 @@ in il_alloc_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
+      pch_saved_var_array_elem(available_local_constants),
 #if DEBUG
 #if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
@@ -5761,6 +5871,7 @@ in il_alloc_init.)
   }  /* if */
   register_trans_unit_variable(file_scope_entry_prefix_size);
   register_trans_unit_variable(avail_template_args);
+  register_trans_unit_variable(available_local_constants);
   register_trans_unit_variable(file_scope_entry_prefix_alignment_offset);
 }  /* il_alloc_one_time_init */
 
@@ -5811,6 +5922,7 @@ that need initialization for every (primary and secondary) translation unit.
 */
 {
   avail_template_args = NULL;
+  available_local_constants = NULL;
 }  /* il_alloc_trans_unit_init */
 
 
@@ -5821,6 +5933,7 @@ initializations that are done for each compilation.
 */
 {
   /* Static variables. */
+  available_local_constants              = NULL;
 #if DEBUG
   num_source_files_allocated             = 0;
   num_constants_allocated                = 0;
@@ -5944,6 +6057,7 @@ initializations that are done for each compilation.
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_SUPPORT_NEEDED */
   num_il_entity_list_entries_allocated   = 0;
+  local_constants_in_use                 = 0;
 #endif /* DEBUG */
 }  /* il_alloc_init */
 

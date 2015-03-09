@@ -403,10 +403,11 @@ element.
 */
 {
   an_expr_node_ptr            var_node;
-  a_constant                  addr_constant;
+  a_constant_ptr              addr_constant = local_constant();
 
-  make_vtbl_address_constant(var, class_type, bcp, &addr_constant);
-  var_node = alloc_node_for_constant(&addr_constant);
+  make_vtbl_address_constant(var, class_type, bcp, addr_constant);
+  var_node = alloc_node_for_constant(addr_constant);
+  release_local_constant(&addr_constant);
   return var_node;
 }  /* make_vtbl_address_node */
 
@@ -429,20 +430,21 @@ to data members are lowered into a small integer type.
       /* A constant.  Do the type change on a copy of the constant. */
       /* This must be done on a copy because the constant is typically shared
          and in the file scope, and therefore unlowerable at this point. */
-      a_constant con;
-      con = *expr->variant.constant;
-      lower_ptr_to_member_constant(&con);
+      a_constant_ptr con = local_constant();
+      *con = *expr->variant.constant;
+      lower_ptr_to_member_constant(con);
       /* Widen the constant by changing its type. */
 #if CHECKING
-      if (con.kind != (a_constant_repr_kind)ck_integer) {
+      if (con->kind != (a_constant_repr_kind)ck_integer) {
         internal_error(
                 "do_ptr_to_data_member_arg_promotion_on_node: pm not int con");
       }  /* if */
 #endif /* CHECKING */
-      con.type = promoted_type;
+      con->type = promoted_type;
       /* Allocate a copy of the constant, and point the expression to it. */
-      expr->variant.constant = alloc_shareable_constant(&con);
+      expr->variant.constant = alloc_shareable_constant(con);
       expr->type = promoted_type;
+      release_local_constant(&con);
     } else {
       /* Add a cast, but reuse the original node as the cast to preserve the
          expression address. */
@@ -1522,13 +1524,13 @@ type of the constant that is returned may be a lowered version of desired_type
 (and not desired_type itself).
 */
 {
-  a_constant        zero_constant;
+  a_constant_ptr    zero_constant = local_constant();
   a_constant_ptr    cp;
   an_expr_node_ptr  expr;
   a_variable_ptr    temp_var;
 
-  make_zero_of_proper_type(desired_type, &zero_constant);
-  expr = alloc_node_for_constant(&zero_constant);
+  make_zero_of_proper_type(desired_type, zero_constant);
+  expr = alloc_node_for_constant(zero_constant);
   cp = expr->variant.constant;
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
     if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
@@ -1562,6 +1564,7 @@ type of the constant that is returned may be a lowered version of desired_type
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
     expr->variant.variable = temp_var;
   }  /* if */
+  release_local_constant(&zero_constant);
   return expr;
 }  /* alloc_node_for_lowered_zero_of_proper_type */
 
@@ -2040,7 +2043,7 @@ There is an implied argument for the VTT.
 {
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       class_type;
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
@@ -2080,8 +2083,8 @@ There is an implied argument for the VTT.
         if (delegated_params == NULL) {
           /* Use zero for the value of the implied argument. */
           make_zero_of_proper_type(make_pointer_type(subobject_type),
-                                   &null_constant);
-          implied_arg_node = alloc_node_for_constant(&null_constant);
+                                   null_constant);
+          implied_arg_node = alloc_node_for_constant(null_constant);
         } else {
           /* Use the corresponding parameter from the delegating constructor
              as the value for the implied argument (i.e., pass the argument
@@ -2101,11 +2104,12 @@ There is an implied argument for the VTT.
 #else /* IA64_ABI */
     /* Allocate an expression that is a NULL VTT pointer. */
     make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                             &null_constant);
-    implied_arg_node = alloc_node_for_constant(&null_constant);
+                             null_constant);
+    implied_arg_node = alloc_node_for_constant(null_constant);
     *implied_arg_list = *end_implied_arg_list = implied_arg_node;
 #endif /* IA64_ABI */
   }  /* if */
+  release_local_constant(&null_constant);
 }  /* make_ctor_implied_arg_list */
 
 #if !IA64_ABI
@@ -2159,12 +2163,13 @@ destructor for a complete object (that must be TRUE for the IA-64 ABI).
   check_assertion(have_complete_object);
   if (dtor_needs_vtt_argument(dtor_routine)) {
     /* Add a NULL VTT argument. */
-    a_constant null_constant;
+    a_constant_ptr null_constant = local_constant();
     make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                             &null_constant);
-    implied_arg_node = alloc_node_for_constant(&null_constant);
+                             null_constant);
+    implied_arg_node = alloc_node_for_constant(null_constant);
     *implied_arg_list = implied_arg_node;
     *end_implied_arg_list = implied_arg_node;
+    release_local_constant(&null_constant);
   }  /* if */
 #endif /* IA64_ABI */
 }  /* make_dtor_implied_arg_list */
@@ -2538,13 +2543,13 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
 */
 {
   an_expr_node_ptr num_elem_node;
-  a_constant       num_elem_constant;
+  a_constant_ptr   num_elem_constant = local_constant();
 
 #if IA64_ABI
   check_assertion(array_element_count >= 0);
 #endif /* IA64_ABI */
   set_integer_constant_with_overflow_check(
-                 &num_elem_constant, (a_host_large_integer)array_element_count,
+                 num_elem_constant, (a_host_large_integer)array_element_count,
 #if IA64_ABI
                  targ_size_t_int_kind,
 #else /* !IA64_ABI */
@@ -2553,7 +2558,8 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
                  (a_type_ptr)NULL,
                  /*preserve_needed_flag=*/FALSE);
   /* Allocate an expression node for the constant. */
-  num_elem_node = alloc_node_for_constant(&num_elem_constant);
+  num_elem_node = alloc_node_for_constant(num_elem_constant);
+  release_local_constant(&num_elem_constant);
   return num_elem_node;
 }  /* num_elem_node_from_count */
 
@@ -2622,9 +2628,9 @@ all dimensions.
              we're purposely skipping the case where
              partial_initialization_starting_element is zero (since there's
              no need to subtract zero in this case). */
-          a_constant starting_elem_constant;
+          a_constant_ptr starting_elem_constant = local_constant();
           set_integer_constant_with_overflow_check(
-                                 &starting_elem_constant,
+                                 starting_elem_constant,
                                  ipdp->partial_initialization_starting_element,
 #if IA64_ABI
                                  targ_size_t_int_kind,
@@ -2634,11 +2640,12 @@ all dimensions.
                                  (a_type_ptr)NULL,
                                  /*preserve_needed_flag=*/FALSE);
           num_elem_node->next = alloc_node_for_constant(
-                                                      &starting_elem_constant);
+                                                       starting_elem_constant);
           num_elem_node = make_operator_node(
                                            (an_expr_operator_kind)eok_subtract,
                                            num_elem_node->type,
                                            num_elem_node);
+          release_local_constant(&starting_elem_constant);
         }  /* if */
       } else {
         num_elem_node = num_elem_node_from_count(array_element_count);
@@ -2676,7 +2683,7 @@ function pointer type.
 */
 {
   an_expr_node_ptr expr;
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
 
   if (routine != NULL) {
     expr = function_addr_expr(routine);
@@ -2684,9 +2691,10 @@ function pointer type.
     expr = add_cast_if_necessary(expr, ptr_type);
   } else {
     /* No routine; use 0 cast to the right function pointer type. */
-    make_zero_of_proper_type(ptr_type, &null_constant);
-    expr = alloc_node_for_constant(&null_constant);
+    make_zero_of_proper_type(ptr_type, null_constant);
+    expr = alloc_node_for_constant(null_constant);
   }  /* if */
+  release_local_constant(&null_constant);
   return expr;
 }  /* expr_for_pointer_to_routine */
 
@@ -3004,7 +3012,7 @@ IA-64 ABI; see comments below.
   an_expr_node_ptr new_addr_node, delete_addr_node;
 #if !IA64_ABI
   an_expr_node_ptr is_two_arg_node;
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
 #endif /* !IA64_ABI */
 
   /* Build a constant node for the size of the array elements. */
@@ -3059,8 +3067,8 @@ IA-64 ABI; see comments below.
     if (entity_node == NULL) {
       /* If the runtime routine is supposed to do the allocation, pass a
          null pointer to the routine. */
-      make_zero_of_proper_type(void_star_type(), &null_constant);
-      entity_node = alloc_node_for_constant(&null_constant);
+      make_zero_of_proper_type(void_star_type(), null_constant);
+      entity_node = alloc_node_for_constant(null_constant);
     }  /* if */
 #else /* IA64_ABI */
     if (entity_node != NULL)
@@ -3215,6 +3223,9 @@ IA-64 ABI; see comments below.
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
+#if !IA64_ABI
+  release_local_constant(&null_constant);
+#endif /* !IA64_ABI */
   return call_node;
 }  /* make_vec_new_call */
 
@@ -4424,9 +4435,10 @@ operator of a no-capture lambda.
        list. */
     if (is_lambda_entry_point) {
       /* Pass NULL as the "this" argument. */
-      a_constant null_this;
-      make_zero_of_proper_type(this_param_type, &null_this);
-      this_arg = alloc_node_for_constant(&null_this);
+      a_constant_ptr null_this = local_constant();
+      make_zero_of_proper_type(this_param_type, null_this);
+      this_arg = alloc_node_for_constant(null_this);
+      release_local_constant(&null_this);
     } else {
       this_arg = var_rvalue_expr(this_param_var);
     }  /* if */
@@ -6394,14 +6406,14 @@ to be inserted, it is inserted at *insert_location.
   if (cond_var->storage_class != (a_storage_class)sc_static) {
     /* Otherwise, for an automatic variable, the variable must be explicitly
        initialized to zero. */
-    a_constant zero_constant;
-    set_integer_constant(&zero_constant, (a_host_large_integer)0,
+    a_constant_ptr zero_constant = local_constant();
+    set_integer_constant(zero_constant, (a_host_large_integer)0,
                          (an_integer_kind)ik_int);
     if (is_expr_insert_location_kind(insert_location->kind)) {
        /* The insert location is inside an expression, so use an stmk_expr. */
       (void)insert_assignment_statement(var_lvalue_expr(cond_var),
                                         (an_expr_operator_kind)eok_assign,
-                                       alloc_node_for_constant(&zero_constant),
+                                        alloc_node_for_constant(zero_constant),
                                         insert_location);
     } else {
       /* Normal case: use an stmk_init. */
@@ -6413,11 +6425,15 @@ to be inserted, it is inserted at *insert_location.
       /* The dynamic init entry is pointed to by the variable. */
       cond_var->init_kind = (an_init_kind)initk_dynamic;
       cond_var->initializer.dynamic = init_dip;
-      init_dip->variant.constant = alloc_unshared_constant(&zero_constant);
+      init_dip->variant.constant = move_local_constant_to_il(&zero_constant);
       /* The dynamic init entry is pointed to by an stmk_init statement. */
       stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
       stmk_init_stmt->variant.dynamic_init = init_dip;
       insert_statement(stmk_init_stmt, insert_location);
+    }  /* if */
+    if (zero_constant != NULL) {
+      /* If zero_constant was not moved to the IL above, release it now. */
+      release_local_constant(&zero_constant);
     }  /* if */
   }  /* if */
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -9159,11 +9175,11 @@ C99 mode for the same reason.
             end_of_full_expr_processing(source_node);
           }  /* if */
         }  /* if */
-        { a_constant con;
+        { a_constant_ptr con = local_constant();
           if (!simple_constant_init_opt_ruled_out &&
               !processing_file_scope_init_routine &&
               is_pointer_type(source_node->type) &&
-              constant_prvalue_pointer(source_node, &con,
+              constant_prvalue_pointer(source_node, con,
                                        /*address_escapes=*/TRUE)) {
             /* The initial value is a simple constant.  Rewrite the
                initialization as a simple static initialization.  We can't do
@@ -9171,13 +9187,15 @@ C99 mode for the same reason.
                initializations (otherwise we may generate address constants
                that are not available at file-scope).  */
             simple_constant_init = TRUE;
-            simple_constant = alloc_unshared_constant(&con);
+            simple_constant = move_local_constant_to_il(&con);
             /* Even though the newly allocated constant is marked as having
                been lowered, it may contain a "troublesome" aggregate constant,
                so make sure it is truly lowered. */
             mark_as_not_visited(simple_constant);
             lower_os_constant(simple_constant);
             break;
+          } else {
+            release_local_constant(&con);
           }  /* if */
         }
       }  /* if */
@@ -9837,7 +9855,9 @@ the position to insert the necessary code.
   an_expr_node_ptr    lt_node, test_node, call_node, temp_node;
   an_expr_node_ptr    prefix_size_node = NULL, max_elem_node;
   an_expr_node_ptr    num_array_elem_node;
-  a_constant          zero_constant, elem_size_constant, max_elements_constant;
+  a_constant_ptr      zero_constant = local_constant();
+  a_constant_ptr      elem_size_constant = local_constant();
+  a_constant_ptr      max_elements_constant = local_constant();
   a_boolean           err;
   a_variable_ptr      temp;
   a_type_ptr          num_elements_type= skip_typerefs((*num_elem_node)->type);
@@ -9855,10 +9875,10 @@ the position to insert the necessary code.
      element type can have, i.e.,
      (targ_size_t_max - sizeof(cookie))/sizeof(array element). */
   check_assertion(elem_type->size != 0);
-  set_unsigned_integer_constant(&elem_size_constant,
+  set_unsigned_integer_constant(elem_size_constant,
                                 (a_host_large_integer)elem_type->size,
                                 targ_size_t_int_kind);
-  set_unsigned_integer_constant(&max_elements_constant,
+  set_unsigned_integer_constant(max_elements_constant,
                                 (a_host_large_integer)targ_size_t_max,
                                 targ_size_t_int_kind);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -9870,7 +9890,7 @@ the position to insert the necessary code.
     if (is_constant_node(prefix_size_node)) {
       a_constant_ptr  cookie_size = prefix_size_node->variant.constant;
       check_assertion(cookie_size->type->kind == (a_type_kind)tk_integer);
-      subtract_integer_values(&max_elements_constant.variant.integer_value,
+      subtract_integer_values(&max_elements_constant->variant.integer_value,
                               &(cookie_size->variant.integer_value),
                               /*is_signed=*/FALSE, &err);
       check_assertion(!err);
@@ -9880,20 +9900,20 @@ the position to insert the necessary code.
   if (prefix_size_node == NULL) {
     /* No cookie, or a cookie whose size is known at compile time (and has
        already been subtracted above). */
-    divide_integer_values(&max_elements_constant.variant.integer_value,
-                          &elem_size_constant.variant.integer_value,
+    divide_integer_values(&max_elements_constant->variant.integer_value,
+                          &elem_size_constant->variant.integer_value,
                           /*is_signed=*/FALSE, &err);
     check_assertion(!err);
-    max_elem_node = alloc_node_for_constant(&max_elements_constant);
+    max_elem_node = alloc_node_for_constant(max_elements_constant);
   } else {
     /* The cookie size isn't known at compile time; create an expression
        to perform the subtraction and division. */
-    max_elem_node = alloc_node_for_constant(&max_elements_constant);
+    max_elem_node = alloc_node_for_constant(max_elements_constant);
     max_elem_node->next = prefix_size_node;
     max_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
                                        max_elem_node->type,
                                        max_elem_node);
-    max_elem_node->next = alloc_node_for_constant(&elem_size_constant);
+    max_elem_node->next = alloc_node_for_constant(elem_size_constant);
     max_elem_node = make_operator_node((an_expr_operator_kind)eok_divide,
                                        max_elem_node->type,
                                        max_elem_node);
@@ -9949,8 +9969,8 @@ the position to insert the necessary code.
   } else if (is_signed_integral_type(num_elements_type)) {
     /* Add "|| num_elements < 0" to the test. */
     temp_node = var_rvalue_expr(temp);
-    make_zero_of_proper_type(num_elements_type, &zero_constant);
-    temp_node->next = alloc_node_for_constant(&zero_constant);
+    make_zero_of_proper_type(num_elements_type, zero_constant);
+    temp_node->next = alloc_node_for_constant(zero_constant);
     lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
                                  integer_type((an_integer_kind)ik_int),
                                  temp_node);
@@ -9977,6 +9997,9 @@ the position to insert the necessary code.
                                      void_star_type(),
                                      (an_expr_node_ptr)NULL);
   insert_expr(call_node, &then_insert_location);
+  release_local_constant(&zero_constant);
+  release_local_constant(&elem_size_constant);
+  release_local_constant(&max_elements_constant);
 }  /* insert_runtime_array_length_check */
 
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
@@ -10006,7 +10029,7 @@ signed or unsigned).
   an_expr_node_ptr      number_of_elements, number_of_bytes, temp_node;
   a_variable_ptr        temp;
   a_type_ptr            elem_type, underlying_elem_type;
-  a_constant            constant;
+  a_constant_ptr        constant = local_constant();
 
   number_of_elements = ndsp->number_of_elements;
   if (number_of_elements != NULL) {
@@ -10103,18 +10126,18 @@ signed or unsigned).
     /* Non-array case, or array with constant size; size is known.  Note
        that in some cases (e.g., some Microsoft modes), an incomplete
        type can get here (resulting in a size of zero). */
-    set_unsigned_integer_constant_with_overflow_check(&constant,
+    set_unsigned_integer_constant_with_overflow_check(constant,
                                                skip_typerefs(ndsp->type)->size,
                                                targ_size_t_int_kind,
                                                (a_type_ptr)NULL,
                                                /*preserve_needed_flag=*/FALSE);
-    number_of_bytes = alloc_node_for_constant(&constant);
+    number_of_bytes = alloc_node_for_constant(constant);
     if (num_elem_node != NULL && is_array_type(ndsp->type)) {
       /* An array new where the number of elements is specified at compile
          time.  Note that the total number of elements (all dimensions
          for multi-dimensional arrays) is returned. */
       set_unsigned_integer_constant_with_overflow_check(
-                                              &constant,
+                                              constant,
                                               num_array_elements(ndsp->type),
 #if IA64_ABI
                                               targ_size_t_int_kind,
@@ -10123,10 +10146,11 @@ signed or unsigned).
 #endif /* IA64_ABI */
                                               (a_type_ptr)NULL,
                                               /*preserve_needed_flag=*/FALSE);
-      number_of_elements = alloc_node_for_constant(&constant);
+      number_of_elements = alloc_node_for_constant(constant);
       *num_elem_node = number_of_elements;
     }  /* if */
   }  /* if */
+  release_local_constant(&constant);
   return number_of_bytes;
 }  /* size_arg_for_new */
 
@@ -10205,7 +10229,7 @@ arrays with class elements.
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
   an_expr_node_ptr            entity_node, new_node, test_node = NULL;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
-  a_constant                  null_constant;
+  a_constant_ptr              null_constant = local_constant();
   a_variable_ptr              temp_var, new_temp_var = NULL;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
@@ -10521,8 +10545,8 @@ arrays with class elements.
   if (ndsp->placement_new) {
     /* Placement new.  Add the "?" operator over the whole expression. */
     test_node->next = vec_new_node;
-    make_zero_of_proper_type(vec_new_node->type, &null_constant);
-    vec_new_node->next = alloc_node_for_constant(&null_constant);
+    make_zero_of_proper_type(vec_new_node->type, null_constant);
+    vec_new_node->next = alloc_node_for_constant(null_constant);
     vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
                                       vec_new_node->type, test_node);
   }  /* if */
@@ -10535,6 +10559,7 @@ arrays with class elements.
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
+  release_local_constant(&null_constant);
 }  /* lower_array_new */
 
 
@@ -10865,7 +10890,7 @@ The subtree of the node has not yet been lowered.
   an_expr_node_ptr            assign_node, test_node, args;
   an_expr_node_ptr            num_elem_node = NULL, *eff_num_elem_node = NULL;
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
-  a_constant                  null_constant;
+  a_constant_ptr              null_constant = local_constant();
   an_insert_location          insert_location, pre_call_insert_location;
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -10896,8 +10921,8 @@ The subtree of the node has not yet been lowered.
                     !dip->variant.constructor.value_initialization);
     /* Pass a NULL for the "this" parameter to tell the constructor to
        do the allocation. */
-    make_zero_of_proper_type(make_pointer_type(base_type), &null_constant);
-    null_node = alloc_node_for_constant(&null_constant);
+    make_zero_of_proper_type(make_pointer_type(base_type), null_constant);
+    null_node = alloc_node_for_constant(null_constant);
     /* Add any implicit arguments for the constructor. */
     make_ctor_implied_arg_list(ctor_routine, /*is_target_ctor=*/FALSE,
                                &implied_arg_list, &end_implied_arg_list);
@@ -11069,8 +11094,8 @@ The subtree of the node has not yet been lowered.
          pointer; its second is the initialization code; and its third is a
          NULL constant of the right type. */
       test_node = boolean_controlling_expr(assign_node);
-      make_zero_of_proper_type(ptr_new_type, &null_constant);
-      null_node = alloc_node_for_constant(&null_constant);
+      make_zero_of_proper_type(ptr_new_type, null_constant);
+      null_node = alloc_node_for_constant(null_constant);
       test_node->next = init_node;
       init_node->next = null_node;
       call_node = make_operator_node((an_expr_operator_kind)eok_question,
@@ -11086,6 +11111,7 @@ The subtree of the node has not yet been lowered.
        pointer type. */
     change_to_cast(expr, call_node, expr->type);
   }  /* if */
+  release_local_constant(&null_constant);
 }  /* lower_new */
 
 
@@ -11732,7 +11758,7 @@ This routine returns TRUE if guard code was emitted.
 #if !IA64_ABI
   an_expr_node_ptr       test_var_node, compare_node;
 #endif /* !IA64_ABI */
-  a_constant             minus_one_constant;
+  a_constant_ptr         minus_one_constant = local_constant();
   a_boolean              guard_code_emitted = FALSE;
 
   *guard_var = NULL;
@@ -11753,10 +11779,10 @@ This routine returns TRUE if guard code was emitted.
        all other initialization code.  No test of the guard variable is
        needed here. */
     test_var->init_kind = (an_init_kind)initk_static;
-    set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
+    set_integer_constant(minus_one_constant, (a_host_large_integer)-1,
                          (an_integer_kind)ik_int);
     test_var->initializer.constant = alloc_unshared_constant_in_region(
-                                                      &minus_one_constant,
+                                                      minus_one_constant,
                                                       /*in_file_region=*/TRUE);
   } else {
     /* This is not a specialization, so the guard variable must be tested
@@ -11791,10 +11817,10 @@ This routine returns TRUE if guard code was emitted.
                                                &variable->source_corresp,
                                                (an_il_entry_kind)iek_variable);
     test_var->init_kind = (an_init_kind)initk_static;
-    set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
+    set_integer_constant(minus_one_constant, (a_host_large_integer)-1,
                          (an_integer_kind)ik_int);
     test_var->initializer.constant = alloc_unshared_constant_in_region(
-                                                      &minus_one_constant,
+                                                      minus_one_constant,
                                                       /*in_file_region=*/TRUE);
   } else {
     /* Normal case -- emit the usual guard code. */
@@ -11812,6 +11838,7 @@ This routine returns TRUE if guard code was emitted.
   test_var->ELF_visibility = variable->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 end_of_routine:
+  release_local_constant(&minus_one_constant);
   return guard_code_emitted;
 }  /* add_static_data_member_init_guard_test */
 
@@ -12281,9 +12308,9 @@ lowered.
     }  /* if */
   } else {
     /* Simple scalar case. */
-    a_constant zero_constant;
-    make_zero_of_proper_type(prvalue_type(type), &zero_constant);
-    con = alloc_unshared_constant(&zero_constant);
+    a_constant_ptr zero_constant = local_constant();
+    make_zero_of_proper_type(prvalue_type(type), zero_constant);
+    con = move_local_constant_to_il(&zero_constant);
   }  /* if */
   /* IL elements allocated during lowering are, by default, set as though
      they have been lowered.  Reset that flag so the constant will be
@@ -13492,6 +13519,7 @@ given by the elements.
   a_type_ptr                      array_type;
   a_variable_ptr                  primary_vtbl_var =
                                         primary_vtbl_var_for_class(class_type);
+  a_constant_ptr                  con = local_constant();
 
 #if IA64_ABI
   if (var == NULL) {
@@ -13507,7 +13535,6 @@ given by the elements.
   /* Go through the list and generate an initializer value for each
      element. */
   for (; elements != NULL; elements = elements->next) {
-    a_constant                  con;
     a_constant_ptr              conp;
 #if IA64_ABI
     a_virtual_table_index       vtbl_index;
@@ -13515,18 +13542,19 @@ given by the elements.
 
     num_elements++;
     /* Make a constant for the address of the virtual function table. */
-    set_variable_address_constant(elements->virtual_function_table_var, &con,
+    set_variable_address_constant(elements->virtual_function_table_var, con,
                                   /*set_address_taken_flag=*/TRUE);
     /* Do the array --> pointer decay. */
-    implicit_cast(&con, pointer_to_vtbl_type());
+    implicit_cast(con, pointer_to_vtbl_type());
 #if IA64_ABI
     /* In the IA64 ABI, the value of the vptr in the object is not the same as
        the address of the virtual function table variable.  */
     vtbl_index = elements->virtual_function_table_index;
-    con.variant.address.offset = vtbl_index * (long)vtbl_entry_size();
+    con->variant.address.offset = vtbl_index * (long)vtbl_entry_size();
 #endif /* IA64_ABI */
     elements->virtual_function_table_var->source_corresp.referenced = TRUE;
-    conp = alloc_unshared_constant(&con);
+    conp = move_local_constant_to_il(&con);
+    con = local_constant();
     /* Add the constant to the aggregate constant's list. */
     if (aggr_con->variant.aggregate.first_constant == NULL) {
       aggr_con->variant.aggregate.first_constant = conp;
@@ -13547,6 +13575,7 @@ given by the elements.
   var->comdat_group = primary_vtbl_var->comdat_group;
 #endif /* IA64_ABI */
   switch_back_to_original_region(region_to_switch_back_to);
+  release_local_constant(&con);
 }  /* define_construction_vtbls_array */
 
 
@@ -14502,7 +14531,7 @@ constructors are handled separately.
     an_insert_location     insert_location2;
     an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
     an_expr_node_ptr       complete_var_node;
-    a_constant             null_constant;
+    a_constant_ptr         null_constant = local_constant();
     a_variable_ptr         complete_var;
     a_handle_number        complete_var_handle = 0;
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
@@ -14533,9 +14562,9 @@ constructors are handled separately.
        a conditional flag for EH cleanup. */
     vbase_param_var = this_param_var->next;
     /* Make a NULL pointer constant of the right type. */
-    make_zero_of_proper_type(vbase_param_var->type, &null_constant);
+    make_zero_of_proper_type(vbase_param_var->type, null_constant);
     /* Make an expression node pointing to the NULL constant. */
-    null_constant_node = alloc_node_for_constant(&null_constant);
+    null_constant_node = alloc_node_for_constant(null_constant);
     /* Make an expression node for the parameter. */
     vbase_param_node = var_rvalue_expr(vbase_param_var);
     /* Make a node comparing the parameter against NULL. */
@@ -14626,6 +14655,7 @@ constructors are handled separately.
       }  /* if */
     }  /* for */
 #endif /* !IA64_ABI */
+    release_local_constant(&null_constant);
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
   }  /* if */
   /* The virtual base class initializations have either been handled in
@@ -15885,14 +15915,14 @@ destructor scope, and also lower the user code.
     /* For the IA-64 ABI, the VTT parameter is NULL if we are destroying
        a complete object.  We need to generate a temporary that is non-zero
        when the VTT parameter is NULL, i.e., temp = (vtt-param == NULL). */
-    { a_constant       null_constant;
+    { a_constant_ptr   null_constant = local_constant();
       an_expr_node_ptr null_constant_node, vtt_param_node;
       a_variable_ptr   vtt_param_var = this_param_var->next;
       dtor_info.complete_obj_var =
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
       make_zero_of_proper_type(f_skip_typerefs(vtt_param_var->type),
-                               &null_constant);
-      null_constant_node = alloc_node_for_constant(&null_constant);
+                               null_constant);
+      null_constant_node = alloc_node_for_constant(null_constant);
       vtt_param_node = var_rvalue_expr(vtt_param_var);
       vtt_param_node->next = null_constant_node;
       compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
@@ -15900,6 +15930,7 @@ destructor scope, and also lower the user code.
                                         vtt_param_node);
       (void)insert_var_assignment_statement(dtor_info.complete_obj_var,
                                             compare_node, &insert_location);
+      release_local_constant(&null_constant);
     }
 #endif /* IA64_ABI */
     /* Put out code that tests whether we are destroying a complete object. */
@@ -17352,27 +17383,27 @@ allocated integer constant.
 */
 {
   a_const_char     *local_ptr = *ptr;
-  a_constant       con;
+  a_constant_ptr   con = local_constant();
   a_constant_ptr   con_ptr;
   a_boolean        err;
   an_integer_value digit;
 
   /* Start with zero. */
-  make_zero_of_proper_type(integer_type(ikind), &con);
+  make_zero_of_proper_type(integer_type(ikind), con);
   /* Loop to convert each hexadecimal digit. */
   for (; ndigits > 0; ndigits--) {
     char ch = *local_ptr++;
     int  intdigit = hexvalue(ch);
     /* Multiply previous value by 16. */
-    shift_left_integer_value(&con.variant.integer_value, 4, &err);
+    shift_left_integer_value(&con->variant.integer_value, 4, &err);
     /* Or in digit. */
     set_unsigned_integer_value(&digit,
                             (a_host_large_unsigned)intdigit /*lint --e(571)*/);
-    or_integer_values(&con.variant.integer_value, &digit);
+    or_integer_values(&con->variant.integer_value, &digit);
   }  /* for */
   *ptr = local_ptr;
   /* Allocate the final constant. */
-  con_ptr = alloc_unshared_constant(&con);
+  con_ptr = move_local_constant_to_il(&con);
   return con_ptr;
 }  /* conv_uuid_constant */
 
@@ -17721,9 +17752,10 @@ a (decayed) pointer type.
 */
 {
   a_constant_ptr   con;
-  a_constant       addr_con;
+  a_constant_ptr   addr_con = local_constant();
   char             *str;
   sizeof_t         target_str_len;
+  an_expr_node_ptr result;
 
   con = alloc_constant((a_constant_repr_kind)ck_string);
   /* Allocate space for the target string (plus a null terminator) and
@@ -17737,13 +17769,15 @@ a (decayed) pointer type.
   con->variant.string.value = str;
   con->character_kind = (a_character_kind)chk_char;
   /* Perform array to pointer decay. */
-  set_constant_address_constant(con, &addr_con);
-  implicit_cast(&addr_con,
+  set_constant_address_constant(con, addr_con);
+  implicit_cast(addr_con,
                 type_after_array_to_pointer_transformation(con->type));
   /* Lower the string, if applicable. */
   il_lowering_flag_of(con) = FALSE;
   lower_constant(con);
-  return alloc_node_for_constant(&addr_con);
+  result = alloc_node_for_constant(addr_con);
+  release_local_constant(&addr_con);
+  return result;
 }  /* make_expr_for_string_literal */
 
 

@@ -68,10 +68,8 @@ incorporated:
 /* IL declarations.  Note that il.h pulls in il_def.h. */
 #include "il.h"
 
-#if !STANDALONE_UTILITY_PROGRAM
 /* IL allocation declarations. */
 #include "il_alloc.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Target configuration variables. */
 #include "target.h"

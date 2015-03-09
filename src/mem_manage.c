@@ -1252,6 +1252,10 @@ needed (e.g., it has been written out to the IL file).
 #if DEBUG
   allocated_in_region[region_number] = 0;
 #endif /* DEBUG */
+  if (region_number == file_scope_region_number) {
+    /* The storage for local constants has been freed. */
+    available_local_constants = NULL;
+  }  /* if */
   db_exit();
 }  /* free_memory_region */
 
@@ -1796,7 +1800,7 @@ prefix field.)
 
 #endif /* DEBUG */
 
-#if EXPENSIVE_CHECKING && 0 /*FIXME*/
+#if EXPENSIVE_CHECKING
 
 extern an_il_entry_prefix_ptr expensive_il_entry_prefix_of(char *ptr)
 /*

@@ -2069,12 +2069,12 @@ applying any applicable integral promotions, and return a pointer to it.
 */
 {
   an_expr_node_ptr node;
-  a_constant       constant;
+  a_constant_ptr   constant = local_constant();
 
-  set_integer_constant(&constant, (a_host_large_integer)value, kind);
-  promote_integer_constant(&constant);
-  node = alloc_node_for_constant(&constant);
-
+  set_integer_constant(constant, (a_host_large_integer)value, kind);
+  promote_integer_constant(constant);
+  node = alloc_node_for_constant(constant);
+  release_local_constant(&constant);
   return node;
 }  /* node_for_promoted_integer_constant */
 
@@ -2336,7 +2336,7 @@ the next operand, and return the resulting operand pair.  (The appended zero
 is not lowered -- but needs to be -- see lower_ne_0_normalization.)
 */
 {
-  a_constant  zero;
+  a_constant_ptr  zero = local_constant();
 
   if (is_integral_type(expr->type)) {
     /* Simulate the usual arithmetic conversions. */
@@ -2345,10 +2345,11 @@ is not lowered -- but needs to be -- see lower_ne_0_normalization.)
   }  /* if */
   /* get_underlying_type is needed here for the pointer-to-member case if the
      type is already lowered. */
-  make_zero_of_proper_type(get_underlying_type(expr->type), &zero);
-  expr->next = alloc_node_for_constant(&zero);
+  make_zero_of_proper_type(get_underlying_type(expr->type), zero);
+  expr->next = alloc_node_for_constant(zero);
   /* Make sure the zero is properly lowered by marking it not visited. */
   mark_as_not_visited(expr->next->variant.constant);
+  release_local_constant(&zero);
   return expr;
 }  /* make_operands_for_ne_0 */
 
@@ -3867,11 +3868,11 @@ indicated class.
 {
   an_error_code     err_code;
   an_error_severity err_severity;
-  a_constant        new_constant;
+  a_constant_ptr    new_constant = local_constant();
 
-  clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
-  new_constant.type = integer_type(ikind);
-  conv_integer_to_integer(con, &new_constant, /*is_implicit_cast=*/TRUE,
+  clear_constant(new_constant, (a_constant_repr_kind)ck_error);
+  new_constant->type = integer_type(ikind);
+  conv_integer_to_integer(con, new_constant, /*is_implicit_cast=*/TRUE,
                           &err_code, &err_severity);
   if (err_code != ec_no_error) {
     if (class_type != NULL) {
@@ -3881,7 +3882,8 @@ indicated class.
       pos_error(ec_integer_overflow_internal, &error_position);
     }  /* if */
   }  /* if */
-  copy_constant(&new_constant, con);
+  copy_constant(new_constant, con);
+  release_local_constant(&new_constant);
 }  /* conv_integer_constant_with_overflow_check */
 
 
@@ -4294,12 +4296,12 @@ or contain a pointer to data member, which must be initialized to -1.
 */
 {
   a_constant_ptr con;
-  a_constant     zero_con;
+  a_constant_ptr zero_con = local_constant();
 
   if (is_or_was_ptr_to_data_member_type(type)) {
-    set_integer_constant(&zero_con, (a_host_large_integer)-1, 
+    set_integer_constant(zero_con, (a_host_large_integer)-1, 
                          targ_ptr_to_data_member_int_kind);
-    con = alloc_unshared_constant(&zero_con);
+    con = move_local_constant_to_il(&zero_con);
   } else {
     if (is_or_was_ptr_to_member_function_type(type)) {
       /* Use the implementation aggregate type for a pointer to member
@@ -4319,8 +4321,8 @@ or contain a pointer to data member, which must be initialized to -1.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
       case tk_nullptr:
-        make_zero_of_proper_type(type, &zero_con);
-        con = alloc_unshared_constant(&zero_con);
+        make_zero_of_proper_type(type, zero_con);
+        con = move_local_constant_to_il(&zero_con);
         break;
       case tk_array:
         check_assertion(!type->variant.array.is_variable_size_array &&
@@ -4372,6 +4374,10 @@ or contain a pointer to data member, which must be initialized to -1.
       default:
         unexpected_condition();
     }  /* switch */
+  }  /* if */
+  if (zero_con != NULL) {
+    /* If zero_con was not moved to the IL above, release it now. */
+    release_local_constant(&zero_con);
   }  /* if */
   return con;
 }  /* lower_zero_initialization */
@@ -4624,9 +4630,10 @@ in extern inline functions).
 {
   a_constant_ptr   string_con;
   a_variable_ptr   assoc_var;
-  a_constant       orig_con = *addr_con;
+  a_constant_ptr   orig_con = local_constant();
   a_targ_ptrdiff_t offset;
 
+  *orig_con = *addr_con;
   check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
                   addr_con->variant.address.kind ==
                                            (an_address_base_kind)abk_constant);
@@ -4643,12 +4650,13 @@ in extern inline functions).
                                 /*set_address_taken_flag=*/TRUE);
   /* Restore the offset (if any). */
   addr_con->variant.address.offset = offset;
-  if (orig_con.implicit_cast) {
+  if (orig_con->implicit_cast) {
     /* The original constant was cast to a different type, e.g.,
        because its type decayed to a pointer. */
-    implicit_cast(addr_con, orig_con.type);
+    implicit_cast(addr_con, orig_con->type);
   }  /* if */
-  addr_con->next = orig_con.next;
+  addr_con->next = orig_con->next;
+  release_local_constant(&orig_con);
 }  /* rewrite_address_of_string_as_address_of_variable */
 
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
@@ -4836,7 +4844,7 @@ in the aggregate have not been lowered (and aren't lowered here).
       (needs_virtual_function_table(class_type) ||
        class_type->variant.class_struct_union.
                             any_virtual_functions_including_in_base_classes)) {
-    a_constant                  addr_constant;
+    a_constant_ptr              addr_constant = local_constant();
     a_constant_ptr              aggr_con, vptr_con = NULL, prev_con = NULL;
     a_field_ptr                 field;
     a_base_class_ptr            bcp;
@@ -4890,8 +4898,8 @@ in the aggregate have not been lowered (and aren't lowered here).
       make_vtbl_address_constant(vtbl_var,
                                  vtbl_class,
                                  subobject_bcp,
-                                 &addr_constant);
-      vptr_con = alloc_unshared_constant_in_region(&addr_constant,
+                                 addr_constant);
+      vptr_con = alloc_unshared_constant_in_region(addr_constant,
                                                    in_file_scope(constant));
 #if MAINTAIN_NEEDED_FLAGS
       if (lowering_file_scope) {
@@ -4976,6 +4984,7 @@ in the aggregate have not been lowered (and aren't lowered here).
       }  /* if */
     }  /* for */
     check_assertion(!modify_vptr_in_this_class);
+    release_local_constant(&addr_constant);
   }  /* if */
 }  /* initialize_vptr_in_aggregate_constant */
 
@@ -10583,7 +10592,7 @@ pointer to the overall expression remains the same.  expr and orig_source_node
 are both rvalues.
 */
 {
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
   an_expr_node_ptr test_node, source_node, null_constant_node;
 
   check_assertion(!expr->is_lvalue && !orig_source_node->is_lvalue);
@@ -10591,14 +10600,15 @@ are both rvalues.
      conditional operator node. */
   source_node = copy_node(expr);
   /* Make a NULL pointer constant of the right type. */
-  make_zero_of_proper_type(source_node->type, &null_constant);
-  null_constant_node = alloc_node_for_constant(&null_constant);
+  make_zero_of_proper_type(source_node->type, null_constant);
+  null_constant_node = alloc_node_for_constant(null_constant);
   /* Make a conditional operator node out of the original node. */
   test_node = boolean_controlling_expr(orig_source_node);
   test_node->next = source_node;
   source_node->next = null_constant_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
                     source_node->type, expr->is_lvalue, test_node);
+  release_local_constant(&null_constant);
 }  /* add_null_preservation_code */
 
 
@@ -11063,7 +11073,7 @@ of a base or derived class of that class.
   an_expr_node_ptr test2_node;
 #endif /* IA64_ABI */
   an_expr_node_ptr select_d_node, incr_node, assign_node, comma_node;
-  a_constant       offset_constant;
+  a_constant_ptr   offset_constant = local_constant();
   a_targ_ptrdiff_t offset;
   a_variable_ptr   temp_var;
   a_type_ptr       dest_type = node->type;
@@ -11128,9 +11138,9 @@ of a base or derived class of that class.
       offset <<= 1;
 #endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
-      set_delta_constant(offset, &offset_constant, class_type);
-      promote_integer_constant(&offset_constant);
-      offset_node = alloc_node_for_constant(&offset_constant);
+      set_delta_constant(offset, offset_constant, class_type);
+      promote_integer_constant(offset_constant);
+      offset_node = alloc_node_for_constant(offset_constant);
       select_d_node->next = offset_node;
       incr_node = make_operator_node((an_expr_operator_kind)eok_add_assign,
                                      mptr_d_field->type, select_d_node);
@@ -11184,15 +11194,15 @@ of a base or derived class of that class.
       }  /* if */
       /* Make a node for the offset constant. */
       set_unsigned_integer_constant_with_overflow_check(
-                                    &offset_constant,
+                                    offset_constant,
                                     (a_host_large_unsigned)offset,
                                     targ_ptr_to_data_member_int_kind,
                                     class_type,
                                     /*preserve_needed_flag=*/FALSE);
       if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
-        promote_integer_constant(&offset_constant);
+        promote_integer_constant(offset_constant);
       }  /* if */
-      offset_node = alloc_node_for_constant(&offset_constant);
+      offset_node = alloc_node_for_constant(offset_constant);
       source_node->next = offset_node;
       plus_node = make_operator_node(op, source_node->type, source_node);
       /* Cast back to the pointer to member type if it is an unpromoted
@@ -11213,6 +11223,7 @@ of a base or derived class of that class.
                         dest_type, node->is_lvalue, test_node);
     }  /* if */
   }  /* if */
+  release_local_constant(&offset_constant);
 }  /* lower_pm_related_class_cast */
 
 #if ABI_CHANGES_FOR_RTTI
@@ -11245,7 +11256,7 @@ has already been lowered.
   an_expr_node_ptr null_constant_node, test_node = NULL;
   an_expr_node_ptr desired_type_node, static_type_node, call_node;
   a_type_ptr       cast_type, src_type, ptr_type;
-  a_constant       constant;
+  a_constant_ptr   constant = local_constant();
   a_boolean        reference_case = node_operator_is(expr,
                                                      eok_ref_dynamic_cast);
 
@@ -11341,17 +11352,17 @@ has already been lowered.
       make_zero_of_proper_type(make_pointer_type(make_typeinfo_type(
                                                            tik_implementation,
                                                            (a_type_ptr)NULL)),
-                               &constant);
+                               constant);
     } else 
 #endif /* !IA64_ABI */
     {
       /* Get the typeinfo variable for the desired type. */
       a_variable_ptr var = get_typeinfo_var(cast_type);
       /* Pass its address as the desired_type argument. */
-      set_variable_address_constant(var, &constant,
+      set_variable_address_constant(var, constant,
                                     /*set_address_taken_flag=*/TRUE);
     }  /* if */
-    desired_type_node = alloc_node_for_constant(&constant);
+    desired_type_node = alloc_node_for_constant(constant);
 #if ABI_COMPATIBILITY_VERSION >= 241
 #if !IA64_ABI
     /* Make the pointer to the original source.  This may differ from the
@@ -11361,9 +11372,9 @@ has already been lowered.
 #endif /* !IA64_ABI */
     /* Make the static_type argument. */
     set_variable_address_constant(get_typeinfo_var(src_type),
-                                  &constant,
+                                  constant,
                                   /*set_address_taken_flag=*/TRUE);
-    static_type_node = alloc_node_for_constant(&constant);
+    static_type_node = alloc_node_for_constant(constant);
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 #if IA64_ABI
     /* Make the hint argument.  We use -1 as the hint value, which is
@@ -11414,9 +11425,9 @@ has already been lowered.
                                              &bad_cast_routine,
                                              void_type(),
                                              (an_expr_node_ptr)NULL);
-      make_zero_of_proper_type(ptr_type, &constant);
+      make_zero_of_proper_type(ptr_type, constant);
       bad_cast_node = make_comma_node(bad_cast_node,
-                                      alloc_node_for_constant(&constant));
+                                      alloc_node_for_constant(constant));
       /* Build the operands for the "?". */
       test_node = boolean_controlling_expr(call_node);
       test_node->next = call_copy;
@@ -11433,8 +11444,8 @@ has already been lowered.
        routine). */
     call_node = add_cast_if_necessary(call_node, ptr_type);
     /* Make the NULL for the third operand of the "?". */
-    make_zero_of_proper_type(ptr_type, &constant);
-    null_constant_node = alloc_node_for_constant(&constant);
+    make_zero_of_proper_type(ptr_type, constant);
+    null_constant_node = alloc_node_for_constant(constant);
     /* Assemble the operands for the "?". */
     test_node = boolean_controlling_expr(src);
     test_node->next = call_node;
@@ -11452,6 +11463,7 @@ has already been lowered.
   }  /* if */
   /* Overwrite the original node with the rewritten version. */
   overwrite_node(expr, test_node);
+  release_local_constant(&constant);
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -11573,7 +11585,7 @@ lvalue to its logical "not".
 {
   an_expr_node_ptr operand_node = expr->variant.operation.operands;
   an_expr_node_ptr result_value_node;
-  a_constant       result_constant;
+  a_constant_ptr   result_constant = local_constant();
 
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pre_incr ||
       (expr->variant.operation.kind == (an_expr_operator_kind)eok_post_incr &&
@@ -11583,11 +11595,11 @@ lvalue to its logical "not".
     /* Build a constant one, but make sure it has bool type to preserve
        bool-correctness in the IL for back ends that care. */
     /* Expression can be an lvalue or an rvalue. */
-    set_integer_constant(&result_constant,
+    set_integer_constant(result_constant,
                          (a_host_large_integer)1,
                          targ_bool_int_kind);
-    result_constant.type = bool_type();
-    result_value_node = alloc_node_for_constant(&result_constant);
+    result_constant->type = bool_type();
+    result_value_node = alloc_node_for_constant(result_constant);
     operand_node->next = result_value_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_assign,
                       expr->type, expr->is_lvalue, operand_node);
@@ -11614,11 +11626,11 @@ lvalue to its logical "not".
       /* Increment. */
       /* Build a constant one, but make sure it has bool type to preserve
          bool-correctness in the IL for back ends that care. */
-      set_integer_constant(&result_constant,
+      set_integer_constant(result_constant,
                            (a_host_large_integer)1,
                            targ_bool_int_kind);
-      result_constant.type = bool_type();
-      result_value_node = alloc_node_for_constant(&result_constant);
+      result_constant->type = bool_type();
+      result_value_node = alloc_node_for_constant(result_constant);
     } else {
       /* Decrement.  Build !temp. */
       result_value_node = make_operator_node(
@@ -11649,6 +11661,7 @@ lvalue to its logical "not".
                         assign_node->type, /*is_lvalue=*/FALSE, x_rvalue);
     }  /* if */
   }  /* if */
+  release_local_constant(&result_constant);
 }  /* lower_bool_incr_decr */                  
 
 
@@ -12910,20 +12923,21 @@ variables can have changed since the first reference.
          a function or an offset.  The expression created has to be of
          function-pointer type, however, so in the latter case cast the offset
          to a function-pointer type. */
-      a_constant constant;
+      a_constant_ptr constant = local_constant();
 
       check_assertion(field == mptr_f_field);
       if (routine == NULL) {
-        set_integer_constant(&constant, (a_host_large_integer)offset,
+        set_integer_constant(constant, (a_host_large_integer)offset,
                              TARG_DELTA_INT_KIND);
       } else {
-        set_routine_address_constant(routine, &constant,
+        set_routine_address_constant(routine, constant,
                                      /*set_address_taken_flag=*/TRUE);
       }  /* if */
       /* Cast the constant to a generic function pointer type. */
-      implicit_cast(&constant, make_vptp_type());
+      implicit_cast(constant, make_vptp_type());
       /* Make an expression for the constant. */
-      comp_expr = alloc_node_for_constant(&constant);
+      comp_expr = alloc_node_for_constant(constant);
+      release_local_constant(&constant);
     }  /* if */
   } else {
     a_variable_ptr  temp_var;
@@ -13747,7 +13761,7 @@ and lvalueness as question_node.
 {
   a_boolean        nonscalar;
   a_type_ptr       zero_type, question_node_type = question_node->type;
-  a_constant       null_constant;
+  a_constant_ptr   null_constant = local_constant();
   an_expr_node_ptr node_copy, zero_node;
 
   /* Make an operand that has the same type as the other operand.  If the
@@ -13758,8 +13772,8 @@ and lvalueness as question_node.
   if (question_node->is_lvalue || nonscalar) {
     zero_type = make_pointer_type(question_node_type);
   }  /* if */
-  make_zero_of_proper_type(zero_type, &null_constant);
-  zero_node = alloc_node_for_constant(&null_constant);
+  make_zero_of_proper_type(zero_type, null_constant);
+  zero_node = alloc_node_for_constant(null_constant);
   if (question_node->is_lvalue || nonscalar) {
     zero_node = add_indirection_to_node(zero_node);
     if (!question_node->is_lvalue) {
@@ -13775,6 +13789,7 @@ and lvalueness as question_node.
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
                            question_node_type, node_copy,
                            question_node->is_lvalue);
+  release_local_constant(&null_constant);
 }  /* wrap_throw */
 
 
@@ -13792,7 +13807,7 @@ place, but a glvalue can occur in cases where this routine is called
 recursively (and only the top level expression has had its xvalue converted).
 */
 {
-  a_constant       zero_con;
+  a_constant_ptr   zero_con = local_constant();
   an_expr_node_ptr zero_node;
   an_expr_node_ptr next_node = expr->next;
 
@@ -13803,8 +13818,8 @@ recursively (and only the top level expression has had its xvalue converted).
   }  /* if */
   if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
     /* No side effects, so replace the expression with a zero of type int. */
-    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
-    zero_node = alloc_node_for_constant(&zero_con);
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), zero_con);
+    zero_node = alloc_node_for_constant(zero_con);
     overwrite_node(expr, zero_node);
   } else if (is_operation_node(expr)) {
     /* The expression has some side effect and must be maintained.  Generally
@@ -13894,6 +13909,7 @@ recursively (and only the top level expression has had its xvalue converted).
   }  /* if */
   expr->next = next_node;
   check_assertion(!expr->is_lvalue);
+  release_local_constant(&zero_con);
 }  /* rewrite_discarded_lvalue_as_rvalue */
 
 
@@ -16165,8 +16181,8 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
   if (is_constant_node(expr) &&
       constant_bool_value_known_at_compile_time(expr->variant.constant)) {
     /* The constant expression can be replaced by a 0 or 1 constant. */
-    a_constant  norm_con;
-    set_integer_constant(&norm_con,
+    a_constant_ptr  norm_con = local_constant();
+    set_integer_constant(norm_con,
                          (a_host_large_integer)
                                     !is_false_constant(expr->variant.constant),
                          (an_integer_kind)ik_int);
@@ -16190,11 +16206,12 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
            pointed to it. */
         backing_expr = expr->variant.constant->expr;
       }  /* if */
-      norm_con.expr = backing_expr;
+      norm_con->expr = backing_expr;
     }  /* if */
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
-    expr->variant.constant = alloc_shareable_constant(&norm_con);
-    expr->type = norm_con.type;
+    expr->variant.constant = alloc_shareable_constant(norm_con);
+    expr->type = norm_con->type;
+    release_local_constant(&norm_con);
   } else {
     a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions;
     if (is_or_was_ptr_to_member_function_type(expr->type) ||

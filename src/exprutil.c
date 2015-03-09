@@ -4306,7 +4306,7 @@ in *bound_function_selector.
   an_expr_node_ptr              expr_copy = NULL;
   a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
   a_ctws_state                  ctws_state;
-  a_constant                    constant;
+  a_constant_ptr                constant = local_constant();
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
@@ -4343,7 +4343,7 @@ in *bound_function_selector.
                                          rcblock->options,
                                          &copy_error,
                                          &ctws_state,
-                                         &constant,
+                                         constant,
                                          &alloc_con);
   }  /* if */
   if (copy_error) {
@@ -4359,7 +4359,7 @@ in *bound_function_selector.
         if (alloc_con != NULL) {
           make_constant_operand(alloc_con, operand);
         } else {
-          make_constant_operand(&constant, operand);
+          make_constant_operand(constant, operand);
         }  /* if */
       } else {
         /* Return an expression operand. */
@@ -4384,6 +4384,7 @@ in *bound_function_selector.
       restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
     }  /* if */
   }  /* if */
+  release_local_constant(&constant);
 }  /* make_rescan_operand_full */
 
 
@@ -5162,7 +5163,7 @@ and return a pointer to it.
 {
   an_expr_node_ptr node;
   a_constant_ptr   con;
-  a_constant       local_con;
+  a_constant_ptr   local_con = local_constant();
 
   check_assertion(is_constant_operand(operand));
   con = &operand->variant.constant;
@@ -5180,15 +5181,16 @@ and return a pointer to it.
     }  /* if */
     /* The object pointer is NULL for NULL pointers-to-members. */
     if (obj != NULL) {
-      copy_constant(con, &local_con);
-      local_con.variant.ptr_to_member.name_reference =
+      copy_constant(con, local_con);
+      local_con->variant.ptr_to_member.name_reference =
                   find_allocated_name_reference(obj, &operand->name_reference);
-      con = &local_con;
+      con = local_con;
     }  /* if */
   }  /* if */
   node = alloc_node_for_constant(con);
   copy_operand_position_to_expr(operand, node);
   node->is_lvalue = is_an_lvalue(operand);
+  release_local_constant(&local_con);
   return node;
 }  /* alloc_node_for_constant_operand */
 
@@ -5409,8 +5411,8 @@ is constant, turn the operand into that constant.  Also, in constexpr
 constant expressions, fold to a constant result.
 */
 {
-  a_constant con;
-  an_operand orig_operand;
+  a_constant_ptr con = local_constant();
+  an_operand     orig_operand;
 
   if (constexpr_enabled &&
       (curr_expr_kind_is_const() ||
@@ -5420,25 +5422,27 @@ constant expressions, fold to a constant result.
       fold_constexpr_expr(operand->variant.expression,
                           /*treat_as_object=*/FALSE,
                           &operand->position,
-                          &con)) {
+                          con)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
-    make_constant_operand(&con, operand);
+    make_constant_operand(con, operand);
     restore_operand_details(operand, &orig_operand);
   } else if (is_expression_operand(operand) &&
              is_a_prvalue(operand) &&
              is_pointer_type(operand->type)) {
-    a_constant conaddr;
-    if (constant_prvalue_pointer(operand->variant.expression, &conaddr,
+    a_constant_ptr conaddr = local_constant();
+    if (constant_prvalue_pointer(operand->variant.expression, conaddr,
                                  /*address_escapes=*/TRUE)) {
       orig_operand = *operand;
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-        conaddr.expr = operand->variant.expression;
+        conaddr->expr = operand->variant.expression;
       }  /* if */
-      make_constant_operand(&conaddr, operand);
+      make_constant_operand(conaddr, operand);
       restore_operand_details(operand, &orig_operand);
     }  /* if */
+    release_local_constant(&conaddr);
   }  /* if */
+  release_local_constant(&con);
 }  /* force_operand_to_constant_if_possible */
 
 
@@ -5648,11 +5652,11 @@ of the call.
   a_boolean folded = FALSE;
 
   if (constexpr_call_folding_should_be_done()) {
-    a_constant  result_con;
+    a_constant_ptr  result_con = local_constant();
     if (relaxed_constexpr_enabled) {
-      folded = interpret_constexpr_call(call_expr, &result_con);
+      folded = interpret_constexpr_call(call_expr, result_con);
       if (folded) {
-        make_constant_operand(&result_con, result);
+        make_constant_operand(result_con, result);
         result->position = *pos;
       }  /* if */
     } else {
@@ -5660,9 +5664,9 @@ of the call.
       a_boolean     need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
       if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                              &result_con, &failure_warning)) {
+                              result_con, &failure_warning)) {
         folded = TRUE;
-        make_constant_operand(&result_con, result);
+        make_constant_operand(result_con, result);
         result->position = *pos;
         if (is_reference_type(result->type)) {
           a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
@@ -5680,6 +5684,7 @@ of the call.
         expr_pos_warning(failure_warning, pos);
       }  /* if */
     }  /* if */
+    release_local_constant(&result_con);
   }  /* if */
   return folded;
 }  /* expr_fold_constexpr_call */
@@ -6591,16 +6596,17 @@ Return the operand in *result.
 */
 {
   an_expr_node_ptr node;
-  a_constant       con;
+  a_constant_ptr   con = local_constant();
   an_operand       orig_operand;
 
   orig_operand = *operand;
   node = make_node_from_operand(operand);
   /* Build the ck_template_param constant. */
-  make_template_param_expr_constant(node, &con);
+  make_template_param_expr_constant(node, con);
   /* Make the operand. */
-  make_constant_operand(&con, operand);
+  make_constant_operand(con, operand);
   restore_operand_details(operand, &orig_operand);
+  release_local_constant(&con);
 }  /* make_template_param_expr_constant_operand */
 
 
@@ -7302,7 +7308,7 @@ the string literals in the given expression to System::Strings.  Return
 the rewritten expression.
 */
 {
-  a_constant       string_constant;
+  a_constant_ptr   string_constant = local_constant();
 #if PARENS_IN_IL
   an_expr_node_ptr orig_expr = expr;
   an_expr_node_ptr under_parens = (expr = skip_parens(expr));
@@ -7310,13 +7316,13 @@ the rewritten expression.
 
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
-      constant_prvalue_pointer(expr, &string_constant,
+      constant_prvalue_pointer(expr, string_constant,
                                /*address_escapes=*/TRUE)) {
     /* A constant string literal: set the type to System::String^ and create
        the constant node. */
     an_expr_node_ptr cli_string_node;
-    string_constant.type = make_handle_to_system_string();
-    cli_string_node = alloc_node_for_constant(&string_constant);
+    string_constant->type = make_handle_to_system_string();
+    cli_string_node = alloc_node_for_constant(string_constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Copy the position information from the original constant node,
        skipping over any compiler-generated nodes like array-decay, which
@@ -7372,6 +7378,7 @@ the rewritten expression.
     expr = orig_expr;
   }  /* if */
 #endif /* PARENS_IN_IL */
+  release_local_constant(&string_constant);
   return expr;
 }  /* convert_expr_to_handle_to_cli_string */
 
@@ -7390,7 +7397,7 @@ System::String^.  The expression should be one for which
 is_literal_convertible_to_cli_string is TRUE.
 */
 {
-  a_constant       string_constant;
+  a_constant_ptr   string_constant = local_constant();
   an_operand       orig_operand;
   an_expr_node_ptr expr;
 
@@ -7404,18 +7411,19 @@ is_literal_convertible_to_cli_string is TRUE.
   expr = make_node_from_operand(operand);
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
-      constant_prvalue_pointer(expr, &string_constant,
+      constant_prvalue_pointer(expr, string_constant,
                                /*address_escapes=*/TRUE)) {
     /* The operand is a simple string literal, so make a constant operand
        for the corresponding handle. */
-    string_constant.type = make_handle_to_system_string();
-    make_constant_operand(&string_constant, operand);
+    string_constant->type = make_handle_to_system_string();
+    make_constant_operand(string_constant, operand);
   } else {
     /* Handle cases like x ? "abc" : "de". */
     expr = convert_expr_to_handle_to_cli_string(expr);
     make_expression_operand(expr, operand);
   }  /* if */
   restore_operand_details(operand, &orig_operand);
+  release_local_constant(&string_constant);
 }  /* convert_operand_to_handle_to_cli_string */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7589,7 +7597,7 @@ processing routines; within_expr_processing should be passed as FALSE
 to indicate that.
 */
 {
-  a_constant       local_constant;
+  a_constant_ptr   local_con = local_constant();
   a_boolean        did_not_fold;
   a_boolean        need_cast;
   an_expr_node_ptr node = *p_node;
@@ -7648,9 +7656,9 @@ to indicate that.
          and copy the result to a new constant.  Since we are in a
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
-      copy_constant(node->variant.constant, &local_constant);
+      copy_constant(node->variant.constant, local_con);
       if (within_expr_processing) {
-        expr_type_change_constant(&local_constant, new_type, is_implicit_cast,
+        expr_type_change_constant(local_con, new_type, is_implicit_cast,
                                   check_cast_access,
                                   check_ambiguity,
                                   reinterpret_semantics,
@@ -7658,7 +7666,7 @@ to indicate that.
                                   &did_not_fold,
                                   err_pos);
       } else {
-        type_change_constant_full(&local_constant, new_type, is_implicit_cast,
+        type_change_constant_full(local_con, new_type, is_implicit_cast,
                                   /*constant_context=*/FALSE,
                                   /*evaluated_context=*/TRUE,
                                   /*fold_constant_addr_exprs=*/FALSE,
@@ -7683,11 +7691,12 @@ to indicate that.
     } else {
       /* The operation was successfully folded to a constant. */
       check_assertion(is_constant_node(node));
-      node->variant.constant = alloc_shareable_constant(&local_constant);
+      node->variant.constant = alloc_shareable_constant(local_con);
       node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
       node->type = new_type;
     }  /* if */
   }  /* if */
+  release_local_constant(&local_con);
 }  /* cast_node */
 
 
@@ -7800,18 +7809,20 @@ is_qualified_name is TRUE if the source form used a qualified name.
     /* The function name has an explicit template argument list.  Record
        it in a tpck_template_ref constant that points to the constant for
        the template (from sym). */
-    a_constant con;
-    clear_constant(&con, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(&con,
+    a_constant_ptr con = local_constant();
+    clear_constant(con, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(con,
                             (a_template_param_constant_kind)tpck_template_ref);
     check_assertion(unk_sym->kind == (a_symbol_kind)sk_constant &&
                     in_file_scope(unk_sym->variant.constant));
-    con.variant.template_param.variant.template_ref.con =
+    con->variant.template_param.variant.template_ref.con =
                                                      unk_sym->variant.constant;
-    con.variant.template_param.variant.template_ref.arg_list=template_arg_list;
-    con.type = type_of_unknown_templ_param_nontype;
+    con->variant.template_param.variant.template_ref.arg_list =
+                                                             template_arg_list;
+    con->type = type_of_unknown_templ_param_nontype;
     prep_generic_template_argument_list(template_arg_list);
-    make_constant_operand(&con, operand);
+    make_constant_operand(con, operand);
+    release_local_constant(&con);
   }  /* if */
   operand->is_qualified_name = is_qualified_name;
   operand->is_id_expression = TRUE;
@@ -7980,7 +7991,7 @@ user-defined conversions.
 */
 {
   a_boolean         did_not_fold;
-  a_constant        local_constant;
+  a_constant_ptr    local_con = local_constant();
   an_expr_node_ptr  node;
   an_operand        orig_operand;
 
@@ -8078,8 +8089,8 @@ user-defined conversions.
         /* Cast the constant by changing its type.  In a nonconstant
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
-        copy_constant(&operand->variant.constant, &local_constant);
-        expr_type_change_constant(&local_constant, new_type, is_implicit_cast,
+        copy_constant(&operand->variant.constant, local_con);
+        expr_type_change_constant(local_con, new_type, is_implicit_cast,
                                   check_cast_access,
                                   check_ambiguity,
                                   reinterpret_semantics,
@@ -8110,16 +8121,15 @@ user-defined conversions.
           /* Mark the constant as the result of a reinterpret_cast if it
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
-          local_constant.is_reinterpret_cast |= is_reinterpret_cast;
+          local_con->is_reinterpret_cast |= is_reinterpret_cast;
           /* Record the original type if it materially changed. */
-          if (local_constant.orig_type == NULL &&
+          if (local_con->orig_type == NULL &&
               !cast_identical_types(operand->type, new_type)) {
-            local_constant.orig_type =
-                                    strip_routine_default_args(operand->type);
+            local_con->orig_type = strip_routine_default_args(operand->type);
           }  /* if */
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
-            local_constant.expr = orig_expr;
+            local_con->expr = orig_expr;
             if (reduce_backing_expression_use &&
                 is_implicit_cast && expr_stack->in_static_initializer &&
                 expr_stack->prev == NULL &&
@@ -8143,22 +8153,22 @@ user-defined conversions.
               a_boolean saved_suppress = expr_stack->suppress_diagnostics;
               a_boolean saved_any_error = expr_stack->any_suppressed_error;
               expr_stack->suppress_diagnostics = TRUE;
-              if (local_constant.expr == NULL ||
+              if (local_con->expr == NULL ||
                   /* Ignore the expression attached to a named constant. */
                   operand->variant.constant.is_named_constant_definition) {
                 /* The cast is applied to a simple constant that contains no
                    expression.  Create an expression node to which the cast
                    history can be attached. */
-                local_constant.expr = make_node_from_operand(operand);
+                local_con->expr = make_node_from_operand(operand);
               }  /* if */
               /* We're going to represent the conversion in the backing
-                 expression.  local_constant therefore no longer represents a
+                 expression.  local_con therefore no longer represents a
                  "plain" named constant: Break any direct connection to such a
                  named constant. */
-              break_constant_source_corresp(&local_constant);
+              break_constant_source_corresp(local_con);
               { a_memory_region_number region_to_switch_back_to =
                                                             NULL_region_number;
-                if (!in_file_scope(local_constant.expr) &&
+                if (!in_file_scope(local_con->expr) &&
                     curr_il_region_number == file_scope_region_number) {
                   /* The expression so far is in function scope memory, so
                      put the cast there too.  The constant hasn't been
@@ -8169,7 +8179,7 @@ user-defined conversions.
                   switch_to_scope_region(depth_scope_stack,
                                          &region_to_switch_back_to);
                 }  /* if */
-                add_cast_to_node(&local_constant.expr, new_type,
+                add_cast_to_node(&local_con->expr, new_type,
                                  /*check_cast_access=*/FALSE,
                                  /*check_ambiguity=*/FALSE,
                                  is_implicit_cast,
@@ -8181,7 +8191,7 @@ user-defined conversions.
               expr_stack->any_suppressed_error = saved_any_error;
             }  /* if */
           }  /* if */
-          make_constant_operand(&local_constant, operand);
+          make_constant_operand(local_con, operand);
           restore_operand_form_of_name_reference(operand, &orig_operand);
         }  /* if */
         break;
@@ -8203,6 +8213,7 @@ user-defined conversions.
      the first element). */
   restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
                                    /*incl_ref=*/TRUE);
+  release_local_constant(&local_con);
 }  /* cast_operand_full */
 
 
@@ -8314,7 +8325,7 @@ used only in C++ mode.
 {
   a_boolean        did_not_fold;
   an_expr_node_ptr node;
-  a_constant       temp_con;
+  a_constant_ptr   temp_con = local_constant();
   an_operand       orig_operand;
   a_boolean        class_object_case =
                                      !is_pointer_or_handle_type(operand->type);
@@ -8376,7 +8387,7 @@ used only in C++ mode.
       an_error_code *p_error_detected = NULL;
       if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
       fold_base_class_cast(&operand->variant.constant, bcp, qualifiers_model,
-                           &temp_con, check_cast_access,
+                           temp_con, check_cast_access,
                            /*check_ambiguity=*/TRUE,
                            is_implicit_cast,
                            is_object_pointer, &did_not_fold,
@@ -8408,12 +8419,13 @@ used only in C++ mode.
       }  /* if */
     } else {
       /* The cast was folded to a constant. */
-      make_constant_operand(&temp_con, operand);
+      make_constant_operand(temp_con, operand);
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
                                    /*incl_ref=*/TRUE);
+  release_local_constant(&temp_con);
 }  /* base_class_cast_operand */
 
 
@@ -9870,10 +9882,11 @@ a source position for any errors.
               /* Change the expression to one with a value of zero.
 		 Use a comma expression to preserve side-effects. */
               { an_expr_node_ptr node2 = make_node_from_operand(operand_2);
-                a_constant       con;
-                make_zero_of_proper_type(node2->type, &con);
-                node2 = make_comma_node(node2, alloc_node_for_constant(&con));
+                a_constant_ptr   con = local_constant();
+                make_zero_of_proper_type(node2->type, con);
+                node2 = make_comma_node(node2, alloc_node_for_constant(con));
                 make_expression_operand(node2, operand_2);
+                release_local_constant(&con);
               }
             }  /* if */
             *op = (an_expr_operator_kind)eok_multiply_assign;
@@ -11761,13 +11774,14 @@ pointer value.
   a_boolean is_null = FALSE;
 
   if (is_an_lvalue(operand) && !operand->is_dummy_lvalue) {
-    a_constant       con;
+    a_constant_ptr   con = local_constant();
     an_expr_node_ptr expr = extract_node_from_operand(operand);
-    if (constant_glvalue_address(expr, &con, /*address_escapes=*/FALSE)) {
-      if (is_null_pointer_value(&con)) {
+    if (constant_glvalue_address(expr, con, /*address_escapes=*/FALSE)) {
+      if (is_null_pointer_value(con)) {
         is_null = TRUE;
       }  /* if */
     }  /* if */
+    release_local_constant(&con);
   }  /* if */
   return is_null;
 }  /* op_is_null_address_lvalue */
@@ -11970,7 +11984,7 @@ the subscript case).
               if (identical_types(ptr_element_type, element_type)) {
                 /* Everything's as we want it.  Check the subscript. */
                 a_constant_ptr eff_sub_con = sub_con;
-                a_constant     local_con;
+                a_constant_ptr local_con = local_constant();
                 if (node_operator_is(node, eok_subscript)) {
                   *err_code = ec_subscript_out_of_range;
                 } else {
@@ -11980,9 +11994,9 @@ the subscript case).
                 if (node_operator_is(node, eok_psubtract)) {
                   a_boolean err;
                   if (!int_constant_is_signed(sub_con)) goto invalid_subscript;
-                  local_con = *sub_con;
-                  eff_sub_con = &local_con;
-                  negate_integer_value(&local_con.variant.integer_value,
+                  *local_con = *sub_con;
+                  eff_sub_con = local_con;
+                  negate_integer_value(&local_con->variant.integer_value,
                                        &err);
                   if (err) goto invalid_subscript;
                 }  /* if */
@@ -12024,6 +12038,7 @@ invalid_subscript:
                                           /* Subscript == number of elements */
                   }  /* if */
                 }  /* if */
+                release_local_constant(&local_con);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -12402,11 +12417,11 @@ if non-NULL, indicates the position of a second operator (e.g., the "]"
 of a subscript operation).
 */
 {
-  a_boolean  did_not_fold, template_constant;
-  a_boolean  just_past_end;
-  a_boolean  try_folding;
+  a_boolean      did_not_fold, template_constant;
+  a_boolean      just_past_end;
+  a_boolean      try_folding;
 #if GNU_EXTENSIONS_ALLOWED
-  a_constant con_1, con_2;
+  a_constant_ptr con_1 = local_constant(), con_2 = local_constant();
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
@@ -12503,14 +12518,14 @@ of a subscript operation).
                constant_prvalue_pointer_full(
                                           operand_1->variant.expression,
                                           (a_constexpr_evaluation_block *)NULL,
-                                          &con_1,
+                                          con_1,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL) &&
                constant_prvalue_pointer_full(
                                           operand_2->variant.expression,
                                           (a_constexpr_evaluation_block *)NULL,
-                                          &con_2,
+                                          con_2,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL)) {
@@ -12519,7 +12534,7 @@ of a subscript operation).
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
       result->state = (an_operand_state)os_prvalue;
-      expr_binary_operation(op, &con_1, &con_2,
+      expr_binary_operation(op, con_1, con_2,
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
                             operator_position);
@@ -12592,6 +12607,8 @@ of a subscript operation).
   record_operator_position_in_rescan_info(result, operator_position,
                                           operator_tok_seq_number,
                                           operator_position_2);
+  release_local_constant(&con_1);
+  release_local_constant(&con_2);
 }  /* do_binary_operation_full */
 
 
@@ -13286,8 +13303,8 @@ indicates the operator position.  operator_tok_seq_number indicates the
 token sequence number of the operator.
 */
 {
-  a_boolean  did_not_fold, template_constant, try_folding;
-  a_constant result_constant;
+  a_boolean      did_not_fold, template_constant, try_folding;
+  a_constant_ptr result_constant = local_constant();
 
   if (is_error_operand(operand)) {
     make_error_operand(result);
@@ -13313,7 +13330,7 @@ token sequence number of the operator.
            context, reduce any error to a warning and leave the operation
            to be done at runtime. */
         expr_unary_operation(op, &operand->variant.constant,
-                             result_type, &result_constant,
+                             result_type, result_constant,
                              &did_not_fold, &template_constant,
                              start_position);
       }  /* if */
@@ -13343,9 +13360,9 @@ token sequence number of the operator.
            constant to it. */
         an_operand  result_expr;
         build_unary_result_operand(operand, op, result_type, &result_expr);
-        result_constant.expr = result_expr.variant.expression;
+        result_constant->expr = result_expr.variant.expression;
       }  /* if */
-      make_constant_operand(&result_constant, result);
+      make_constant_operand(result_constant, result);
     }  /* if */
   }  /* if */
   result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
@@ -13353,6 +13370,7 @@ token sequence number of the operator.
   record_operator_position_in_rescan_info(result, start_position,
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
+  release_local_constant(&result_constant);
 }  /* do_unary_operation */
 
 
@@ -13984,13 +14002,14 @@ Force the indicated constant to appear template-dependent by adding a
 do-nothing ck_template_param cast on top of it.
 */
 {
-  a_constant constant_copy;
+  a_constant_ptr constant_copy = local_constant();
 
-  copy_constant(constant, &constant_copy);
-  make_template_param_cast_constant(&constant_copy,
+  copy_constant(constant, constant_copy);
+  make_template_param_cast_constant(constant_copy,
                                     constant,
                                     constant->type,
                                     /*is_explicit=*/FALSE);
+  release_local_constant(&constant_copy);
 }  /* force_constant_to_be_dependent */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -14390,8 +14409,8 @@ C++/CLI managed class, issue an error unless allow_on_managed is
 TRUE.  If the member is a bit field, issue an error.  
 */
 {
-  a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
-  a_constant   constant;
+  a_symbol_ptr   base_member_sym = fundamental_symbol_of(member_sym);
+  a_constant_ptr constant = local_constant();
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && !allow_on_managed &&
@@ -14475,7 +14494,7 @@ TRUE.  If the member is a bit field, issue an error.
       /* Cannot make a pointer-to-member of a bit field. */
       expr_pos_error(ec_address_of_bit_field, position);
     }  /* if */
-    set_ptr_to_data_member_constant(field, &constant);
+    set_ptr_to_data_member_constant(field, constant);
   } else {
     a_routine_ptr rout;
 #if CHECKING
@@ -14488,24 +14507,25 @@ TRUE.  If the member is a bit field, issue an error.
     if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
       finalize_deduced_return_type(rout, position);
     }  /* if */
-    set_ptr_to_member_function_constant(rout, &constant);
+    set_ptr_to_member_function_constant(rout, constant);
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */
       if_evaluating_mark_routine_referenced(rout);
     }  /* if */
   }  /* if */
   if (is_template_dependent_context() &&
-      is_template_dependent_type(constant.type)) {
+      is_template_dependent_type(constant->type)) {
     /* In a prototype instantiation, a member of the current class is
        template-dependent. */
-    force_constant_to_be_dependent(&constant);
+    force_constant_to_be_dependent(constant);
   }  /* if */
-  make_constant_operand(&constant, result);
+  make_constant_operand(constant, result);
 done:
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  release_local_constant(&constant);
 }  /* make_ptr_to_member_constant_operand */
 
 
@@ -14755,15 +14775,17 @@ entry is returned).
   }  /* if */
   dip->variant.constructor.args = args;
   if (fold_constexpr && ctor_routine != NULL && ctor_routine->is_constexpr) {
-    a_constant folded_con;
+    a_constant_ptr folded_con = local_constant();
     check_assertion(pos != NULL);
-    if (expr_fold_constexpr_ctor(dip, pos, &folded_con)) {
+    if (expr_fold_constexpr_ctor(dip, pos, folded_con)) {
       /* The constructor is declared constexpr and the construction has
          been folded to a constant. */
       folded = TRUE;
-      if (dest_type != NULL) folded_con.type = dest_type;
+      if (dest_type != NULL) folded_con->type = dest_type;
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, alloc_unshared_constant(&folded_con));
+      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
+    } else {
+      release_local_constant(&folded_con);
     }  /* if */
   }  /* if */
   if (constexpr_enabled && ctor_routine != NULL && !folded) {
@@ -16647,7 +16669,7 @@ explicit "&" operator in the source and *operator_position gives its position.
             the constant as the value of the "&" operator. */
         if (is_expression_operand(operand) ||
             operand_is_string_literal(operand)) {
-          a_constant       conaddr;
+          a_constant_ptr   conaddr = local_constant();
           an_expr_node_ptr test_expr;
           expr = make_node_from_operand(operand);
           test_expr = skip_parens(expr);
@@ -16694,12 +16716,12 @@ explicit "&" operator in the source and *operator_position gives its position.
           }  /* if */
           if ((microsoft_mode && curr_expr_kind_is(ek_template_arg)) ?
                      microsoft_template_arg_constant_glvalue_address(test_expr,
-                                                                    &conaddr) :
-                     constant_glvalue_address(test_expr, &conaddr,
+                                                                    conaddr) :
+                     constant_glvalue_address(test_expr, conaddr,
                                               /*address_escapes=*/TRUE)) {
             if (cpp11_sfinae_enabled &&
-                conaddr.kind == (a_constant_repr_kind)ck_template_param &&
-                conaddr.variant.template_param.kind ==
+                conaddr->kind == (a_constant_repr_kind)ck_template_param &&
+                conaddr->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_address &&
                 !is_implicit) {
               /* The address of a member is better represented as a
@@ -16709,21 +16731,22 @@ explicit "&" operator in the source and *operator_position gives its position.
             } else {
               did_not_fold = FALSE;
               if (reference_case) {
-                if (is_pointer_type(conaddr.type)) {
+                if (is_pointer_type(conaddr->type)) {
                   /* For the reference case, change the address constant
                      type to a reference. */
-                  a_type_ptr new_type = type_pointed_to(conaddr.type);
+                  a_type_ptr new_type = type_pointed_to(conaddr->type);
                   if (rvalue_reference_case) {
                     new_type = make_rvalue_reference_type(new_type);
                   } else {
                     new_type = make_reference_type(new_type);
                   }  /* if */
-                  conaddr.type = new_type;
+                  conaddr->type = new_type;
                 }  /* if */
               }  /* if */
-              make_constant_operand(&conaddr, operand);
+              make_constant_operand(conaddr, operand);
             }  /* if */
           }  /* if */
+          release_local_constant(&conaddr);
         }  /* if */
       }  /* if */
       if (did_not_fold && !template_constant &&
@@ -16861,11 +16884,12 @@ is an rvalue reference.
       /* With constexpr, a class value can be a constant, more precisely here
          the constant address of a temporary containing the class value. */
       a_constant_ptr con = &operand->variant.constant;
-      a_constant     addr_con;
+      a_constant_ptr addr_con = local_constant();
       check_assertion(constexpr_enabled || compound_literals_allowed);
-      set_temporary_address_constant(alloc_unshared_constant(con), &addr_con);
-      addr_con.type = make_reference_type(operand->type);
-      make_constant_operand(&addr_con, operand);
+      set_temporary_address_constant(alloc_unshared_constant(con), addr_con);
+      addr_con->type = make_reference_type(operand->type);
+      make_constant_operand(addr_con, operand);
+      release_local_constant(&addr_con);
     } else {
       if (is_expression_operand(operand)) {
         expr = make_node_from_operand(operand);
@@ -17989,16 +18013,17 @@ the value there, and return the address of the new constant.
     an_expr_node_ptr op1 = expr->variant.operation.operands;
     if (is_constant_node(op1) &&
         op1->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
-      a_constant       addr_con;
+      a_constant_ptr   addr_con = local_constant();
       a_base_class_ptr bcp = find_base_class_of(op1->type, expr->type);
       check_assertion(bcp != NULL);
       /* Make a temporary address so we can use constant_value_at_address. */
-      set_temporary_address_constant(op1->variant.constant, &addr_con);
-      addr_con.variant.address.offset = bcp->offset;
-      addr_con.type = make_pointer_type(expr->type);
-      result = constant_value_at_address(&addr_con,
+      set_temporary_address_constant(op1->variant.constant, addr_con);
+      addr_con->variant.address.offset = bcp->offset;
+      addr_con->type = make_pointer_type(expr->type);
+      result = constant_value_at_address(addr_con,
                                          (a_constexpr_evaluation_block *)NULL,
                                          alloc_con);
+      release_local_constant(&addr_con);
     }  /* if */
   }  /* if */
   return result;
@@ -18033,7 +18058,7 @@ it might produce an error).
 */
 {
   a_constant_ptr con_expr_value = NULL;
-  a_constant     result_con;
+  a_constant_ptr result_con = local_constant();
   a_boolean      processed = FALSE;
   a_boolean      template_constant = FALSE;
   a_type_ptr     prvalue_node_type;
@@ -18188,8 +18213,8 @@ it might produce an error).
              initialized to a constant value allows use of a member
              value as a constant. */
           if (constexpr_enabled && allow_folding != NULL &&
-              fold_constexpr_member_selection(node, &result_con, err_pos)) {
-            con_expr_value = alloc_shareable_constant(&result_con);
+              fold_constexpr_member_selection(node, result_con, err_pos)) {
+            con_expr_value = alloc_shareable_constant(result_con);
             node->is_lvalue = node->is_xvalue = FALSE;
             node->type = prvalue_node_type;
             processed = TRUE;
@@ -18261,32 +18286,30 @@ it might produce an error).
               if (!strict_ansi_mode &&
                   conv_subscript_in_string_to_char(op1->variant.constant,
                                                    op2->variant.constant,
-                                                   &result_con)) {
-                con_expr_value = alloc_shareable_constant(&result_con);
+                                                   result_con)) {
+                con_expr_value = alloc_shareable_constant(result_con);
               } else if (constexpr_enabled) {
                 /* In C++11, the result of a constant subscript of a
                    constant address designating a constant value can be
                    folded. */
-                a_constant    addr_con;
-                a_boolean     did_not_fold;
-                an_error_code error_detected;
+                a_constant_ptr addr_con = local_constant();
+                a_boolean      did_not_fold;
+                an_error_code  error_detected;
                 binary_operation((an_expr_operator_kind)eok_padd,
                                  op1->variant.constant, op2->variant.constant,
-                                 node->type, &addr_con,
+                                 node->type, addr_con,
                                  /*constant_context=*/FALSE,
                                  /*evaluated_context=*/TRUE,
                                  &did_not_fold, &template_constant,
                                  &error_detected, err_pos);
                 if (!did_not_fold &&
                     constant_value_at_address(
-                                          &addr_con,
+                                          addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
-                                          &result_con) != NULL) {
-                  con_expr_value = copy_constant_full(
-                                           &result_con,
-                                           (a_constant *)NULL,
-                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+                                          result_con) != NULL) {
+                  con_expr_value = copy_unshared_constant(result_con);
                 }  /* if */
+                release_local_constant(&addr_con);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -18352,7 +18375,7 @@ it might produce an error).
                                   op1->variant.constant,
                                   op2->variant.constant,
                                   op1->type,
-                                  &result_con,
+                                  result_con,
                                   &did_not_fold,
                                   &template_constant,
                                   err_pos);
@@ -18362,7 +18385,7 @@ it might produce an error).
                  the expression (see below). */
             } else {
               check_assertion(!did_not_fold);
-              con_expr_value = alloc_shareable_constant(&result_con);
+              con_expr_value = alloc_shareable_constant(result_con);
             }  /* if */
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
@@ -18420,8 +18443,8 @@ it might produce an error).
             /* The operand is now constant so try to fold the cast to a
                constant. */
             a_boolean did_not_fold;
-            copy_constant(op1->variant.constant, &result_con);
-            expr_type_change_constant(&result_con, prvalue_node_type,
+            copy_constant(op1->variant.constant, result_con);
+            expr_type_change_constant(result_con, prvalue_node_type,
                                       /*is_implicit_cast=*/FALSE,
                                       /*check_cast_access=*/FALSE,
                                       /*check_ambiguity=*/FALSE,
@@ -18429,7 +18452,7 @@ it might produce an error).
                                       /*maintain_expression=*/TRUE,
                                       &did_not_fold, err_pos);
             check_assertion(!did_not_fold);
-            con_expr_value = alloc_shareable_constant(&result_con);
+            con_expr_value = alloc_shareable_constant(result_con);
           }  /* if */
           set_node_operator(node, (an_expr_operator_kind)eok_cast,
                             prvalue_node_type, /*is_lvalue=*/FALSE, op1);
@@ -18458,8 +18481,8 @@ lvalue_adjust:
             con_expr_value = constant_value_addressed_by_node(op1, err_pos);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;
-              copy_constant(con_expr_value, &result_con);
-              expr_type_change_constant(&result_con, prvalue_node_type,
+              copy_constant(con_expr_value, result_con);
+              expr_type_change_constant(result_con, prvalue_node_type,
                                         /*is_implicit_cast=*/FALSE,
                                         /*check_cast_access=*/FALSE,
                                         /*check_ambiguity=*/FALSE,
@@ -18467,7 +18490,7 @@ lvalue_adjust:
                                         /*maintain_expression=*/TRUE,
                                         &did_not_fold, err_pos);
               check_assertion(!did_not_fold);
-              con_expr_value = alloc_shareable_constant(&result_con);
+              con_expr_value = alloc_shareable_constant(result_con);
               node->is_lvalue = node->is_xvalue = FALSE;
               node->type = prvalue_node_type;
               processed = TRUE;
@@ -18549,10 +18572,11 @@ lvalue_adjust:
       /* We need to clear the expression pointer in the constant (someone
          decided we don't want to record the expression, possibly because
          of memory region problems). */
-      a_constant con_copy;
-      copy_constant(con_expr_value, &con_copy);
-      con_copy.expr = NULL;
-      con_expr_value = alloc_shareable_constant(&con_copy);
+      a_constant_ptr con_copy = local_constant();
+      copy_constant(con_expr_value, con_copy);
+      con_copy->expr = NULL;
+      con_expr_value = alloc_shareable_constant(con_copy);
+      release_local_constant(&con_copy);
     }  /* if */
     node = NULL;
   } else if (template_constant) {
@@ -18560,17 +18584,17 @@ lvalue_adjust:
        expression tree now, so put it under a ck_template_param constant
        and return that. */
     check_assertion(node != NULL && !is_glvalue_node(node));
-    make_template_param_expr_constant(node, &result_con);
+    make_template_param_expr_constant(node, result_con);
     /* The expression is in the constant now, so clear the variable to
        indicate that we have handled the expression. */
     node = NULL;
     if (con_value == NULL) {
       /* The caller wants an expression node returned, so let the allocation
          be done by alloc_node_for_constant (below). */
-      con_expr_value = &result_con;
+      con_expr_value = result_con;
     } else {
       /* The caller wants the constant address returned, so allocate it. */
-      con_expr_value = alloc_shareable_constant(&result_con);
+      con_expr_value = alloc_shareable_constant(result_con);
     }  /* if */
   } else if (processed) {
     /* The prvalue node has already been produced. */
@@ -18609,6 +18633,7 @@ lvalue_adjust:
       node = alloc_node_for_constant(con_expr_value);
     }  /* if */
   }  /* if */
+  release_local_constant(&result_con);
   return node;
 }  /* conv_glvalue_expr_to_prvalue */
 
@@ -18935,7 +18960,7 @@ current mode -- just do it.
 */
 {
   an_expr_node_ptr expr;
-  a_constant       conaddr;
+  a_constant_ptr   conaddr = local_constant();
   an_operand       orig_operand;
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
 
@@ -18967,17 +18992,17 @@ current mode -- just do it.
     error_in_operand(ec_expr_not_integral_constant, operand);
   } else if ((expr_stack->favor_constant_result &&
               is_glvalue_node(expr) &&
-              constant_glvalue_address(expr, &conaddr,
+              constant_glvalue_address(expr, conaddr,
                                        /*address_escapes=*/TRUE)) ||
              (constexpr_enabled && curr_expr_kind_is_const() &&
               fold_constexpr_expr(expr, /*treat_as_object=*/TRUE,
-                                  &operand->position, &conaddr))) {
+                                  &operand->position, conaddr))) {
     /* The array has a constant address, so make an address constant for
        the pointer. */
     a_type_ptr ptr_type =
                         type_after_array_to_pointer_transformation(expr->type);
-    implicit_cast(&conaddr, ptr_type);
-    make_constant_operand(&conaddr, operand);
+    implicit_cast(conaddr, ptr_type);
+    make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
   } else if (curr_expr_kind_is_evaluated_const()) {
@@ -19010,6 +19035,7 @@ current mode -- just do it.
   operand->is_simple_string_literal = orig_operand.is_simple_string_literal;
   operand->is_id_expression = FALSE;
   restore_operand_form_of_name_reference(operand, &orig_operand);
+  release_local_constant(&conaddr);
 }  /* do_array_to_pointer_conversion */
 
 
@@ -19131,7 +19157,7 @@ by an "&" operator and *ampersand_position gives its position.
 */
 {
   an_expr_node_ptr expr;
-  a_constant       constant;
+  a_constant_ptr   constant = local_constant();
   an_operand       orig_operand;
   a_boolean        try_folding = FALSE;
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
@@ -19175,21 +19201,21 @@ by an "&" operator and *ampersand_position gives its position.
     }  /* if */
   }  /* if */
   if (try_folding &&
-      constant_glvalue_address(expr, &constant,
+      constant_glvalue_address(expr, constant,
                                /*address_escapes=*/!will_call)) {
     /* The address is constant and a constant is preferred in the current
        context. */
     if (cpp11_sfinae_enabled &&
-        constant.kind == (a_constant_repr_kind)ck_template_param &&
+        constant->kind == (a_constant_repr_kind)ck_template_param &&
         ampersand_position != NULL) {
       /* In a dependent context with an explicit "&", stay in expression form
          because that provides more information for rescanning. */
       need_expr = TRUE;
       template_constant = TRUE;
     } else {
-      make_constant_operand(&constant, operand);
+      make_constant_operand(constant, operand);
       need_expr = (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-                   constant.kind != (a_constant_repr_kind)ck_template_param);
+                   constant->kind != (a_constant_repr_kind)ck_template_param);
       need_expr_for_constant = need_expr;
     }  /* if */
   } else if (curr_expr_kind_is_traditional_const() && !will_call) {
@@ -19244,6 +19270,7 @@ by an "&" operator and *ampersand_position gives its position.
     orig_operand.position = *ampersand_position;
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
+  release_local_constant(&constant);
 }  /* conv_expr_function_designator_to_ptr_to_function */
 
 

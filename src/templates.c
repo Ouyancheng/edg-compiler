@@ -6039,10 +6039,11 @@ Return TRUE if the constants should be considered to match.
       /* The thing being cast is the name of a template parameter.
          Make a copy of the constant under the cast, but use the type of
          the first constant.  Compare the resulting constants. */
-      a_constant	copy_of_con2;
-      copy_constant(con2, &copy_of_con2);
-      copy_of_con2.type = con1->type;
-      result = eq_constants(con1, &copy_of_con2);
+      a_constant_ptr	copy_of_con2 = local_constant();
+      copy_constant(con2, copy_of_con2);
+      copy_of_con2->type = con1->type;
+      result = eq_constants(con1, copy_of_con2);
+      release_local_constant(&copy_of_con2);
     }  /* if */
   }  /* if */
   return result;
@@ -8576,19 +8577,20 @@ list of a template function.  Returns TRUE if a match is found.
          to long).  This kind of conversion is only accepted for integral
          types.  Don't attempt the conversion if the source is a template
          parameter constant, which can occur during partial ordering. */
-      a_constant	temp_constant;
+      a_constant_ptr	temp_constant = local_constant();
       a_constant_ptr	new_constant;
       if (is_integral_type(new_templ_constant->type) &&
           constant->kind != (a_constant_repr_kind)ck_template_param &&
-          convert_constant_for_deduction(constant, &temp_constant,
+          convert_constant_for_deduction(constant, temp_constant,
                                          new_templ_constant->type)) {
         /* The conversion was successful.  Use the new constant and the
            constant under the cast as constant and templ_constant. */
-        new_constant = fs_constant(temp_constant.kind);
-        copy_constant(&temp_constant, new_constant);
+        new_constant = fs_constant(temp_constant->kind);
+        copy_constant(temp_constant, new_constant);
         templ_constant = new_templ_constant;
         constant = new_constant;
       }  /* if */
+      release_local_constant(&temp_constant);
     }  /* if */
   }  /* if */
   /* Look for an implicit cast directly over a template parameter.  Such casts
@@ -8720,19 +8722,20 @@ list of a template function.  Returns TRUE if a match is found.
           /* Make sure the constant under the cast is not a ck_template_param
              constant.  Such constants cannot be converted. */
           if (tcp->kind != (a_constant_repr_kind)ck_template_param) {
-            a_constant	new_templ_constant;
-            a_boolean	did_not_fold;
-            copy_constant(tcp, &new_templ_constant);
-            deduction_type_change_constant(&new_templ_constant, constant->type,
+            a_constant_ptr new_templ_constant = local_constant();
+            a_boolean      did_not_fold;
+            copy_constant(tcp, new_templ_constant);
+            deduction_type_change_constant(new_templ_constant, constant->type,
                                            /*is_implicit_cast=*/TRUE,
                                            /*maintain_expression=*/FALSE,
                                            &did_not_fold, &error_position);
             match = !did_not_fold &&
-                    matches_template_constant(constant, &new_templ_constant,
+                    matches_template_constant(constant, new_templ_constant,
                                               templ_arg_list,
                                               templ_param_list);
             /* If a match of a non-template constant fails, don't assume
                a non-deduced match below. */
+            release_local_constant(&new_templ_constant);
           } else {
             /* The constant under the cast is a template parameter.  Attempt
                to use that parameter for deduction.  Don't update match
@@ -10047,11 +10050,11 @@ Return TRUE if the conversion was successful.
                                tap->variant.constant,
                                type_required,
                                (an_error_code *)NULL)) {
-      a_constant	constant;
+      a_constant_ptr	constant = local_constant();
       a_boolean		did_not_fold;
-      clear_constant(&constant, orig_constant->kind);
-      copy_constant(orig_constant, &constant);
-      deduction_type_change_constant(&constant, type_required,
+      clear_constant(constant, orig_constant->kind);
+      copy_constant(orig_constant, constant);
+      deduction_type_change_constant(constant, type_required,
                                      /*is_implicit_cast=*/TRUE,
                                      /*maintain_expression=*/FALSE,
                                      &did_not_fold, source_pos);
@@ -10060,12 +10063,11 @@ Return TRUE if the conversion was successful.
            copy the updated constant there. */
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
-        tap->variant.constant = 
-                        copy_constant_full(&constant, (a_constant *)NULL,
-                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+        tap->variant.constant = copy_unshared_constant(constant);
         switch_back_to_original_region(region_to_switch_back_to);
         result = TRUE;
       }  /* if */
+      release_local_constant(&constant);
     }  /* if */
   }  /* if */
   return result;

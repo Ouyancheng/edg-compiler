@@ -2423,32 +2423,32 @@ Return a class type with CLI class type kind cctk_unresolved.
     an_assembly_scope_index  assembly_scope_index = 0;
     a_cpp_cli_token          metadata_type_def_token = 0;
     a_source_position        arg_pos;
-    a_constant               con;
+    a_constant_ptr           con = local_constant();
     a_boolean                ovflo;
     arg_pos = pos_curr_token;
     add_stop_token(tok_rparen);
     add_stop_token(tok_comma);
     /* Scan the first argument, which should be an integer constant. */
-    scan_integral_constant_expression(&con);
-    if (is_error_constant(&con)) {
+    scan_integral_constant_expression(con);
+    if (is_error_constant(con)) {
       expect_error();
-    } else if (con.kind != (a_constant_repr_kind)ck_integer) {
+    } else if (con->kind != (a_constant_repr_kind)ck_integer) {
       pos_error(ec_exp_int_constant, &arg_pos);
     } else {
       assembly_scope_index = (an_assembly_scope_index)
-                             unsigned_value_of_integer_constant(&con, &ovflo);
+                             unsigned_value_of_integer_constant(con, &ovflo);
       check_assertion(!ovflo);
     }  /* if */
     (void)required_token(tok_comma, ec_exp_comma);
     /* Scan the second argument, which should also be an integer constant. */
-    scan_integral_constant_expression(&con);
-    if (is_error_constant(&con)) {
+    scan_integral_constant_expression(con);
+    if (is_error_constant(con)) {
       expect_error();
-    } else if (con.kind != (a_constant_repr_kind)ck_integer) {
+    } else if (con->kind != (a_constant_repr_kind)ck_integer) {
       pos_error(ec_exp_int_constant, &arg_pos);
     } else {
       metadata_type_def_token = (a_cpp_cli_token)
-                             unsigned_value_of_integer_constant(&con, &ovflo);
+                               unsigned_value_of_integer_constant(con, &ovflo);
       check_assertion(!ovflo);
     }  /* if */
     (void)required_token(tok_comma, ec_exp_comma);
@@ -2468,6 +2468,7 @@ Return a class type with CLI class type kind cctk_unresolved.
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_comma);
     remove_stop_token(tok_rparen);
+    release_local_constant(&con);
   } else {
     /* __unresolved_type not followed by a parenthesis. */
     result = error_type();
@@ -4990,7 +4991,9 @@ is updated to reflect relevant positions of this definition.
   a_boolean          is_dependent_enum = FALSE;
   a_boolean          done, min_max_set, diag_range = TRUE;
   a_constant_ptr     constant_list = NULL, end_of_enum_con_list, enum_con;
-  a_constant         max_value, min_value, constant;
+  a_constant_ptr     max_value = local_constant();
+  a_constant_ptr     min_value = local_constant();
+  a_constant_ptr     constant = local_constant();
   a_type_ptr         explicit_base, enum_con_type;
   an_integer_kind    explicit_base_kind;
   a_scope_number     reactivated_class_scope_number = NO_SCOPE_DEPTH;
@@ -5173,7 +5176,7 @@ is updated to reflect relevant positions of this definition.
          3.1.2.1 and 3.5.2.2) */
       remove_stop_token(tok_assign);
       /* Forget about expressions scanned in previous constants. */
-      constant.expr = NULL;
+      constant->expr = NULL;
       /* See if "= constant-expression" follows. */
       if (curr_token == tok_assign) {
         (void)get_token();
@@ -5184,17 +5187,17 @@ is updated to reflect relevant positions of this definition.
            it as a "converted constant expression" for that type in C++11
            mode.) */
         scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
-                                             &constant);
-        add_backing_expression_for_named_constant(&constant);
+                                             constant);
+        add_backing_expression_for_named_constant(constant);
         /* Even though the constant may just be "0", that property should
            not be carried into the enumerators derived from it. */
-        constant.is_simple_zero = FALSE;
+        constant->is_simple_zero = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         enum_value_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (is_error_constant(&constant)) {
+        if (is_error_constant(constant)) {
           err = TRUE;
-        } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+        } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
           /* We are doing a prototype instantiation and we have a case like
              this:
                template <int N> class A { enum e { e1 = 2*N }; };
@@ -5204,22 +5207,22 @@ is updated to reflect relevant positions of this definition.
                    explicit_base_kind != (an_integer_kind)ik_none) {
           /* The underlying type is fixed. */
           check_enum_value_for_fixed_underlying_type(
-                                            &constant, explicit_base_kind,
+                                            constant, explicit_base_kind,
                                             /*implicit_value=*/FALSE, &err);
         } else if (enum_types_can_be_larger_than_int) {
           /* No need to check, since the largest integer kind will be
              used if needed. */
         } else {
-          check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
+          check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
           /* Check the value to see if it is out of range. */
-          if (!in_range_for_integer_kind(&constant, &constant,
+          if (!in_range_for_integer_kind(constant, constant,
                                          largest_enum_int_kind)) {
             a_boolean  conversion_allowed = TRUE;
             if (strict_ansi_mode) {
               conversion_allowed = strict_ansi_error_severity != es_error;
             }  /* if */
             if (conversion_allowed &&
-                (f_skip_typerefs(constant.type)->size <= targ_sizeof_int ||
+                (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
                  microsoft_mode)) {
               /* In non-strict mode, allow unsigned constants that can be
                  coerced into an int.  (Microsoft compilers appear to even
@@ -5227,7 +5230,7 @@ is updated to reflect relevant positions of this definition.
                     enum { e = static_cast<unsigned long>(-1) };
                  with unsigned long a larger type than int. */
               a_boolean  did_not_fold = FALSE;
-              type_change_constant(&constant,
+              type_change_constant(constant,
                                    integer_type((an_integer_kind)ik_int),
                                    /*is_implicit_cast=*/TRUE,
                                    /*maintain_expression=*/TRUE,
@@ -5260,25 +5263,25 @@ is updated to reflect relevant positions of this definition.
           if (explicit_base_kind != (an_integer_kind)ik_none) {
             first_kind = explicit_base_kind;
           }  /* if */
-          set_integer_constant(&constant, (a_host_large_integer)0,
+          set_integer_constant(constant, (a_host_large_integer)0,
                                first_kind);
-        } else if (is_error_constant(&constant)) {
+        } else if (is_error_constant(constant)) {
           /* There was a previous error. */
           err = TRUE;
         } else {
           /* Use a value one larger than the previous value. */
-          if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+          if (constant->kind == (a_constant_repr_kind)ck_template_param) {
             /* The previous value was template-dependent.  So we need to
                create a distinct template-dependent value for this one. */
-            increment_template_dependent_enum_constant(&constant);
+            increment_template_dependent_enum_constant(constant);
             template_param = TRUE;
           } else if (is_scoped_enum ||
                      explicit_base_kind != (an_integer_kind)ik_none) {
             /* The underlying type is fixed. */
             check_enum_value_for_fixed_underlying_type(
-                                            &constant, explicit_base_kind,
+                                            constant, explicit_base_kind,
                                             /*implicit_value=*/TRUE, &err);
-          } else if (is_max_value_for_integer_kind(&constant,
+          } else if (is_max_value_for_integer_kind(constant,
                                                    largest_enum_int_kind)) {
             /* The incremented value would be out of range (3.5.2.2,
                constraints). */
@@ -5290,14 +5293,14 @@ is updated to reflect relevant positions of this definition.
                largest_enum_int_kind.  It's not specified by the standard
                what larger integer to use, and it doesn't seem to make
                much difference. */
-            a_type_ptr  constant_type = skip_typerefs(constant.type);
+            a_type_ptr  constant_type = skip_typerefs(constant->type);
             check_assertion(constant_type->kind == (a_type_kind)tk_integer);
             if (is_max_value_for_integer_kind(
-                                &constant,
+                                constant,
                                 constant_type->variant.integer.int_kind)) {
-              constant.type = integer_type(largest_enum_int_kind);
+              constant->type = integer_type(largest_enum_int_kind);
             }  /* if */
-            incr_integer_value(&constant.variant.integer_value);
+            incr_integer_value(&constant->variant.integer_value);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5346,23 +5349,23 @@ is updated to reflect relevant positions of this definition.
          used to determine the appropriate representation type. */
       if (err) {
         /* There was some kind of error in the value for the enumerator. */
-        set_error_constant(&constant);
+        set_error_constant(constant);
         diag_range = FALSE;
       } else if (template_param) {
         /* The expression has a template parameter value, so it has
            no effect on the size of the enumeration. */
       } else if (!min_max_set) {
-        max_value = constant;
-        min_value = constant;
+        *max_value = *constant;
+        *min_value = *constant;
         min_max_set = TRUE;
-      } else if (cmp_integer_constants(&constant, &max_value) > 0) {
-        max_value = constant;
-      } else if (cmp_integer_constants(&constant, &min_value) < 0) {
-        min_value = constant;
+      } else if (cmp_integer_constants(constant, max_value) > 0) {
+        *max_value = *constant;
+      } else if (cmp_integer_constants(constant, min_value) < 0) {
+        *min_value = *constant;
       }  /* if */
       /* Assign the value to the enumeration constant. */
       switch_to_file_scope_region(&region_to_switch_back_to);
-      if (constant.kind == (a_constant_repr_kind)ck_template_param ||
+      if (constant->kind == (a_constant_repr_kind)ck_template_param ||
           is_dependent_enum) {
         /* Add a do-nothing cast to a ck_template_constant so as
            to avoid problems with using the same constant entry for
@@ -5370,10 +5373,10 @@ is updated to reflect relevant positions of this definition.
            information for the value as a tpck_member constant
            conflicts with the class membership of the enumerator).
            Also do this for enumerators that must be treated as dependent. */
-        make_template_param_cast_constant(&constant, &constant, constant.type,
+        make_template_param_cast_constant(constant, constant, constant->type,
                                           /*is_explicit=*/FALSE);
       }  /* if */
-      enum_con = alloc_unshared_constant(&constant);
+      enum_con = alloc_unshared_constant(constant);
       enum_con->is_named_constant_definition = TRUE;
       /* Record the parent scope of the enumerator. */
       if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
@@ -5568,7 +5571,7 @@ is updated to reflect relevant positions of this definition.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   set_enum_representation(enum_type, &enum_type->source_corresp.decl_position,
                           diag_range, explicit_base_kind,
-                          min_max_set, &min_value, &max_value);
+                          min_max_set, min_value, max_value);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && explicit_base_kind == (an_integer_kind)ik_none) {
     an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
@@ -5586,7 +5589,7 @@ is updated to reflect relevant positions of this definition.
     }  /* if */
     if (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
         in_range_for_integer_kind(
-                    &min_value, &max_value, unsigned_int_kind_of[int_kind])) {
+                       min_value, max_value, unsigned_int_kind_of[int_kind])) {
       /* GNU C prefers an unsigned underlying type if none of the
          enumerator constants were negative.  Note that this does not affect
          the type of the enumerator constants themselves.  GNU C++ also
@@ -5618,6 +5621,9 @@ is updated to reflect relevant positions of this definition.
   /* Issue a warning if the current token is in a file different from the
      last token of the enum definition. */
   check_for_file_with_unterminated_type_definition(&end_pos);
+  release_local_constant(&max_value);
+  release_local_constant(&min_value);
+  release_local_constant(&constant);
 }  /* scan_enumerator_list */
 
 
@@ -5653,7 +5659,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    tag_id_present;
   a_type_ptr                   enum_type = NULL, explicit_base = NULL;
   a_boolean                    err = FALSE;
-  a_constant                   max_value, min_value;
+  a_constant_ptr               max_value = local_constant();
+  a_constant_ptr               min_value = local_constant();
   a_type_ptr                   class_of_which_a_member;
   an_access_specifier          access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6346,7 +6353,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     if (is_opaque_enum_decl) {
       set_enum_representation(enum_type, &tag_position, !err,
                               explicit_base_kind,
-                              /*min_max_set=*/FALSE, &min_value, &max_value);
+                              /*min_max_set=*/FALSE, min_value, max_value);
       enum_type->incomplete = FALSE;
       set_type_size(enum_type);
     }  /* if */
@@ -6438,6 +6445,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   *type_ptr = enum_type;
   if (defines_something != NULL) *defines_something = is_definition;
 return_point:;
+  release_local_constant(&max_value);
+  release_local_constant(&min_value);
   db_exit();
 }  /* enum_specifier */
 
@@ -7846,18 +7855,18 @@ final position of the construct (whether or not a block size was specified).
       (void)get_token();
     } else {
       /* Get the integer constant for the block size */
-      a_constant  constant;
-      scan_integral_constant_expression(&constant);
-      switch(constant.kind) {
+      a_constant_ptr  constant = local_constant();
+      scan_integral_constant_expression(constant);
+      switch(constant->kind) {
         case ck_integer:
           /* The block size must be greater than or equal to zero, with
              zero indicating an indefinite block size. */
-          if (sign_of_integer_constant(&constant) < 0) {
+          if (sign_of_integer_constant(constant) < 0) {
             error(ec_shared_block_size_must_be_positive);
             *err = TRUE;
           } else {
             a_host_large_unsigned  const_value =
-                           unsigned_value_of_integer_constant(&constant, err);
+                           unsigned_value_of_integer_constant(constant, err);
             block_size = (a_upc_block_size)const_value;
             if (!*err) {
               if (const_value == 0) {
@@ -7878,6 +7887,7 @@ final position of the construct (whether or not a block size was specified).
         default:
           unexpected_condition_str("UPC shared block size: bad constant kind");
       }  /* switch */
+      release_local_constant(&constant);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {
@@ -7893,12 +7903,13 @@ final position of the construct (whether or not a block size was specified).
       error(ec_multiple_block_sizes);
       *err = TRUE;
       while (curr_token == tok_lbracket) {
-        a_constant  dummy_constant;
+        a_constant_ptr  dummy_constant = local_constant();
         (void)get_token();
         add_stop_token(tok_rbracket);
-        scan_integral_constant_expression(&dummy_constant);
+        scan_integral_constant_expression(dummy_constant);
         (void)required_token(tok_rbracket, ec_exp_rbracket);
         remove_stop_token(tok_rbracket);
+        release_local_constant(&dummy_constant);
       }  /* while */
     }  /* if */
   }  /* if */

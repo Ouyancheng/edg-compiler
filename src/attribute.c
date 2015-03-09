@@ -1312,16 +1312,16 @@ Otherwise, return a pointer to the argument's representation.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
-  a_constant            constant;
+  a_constant_ptr        constant = local_constant();
   a_source_position     arg_pos;
   a_boolean             err = FALSE;
 
   arg_pos = pos_curr_token;
-  scan_integral_constant_expression(&constant);
-  if (is_error_constant(&constant)) {
+  scan_integral_constant_expression(constant);
+  if (is_error_constant(constant)) {
     err = TRUE;
-  } else if (constant.kind != (a_constant_repr_kind)ck_integer &&
-             constant.kind != (a_constant_repr_kind)ck_template_param) {
+  } else if (constant->kind != (a_constant_repr_kind)ck_integer &&
+             constant->kind != (a_constant_repr_kind)ck_template_param) {
     /* Most likely a multiple of the UPC THREADS constant. */
     pos_error(ec_exp_int_constant, &arg_pos);
     err = TRUE;
@@ -1337,12 +1337,13 @@ Otherwise, return a pointer to the argument's representation.
        because they will be pointed to by *aap, which is in the file scope
        memory region. */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    aap->variant.constant = alloc_shareable_constant(&constant);
+    aap->variant.constant = alloc_shareable_constant(constant);
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   if (err) {
     make_attr_unrecognized(ap);
   }  /* if */
+  release_local_constant(&constant);
   return aap;
 }  /* scan_attr_integer_constant_arg */
 

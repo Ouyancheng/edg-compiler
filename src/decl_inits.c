@@ -1160,14 +1160,14 @@ given position, unless is->no_diagnostics is TRUE.
         if (is->initializer_must_be_constant) {
           result = get_default_constructed_constant(dip, tp, diag_pos);
         } else {
-          a_constant  class_con;
+          a_constant_ptr  class_con = local_constant();
           if (ctor_rp->is_constexpr &&
               fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                                  &class_con)) {
-            if (class_con.is_partially_initialized) {
+                                  class_con)) {
+            if (class_con->is_partially_initialized) {
               is->partial_initializer = TRUE;
             }  /* if */
-            result = alloc_unshared_constant(&class_con);
+            result = move_local_constant_to_il(&class_con);
             if (dtor_rp != NULL) {
               /* Despite construction being folded into a constant, a
                  nontrivial (and non-constexpr) destructor will still need to
@@ -1180,6 +1180,8 @@ given position, unless is->no_diagnostics is TRUE.
               }  /* if */
               result = NULL;
             }  /* if */
+          } else {
+            release_local_constant(&class_con);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1256,7 +1258,7 @@ Issue any diagnostics at the given position.
 */
 {
   a_constant_ptr      elem_con = NULL;
-  a_constant          folded_value;
+  a_constant_ptr      folded_value = local_constant();
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
@@ -1281,15 +1283,15 @@ Issue any diagnostics at the given position.
     /* This can happen in error cases: Don't attempt operations on *dip. */
     check_assertion(is->init_error && is->check_validity_only);
   } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
-                                         &folded_value) &&
-             is_static_init_constant(&folded_value)) {
+                                         folded_value) &&
+             is_static_init_constant(folded_value)) {
     /* A constant initializer. */
+    if (folded_value->is_partially_initialized) {
+      is->partial_initializer = TRUE;
+    }  /* if */
     if (!is->check_validity_only) {
       /* Return a copy of the constant. */
-      elem_con = alloc_unshared_constant(&folded_value);
-    }  /* if */
-    if (folded_value.is_partially_initialized) {
-      is->partial_initializer = TRUE;
+      elem_con = move_local_constant_to_il(&folded_value);
     }  /* if */
   } else {
     /* A non-constant initializer. */
@@ -1309,6 +1311,10 @@ Issue any diagnostics at the given position.
       elem_con->type = fp->type;
     }  /* if */
     is->has_dynamic_init_component = TRUE;
+  }  /* if */
+  if (folded_value != NULL) {
+    /* If folded_value was not moved to the IL above, release it now. */
+    release_local_constant(&folded_value);
   }  /* if */
   return elem_con;
 }  /* aggr_init_constant_from_field_initializer */
@@ -4434,9 +4440,9 @@ returned set to TRUE.
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
          literal. */
-      a_constant  constant;
-      scan_constant_initializer_expression(vp_type, dps, &constant);
-      init_con = alloc_unshared_constant(&constant);
+      a_constant_ptr  constant = local_constant();
+      scan_constant_initializer_expression(vp_type, dps, constant);
+      init_con = move_local_constant_to_il(&constant);
       if (!var_err && vp != NULL) {
         a_type_ptr     array_type = skip_typerefs(vp->type);
         if (is_incomplete_type(vp->type)) {
@@ -4444,17 +4450,17 @@ returned set to TRUE.
              has a known number of elements: adjust the variable type. */
           a_targ_size_t  num_elems;
           check_assertion(is_array_type(array_type));
-          if (!is_array_type(constant.type)) {
+          if (!is_array_type(init_con->type)) {
             /* An error occurred while scanning the initializer constant.
                Set the number of elements to "1" to avoid a second diagnostic
                about creating a variable of incomplete type. */
-            check_assertion(is_or_contains_error_type(constant.type) &&
+            check_assertion(is_or_contains_error_type(init_con->type) &&
                             total_errors != 0);
             init_err = TRUE;
             num_elems = 1;
           } else {
             num_elems =
-                       constant.type->variant.array.variant.number_of_elements;
+                      init_con->type->variant.array.variant.number_of_elements;
           }  /* if */
           set_initialized_array_size(&array_type, num_elems,
                                      /*unknown_dependent=*/FALSE);
@@ -4500,9 +4506,9 @@ returned set to TRUE.
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure
          another initialization will be prevented. */
-      a_constant  constant;
-      set_error_constant(&constant);
-      init_con = alloc_unshared_constant(&constant);
+      a_constant_ptr  constant = local_constant();
+      set_error_constant(constant);
+      init_con = move_local_constant_to_il(&constant);
       init_dip = NULL;
     }  /* if */
     if (init_dip == NULL) {

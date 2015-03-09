@@ -794,6 +794,11 @@ and before the back end (if any) is executed.
   }  /* if */
 #endif /* DEBUG */
 
+#if CHECKING
+  /* Make sure all local constants were released. */
+  check_local_constant_use();
+#endif /* CHECKING */
+
   /* Don't keep checking the stop token stack in db_enter/db_exit because
      the storage goes away when the front end memory region is freed. */
   curr_stop_token_stack_entry = NULL;

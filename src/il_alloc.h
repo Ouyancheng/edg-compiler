@@ -18,6 +18,21 @@ il_alloc.h -- Declarations related to allocation of intermediate language
 #ifndef IL_ALLOC_H
 #define IL_ALLOC_H 1
 
+/*
+List of released local constants for reuse by local_constant.
+*/
+EXTERN a_constant_ptr available_local_constants;
+
+/*
+Scratch variable for use by macro versions of some local constant routines
+in some configurations.
+*/
+EXTERN a_constant_ptr temp_for_local_constant;
+
+/* IL allocation facilities are neither available nor needed in a
+   standalone utility program. */
+#if !STANDALONE_UTILITY_PROGRAM
+
 extern char *alloc_il(sizeof_t size);
 
 extern char *alloc_primary_file_scope_il(sizeof_t size);
@@ -52,6 +67,16 @@ extern void clear_constant(a_constant           *cp,
 extern a_constant_ptr alloc_constant(a_constant_repr_kind kind);
 
 extern a_constant_ptr fs_constant(a_constant_repr_kind kind);
+
+extern a_constant_ptr local_constant(void);
+
+extern void release_local_constant(a_constant_ptr *cpp);
+
+#if CHECKING
+extern void check_local_constant_use(void);
+#endif /* CHECKING */
+
+extern a_constant_ptr move_local_constant_to_il(a_constant_ptr *cp);
 
 extern a_param_type_ptr alloc_param_type(a_type_ptr type);
 
@@ -343,6 +368,24 @@ memory region.
 */
 #define alloc_cil_of_type(type) (type*)alloc_cil(sizeof(type))
 
+#else /* STANDALONE_UTILITY_PROGRAM */
+
+/* Provide stubs for local_constant and release_local_constant for use in
+   standalone utility programs. */
+
+#define local_constant()                                         \
+  ((available_local_constants == NULL) ?                         \
+   (a_constant_ptr)malloc(sizeof(a_constant)) :                  \
+   (temp_for_local_constant = available_local_constants,         \
+    available_local_constants = available_local_constants->next, \
+    temp_for_local_constant))
+
+#define release_local_constant(cp)          \
+  ((*cp)->next = available_local_constants, \
+   available_local_constants = *cp,         \
+   *cp = NULL)
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* ifndef IL_ALLOC_H */
 
 /******************************************************************************

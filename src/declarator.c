@@ -1412,20 +1412,22 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
   } else {
     a_memory_region_number  region_to_switch_back_to;
     a_source_position       constant_pos;
-    a_constant              noexcept_con;
+    a_constant_ptr          noexcept_con = local_constant();
     constant_pos = pos_curr_token;
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Scan the argument for the noexcept-specifier, which must be a
        constant-expression convertible to bool. */
-    scan_bool_constant_expression(&noexcept_con);
+    scan_bool_constant_expression(noexcept_con);
     if (esp != NULL) {
-      if (noexcept_con.kind == (a_constant_repr_kind)ck_template_param ||
-          noexcept_con.kind == (a_constant_repr_kind)ck_error ||
-          is_false_constant(&noexcept_con)) {
+      if (noexcept_con->kind == (a_constant_repr_kind)ck_template_param ||
+          noexcept_con->kind == (a_constant_repr_kind)ck_error ||
+          is_false_constant(noexcept_con)) {
         esp->throw_any = TRUE;
       }  /* if */
-      esp->variant.noexcept_arg = alloc_unshared_constant(&noexcept_con);
+      esp->variant.noexcept_arg = move_local_constant_to_il(&noexcept_con);
       esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+    } else {
+      release_local_constant(&noexcept_con);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
@@ -3794,7 +3796,7 @@ constant.
 */
 {
   a_targ_size_t           num_of_elements = 0;
-  a_constant              constant;
+  a_constant_ptr          constant = local_constant();
   a_boolean               is_constant_bound = FALSE;
   a_boolean               err = FALSE;
   a_boolean               has_vla_asterisk = FALSE;
@@ -3895,7 +3897,7 @@ constant.
       a_boolean  for_new_expr = !vla_allowed;
       scan_nonconstant_dimension_expression(
               for_new_expr, top_level_vla, dps->is_evaluated_sizeof_type_arg,
-              &is_constant_bound, &dim_expr, &constant);
+              &is_constant_bound, &dim_expr, constant);
       check_assertion(is_constant_bound == (dim_expr == NULL));
 #if GNU_EXTENSIONS_ALLOWED
       if (gcc_mode && dim_expr != NULL && top_level_field_decl &&
@@ -3907,7 +3909,7 @@ constant.
            As a compatibility work-around, we therefore warn about the
            construct and treat the resulting array as having bound zero. */
         warning(ec_vla_size_ignored);
-        set_integer_constant(&constant, (a_host_large_integer)0,
+        set_integer_constant(constant, (a_host_large_integer)0,
                              (an_integer_kind)ik_int);
         dim_expr = NULL;
         is_constant_bound = TRUE;
@@ -3916,11 +3918,11 @@ constant.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Scan a bound expression expected to be a constant. */
-      scan_constant_dimension_expression(&constant);
+      scan_constant_dimension_expression(constant);
       is_constant_bound = TRUE;
     }  /* if */
     if (dim_expr == NULL) {
-      switch (constant.kind) {
+      switch (constant->kind) {
 #if UPC_EXTENSIONS_ALLOWED
         case ck_upc_mythread:
           /* MYTHREAD (and multiples thereof) is not a valid array
@@ -3941,12 +3943,12 @@ constant.
 #endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
           /* Array size must be greater than zero. */
-          if (sign_of_integer_constant(&constant) > 0) {
+          if (sign_of_integer_constant(constant) > 0) {
             num_of_elements =
-                        unsigned_value_of_integer_constant(&constant, &err);
+                        unsigned_value_of_integer_constant(constant, &err);
             if (err) error(ec_array_size_too_large);
           } else if (((microsoft_mode && in_class_definition()) || gnu_mode) &&
-                     sign_of_integer_constant(&constant) == 0) {
+                     sign_of_integer_constant(constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus
                  struct S { int a,b,c[0]; }
@@ -4037,13 +4039,13 @@ constant.
       switch_to_file_scope_region(&region_to_switch_back_to);
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
-        check_assertion(constant.kind ==
+        check_assertion(constant->kind ==
                                     (a_constant_repr_kind)ck_template_param);
-        if (constant_is_shareable(&constant)) {
-          il_constant = alloc_shareable_constant(&constant);
+        if (constant_is_shareable(constant)) {
+          il_constant = alloc_shareable_constant(constant);
         } else {
           a_template_param_constant_kind tkind =
-                                          constant.variant.template_param.kind;
+                                         constant->variant.template_param.kind;
           a_boolean expr_case = 
                     (tkind == (a_template_param_constant_kind)tpck_expression);
           a_boolean sizeof_case = 
@@ -4052,7 +4054,7 @@ constant.
                      tkind == (a_template_param_constant_kind)tpck_uuidof ||
                      tkind == (a_template_param_constant_kind)tpck_typeid ||
                      tkind == (a_template_param_constant_kind)tpck_noexcept);
-          il_constant = alloc_unshared_constant_full(&constant,
+          il_constant = alloc_unshared_constant_full(constant,
                                                      /*source_in_il=*/FALSE,
                                                      /*suppress_copy=*/
                                                      (expr_case||sizeof_case));
@@ -4079,7 +4081,7 @@ constant.
           /* Save the constant for the bound.  If it has an attached expression
              it may need to be referred to indirectly if the expression is
              allocated in function scope memory. */
-          il_constant = alloc_shareable_constant(&constant);
+          il_constant = alloc_shareable_constant(constant);
           if (il_constant->is_named_constant_definition) {
             /* We must not copy the backing expression from the bound
                constant if il_constant is the definition of a named
@@ -4093,7 +4095,7 @@ constant.
                il_constant will be unshared in this case because of the
                non-NULL backing expression in the source constant, even
                though the backing expression was cleared in il_constant. */
-            il_constant->expr = constant.expr;
+            il_constant->expr = constant->expr;
             make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                           *new_type_ptr,
                                                           /*dep=*/FALSE);
@@ -4139,6 +4141,7 @@ constant.
   remove_stop_token(tok_rbracket);
   copy_source_position(start_pos, error_position);
   scan_declarator_attributes(dps, new_type_ptr);
+  release_local_constant(&constant);
   db_exit();
 }  /* array_declarator */
 

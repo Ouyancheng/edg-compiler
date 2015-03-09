@@ -2145,6 +2145,8 @@ extern void break_source_corresp(a_source_correspondence *sc);
 
 extern void break_constant_source_corresp(a_constant_ptr cp);
 
+extern void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp);
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean seq_is_in_system_header(a_seq_number  seq_number);

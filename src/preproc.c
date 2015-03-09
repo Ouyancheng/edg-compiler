@@ -438,27 +438,28 @@ Scan the expression for a #if or #elif, and return in *condition its
 truth value.
 */
 {
-  a_boolean  save_fetch_pp_tokens = fetch_pp_tokens;
-  a_boolean  save_expand_macros = expand_macros;
-  a_constant temp_const;
+  a_boolean      save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean      save_expand_macros = expand_macros;
+  a_constant_ptr temp_const = local_constant();
 
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_pp_if_expression = TRUE;
   (void)get_token();
   /* Scan the conditional expression. */
-  scan_pp_expression(&temp_const);
+  scan_pp_expression(temp_const);
   in_pp_if_expression = FALSE;
-  if (is_error_constant(&temp_const)) {
+  if (is_error_constant(temp_const)) {
     *condition = FALSE;
     some_error_in_curr_directive = TRUE;
   } else {
     /* The constant is guaranteed to be integer. */
     /* Determine whether or not it is zero. */
-    *condition = !eqlit_integer_constant(&temp_const, (a_host_large_integer)0);
+    *condition = !eqlit_integer_constant(temp_const, (a_host_large_integer)0);
   }  /* if */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
+  release_local_constant(&temp_const);
 }  /* scan_if_expr */
 
 

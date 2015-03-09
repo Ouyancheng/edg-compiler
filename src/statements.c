@@ -5811,9 +5811,9 @@ in which such a return is undefined.
           f_skip_typerefs(tp)->variant.integer.int_kind ==
                                                      (an_integer_kind)ik_int) {
         /* main returning "int", so make it return 0. */
-        a_constant zero;
-        make_zero_of_proper_type(tp, &zero);
-        *return_expr = alloc_node_for_constant(&zero);
+        a_constant_ptr zero = local_constant();
+        make_zero_of_proper_type(tp, zero);
+        *return_expr = alloc_node_for_constant(zero);
         /* Falling off the end of "main" is a special case that merits
            reduced diagnostics.  An explicit return from main (i.e.,
            "main () {return;}") doesn't get special consideration. */
@@ -5827,6 +5827,7 @@ in which such a return is undefined.
             no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
+        release_local_constant(&zero);
       } else if (rout->is_constexpr) {
         /* A constexpr function must return a value (strictly speaking,
            this is undefined behavior, but an error seems warranted). */
