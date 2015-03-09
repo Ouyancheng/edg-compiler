@@ -487,9 +487,6 @@ static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
-static a_boolean check_for_troublesome_aggregate_constant(
-                                                     a_constant_ptr constant,
-                                                     a_variable_ptr *temp_var);
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
@@ -4170,9 +4167,8 @@ qualification.
 }  /* assoc_var_for_constant */
 
 
-static a_boolean check_for_troublesome_aggregate_constant(
-                                                     a_constant_ptr constant,
-                                                     a_variable_ptr *temp_var)
+a_boolean check_for_troublesome_aggregate_constant(a_constant_ptr constant,
+                                                   a_variable_ptr *temp_var)
 /*
 Return TRUE if constant is a pointer-to-member constant that has been
 or will be changed into a ck_aggregate for a struct during lowering

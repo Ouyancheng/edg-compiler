@@ -1335,6 +1335,9 @@ extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
 
 extern void prelower_aggregate_constant(a_constant_ptr constant);
 
+extern a_boolean check_for_troublesome_aggregate_constant(
+                                                   a_constant_ptr constant,
+                                                   a_variable_ptr *temp_var);
 #if LOWER_IFUNC
 extern a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp);
 

@@ -1,5 +1,20 @@
 Version 4.11
 
+3/9/15  [EDGcpfe/16067]
+Invalid IL generated when lowering zeroed _Complex member
+
+In configurations where LOWER_COMPLEX is TRUE and a dik_zero initialization
+is used to initialize a _Complex object, invalid IL had been generated.
+This is now fixed.  The example below (with --g++) had generated invalid C
+code in C-generating back end configurations:
+
+  struct C {
+    _Complex float c;
+    C() : c() {}
+  };
+  C a;
+
+
 3/6/15  [EDGcpfe/16066]
 Clang compatibility: aggregate initialization of _Complex in C mode
 

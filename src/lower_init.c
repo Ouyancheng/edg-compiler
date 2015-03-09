@@ -1525,6 +1525,7 @@ type of the constant that is returned may be a lowered version of desired_type
   a_constant        zero_constant;
   a_constant_ptr    cp;
   an_expr_node_ptr  expr;
+  a_variable_ptr    temp_var;
 
   make_zero_of_proper_type(desired_type, &zero_constant);
   expr = alloc_node_for_constant(&zero_constant);
@@ -1554,6 +1555,12 @@ type of the constant that is returned may be a lowered version of desired_type
     mark_as_not_visited(cp);
     lower_constant(cp);
 #endif /* LOWER_COMPLEX */
+  }  /* if */
+  if (check_for_troublesome_aggregate_constant(cp, &temp_var)) {
+    /* Replace an aggregate constant with a variable (so that it can be
+       used as an rvalue for an assignment). */
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+    expr->variant.variable = temp_var;
   }  /* if */
   return expr;
 }  /* alloc_node_for_lowered_zero_of_proper_type */
