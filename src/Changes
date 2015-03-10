@@ -38,8 +38,10 @@ alloc_unshared_constant, a new function move_local_constant_to_il can be
 called to use the local constant directly in the IL if possible or to make
 a copy if necessary.  In CHECKING configurations, an end-of-processing
 check is made that calls to local_constant and release_local_constant or
-move_local_constant_to_il are balanced.  For example, code that was
-previously structured as
+move_local_constant_to_il are balanced.  In addition, in configurations
+with EXPENSIVE_CHECKING set to TRUE, a check is made when accessing an IL
+entry prefix that the entry actually is allocated in IL memory.  For
+example, code that was previously structured as
 
   { a_constant c;
     /* Use c as an object. */
