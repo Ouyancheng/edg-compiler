@@ -6057,8 +6057,10 @@ initializations that are done for each compilation.
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_SUPPORT_NEEDED */
   num_il_entity_list_entries_allocated   = 0;
-  local_constants_in_use                 = 0;
 #endif /* DEBUG */
+#if CHECKING
+  local_constants_in_use                 = 0;
+#endif /* CHECKING */
 }  /* il_alloc_init */
 
 
