@@ -4,7 +4,7 @@ Version 4.11
 C++14: Support for sized global deallocation
 
 Definitions for the sized global deallocation operators, namely
-operator ::delete(void*, size_t) and operator ::delete[](void*, size_t)
+operator ::delete(void*, size_t) and operator ::delete[](void*, size_t),
 have been added.  These routines simply call their un-sized versions
 at the present time.
 
