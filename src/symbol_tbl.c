@@ -9355,7 +9355,7 @@ Note that this routine does not report whether the routine is a "usual
 deallocation function" -- only that it is a candidate to be one.  In
 particular, this routine will return TRUE for a two-parameter class
 member operator delete, but the presence of a one-parameter class
-member operator delete would disqualify the two-parameter class from
+member operator delete would disqualify the two-parameter version from
 being a "usual deallocation function" (see [basic.stc.dynamic.deallocation]).
 */
 {

@@ -30,17 +30,18 @@ C++ operator delete[](void *, size_t);
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-#if __cpp_sized_deallocation >= 201309
+#ifdef __cpp_sized_deallocation
 
 void operator delete[](void *ptr, size_t size) THROW_NOTHING()
 /*
-Default array operator delete with size.  Just call the normal operator delete.
+Default array operator delete with size.  Just call the normal
+operator delete[].
 */
 {
   operator delete[](ptr);
 }  /* operator delete[] */
 
-#endif /* __cpp_sized_deallocation >= 201309 */
+#endif /* __cpp_sized_deallocation */
 
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 

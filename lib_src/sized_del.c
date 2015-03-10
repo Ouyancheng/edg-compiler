@@ -27,7 +27,7 @@ C++ operator delete(void *, size_t);
 #include "basics.h"
 #include "runtime.h"
 
-#if __cpp_sized_deallocation >= 201309
+#ifdef __cpp_sized_deallocation
 
 void operator delete(void *ptr, size_t size) THROW_NOTHING()
 /*
@@ -37,7 +37,7 @@ Free the memory pointed to by ptr.  size specifies the size of the object.
   operator delete(ptr);
 }  /* operator delete */
 
-#endif /* __cpp_sized_deallocation >= 201309 */
+#endif /* __cpp_sized_deallocation */
 
 /******************************************************************************
 *                                                             \  ___  /       *
