@@ -271,6 +271,7 @@ Release the storage for the given map's table.
   free_map_tables = (a_byte*)self_map;
 }  /* release_data_map_table */
 
+
 /*
 Structure describing a call context.
 */
@@ -1307,6 +1308,12 @@ return FALSE and update the *ips accordingly.
 }  /* do_constexpr_expression */
 
 
+static a_boolean
+		persistent_storage_and_map_initialized;
+			/* Flag indicating whether persistent_data and
+			   persistent_storage have been initialized for this
+			   translation unit. */
+
 a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
                                    a_constant_ptr        result_con)
 /*
@@ -1320,6 +1327,11 @@ return FALSE.
   a_byte                *result_storage;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
+  if (!persistent_storage_and_map_initialized) {
+    persistent_storage_and_map_initialized = TRUE;
+    init_constexpr_stack(&persistent_data);
+    init_data_map(&persistent_map);
+  }  /* if */
   init_interpreter_state(&ips);
   if (result_type->kind == (a_type_kind)tk_integer) {
     clear_constant(result_con, (a_constant_repr_kind)ck_integer);
@@ -1339,6 +1351,16 @@ return FALSE.
 }  /* interpret_constexpr_call */
 
 
+void interpret_trans_unit_init(void)
+/*
+Initialize static variables related to the interpreter.  These are variables
+that need initialization for every (primary and secondary) translation unit.
+*/
+{
+  persistent_storage_and_map_initialized = FALSE;
+}  /* interpret_trans_unit_init */
+
+
 void interpret_one_time_init(void)
 /*
 One-time initialization for interpret.c static variables.
@@ -1356,6 +1378,7 @@ One-time initialization for interpret.c static variables.
   }  /* if */
   /* Static variables in interpret.c. */
   register_trans_unit_variable(persistent_data);
+  register_trans_unit_variable(persistent_map);
 
 }  /* interpret_one_time_init */
 /******************************************************************************

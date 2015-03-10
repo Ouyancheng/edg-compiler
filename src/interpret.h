@@ -24,6 +24,11 @@ uintptr_t db_hash_ptr(void  *ptr);
 
 void db_call_stack(void  *ips);
 #endif /* DEBUG */
+
+void interpret_trans_unit_init(void);
+
+void interpret_one_time_init(void);
+
 #endif /* ifndef INTERPRET_H */
 
 

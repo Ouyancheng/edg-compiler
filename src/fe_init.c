@@ -94,6 +94,7 @@ been included by the inclusion of fe_common.h.
 #include "fe_init.h"
 #include "fe_wrapup.h"
 #include "folding.h"
+#include "interpret.h"
 #include "layout.h"
 #include "lexical.h"
 #include "literals.h"
@@ -1348,6 +1349,7 @@ after the command-line processing has been done.
   folding_one_time_init();
   il_to_str_one_time_init();
   il_one_time_init();
+  interpret_one_time_init();
   lookup_one_time_init();
   layout_one_time_init();
   lexical_one_time_init();
@@ -1727,6 +1729,7 @@ when it is a secondary file.
   host_envir_trans_unit_init();
   error_trans_unit_init();
   il_trans_unit_init();
+  interpret_trans_unit_init();
   decls_trans_unit_init();
   decl_inits_trans_unit_init();
   lexical_trans_unit_init();
