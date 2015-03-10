@@ -1156,27 +1156,25 @@ typedef struct a_class_def_state {
 			/* TRUE if a field initializer has been seen.  (Used
 			   to diagnose multiple field initializers in
 			   unions.) */
-  a_bit_field	rule_out_bitwise_copy_for_volatile_class_field:1;
-			/* TRUE if bitwise copying should be ruled out because
+  a_bit_field	rule_out_trivial_copy_for_volatile_class_field:1;
+			/* TRUE if trivial copying should be ruled out because
 			   a field of volatile class type has been seen where
-			   the unqualified class type is bitwise copyable.
+			   the unqualified class type is trivially copyable.
 			   For example:
 			     struct E {};
 			     struct S { volatile E e; };
+			     static_assert(!__is_trivially_copyable(S), "X");
 			   The trivial copy constructor of E cannot copy a
-			   volatile E since it takes an "E const&".  So the
-			   construction_by_bitwise_copy_allowed flag must be
-			   FALSE, but not until the copy constructor of S is
-			   generated since the latter should be marked trivial
-			   (which e.g. matters when determining if it can
-			   appear in a union type). */
+			   volatile E since it takes an "E const&". */
   a_bit_field	rule_out_bitwise_copy_for_deleted_ctor:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a copy/move constructor is deleted. */
-  a_bit_field	rule_out_bitwise_assign_for_volatile_class_field:1;
-			/* TRUE if bitwise copying should be ruled out because
-			   a field of volatile class type has been seen where
-			   the unqualified class type is bitwise assignable. */
+  a_bit_field	rule_out_trivial_assign_for_volatile_class_field:1;
+			/* TRUE if trivial assignment should be ruled out
+			   because a field of volatile class type has been seen
+			   where the unqualified class type is trivially
+			   assignable.   (Such a type can still be considered
+			   "bitwise" copyable.) */
   a_bit_field	rule_out_bitwise_assign_for_deleted_operator:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a copy/move assignment operator is deleted. */
@@ -1275,9 +1273,9 @@ class being defined.
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
   cdsp->has_field_initializer = FALSE;
-  cdsp->rule_out_bitwise_copy_for_volatile_class_field = FALSE;
+  cdsp->rule_out_trivial_copy_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_copy_for_deleted_ctor = FALSE;
-  cdsp->rule_out_bitwise_assign_for_volatile_class_field = FALSE;
+  cdsp->rule_out_trivial_assign_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_assign_for_deleted_operator = FALSE;
   cdsp->has_inheriting_constructors = FALSE;
   cdsp->access = (an_access_specifier)as_public;
@@ -18161,8 +18159,7 @@ be entered.
                though; so don't set the construction_by_bitwise_copy_allowed
                flag to FALSE yet (until after the generation of special
                members). */
-            class_state
-                      ->rule_out_bitwise_copy_for_volatile_class_field = TRUE;
+            class_state->rule_out_trivial_copy_for_volatile_class_field = TRUE;
           }  /* if */
           if (member_cssp->makes_copy_construction_nontrivial) {
             cssp->makes_copy_construction_nontrivial = TRUE;
@@ -18182,7 +18179,7 @@ be entered.
                assignment_by_bitwise_copy_allowed flag to FALSE yet (until
                after the generation of special members). */
             class_state
-                    ->rule_out_bitwise_assign_for_volatile_class_field = TRUE;
+                    ->rule_out_trivial_assign_for_volatile_class_field = TRUE;
           }  /* if */
           if (member_cssp->makes_copy_assignment_nontrivial) {
             cssp->makes_copy_assignment_nontrivial = TRUE;
@@ -19720,7 +19717,7 @@ record that fact in *gsfd.
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out &&
         cssp->construction_by_bitwise_copy_allowed &&
-        !class_state->rule_out_bitwise_copy_for_volatile_class_field &&
+        !class_state->rule_out_trivial_copy_for_volatile_class_field &&
         !(deleted_functions_enabled && !gpp_mode &&
           class_state->any_const_or_ref_fields) &&
         !(deleted_functions_enabled &&
@@ -20770,7 +20767,7 @@ The routine body is not generated until it is known to be needed.
      and the class is not a closure type. */
   no_bit_copy = cssp->makes_copy_construction_nontrivial ||
                 !cssp->construction_by_bitwise_copy_allowed ||
-                class_state->rule_out_bitwise_copy_for_volatile_class_field;
+                class_state->rule_out_trivial_copy_for_volatile_class_field;
   declare_copy_ctor = !cssp->has_copy_constructor &&
                       (gsfd.suppress_copy_ctor ||
                        ctsp->is_lambda_closure_class ||
@@ -20966,8 +20963,7 @@ The routine body is not generated until it is known to be needed.
     cssp->makes_move_construction_nontrivial = TRUE;
   }  /* if */
   if (cssp->makes_copy_construction_nontrivial ||
-      cssp->has_user_provided_move_constructor ||
-      class_state->rule_out_bitwise_copy_for_volatile_class_field) {
+      cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op) {
@@ -20977,12 +20973,13 @@ The routine body is not generated until it is known to be needed.
     cssp->makes_move_assignment_nontrivial = TRUE;
   }  /* if */
   if (cssp->makes_copy_assignment_nontrivial ||
-      cssp->has_user_provided_move_assign_operator ||
-      class_state->rule_out_bitwise_assign_for_volatile_class_field) {
+      cssp->has_user_provided_move_assign_operator) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (cssp->assignment_by_bitwise_copy_allowed &&
       cssp->construction_by_bitwise_copy_allowed &&
+      !class_state->rule_out_trivial_copy_for_volatile_class_field &&
+      !class_state->rule_out_trivial_assign_for_volatile_class_field &&
       cssp->has_trivial_destructor) {
     ctsp->trivially_copyable = TRUE;
   }  /* if */
