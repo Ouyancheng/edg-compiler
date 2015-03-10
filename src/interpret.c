@@ -24,6 +24,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "interpret.h"
 
+#include "pch.h"
+
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
@@ -140,10 +142,30 @@ typedef struct a_large_block_header {
 } a_large_block_header;
 
 
+static a_storage_stack_state
+		persistent_data;
+			/* Data that persists across interpreter invocations.
+			   In particular, data describing the layout of data
+			   in the interpreter. */
+
+
 /*
 Type to use to index into the data map.
 */
 typedef unsigned int a_map_index;
+
+
+/*
+Union for the kinds of values that a data map maps to.
+*/
+typedef union a_mapped_value {
+  a_byte	*ptr;
+			/* A pointer. */
+  a_byte_count
+		byte_count;
+			/* A byte count. */
+} a_mapped_value;
+
 
 /*
 Structure mapping pointers in the IL to associated data in the interpreter.
@@ -151,12 +173,12 @@ Structure mapping pointers in the IL to associated data in the interpreter.
 layout data.)
 */
 typedef struct a_data_map_entry {
-  a_byte	*il_ptr;
-			/* The pointer into the IL mapped by this entry.
-			   (A "key" in the hash table.) */
-  a_byte	*data_ptr;
-			/* The pointer to associated data mapped by this entry.
-			   (A "value" in the hash table.) */
+  a_byte	*ptr;
+			/* A pointer mapped by this entry.  (A "key" in the
+			   hash table.) */
+  a_mapped_value
+		data;
+			/* A value associated with ptr. */
   a_map_index	next_index;
 			/* The index of the next map entry with an identical
 			   hash value. */
@@ -518,33 +540,33 @@ Macros to push and pop call frames.
 #define hash_il_ptr(ptr)                                                     \
    (((uintptr_t)ptr >> HASH_PTR_SHIFT) % NUM_DATA_MAP_HASH_HEADERS)
 
-static a_byte* find_overflow_entry(a_data_map    *map,
-                                   a_byte        *il_ptr,
-                                   a_byte_count  idx)
+static a_mapped_value find_overflow_entry(a_data_map    *map,
+                                          a_byte        *ptr,
+                                          a_byte_count  idx)
 /*
-Search map for an overflow entry mapping il_ptr, starting at the entry at the
+Search map for an overflow entry mapping ptr, starting at the entry at the
 given index.
 */
 {
-  a_byte            *result;
+  a_mapped_value    result;
   a_data_map_entry  *table = map->table;
 
   for (;;) {
-    if (table[idx].il_ptr == il_ptr) {
+    if (table[idx].ptr == ptr) {
       /* We found the searched-for entry. */
-      a_map_index  hash_idx = hash_il_ptr(il_ptr);
-      result = table[idx].data_ptr;
+      a_map_index  hash_idx = hash_il_ptr(ptr);
+      result = table[idx].data;
       /* Make this the new principal entry (by swapping). */
-      table[idx].il_ptr = table[hash_idx].il_ptr;
-      table[idx].data_ptr = table[hash_idx].data_ptr;
-      table[hash_idx].il_ptr = il_ptr;
-      table[hash_idx].data_ptr = result;
+      table[idx].ptr = table[hash_idx].ptr;
+      table[idx].data = table[hash_idx].data;
+      table[hash_idx].ptr = ptr;
+      table[hash_idx].data = result;
       break;
     } else {
       idx = table[idx].next_index;
       if (idx == 0) {
         /* We've exhausted the list of entries. */
-        result = NULL;
+        memzero((char*)&result, sizeof(result));
         break;
       }  /* if */
     }  /* if */
@@ -559,13 +581,13 @@ Macro to retrieve a pointer (dptr) associated with an pointer into the IL
 */
 #define get_mapped_ptr(map, iptr, dptr)                                      \
   { a_byte_count  idx = hash_il_ptr((a_byte*)(iptr));                        \
-    a_byte        *cached_ptr = (map)->table[idx].il_ptr;                    \
+    a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
     if (cached_ptr == (a_byte*)(iptr)) {                                     \
-      (dptr) = (map)->table[idx].data_ptr;                                   \
+      (dptr) = (map)->table[idx].data.ptr;                                   \
     } else {                                                                 \
       a_map_index  next_index = (map)->table[idx].next_index;                \
       if (next_index != 0) {                                                 \
-        (dptr) = find_overflow_entry((map), (a_byte*)(iptr), next_index);    \
+        (dptr) = find_overflow_entry((map), (a_byte*)(iptr), next_index).ptr;\
       } else {                                                               \
         (dptr) = 0;                                                          \
       }  /* if */                                                            \
@@ -600,12 +622,12 @@ Double the size of the overflow area of the given map.
 }  /* expand_map */
 
 /*
-Macro to add an entry to a data map.
+Macro to add a (pointer, pointer) entry to a data map.
 */
 #define map_ptr(map, iptr, dptr)                                             \
   { a_byte_count      idx = hash_il_ptr(iptr);                               \
     a_data_map_entry  *table = (map)->table;                                 \
-    a_byte            *cached_ptr = table[idx].il_ptr;                       \
+    a_byte            *cached_ptr = table[idx].ptr;                          \
     if (cached_ptr != NULL) {                                                \
       /* Move the existing entry to an overflow entry. */                    \
       a_map_index  new_index;                                                \
@@ -613,13 +635,36 @@ Macro to add an entry to a data map.
         expand_map(map);                                                     \
       }  /* if */                                                            \
       new_index = (map)->next_free;                                          \
-      table[new_index].il_ptr = cached_ptr;                                  \
-      table[new_index].data_ptr = table[idx].data_ptr;                       \
+      table[new_index].ptr = cached_ptr;                                     \
+      table[new_index].data = table[idx].data;                               \
       table[new_index].next_index = table[idx].next_index;                   \
       table[idx].next_index = new_index;                                     \
     }  /* if */                                                              \
-    table[idx].il_ptr = (a_byte*)(iptr);                                     \
-    table[idx].data_ptr = (dptr);                                            \
+    table[idx].ptr = (a_byte*)(iptr);                                        \
+    table[idx].data.ptr = (dptr);                                            \
+  }
+
+/*
+Macro to add a (pointer, byte-count) entry to a data map.
+*/
+#define map_byte_count(map, iptr, bcount)                                    \
+  { a_byte_count      idx = hash_il_ptr(iptr);                               \
+    a_data_map_entry  *table = (map)->table;                                 \
+    a_byte            *cached_ptr = table[idx].ptr;                          \
+    if (cached_ptr != NULL) {                                                \
+      /* Move the existing entry to an overflow entry. */                    \
+      a_map_index  new_index;                                                \
+      if ((map)->next_free == 0) {                                           \
+        expand_map(map);                                                     \
+      }  /* if */                                                            \
+      new_index = (map)->next_free;                                          \
+      table[new_index].ptr = cached_ptr;                                     \
+      table[new_index].data = table[idx].data;                               \
+      table[new_index].next_index = table[idx].next_index;                   \
+      table[idx].next_index = new_index;                                     \
+    }  /* if */                                                              \
+    table[idx].ptr = (a_byte*)(iptr);                                        \
+    table[idx].data.byte_count = (bcount);                                   \
   }
 
 /*
@@ -634,10 +679,10 @@ it is unmapped).
 
 
 static void unmap_overflow_entry(a_data_map   *map,
-                                 a_byte       *il_ptr,
+                                 a_byte       *ptr,
                                  a_map_index  idx)
 /*
-Find il_ptr in the overflow section of the given map and remove the associated
+Find ptr in the overflow section of the given map and remove the associated
 entry.
 */
 {
@@ -645,10 +690,10 @@ entry.
   a_map_index       last_index = 0;
 
   for (;;) {
-    if (table[idx].il_ptr == il_ptr) {
+    if (table[idx].ptr == ptr) {
       /* We found the searched-for entry.  Unlink it. */
       if (last_index == 0) {
-        last_index = hash_il_ptr(il_ptr);
+        last_index = hash_il_ptr(ptr);
       }  /* if */
       table[last_index].next_index = table[idx].next_index;
       /* Recycle the unlinked entry. */
@@ -673,16 +718,16 @@ Macro to remove an entry associated with iptr from a given data map.
 #define unmap_ptr(map, iptr)                                                 \
   { a_byte_count      idx = hash_il_ptr(iptr);                               \
     a_data_map_entry  *table = (map)->table;                                 \
-    a_byte            *cached_ptr = table[idx].il_ptr;                       \
+    a_byte            *cached_ptr = table[idx].ptr;                          \
     if (cached_ptr == (a_byte*)(iptr)) {                                     \
       if (table[idx].next_index == 0) {                                      \
         /* Only one element in the bucket. */                                \
-        table[idx].il_ptr = NULL;                                            \
+        table[idx].ptr = NULL;                                               \
       } else {                                                               \
         /* Move the first overflow entry to the main hash table. */          \
         a_map_index  old_index = table[idx].next_index;                      \
-        table[idx].il_ptr = table[old_index].il_ptr;                         \
-        table[idx].data_ptr = table[old_index].data_ptr;                     \
+        table[idx].ptr = table[old_index].ptr;                               \
+        table[idx].data = table[old_index].data;                             \
         table[idx].next_index = table[old_index].next_index;                 \
         /* Recycle the overflow entry. */                                    \
         table[old_index].next_index = (map)->next_free;                      \
@@ -704,44 +749,48 @@ If an older mapping exists for iptr, that mapping becomes active again.
   unmap_ptr(&(ips)->map, iptr)
 
 
-typedef struct a_constexpr_data_address {
+/*
+Structure describing the representation of an address in the interpreter.
+*/
+typedef struct a_constexpr_address {
   a_byte
 		*address;
 			/* The address in interpreter storage of the thing
-			   pointed to, or NULL if is_runtime_constant is
-			   TRUE. */
+			   pointed to, or NULL if is_runtime_data_address or
+			   is_function_address are TRUE. */
 #if /*FIXME: enable when used*/0
   a_bit_field
-		is_array:1;
-			/* TRUE if this is a pointer to an
-			   array element. */
+		in_array:1;
+			/* TRUE if this is a pointer to an array element
+			   stored in interpreter storage. */
   a_bit_field
-		is_runtime_constant:1;
-			/* TRUE if this is a pointer that is constant
-			   at run time, but not a pointer into interpreter
-			   storage.  Normally, a pointer to a static-duration
-			   variable of some kind. */
+		is_function_address:1;
+			/* TRUE if this is the address of a function. */
+  a_bit_field
+		is_runtime_data_address:1;
+			/* TRUE if this is a data pointer that is constant at
+			   run time, but not a pointer into interpreter
+			   storage (i.e., a pointer to a static-duration
+			   variable of some kind). */
   a_bit_field
 		cannot_dereference:1;
 			/* TRUE if this address cannot be dereferenced. */
   unsigned int
 		length: 24;
-			/* If is_array is TRUE, the number of
+			/* If in_array is TRUE, the number of
 			   elements in the array. */
   union {
+    /* When in_array is TRUE: */
     a_byte
 		*base_address;
-			/* For an array, the address of element #0. */
-    a_type_ptr
-		complete_class;
-			/* For a class type, the complete class type
-			   to use for polymorphic dispatch. */
+			/* For an array element, the address of element #0. */
+    /* When is_function-address or is_runtime_data_address is TRUE: */
     a_constant_ptr
 		runtime_constant;
 			/* For constant addresses of run-time entities. */
   } variant;
 #endif /*0*/
-} a_constexpr_data_address;
+} a_constexpr_address;
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -754,7 +803,7 @@ typedef struct a_constexpr_ptr_to_mem_function {
 
 
 /*FIXME: delete when fields are used*/
-/*lint -esym(754,a_constexpr_data_address::address)*/
+/*lint -esym(754,a_constexpr_address::address)*/
 /*lint -esym(754,a_constexpr_ptr_to_mem_function::member_function)*/
 /*lint -esym(754,a_constexpr_ptr_to_mem_function::this_class_adjustment)*/
 
@@ -797,6 +846,12 @@ failure (*ips is updated accordingly).
        f_value_bytes_for_type(ips, tp))
 
 
+static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
+                                       a_type_ptr  tp);
+static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
+                                       a_type_ptr  tp);
+
+
 /*ARGSUSED*/  /*FIXME:delete once errors are recorded. */
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp)
@@ -817,11 +872,7 @@ redo:
       result = sizeof(an_internal_float_value);
       break;
     case tk_pointer:
-      if (ptr_or_ref_is_to_function(tp)) {
-        result = sizeof(a_routine_ptr);
-      } else {
-        result = sizeof(a_constexpr_data_address);
-      }  /* if */
+      result = sizeof(a_constexpr_address);
       break;
     case tk_array:
       {
@@ -840,10 +891,10 @@ redo:
       break;
     case tk_class:
     case tk_struct:
-      /* FIXME */
+      result = lay_out_class_type(ips, tp);
       break;
     case tk_union:
-      /* FIXME */
+      result = lay_out_union_type(ips, tp);
       break;
     case tk_typeref:
       tp = tp->variant.typeref.type;
@@ -881,6 +932,104 @@ redo:
   }  /* switch */
   return 0;
 }  /* f_value_bytes_for_type */
+
+
+a_data_map
+		persistent_map;
+			/* Map that persists across interpreter invocations.
+			   In particular, its entries describing the layout of
+			   data in the interpreter. */
+
+static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
+                                       a_type_ptr  tp)
+/*
+*/
+{
+  a_byte_count      total_size = 0;
+  a_field_ptr       fp;
+  a_base_class_ptr  bcp, bases = base_classes_of(tp);
+  a_boolean         any_virtual_bases =
+                      tp->variant.class_struct_union.any_virtual_base_classes;
+
+  if (tp->variant.class_struct_union
+                 .any_virtual_functions_including_in_base_classes ||
+      any_virtual_bases) {
+    /* Allocate storage to indicate which base in a hierarchy it is (NULL if
+       it is a complete object). */
+    total_size += sizeof(a_base_class_ptr);
+  }  /* if */
+  /* Allocate each proper field and record the field offsets. */
+  fp = tp->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    do_host_alignment(total_size);
+    map_byte_count(&persistent_map, fp, total_size);
+    total_size += value_bytes_for_type(ips, fp->type);
+    if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
+      /* FIXME: error & saturate. */
+      goto done;
+    }  /* if */
+  }  /* for */
+  /* Allocate each direct, nonvirtual base class. */
+  for (bcp = bases; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && !bcp->is_virtual) {
+      do_host_alignment(total_size);
+      map_byte_count(&persistent_map, bcp, total_size);
+      total_size += value_bytes_for_type(ips, bcp->type);
+      if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
+        /* FIXME: error & saturate. */
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (any_virtual_bases) {
+    /* Allocate virtual base classes. */
+    for (bcp = bases; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && !bcp->is_virtual) {
+        do_host_alignment(total_size);
+        map_byte_count(&persistent_map, bcp, total_size);
+        total_size += value_bytes_for_type(ips, bcp->type);
+        if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
+          /* FIXME: error & saturate. */
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return total_size;
+}  /* lay_out_class_type */
+
+
+static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
+                                       a_type_ptr  tp)
+/*
+Return the size that should be allocated for the given union type, and record
+the offsets of its fields.
+*/
+{
+  a_byte_count      prefix_size = 0, max_field_size = 0, total_size;
+  a_field_ptr       fp;
+
+  /* Determine the size of the prefix indicating which field is active (NULL if
+     none). */
+  prefix_size += sizeof(a_field_ptr);
+  do_host_alignment(prefix_size);
+  /* Determine the size of the largest field and record the field offsets. */
+  fp = tp->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    a_byte_count  field_size = value_bytes_for_type(ips, fp->type);
+    map_byte_count(&persistent_map, fp, prefix_size);
+    if (field_size > max_field_size) max_field_size = field_size;
+  }  /* for */
+  total_size = prefix_size+max_field_size;
+  if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
+    /* FIXME: error & saturate. */
+    unexpected_condition();
+  }  /* if */
+  return total_size;
+}  /* lay_out_union_type */
+
+
 
 #if DEBUG
 
@@ -1190,6 +1339,25 @@ return FALSE.
 }  /* interpret_constexpr_call */
 
 
+void interpret_one_time_init(void)
+/*
+One-time initialization for interpret.c static variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(persistent_data),
+      pch_saved_var_array_elem(free_stack_blocks),
+      pch_saved_var_array_elem(free_map_tables),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+  /* Static variables in interpret.c. */
+  register_trans_unit_variable(persistent_data);
+
+}  /* interpret_one_time_init */
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
