@@ -1023,7 +1023,7 @@ a_constant_ptr move_local_constant_to_il(a_constant_ptr *cp)
 The local constant *cp is to be used in the IL.  If it need not be copied,
 return it directly; otherwise, make a copy in the current memory region and
 return that.  Set *cp to NULL to prevent its being inadvertently reused as
-a local constant and return the previous value.
+a local constant.
 */
 {
   a_constant_ptr   result = *cp;
