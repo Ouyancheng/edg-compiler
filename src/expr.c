@@ -29834,11 +29834,12 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
-        if ((microsoft_mode && !C_mode()) ||
-            (cpp11_mode && curr_token == tok_func_name)) {
+        if ((microsoft_mode && !C_mode() && curr_token == tok_function_name) ||
+            (cpp11_mode && curr_token == tok_func_name &&
+             !(gpp_mode || clang_mode))) {
           /* Microsoft's __FUNCTION__ expands to the fully qualified name of
-             the function.  In C++11 mode, we use the same expansion for
-             __func__. */
+             the function.  In non-GNU/Clang C++11 mode, we use the same
+             expansion for __func__. */
           an_il_to_str_output_control_block octl;
           clear_il_to_str_output_control_block(&octl);
           octl.output_str = put_str_to_temp_text_buffer_octl;

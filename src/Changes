@@ -1,5 +1,21 @@
 Version 4.11
 
+3/9/15  [EDGcpfe/16030,EDGcpfe/16074]
+Microsoft/Clang/GNU compatibility: __func__
+
+In Microsoft C and C++ modes with microsoft_version >= 1900, the front end now
+accepts the __func__ construct to obtain the name of the enclosing function
+(see the entry of 10/7/00).  In addition, a change was made to the string
+produced for __func__ in GNU and Clang C++ modes: It no longer includes the
+parent class name in the case of a member function (and that is also true in
+Microsoft mode).  For example:
+
+  struct S {
+    char const* f() { return __func__; }
+  } s;  // s.f() produces a pointer to "f" in Microsoft, GNU, and Clang C++
+        // modes.  It produces "S::f" in default and strict modes.
+
+
 3/9/15  [EDGcpfe/16056]
 Copies of a_constant not allocated in IL memory
 
