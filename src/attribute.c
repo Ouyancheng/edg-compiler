@@ -745,8 +745,8 @@ static an_attr_corresp_descr attr_corresp_table[] = {
   { ak_noreturn, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_noreturn, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
             NO_CHECKING_FN },
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   { ak_deprecated, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   { ak_noinline, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nothrow, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3614,11 +3614,9 @@ their syntactic location recorded as al_implicit.
         do_copy = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       case ak_deprecated:
         do_copy = TRUE;
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         do_copy = FALSE;
     }  /* switch */ /*lint !e764*/  /* Lint complains about there not being

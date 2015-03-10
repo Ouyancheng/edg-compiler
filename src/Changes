@@ -1,5 +1,24 @@
 Version 4.11
 
+3/10/15 [EDGcpfe/16077]
+C++14 compatibility: "deprecated" attribute
+
+The "deprecated" attribute is accepted by the front end in GNU and Microsoft
+emulation modes as well as C++14 mode, but when configured with both
+GNU_EXTENSIONS_ALLOWED and MICROSOFT_EXTENSIONS_ALLOWED set to FALSE,
+the attribute was inadvertently unrecognized in C++14 mode.  Now fixed.
+This example had not elicited a warning with --c++14 when
+GNU_EXTENSIONS_ALLOWED and MICROSOFT_EXTENSIONS_ALLOWED were both FALSE (and
+now does):
+
+  int f([[deprecated]] int x) {
+    return x;
+  }
+  int main() {
+    return f(0);
+  }
+
+
 3/10/15 [EDGcpfe/16025]
 Volatile class fields and bitwise copyability (ABI Change)
 
