@@ -203,6 +203,13 @@ typedef struct a_data_map {
 } a_data_map;
 
 
+static a_data_map
+		persistent_map;
+			/* Map that persists across interpreter invocations.
+			   In particular, its entries describing the layout of
+			   data in the interpreter. */
+
+
 /* Macro defining the number of entries in the hash table proper. */
 #define NUM_DATA_MAP_HASH_HEADERS (1<<16)
 
@@ -596,6 +603,26 @@ Macro to retrieve a pointer (dptr) associated with an pointer into the IL
   }
 
 /*
+Macro to retrieve a byte count (bcount) associated with an pointer into the IL
+(iptr) from a given data map.
+*/
+#define get_mapped_byte_count(map, iptr, bcount)                             \
+  { a_byte_count  idx = hash_il_ptr((a_byte*)(iptr));                        \
+    a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
+    if (cached_ptr == (a_byte*)(iptr)) {                                     \
+      (bcount) = (map)->table[idx].data.byte_count;                          \
+    } else {                                                                 \
+      a_map_index  next_index = (map)->table[idx].next_index;                \
+      if (next_index != 0) {                                                 \
+        (bcount) = find_overflow_entry((map), (a_byte*)(iptr), next_index)   \
+                                                                 .byte_count;\
+      } else {                                                               \
+        (bcount) = 0;                                                        \
+      }  /* if */                                                            \
+    }  /* if */                                                              \
+  }
+
+/*
 Convenience macro to retrieve a pointer (sptr) to the stack storage associated
 with an IL pointer (iptr).  ips is the interpreter state managing the stack
 storage.
@@ -815,13 +842,14 @@ Macro defining the largest allowed size of a type in the interpreter.
 */
 #define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
 
-
+#if /*FIXME: delete?*/0
 /*
 Macro producing TRUE if the given tk_pointer type is a pointer or reference to
 a function type.
 */
 #define ptr_or_ref_is_to_function(tp)                                        \
   (skip_typerefs(tp->variant.pointer.type)->kind == (a_type_kind)tk_routine)
+#endif
 
 
 /*
@@ -892,10 +920,16 @@ redo:
       break;
     case tk_class:
     case tk_struct:
-      result = lay_out_class_type(ips, tp);
+      get_mapped_byte_count(&persistent_map, tp, result);
+      if (result == 0) {
+        result = lay_out_class_type(ips, tp);
+      }  /* if */
       break;
     case tk_union:
-      result = lay_out_union_type(ips, tp);
+      get_mapped_byte_count(&persistent_map, tp, result);
+      if (result == 0) {
+        result = lay_out_union_type(ips, tp);
+      }  /* if */
       break;
     case tk_typeref:
       tp = tp->variant.typeref.type;
@@ -934,12 +968,6 @@ redo:
   return 0;
 }  /* f_value_bytes_for_type */
 
-
-a_data_map
-		persistent_map;
-			/* Map that persists across interpreter invocations.
-			   In particular, its entries describing the layout of
-			   data in the interpreter. */
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr  tp)
@@ -997,6 +1025,7 @@ static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
     }  /* for */
   }  /* if */
 done:
+  map_byte_count(&persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_class_type */
 
@@ -1027,6 +1056,7 @@ the offsets of its fields.
     /* FIXME: error & saturate. */
     unexpected_condition();
   }  /* if */
+  map_byte_count(&persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_union_type */
 
