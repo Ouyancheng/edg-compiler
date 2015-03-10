@@ -536,13 +536,17 @@ of GNU.
     /* builtin-test:stop */
     /* These functions are overloaded in GNU and also have versions with an
        initial size_t parameter.  Only the versions without the size_t
-       parameter are implemented. */
+       parameter are implemented.  Also note that adjust_gnu_sync_call
+       performs additional type checking on the arguments to these
+       generic routines. */
     enter_gnu_builtin_func3(_atomic_load, no_return,
                             void_const_volatile_star, void_star, int);
     enter_gnu_builtin_func3(_atomic_store, no_return, 
                             void_volatile_star, void_star, int);
     enter_gnu_builtin_func4(_atomic_exchange, no_return,
                             void_volatile_star, void_star, void_star, int);
+    /* Note that the GNU documentation shows six arguments, but testing
+       reveals only five arguments. */
     enter_gnu_builtin_func5(_atomic_compare_exchange, boolean,
                             void_volatile_star, void_star,
                             void_star, int, int);
