@@ -564,8 +564,8 @@ duplication.
           if (sys_includes_only) {
             /* Issue a warning if a directory was specified as both
                a system and non-system include. */
-            pos_st_warning(ec_incl_dir_both_sys_and_nonsys,
-                           &null_source_position, dnep2->dir_name);
+            str_command_line_warning(ec_incl_dir_both_sys_and_nonsys,
+                                     dnep2->dir_name);
           }  /* if */
           free_directory_name_entry(dnep2);
           continue;
@@ -1236,7 +1236,7 @@ necessary.  This routine may be called iteratively.
     /* Add the delimiter. */
     add_char_to_text_buffer(file_name_buffer, SUFFIX_DELIMITER);
     /* Add the new suffix to the new filename. */
-    (void)add_to_text_buffer(file_name_buffer, new_suffix, new_suffix_length);
+    add_to_text_buffer(file_name_buffer, new_suffix, new_suffix_length);
   }  /* if */
   /* Terminate the string. */
   add_char_to_text_buffer(file_name_buffer, '\0');
@@ -4377,7 +4377,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
         add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
       }  /* if */
       /* Add the directory name to the buffer. */
-      (void)add_to_text_buffer(buf, dir_start, (sizeof_t)(length));
+      add_to_text_buffer(buf, dir_start, (sizeof_t)(length));
     }  /* if */
   }   /* while */
 }  /* append_dir_name */
@@ -4411,7 +4411,7 @@ to the current directory.
        drive from the current directory name. */
     if (!has_drive_specification(dir_name)) {
       check_assertion(has_drive_specification(current_directory_name));
-      (void)add_to_text_buffer(buf, current_directory_name, 2);
+      add_to_text_buffer(buf, current_directory_name, 2);
     }  /* if */
 #endif /* __MICROSOFT_OS__ */
   }  /* if */
@@ -4698,7 +4698,7 @@ be used until that point.
 
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
-unsigned long write_file_name_to_text_buffer(
+void write_file_name_to_text_buffer(
                                    a_const_char     *name,
                                    a_text_buffer_ptr buffer,
                                    a_boolean         process_escapes,
@@ -4710,9 +4710,7 @@ If escape_nonprintable_chars is TRUE, nonprintable characters will be
 put out using escape sequences.  Escape processing is generally suppressed
 for names appearing in error messages, so that multibyte characters will
 be output without escapes.  Escape processing is done when outputting names
-in preprocessed output, and similar contexts.  Return the number of characters
-placed in the buffer (a multibyte character sequence counts as a single
-character when not escaping nonprinting characters).  The result is not
+in preprocessed output, and similar contexts.  The result is not
 null-terminated.
 */
 {
@@ -4784,15 +4782,13 @@ null-terminated.
   /* Restore the original locale. */
   native_multibyte_locale = saved_locale;
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-  return len;
 }  /* write_file_name_to_text_buffer */
 
 
 static
 a_text_buffer_ptr f_format_file_name(a_const_char  *name,
                                      a_boolean     process_escapes,
-                                     a_boolean     escape_nonprintable_chars,
-                                     unsigned long *len)
+                                     a_boolean     escape_nonprintable_chars)
 /*
 Format the null-terminated file name "name" and return a pointer to a
 text buffer containing the result.  If process_escapes is TRUE, an
@@ -4801,13 +4797,11 @@ is TRUE, nonprintable characters will be put out using escape
 sequences.  Escape processing is generally suppressed for names
 appearing in error messages, so that multibyte characters will be
 output without escapes.  Escape processing is done when outputting
-names in preprocessed output, and similar contexts.  The number of
-characters written (a multibyte character sequence counts as a single
-character when not escaping nonprinting characters) is returned in
-*len.  This routine is used (directly or by routines such as write_file_name)
-to write out the file name in #line directives error messages, etc.  The
-text buffer will be reused on the next call to this routine, so the
-contents can only be used until that point.
+names in preprocessed output, and similar contexts.  This routine is
+used (directly or by routines such as write_file_name) to write out the
+file name in #line directives error messages, etc.  The text buffer will
+be reused on the next call to this routine, so the contents can only be
+used until that point.
 */
 {
   if (format_file_name_buffer == NULL) {
@@ -4815,9 +4809,9 @@ contents can only be used until that point.
     format_file_name_buffer = alloc_text_buffer(256);
   }  /* if */
   reset_text_buffer(format_file_name_buffer);
-  *len = write_file_name_to_text_buffer(name, format_file_name_buffer,
-                                        process_escapes,
-                                        escape_nonprintable_chars);
+  write_file_name_to_text_buffer(name, format_file_name_buffer,
+                                 process_escapes,
+                                 escape_nonprintable_chars);
   add_char_to_text_buffer(format_file_name_buffer, '\0');
   return format_file_name_buffer;
 }  /* f_format_file_name */
@@ -4832,19 +4826,18 @@ is called again.
 */
 {
   a_text_buffer_ptr	buf;
-  unsigned long		len;
 
   buf = f_format_file_name(name,
                            /*process_escapes=*/FALSE,
-                           /*escapes_nonprintable_chars=*/FALSE, &len);
+                           /*escapes_nonprintable_chars=*/FALSE);
   return buf->buffer;
 }  /* format_file_name */
 
 
-unsigned long write_file_name(a_const_char *name,
-                              FILE         *f_output,
-                              a_boolean    process_escapes,
-                              a_boolean    escape_nonprintable_chars)
+void write_file_name(a_const_char *name,
+                     FILE         *f_output,
+                     a_boolean    process_escapes,
+                     a_boolean    escape_nonprintable_chars)
 /*
 Write out the null-terminated file name "name" to the output file f_output.
 If process_escapes is TRUE, an escape is added for quotes and backslashes.
@@ -4852,19 +4845,15 @@ If escape_nonprintable_chars is TRUE, nonprintable characters will be
 put out using escape sequences.  Escape processing is generally suppressed
 for names appearing in error messages, so that multibyte characters will
 be output without escapes.  Escape processing is done when outputting names
-in preprocessed output, and similar contexts.  Return the number of characters
-written (a multibyte character sequence counts as a single character when not
-escaping nonprinting characters).  The caller must put out surrounding quotes
-if they are needed.
+in preprocessed output, and similar contexts.  The caller must put out
+surrounding quotes if they are needed.
 */
 {
-  unsigned long     len;
   a_text_buffer_ptr buf;
 
   buf = f_format_file_name(name, process_escapes,
-                           escape_nonprintable_chars, &len);
+                           escape_nonprintable_chars);
   fputs(buf->buffer, f_output);
-  return len;
 }  /* write_file_name */
 
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

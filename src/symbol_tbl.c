@@ -4530,11 +4530,12 @@ this is not allowed, an error will be issued by the caller.
            by a newer declaration: Issue a warning only in modes with pre-
            standard for-init scopes.  By default, the warning will not be
            issued when microsoft_version >= 1310. */
-        pos_start_diagnostic(es_warning, ec_declaration_hides_for_init,
-                             &new_sym->decl_position);
-        add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
+        a_diagnostic_ptr dp;
+        dp = pos_start_diagnostic(es_warning, ec_declaration_hides_for_init,
+                                  &new_sym->decl_position);
+        add_diag_info_with_pos_insert(dp, ec_for_init_hidden_declaration,
                                       &old_sym->decl_position);
-        end_error();
+        end_diagnostic(dp);
       }  /* if */
       err = FALSE;
     } else if (microsoft_bugs &&
@@ -9975,18 +9976,20 @@ from other assemblies that haven't been loaded yet).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void add_on_diag_for_skipped_inaccessible_function(a_symbol_ptr sym)
+void add_on_diag_for_skipped_inaccessible_function(a_symbol_ptr     sym,
+                                                   a_diagnostic_ptr dp)
 /*
 If sym is non-NULL, it is the symbol for function that was skipped in
 overload resolution because it is inaccessible (with C++/CLI
 hide-by-sig lookup), but which is viable when no accessible function
 turned out to be viable.  Issue an add-on diagnostic that identifies
-the function.
+the function.  dp is the diagnostic to which the message should be
+added.
 */
 {
   if (sym != NULL) {
     check_assertion(cli_or_cx_enabled);
-    sym_add_diag_info(ec_skipped_inaccessible_function, sym);
+    sym_add_diag_info(dp, ec_skipped_inaccessible_function, sym);
   }  /* if */
 }  /* add_on_diag_for_skipped_inaccessible_function */
 
@@ -10059,9 +10062,11 @@ that can be called with zero arguments.
       if (error_detected != NULL) {
         *error_detected = TRUE;
       } else {
-        pos_ty_start_error(ec_no_default_constructor, err_pos, class_type);
-        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-        end_error();
+        a_diagnostic_ptr dp;
+        dp = pos_ty_start_error(ec_no_default_constructor, err_pos,
+                                class_type);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
+        end_diagnostic(dp);
       }  /* if */
       local_err = TRUE;
     }  /* if */
@@ -10310,10 +10315,11 @@ and do not issue any diagnostics (including warnings).
       if (error_detected != NULL) {
         *error_detected = TRUE;
       } else {
-        pos_ty_start_error(ec_no_suitable_copy_constructor,
-                           err_pos, class_type);
-        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-        end_error();
+        a_diagnostic_ptr dp;
+        dp = pos_ty_start_error(ec_no_suitable_copy_constructor,
+                                err_pos, class_type);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
+        end_diagnostic(dp);
       }  /* if */
     }  /* if */
   } else {
@@ -14901,7 +14907,7 @@ a_symbol_ptr find_literal_operator(a_const_char      *name,
                                    sizeof_t          name_len,
                                    a_source_position *pos,
                                    a_type_ptr        literal_type,
-                                   a_boolean         display_errors)
+                                   a_diagnostic_ptr  dp)
 /*
 name and name_len specify the ud-suffix of a user-defined literal (C++11
 Standard 2.14.8 [lex.ext]) and pos is the start of the literal or of the
@@ -14912,11 +14918,10 @@ the C++11 Standard).  If the lookup finds a single matching function,
 return the corresponding symbol; otherwise, return the overloaded function
 symbol or NULL, if no literal operator or literal operator template with
 the designated name has yet been declared.  If ambiguous symbols are found
-and display_errors is TRUE, put out an "additional info" diagnostic for
-each one (i.e., this function should be called with display_errors TRUE
-only after an ambiguity has been detected and a "start error" diagnostic
-has been issued).  As a side effect, locator_for_curr_id is set to refer to
-the corresponding literal-operator-id.
+and dp is non-NULL, put out an "additional info" diagnostic for each one.
+dp is a pointer to the primary diagnostic entry with which any new
+messages should be attached.  As a side effect, locator_for_curr_id is set
+to refer to the corresponding literal-operator-id.
 */
 {
   a_type_ptr              req_param1_type = NULL;
@@ -15002,7 +15007,7 @@ the corresponding literal-operator-id.
             ambiguous_operator_template = TRUE;
           }  /* if */
           operator_template = sym;
-          if (display_errors) {
+          if (dp != NULL) {
             /* Record the symbol for later display, if needed. */
             slep = alloc_symbol_list_entry();
             slep->symbol = sym;
@@ -15046,7 +15051,7 @@ the corresponding literal-operator-id.
             ambiguous_raw_operator = TRUE;
           }  /* if */
           raw_operator = sym;
-          if (display_errors) {
+          if (dp != NULL) {
             /* Record the symbol for later display, if needed. */
             slep = alloc_symbol_list_entry();
             slep->symbol = sym;
@@ -15073,13 +15078,13 @@ the corresponding literal-operator-id.
             if (matching_sym != NULL) {
               /* We already saw a matching symbol. */
               ambiguous_matching_sym = TRUE;
-              if (!display_errors) {
+              if (dp != NULL) {
                 /* This is an error; no need to keep scanning. */
                 break;
               }  /* if */
             }  /* if */
             matching_sym = sym;
-            if (display_errors) {
+            if (dp != NULL) {
               /* Record the symbol for later display. */
               slep = alloc_symbol_list_entry();
               slep->symbol = sym;
@@ -15150,7 +15155,7 @@ the corresponding literal-operator-id.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (display_errors) {
+  if (dp != NULL) {
     /* There should have been an ambiguity of some kind.  Display
        "additional info" diagnostics for each symbol that contributed to
        the ambiguity. */
@@ -15158,14 +15163,14 @@ the corresponding literal-operator-id.
     if (ambiguous_matching_sym) {
       /* More than one literal operator matched the requirements. */
       for (slep = operators; slep != NULL; slep = slep->next) {
-        sym_add_diag_info(ec_ambiguous_function_add_on, slep->symbol);
+        sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
       }  /* for */
     } else {
       check_assertion(raw_and_template_operators != NULL &&
                       raw_and_template_operators->next != NULL);
       for (slep = raw_and_template_operators; slep != NULL;
            slep = slep->next) {
-        sym_add_diag_info(ec_ambiguous_function_add_on, slep->symbol);
+        sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
       }  /* for */
     }  /* if */
     free_list_of_symbol_list_entries(operators);

@@ -6773,12 +6773,13 @@ requiring an exhaustive search.
     }  /* if */
   }  /* for */
   if (!result) {
+    a_diagnostic_ptr dp;
     check_assertion(sub_aap != NULL && super_ap != NULL);
-    pos_st_start_error(ec_abi_tag_redefinition, &sub_aap->position,
-                       sub_aap->variant.constant->variant.string.value);
-    add_diag_info_with_pos_insert(ec_abi_tag_prev_declaration,
-                       &super_ap->position);
-    end_error();
+    dp = pos_st_start_error(ec_abi_tag_redefinition, &sub_aap->position,
+                            sub_aap->variant.constant->variant.string.value);
+    add_diag_info_with_pos_insert(dp, ec_abi_tag_prev_declaration,
+                                  &super_ap->position);
+    end_diagnostic(dp);
   }  /* if */
   return result;
 }  /* abi_tag_list_is_subset_of */

@@ -1699,12 +1699,11 @@ will be placed starting at the location specified by pos.
 }  /* set_buffer_position */
 
 
-unsigned long add_to_text_buffer(a_text_buffer_ptr	buffer,
-				 a_const_char		*string,
-				 sizeof_t		length)
+void add_to_text_buffer(a_text_buffer_ptr	buffer,
+			a_const_char		*string,
+			sizeof_t		length)
 /*
 Add "length" characters of "string" to the text buffer pointed to "buffer".
-Return the number of characters added to the buffer.
 */
 {
   sizeof_t	new_size;
@@ -1714,7 +1713,6 @@ Return the number of characters added to the buffer.
   /* Copy the characters into the buffer. */
   memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
   buffer->size = new_size;
-  return (unsigned long)length;
 }  /* add_to_text_buffer */
 
 
@@ -1740,8 +1738,17 @@ is a string used to label the output, and may be NULL.  "buf" is the buffer
 to be displayed.
 */
 {
+  int i;
   if (prefix != NULL) fprintf(f_debug, "%s: ", prefix);
-  fprintf(f_debug, "%.*s\n", (int)buf->size, buf->buffer);
+  for (i = 0; i < buf->size; ++i) {
+   char	c = buf->buffer[i];
+   if (c == 0) {
+     fprintf(f_debug, "\\0");
+   } else {
+     fprintf(f_debug, "%c", c);
+   }  /* if */
+  }  /* for */
+  fprintf(f_debug, "\n");
 }  /* db_text_buffer */
 
 

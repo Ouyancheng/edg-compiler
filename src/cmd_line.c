@@ -1503,16 +1503,17 @@ to is the option letter.
     if (ambiguous) {
       /* If the command line option was ambiguous, issue an error and list
          the possible options. */
-      start_command_line_error(ec_cl_ambiguous_option, optchar);
+      a_diagnostic_ptr dp;
+      dp = start_command_line_error(ec_cl_ambiguous_option, optchar);
       for (n = 0; n < option_descriptions_used; ++n) {
         odp = &option_descriptions[n];
         if (odp->keyword != NULL &&
             strncmp(optchar, odp->keyword, size_t_arg(keyword_length)) == 0) {
-          str_add_diag_info(ec_cl_ambiguous_fill_in, odp->keyword);
+          str_add_diag_info(dp, ec_cl_ambiguous_fill_in, odp->keyword);
         }  /* if */
       }  /* for */
       /* Note that this routine does not return. */
-      end_command_line_error();
+      end_command_line_error(dp);
     }  /* if */
     odp = odp_found;
   }  /* if */
@@ -9462,15 +9463,16 @@ enable_microsoft_mode:
           default_calling_convention = (a_calling_convention)i;
         } else {
           /* Report an invalid calling convention. */
-          start_command_line_error(ec_cl_unrecognized_calling_convention,
-                                   opt_arg);
+          a_diagnostic_ptr dp;
+          dp = start_command_line_error(ec_cl_unrecognized_calling_convention,
+                                        opt_arg);
           for (i = 0; i < (int)cc_last; ++i) {
             if (i != (int)cc_default) {
-              str_add_diag_info(ec_cl_calling_convention_list,
+              str_add_diag_info(dp, ec_cl_calling_convention_list,
                                 calling_convention_names[i]);
             }  /* if */
           }  /* for */
-          end_command_line_error();
+          end_command_line_error(dp);
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

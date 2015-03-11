@@ -942,9 +942,10 @@ with same_src_error; otherwise, use distinct_src_error.
       /* This diagnostic was produced already (presumably for a prototype
          instantiation, while this is a real instantiation). */
     } else {
-      pos_sy_start_error(distinct_src_error, &sym->decl_position, sym);
-      add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
-      end_error();
+      a_diagnostic_ptr dp;
+      dp = pos_sy_start_error(distinct_src_error, &sym->decl_position, sym);
+      add_diag_info_with_pos_insert(dp, ec_corresp_decl_at, pos2);
+      end_diagnostic(dp);
       record_prototype_diagnostic(distinct_src_error, es_error,
                                   &sym->decl_position);
     }  /* if */
@@ -2406,10 +2407,12 @@ entry.
         if (match_mode == ACF_STRICT_MATCH && !pos2->seq == 0) {
           /* Strict matching is requested.  (However, when matching built-in
              declarations just retain the source attribute.) */
-          pos_st_start_error(ec_missing_attribute_in_other_translation_unit,
-                             &ap1->position, ap1->name);
-          add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
-          end_error();
+          a_diagnostic_ptr dp;
+          dp = pos_st_start_error(
+                            ec_missing_attribute_in_other_translation_unit,
+                            &ap1->position, ap1->name);
+          add_diag_info_with_pos_insert(dp, ec_corresp_decl_at, pos2);
+          end_diagnostic(dp);
         } else {
           /* A valid ("void") match: Mark the attribute as requiring a copy
              to the primary translation unit entity. */
@@ -2428,10 +2431,12 @@ entry.
         ap1->must_be_preserved_in_trans_unit_copy = TRUE;
       } else {
         /* Conflicting attributes: Issue an error. */
-        pos_st_start_error(ec_conflicting_attribute_in_other_translation_unit,
+        a_diagnostic_ptr dp;
+        dp = pos_st_start_error(
+                           ec_conflicting_attribute_in_other_translation_unit,
                            &ap1->position, ap1->name);
-        add_diag_info_with_pos_insert(ec_corresp_decl_at, &ap2->position);
-        end_error();
+        add_diag_info_with_pos_insert(dp, ec_corresp_decl_at, &ap2->position);
+        end_diagnostic(dp);
         make_attr_unrecognized(ap1);
         make_attr_unrecognized(ap2);
       }  /* if */

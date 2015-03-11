@@ -7646,11 +7646,12 @@ initialized.  These are addressed in the course of the processing.
   if (uninit_list != NULL) {
     /* Issue a diagnostic for uninitialized const and ref members. */
     an_error_severity  severity = es_error;
+    a_diagnostic_ptr   dp = NULL;
     if (ctor_rout->compiler_generated) {
       /* Error by 12.1 [class.ctor]. */
-      pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
-                              &class_type->source_corresp.decl_position,
-                              class_type);
+      dp = pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
+                                   &class_type->source_corresp.decl_position,
+                                   class_type);
     } else {
       /* This is a user-defined constructor, subject to restrictions in
          12.6.2 [class.base.init] para 4.  However, if only const members are
@@ -7674,8 +7675,8 @@ initialized.  These are addressed in the course of the processing.
                                                      : es_discretionary_error;
       }  /* if */
       if (severity != es_none) {
-        pos_sy_start_diagnostic(severity, errcode, &pos_curr_token,
-                                symbol_for(ctor_rout));
+        dp = pos_sy_start_diagnostic(severity, errcode, &pos_curr_token,
+                                     symbol_for(ctor_rout));
       }  /* if */
     }  /* if */
     if (severity != es_none) {
@@ -7684,20 +7685,20 @@ initialized.  These are addressed in the course of the processing.
         if (ctor_rout->is_constexpr) {
           /* The field being a reference or a const member is not relevant, so
              we use a diagnostic that doesn't emphasize that. */
-          sym_add_diag_info(ec_specific_symbol, field_sym);
+          sym_add_diag_info(dp, ec_specific_symbol, field_sym);
         } else if (is_any_reference_type(cip->variant.field->type)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* Fields cannot be tracking references. */
           check_assertion(!cli_or_cx_enabled ||
                           !is_tracking_reference_type(tp));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          sym_add_diag_info(ec_reference_member, field_sym);
+          sym_add_diag_info(dp, ec_reference_member, field_sym);
         } else {
           /* Must be a const member. */
-          sym_add_diag_info(ec_const_member, field_sym);
+          sym_add_diag_info(dp, ec_const_member, field_sym);
         }  /* if */
       }  /* for */
-      end_error();
+      end_diagnostic(dp);
     }  /* if */
   } else if (is_union && ctor_rout->is_constexpr && has_field &&
              !has_field_init) {

@@ -37,10 +37,43 @@
 # Any quote characters within the text string must be escaped.
 #
 # The text string includes markers indicating the location of fill-ins
-# in the message (e.g., %t for a type).  Full information on those fill-in
-# codes can be found in the internal documentation.  The sequence
-# \='something' following a fill-in code indicates specific text (in LaTeX
-# form) to be used for that fill-in when the message is shown in the error
+# in the message (e.g., %t for a type).  The supported fill-ins are:
+#
+#  d#		- an integer numeric insertion.
+#  s[q]#	- user provided string insertion.
+#  t#		- type insertion in double quotes.
+#  n[f|o|a|t][d|T]#
+#		- symbol name insertion in double quotes.
+#  p#		- insert a source position.
+#  %		- insert a percent sign.
+#  [label]	- choose one of two fill-ins depending on the value
+#			  of a variable (e.g., "%[C++/CLI]" might display as
+#			  "C++/CLI" or "C++/CX").
+#
+# where "#" is an optional number in the range of 1 to N (defaulted to 1) that
+# indicates which of multiple substitutions of given kind should be used.
+# the upper limit is based on the number of fill-ins of that kind actually
+# required by the message.
+#
+# String inserts may have an optional "q" modifier which specifies that the
+# string is to be enclosed in quotes.
+#
+# Symbol name expansions may have one of the mutually exclusive optional
+# modifiers:
+#
+#	f	- full object, complete type and object name.
+#	o	- name or qualified name only.
+#	a	- name or qualified name followed by template argument list
+#
+# Symbol name expansions may have a declaration position modifier "d" which
+# requests that the declaration position of the symbol be added at the end
+# of the expansion.  They may also have a "T" modifier which indicates
+# that the translation unit of the symbol should be displayed if it is
+# current translation unit is not the primary translation unit, or the
+# symbol is not from the current translation unit.
+#
+# The sequence \='something' following a fill-in code indicates specific
+# text to be used for that fill-in when the message is shown in the error
 # messages appendix of the internal documentation.
 #
 # Lines that begin with a "#", and blank lines, are ignored by mk_errinfo.
@@ -607,8 +640,8 @@ REMOVED;ec_bad_access_decl_ambiguous_name;;"invalid access declaration -- inheri
 ec_bad_member_type_in_ptr_to_member;;"pointer to member of type %t is not allowed"
 ec_ellipsis_on_operator_function;;"ellipsis is not allowed in operator function parameter list"
 ec_unimplemented_keyword;;"%no is reserved for future use as a keyword"
-ec_cl_invalid_macro_definition;;"invalid macro definition: "
-ec_cl_invalid_macro_undefinition;;"invalid macro undefinition: "
+ec_cl_invalid_macro_definition;;"invalid macro definition: %s"
+ec_cl_invalid_macro_undefinition;;"invalid macro undefinition: %s"
 REMOVED;ec_cl_invalid_preprocessor_output_file;;"invalid preprocessor output file "
 REMOVED;ec_cl_cannot_open_preprocessor_output_file;;"cannot open preprocessor output file "
 ec_cl_il_file_must_be_specified;;"IL file name must be specified if input is "
@@ -617,14 +650,14 @@ REMOVED;ec_cl_cannot_open_il_output_file;;"cannot open IL output file "
 REMOVED;ec_cl_invalid_C_output_file;;"invalid C output file "
 REMOVED;ec_cl_cannot_open_C_output_file;;"cannot open C output file "
 ec_cl_error_in_debug_option_argument;;"error in debug option argument"
-ec_cl_invalid_option;;"invalid option: "
+ec_cl_invalid_option;;"invalid option: %s"
 ec_cl_back_end_requires_il_file;;"back end requires name of IL file"
-ec_cl_could_not_open_il_file;;"could not open IL file "
-ec_cl_invalid_number;;"invalid number: "
+ec_cl_could_not_open_il_file;;"could not open IL file %s"
+ec_cl_invalid_number;;"invalid number: %s"
 ec_cl_incorrect_host_id;;"incorrect host CPU id"
-ec_cl_invalid_instantiation_mode;;"invalid instantiation mode: "
+ec_cl_invalid_instantiation_mode;;"invalid instantiation mode: %s"
 REMOVED;ec_cl_missing_include_directory;;"missing include file directory name"
-ec_cl_invalid_error_limit;;"invalid error limit: "
+ec_cl_invalid_error_limit;;"invalid error limit: %s"
 REMOVED;ec_cl_invalid_raw_listing_output_file;;"invalid raw-listing output file "
 REMOVED;ec_cl_cannot_open_raw_listing_output_file;;"cannot open raw-listing output file "
 REMOVED;ec_cl_invalid_xref_output_file;;"invalid cross-reference output file "
@@ -659,8 +692,8 @@ ec_pragma_may_not_be_used_here;;"this kind of pragma may not be used here"
 REMOVED;ec_nonoverriding_function_decl;;"%nf1 does not match %no2 -- virtual function override intended?"
 ec_partial_override;;"overloaded virtual function %no1 is only partially overridden in %n2"
 ec_specialization_of_called_inline_template_function;;"specific definition of inline template function must precede its first use"
-ec_cl_invalid_error_tag;;"invalid error tag in diagnostic control option: "
-ec_cl_invalid_error_number;;"invalid error number in diagnostic control option: "
+ec_cl_invalid_error_tag;;"invalid error tag in diagnostic control option: %s"
+ec_cl_invalid_error_number;;"invalid error number in diagnostic control option: %s"
 ec_param_type_ptr_to_array_of_unknown_bound;;"parameter type involves pointer to array of unknown bound"
 ec_param_type_ref_array_of_unknown_bound;;"parameter type involves reference to array of unknown bound"
 ec_ptr_to_member_cast_to_ptr_to_function;;"pointer-to-member-function cast to pointer to function"
@@ -726,7 +759,7 @@ ec_using_out_of_scope_declaration;;"using out-of-scope declaration of %nd"
 ec_cl_strict_mode_incompatible_with_SVR4;;"strict mode is incompatible with SVR4 C mode"
 ec_cannot_inline_call;;"call of %nd cannot be inlined"
 ec_cannot_inline;;"%n cannot be inlined"
-ec_cl_invalid_pch_directory;;"invalid PCH directory: "
+ec_cl_invalid_pch_directory;;"invalid PCH directory: %s"
 ec_exp_except_or_finally;;"expected __except or __finally"
 ec_leave_must_be_in_try;;"a __leave statement may only be used within a __try"
 ec_det_during_template_instantiation_context;INTERNAL;"detected during instantiation of %nt %p"
@@ -929,7 +962,7 @@ ec_new_cast_in_embedded_cplusplus;;"Embedded C++ does not support the new cast s
 ec_using_decl_in_embedded_cplusplus;;"Embedded C++ does not support using-declarations"
 ec_mutable_in_embedded_cplusplus;;"Embedded C++ does not support \"mutable\""
 ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support multiple or virtual inheritance"
-ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
+ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: %s"
 ec_inheritance_kind_already_set;;"pointer-to-member representation %sq has already been set for %n"
 ec_bad_constructor_type;;"%t1 cannot be used to designate constructor for %t2"
 ec_bad_suffix;;"invalid suffix on integral constant"
@@ -963,7 +996,7 @@ REMOVED;ec_bad_allocate_segname;;"missing or invalid segment name in __declspec(
 REMOVED;ec_declspec_allocate_not_allowed;;"__declspec(allocate) is not allowed on this declaration"
 REMOVED;ec_dupl_allocate_segname;;"a segment name has already been specified"
 ec_pm_virtual_base_from_derived_class;;"cannot convert pointer to member of derived class %t1 to pointer to member of base class %t2 -- base class is virtual"
-ec_cl_invalid_instantiation_directory;;"invalid directory for instantiation files: "
+ec_cl_invalid_instantiation_directory;;"invalid directory for instantiation files: %s"
 ec_cl_one_instantiation_per_object_option_only_in_cplusplus;;"option \"one_instantiation_per_object\" can be used only when compiling C++"
 REMOVED;ec_invalid_output_file;;"invalid output file: %sq"
 REMOVED;ec_cannot_open_output_file;;"cannot open output file: %sq"
@@ -978,7 +1011,7 @@ ec_bad_va_start;;"incorrect use of va_start"
 ec_bad_va_arg;;"incorrect use of va_arg"
 ec_bad_va_end;;"incorrect use of va_end"
 ec_cl_pending_instantiations_option_only_in_cplusplus;;"pending instantiations option can be used only when compiling C++"
-ec_cl_invalid_import_directory;;"invalid directory for #import files: "
+ec_cl_invalid_import_directory;;"invalid directory for #import files: %s"
 ec_cl_import_only_in_microsoft;;"an import directory can be specified only in Microsoft mode"
 ec_ref_not_allowed_in_union;;"a member with reference type is not allowed in a union"
 ec_typedef_not_allowed;;"\"typedef\" may not be specified here"
@@ -1038,7 +1071,7 @@ ec_bad_qualified_function_type;;"a qualified function type cannot be used to dec
 ec_bad_qualified_function_type_parameter;;"a qualified function type cannot be used to declare a parameter"
 ec_ptr_or_ref_to_qualified_function_type;;"cannot create a pointer or reference to qualified function type"
 ec_nonstd_braces;;"extra braces are nonstandard"
-ec_bad_cmd_line_macro;;"invalid macro definition: "
+ec_bad_cmd_line_macro;;"invalid macro definition: %s"
 ec_nonstandard_ptr_minus_ptr;;"subtraction of pointer types %t1 and %t2 is nonstandard"
 ec_empty_template_param_list;;"an empty template parameter list is not allowed in a template template parameter declaration"
 ec_exp_class;;"expected \"class\""
@@ -1150,7 +1183,7 @@ REMOVED;ec_packed_attribute_ignored_in_typedef;;"the \"packed\" attribute is ign
 ec_assigned_goto_requires_void_ptr;;"in \"goto *expr\", expr must have type \"void *\""
 ec_nonstd_assigned_goto;;"\"goto *expr\" is nonstandard"
 ec_nonstd_address_of_label;;"taking the address of a label is nonstandard"
-ec_cl_duplicate_file_name;;"file name specified more than once: "
+ec_cl_duplicate_file_name;;"file name specified more than once: %s"
 ec_warning_directive;;"#warning directive: %s"
 REMOVED;ec_attribute_only_in_func_def;;"attribute %sq is only allowed in a function definition"
 ec_transparent_type_is_not_union;;"the \"transparent_union\" attribute only applies to unions, and %t is not a union"
@@ -1196,7 +1229,7 @@ ec_not_a_base_class_member;;"%sq is not a base class member"
 ec_super_after_scope;;"__super cannot appear after \"::\""
 ec_super_not_in_class;;"__super may only be used in a class scope"
 ec_unqualified_super;;"__super must be followed by \"::\""
-ec_context_lines_skipped;INTERNAL;"[ %s instantiation contexts not shown ]"
+ec_context_lines_skipped;INTERNAL;"[ %d instantiation contexts not shown ]"
 ec_mangled_name_too_long;;"mangled name is too long"
 ec_aliased_name_undeclared;;"declaration aliased to undefined entity %sq"
 ec_aliased_name_bad_kind;;"declaration does not match its alias %n"
@@ -1380,7 +1413,7 @@ ec_register_storage_class_conflict;;"%nd redeclared with incompatible named-regi
 ec_aliased_variable_cannot_have_register_storage_class;;"named-register storage class cannot be specified for aliased variable"
 ec_register_in_use;;"named-register storage specifier is already in use"
 ec_embedded_c_option_incompatible_with_individual_feature_options;;"option \"embedded_c\" cannot be combined with options to control individual Embedded C features"
-ec_cl_invalid_edg_base_directory;;"invalid EDG_BASE directory: "
+ec_cl_invalid_edg_base_directory;;"invalid EDG_BASE directory: %s"
 REMOVED;ec_cannot_open_predef_macro_file;;"cannot open predefined macro file: %sq"
 ec_bad_predef_macro_line;;"invalid predefined macro entry at line %s: %s2"
 ec_bad_macro_mode_name;;"invalid macro mode name %sq"
@@ -1404,7 +1437,7 @@ ec_dll_thread_conflict;;"a thread-local variable cannot be declared with \"dllim
 ec_function_returning_named_address_space;;"a function return type cannot be qualified with a named address space"
 ec_cannot_initialize_destructible_flexible_array;;"an initializer cannot be specified for a flexible array member whose elements have a nontrivial destructor"
 ec_cannot_initialize_indirect_flexible_array;;"an initializer cannot be specified for an indirect flexible array member"
-ec_cl_invalid_gnu_version;;"invalid GNU version number: "
+ec_cl_invalid_gnu_version;;"invalid GNU version number: %s"
 ec_attribute_after_parenthesized_initializer;;"variable attributes appearing after a parenthesized initializer are ignored"
 ec_gcc_use_of_cast_as_lvalue;;"the result of this cast cannot be used as an lvalue"
 ec_unsigned_fixed_point_negation;;"negation of an unsigned fixed-point value"
@@ -1455,11 +1488,11 @@ ec_statement_expr_with_vla_type;;"the result of a statement expression cannot ha
 ec_trigraph_ignored;;"support for trigraphs is disabled"
 ec_attribute_requires_external_linkage;;"the %sq attribute can only appear on functions and variables with external linkage"
 ec_cl_strict_mode_incompatible_with_ignore_std;;"strict mode is incompatible with treating namespace std as an alias for the global namespace"
-ec_in_expansion_of_macro;INTERNAL;"in expansion of macro \"%s\" %p,"
+ec_in_expansion_of_macro;INTERNAL;"in expansion of macro \"%s\" %p"
 ec_name_of_unknown_macro;INTERNAL;"<UNKNOWN>"
-ec_in_expansion_of_macro_last;INTERNAL;"in expansion of macro \"%s\" %p%s2"
-ec_macro_context_lines_skipped;INTERNAL;"[ %s macro expansions not shown ]"
-ec_in_macro_expansion_at;INTERNAL;"in macro expansion at "
+REMOVED;ec_in_expansion_of_macro_last;INTERNAL;"in expansion of macro \"%s\" %p%s2"
+ec_macro_context_lines_skipped;INTERNAL;"[ %d macro expansions not shown ]"
+ec_in_macro_expansion_at;INTERNAL;"in macro expansion at %p"
 ec_invalid_symbolic_asm_operand_name;;"invalid symbolic operand name %sq"
 ec_match_limit_for_symbolic_asm_operand;;"a symbolic match constraint must refer to one of the first ten operands"
 ec_if_exists_not_allowed;;"use of __if_exists is not supported in this context"
@@ -1718,7 +1751,7 @@ ec_function_qualifier_on_ctor_or_dtor;;"a type qualifier is not allowed on a con
 ec_function_qualifier_on_new_or_delete;;"a type qualifier is not allowed on operator new or operator delete"
 ec_function_qualifier_on_nonmember;;"a type qualifier is not allowed on a nonmember function"
 ec_assume_expression_discarded;;"__assume expression with side effects discarded"
-ec_cl_unrecognized_unicode_source_kind;;"unrecognized Unicode source kind (must be one of UTF-8, UTF-16, UTF-16LE, UTF-16BE): "
+ec_cl_unrecognized_unicode_source_kind;;"unrecognized Unicode source kind (must be one of UTF-8, UTF-16, UTF-16LE, UTF-16BE): %s"
 ec_bad_unicode_char_in_pp_output;;"Unicode character with hex value %s not representable in preprocessing output"
 ec_ctor_dtor_priority_reserved;;"requested constructor/destructor priority is reserved for internal use"
 ec_unrecognized_gcc_pragma;;"unrecognized GCC pragma"
@@ -1787,7 +1820,7 @@ ec_captured_local_var_not_in_innermost_function;;"a local variable outside the c
 ec_not_captured_this_in_lambda;;"the enclosing-function \"this\" cannot be referenced in a lambda body unless it is in the capture list"
 REMOVED;ec_lambda_return_must_be_only_construct;;"the body of a value-returning lambda with no explicit return type must be a single return statement"
 ec_captured_var_type_not_copyable;;"lambda captured variable of type %t1 cannot be copied to closure class field of type %t2"
-ec_cl_invalid_template_directory;;"invalid template directory: "
+ec_cl_invalid_template_directory;;"invalid template directory: %s"
 ec_wrapup_error;INTERNAL;"error"
 ec_wrapup_errors;INTERNAL;"errors"
 ec_wrapup_catastrophic_error;INTERNAL;"catastrophic error"
@@ -2442,7 +2475,7 @@ ec_nonliteral_param_type_in_constexpr_function;;"a constexpr function cannot hav
 ec_unsequenced_use_of_variable;;"unsequenced uses of %n in expression may produce undefined results"
 ec_3rd_arg_of_assume_aligned_must_be_integral;;"the optional third argument of a call to __builtin_assumed_aligned must have integral type"
 ec_constexpr_destructor;;"a destructor cannot be constexpr"
-ec_invalid_mmap_address;;"address supplied for mmap must be aligned on a page boundary: "
+ec_invalid_mmap_address;;"address supplied for mmap must be aligned on a page boundary: %s"
 ec_constexpr_constructor_with_function_try_block;;"the body of a constexpr constructor cannot be a function try block" 
 ec_missing_initializer_on_fields_with_constexpr_ctor;;"constexpr %nf provides no initializer for:"
 ec_specific_symbol;INTERNAL;"%n"
@@ -2702,6 +2735,9 @@ ec_decltype_auto_return_must_be_standalone;;"decltype(auto) cannot appear under 
 ec_exp_class_or_typename;;"expected \"class\" or \"typename\""
 ec_placement_new_refers_to_non_placement_delete;;"placement \"new\" expression refers to non-placement %nd"
 ec_cl_must_specify_cpp14_mode;;"must specify C++14 mode when building runtime library"
+ec_internal_error_fill_in;INTERNAL;"%s"
+ec_command_line_warning;INTERNAL;"command-line warning"
+ec_Command_line_warning;INTERNAL;"Command-line warning"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

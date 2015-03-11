@@ -229,7 +229,7 @@ which an include_alias pragma has been seen.
   if (include_alias_hash_table != NULL) {
     /* Extract the raw characters of the header name from the token. */
     reset_text_buffer(buf);
-    (void)add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
+    add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
     add_char_to_text_buffer(buf, '\0');
     iap = find_or_create_include_alias(buf->buffer, (char*)NULL,
                                        /*create=*/FALSE);
@@ -2495,7 +2495,7 @@ The returned value includes the delimiters of the header name.
   if (get_header_name()) {
     /* Get the raw version of the header name that was just scanned. */
     reset_text_buffer(buf);
-    (void)add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
+    add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
     add_char_to_text_buffer(buf, '\0');
     /* Allocate memory for the name.  Note that the buffer size includes the
        null terminator. */

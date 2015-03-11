@@ -726,7 +726,8 @@ extern a_symbol_ptr next_symbol_in_overload_set(
 extern a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void display_object_type(a_type_ptr object_type);
+extern void display_object_type(a_type_ptr       object_type,
+                                a_diagnostic_ptr dp);
 
 extern void clear_arg_match_summary(an_arg_match_summary_ptr amsp);
 

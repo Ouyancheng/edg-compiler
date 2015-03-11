@@ -505,7 +505,8 @@ char *copy_string_to_region(a_memory_region_number region,
                             a_const_char           *string)
 /*
 Make a copy of the specified string in the memory region indicated by
-"region" (which must be the front end or file scope region number).
+"region" (which must be the front end region, file scope region, or
+NO_MEMORY_REGION_NUMBER for general memory).
 */
 {
   sizeof_t	length;
@@ -514,9 +515,11 @@ Make a copy of the specified string in the memory region indicated by
   length = strlen(string);
   if (region == FRONT_END_REGION_NUMBER) {
     new_string = (char *)alloc_fe(length+1);
-  } else {
-    check_assertion(region == file_scope_region_number);
+  } else if (region == file_scope_region_number) {
     new_string = alloc_il(length+1);
+  } else {
+    check_assertion(region == NO_MEMORY_REGION_NUMBER);
+    new_string = alloc_general(length+1);
   }  /* if */
   (void)strcpy(new_string, string);
   return new_string;
@@ -528,17 +531,19 @@ char *copy_string_of_length_to_region(a_memory_region_number region,
 				      sizeof_t		     length)
 /*
 Make a copy of the specified string, whose length is specified by "length"
-in the memory region indicated by "region" (which must be the front end or
-file scope region number).
+in the memory region indicated by "region" (which must be the front end
+region, file scope region, or NO_MEMORY_REGION_NUMBER for general memory).
 */
 {
   char		*new_string;
 
   if (region == FRONT_END_REGION_NUMBER) {
     new_string = (char *)alloc_fe(length+1);
-  } else {
-    check_assertion(region == file_scope_region_number);
+  } else if (region == file_scope_region_number) {
     new_string = alloc_il(length+1);
+  } else {
+    check_assertion(region == NO_MEMORY_REGION_NUMBER);
+    new_string = alloc_general(length+1);
   }  /* if */
   (void)strncpy(new_string, string, size_t_arg(length));
   /* Terminate the string. */

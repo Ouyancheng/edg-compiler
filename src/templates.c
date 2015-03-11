@@ -3134,17 +3134,18 @@ to TRUE.
        entries are partial specializations. */
     ambiguous = TRUE;
     if ((*best_sym)->kind == (a_symbol_kind)sk_class_template) {
-      pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
-                         instance_sym);
+      a_diagnostic_ptr dp;
+      dp = pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
+                              instance_sym);
       for (pscp = psc_list; pscp != NULL; pscp = pscp->next) {
         /* The prototype instantiation for the partial specialization is used
            in the diagnostic because it includes the template argument list
            of the  partial specialization. */
-        sym_add_diag_info(ec_ambiguous_partial_spec_add_on,
+        sym_add_diag_info(dp, ec_ambiguous_partial_spec_add_on,
                           pscp->symbol->variant.template_info->
                                variant.class_template.prototype_instantiation);
       }  /* for */
-      end_error();
+      end_diagnostic(dp);
     }  /* if */
   }  /* if */
   /* Clear the template argument list pointer in the first entry to prevent

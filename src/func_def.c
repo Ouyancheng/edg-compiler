@@ -2960,9 +2960,10 @@ because the class has a const or ref member (ARM 12.8).  The case of a
 member or a base class with a nonpublic operator=() is handled elsewhere.
 */
 {
-  a_boolean     err, is_ref, is_const;
-  a_symbol_ptr  sym;
-  a_type_ptr    tp;
+  a_boolean        err, is_ref, is_const;
+  a_symbol_ptr     sym;
+  a_type_ptr       tp;
+  a_diagnostic_ptr dp = NULL;
 
   db_enter(4, "check_default_assignment_operator");
   if (class_type->variant.class_struct_union.any_const_member ||
@@ -2997,16 +2998,17 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
         if (is_ref || is_const) {
           if (!err) {
             /* Multi-line diagnostic has not been started yet. */
-            pos_start_error(ec_bad_default_assignment,
-                            &class_type->source_corresp.decl_position);
+            dp = pos_start_error(ec_bad_default_assignment,
+                                 &class_type->source_corresp.decl_position);
           }  /* if */
-          sym_add_diag_info(is_ref ? ec_reference_member : ec_const_member,
+          sym_add_diag_info(dp,
+                            is_ref ? ec_reference_member : ec_const_member,
                             sym);
           err = TRUE;
         }  /* if */
       }  /* if */
     }  /* for */
-    if (err) end_error();
+    if (err) end_diagnostic(dp);
   }  /* if */
   db_exit();
 }  /* check_default_assignment_operator */

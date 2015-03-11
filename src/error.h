@@ -31,6 +31,12 @@ Include the file that defines the enumeration an_error_code.
 #include "err_codes.h"
 
 /*
+Diagnostic entries can be returned to routines in other files, but they
+can only use those as opaque types.
+*/
+typedef struct a_diagnostic *a_diagnostic_ptr;
+
+/*
 Structure used to map error tags into error codes.  An array of these
 entries is used.  The array is sorted by tag so that a binary search
 may be used to look up a given tag.
@@ -284,6 +290,10 @@ extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
                                               a_const_char  *fill_in_string);
 
+#if !STANDALONE_UTILITY_PROGRAM
+extern void str_command_line_warning(an_error_code error_code,
+                                     a_const_char  *concat_string);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern
 void file_open_error(an_error_severity		severity,
 		     an_error_code		file_kind,
@@ -526,31 +536,39 @@ extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
                                              a_const_char  *error_string,
                                              int           errno_value);
 /* Interfaces for producing multiple message diagnostics. */
-extern void pos_start_diagnostic(an_error_severity  error_severity,
-                                 an_error_code      error_code,
-                                 a_source_position  *error_pos);
-extern void pos_ty_start_diagnostic(an_error_severity  error_severity,
+extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
+                                             an_error_code      error_code,
+                                             a_source_position  *error_pos);
+extern a_diagnostic_ptr pos_ty_start_diagnostic(
+                                    an_error_severity  error_severity,
                                     an_error_code      error_code,
                                     a_source_position *error_pos,
                                     struct a_type     *type);
-extern void pos_start_error(an_error_code     error_code,
-                            a_source_position *error_pos);
-extern void pos_st_start_error(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               a_const_char      *error_string);
-extern void pos_ty_start_error(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               struct a_type     *type);
-extern void pos_ty2_start_error(an_error_code     error_code,
-                                a_source_position *error_pos,
-                                struct a_type     *type1,
-                                struct a_type     *type2);
-extern void ty_add_diag_info(an_error_code error_code,
+extern a_diagnostic_ptr pos_start_error(an_error_code     error_code,
+                                        a_source_position *error_pos);
+extern a_diagnostic_ptr pos_st_start_error(an_error_code     error_code,
+                                           a_source_position *error_pos,
+                                           a_const_char      *error_string);
+extern a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,
+                                           a_source_position *error_pos,
+                                           struct a_type     *type);
+extern a_diagnostic_ptr pos_ty2_start_error(an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            struct a_type     *type1,
+                                            struct a_type     *type2);
+extern void ty_add_diag_info(a_diagnostic_ptr primary_dp,
+                             an_error_code error_code,
                              struct a_type *type);
-extern void str_add_diag_info(an_error_code error_code,
-                              a_const_char  *error_string);
-extern void add_diag_info(an_error_code error_code);
-void add_diag_info_with_pos_insert(an_error_code      error_code,
+extern void str_add_diag_info(a_diagnostic_ptr primary_dp,
+                              an_error_code    error_code,
+                              a_const_char     *error_string);
+extern void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
+                                   an_error_code    error_code,
+                                   a_const_char     *error_string);
+extern void add_diag_info(a_diagnostic_ptr primary_dp,
+                          an_error_code    error_code);
+void add_diag_info_with_pos_insert(a_diagnostic_ptr   primary_dp,
+                                   an_error_code      error_code,
                                    a_source_position  *pos);
 extern
 FILE *fopen_with_error(a_const_char		*file_name,
@@ -586,29 +604,25 @@ FILE *open_source_file_with_error_handling(
 extern a_const_char *error_text(an_error_code error_code);
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
+extern a_diagnostic_ptr pos_sy_start_diagnostic(
+                                    an_error_severity  error_severity,
                                     an_error_code      error_code,
                                     a_source_position *error_pos,
                                     struct a_symbol   *symbol);
-extern void pos_sy_start_error(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               struct a_symbol   *symbol);
-extern void pos_stsy_start_error(an_error_code     error_code,
-                                 a_source_position *error_pos,
-                                 a_const_char      *error_string,
-                                 struct a_symbol   *symbol);
-#if 0
-/* This routine is not currently used by the compiler. */
-extern void pos_sy_start_warning(an_error_code     error_code,
-                                 a_source_position *error_pos,
-                                 struct a_symbol   *symbol);
-#endif /* 0 */
+extern a_diagnostic_ptr pos_sy_start_error(an_error_code     error_code,
+                                           a_source_position *error_pos,
+                                           struct a_symbol   *symbol);
+extern a_diagnostic_ptr pos_stsy_start_error(an_error_code     error_code,
+                                             a_source_position *error_pos,
+                                             a_const_char      *error_string,
+                                             struct a_symbol   *symbol);
 extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,
                             struct a_symbol   *symbol2);
-extern void sym_add_diag_info(an_error_code   error_code,
-                              struct a_symbol *symbol);
+extern void sym_add_diag_info(a_diagnostic_ptr primary_dp,
+                              an_error_code    error_code,
+                              struct a_symbol  *symbol);
 
 extern void pch_message(an_error_code error_code,
    		        a_const_char  *fill_in_str);
@@ -669,16 +683,20 @@ C++/CLI managed nullptr type and other incomplete types.
 #define incomplete_type_err_code(tp) ec_incomplete_type_not_allowed
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void end_error(void);
+extern void end_diagnostic(a_diagnostic_ptr dp);
 
-extern void start_command_line_error(an_error_code      error_code,
-			             a_const_char	*error_string);
+extern a_diagnostic_ptr start_command_line_error(an_error_code error_code,
+			                         a_const_char  *error_string);
 
 /*lint -sem(end_command_line_error, r_no)*/
-extern DOES_NOT_RETURN end_command_line_error(void);
+extern DOES_NOT_RETURN end_command_line_error(a_diagnostic_ptr dp);
 
 /* Report a syntax error, flush to a token in the stop set. */
 extern void syntax_error(an_error_code error_code);
+
+#if DEBUG
+unsigned long show_error_space_used(void);
+#endif /* DEBUG */
 
 #endif /* ifndef ERROR_H */
 

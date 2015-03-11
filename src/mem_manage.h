@@ -336,9 +336,9 @@ extern void reset_text_buffer(a_text_buffer_ptr	buffer);
 extern void expand_text_buffer(a_text_buffer_ptr	buffer,
 			       sizeof_t			length);
 
-extern unsigned long add_to_text_buffer(a_text_buffer_ptr	buffer,
-					a_const_char		*string,
-					sizeof_t		length);
+extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
+			       a_const_char		*string,
+			       sizeof_t			length);
 
 extern
 void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer);

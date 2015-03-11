@@ -4531,13 +4531,15 @@ done:;
 
 static void report_pure_virtual_functions(a_type_ptr        class_type,
                                           a_base_class_ptr  base_class,
+                                          a_diagnostic_ptr  dp,
                                           an_error_code     error_code,
                                           a_boolean         *found)
 /*
 Add to the list of non-overridden pure virtual functions put out with the
 diagnostic about abstract class objects.  class_type is the abstract
 most-derived-type.  base_class is on the base_classes list of class_type;
-it may be NULL.  error_code indicates what message to put out.  *found is
+it may be NULL.  dp is the diagnostic entry for the diagnostic that is
+being generated.  error_code indicates what message to put out.  *found is
 updated to TRUE if one or more non-overridden pure virtual functions is
 located.
 */
@@ -4568,7 +4570,7 @@ located.
         }  /* if */
         if (!overridden) {
           /* Put out the extra line of information. */
-          sym_add_diag_info(error_code, symbol_for(rp));
+          sym_add_diag_info(dp, error_code, symbol_for(rp));
           *found = TRUE;
         }  /* if */
       }  /* if */
@@ -4591,6 +4593,7 @@ located.
                                       bcp :
                                       corresponding_base_class(bcp, class_type,
                                                                base_class),
+                                    dp,
                                     ec_no_overrider_for_pure_virtual_function,
                                     found);
     }  /* if */
@@ -4611,13 +4614,14 @@ diagnostic includes a list of pure virtual functions, to assist the user in
 correcting the class declarations that produced the problem.
 */
 {
-  a_boolean  found = FALSE;
+  a_boolean        found = FALSE;
+  a_diagnostic_ptr dp;
 
   class_type = skip_typerefs(class_type);
-  pos_ty_start_diagnostic(severity, error_code, diag_pos, class_type);
+  dp = pos_ty_start_diagnostic(severity, error_code, diag_pos, class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.is_interface) {
-    ty_add_diag_info(ec_type_is_interface, class_type);
+    ty_add_diag_info(dp, ec_type_is_interface, class_type);
   } else if (cli_class_type_kind_is(class_type, cctk_interface)) {
     /* Although C++/CLI interfaces are "abstract", their diagnostics are more
        clearly handled separately. */
@@ -4628,14 +4632,14 @@ correcting the class declarations that produced the problem.
   {
     /* Put out the list of pure virtual functions. */
     report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
-                                  ec_pure_virtual_function, &found);
+                                  dp, ec_pure_virtual_function, &found);
     if (!found) {
       /* If class_type is marked as abstract, at least one pure virtual
          function should have been found (except maybe in some Microsoft
          modes, where a class might be defined with the context-sensitive
          keyword "abstract"). */
       if (microsoft_mode && microsoft_version >= 1400) {
-        sym_add_diag_info(ec_type_is_declared_abstract,
+        sym_add_diag_info(dp, ec_type_is_declared_abstract,
                           symbol_for(class_type));
 #if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
         check_assertion(class_type
@@ -4647,7 +4651,7 @@ correcting the class declarations that produced the problem.
     }  /* if */
   }  /* if */
   /* Terminate the supplementary messages. */
-  end_error();
+  end_diagnostic(dp);
 }  /* abstract_class_diagnostic */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23315,6 +23319,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
     /* This is the class generated to represent a lambda.  Suppress the
        constructor check on this class. */
   } else {
+    a_diagnostic_ptr dp = NULL;
     any_diagnostics_issued = FALSE;
     cssp = tag_sym->variant.class_struct_union.extra_info;
     /* If a diagnostic is required, each of the uninitialized const or ref
@@ -23358,18 +23363,18 @@ member.  Determine whether a diagnostic is actually required and put it out.
              Put out the "head" of the message first.  For aggregates, reduce
              the severity to a remark since aggregate initialization syntax is
              available to initialize the field. */
-          pos_sy_start_diagnostic(cssp->is_class_aggregate ? es_remark
-                                                           : es_warning,
-                                  ec_no_ctor_but_const_or_ref_member,
-                                  &tag_sym->decl_position, tag_sym);
+          dp = pos_sy_start_diagnostic(cssp->is_class_aggregate ? es_remark
+                                                                : es_warning,
+                                       ec_no_ctor_but_const_or_ref_member,
+                                       &tag_sym->decl_position, tag_sym);
           /* Remember that a diagnostic has already been issued. */
           any_diagnostics_issued = TRUE;
         }  /* if */
-        sym_add_diag_info(error_code, sym);
+        sym_add_diag_info(dp, error_code, sym);
       }  /* if */
     }  /* for */
     /* If a diagnostic was issue, end the diag-info list. */
-    if (any_diagnostics_issued) end_error();
+    if (any_diagnostics_issued) end_diagnostic(dp);
   }  /* if */
 }  /* report_missing_constructor */
 

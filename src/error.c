@@ -65,158 +65,90 @@ messages.
 				   SOURCE_INDENT. */
 
 static int	diagnostic_indent;
-				/* Typically all diagnostic messages will
-				   begin in the first column of a line and
-				   subsequent continuation lines would be
-				   indented.  With diagnostics involving
-				   multiple messages or entity names, this
-				   static variable will be adjusted for the
-				   start of each additional message.  See
-				   NORMAL_DIAG_INDENT and LIST_DIAG_INDENT
-				   above. */
-static a_boolean
-		context_required = FALSE;
-				/* TRUE if context information (such as
-				   information about templates currently
-				   being instantiated) is required after
-				   an error message is issued. */
+			/* Typically all diagnostic messages will
+			   begin in the first column of a line and
+			   subsequent continuation lines would be
+			   indented.  With diagnostics involving
+			   multiple messages or entity names, this
+			   static variable will be adjusted for the
+			   start of each additional message.  See
+			   NORMAL_DIAG_INDENT and LIST_DIAG_INDENT
+			   above. */
+static a_memory_region_number
+		diag_memory_region;
+			/* The memory region to be used for allocating
+			   diagnostics.  Normally this is front end
+			   memory, but for command-line errors and
+			   catastrophic errors, which can occur before
+			   IL memory can be allocated, general memory is
+			   used.  This is indicated by setting this to
+			   NO_MEMORY_REGION_NUMBER. */
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-static a_source_file_ptr
-		diag_primary_source_file;
-				/* Pointer to the primary source file
-				   associated with the diagnostic currently
-				   being processed. */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 				   
-static a_text_buffer_ptr
-		write_diagnostic_buffer;
-				/* A text buffer used by write_diagnostic to
-				   accumulate the entire contents of a
-				   diagnostic message (so it can be written
-				   in one atomic operation).  The text buffer
-				   is not null-terminated during the
-				   construction of the diagnostic. */
+/*
+Kinds of diagnostic fill-ins that can be represented by a_diag_fill_in.
+*/
+typedef enum a_diag_fill_in_kind {
+  dfk_number,
+			/* An integer value. */
+  dfk_position,
+			/* A source position. */
+  dfk_string,
+			/* A null-terminated ASCII string. */
+  dfk_symbol,
+			/* A symbol name (and possibly type). */
+  dfk_type,
+			/* A type name. */
+  dfk_last		/* Must be last. */
+			/*lint -esym(749,a_diag_fill_in_kind::dfk_last)*/
+} a_diag_fill_in_kind;
 
-static a_text_buffer_ptr
-		write_message_buffer;
-				/* A text buffer used by write_message. */
-
-static int      write_diagnostic_recursion_level;
-				/* An indication of the recursion level
-				   of write_diagnostic. */
 
 /*
-Category codes for the various parts of the processing for multi-line
-diagnostics:
+Structure used to represent an entity to be used as a fill-in
+in a diagnostic message.
 */
-typedef enum a_diagnostic_category_kind_tag {
-  dck_standalone,		/* The solitary diagnostic for an error
-				   position, to be formatted with source
-				   file, line number and source line, if
-				   available. */
-  dck_primary,			/* The beginning or primary message of a
-				   multi-message diagnostic.  The source file
-				   and line number are printed with
-				   this message.  The source line, if
-				   available, will be printed following
-				   the list of associated messages. */
-  dck_list,			/* Additional message in a multi-message
-				   diagnostic.  This message will typically
-                                   be indented relative to its associated
-				   primary message.  Source file information
-				   is suppressed. */
-  dck_end_list,			/* Signifies the end of a list of messages and
-				   that source line, if available, should be
-				   outputted.  There is no actual diagnostic
-				   text associated with this category. */
-  dck_context_primary,		/* The beginning or primary message of a
-				   multi-line diagnostic that specifies
-				   error context information.  This is similar
-				   to dck_primary except that the source
-				   line, location, and severity are not
-				   printed (because they were printed
-				   as part of the original message). */
-  dck_end_context,		/* Like dck_end_list except that the source
-				   line is not output. */
-  dck_macro_context		/* A line in the macro context stack trace. */
-} a_diagnostic_category_kind;
-
-#define BASE_MSG_SEGMENT_SIZE 100
-				/* The starting length of a formatted
-				   message segment. */
-#define INCR_MSG_SEGMENT_SIZE BASE_MSG_SEGMENT_SIZE
-				/* The increment size to be used to lengthen
-				   a message seqment. */
-
-/*
-An error message being formed is represented by a linked list of message
-segment descriptors, one for each part of the error message text or fill-in.
-*/
-enum a_message_segment_kind_tag {
-/* Kind of error message segment (e.g. part of text, symbol name, or type).
-*/
-  msk_error_text_part,		/* Textual part of an error message. */
-  msk_user_string,		/* User provided string insert. */
-  msk_type,			/* Type to be expanded in the message */
-  msk_symbol,			/* Symbol name to be expanded in the
-				   message at this point. */
-  msk_source_position,		/* Source position to be inserted in the
-				   message. */
-  msk_last			/* Termination of the current message
-				   being formatted.  This should be the last
-				   message segment kind. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_message_segment_kind;
-
-typedef struct a_msg_segment *a_msg_segment_ptr;
-typedef struct a_msg_segment {
-  a_msg_segment_ptr
-		next;		/* Pointer to the next message segment. */
-  char		*segment;	/* Pointer to the message segment buffer. */
-  char		*first_quote;	/* Pointer to the first double quote in the 
-				   segment.  NULL if none. */
-  char		*second_quote;	/* Pointer to the second double quote in the 
-				   segment.  NULL if none. */
-  uint32_t	length;		/* Current length of the message segment. */
-  uint32_t	max_length;	/* Maximum string size that can be accommodated
-				   in the message segment buffer. */
-  short		sequence_no;	/* Sequence number of the user string, type,
-				   source position, or symbol name in the
-				   error message.  This field is meaningless
-				   for kind == msk_error_text_part. */
-  a_message_segment_kind
-		kind;		/* The kind of this message segment. */
+typedef struct a_diag_fill_in *a_diag_fill_in_ptr;
+typedef struct a_diag_fill_in {
+  a_diag_fill_in_kind
+		kind;
+			/* The kind of entity to be included in the
+			   diagnostic. */
+#if CHECKING
+  a_byte_boolean
+		fill_in_used;
+			/* Set to TRUE when the fill-in is inserted into
+			   the message text.  Used to detect unused
+			   fill-ins. */
+#endif /* CHECKING */
+  a_diag_fill_in_ptr
+		next;
+			/* Pointer to the next fill-in entry for this
+			   message, or NULL if there are no more fill-ins. */
   union {
-    /* When kind == msk_error_text_part: */
+    /* When kind == dfk_number. */
+    int32_t
+		number;
+			/* The numeric value to be inserted. */
+    /* When kind == dfk_position. */
+    a_source_position
+		position;
+			/* The source position to be inserted. */
+    /* When kind == dfk_string. */
     a_const_char
-		*msg_part;	/* Pointer into the error message text to the
-				   start of this portion of the error.  The
-				   length specifies the exact number of 
-				   characters since this portion may not have
-				   a NULL character terminator. */
-    /* When kind == msk_user_string:
-				   The pointer to the user string is in
-				   error_msg_strings[]. */
+		*string;
+			/* The null-terminated string to be inserted. */
+    /* When kind == dfk_symbol. */
     struct {
-      a_byte_boolean
-		quoted;		/* True if the user specified string is to
-				   be outputted in double quotes.  When TRUE,
-				   the string is constructed in the message
-				   seqment buffer. */
-    } string;
-    /* When kind == msk_type: no variant
-				   The pointer to the type is in
-				   error_msg_types[]. */
-    /* When kind == msk_source_position: no variant
-				   The pointer to the position is in
-				   error_msg_positions[]. */
-    /* When kind == msk_symbol:    The pointer to the symbol is in
-				   error_msg_syms[]. */
-    struct {
+      a_symbol_ptr
+		ptr;
+				/* Pointer to the symbol to be included in the
+				   diagnostic. */
+      a_scope_depth
+		scope_depth;
+				/* A scope depth associated with the symbol,
+				   or NO_SCOPE_DEPTH.  This is only used
+				   for certain context fill-ins. */
       a_byte_boolean
 		full_type;	/* True if the symbol should be expanded
 				   into an object (type and name). */
@@ -237,9 +169,9 @@ typedef struct a_msg_segment {
 				   to be generated. */
       a_byte_boolean
 		template_args;	/* True if the template arguments are to be
-				   displayed; the pointer to the scope is in
-				   error_msg_scopes[]; for sk_function_template
-				   only. */
+				   displayed; the scope is specified by the
+				   scope_depth field.  Used for
+				   sk_function_template only. */
       a_byte_boolean
 		trans_unit;	/* True if the translation unit should be
 				   displayed under certain circumstances.
@@ -248,8 +180,153 @@ typedef struct a_msg_segment {
 				   In secondary translation units, it is
 				   displayed for all translation units. */
     } symbol;
+    /* When kind == dfk_type. */
+    a_type_ptr
+		type;
+			/* A pointer to the type entry to be included
+			   in the diagnostic. */
   } variant;
-} a_msg_segment;
+} a_diag_fill_in;
+
+
+/*
+Category codes for the various parts of the processing for multi-line
+diagnostics:
+*/
+typedef enum a_diagnostic_kind {
+  dck_primary,			/* A top-level normal diagnostic, also used
+				   for "more information" messages, which
+				   are treated mostly like primary
+				   messages. */
+  dck_sub_message,		/* Additional message in a multi-message
+				   diagnostic.  This message will typically
+                                   be indented relative to its associated
+				   primary message.  Source file information
+				   is not displayed. */
+  dck_context,			/* A diagnostic message that that specifies
+				   error context information. */
+  dck_macro_context		/* Similar to dck_context, but for macro
+				   context stack trace information. */
+} a_diagnostic_kind;
+
+
+/*
+Structure to hold information resulting form conversion of a source
+position to file/line information.
+*/
+typedef struct a_source_info_for_pos *a_source_info_for_pos_ptr;
+typedef struct a_source_info_for_pos {
+  a_boolean	at_end_of_source;
+			/* TRUE if the location is after the end of the
+			   source file. */
+  a_const_char	*file_name;
+			/* The name of the source file, or NULL if
+			   none is available. */
+  a_line_number	line_number;
+			/* The line number within the compilation unit. */
+  a_unicode_source_kind
+		unicode_source_kind;
+			/* The Unicode source kind of the file from which
+			   the source line originated. */
+} a_source_info_for_pos;
+
+
+/*
+Structure used to represent a list of diagnostic entries.
+*/
+typedef struct a_diag_list *a_diag_list_ptr;
+typedef struct a_diag_list {
+  a_diagnostic_ptr
+		head;
+			/* The start of the list. */
+  a_diagnostic_ptr
+		tail;
+			/* The end of the list. */
+} a_diag_list;
+
+
+/*
+Structure used to build diagnostic to be issued.  A diagnostic consists of
+a primary entry and an optional list of sub-messages used for lists of
+information associated with the primary entry.  Primary entries and sub-
+messages may have associated fill-in entries.
+*/
+typedef struct a_diagnostic {
+  a_diagnostic_kind
+		kind;
+			/* Indicates whether this is a primary diagnostic,
+			   sub-message, context, etc. */
+  a_diagnostic_ptr
+		next;
+			/* Pointer to the next sub-message if the current
+			   entry is for a sub-message.  NULL for primary
+			   entries and for the last diagnostic of a
+			   sub-message. */
+  a_diagnostic_ptr
+		primary_diag;
+			/* For a subordinate diagnostic or context, this
+			   points back to the primary diagnostic.  NULL
+			   otherwise. */
+  a_diag_list
+		sub_msgs;
+			/* A list of subordinate diagnostics used for
+			   multi-message diagnostics (e.g., for a list
+			   of candidate functions on an ambiguous call).
+			   The list may be empty. */
+  a_diag_list
+		context;
+			/* A list of context diagnostics.  The list may be
+			   empty. */
+  a_diag_list
+		macro_context;
+			/* A list of macro context diagnostics.  The list
+			   may be empty. */
+  a_diag_list
+		more_info;
+			/* Pointer to a list of additional information
+			   diagnostics to be issued to provide more detail
+			   about the cause of the primary message.  The list
+			   may be empty. */
+  a_translation_unit_ptr
+		translation_unit;
+			/* Pointer to the translation unit with which this
+			   error is associated, or NULL if the diagnostic
+			   is not associated with a translation unit
+			   (e.g., for a command-line error). */
+  a_source_position
+		position;
+			/* Source location associated with this diagnostic.
+			   This is the position passed in on the call of the
+			   diagnostic routine. */
+  a_source_info_for_pos
+		source_info;
+			/* File, line, etc. for position. */
+  a_source_position
+		diag_header_pos;
+			/* The position to be displayed in the diagnostic
+			   header.  This can be different than "position"
+			   when macro positions are being reported. */
+  a_source_info_for_pos
+		diag_header_source_info;
+			/* File, line, etc. for diag_header_pos. */
+  an_error_code	error_code;
+			/* The error code associated with the diagnostic that
+			   being issued. */
+  an_error_severity
+		severity;
+			/* The severity of the diagnostic being issued, or
+			   es_none for sub-messages. */
+  a_diag_fill_in_ptr
+		fill_in_head;
+			/* Pointer to a list of diagnostic fill-ins to be
+			   inserted into the diagnostic message.  NULL if
+			   there are no fill-ins. */
+  a_diag_fill_in_ptr
+		fill_in_tail;
+			/* Pointer to the last element of a list of fill-ins.
+			   NULL if there are no fill-ins. */
+} a_diagnostic;
+
 
 /*
 Describe a label fill-in entry.  Label fill-in entries are used to specify
@@ -302,7 +379,7 @@ label fill-in entry is not found.
 #if CHECKING
   if (lfie->label == NULL) {
 #if DEBUG
-    char *label_copy = alloc_fe((sizeof_t)length+1);
+    char *label_copy = alloc_general((sizeof_t)length+1);
     strncpy(label_copy, label, length);
     label_copy[length] = '\0';
     fprintf(f_debug, "missing fill-in label: %s\n", label_copy);
@@ -348,47 +425,45 @@ fill-in entries are valid.
 
 #endif /* EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
+#if DEBUG
 /*
-Diagnostic message substitutions can be based upon strings, types, and symbols
-passed to the appropriate diagnostic routines.  The following arrays of
-pointers to these various substitution kinds are used to denote the
-source of substitutions in message segments.  The sequence number in
-message segment descriptor is used as an index into the appropriate array.
+Counts of tables allocated, to track total use of memory.
 */
+static uint32_t	num_diagnostics_allocated,
+		num_diag_fill_ins_allocated;
+#endif /* DEBUG */
 
-#define MAX_ERR_SEG_KIND_PER_MSG 3
-				/* The maximum number of error message
-				   arguments of any message segment kind. */
+static a_diagnostic_ptr
+		avail_diagnostics;
+			/* List of diagnostic entries freed and available
+			   for reuse. */
 
-static a_const_char
-		*error_msg_strings[MAX_ERR_SEG_KIND_PER_MSG + 1];
-				/* Array of pointers to the strings to be
-				   inserted into diagnostic messages. */
-static a_type_ptr
-		error_msg_types[MAX_ERR_SEG_KIND_PER_MSG + 1];
-				/* Array of pointers to the types to be
-				   used for substitutions in diagnostic
-				   messages. */
-#if !STANDALONE_UTILITY_PROGRAM
-static a_source_position_ptr
-		error_msg_positions[MAX_ERR_SEG_KIND_PER_MSG + 1];
-				/* Array of source positions to be used
-				   for insertion into diagnostic messages. */
-static a_symbol_ptr
-		error_msg_syms[MAX_ERR_SEG_KIND_PER_MSG + 1];
-				/* Array of pointers to the symbols to be
-				   used for substitutions in diagnostic
-				   messages. */
-static a_scope_stack_entry_ptr
-		error_msg_scopes[MAX_ERR_SEG_KIND_PER_MSG + 1];
-				/* Array of pointers to scope stack entries
-				   to be used in diagnostic messages. */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+static a_diag_fill_in_ptr
+		avail_diag_fill_ins;
+			/* List of diagnostic fill-in entries freed and
+			   available for reuse. */
 
-static a_msg_segment_ptr
-	error_message_head;
-				/* Pointer to the first segment in the current
-				   error message being formatted. */
+static a_text_buffer_ptr
+		msg_buffer;
+			/* Buffer used to construct an error message. */
+
+static a_text_buffer_ptr
+		prefix_buffer;
+			/* Buffer used to construct the diagnostic prefix
+			   information (file, severity, etc). */
+
+static a_text_buffer_ptr
+		write_diagnostic_buffer;
+			/* A text buffer used by write_diagnostic to
+			   accumulate the entire contents of a
+			   diagnostic message (so it can be written
+			   in one atomic operation).  The text buffer
+			   is not null-terminated during the
+			   construction of the diagnostic. */
+
+static int	diagnostic_line_length;
+			/* The maximum length of an error output line.
+			   Use to wrap diagnostics. */
 
 static an_error_severity
 		default_severity_for_error_code[(int)ec_last + 1];
@@ -544,10 +619,25 @@ static a_recorded_diagnostic_ptr
 			/* The top level array used for the hash table used
 			   to find previously issued diagnostics. */
 
+static char *diag_copy_string(a_const_char           *string)
+/*
+Make a copy of the specified string to diag_memory_region and return
+a pointer to the copy.  When STANDALONE_UTILITY_PROGRAM is TRUE, general
+general memory is always used.
+*/
+{
+#if STANDALONE_UTILITY_PROGRAM
+  sizeof_t	length;
+  char		*new_string;
 
-static a_msg_segment_ptr curr_output_msg_segment;
-			/* The current output message segment used by
-			   put_str_to_curr_output_msg_segment. */
+  length = strlen(string);
+  new_string = alloc_general(length+1);
+  (void)strcpy(new_string, string);
+  return new_string;
+#else /* !STANDALONE_UTILITY_PROGRAM */
+  return copy_string_to_region(diag_memory_region, string);
+#endif /* STANDALONE_UTILITY_PROGRAM */
+}  /* diag_copy_string */
 
 
 a_const_char *error_text(an_error_code error_code)
@@ -567,105 +657,161 @@ be read into memory so that an array of strings can still be used here.
 }  /* error_text */
 
 
-static void add_string_to_segment(a_const_char      *str,
-                                  a_msg_segment_ptr seg_ptr)
+static void clear_source_info_for_pos(a_source_info_for_pos_ptr	sifpp)
 /*
-Add the specified string to the end of the message segment described by the
-message segment descriptor pointed to by seg_ptr.  If the specified string
-would overflow the existing string buffer, allocate a new buffer that is
-at least INCR_MSG_SEGMENT_SIZE larger and copy the existing string to that
-new buffer before adding the string.  Allow room for a NULL character at the
-end of the buffer.
+Initialize the fields of the source-info-for-pos entry sifpp.
 */
 {
-  uint32_t	length_of_string;
+  sifpp->at_end_of_source = FALSE;
+  sifpp->file_name = NULL;
+  sifpp->line_number = 0;
+  sifpp->unicode_source_kind = usk_none;
+}  /* clear_source_info_for_pos */
 
-  if (str != NULL) {
-    length_of_string = (uint32_t)strlen(str);
-    /* If the string will not fit in the buffer, enlarge the buffer so that it
-       will fit.  Allow for a terminating null character. */
-    if (seg_ptr->max_length <= (seg_ptr->length + length_of_string)) {
-      char	*new_buffer;
-      sizeof_t	new_size;
 
-      new_size = seg_ptr->max_length +
-                 ((INCR_MSG_SEGMENT_SIZE > length_of_string)
-                   ? INCR_MSG_SEGMENT_SIZE + 1 : length_of_string + 1);
-      new_buffer = realloc_buffer(seg_ptr->segment,
-                                  (sizeof_t)(seg_ptr->max_length + 1),
-                                   new_size);
-      /* Since first_quote and second_quote, if non-NULL, point into the
-         segment that's being replaced, they have to be modified to point
-         into the new chunk of memory. */
-      if (seg_ptr->first_quote != NULL) {
-        seg_ptr->first_quote =
-                  new_buffer + (seg_ptr->first_quote - seg_ptr->segment);
-      }  /* if */
-      if (seg_ptr->second_quote != NULL) {
-        seg_ptr->second_quote =
-                  new_buffer + (seg_ptr->second_quote - seg_ptr->segment);
-      }  /* if */
-      /* Now we can go ahead and reset the segment pointer. */
-      seg_ptr->segment    = new_buffer;
-      seg_ptr->max_length = (int)(new_size - 1);
-    }  /* if */
-    (void)strcpy((char *)(seg_ptr->segment + seg_ptr->length), str);
-    seg_ptr->length += length_of_string;
+static void clear_diag_list(a_diag_list_ptr	dlp)
+/*
+Initialize the fields of the diagnostic list entry dlp.
+*/
+{
+  dlp->head = NULL;
+  dlp->tail = NULL;
+}  /* clear_diag_list */
+
+
+static a_diagnostic_ptr alloc_diagnostic(void)
+/*
+Allocate and initialize a diagnostic entry.  Reuse an entry from a list
+of freed entries if possible.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  if (avail_diagnostics != NULL) {
+    /* Reuse an existing entry. */
+    dp = avail_diagnostics;
+    avail_diagnostics = avail_diagnostics->next;
+  } else {
+    /* Allocate a new entry. */
+    dp = alloc_general_or_in_region_of_type(diag_memory_region, a_diagnostic);
+#if DEBUG
+   num_diagnostics_allocated++;
+#endif /* DEBUG */
   }  /* if */
-}  /* add_string_to_segment */
+  dp->kind = dck_primary;
+  dp->next    = NULL;
+  dp->primary_diag = NULL;
+  clear_diag_list(&dp->sub_msgs);
+  clear_diag_list(&dp->context);
+  clear_diag_list(&dp->macro_context);
+  clear_diag_list(&dp->more_info);
+  dp->translation_unit = NULL;
+  dp->position = null_source_position;
+  clear_source_info_for_pos(&dp->source_info);
+  dp->diag_header_pos = null_source_position;
+  clear_source_info_for_pos(&dp->diag_header_source_info);
+  dp->error_code = ec_no_error;
+  dp->severity = es_none;
+  dp->fill_in_head = NULL;
+  dp->fill_in_tail = NULL;
+  return dp;
+}  /* alloc_diagnostic */
 
 
-static a_msg_segment_ptr new_message_segment(void)
+/* Forward declaration. */
+static void free_diagnostic(a_diagnostic_ptr dp);
+
+
+static void free_diag_list(a_diag_list_ptr	dlp)
 /*
-Allocate and initialize the fixed part a new message segment.
+Free the list of diagnostics pointed to by the diagnostic list entry dip.
 */
 {
-  a_msg_segment_ptr msg;
+  a_diagnostic_ptr	dp;
+  a_diagnostic_ptr	next_dp;
 
-  msg = (a_msg_segment_ptr)alloc_general(sizeof(a_msg_segment));
-  msg->next         = NULL;
-  msg->segment      = NULL;
-  msg->first_quote  = NULL;
-  msg->second_quote = NULL;
-  msg->length       = 0;
-  msg->max_length   = 0;
-  msg->sequence_no  = 1;
-  return msg;
-}  /* new_message_segment */
+  for (dp = dlp->head; dp != NULL; dp = next_dp) {
+    next_dp = dp->next;
+    free_diagnostic(dp);
+  }  /* for */
+}  /* free_diag_list */
 
 
-static a_msg_segment_ptr establish_first_segment(void)
+static void free_diagnostic(a_diagnostic_ptr dp)
 /*
-Initialize the first message segment in the linked list of message segments
-pointed to by the static variable error_message_head.  If error_message_head
-is NULL, allocate a message seqment.
+Add the diagnostic entry specified by "dp" to the list of diagnostic entries
+that are available for reuse.
 */
 {
-  register a_msg_segment_ptr
-		first_segment;
-
-  first_segment = error_message_head;
-  if (first_segment == NULL) {
-    /* Only on the very first time, will this be NULL. */
-    first_segment = error_message_head = new_message_segment();
+  /* If there are sub-lists, free them now. */
+  free_diag_list(&dp->sub_msgs);
+  free_diag_list(&dp->context);
+  free_diag_list(&dp->macro_context);
+  free_diag_list(&dp->more_info);
+  /* If the diagnostic has fill-ins, add them to the available list. */
+  if (dp->fill_in_head != NULL) {
+    dp->fill_in_tail->next = avail_diag_fill_ins;
+    avail_diag_fill_ins = dp->fill_in_head;
   }  /* if */
-  first_segment->length = 0;
-  first_segment->sequence_no = 1;
-  return first_segment;
-}  /* establish_first_segment */
+  dp->next = avail_diagnostics;
+  avail_diagnostics = dp;
+}  /* free_diagnostic */
 
 
-/*ARGSUSED*/ /* local_octl is not used. */
-static void put_str_to_curr_output_msg_segment(
-			a_const_char				*str,
-			an_il_to_str_output_control_block_ptr	local_octl)
+static a_diag_fill_in_ptr alloc_diag_fill_in(a_diag_fill_in_kind kind)
 /*
-Output the indicated string to the current output message segment.  This is
-used as an output routine when using the il_to_str routines.
+Allocate and initialize a diagnostic fill-in entry.  The kind of entry
+is specified by "kind".
 */
 {
-  add_string_to_segment(str, curr_output_msg_segment);
-}  /* put_str_to_curr_output_msg_segment */
+  a_diag_fill_in_ptr	dfip;
+
+  if (avail_diag_fill_ins != NULL) {
+    /* Reuse an existing entry. */
+    dfip = avail_diag_fill_ins;
+    avail_diag_fill_ins = avail_diag_fill_ins->next;
+  } else {
+    /* Allocate a new entry. */
+    dfip = alloc_general_or_in_region_of_type(diag_memory_region,
+                                              a_diag_fill_in);
+#if DEBUG
+   num_diag_fill_ins_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  dfip->next = NULL;
+  dfip->kind = kind;
+#if CHECKING
+  dfip->fill_in_used = FALSE;
+#endif /* CHECKING */
+  switch (kind) {
+    case dfk_number:
+      dfip->variant.number = 0;
+      break;
+    case dfk_position:
+      dfip->variant.position = null_source_position;
+      break;
+    case dfk_string:
+      dfip->variant.string = NULL;
+      break;
+    case dfk_symbol:
+      dfip->variant.symbol.ptr = NULL;
+      dfip->variant.symbol.scope_depth = NO_SCOPE_DEPTH;
+      dfip->variant.symbol.full_type = FALSE;
+      dfip->variant.symbol.name_only = FALSE;
+      dfip->variant.symbol.force_function_params = FALSE;
+      dfip->variant.symbol.force_template_name_output = FALSE;
+      dfip->variant.symbol.decl_pos = FALSE;
+      dfip->variant.symbol.template_args = FALSE;
+      dfip->variant.symbol.trans_unit = FALSE;
+      break;
+    case dfk_type:
+      dfip->variant.type = NULL;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return dfip;
+}  /* alloc_diag_fill_in */
 
 
 static void set_up_output_control_block(void)
@@ -674,8 +820,16 @@ Set up the output control block octl so that the il_to_str routines can be
 called.
 */
 {
+  /* Allocate the diagnostic buffer if this is our first time. */
+  if (msg_buffer == NULL) {
+    msg_buffer = alloc_text_buffer(1024);
+    prefix_buffer = alloc_text_buffer(128);
+  }  /* if */
+  reset_text_buffer(msg_buffer);
+  reset_text_buffer(prefix_buffer);
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_curr_output_msg_segment;
+  octl.output_str = put_str_into_text_buffer;
+  octl.text_buffer = msg_buffer;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
@@ -684,20 +838,16 @@ called.
 }  /* set_up_output_control_block */
 
 
-static void form_type_summary(a_type_ptr        tp,
-                              a_msg_segment_ptr seg_ptr)
+static void form_type_summary(a_diag_fill_in_ptr	dfip)
 /*
-Format a string that represents the type pointed to by tp into the message
-segment described by *seg_ptr.  The type description is enclosed in quotes.
+Format a string that represents the type pointed to by dfip into the message
+buffer.
 */
 {
-  curr_output_msg_segment = seg_ptr;
-  add_string_to_segment("\"", seg_ptr);
-  seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
-  form_type(tp, &octl);
-  add_string_to_segment("\"", seg_ptr);
-  seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
-}  /* summarize_type */
+  add_string_to_text_buffer(msg_buffer, "\"");
+  form_type(dfip->variant.type, &octl);
+  add_string_to_text_buffer(msg_buffer, "\"");
+}  /* form_type_summary */
 
 
 char *format_type_string(a_type_ptr tp,
@@ -712,20 +862,14 @@ the terminating NULL character.  The caller should make a copy of the
 string immediately into whichever memory region is appropriate.
 */
 {
-  a_msg_segment_ptr curr_segment;
-
-  curr_segment = establish_first_segment();
-  /* Make certain that there is a string buffer and that it contains an
-     empty string. */
-  add_string_to_segment("", curr_segment);
-  curr_output_msg_segment = curr_segment;
   /* Set up for use of the il_to_str routines. */
   set_up_output_control_block();
   form_type(tp, &octl);
+  add_char_to_text_buffer(msg_buffer, '\0');
   /* Provide the length of the string and the address of the string
      buffer to the caller. */
-  *len_ptr = curr_segment->length;
-  return curr_segment->segment;
+  *len_ptr = msg_buffer->size-1;
+  return msg_buffer->buffer;
 }  /* format_type_string */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -752,10 +896,9 @@ static void form_source_position(a_source_position   *pos,
                                  a_source_position   *error_pos,
 			         a_const_char	     *prefix_string,
 			         a_const_char	     *suffix_string,
-                                 a_const_char	     *end_of_source_string,
-                                 a_msg_segment_ptr   seg_ptr)
+                                 a_const_char	     *end_of_source_string)
 /*
-Format a source position in the message segment described by seg_ptr.
+Add the source position error_pos to msg_buffer.
 The generated format is one of:
 
         <prefix_string>at line xxx of "file name"<suffix string>
@@ -767,10 +910,11 @@ If the file is stdin or the file name is identical to that of the error
 position of the diagnostic message being composed, the file name is not
 emitted as part of this declaration position.  error_pos represents the
 source position of the diagnostic being formed and is used  to eliminate
-redundant file names in a diagnostic.*/
+redundant file names in a diagnostic.
+*/
 {
   a_const_char	*file_name, *full_name, *diag_file_name;
-  char		buffer[BASE_MSG_SEGMENT_SIZE];
+  char		buffer[20];
   a_line_number line_number;
   a_boolean	at_end_of_source;
 
@@ -786,47 +930,46 @@ redundant file names in a diagnostic.*/
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     if (at_end_of_source) {
-      add_string_to_segment(end_of_source_string, seg_ptr);
+      add_string_to_text_buffer(msg_buffer, end_of_source_string);
     } else {
       a_boolean file_name_needed = strcmp(file_name, diag_file_name) != 0 &&
                                    strcmp(file_name, FILE_NAME_FOR_STDIN) != 0;
-      add_string_to_segment(prefix_string, seg_ptr);
+      add_string_to_text_buffer(msg_buffer, prefix_string);
       if (line_number == SP_LINE_UNKNOWN) {
         /* No line number (e.g., C++/CLI assemblies). */
         if (file_name_needed) {
-          add_string_to_segment(error_text(ec_in), seg_ptr);
+          add_string_to_text_buffer(msg_buffer, error_text(ec_in));
         }  /* if */
       } else {
         /* Emit the line number. */
-        add_string_to_segment(error_text(ec_at_line), seg_ptr);
+        add_string_to_text_buffer(msg_buffer, error_text(ec_at_line));
 #if CHECKING
         if (digits_to_represent((unsigned long)pos->seq)
-                            >= BASE_MSG_SEGMENT_SIZE) {
+                            >= sizeof(buffer)) {
           internal_error("form_source_position: buffer size too small");
         }  /* if */
 #endif /* CHECKING */
         (void)sprintf(buffer, "%lu", (unsigned long)line_number);
-        add_string_to_segment(&buffer[0], seg_ptr);
+        add_string_to_text_buffer(msg_buffer, &buffer[0]);
       }  /* if */
       /* Add the file name if needed. */
       if (file_name_needed) {
         char *formatted_file_name;
         if (line_number != SP_LINE_UNKNOWN) {
-          add_string_to_segment(error_text(ec_of), seg_ptr);
+          add_string_to_text_buffer(msg_buffer, error_text(ec_of));
         }  /* if */
-        add_string_to_segment("\"", seg_ptr);
+        add_string_to_text_buffer(msg_buffer, "\"");
         formatted_file_name = format_file_name(file_name);
-        add_string_to_segment(formatted_file_name, seg_ptr);
-        add_string_to_segment("\"", seg_ptr);
+        add_string_to_text_buffer(msg_buffer, formatted_file_name);
+        add_string_to_text_buffer(msg_buffer, "\"");
       }  /* if */
-      add_string_to_segment(suffix_string, seg_ptr);
+      add_string_to_text_buffer(msg_buffer, suffix_string);
     }  /* if */
   }  /* if */
 }  /* form_source_position */
 
 
-static void form_function_template_param_list(a_symbol_ptr	sym,
-                                   	      a_msg_segment_ptr	seg_ptr)
+static void form_function_template_param_list(a_symbol_ptr	sym)
 /*
 Display the parameter list of the function template specified by sym.
 */
@@ -843,13 +986,14 @@ Display the parameter list of the function template specified by sym.
     decl_info = tssp->variant.function.decl_cache.decl_info;
     tpp = decl_info->parameters;
     if (tpp != NULL) {
-      add_string_to_segment("<", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, "<");
       for (; tpp != NULL; tpp = tpp->next) {
-        add_string_to_segment(tpp->param_symbol->header->identifier, seg_ptr);
-        if (tpp->is_pack) add_string_to_segment("...", seg_ptr);
-        if (tpp->next != NULL) add_string_to_segment(",", seg_ptr);
+        add_string_to_text_buffer(msg_buffer,
+                                  tpp->param_symbol->header->identifier);
+        if (tpp->is_pack) add_string_to_text_buffer(msg_buffer, "...");
+        if (tpp->next != NULL) add_string_to_text_buffer(msg_buffer, ",");
       }  /* for */
-      add_string_to_segment(">", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, ">");
     }  /* if */
   }  /* if */
 }  /* form_function_template_param_list */
@@ -886,7 +1030,6 @@ instantiation of the associated template.
 
 static void form_template_arg_info(a_symbol_ptr			sym,
 				   a_symbol_ptr			template_sym,
-                                   a_msg_segment_ptr		seg_ptr,
 				   a_boolean			*p_any_args)
 /*
 sym is an entity that was to be displayed in an error fill-in.  If
@@ -983,8 +1126,7 @@ level.
       if (parent_template_sym != NULL &&
           is_prototype_instantiation_or_cli_generic(parent_template_sym) &&
           !is_prototype_instantiation_symbol(parent_sym)) {
-        form_template_arg_info(parent_sym, parent_template_sym, seg_ptr,
-                               any_args);
+        form_template_arg_info(parent_sym, parent_template_sym, any_args);
       }  /* if */
     }  /* if */
     if (tap != NULL) {
@@ -999,22 +1141,22 @@ level.
         if (!*any_args) {
           /* This is the first argument displayed -- add the introduction
              string to the message. */
-          add_string_to_segment(" [", seg_ptr);
-          add_string_to_segment(error_text(ec_with), seg_ptr);
+          add_string_to_text_buffer(msg_buffer, " [");
+          add_string_to_text_buffer(msg_buffer, error_text(ec_with));
           *any_args = TRUE;
         } else {
           /* This is not the first argument -- add "," separator. */
-          add_string_to_segment(", ", seg_ptr);
+          add_string_to_text_buffer(msg_buffer, ", ");
         }  /* if */
-        add_string_to_segment(tpp->param_symbol->header->identifier,
-                              seg_ptr);
-        add_string_to_segment("=", seg_ptr);
+        add_string_to_text_buffer(msg_buffer,
+                                  tpp->param_symbol->header->identifier);
+        add_string_to_text_buffer(msg_buffer, "=");
         check_assertion(tap != NULL);
         if (is_start_of_pack_expansion_templ_arg(tap)) {
           a_boolean   first_pack_arg = TRUE;
           /* This template parameter maps to zero or more template arguments
              in a parameter pack. */
-          add_string_to_segment("<", seg_ptr);
+          add_string_to_text_buffer(msg_buffer, "<");
           for (tap = tap->next;
                (tap != NULL &&
                 !is_start_of_pack_expansion_templ_arg(tap) &&
@@ -1024,11 +1166,11 @@ level.
             if (first_pack_arg) {
               first_pack_arg = FALSE;
             } else {
-              add_string_to_segment(", ", seg_ptr);
+              add_string_to_text_buffer(msg_buffer, ", ");
             }  /* if */
             form_a_template_arg(tap, &octl);
           }  /* for */
-          add_string_to_segment(">", seg_ptr);
+          add_string_to_text_buffer(msg_buffer, ">");
         } else {
           form_a_template_arg(tap, &octl);
           tap = tap->next;
@@ -1038,14 +1180,12 @@ level.
   }  /* if */
   if (p_any_args == NULL && *any_args) {
     /* One or more arguments were displayed.  Terminate the list. */
-    add_string_to_segment("]", seg_ptr);
+    add_string_to_text_buffer(msg_buffer, "]");
   }  /* if */
 }  /* form_template_arg_info */
 
 
-static void form_symbol_name_for_error(
-				a_symbol_ptr		sym,
-                                a_msg_segment_ptr	seg_ptr)
+static void form_symbol_name_for_error(a_symbol_ptr		sym)
 /*
 Display the name of the symbol specified by sym.  If sym is a member
 of a template class, or a class nested within a template class, display
@@ -1064,7 +1204,7 @@ The template argument values will then be added to the diagnostic later.
   }  /* if */
   if (prototype_sym != NULL) {
     form_symbol_name(prototype_sym, &octl);
-    add_string_to_segment("::", seg_ptr);
+    add_string_to_text_buffer(msg_buffer, "::");
     form_optionally_qualified_symbol_name(sym, &octl,
                                           /*suppress_qualifier=*/TRUE);
   } else {
@@ -1073,15 +1213,11 @@ The template argument values will then be added to the diagnostic later.
 }  /* form_symbol_name_for_error */
 
 
-static void form_symbol_summary(a_symbol_ptr        sym,
-                                a_source_position   *error_pos,
-                                a_msg_segment_ptr   seg_ptr)
+static void form_symbol_summary(a_diagnostic_ptr	dp,
+				a_diag_fill_in_ptr	dfip)
 /*
-Format the name of the symbol pointed to by sym in the message segment
-described by *seg_ptr.  Type information is based on the fundamental symbol
-and the name is that of sym.  error_pos represents the source position of
-the diagnostic being formed and is used when formatting the symbol source
-declaration position to eliminate redundant file names in a diagnostic.
+Format the symbol described by the fill-in entry dfip for the diagnostic
+specified by dp.
 */
 {
   a_type_ptr	type = NULL;
@@ -1098,23 +1234,23 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display = NULL;
   a_boolean			saved_remove_template_typedefs;
+  a_symbol_ptr			sym = dfip->variant.symbol.ptr;
   a_boolean  saved_render_auto_deduction_typerefs =
                                 octl.render_auto_deduction_typerefs;
 
-  curr_output_msg_segment = seg_ptr;
   /* Determine the fundamental symbol of this symbol. */
   fund_sym = fundamental_symbol_of(sym);
   switch (fund_sym->kind) {
     case sk_keyword:
       /* The name of a keyword is extracted from the token_names array, and
          is handled differently from other symbols. */
-      if (! seg_ptr->variant.symbol.name_only) {
-        add_string_to_segment(error_text(ec_keyword), seg_ptr);
-        add_string_to_segment(" ", seg_ptr);
+      if (! dfip->variant.symbol.name_only) {
+        add_string_to_text_buffer(msg_buffer, error_text(ec_keyword));
+        add_string_to_text_buffer(msg_buffer, " ");
       } /* if */
-      add_string_to_segment("\"", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, "\"");
       /* Use the name in the header. */
-      add_string_to_segment(sym->header->identifier, seg_ptr);
+      add_string_to_text_buffer(msg_buffer, sym->header->identifier);
       break;
     case sk_macro:
       entity_kind = ec_macro;
@@ -1151,7 +1287,7 @@ declaration position to eliminate redundant file names in a diagnostic.
             entity_kind = ec_class;
           }  /* if */
           if (distinct_template_signatures &&
-              seg_ptr->variant.symbol.force_template_name_output) {
+              dfip->variant.symbol.force_template_name_output) {
             /* If the class is a template instance, get the corresponding
                prototype symbol for display purposes. */
             corresp_template_sym = prototype_symbol_for_class(
@@ -1320,7 +1456,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       type = routine->type;
       /* Function templates can differ only by return type, so include the
          return type when also displaying the parameter types. */
-      force_return_type = seg_ptr->variant.symbol.force_function_params;
+      force_return_type = dfip->variant.symbol.force_function_params;
       if (routine->is_lambda_body) {
         /* For lambdas, display the closure type name instead, which is of
            the form "lambda [](params)->some_type" and therefore already
@@ -1333,16 +1469,15 @@ symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration-like entity. */
       if (type == NULL) is_declaration_like = FALSE;
-      if (! seg_ptr->variant.symbol.name_only &&
-          ! (seg_ptr->variant.symbol.full_type && is_declaration_like) ) {
+      if (! dfip->variant.symbol.name_only &&
+          ! (dfip->variant.symbol.full_type && is_declaration_like) ) {
         if (entity_kind != ec_no_error) {
-          add_string_to_segment(error_text(entity_kind), seg_ptr);
-          add_string_to_segment(" ", seg_ptr);
+          add_string_to_text_buffer(msg_buffer, error_text(entity_kind));
+          add_string_to_text_buffer(msg_buffer, " ");
         }  /* if */
       } /* if */
       /* Add the beginning double quote. */
-      add_string_to_segment("\"", seg_ptr);
-      seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
+      add_string_to_text_buffer(msg_buffer, "\"");
       /* Check for special kinds of routines. */
       if (routine != NULL) {
         if (is_constructor_symbol(fund_sym) ||
@@ -1373,7 +1508,7 @@ symbol_name:
       saved_remove_template_typedefs = octl.remove_template_typedefs;
       octl.remove_template_typedefs = corresp_template_sym == NULL;
       if (routine != NULL) {
-        if (seg_ptr->variant.symbol.force_function_params) {
+        if (dfip->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
           force_function_params = TRUE;
         } else if (fund_sym->kind != (a_symbol_kind)sk_function_template &&
@@ -1399,7 +1534,7 @@ symbol_name:
          constructors, destructors, and conversion functions (the return type
          is not listed for those). */
       if (type != NULL &&
-          (seg_ptr->variant.symbol.full_type || force_return_type) &&
+          (dfip->variant.symbol.full_type || force_return_type) &&
           (routine == NULL || return_type_needed)) {
         form_type_first_part_simple(type,
                                     /*under_lhs_declarator=*/FALSE,
@@ -1413,7 +1548,7 @@ symbol_name:
          corresponding prototype template in place of the actual
          parent class. */
       if (corresp_template_sym == NULL) {
-        form_symbol_name_for_error(sym_to_display, seg_ptr);
+        form_symbol_name_for_error(sym_to_display);
       } else {
         form_symbol_name(sym_to_display, &octl);
       }  /* if */
@@ -1421,17 +1556,17 @@ symbol_name:
          out in name-only mode.  Do put it out in full-type mode, or
          if function parameters should be listed. */
       if (type != NULL &&
-          !seg_ptr->variant.symbol.name_only &&
-          (seg_ptr->variant.symbol.full_type || force_function_params) ) {
+          !dfip->variant.symbol.name_only &&
+          (dfip->variant.symbol.full_type || force_function_params) ) {
         if (sym_to_display->kind == (a_symbol_kind)sk_function_template &&
             distinct_template_signatures) {
           /* If the symbol being displayed is a function template, display
              the template's parameter list in the form of an explicit
              function template parameter list. */
-          form_function_template_param_list(sym_to_display, seg_ptr);
+          form_function_template_param_list(sym_to_display);
         }  /* if */
         if ((routine != NULL && !return_type_needed) ||
-            (!seg_ptr->variant.symbol.full_type && !force_return_type)) {
+            (!dfip->variant.symbol.full_type && !force_return_type)) {
           /* For constructors, destructors, and conversion functions,
              put out the function type but not the return type. */
           form_function_declarator(type, &octl);
@@ -1455,8 +1590,8 @@ symbol_name:
         } else {
           templ_arg_sym = sym_to_display;
         }  /* if */
-        form_template_arg_info(templ_arg_sym, corresp_template_sym, seg_ptr,
-                              (a_boolean*)NULL);
+        form_template_arg_info(templ_arg_sym, corresp_template_sym, 
+                               (a_boolean*)NULL);
       }  /* if */
       break;
     case sk_projection:
@@ -1470,33 +1605,35 @@ symbol_name:
       unexpected_condition_str("form_symbol_summary: unsupported symbol kind");
   }  /* switch */
   /* Add the closing double quote mark. */
-  add_string_to_segment("\"", seg_ptr);
-  seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
+  add_string_to_text_buffer(msg_buffer, "\"");
   /* If the name is based on template arguments, add a message to that
      effect. */
-  if (seg_ptr->variant.symbol.template_args) {
-    a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
+  if (dfip->variant.symbol.template_args) {
+    a_scope_stack_entry_ptr  ssep;
     a_template_arg_ptr       tap;
+    a_scope_depth            depth;
+    depth = dfip->variant.symbol.scope_depth;
+    check_assertion(depth != NO_SCOPE_DEPTH);
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
                     sym->kind == (a_symbol_kind)sk_class_template);
-    check_assertion(ssep != NULL);
+    ssep = &scope_stack[depth];
     begin_template_arg_list_traversal_simple(ssep->template_arg_list, &tap);
     if (tap != NULL) {
-      add_string_to_segment(" ", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, " ");
       advance_to_next_template_arg_simple(&tap);
       if (tap != NULL) {
-        add_string_to_segment(error_text(ec_based_on_template_arguments),
-                              seg_ptr);
+        add_string_to_text_buffer(
+                       msg_buffer, error_text(ec_based_on_template_arguments));
       } else {
-        add_string_to_segment(error_text(ec_based_on_template_argument),
-                              seg_ptr);
+        add_string_to_text_buffer(
+                        msg_buffer, error_text(ec_based_on_template_argument));
       }  /* if */
-      add_string_to_segment(" ", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, " ");
       form_template_args(ssep->template_arg_list, &octl);
     }  /* if */
   }  /* if */
   /* Add the declaration position as requested. */
-  if (seg_ptr->variant.symbol.decl_pos) {
+  if (dfip->variant.symbol.decl_pos) {
     if (routine != NULL && routine->compiler_generated &&
         !(routine->is_lambda_body && sym->decl_position.seq != 0)) {
       /* For compiler-generated routines referred to by name in diagnostics a
@@ -1505,15 +1642,16 @@ symbol_name:
          expressions, however, look sufficiently like the operator() they
          generate that the expression position can be reported as the position
          at which the corresponding operator() is declared. */
-      add_string_to_segment(error_text(ec_declared_implicitly), seg_ptr);
+      add_string_to_text_buffer(msg_buffer,
+                                error_text(ec_declared_implicitly));
     } else {
-      form_source_position(&sym->decl_position, error_pos,
+      form_source_position(&sym->decl_position, &dp->position,
                            error_text(ec_declared_prefix), ")",
-                           error_text(ec_at_end_of_source), seg_ptr);
+                           error_text(ec_at_end_of_source));
     }  /* if */
   }  /* if */
   /* Add the translation unit associated with the symbol. */
-  if (seg_ptr->variant.symbol.trans_unit) {
+  if (dfip->variant.symbol.trans_unit) {
     a_boolean			add_trans_unit = FALSE;
     a_translation_unit_ptr	tup = NULL;
     if (sym->decl_scope == NO_SCOPE_NUMBER) {
@@ -1533,217 +1671,21 @@ symbol_name:
     if (add_trans_unit) {
       /* Add the translation unit to the message. */
       char *formatted_file_name;
-      add_string_to_segment(" (", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, " (");
       /* This message code includes the explanatory text (e.g.,
          "from translation unit"). */
-      add_string_to_segment(error_text(ec_from_trans_unit), seg_ptr);
-      add_string_to_segment("\"", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, error_text(ec_from_trans_unit));
+      add_string_to_text_buffer(msg_buffer, "\"");
       formatted_file_name = format_file_name(tup->source_file->file_name);
-      add_string_to_segment(formatted_file_name, seg_ptr);
-      add_string_to_segment("\"", seg_ptr);
-      add_string_to_segment(")", seg_ptr);
+      add_string_to_text_buffer(msg_buffer, formatted_file_name);
+      add_string_to_text_buffer(msg_buffer, "\"");
+      add_string_to_text_buffer(msg_buffer, ")");
     }  /* if */
   }  /* if */
   octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
 }  /* form_symbol_summary */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
-static void construct_message_segments(a_const_char *msg_ptr)
-/*
-Scan the message template pointed to by msg_ptr and construct the message
-segment list.  The static variable error_message_head points to the first
-segment descriptor.  Parameter substitutions are specified in the message
-template beginning with a "%".  Accepted substitution designations are:
-
-	s[q]x		- user provided string insertion.
-	tx		- type insertion in double quotes.
-        n[f|o|a][d]x	- symbol name insertion in double quotes.
-        p		- insert a source position.
-        %		- insert a percent sign.
-        \[label\]	- choose one of two fill-ins depending on the value
-			  of a variable (e.g., "%[C++/CLI]" might display as
-			  "C++/CLI" or "C++/CX").
-
-where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
-(defaulted to 1) that indicates which of multiple types, strings, or
-symbols substitutions to be used.
-
-String inserts may have an optional "q" modifier which specifies that the
-string is to be enclosed in quotes.
-
-Symbol name expansions may have one of the mutually exclusive optional
-modifiers:
-
-	f	- full object, complete type and object name.
-	o	- name or qualified name only.
-	a	- name or qualified name followed by template argument list
-
-Symbol name expansions may have a declaration position modifier "d" which
-requests that the declaration position of the symbol be added at the end
-of the expansion.
-
-The linked list of message segments needed for the text and parameter
-substitutions to form the desired diagnostic message is constructed.
-
-NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
-       is defined.  The symbol table and token names no longer exist.
-*/
-{
-  a_msg_segment_ptr     curr_segment;	/* Pointer to the current segment. */
-  a_const_char          *end_ptr, *end_label;
-  int                   i;
-  a_label_fill_in_entry *lfie;
-  
-  /* Establish the message segment descriptor for the first segment. */
-  curr_segment = establish_first_segment();
-  while (*msg_ptr != '\0') {
-    curr_segment->first_quote = NULL;
-    curr_segment->second_quote = NULL;
-    if (*msg_ptr == '%') {
-      /* This is the beginning of a parameter substitution descriptor. */
-      msg_ptr++;
-      switch (*msg_ptr) {
-        case 's':
-          curr_segment->kind = (a_message_segment_kind)msk_user_string;
-          curr_segment->variant.string.quoted = FALSE;
-          msg_ptr++;
-          if (*msg_ptr == 'q') {
-            curr_segment->variant.string.quoted = TRUE;
-            msg_ptr++;
-          }  /* if */
-          goto check_for_seq_number;
-        case 't':
-          curr_segment->kind = (a_message_segment_kind)msk_type;
-          msg_ptr++;
-          goto check_for_seq_number;
-        case 'p':
-          curr_segment->kind = (a_message_segment_kind)msk_source_position;
-          msg_ptr++;
-          goto check_for_seq_number;
-        case 'n':
-#if STANDALONE_UTILITY_PROGRAM
-          /* Treat this %n as a continuation of the message template.
-             No symbol name expansion is possible. */
-          msg_ptr--;
-          goto text_segment;
-#else /* !STANDALONE_UTILITY_PROGRAM */
-          /* This is a symbol name insertion point. */
-          curr_segment->kind = (a_message_segment_kind)msk_symbol;
-          curr_segment->variant.symbol.full_type = FALSE;
-          curr_segment->variant.symbol.name_only = FALSE;
-          curr_segment->variant.symbol.force_function_params = FALSE;
-          curr_segment->variant.symbol.force_template_name_output = FALSE;
-          curr_segment->variant.symbol.decl_pos = FALSE;
-          curr_segment->variant.symbol.template_args = FALSE;
-          curr_segment->variant.symbol.trans_unit = FALSE;
-          msg_ptr++;
-          /* Check for formatting options. */
-          if (*msg_ptr == 'f') {
-            /* Display complete type and object name. */
-            curr_segment->variant.symbol.full_type = TRUE;
-            msg_ptr++;
-          } else if (*msg_ptr == 'o') {
-            /* Display only the entity name. */
-            curr_segment->variant.symbol.name_only = TRUE;
-            msg_ptr++;
-          } else if (*msg_ptr == 'p') {
-            /* Display function parameters with the name. */
-            curr_segment->variant.symbol.force_function_params = TRUE;
-            msg_ptr++;
-          } else if (*msg_ptr == 't') {
-            /* Use the special template formatting for classes.  This
-               also implies the 'f' option. */
-            curr_segment->variant.symbol.force_template_name_output = TRUE;
-            curr_segment->variant.symbol.full_type = TRUE;
-            msg_ptr++;
-          } else if (*msg_ptr == 'a') {
-            /* Display the entity name along with associated template
-               arguments. */
-            curr_segment->variant.symbol.name_only = TRUE;
-            curr_segment->variant.symbol.template_args = TRUE;
-            msg_ptr++;
-          }  /* if */
-          if (*msg_ptr == 'd') {
-            /* Display the declaration position following the entity name. */
-            curr_segment->variant.symbol.decl_pos = TRUE;
-            msg_ptr++;
-          }  /* if */
-          if (*msg_ptr == 'T') {
-            /* Display the translation unit under certain conditions. */
-            curr_segment->variant.symbol.trans_unit = TRUE;
-            msg_ptr++;
-          }  /* if */
-#endif /* STANDALONE_UTILITY_PROGRAM */
-check_for_seq_number:
-          curr_segment->sequence_no = 1;
-          if (isdigit((unsigned char)*msg_ptr)) {
-            i = *msg_ptr - '0';
-            if (i > 0 && i <= MAX_ERR_SEG_KIND_PER_MSG) {
-              curr_segment->sequence_no = i;
-              msg_ptr++;
-            }  /* if */
-          }  /* if */
-          break;
-        case '[':
-          /* A label fill-in.  Use the string to find a matching label fill-in
-             entry, then choose either the TRUE or FALSE error code message
-             text as a replacement. */
-          end_label = mbc_strchr(msg_ptr+1, ']');
-          check_assertion(end_label != NULL);
-          lfie = get_label_fill_in_entry(msg_ptr+1, end_label-msg_ptr-1);
-          curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
-          curr_segment->variant.msg_part = error_text(*(lfie->test) ?
-                                                           lfie->true_value :
-                                                           lfie->false_value);
-          curr_segment->length =
-                              (uint32_t)strlen(curr_segment->variant.msg_part);
-          msg_ptr = end_label+1;
-          break;
-        case '%':
-          /* The string "%%" is used to insert a single "%" in the output. */
-          goto text_segment;
-        default:
-          unexpected_condition_str2("construct_message_segments:",
-                                    "unknown message substitution parameter");
-      }  /* switch */
-    } else {
-text_segment:
-      /* This is the first character of a text segment. */
-      curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
-      curr_segment->variant.msg_part = msg_ptr;
-      /* Skip the first character when looking for a percent sign.  The
-         first character may actually be a percent sign when the
-         original message contained a "%%" used to insert a single
-         "%" in the output. */
-      end_ptr = mbc_strchr(msg_ptr+1, '%');
-      if (end_ptr == NULL) {
-        /* This part is the end of the message template. */
-        curr_segment->length = (uint32_t)strlen(msg_ptr);
-      } else {
-        /* A substitution parameter has been found.  The length is the
-           difference of the two pointers. */
-        curr_segment->length = (uint32_t)(end_ptr - msg_ptr);
-      }  /* if */
-      msg_ptr += curr_segment->length;
-    }  /* if */
-
-    /* Prepare for the next message segment. */
-    if (curr_segment->next == NULL) {
-      /* Reached the current end of the chain; add another segment. */
-      curr_segment->next = new_message_segment();
-    }  /* if */
-    curr_segment = curr_segment->next;
-    curr_segment->length = 0;
-    curr_segment->sequence_no = 1;
-  }  /* while */
-
-  /* Having reached the end of the diagnostic message template, terminate
-     the message segment chain by setting the current segment kind to
-     msk_last. */
-  curr_segment->kind = (a_message_segment_kind)msk_last;
-}  /* construct_message_segments */
-
 
 static a_boolean message_has_fill_in(an_error_code error_code)
 /*
@@ -2108,6 +2050,19 @@ return_point:
   return src_line_found;
 }  /* can_locate_source_line */
 
+
+static void output_msg_buffer(void)
+/*
+Add the contents of msg_buffer to the write_diagnostic_buffer and
+reset msg_buffer.
+*/
+{
+  add_to_text_buffer(write_diagnostic_buffer, msg_buffer->buffer,
+                     msg_buffer->size);
+  add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+  reset_text_buffer(msg_buffer);
+}  /* output_msg_buffer */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
@@ -2124,11 +2079,11 @@ parallel.
 
 /*
 Shorthand for cases where an output character (out_char) is being written
-to the write_diagnostic_buffer.
+to the msg_buffer.
 */
 
 #define putcwdb(out_char)                                             \
-  putcb((out_char), write_diagnostic_buffer);
+  putcb((out_char), msg_buffer);
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2201,7 +2156,7 @@ Write out the source line associated with the source position source_pos,
 and place a caret under the proper column.  The position must be within
 the current logical source line.  If the column position is zero, write
 a blank line instead of the caret line.  All diagnostics generated by this
-routine (or routines it calls) are placed in write_diagnostic_buffer for
+routine (or routines it calls) are placed in msg_buffer for
 later output as appropriate.
 */
 {
@@ -2330,8 +2285,7 @@ end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) putcwdb('^');
     }  /* if */
-    /* For both passes, end the output line. */
-    putcwdb('\n');
+    output_msg_buffer();
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
@@ -2354,7 +2308,7 @@ error_source_line.  If the column position is zero, write a blank line
 instead of the caret line.  unicode_source_kind indicates the kind of Unicode
 encoding form for the file, or usk_none if the file is not Unicode.
 All diagnostics generated by this routine (or routines it calls) are placed in
-write_diagnostic_buffer for later output as appropriate.
+msg_buffer for later output as appropriate.
 */
 {
   char            *loc_in_line;
@@ -2397,243 +2351,63 @@ end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) putcwdb('^');
     }  /* if */
-    /* For both passes, end the output line. */
-    putcwdb('\n');
+    output_msg_buffer();
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
 }  /* write_error_source_line */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void write_message_part(a_const_char      *msg,
-                               int32_t           len,
-                               a_text_buffer_ptr buffer,
-                               int               *line_len,
-                               a_boolean         wrap,
-                               a_boolean         quoted_text,
-                               a_boolean         start_of_diagnostic)
+static void write_source_line(a_source_position		*position,
+			      a_source_info_for_pos_ptr	sifpp)
 /*
-Write a piece of an error message to buffer.  msg points to the
-message (or is NULL if there is no message), and len is its length (or
--1 if the text is null-terminated).  The message is written to the text buffer
-indicated by buffer.  *line_len is incremented by the number of characters
-written.  If wrap is TRUE, the text will be wrapped to successive
-additional lines as necessary and *line_len will be set to the number
-of characters written on the final line.  If quoted_text is TRUE, the
-msg consists solely of a double quoted string that should not be broken
-if possible.
-
-When text as allowed to be wrapped to the next line, trailing spaces on
-each message fragment are not printed; but the number of these blanks is
-remembered and used, if needed, for spacing before the next fragment.  The
-boolean start_of_diagnostic indicates the beginning of a complete diagnostic.
-Any trailing spaces not printed at the end of the previous diagnostic will
-be forgotten.
+Write the source line specified by position and sifpp.  If the position
+designates a position on the current source line, output that line.  Otherwise,
+see if we can find get the source line from a file, and if so, output that
+line.
 */
 {
-  int		chars_to_take,
-		chars_that_will_fit_on_line;
-  static int	trailing_space_count;
+  a_boolean	write_source;
+  a_boolean	use_orig_line = TRUE;
 
-  if (start_of_diagnostic) trailing_space_count = 0;
-  if (msg != NULL) {
-    if (len < 0) len = (int32_t)strlen(msg);
-    while (wrap && 
-           (chars_that_will_fit_on_line = MAX_ERROR_OUTPUT_LINE_LENGTH -
-                                  *line_len - trailing_space_count) < len) {
-      /* The text is too long to fit on one line.  Write part of it,
-         and continue on the next line. */
-      if (chars_that_will_fit_on_line < 0) chars_that_will_fit_on_line = 0;
-      /* Check that any quoted text that will not fit on this line
-         can be put on the next line without being broken. */
-      if (quoted_text &&
-          len <= MAX_ERROR_OUTPUT_LINE_LENGTH - INDENT_AMOUNT - 
-                                                diagnostic_indent ) {
-        /* Quoted text will fit nicely on the next line. */
-        goto start_line_and_indent;
-      }  /* if */
-      /*lint --e{850} chars_to_take modified in loop */
-      for (chars_to_take = chars_that_will_fit_on_line;
-           chars_to_take > 0;
-           chars_to_take--) {
-        /* Try to break the text at a blank. */
-        if (msg[chars_to_take-1] == ' ') {
-          /* Get to before the beginning of a string of blanks. */
-          do {} while (--chars_to_take > 0 && msg[chars_to_take-1] == ' ');
-          break;
-        }  /* if */
-      }  /* for */
-      /* Make sure we're making progress; avoid getting hung up on one
-         long piece of text with no blanks. */
-      if (chars_to_take == 0 &&
-          *line_len <= (INDENT_AMOUNT + diagnostic_indent)) {
-        chars_to_take = chars_that_will_fit_on_line;
-      }  /* if */
-      /* Print the characters that will fit on the current line. */
-      if (chars_to_take > 0) {
-        /* Print any "remembered" spaces from the last fragment. */
-        for (; trailing_space_count > 0; trailing_space_count--) {
-          putcb(' ', buffer);
-          (*line_len)++;
-        }  /* for */
-        if (chars_to_take > len) chars_to_take = len;
-        *line_len += add_to_text_buffer(buffer, msg, (sizeof_t)chars_to_take);
-        msg += chars_to_take;
-        len -= chars_to_take;
-      }  /* if */
-start_line_and_indent:
-      /* Skip over any blanks at the start of the remaining text of the
-         message and discard any spaces from the previous message fragment. */
-      trailing_space_count = 0;
-      while (len > 0 && *msg == ' ') {
-        msg++;
-        len--;
-      }  /* while */
-      /* Start a new line and indent. */
-      putcb('\n', buffer);
-      for (*line_len = 0;
-           *line_len < (INDENT_AMOUNT + diagnostic_indent);
-           (*line_len)++) {
-        putcb(' ', buffer);
-      }  /* for */
-    }  /* while */
-    /* Print the final piece of the text (in the usual case, this prints
-       all of the text). */
-    /* Print any "remembered" spaces from the last fragment. */
-    for (; trailing_space_count > 0; trailing_space_count--) {
-      putcb(' ', buffer);
-      (*line_len)++;
-    }  /* for */
-
-    if (wrap) {
-      /* Remove any trailing spaces from the final piece of text.  These
-         will be added prior to the next piece of text if needed. */
-      for (; len > 0 && msg[len - 1] == ' '; len--, trailing_space_count++) {}
-    }  /* if */
-    if (len > 0) {
-      *line_len += add_to_text_buffer(buffer, msg,
-                                      strlen(msg) > (sizeof_t)len ? 
-                                                                (sizeof_t)len :
-                                                                strlen(msg));
+  if (position->seq == 0 || sifpp->at_end_of_source) {
+    /* There is no position, or it is at the end-of-file. */
+    write_source = FALSE;
+  } else {
+    write_source = !brief_diagnostics;
+    if (write_source && position->seq < curr_seq_number) {
+      /* Not in current source line -- see if we can print it. */
+      write_source = can_locate_source_line(position->seq,
+                                            &sifpp->unicode_source_kind);
+      use_orig_line = FALSE;
     }  /* if */
   }  /* if */
-}  /* write_message_part */
+  if (write_source) {
+    if (use_orig_line) {
+      write_orig_source_line(position);
+    } else {
+      write_error_source_line(position, sifpp->unicode_source_kind);
+    }  /* if */
+  }  /* if */
+}  /* write_source_line */
 
+#else /* STANDALONE_UTILITY_PROGRAM */
 
-static void init_error_params(void)
-/*
-Initialize the array of user string, types and symbols to be inserted into
-a diagnostic message.
-*/
-{
-  int i;
+#define write_source_line(position, sifpp) /* nothing */
 
-  /* Initialize the message substitution kind array. */
-  for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
-    error_msg_strings[i] = NULL;
-    error_msg_types[i] = NULL;
-#if !STANDALONE_UTILITY_PROGRAM
-    error_msg_positions[i] = NULL;
-    error_msg_syms[i] = NULL;
-    error_msg_scopes[i] = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  }  /* for */
-  /* Set up for use of the il_to_str routines. */
-  set_up_output_control_block();
-}  /* init_error_params */
 
-
-static void write_message(a_text_buffer_ptr buffer,
-                          int               *line_len,
-                          a_boolean         wrap)
+static void add_position_prefix(a_const_char      *file_name,
+	                        a_line_number     line_number,
+	                        a_column_number   column_number)
 /*
-Write each of the message segments chained from the static variable
-error_message_head to the specified text buffer.  *line_len is the current line
-length and is incremented to reflect the number of characters added
-to the current line.  If wrap is TRUE, the text will be wrapped to
-successive additional lines as necessary.
-*/
-{
-  a_msg_segment_ptr curr_seg;
-  int32_t           length;
-  int32_t           total_len;
-  a_boolean         start_of_message = TRUE;
-
-  for (curr_seg = error_message_head;
-       curr_seg != NULL &&
-         curr_seg->kind != (a_message_segment_kind)msk_last;
-       curr_seg = curr_seg->next) {
-    switch (curr_seg->kind) {
-      case msk_error_text_part:
-        write_message_part(curr_seg->variant.msg_part, curr_seg->length,
-                           buffer, line_len, wrap, /*quoted_text=*/FALSE,
-                           start_of_message);
-        break;
-      case msk_user_string:
-        if (curr_seg->variant.string.quoted) {
-          goto handle_embedded_quoted_text;
-        }  /* if */
-        write_message_part(error_msg_strings[curr_seg->sequence_no], -1,
-                           buffer, line_len, wrap, /*quoted_text=*/FALSE,
-                           start_of_message);
-        break;
-      case msk_source_position:
-      case msk_type:
-      case msk_symbol:
-handle_embedded_quoted_text:
-        if (curr_seg->first_quote == NULL) {
-          write_message_part(curr_seg->segment, -1, buffer, line_len,
-                             wrap, /*quoted_text=*/FALSE,
-                             start_of_message);
-        } else {
-          /* This segment contains double quoted text which should not be
-             broken across lines. */
-          total_len = 0;
-          if (curr_seg->segment != curr_seg->first_quote) {
-            total_len = (int32_t)(curr_seg->first_quote - curr_seg->segment);
-            write_message_part(curr_seg->segment, total_len, buffer,
-                               line_len, wrap, /*quoted_text=*/FALSE,
-                               start_of_message);
-            start_of_message = FALSE;
-          }  /* if */
-          /* Output the quoted text as a single unit. */
-          total_len += length = (int32_t)(curr_seg->second_quote -
-                                          curr_seg->first_quote + 1);
-          write_message_part(curr_seg->first_quote, length, buffer, line_len,
-                             wrap, /*quoted_text=*/TRUE,
-                             start_of_message);
-          start_of_message = FALSE;
-          /* Check for any fragment following the quoted text. */
-          if ((length = curr_seg->length - total_len) > 0) {
-            write_message_part(curr_seg->second_quote + 1, length, buffer,
-                               line_len, wrap, /*quoted_text=*/FALSE,
-                               start_of_message);
-          }  /* if */
-        }  /* if */
-        break;
-      default:
-        unexpected_condition_str("write_message: bad message kind");
-    }  /* switch */
-    start_of_message = FALSE;
-  }  /* for */
-  putcb('\n', buffer);
-}  /* write_message */
-
-
-static void write_position(a_const_char      *file_name,
-                           a_line_number     line_number,
-                           a_column_number   column_number,
-                           int               *line_len)
-/*
-Write the source position (filename and line number -- when non-zero) to the
-write_diagnostic_buffer text buffer.  If column_number is not SP_COL_UNKNOWN,
-the column number is added into the output.
+Add the source position (filename and line number -- when non-zero) to
+msg_buffer.  If column_number is not SP_COL_UNKNOWN, the column number is
+also added.
 */
 {
   char              number_buffer[50];
   a_const_char      *error_text_string;
-  a_text_buffer_ptr buffer = write_diagnostic_buffer;
 
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
@@ -2641,63 +2415,55 @@ the column number is added into the output.
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
     error_text_string = error_text(ec_Line);
-    *line_len += add_string_to_text_buffer(buffer, error_text_string);
-    *line_len += add_string_to_text_buffer(buffer, " ");
-    *line_len += add_string_to_text_buffer(buffer, number_buffer);
+    add_string_to_text_buffer(prefix_buffer, error_text_string);
+    add_string_to_text_buffer(prefix_buffer, " ");
+    add_string_to_text_buffer(prefix_buffer, number_buffer);
   } else {
-    *line_len += add_string_to_text_buffer(buffer, "\"");
+    add_string_to_text_buffer(prefix_buffer, "\"");
     /* Don't convert '\' to '\\' in error message output.  The
        name should be displayed as written by the user.  This also
        prevents doubling of directory separators on Windows. */
-    *line_len += write_file_name_to_text_buffer(file_name, buffer,
-                                          /*process_escapes=*/FALSE,
-                                          /*escape_nonprintable_chars=*/FALSE);
-    *line_len += add_string_to_text_buffer(buffer, "\"");
+    write_file_name_to_text_buffer(file_name, prefix_buffer,
+                                   /*process_escapes=*/FALSE,
+                                   /*escape_nonprintable_chars=*/FALSE);
+    add_string_to_text_buffer(prefix_buffer, "\"");
     if (line_number != SP_LINE_UNKNOWN) {
       (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
       error_text_string = error_text(ec_line);
-      *line_len += add_string_to_text_buffer(buffer, ", ");
-      *line_len += add_string_to_text_buffer(buffer, error_text_string);
-      *line_len += add_string_to_text_buffer(buffer, " ");
-      *line_len += add_string_to_text_buffer(buffer, number_buffer);
+      add_string_to_text_buffer(prefix_buffer, ", ");
+      add_string_to_text_buffer(prefix_buffer, error_text_string);
+      add_string_to_text_buffer(prefix_buffer, " ");
+      add_string_to_text_buffer(prefix_buffer, number_buffer);
     }  /* if */
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
     (void)sprintf(number_buffer, "%d", column_number);
     error_text_string = error_text(ec_col);
-    *line_len += add_string_to_text_buffer(buffer, " (");
-    *line_len += add_string_to_text_buffer(buffer, error_text_string);
-    *line_len += add_string_to_text_buffer(buffer, " ");
-    *line_len += add_string_to_text_buffer(buffer, number_buffer);
-    *line_len += add_string_to_text_buffer(buffer, ")");
+    add_string_to_text_buffer(prefix_buffer, " (");
+    add_string_to_text_buffer(prefix_buffer, error_text_string);
+    add_string_to_text_buffer(prefix_buffer, " ");
+    add_string_to_text_buffer(prefix_buffer, number_buffer);
+    add_string_to_text_buffer(prefix_buffer, ")");
   }  /* if */
-}  /* write_position */
+}  /* add_position_prefix */
 
 
-static void write_position_and_severity(
-                                    an_error_code         error_code,
-                                    an_error_severity     severity,
-                                    a_source_position     *error_pos,
-                                    a_const_char          **file_name,
-                                    a_line_number         *line_number,
-                                    a_boolean             *src_text_needed,
-                                    a_unicode_source_kind *unicode_source_kind,
-                                    a_boolean             *in_curr_src_line,
-                                    int                   *line_len)
+static void add_primary_prefix(a_diagnostic_ptr	dp)
 /*
 Write the source position (file name and line number) and severity to the
-write_diagnostic_buffer text buffer.  Determine if the actual source line is
+prefix_buffer text buffer.  Determine if the actual source line is
 available, either in the current source line or able to be reread from one of
 the source files.   If the actual source line is not available, the column
 number is added into the output.
 */
 {
-  a_const_char  *full_name, *error_text_string;
-  a_boolean	at_end_of_source;
-  a_boolean     capitalize_severity;
-  a_boolean     column_needed;
-  a_boolean	local_display_error_number;
-  an_error_code	severity_code;
+  a_const_char			*error_text_string;
+  a_boolean			capitalize_severity;
+  a_boolean			column_needed;
+  a_boolean			local_display_error_number;
+  an_error_code			severity_code;
+  a_source_info_for_pos_ptr	sifpp = &dp->diag_header_source_info;
+  a_source_position		*pos = &dp->diag_header_pos;
 
 #if STANDALONE_UTILITY_PROGRAM
   local_display_error_number = FALSE;
@@ -2707,37 +2473,28 @@ number is added into the output.
      caller passes the value ec_no_error, the error number display is
      suppressed. */
   local_display_error_number = display_error_number && 
-                               error_code != ec_no_error;
+                               dp->error_code != ec_no_error;
 #endif /* STANDALONE_UTILITY_PROGRAM */
   capitalize_severity = FALSE;
-  *src_text_needed = FALSE;
-  *unicode_source_kind = usk_none;
-  *in_curr_src_line = FALSE;
   /* Determine the source position (file, line number). */
 #if !STANDALONE_UTILITY_PROGRAM
   if (processing_predefined_macro) {
     /* The error concerns a line in the predefined macro file. */
     error_text_string = error_text(ec_predef_macro_file);
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                           error_text_string);
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
+    add_string_to_text_buffer(prefix_buffer, error_text_string);
+    add_string_to_text_buffer(prefix_buffer, ": ");
   } else
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (error_pos->seq == 0) {
+  if (pos->seq == 0) {
     /* Error position is in the command line or in initialization. */
     /* No position indication is written. */
     capitalize_severity = TRUE;
   } else {
-    /* Get the file name and line number associated with the sequence
-       number. */
-    conv_seq_to_file_and_line(error_pos->seq, file_name, &full_name,
-                              line_number, &at_end_of_source);
-    if (at_end_of_source) {
+    if (sifpp->at_end_of_source) {
       /* After end of source. */
       error_text_string = error_text(ec_at_end_of_source2);
-      *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                             error_text_string);
-      *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
+      add_string_to_text_buffer(prefix_buffer, error_text_string);
+      add_string_to_text_buffer(prefix_buffer, ": ");
     } else {
       /* Normal line in file, not end of file. */
 #if STANDALONE_UTILITY_PROGRAM
@@ -2749,44 +2506,47 @@ number is added into the output.
 		      /*lint --e(506)*/COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS;
       /* If the line is the current one, print it and a caret indicating
          the position. */
-      if (error_pos->seq >= curr_seq_number) {
+      if (pos->seq >= curr_seq_number) {
         /* The sequence number falls within the sequence numbers for the
            current logical source line (it can't be past the current
            line). */
-        *src_text_needed = TRUE;
-        *in_curr_src_line = TRUE;
       } else {
         /* The sequence number is not in the current logical source line.
            Try to relocate the source line in the known source files. */
-        if (can_locate_source_line(error_pos->seq, unicode_source_kind)) {
+        if (can_locate_source_line(pos->seq,
+                                   &sifpp->unicode_source_kind)) {
           /* The source line has been read into the error_source_line
              buffer. */
-          *src_text_needed = TRUE;
         } else {
           /* The source line could not be reread.  Print column if it is
              nonzero. */
-          column_needed = (error_pos->column != 0);
+          column_needed = (pos->column != 0);
         }  /* if */
       }  /* if */
 #endif /* STANDALONE_UTILITY_PROGRAM */
       /* Print the file and line number, with a column number if the
          position could not be indicated via a caret pointing to the
          source of the current line. */
-      write_position(*file_name, *line_number,
-                     column_needed ? error_pos->column : SP_COL_UNKNOWN,
-                     line_len);
-      *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
+      add_position_prefix(sifpp->file_name, sifpp->line_number,
+                          column_needed ? pos->column
+                                        : SP_COL_UNKNOWN);
+      add_string_to_text_buffer(prefix_buffer, ": ");
     }  /* if */
   }  /* if */
   /* Determine the appropriate severity string, and also count this
      diagnostic against the total for the severity. */
-  switch (severity) {
+  switch (dp->severity) {
     case es_remark:
       severity_code = capitalize_severity ? ec_Remark : ec_remark;
       total_remarks++;
       break;
     case es_warning:
       severity_code = capitalize_severity ? ec_Warning : ec_warning;
+      total_warnings++;
+      break;
+    case es_command_line_warning:
+      severity_code = capitalize_severity ? ec_Command_line_warning
+                                          : ec_command_line_warning;
       total_warnings++;
       break;
     case es_discretionary_error:
@@ -2817,12 +2577,11 @@ number is added into the output.
     case es_none:
     default:
       severity_code = ec_error;
-      unexpected_condition_str("write_position_and_severity: bad severity");
+      unexpected_condition_str("add_primary_prefix: bad severity");
   }  /* switch */
   if (severity_code != ec_no_error) {
     error_text_string = error_text(severity_code);
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                           error_text_string);
+    add_string_to_text_buffer(prefix_buffer, error_text_string);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -2831,26 +2590,21 @@ number is added into the output.
        severity may be changed. */
     a_boolean is_discretionary;
     char      number_buffer[50];
-    (void)sprintf(number_buffer, "%d", (int)error_code);
-    is_discretionary = ((int)severity <= (int)es_discretionary_error);
-    error_text_string = error_text(is_discretionary ? ec_discretionary_suffix
+    (void)sprintf(number_buffer, "%d", (int)dp->error_code);
+    is_discretionary = ((int)dp->severity <= (int)es_discretionary_error);
+    error_text_string = error_text(
+                               is_discretionary ? ec_discretionary_suffix
                                                 : ec_non_discretionary_suffix);
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer, " #");
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                           number_buffer);
-    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                           error_text_string);
+    add_string_to_text_buffer(prefix_buffer, " #");
+    add_string_to_text_buffer(prefix_buffer, number_buffer);
+    add_string_to_text_buffer(prefix_buffer, error_text_string);
   }  /* if */
-  *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
-}  /* write_position_and_severity */
+  add_string_to_text_buffer(prefix_buffer, ": ");
+}  /* add_primary_prefix */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void write_diag_to_raw_listing(an_error_severity          severity,
-                                      a_const_char               *file_name,
-                                      a_line_number              line_number,
-                                      a_source_position          *error_pos,
-                                      a_diagnostic_category_kind diag_kind)
+static void write_diag_to_raw_listing(a_diagnostic_ptr	dp)
 /*
 If raw-listing information has been requested, the diagnostic message
 is also output to the raw-listing file in coded form, for later
@@ -2860,19 +2614,21 @@ incorporation into the listing.  The coded form output line has the form:
 
 where "S" is R for remark, W for warning, E for error, and C for
 catastrophe, command-line error, or internal error.  If the diagnostic
-message is an additional message (dck_list), the coded severity is
-in lower case.
+message is an additional message, the coded severity is in lower case.
 */
 {
-  int    line_len;
-  char   severity_char;
+  char			severity_char;
+  a_diagnostic_ptr	primary_dp;
 
+  /* Use the primary diagnostic to determine the severity. */
+  primary_dp = dp->primary_diag != NULL ? dp->primary_diag : dp;
   /* Start with the severity code character. */
-  switch (severity) {
+  switch (primary_dp->severity) {
     case es_remark:
       severity_char = 'R';
       break;
     case es_warning:
+    case es_command_line_warning:
       severity_char = 'W';
       break;
     case es_discretionary_error:
@@ -2889,13 +2645,15 @@ in lower case.
       severity_char = '?';
       unexpected_condition_str("write_diag_to_raw_listing: bad severity");
   }  /* switch */
-  if (diag_kind == dck_list || diag_kind == dck_context_primary) {
+  if (dp->primary_diag != NULL) {
+    /* For things that are not top-level diagnostics, the severity is
+       put out in lower case. */
     severity_char = tolower((int)severity_char);
   }  /* if */
   (void)putc(severity_char, f_raw_listing);
   (void)fputc(' ', f_raw_listing);
   /* Determine the source position (file, line number). */
-  if (error_pos->seq == 0) {
+  if (dp->position.seq == 0) {
     /* Error position is in the command line or in initialization. */
     fputs("\"\" 0 0 ", f_raw_listing);
   } else {
@@ -2903,373 +2661,40 @@ in lower case.
        conv_seq_to_file_and_line has returned the position of the
        last line of the primary source file for the end-of-source case. */
     fprintf(f_raw_listing, "\"%s\" %lu %d ",
-            format_file_name(file_name), (unsigned long)line_number,
-            error_pos->column);
+            format_file_name(primary_dp->source_info.file_name),
+            (unsigned long)primary_dp->source_info.line_number,
+            dp->position.column);
   }  /* if */
   /* For an internal error, the coded-form message indicates only that the
      error is catastrophic, so we add text to indicate that it is an
      internal error. */
-  if (severity == es_internal_error) {
+  if (primary_dp->severity == es_internal_error) {
     fputs("(internal error) ", f_raw_listing);
   }  /* if */
   /* Put out the error message text. */
-  line_len = 0;  /* Meaningless. */
-  if (write_message_buffer == NULL) {
-    /* Allocate a buffer if we haven't yet already. */
-    write_message_buffer = alloc_text_buffer(256);
-  }  /* if */
-  /* Start at the beginning of the buffer. */
-  reset_text_buffer(write_message_buffer);
-  write_message(write_message_buffer, &line_len, /*wrap=*/FALSE);
-  /* Null terminate the buffer and write it. */
-  putcb('\0', write_message_buffer);
-  fputs(write_message_buffer->buffer, f_raw_listing);
+  fputs(msg_buffer->buffer, f_raw_listing);
+  (void)fputc('\n', f_raw_listing);
 }  /* write_diag_to_raw_listing */
 
+/* Forward declarations. */
+static a_boolean in_secondary_translation_unit(a_source_position *pos);
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-/* Forward declaration. */
-static void diag_message(an_error_code              error_code,
-                         a_source_position          *error_pos,
-                         an_error_severity          severity,
-                         a_diagnostic_category_kind diag_kind);
-
-
-static void write_diagnostic(an_error_code              error_code,
-                             a_source_position          *error_pos,
-                             an_error_severity          severity,
-                             a_diagnostic_category_kind diag_kind)
-/*
-Write out a diagnostic message with the given message string, position, and
-severity.  If the error is severe, terminate the compilation.
-The message to be written is the concatenation of the linked list of
-message segments pointed to by the static variable error_message_head.
-The diagnostic category is specified by diag_kind.  The error position and
-severity will be valid only on single (stand alone) diagnostics or the 
-primary message of a multiple message diagnostic.  These values will
-be preserved in static variables for use on subsequent calls to process
-additional messages in a multiple message diagnostic.
-
-The entire diagnostic is accumulated in the write_diagnostic_buffer text buffer
-and emitted with a single system call.  This atomic operation reduces the
-likelihood of diagnostic messages becoming intermingled during a parallel
-compilation.
-*/
-{
-		
-  static a_const_char           *file_name;
-  static a_line_number          line_number;
-  static a_boolean              source_text_needed;
-  static a_unicode_source_kind  unicode_source_kind;
-  static a_boolean              in_current_source_line;
-  int                           line_len;
-  a_source_position             local_pos;
-#if FULLY_RESOLVED_MACRO_POSITIONS
-  a_const_char                  *full_name;
-  a_boolean                     at_end_of_source;
-  int                           save_diagnostic_indent;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#if RECORD_MACRO_INVOCATIONS
-  static a_source_position      full_pos;
-  a_macro_invocation_record_ptr mirp = NULL;
-#endif /* RECORD_MACRO_INVOCATIONS */
-
-  if (write_diagnostic_recursion_level == 0) {
-    /* Allocate the diagnostic buffer if this is our first time. */
-    if (write_diagnostic_buffer == NULL) {
-      write_diagnostic_buffer = alloc_text_buffer(1024);
-    }  /* if */
-    /* Start at the beginning of the buffer. */
-    reset_text_buffer(write_diagnostic_buffer);
-  } else {
-    /* Append error message to the existing text for this diagnostic. */
-  }  /* if */
-  write_diagnostic_recursion_level++;
-#if FULLY_RESOLVED_MACRO_POSITIONS
-  if (error_pos->orig_seq != 0 &&
-      (macro_positions_in_diagnostics ||
-       error_pos->orig_seq >= error_pos->seq)) {
-    /* Use the original position of the text for the first part of the
-       message (i.e., if the text is in a macro expansion, the position will
-       indicate the macro definition or macro argument from which the text
-       was copied).  We use the normal position if the original position is
-       in a command-line or predefined macro (orig_seq == 0), and if
-       macro_positions_in_diagnostics is FALSE, we only use the original
-       position if it is in a macro argument (a reference to a macro definition
-       will necessarily have orig_seq < seq). */
-    local_pos.seq = error_pos->orig_seq;
-    local_pos.column = error_pos->orig_column;
-  } else {
-    local_pos = *error_pos;
-  }  /* if */
-#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
-  local_pos = *error_pos;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  if ((int)severity < (int)error_threshold) {
-    /* Ignore the message if its severity is below the threshold. */
-  } else {
-    if (diag_kind == (a_diagnostic_category_kind)dck_list) {
-      diagnostic_indent = LIST_DIAG_INDENT;
-    } else if (diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
-      diagnostic_indent = INDENT_AMOUNT;
-    } else if (diag_kind == (a_diagnostic_category_kind)dck_macro_context) {
-      diagnostic_indent = MACRO_CONTEXT_INDENT;
-    } else {
-      diagnostic_indent = NORMAL_DIAG_INDENT;
-    }  /* if */
-#if FULLY_RESOLVED_MACRO_POSITIONS
-    save_diagnostic_indent = diagnostic_indent;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-
-    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
-      /* Perform any indentation needed (based on the category kind) */
-      for (line_len = 0; line_len < diagnostic_indent; line_len++) {
-        putcwdb(' ');
-      }  /* for */
-    }  /* if */
-
-    if (diag_kind == dck_standalone || diag_kind == dck_primary) {
-      /* Collect and output error position and severity information. */
-      write_position_and_severity(error_code, severity, &local_pos, &file_name,
-                                  &line_number,
-                                  &source_text_needed,
-                                  &unicode_source_kind,
-                                  &in_current_source_line,
-                                  &line_len);
-#if FULLY_RESOLVED_MACRO_POSITIONS
-      if (local_pos.seq != error_pos->seq ||
-          local_pos.column != error_pos->column) {
-        /* The values of file_name and line_number set by
-           write_position_and_severity were based on the original position
-           in error_pos.  Those are possibly not suitable for use by
-           write_diag_to_raw_listing below, as they may reflect a macro
-           definition line, making it impossible to associate the error with
-           the section of code where it occurred.  We therefore reset those
-           values to reflect the normal position in error_pos. */
-        conv_seq_to_file_and_line(error_pos->seq, &file_name, &full_name,
-                                  &line_number, &at_end_of_source);
-      }  /* if */
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-    }  /* if */
-
-    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
-      /* There is a message to be formatted and written. */
-      /* Add the error message text to the text buffer. */
-      write_message(write_diagnostic_buffer, &line_len,
-                    /*wrap=*/!brief_diagnostics && !do_not_wrap_diagnostics);
-
-#if !STANDALONE_UTILITY_PROGRAM
-      /* The message is always output to f_error so that the user can see it.
-         If raw-listing information has been requested, it is also output to
-         the raw-listing file in coded form, for later incorporation into the
-         listing.  */
-      if (f_raw_listing != NULL && diag_kind != dck_macro_context) {
-        /* We will use the normal position, not the original position, for
-           the raw listing, because otherwise there is no way to figure out
-           where in the source code the error originated. */
-        /* This diagnostic is not added to the accumulated diagnostic in
-           write_diagnostic_buffer; it is handled separately. */
-        write_diag_to_raw_listing(severity, file_name, line_number,
-                                  error_pos, diag_kind);
-      }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    }  /* if */
-
-    if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
-#if !STANDALONE_UTILITY_PROGRAM
-      if (source_text_needed && !brief_diagnostics) {
-        /* Write the source text line, with a caret pointing to the location
-           of the error. */
-        if (in_current_source_line) {
-          /* Write the source line text from the curr_source_line buffer. */
-          write_orig_source_line(&local_pos);
-        }  else {
-          /* Write the source line text from the error_source_line buffer. */
-          write_error_source_line(&local_pos, unicode_source_kind);
-        }  /* if */
-#if RECORD_MACRO_INVOCATIONS
-        if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
-            macro_positions_in_diagnostics) {
-          /* Print a trace of the macro invocation stack in effect at
-             error_pos.  Note that the last (bottommost) stack frame is
-             omitted in this trace because it will refer to the same position
-             as the normal position in error_pos, which will be printed
-             below before the source line. */
-          int                             stack_depth = 0;
-          int                             i;
-          a_boolean                       frames_omitted_msg_printed = FALSE;
-          a_source_position               save_error_pos = *error_pos;
-
-          for (mirp =
-                    macro_invocation_record_at_index(error_pos->macro_context);
-               mirp != NULL &&
-                        mirp->parent_macro_index != NO_PARENT_MACRO_INVOCATION;
-               mirp =
-                  macro_invocation_record_at_index(mirp->parent_macro_index)) {
-            ++stack_depth;
-          }  /* for */
-          mirp = macro_invocation_record_at_index(error_pos->macro_context);
-          for (i = 0; i < stack_depth; ++i) {
-            if (i < 5 || i >= stack_depth - 4) {
-              init_error_params();
-              if (mirp->assoc_macro != NULL) {
-                error_msg_strings[1] = mirp->assoc_macro->source_corresp.name;
-              } else {
-                error_msg_strings[1] = error_text(ec_name_of_unknown_macro);
-              }  /* if */
-              copy_simple_position_to_full_position(mirp->start, full_pos);
-              error_msg_positions[1] = &full_pos;
-              diag_message(ec_in_expansion_of_macro, &null_source_position,
-                           severity, dck_macro_context);
-            } else if (!frames_omitted_msg_printed) {
-              static char buffer[20];
-              init_error_params();
-              (void)sprintf(buffer, "%d", stack_depth - 9);
-              error_msg_strings[1] = buffer;
-              diag_message(ec_macro_context_lines_skipped, error_pos,
-                           severity, dck_macro_context);
-              frames_omitted_msg_printed = TRUE;
-            }  /* if */
-            mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
-          }  /* for */
-          *error_pos = save_error_pos;
-        }  /* if */
-#endif /* RECORD_MACRO_INVOCATIONS */
-      }  /* if */
-#if FULLY_RESOLVED_MACRO_POSITIONS
-      if (macro_positions_in_diagnostics) {
-        a_boolean             need_generic_introducer;
-        a_unicode_source_kind macro_unicode_source_kind;
-        if (local_pos.seq != error_pos->seq) {
-          /* The original source line printed above was a #define, so we will
-             try to display the source line containing the macro invocation.
-             (This code relies on the results of the call to
-             conv_seq_to_file_and_line above.) */
-          if (error_pos->seq == 0 || at_end_of_source) {
-            /* This should never happen, but just in case... */
-            source_text_needed = FALSE;
-          } else {
-            source_text_needed = source_text_needed && !brief_diagnostics;
-            if (source_text_needed && error_pos->seq < curr_seq_number) {
-              /* Not in current source line -- see if we can print it. */
-              source_text_needed = can_locate_source_line(
-                                                   error_pos->seq,
-                                                   &macro_unicode_source_kind);
-            }  /* if */
-          }  /* if */
-          need_generic_introducer = TRUE;
-        } else {
-          /* Either there was no macro invocation involved in the position or
-             the original position designated a macro argument; in either
-             case, there will be no second source line. */
-          source_text_needed = FALSE;
-          need_generic_introducer = (local_pos.column != error_pos->column);
-        }  /* if */
-#if RECORD_MACRO_INVOCATIONS
-        if (mirp != NULL) {
-          /* We still need to print the last line of the stack trace.  That
-             will either stand alone or be the introducer for the source line,
-             if one is to be printed, so we do not need a generic introducer,
-             regardless of the calculations above. */
-          need_generic_introducer = FALSE;
-          init_error_params();
-          if (mirp->assoc_macro != NULL) {
-            error_msg_strings[1] = mirp->assoc_macro->source_corresp.name;
-          } else {
-            error_msg_strings[1] = error_text(ec_name_of_unknown_macro);
-          }  /* if */
-          error_msg_strings[2] = source_text_needed ? ":" : ".";
-          copy_simple_position_to_full_position(mirp->start, full_pos);
-          error_msg_positions[1] = &full_pos;
-          diag_message(ec_in_expansion_of_macro_last, &null_source_position,
-                       severity, dck_macro_context);
-        }  /* if */
-#endif /* RECORD_MACRO_INVOCATIONS */
-        if (need_generic_introducer) {
-          /* There was no stack trace, so we don't know the name of the
-             macro involved -- use a more generic message. */
-          a_const_char *gen_text = error_text(ec_in_macro_expansion_at);
-          for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
-            putcwdb(' ');
-          }  /* for */
-          line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                                gen_text);
-          write_position(file_name, line_number,
-                         source_text_needed ? SP_COL_UNKNOWN :
-                         error_pos->column, &line_len);
-          putcwdb(source_text_needed ? ':' : '.');
-          putcwdb('\n');
-        }  /* if */
-        if (source_text_needed) {
-          diagnostic_indent = save_diagnostic_indent;
-          if (error_pos->seq >= curr_seq_number) {
-            /* In current source line. */
-            write_orig_source_line(error_pos);
-          } else {
-            /* Text is in the error source line. */
-            write_error_source_line(error_pos, macro_unicode_source_kind);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    }  /* if */
-    if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
-         diag_kind == dck_end_context) &&
-	!context_required && !brief_diagnostics) {
-      /* Put out an extra space line after the error, for clarity.  The
-         space is suppressed if a context message is to follow since the
-         space should follow the context. */
-      putcwdb('\n');
-    }  /* if */
-  }  /* if */
-
-  write_diagnostic_recursion_level--;
-  if (write_diagnostic_recursion_level == 0) {
-    /* We've accumulated the entire diagnostic -- null terminate it and
-       write it to f_error, flushing after we're done. */
-    putcwdb('\0');
-    fputs(write_diagnostic_buffer->buffer, f_error);
-    (void)fflush(f_error);
-  }  /* if */
-  if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
-       diag_kind == dck_end_context) && !context_required ) {
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
-    /* If there are any errors, suppress generation of the intermediate
-       language file. */
-    if (total_errors + total_catastrophes > 0) cancel_il_file();
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
-    /* Terminate the compilation for the more serious severities. */
-    if (severity == es_catastrophe || severity == es_command_line_error ||
-        severity == es_internal_error) {
-      /* Force out the last line of the raw listing file. */
-#if !STANDALONE_UTILITY_PROGRAM
-      finish_raw_listing_file();
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-      term_compilation(severity);
-    }  /* if */
-    /* Terminate the compilation if the error limit has been reached.  Note
-       that remarks and warnings are never counted. */
-    if (total_errors + total_catastrophes >= error_limit) {
-#if !USING_DRIVER
-      fprintf(f_error, "%s\n", error_text(ec_error_limit_reached));
-#endif /* !USING_DRIVER */
-#if !STANDALONE_UTILITY_PROGRAM
-      if (f_raw_listing != NULL) {
-        fprintf(f_raw_listing, "C \"\" 0 0 error limit reached\n");
-      }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-      /* Force out the last line of the raw listing file. */
-#if !STANDALONE_UTILITY_PROGRAM
-      finish_raw_listing_file();
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-      term_compilation(es_catastrophe);
-    }  /* if */
-  }  /* if */
-}  /* write_diagnostic */
-
+static void general_diagnostic(
+			an_error_severity	error_severity,
+			an_error_code		error_code,
+			a_source_position	*error_pos,
+			a_const_char		*string1,
+			a_const_char		*string2,
+			a_symbol_ptr		symbol1,
+			a_symbol_ptr		symbol2,
+			a_type_ptr		type1,
+			a_type_ptr		type2,
+			a_source_position	*other_pos);
 
 #if CHECKING
+
 static a_boolean internal_error_loop;
 			/* Set to TRUE once an internal error has been
 			   detected.  Used to detect a loop in internal
@@ -3288,22 +2713,14 @@ An internal error has occurred.  Write the given message and abort.
     term_compilation(es_internal_error);
   }  /* if */
   internal_error_loop = TRUE;
-  init_error_params();
-  error_msg_strings[1] = error_message;
-  construct_message_segments("%s");
-  if (write_diagnostic_recursion_level > 0) {
-    /* We're in the midst of reporting an error.  Flush the current
-       diagnostic and reset the recursion level so the internal error
-       diagnostic will start anew. */
-    putcwdb('\0');
-    fputs(write_diagnostic_buffer->buffer, f_error);
-    (void)fflush(f_error);
-    write_diagnostic_recursion_level = 0;
-  }  /* if */
-  write_diagnostic(ec_no_error, &error_position, es_internal_error,
-                   dck_standalone);
+  general_diagnostic(es_internal_error, ec_internal_error_fill_in,
+                     &error_position,
+                     error_message, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  write_diagnostic does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* internal_error */
@@ -3411,94 +2828,6 @@ expected_error.
 
 #endif /* CHECKING */
 
-
-DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
-                                       a_const_char  *concat_string)
-/*
-Write a command-line error message concatenated with concat_string, and
-terminate the compilation.
-*/
-{
-  set_position_to(error_position, 0, SP_COL_CMD_LINE);
-  init_error_params();
-  error_msg_strings[1] = error_text(error_code);
-  error_msg_strings[2] = concat_string;
-  construct_message_segments("%s1%s2");
-
-  write_diagnostic(error_code, &error_position, es_command_line_error,
-                   dck_standalone);
-#ifdef __GNUC__
-  /* Avoid gcc warning.  write_diagnostic does not return in this case. */
-  exit_compilation(es_internal_error);
-#endif /* __GNUC__ */
-}  /* str_command_line_error */
-
-
-DOES_NOT_RETURN command_line_error(an_error_code error_code)
-/*
-Write a command-line error message, and terminate the compilation.
-*/
-{
-  str_command_line_error(error_code, "");
-}  /* command_line_error */
-
-#if CHECKING
-
-/*ARGSUSED*/ /* <-- because "error_code" is not used in some versions. */
-static void check_if_fill_in_used(enum a_message_segment_kind_tag kind,
-                                  int                             seq_no,
-                                  an_error_code                   error_code)
-/*
-As a sanity check, report any fill-in that has not been incorporated into
-the diagnostic being formed.  kind denotes which of string, type, or symbol
-fill-in kind is to be checked; seq_no specifies the sequence number of
-that fill-in kind.  error_code is provided for debugging information.
-*/
-{
-  a_msg_segment_ptr  curr_seg;
-#if DEBUG
-  a_const_char	   *s;
-#endif /* DEBUG */
-
-  for (curr_seg = error_message_head;
-       curr_seg != NULL && curr_seg->kind != (a_message_segment_kind)msk_last;
-       curr_seg = curr_seg->next ) {
-    if (curr_seg->kind == (a_message_segment_kind)kind && 
-        curr_seg->sequence_no == seq_no) {
-      /* The fill-in to be checked has been used. */
-      goto return_point;
-    }  /* if */
-  }  /* for */
-  /* Having scanned the complete list of message segments, this fill-in
-     obviously has not been used. */
-#if DEBUG
-  switch (kind) {
-    case msk_user_string:
-      s = "string %s";
-      break;
-    case msk_type:
-      s = "type %t";
-      break;
-    case msk_symbol:
-      s = "symbol %n";
-      break;
-    default:
-      s = "";
-  }  /* switch */
-  if (debug_level > 0) {
-    (void)fprintf(f_debug, "Provided diagnostic fill-in %s%d was not used.\n",
-                  s, seq_no);
-    (void)fprintf(f_debug,
-                  "  error message = \"%s\"\n", error_text(error_code));
-  }  /* if */
-#endif /* DEBUG */
-  internal_error(
-           "check_if_fill_in_used: provided diagnostic fill-in was not used");
-return_point:;
-}  /* check_if_fill_in_used */
-
-#endif /* CHECKING */
-
 static void check_for_overridden_severity(an_error_code     error_code,
 					  an_error_severity *severity)
 /*
@@ -3524,84 +2853,34 @@ static an_error_severity  cs_saved_severity;
 			   front end. */
 
 				
-static a_boolean check_severity(an_error_code		   error_code,
-                                a_source_position          **error_pos,
-                                an_error_severity          *severity,
-                                a_diagnostic_category_kind diag_kind)
+static a_boolean check_severity(a_diagnostic_ptr	dp)
 /*
 Determine whether this message should have its severity overridden by a
 value specified on the command line.  Compare the resulting error severity
 with the threshold setting to see if this diagnostic should be issued.
-If this is a multi-message diagnostic, it may be necessary to save the
-current source position and severity or restore the previously saved settings.
 */
 {
-  static a_source_position  saved_error_position;
-  static an_error_severity  saved_error_threshold;
   an_error_severity	    error_threshold_to_use = es_none;
 
-#if CHECKING
-  /* The saved severity level should be es_default if and only if this is a
-     diagnostic without extra message lines or if it is the first message
-     with such extra lines. */
-  if (diag_kind != dck_macro_context &&
-      (cs_saved_severity == (an_error_severity)es_default) !=
-      (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
-       diag_kind == (a_diagnostic_category_kind)dck_primary ||
-       diag_kind == (a_diagnostic_category_kind)dck_context_primary)) {
-    internal_error("check_severity: bad saved severity");
-  }  /* if */
-#endif /* CHECKING */
-  if (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
-      diag_kind == (a_diagnostic_category_kind)dck_primary ||
-      diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
-    /* A standalone message or the start of a list. */
-    check_for_overridden_severity(error_code, severity);
-    error_threshold_to_use = error_threshold;
-    if ((int)*severity >= (int)error_threshold) {
-      /* Check whether we are inside a "system" include file in which
-         warnings should be suppressed.  This test is only done if the message
-         would be issued based on the current threshold. */
-      if (seq_is_in_system_header((*error_pos)->seq)) {
-        error_threshold_to_use = es_error;
+  check_for_overridden_severity(dp->error_code, &dp->severity);
+  error_threshold_to_use = error_threshold;
+  if ((int)dp->severity >= (int)error_threshold) {
+    /* Check whether we are inside a "system" include file in which
+       warnings should be suppressed.  This test is only done if the message
+       would be issued based on the current threshold. */
+    if (seq_is_in_system_header(dp->position.seq)) {
+      error_threshold_to_use = es_error;
 #if !STANDALONE_UTILITY_PROGRAM
-      } else if (curr_cmd_line_or_predef_macro_def != NULL) {
-        /* We are processing a command-line or predefined macro definition.
-           Warnings detected during this process are ignored. */
-        error_threshold_to_use = es_discretionary_error;
+    } else if (curr_cmd_line_or_predef_macro_def != NULL) {
+      /* We are processing a command-line or predefined macro definition.
+         Warnings detected during this process are ignored. */
+      error_threshold_to_use = es_discretionary_error;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-      }  /* if */
-    }
-    if (diag_kind != (a_diagnostic_category_kind)dck_standalone) {
-      /* The principal message of a multiple message diagnostic.  Save the
-         arguments for later calls. */
-      copy_source_position(**error_pos, saved_error_position);
-      cs_saved_severity = *severity;
     }  /* if */
-    saved_error_threshold = error_threshold_to_use;
-  } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
-             diag_kind == (a_diagnostic_category_kind)dck_end_list ||
-             diag_kind == (a_diagnostic_category_kind)dck_end_context) {
-    /* Reuse the error position and severity from the primary diagnostic. */
-    *error_pos = &saved_error_position;
-    *severity = cs_saved_severity;
-    error_threshold_to_use = saved_error_threshold;
-#if CHECKING
-    if (diag_kind == (a_diagnostic_category_kind)dck_end_list ||
-        diag_kind == (a_diagnostic_category_kind)dck_end_context) {
-      cs_saved_severity = (an_error_severity)es_default;
-    }  /* if */
-#endif /* CHECKING */
-  } else {
-    /* The only remaining diagnostic kind is for macro context lines, which
-       are issued directly from write_diagnostic and thus should not change
-       either the current or saved position and severity. */
-    check_assertion(diag_kind == dck_macro_context);
-    error_threshold_to_use = saved_error_threshold;
   }  /* if */
   check_assertion((int)error_threshold_to_use != (int)es_none);
   /* Return FALSE if the current severity is below the threshold. */
-  return ((int)*severity >= (int)error_threshold_to_use);
+  return ((int)dp->severity >= (int)error_threshold_to_use);
 }  /* check_severity */
 
 
@@ -3859,10 +3138,7 @@ Return TRUE if one is found.
 
 
 static a_boolean diagnostic_already_issued_for_prototype(
-				an_error_code			error_code,
-				an_error_severity		severity,
-				a_source_position		*error_pos,
-                                a_diagnostic_category_kind	diag_kind)
+						a_diagnostic_ptr	dp)
 /*
 This routine is used to prevent duplication of diagnostics in
 templates.  When a diagnostic is issued during a prototype instantiation
@@ -3874,41 +3150,26 @@ Return TRUE if the diagnostic should be suppressed.
 */
 {
   a_boolean		suppress_diagnostic = FALSE;
-  static a_boolean	saved_suppress_diagnostic;
 
-  if (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
-      diag_kind == (a_diagnostic_category_kind)dck_primary ||
-      diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
-    /* A standalone message or the start of a list. */
-    if (depth_scope_stack == NO_SCOPE_DEPTH) {
-      /* The scope stack is empty, don't check further (probably a
-         command-line error. */
-    } else if (find_prototype_diagnostic(error_code, severity, error_pos)) {
-      suppress_diagnostic = TRUE;
-    } else if (is_template_dependent_context() ||
+  if (depth_scope_stack == NO_SCOPE_DEPTH) {
+    /* The scope stack is empty, don't check further (probably a
+       command-line error. */
+  } else if (find_prototype_diagnostic(dp->error_code, dp->severity,
+                                       &dp->position)) {
+    suppress_diagnostic = TRUE;
+  } else if (is_template_dependent_context() ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               scope_stack_top().in_generic_definition ||
+             scope_stack_top().in_generic_definition ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-               scope_stack_top().in_disambiguation) {
-      record_prototype_diagnostic(error_code, severity, error_pos);
-    }  /* if */
-    /* Save the result of this check and reuse it for any subordinate
-       messages (list elements, etc.) that may follow. */
-    saved_suppress_diagnostic = suppress_diagnostic;
-  } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
-             diag_kind == (a_diagnostic_category_kind)dck_end_list ||
-             diag_kind == (a_diagnostic_category_kind)dck_end_context) {
-    /* Reuse the saved result from the primary diagnostic or the start of the
-       list. */
-    suppress_diagnostic = saved_suppress_diagnostic;
+             scope_stack_top().in_disambiguation) {
+    record_prototype_diagnostic(dp->error_code, dp->severity, &dp->position);
   }  /* if */
   return suppress_diagnostic;
 }  /* diagnostic_already_issued_for_prototype */
 
 
 static a_boolean diagnostic_already_issued_for_diag_once(
-					an_error_code		error_code,
-					an_error_severity	severity)
+						a_diagnostic_ptr	dp)
 /*
 This routine records the fact that a given diagnostic has been issued and
 also checks whether this occurrence of the diagnostic should be suppressed
@@ -3918,11 +3179,11 @@ diagnostic should be suppressed.
 {
   a_boolean		result = FALSE;
 
-  if ((int)severity <= (int)es_warning &&
-      once_flag_for_error_code[(int)error_code]) {
-    result = diagnostic_issued_for_error_code[(int)error_code];
+  if ((int)dp->severity <= (int)es_warning &&
+      once_flag_for_error_code[(int)dp->error_code]) {
+    result = diagnostic_issued_for_error_code[(int)dp->error_code];
   }  /* if */
-  diagnostic_issued_for_error_code[(int)error_code] = TRUE;
+  diagnostic_issued_for_error_code[(int)dp->error_code] = TRUE;
   return result;
 }  /* diagnostic_already_issued_for_diag_once */
 
@@ -3948,6 +3209,1084 @@ report_gnu_cpp11_extension_if_needed.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+static void process_fill_in(a_diagnostic_ptr	dp,
+			    char		fill_in_char,
+			    char		*options,
+			    int			fill_in_seq)
+/*
+Create a fill-in for the diagnostic specified by "dp".  fill_in_char
+is the character that followed the "%" in the message text.  options
+provides any additional option characters that may have been specified.
+fill_in_seq specifies the fill-in number that was specified, or 1 if there
+was no fill-in number.  For example, if the fill in was "%s2q", fill_in_char
+is "s", options is "q", and fill_in_seq is "2".  The options string is
+null-terminated.
+*/
+{
+  a_boolean		add_quotes = FALSE;
+  a_diag_fill_in_kind	kind;
+  a_diag_fill_in_ptr	dfip;
+
+  /* Determine the fill-in kind associated with this fill-in character. */
+  switch (fill_in_char) {
+    case 'd': kind = dfk_number; break;
+    case 'n': kind = dfk_symbol; break;
+    case 'p': kind = dfk_position; break;
+    case 's': kind = dfk_string; break;
+    case 't': kind = dfk_type; break;
+    default:
+      unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
+  }  /* switch */
+  /* Find the fill-in associated with the specified fill-in kind and
+     sequence number. */
+  for (dfip = dp->fill_in_head; dfip != NULL; dfip = dfip->next) {
+    if (dfip->kind == kind) {
+      /* We've found an entry of the right kind.  See if it is the one
+         specified by the sequence number. */
+      fill_in_seq--;
+      if (fill_in_seq == 0) break;
+    }  /* if */
+  }  /* for */
+  check_assertion_str2(dfip != NULL, "process_fill_in:",
+                       "specified fill-in not found");
+#if CHECKING
+  dfip->fill_in_used = TRUE;
+#endif /* CHECKING */
+  /* Evaluate the option string. */
+  switch (kind) {
+    case dfk_symbol:
+      while (*options != '\0') {
+        char	opt = *options;
+        /* Check for formatting options. */
+        if (opt == 'f') {
+          /* Display complete type and object name. */
+          dfip->variant.symbol.full_type = TRUE;
+        } else if (opt == 'o') {
+          /* Display only the entity name. */
+          dfip->variant.symbol.name_only = TRUE;
+        } else if (opt == 'p') {
+          /* Display function parameters with the name. */
+          dfip->variant.symbol.force_function_params = TRUE;
+        } else if (opt == 't') {
+          /* Use the special template formatting for classes.  This
+             also implies the 'f' option. */
+          dfip->variant.symbol.force_template_name_output = TRUE;
+          dfip->variant.symbol.full_type = TRUE;
+        } else if (opt == 'a') {
+          /* Display the entity name along with associated template
+             arguments. */
+          dfip->variant.symbol.name_only = TRUE;
+          dfip->variant.symbol.template_args = TRUE;
+        } else if (opt == 'd') {
+          /* Display the declaration position following the entity name. */
+          dfip->variant.symbol.decl_pos = TRUE;
+        } else if (opt == 'T') {
+          /* Display the translation unit under certain conditions. */
+          dfip->variant.symbol.trans_unit = TRUE;
+        }  /* if */
+        options++;
+      }  /* while */
+      break;
+    case dfk_string:
+      /* A string can have the "q" (surround with quotes). */
+      while (*options != '\0') {
+        switch (*options) {
+          case 'q': add_quotes = TRUE; break;
+	  default:
+            unexpected_condition_str("process_fill_in: bad option");
+        }  /* switch */
+        options++;
+      }  /* while */
+      break;
+    default:
+      /* For the cases not handled above, no options are expected. */
+      if (*options != '\0') {
+        unexpected_condition_str("process_fill_in: bad option");
+      }  /* if */
+      break;
+  }  /* switch */
+  /* Do the actual generation of the fill-in text. */
+  if (add_quotes) add_char_to_text_buffer(msg_buffer, '"');
+  switch (kind) {
+    case dfk_number:
+      /* A numeric fill-in.  Add it to the message buffer. */
+      { static char	buffer[50];
+        (void)sprintf(buffer, "%d", dfip->variant.number);
+        add_string_to_text_buffer(msg_buffer, buffer);
+      }
+      break;
+#if !STANDALONE_UTILITY_PROGRAM
+    case dfk_position:
+      /* A position fill-in.  Add it to the message buffer. */
+      form_source_position(&dfip->variant.position, &dp->position,
+                           "", "", "");
+      break;
+    case dfk_symbol:
+      /* A string fill-in.  Add it to the message buffer. */
+      form_symbol_summary(dp, dfip);
+      break;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    case dfk_string:
+      /* A string fill-in.  Add it to the message buffer. */
+      add_string_to_text_buffer(msg_buffer, dfip->variant.string);
+      break;
+    case dfk_type:
+      /* A type fill-in. */
+      form_type_summary(dfip);
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (add_quotes) add_char_to_text_buffer(msg_buffer, '"');
+}  /* process_fill_in */
+
+
+static void format_output_line(int		first_indent,
+			       int		continuation_indent)
+/*
+Write the specified diagnostic constructed in prefix_buffer to the
+write_diagnostic_buffer.  Wrap the output unless do_not_wrap_diagnostics
+is TRUE.  first_indent is the number of characters to indent first first
+line of the message, continuation_indent is the number of characters to
+indent subsequent lines when the output wraps to more than one line.
+*/
+{
+  a_const_char	*curr_char;
+  a_const_char	*segment_start;
+  int		usable_line_length;
+  int		indent = first_indent;
+  int		length = prefix_buffer->size - 1;
+
+  curr_char = prefix_buffer->buffer;
+  segment_start = curr_char;
+  for (;;) {
+    size_t	segment_length;
+    int		i;
+    /* Compute the number of characters that will fit on a line taking into
+       account any indentation that is required. */
+    usable_line_length = diagnostic_line_length - indent;
+    /* Put out the required indentation. */
+    for (i = 0; i < indent; ++i) {
+      add_char_to_text_buffer(write_diagnostic_buffer, ' ');
+    }  /* for */
+    if (length > usable_line_length && !do_not_wrap_diagnostics &&
+        !brief_diagnostics) {
+      /* Output as much of the string as will fit on a line.  Wrap
+         at a blank, if possible; otherwise, just wrap at the end of the
+         line. */
+      segment_length = usable_line_length;
+      curr_char = segment_start + segment_length - 1;
+      /* If the character after the end is a blank, wrap on that one. */
+      if (curr_char[1] == ' ') curr_char++;
+      /* Look backward from the end of the line to find a blank. */
+      while (curr_char > segment_start && *curr_char != ' ') curr_char--;
+      /* If we found a blank, compute the length of the string up to the
+         character before the blank. */
+      if (*curr_char == ' ') segment_length = curr_char - segment_start;
+      add_to_text_buffer(write_diagnostic_buffer, segment_start,
+                         segment_length);
+      add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+      /* Skip over the blank before starting the next segment. */
+      if (*curr_char == ' ') segment_length++;
+      length -= segment_length;
+      segment_start += segment_length;
+    } else {
+      add_string_to_text_buffer(write_diagnostic_buffer, segment_start);
+      add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+      break;
+    }  /* if */
+    /* Set the indentation to be used for subsequent lines. */
+    indent = continuation_indent;
+  }  /* for */
+}  /* format_output_line */
+
+
+static void display_message(a_diagnostic_ptr	dp)
+/*
+Output the message contained in the message buffer, and to the raw
+listing file (if needed).
+*/
+{
+  int		first_indent;
+  int		continuation_indent;
+
+  /* Determine the indentation to be used for this message. */
+  if (dp->kind == dck_primary) {
+    first_indent = NORMAL_DIAG_INDENT;
+    continuation_indent = INDENT_AMOUNT;
+  } else if (dp->kind == dck_context) {
+    /* The first context line uses the normal indent, subsequent ones use
+       the list indent. */
+    if (dp == dp->primary_diag->context.head) {
+      first_indent = INDENT_AMOUNT;
+      continuation_indent = first_indent + INDENT_AMOUNT;
+    } else {
+      first_indent = LIST_DIAG_INDENT;
+      continuation_indent = first_indent + INDENT_AMOUNT;
+    }  /* if */
+  } else if (dp->kind == dck_macro_context) {
+    first_indent = MACRO_CONTEXT_INDENT;
+    continuation_indent = first_indent + INDENT_AMOUNT;
+  } else {
+    first_indent = LIST_DIAG_INDENT;
+    continuation_indent = first_indent + INDENT_AMOUNT;
+  }  /* if */
+  /* Append the message line to the prefix buffer for output.  The
+     message buffer is kept separately so it can be used, if needed,
+     for output to the raw listing file. */
+  add_to_text_buffer(prefix_buffer, msg_buffer->buffer, msg_buffer->size);
+  add_char_to_text_buffer(msg_buffer, '\0');
+  add_char_to_text_buffer(prefix_buffer, '\0');
+  format_output_line(first_indent, continuation_indent);
+#if !STANDALONE_UTILITY_PROGRAM
+  if (f_raw_listing != NULL && dp->kind != dck_macro_context) {
+    write_diag_to_raw_listing(dp);
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  reset_text_buffer(msg_buffer);
+}  /* display_message */
+
+
+static void write_source_line_for_macro(a_diagnostic_ptr	dp)
+/*
+Write the source line of the macro invocation, if needed.
+*/
+{
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (macro_positions_in_diagnostics) {
+    if (dp->diag_header_pos.seq != dp->position.seq) {
+      write_source_line(&dp->position, &dp->source_info);
+    }  /* if */
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+}  /* write_source_line_for_macro */
+
+
+static void construct_message(a_diagnostic_ptr	dp)
+/*
+Convert a diagnostic entry (dp) and its fill-ins into a text string.  Write
+out that string as a diagnostic, and also write out the associated source
+line with an indication of the diagnostic position.  If there are
+sub-messages, output those messages as well.  Output any context messages
+that might be required.
+*/
+{
+  a_const_char		*curr_char;
+  a_const_char		*msg_ptr;
+  size_t		length;
+#define MAX_OPTIONS 30
+  char			options[MAX_OPTIONS];
+
+  reset_text_buffer(prefix_buffer);
+  if (dp->kind == dck_primary) {
+    /* Display the file name, position, etc. */
+    add_primary_prefix(dp);
+  }  /* if */
+  /* Get the error message text. */
+  msg_ptr = error_text(dp->error_code);
+  curr_char = msg_ptr;
+  for (;;) {
+    a_const_char	*segment_start;
+    a_const_char	*segment_end;
+    int			fill_in_seq;
+    char		fill_in_char;
+    int			opt_pos;
+    a_boolean		is_double_percent = FALSE;
+    segment_start = curr_char;
+    /* Find the end of this segment.  This is the next fill-in, or the end
+       of the message. */
+    while (*curr_char != '\0' && *curr_char != '%') {
+      curr_char++;
+    }  /* while */
+    if (*curr_char == '%' && curr_char[1] == '%') {
+      is_double_percent = TRUE;
+      curr_char++;
+    }  /* if */
+    /* The end of the segment is the character before the character we found
+       marks the end of the segment. */
+    segment_end = curr_char - 1;
+    if (segment_end >= segment_start) {
+      /* The text segment is non-empty.  Add these characters to the
+         message buffer. */
+      length = segment_end - segment_start + 1;
+      add_to_text_buffer(msg_buffer, segment_start, length);
+    }  /* if */
+    /* We have reached the end of the string -- exit the loop. */
+    if (*curr_char == '\0') break;
+    /* We should be processing a fill-in. */
+    check_assertion(*curr_char == '%');
+    curr_char++;
+    if (is_double_percent) {
+      /* The message contains a "%%" -- discard the second "%". */
+    } else if (*curr_char == '[') {
+      /* A label fill in of the form "%[label_name]".  Replace the label
+         fill-in with the appropriate value. */
+      a_const_char		*label_end;
+      a_const_char		*label_text;
+      a_label_fill_in_entry	*lfie;
+      label_end = mbc_strchr(curr_char, ']');
+      check_assertion(label_end != NULL);
+      lfie = get_label_fill_in_entry(curr_char + 1, label_end - curr_char - 1);
+      label_text = error_text(*(lfie->test) ? lfie->true_value
+                                            : lfie->false_value);
+      add_string_to_text_buffer(msg_buffer, label_text);
+      /* Move to the character after the ']'. */
+      curr_char = label_end + 1;
+    } else {
+      fill_in_char = *curr_char++;
+      /* Scan any option characters that may follow.  These may be letters or
+         a digit that specifies which of several fill-ins of a given type is
+         to be used (e.g., %s2 for the second string fill-in). */
+      opt_pos = 0;
+      fill_in_seq = 1;
+      while (isalnum(*curr_char)) {
+        if (isdigit(*curr_char)) {
+          fill_in_seq = *curr_char - '0';
+        } else {
+          options[opt_pos] = *curr_char;
+          opt_pos++;
+          check_assertion_str2(opt_pos < MAX_OPTIONS, "construct_message:",
+                               "too many option characters");
+        }  /* if */
+        curr_char++;
+      }  /* while */
+      /* Terminate the string of options. */
+      options[opt_pos] = '\0';
+      process_fill_in(dp, fill_in_char, options, fill_in_seq);
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  /* Make sure all of the fill-ins were used. */
+  { a_diag_fill_in_ptr	dfip;
+    for (dfip = dp->fill_in_head; dfip != NULL; dfip = dfip->next) {
+      check_assertion_str2(dfip->fill_in_used, "construct_message:",
+                           "not all fill-ins used");
+    }  /* for */
+  }
+#endif /* CHECKING */
+  /* Display the formatted message. */
+  display_message(dp);
+  /* If there are sub-messages, process them now. */
+  if (dp->kind == dck_primary) {
+    a_diagnostic_ptr	sub_dp;
+    for (sub_dp = dp->sub_msgs.head; sub_dp != NULL; sub_dp = sub_dp->next) {
+      construct_message(sub_dp);
+    }  /* for */
+  }  /* if */
+  if (dp->kind == dck_primary && !brief_diagnostics) {
+    /* If this is a primary diagnostic, and are able to fetch the source
+       line, display it now. */
+    write_source_line(&dp->diag_header_pos, &dp->diag_header_source_info);
+  }  /* if */
+  /* If there are context messages, process them now. */
+  if (dp->kind == dck_primary) {
+    a_diagnostic_ptr	sub_dp;
+    /* Output macro context diagnostics. */
+    for (sub_dp = dp->macro_context.head; sub_dp != NULL;
+         sub_dp = sub_dp->next) {
+      construct_message(sub_dp);
+    }  /* for */
+    if (dp->kind == dck_primary && !brief_diagnostics) {
+      /* Display the macro invocation source line, if needed. */
+      write_source_line_for_macro(dp);
+    }  /* if */
+    /* Output instantiation context messages. */
+    for (sub_dp = dp->context.head; sub_dp != NULL; sub_dp = sub_dp->next) {
+      construct_message(sub_dp);
+    }  /* for */
+    if (!brief_diagnostics) {
+      /* Put out an extra space line after the error, for clarity.  The
+         space is suppressed if a context message is to follow since the
+         space should follow the context. */
+      add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+    }  /* if */
+    add_char_to_text_buffer(write_diagnostic_buffer, '\0');
+    fputs(write_diagnostic_buffer->buffer, f_error);
+    (void)fflush(f_error);
+  }  /* if */
+#undef MAX_OPTIONS
+}  /* construct_message */
+
+
+static void end_of_diagnostic_actions(a_diagnostic_ptr	dp)
+/*
+Do any actions that should be performed as a consequence of issuing the
+diagnostic specified by dp.  For example, some error severities cause
+the program to be terminated, as does reaching the error limit.
+*/
+{
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
+  /* If there are any errors, suppress generation of the intermediate
+     language file. */
+  if (total_errors + total_catastrophes > 0) cancel_il_file();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
+  /* Terminate the compilation for the more serious severities. */
+  if (dp->severity == es_catastrophe ||
+      dp->severity == es_command_line_error ||
+      dp->severity == es_internal_error) {
+    /* Force out the last line of the raw listing file. */
+#if !STANDALONE_UTILITY_PROGRAM
+    finish_raw_listing_file();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    term_compilation(dp->severity);
+  }  /* if */
+  /* Terminate the compilation if the error limit has been reached.  Note
+     that remarks and warnings are never counted. */
+  if (total_errors + total_catastrophes >= error_limit) {
+#if !USING_DRIVER
+    fprintf(f_error, "%s\n", error_text(ec_error_limit_reached));
+#endif /* !USING_DRIVER */
+#if !STANDALONE_UTILITY_PROGRAM
+    if (f_raw_listing != NULL) {
+      fprintf(f_raw_listing, "C \"\" 0 0 error limit reached\n");
+    }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    /* Force out the last line of the raw listing file. */
+#if !STANDALONE_UTILITY_PROGRAM
+    finish_raw_listing_file();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    term_compilation(es_catastrophe);
+  }  /* if */
+}  /* end_of_diagnostic_actions */
+
+
+static a_diagnostic_ptr create_diagnostic_entry(
+			a_diagnostic_ptr	primary_diagnostic,
+			a_diagnostic_kind	kind,
+			an_error_code		error_code,
+			a_source_position	*position,
+			an_error_severity	severity)
+/*
+Create a diagnostic entry and initialize it with the specified kind, error
+code, and for primary diagnostics, severity, and source position.  If this
+is not a primary diagnostic link this diagnostic to the appropriate
+sub-list of the specified primary diagnostic.  Return a pointer to the
+newly created entry.
+*/
+{
+  a_diagnostic_ptr	dp;
+  a_line_number		line_number;
+  a_boolean		at_end_of_source;
+  a_const_char		*file_name;
+  a_const_char		*full_name;
+
+  dp = alloc_diagnostic();
+  dp->kind = kind;
+  dp->error_code = error_code;
+  if (kind == dck_primary) {
+    a_source_info_for_pos_ptr	sifpp = &dp->source_info;
+    check_assertion_str2(position != NULL, "create_diagnostic_entry:",
+                         "position is NULL");
+    /* See whether this error should have its severity overridden. */
+    check_for_overridden_severity(error_code, &severity);
+    dp->severity = severity;
+    dp->translation_unit = curr_translation_unit;
+    /* Convert the sequence number into a compilation unit and line number. */
+    conv_seq_to_file_and_line(position->seq, &file_name, &full_name,
+                              &line_number, &at_end_of_source);
+    sifpp->file_name = file_name;
+    sifpp->line_number = line_number;
+    sifpp->at_end_of_source = at_end_of_source;
+    dp->position = *position;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Use the original position for the message header. */
+    dp->diag_header_pos.seq = position->orig_seq;
+    dp->diag_header_pos.column = position->orig_column;
+    /* Convert the sequence number into a compilation unit and line number. */
+    conv_seq_to_file_and_line(position->orig_seq, &file_name, &full_name,
+                              &line_number, &at_end_of_source);
+    sifpp = &dp->diag_header_source_info;
+    sifpp->file_name = file_name;
+    sifpp->line_number = line_number;
+    sifpp->at_end_of_source = at_end_of_source;
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+    dp->diag_header_pos = *position;
+    dp->diag_header_source_info = *sifpp;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  } else {
+    check_assertion(primary_diagnostic != NULL);
+    /* Copy the position from the primary diagnostic. */
+    dp->position = primary_diagnostic->position;
+    dp->primary_diag = primary_diagnostic;
+  }  /* if */
+  if (primary_diagnostic != NULL) {
+    a_diag_list_ptr	dlp;
+    switch (kind) {
+      case dck_sub_message:   dlp = &primary_diagnostic->sub_msgs;      break;
+      case dck_context:       dlp = &primary_diagnostic->context;       break;
+      case dck_macro_context: dlp = &primary_diagnostic->macro_context; break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+    /* Link this entry as a sub-list of the specified primary diagnostic. */
+    if (dlp->head == NULL) {
+      dlp->head = dp;
+    }  /* if */
+    if (dlp->tail != NULL) {
+      dlp->tail->next = dp;
+    }  /* if */
+    dlp->tail = dp;
+  }  /* if */
+  return dp;
+}  /* create_diagnostic_entry */
+
+
+static a_diagnostic_ptr create_primary_diagnostic(
+			an_error_code		error_code,
+			a_source_position	*position,
+			an_error_severity	severity)
+/*
+Interface to create_diagnostic_entry that does not require a primary
+diagnostic to be provided.
+*/
+{
+#if !STANDALONE_UTILITY_PROGRAM
+  if (severity == es_command_line_error ||
+      severity == es_command_line_warning ||
+      severity == es_catastrophe) {
+    /* For these error severities it may not be possible to allocate
+       memory in IL memory yet, so allocate it in general memory. */
+    diag_memory_region = NO_MEMORY_REGION_NUMBER;
+  } else {
+    diag_memory_region = FRONT_END_REGION_NUMBER;
+  }  /* if */
+#else /* STANDALONE_UTILITY_PROGRAM */
+  /* Always use general memory. */
+  diag_memory_region = NO_MEMORY_REGION_NUMBER;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  return create_diagnostic_entry((a_diagnostic_ptr)NULL, dck_primary,
+                                 error_code, position, severity);
+}  /* create_primary_diagnostic */
+
+
+static a_diagnostic_ptr create_sub_message(a_diagnostic_ptr	primary_dp,
+					   an_error_code	error_code)
+/*
+Create a sub-message for the diagnostic pointed to by "primary_dp".
+*/
+{
+  a_diagnostic_ptr	dp;
+  dp = create_diagnostic_entry(primary_dp, dck_sub_message, error_code,
+                               &null_source_position, es_none);
+  return dp;
+}  /* create_sub_message */
+
+
+static void add_fill_in_to_diagnostic(a_diagnostic_ptr		diag_ptr,
+				      a_diag_fill_in_ptr	fill_in_ptr)
+/*
+Add the fill-in specified by fill_in_ptr to the diagnostic specified
+by diag_ptr.
+*/
+{
+  if (diag_ptr->fill_in_head == NULL) diag_ptr->fill_in_head = fill_in_ptr;
+  if (diag_ptr->fill_in_tail != NULL) {
+    diag_ptr->fill_in_tail->next = fill_in_ptr;
+  }  /* if */
+  diag_ptr->fill_in_tail = fill_in_ptr;
+}  /* add_fill_in_to_diagnostic */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+static void add_number_fill_in(a_diagnostic_ptr	diag_ptr,
+			       int32_t		number)
+/*
+Add a number fill-in entry for number to the diagnostic specified
+by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_number);
+  dfip->variant.number = number;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_number_fill_in */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void add_position_fill_in(a_diagnostic_ptr	diag_ptr,
+				 a_source_position	*pos)
+/*
+Add a position fill-in entry for pos to the diagnostic specified
+by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_position);
+  dfip->variant.position = *pos;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_position_fill_in */
+
+
+static void add_string_fill_in(a_diagnostic_ptr	diag_ptr,
+			       a_const_char	*string)
+/*
+Add a string fill-in entry for string to the diagnostic specified
+by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_string);
+  dfip->variant.string = string;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_string_fill_in */
+
+
+static void add_symbol_fill_in_with_depth(a_diagnostic_ptr	diag_ptr,
+					  a_symbol_ptr		symbol,
+					  a_scope_depth		scope_depth)
+/*
+Add a symbol fill-in entry for symbol to the diagnostic specified
+by diag_ptr.  scope_depth is the scope stack depth associated with the
+symbol, or NO_SCOPE_DEPTH.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_symbol);
+  dfip->variant.symbol.ptr = symbol;
+  dfip->variant.symbol.scope_depth = scope_depth;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_string_fill_in_with_depth */
+
+
+static void add_symbol_fill_in(a_diagnostic_ptr	diag_ptr,
+			       a_symbol_ptr	symbol)
+/*
+Add a symbol fill-in entry for "symbol" to the diagnostic specified
+by diag_ptr.
+*/
+{
+  add_symbol_fill_in_with_depth(diag_ptr, symbol, NO_SCOPE_DEPTH);
+}  /* add_string_fill_in */
+
+
+static void add_type_fill_in(a_diagnostic_ptr	diag_ptr,
+			     a_type_ptr		type)
+/*
+Add a declaration fill-in entry for "type" to the diagnostic specified
+by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_type);
+  dfip->variant.type = type;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_type_fill_in */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+static void general_context_diagnostic(
+			a_diagnostic_ptr	primary_dp,
+			a_diagnostic_kind	kind,
+			an_error_code		error_code,
+			a_const_char		*string1,
+			a_const_char		*string2,
+			a_symbol_ptr		symbol,
+			a_scope_depth		scope_depth,
+			a_source_position	*other_pos)
+/*
+General interface to the diagnostic routines.  Issue a diagnostic with
+the specified severity, kind, error code, and error position.   If any of the
+other parameters is non-NULL, add a fill-in of the given kind.  For
+a symbol fill-in, scope_depth is an option associated scope depth, or
+NO_SCOPE_DEPTH.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_diagnostic_entry(primary_dp, kind,
+                               error_code, (a_source_position*)NULL,
+                               es_none);
+  if (string1 != NULL) add_string_fill_in(dp, string1);
+  if (string2 != NULL) add_string_fill_in(dp, string2);
+  if (symbol != NULL) add_symbol_fill_in_with_depth(dp, symbol, scope_depth);
+  if (other_pos != NULL) add_position_fill_in(dp, other_pos);
+}  /* general_context_diagnostic */
+
+
+static void add_str_context_diag(a_diagnostic_ptr	primary_dp,
+				 a_diagnostic_kind	kind,
+				 an_error_code		error_code,
+				 a_const_char		*string)
+/*
+Add a context diagnostic with a string fill-in to primary_dp.
+*/
+{
+  general_context_diagnostic(primary_dp, kind, error_code,
+                             string,
+                             (a_const_char*)NULL,
+                             (a_symbol_ptr)NULL,
+                             NO_SCOPE_DEPTH,
+                             (a_source_position*)NULL);
+}  /* add_str_context_diag */
+
+
+#if RECORD_MACRO_INVOCATIONS
+
+static void add_str_pos_context_diag(a_diagnostic_ptr	primary_dp,
+				     a_diagnostic_kind	kind,
+				     an_error_code	error_code,
+				     a_const_char	*string,
+				     a_source_position	*other_pos)
+/*
+Add a context diagnostic with a string and position fill-in to primary_dp.
+*/
+{
+  general_context_diagnostic(primary_dp, kind, error_code,
+                             string,
+                             (a_const_char*)NULL,
+                             (a_symbol_ptr)NULL,
+                             NO_SCOPE_DEPTH,
+                             other_pos);
+}  /* add_str_pos_context_diag */
+
+#endif /* RECORD_MACRO_INVOCATIONS */
+
+static void add_symbol_pos_context_diag(a_diagnostic_ptr	primary_dp,
+					a_diagnostic_kind	kind,
+					an_error_code		error_code,
+					a_symbol_ptr		symbol,
+					a_scope_depth		scope_depth,
+					a_source_position	*position)
+/*
+Add a context diagnostic with a symbol and position fill-in to primary_dp.
+scope_depth is a scope depth associated with the symbol or NO_SCOPE_DEPTH.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_diagnostic_entry(primary_dp, kind,
+                               error_code, (a_source_position*)NULL,
+                               es_none);
+  add_symbol_fill_in_with_depth(dp, symbol, scope_depth);
+  add_position_fill_in(dp, position);
+}  /* add_symbol_context_pos_diag */
+
+
+static void add_number_context_diag(a_diagnostic_ptr	primary_dp,
+				    a_diagnostic_kind	kind,
+				    an_error_code	error_code,
+				    int32_t		number)
+/*
+Add a context diagnostic with a numeric fill-in to primary_dp.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_diagnostic_entry(primary_dp, kind,
+                               error_code, (a_source_position*)NULL,
+                               es_none);
+  add_number_fill_in(dp, number);
+}  /* add_number_context_diag */
+
+
+static void add_context_diag(a_diagnostic_ptr	primary_dp,
+			     a_diagnostic_kind	kind,
+			     an_error_code	error_code)
+/*
+Add a context diagnostic primary_dp.
+*/
+{
+  general_context_diagnostic(primary_dp, kind, error_code,
+                             (a_const_char*)NULL,
+                             (a_const_char*)NULL,
+                             (a_symbol_ptr)NULL,
+                             NO_SCOPE_DEPTH,
+                             (a_source_position*)NULL);
+}  /* add_context_diag */
+
+
+static void display_trans_unit_context(
+			a_diagnostic_ptr	dp,
+			a_boolean		add_detected_prefix)
+/*
+This routine is called when the diagnostic that is being issued is for
+a translation unit other than the primary one.  Generate a context message
+that indicates the translation unit that is associated with the message.
+
+When add_detected_prefix is TRUE, the error code returned will refer to
+a message that includes the text (e.g., "detected during ") that is
+used when only a single line of context information is being supplied.
+When multiple context lines are being displayed, the "detected during"
+message appears by itself on a separate line.
+*/
+{
+  an_error_code		context_error_code;
+  a_source_file_ptr	sfp;
+  a_const_char		*file_name_copy;
+
+  /* If only one line of context is being issued, then it is
+     considered the "primary" context line.  Otherwise a header
+     was issued above and the context lines are handled as list
+     elements. */
+  if (add_detected_prefix) {
+    context_error_code = ec_det_during_compilation_of_secondary_trans_unit;
+  } else {
+    context_error_code = ec_compilation_of_secondary_trans_unit_context;
+  }  /* if */
+  /* Get the primary source file associated with this position. */
+  sfp = primary_source_file_for_seq(dp->position.seq);
+  /* format_file_name returns a pointer to a buffer that is reused.
+     make a copy of the string. */
+  file_name_copy = format_file_name(sfp->file_name);
+  file_name_copy = diag_copy_string(file_name_copy);
+  add_str_context_diag(dp, dck_context, context_error_code, file_name_copy);
+}  /* display_trans_unit_context */
+
+
+static a_boolean in_secondary_translation_unit(a_source_position *pos)
+/*
+Determine whether "pos" represents a position in a secondary translation
+unit.  If so, set a global variable to indicate the source file that is
+associated with the translation unit that it is in.
+*/
+{
+  a_boolean	result;
+
+  if (!in_front_end) {
+    /* The translation unit data structure cannot be used after the front
+       end has completed. */
+    result = FALSE;
+  } else if (translation_units == NULL ||
+             translation_units->next == NULL) {
+    /* Optimize the case where there is only one translation unit. */
+    result = FALSE;
+  } else {
+    a_source_file_ptr	sfp;
+    /* Get the primary source file associated with this position. */
+    sfp = primary_source_file_for_seq(pos->seq);
+    /* It is a secondary translation unit if it is not the first entry
+       on the list. */
+    result = sfp != NULL &&
+             sfp != translation_units->source_file;
+  }  /* if */
+  return result;
+}  /* in_secondary_translation_unit */
+
+
+static void add_instantiation_context(a_diagnostic_ptr	dp)
+/*
+If there is instantiation context information for the diagnostic,
+create the diagnostic entries for the context.
+*/
+{
+  /* Certain conditions, such as errors that occur while instantiating
+     template classes and functions, require additional context information
+     to be supplied after the message is printed.  The processing is done
+     in two phases.  First, we determine whether any context information
+     is required.  This is needed because we handle the case of a single
+     context line differently than multiple lines. */
+  int		num_of_contexts = 0;
+  a_symbol_ptr	sym;
+  an_error_code	context_error_code;
+  a_boolean	pos_is_in_secondary_trans_unit;
+  a_scope_depth	sd;
+
+  /* Check whether we need to supply additional context information. */
+  for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
+    if (include_in_context_output(&scope_stack[sd], &sym,
+                                  &context_error_code,
+                                  (a_source_position*)NULL,
+                                  /*add_detected_prefix=*/FALSE)) {
+      num_of_contexts++;
+    }  /* if */
+  }  /* for */
+  /* If we are in a secondary translation unit, we need a context line
+     to specify the translation unit name. */
+  pos_is_in_secondary_trans_unit =
+                                  in_secondary_translation_unit(&dp->position);
+  if (pos_is_in_secondary_trans_unit) num_of_contexts++;
+  /* Loop through the scope stack and output context information. */
+  if (num_of_contexts > 0) {
+    int32_t	contexts_to_include;
+    int32_t	contexts_processed = 0;
+    int32_t	contexts_skipped = 0;
+    a_boolean	limit_context;
+    /* Check whether we should limit the number of context lines emitted.
+       Ignore the limit if we are just above it. */
+    limit_context = context_limit > 0 &&
+                    num_of_contexts > (context_limit + 1);
+    contexts_to_include = context_limit / 2;
+    if (num_of_contexts != 1) {
+      /* If there is more than one line of context we output an
+         initial header line. */
+      add_context_diag(dp, dck_context, ec_template_detected_during_header);
+    }  /* if */
+    for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
+      a_scope_stack_entry_ptr	ssep = &scope_stack[sd];
+      static a_source_position	context_source_pos;
+      if (!include_in_context_output(ssep, &sym,
+                                     &context_error_code,
+                                     &context_source_pos,
+                                     /*add_detected_prefix=*/
+                                     num_of_contexts == 1)) continue;
+      contexts_processed++;
+      /* If we are limiting the number of context lines, see if this is
+         an entry that should be excluded. */
+      if (limit_context &&
+          contexts_processed > contexts_to_include &&
+          contexts_processed <= (num_of_contexts - contexts_to_include)) {
+        contexts_skipped++;
+        continue;
+      }  /* if */
+      /* When resuming the display of contexts, indicate the number of
+         entries not shown. */
+      if (contexts_skipped > 0) {
+        add_number_context_diag(dp, dck_context, ec_context_lines_skipped,
+                                contexts_skipped);
+        contexts_skipped = 0;
+      }  /* if */
+      add_symbol_pos_context_diag(dp, dck_context, context_error_code, sym, sd,
+                                  &context_source_pos);
+    }  /* for */
+    if (pos_is_in_secondary_trans_unit) {
+      display_trans_unit_context(dp,
+                                 /*add_detected_prefix=*/num_of_contexts == 1);
+    }  /* if */
+  }  /* if */
+}  /* add_instantiation_context */
+
+
+static void add_macro_context(a_diagnostic_ptr	dp)
+/*
+If we are recording macro invocations and/or fully resolved macro
+positions, create the context diagnostic information for those.
+*/
+{
+#if RECORD_MACRO_INVOCATIONS
+  a_source_position		*error_pos = &dp->position;
+  a_macro_invocation_record_ptr	mirp = NULL;
+
+  if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
+      macro_positions_in_diagnostics) {
+    /* Print a trace of the macro invocation stack in effect at
+       error_pos.  Note that the last (bottommost) stack frame is
+       omitted in this trace because it will refer to the same position
+       as the normal position in error_pos, which will be printed
+       below before the source line. */
+    int			stack_depth = 0;
+    int			i;
+    a_boolean		frames_omitted_msg_printed = FALSE;
+
+    for (mirp = macro_invocation_record_at_index(error_pos->macro_context);
+         mirp != NULL &&
+         mirp->parent_macro_index != NO_PARENT_MACRO_INVOCATION;
+         mirp = macro_invocation_record_at_index(mirp->parent_macro_index)) {
+      ++stack_depth;
+    }  /* for */
+    mirp = macro_invocation_record_at_index(error_pos->macro_context);
+    for (i = 0; i <= stack_depth; ++i) {
+      if (i < 5 || i >= stack_depth - 4) {
+        a_const_char		*macro_name;
+        a_source_position	full_pos;
+        if (mirp->assoc_macro != NULL) {
+          macro_name = mirp->assoc_macro->source_corresp.name;
+        } else {
+          macro_name = error_text(ec_name_of_unknown_macro);
+        }  /* if */
+        copy_simple_position_to_full_position(mirp->start, full_pos);
+        add_str_pos_context_diag(dp, dck_macro_context,
+                                 ec_in_expansion_of_macro, macro_name,
+                                 &full_pos);
+      } else if (!frames_omitted_msg_printed) {
+        add_number_context_diag(dp, dck_macro_context,
+                                ec_macro_context_lines_skipped,
+                                stack_depth - 9);
+        frames_omitted_msg_printed = TRUE;
+      }  /* if */
+      mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
+    }  /* for */
+  }  /* if */
+#endif /* RECORD_MACRO_INVOCATIONS */
+}  /* add_macro_context */
+
+
+static void add_error_context(a_diagnostic_ptr	dp)
+/*
+If there is context information for the diagnostic (instantiation
+information, etc.), create the diagnostic entries for the context.
+*/
+{
+  add_macro_context(dp);
+  add_instantiation_context(dp);
+}  /* add_error_context */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void wrap_up_diagnostic(a_diagnostic_ptr	dp)
+/*
+This routine is called when a diagnostic has been completely constructed.
+The message is formatted into text strings and is output.
+*/
+{
+  a_boolean	diag_should_be_issued;
+
+  diag_should_be_issued = check_severity(dp);
+#if !STANDALONE_UTILITY_PROGRAM
+  if (diag_should_be_issued) {
+    /* Determine whether this diagnostic should not be issued because
+       of the use of the "once" diagnostic control. */
+    diag_should_be_issued = !diagnostic_already_issued_for_diag_once(dp);
+  }  /* if */
+  if (diag_should_be_issued) {
+    /* Suppress the diagnostic if it has already been issued during the
+       prototype instantiation. */
+    diag_should_be_issued =
+                !diagnostic_already_issued_for_prototype(dp);
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  if (diag_should_be_issued) {
+    /* Set up for use of the il_to_str routines. */
+    set_up_output_control_block();
+    /* Allocate the diagnostic buffer if this is our first time. */
+    if (write_diagnostic_buffer == NULL) {
+      write_diagnostic_buffer = alloc_text_buffer(1024);
+    }  /* if */
+    /* Start at the beginning of the buffer. */
+    reset_text_buffer(write_diagnostic_buffer);
+#if !STANDALONE_UTILITY_PROGRAM
+    if (curr_cmd_line_or_predef_macro_def != NULL &&
+        !processing_predefined_macro &&
+        dp->error_code != ec_bad_cmd_line_macro) {
+      /* An error occurred while scanning a command-line macro definition.
+         Ignore the original error and issue a general error indicating
+         that the macro definition is invalid. */
+      str_command_line_error(ec_bad_cmd_line_macro,
+                             curr_cmd_line_or_predef_macro_def);
+    }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    if (dp->severity == es_catastrophe) {
+      /* Make sure that if catastrophic error leads to another, we abort
+         the compilation instead of looping. */
+      if (catastrophe_has_occurred) {
+        fprintf(f_error, "%s\n", error_text(ec_catastrophic_error_loop));
+        term_compilation(es_catastrophe);
+      }  /* if */
+      catastrophe_has_occurred = TRUE;
+    }  /* if */
+#if !STANDALONE_UTILITY_PROGRAM
+    /* Generate information about the context in which the error occurred. */
+    if (dp->severity != es_internal_error) {
+      add_error_context(dp);
+    }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    /* Start at the beginning of the buffer. */
+    reset_text_buffer(msg_buffer);
+    construct_message(dp);
+  }  /* if */
+  /* Check if the compilation should be terminated as a result of this
+     diagnostic. */
+  end_of_diagnostic_actions(dp);
+  /* Free the diagnostic entry. */
+  free_diagnostic(dp);
+}  /* wrap_up_diagnostic */
+
+
 /* Forward declaration. */
 static DOES_NOT_RETURN error_code_errno_catastrophe(
                                       an_error_code error_code,
@@ -3967,6 +4306,7 @@ open_result is the entry that describes the kind of failure, which was
 returned by the file open routine.
 */
 {
+  a_diagnostic_ptr		dp;
   a_const_char			*reason = NULL;
   an_open_file_result_set	flags = open_result->flags;
   an_error_code			error_code;
@@ -3988,19 +4328,18 @@ returned by the file open routine.
   }  /* if */
   error_code = reason == NULL ? ec_cannot_open_file
                               : ec_cannot_open_file_reason;
-  init_error_params();
-  error_msg_strings[1] = error_text(file_kind);
-  error_msg_strings[2] = file_name;
-  if (reason != NULL) {
-    error_msg_strings[3] = reason;
-  }  /* if */
   /* If the error is to be issued as a command-line error, provide an
      appropriate source position. */
   if (severity == (an_error_severity)es_command_line_error) {
     set_position_to(local_error_pos, 0, SP_COL_CMD_LINE);
   }  /* if */
-
-  diag_message(error_code, &local_error_pos, severity, dck_standalone);
+  dp = create_primary_diagnostic(error_code, error_pos, severity);
+  add_string_fill_in(dp, error_text(file_kind));
+  add_string_fill_in(dp, file_name);
+  if (reason != NULL) {
+    add_string_fill_in(dp, reason);
+  }  /* if */
+  wrap_up_diagnostic(dp);
 }  /* file_open_error_full */
 
 
@@ -4044,7 +4383,7 @@ error is issued instead.
   }  /* if */
   file_open_error(severity, file_kind, file_name, &open_result);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  file_open_error does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* output_file_open_error */
@@ -4268,345 +4607,6 @@ error is issued.
 }  /* open_input_file_with_error_handling */
 
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-static void display_trans_unit_context(
-			a_source_position	*error_pos,
-			an_error_severity	severity,
-			a_boolean		add_detected_prefix)
-/*
-This routine is called when the diagnostic that is being issued is for
-a translation unit other than the primary one.  Output a context message
-that indicates the translation unit that is associated with the message.
-
-error_pos and severity are the position and severity of the original message.
-
-When add_detected_prefix is TRUE, the error code returned will refer to
-a message that includes the text (e.g., "detected during ") that is
-used when only a single line of context information is being supplied.
-When multiple context lines are being displayed, the "detected during"
-message appears by itself on a separate line.
-*/
-{
-  an_error_code			context_error_code;
-  a_diagnostic_category_kind	context_diag_kind;
-
-  /* If only one line of context is being issued, then it is
-     considered the "primary" context line.  Otherwise a header
-     was issued above and the context lines are handled as list
-     elements. */
-  if (add_detected_prefix) {
-    context_diag_kind = dck_context_primary;
-    context_error_code = ec_det_during_compilation_of_secondary_trans_unit;
-  } else {
-    context_diag_kind = dck_list;
-    context_error_code = ec_compilation_of_secondary_trans_unit_context;
-  }  /* if */
-  init_error_params();
-  error_msg_strings[1] = format_file_name(diag_primary_source_file->file_name);
-  diag_message(context_error_code, error_pos, severity, context_diag_kind);
-}  /* display_trans_unit_context */
-
-
-static a_boolean in_secondary_translation_unit(a_source_position *pos)
-/*
-Determine whether "pos" represents a position in a secondary translation
-unit.  If so, set a global variable to indicate the source file that is
-associated with the translation unit that it is in.
-*/
-{
-  a_boolean	result;
-
-  if (!in_front_end) {
-    /* The translation unit data structure cannot be used after the front
-       end has completed. */
-    result = FALSE;
-  } else if (translation_units == NULL ||
-             translation_units->next == NULL) {
-    /* Optimize the case where there is only one translation unit. */
-    result = FALSE;
-  } else {
-    /* Get the primary source file associated with this position. */
-    diag_primary_source_file = primary_source_file_for_seq(pos->seq);
-    /* It is a secondary translation unit if it is not the first entry
-       on the list. */
-    result = diag_primary_source_file != NULL &&
-             diag_primary_source_file != translation_units->source_file;
-  }  /* if */
-  return result;
-}  /* in_secondary_translation_unit */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
-static void diag_message(an_error_code              error_code,
-                         a_source_position          *error_pos,
-                         an_error_severity          severity,
-                         a_diagnostic_category_kind diag_kind)
-/*
-Construct and write a diagnostic message.  The error code is error_code, and
-the position of the error is *error_pos.  severity gives the severity (e.g.,
-es_warning) and diag_kind indicates if this is a single diagnostic message or
-one message in a related list of messages.  The linked list of message
-segments that comprise the diagnostic is based on the error message
-template associated with error_code.  After constructing the segment list
-and doing any required expansions, the diagnostic is written.
-*/
-{
-  a_msg_segment_ptr  curr_seg;
-  a_const_char       *msg_template;
-  a_boolean	     diag_should_be_issued;
-#if CHECKING
-  int                i;
-#endif /* CHECKING */
-
-  diag_should_be_issued = check_severity(error_code, &error_pos,
-                                         &severity, diag_kind);
-#if !STANDALONE_UTILITY_PROGRAM
-  if (diag_should_be_issued) {
-    /* Determine whether this diagnostic should not be issued because
-       of the use of the "once" diagnostic control. */
-    diag_should_be_issued = !diagnostic_already_issued_for_diag_once(
-                                                         error_code, severity);
-  }  /* if */
-  if (diag_should_be_issued) {
-    /* Suppress the diagnostic if it has already been issued during the
-       prototype instantiation. */
-    diag_should_be_issued =
-                !diagnostic_already_issued_for_prototype(error_code, severity,
-                                                         error_pos, diag_kind);
-  }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (diag_should_be_issued) {
-#if !STANDALONE_UTILITY_PROGRAM
-    if (curr_cmd_line_or_predef_macro_def != NULL &&
-        !processing_predefined_macro) {
-      /* An error occurred while scanning a command-line macro definition.
-         Ignore the original error and issue a general error indicating
-         that the macro definition is invalid. */
-      str_command_line_error(ec_bad_cmd_line_macro,
-                             curr_cmd_line_or_predef_macro_def);
-    }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    if (severity == es_catastrophe &&
-        (diag_kind == dck_standalone || diag_kind == dck_primary)) {
-      /* Make sure that if catastrophic error leads to another, we abort
-         the compilation instead of looping. */
-      if (catastrophe_has_occurred) {
-        fprintf(f_error, "%s\n", error_text(ec_catastrophic_error_loop));
-        term_compilation(es_catastrophe);
-      }  /* if */
-      catastrophe_has_occurred = TRUE;
-    }  /* if */
-    /* Get the error message text (template) and construct the message
-       segment list. */
-    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
-      msg_template = error_text(error_code);
-    } else {
-      msg_template = "";
-    }  /* if */
-    construct_message_segments(msg_template);
-
-    /* Walk through the message segments and complete any required 
-       expansion. */
-    for (curr_seg = error_message_head;
-         curr_seg != NULL &&
-            curr_seg->kind != (a_message_segment_kind)msk_last;
-         curr_seg = curr_seg->next ) {
-      switch (curr_seg->kind) {
-        case msk_error_text_part:
-          /* No processing needed. */
-          break;
-        case msk_user_string:
-#if CHECKING
-          if (error_msg_strings[curr_seg->sequence_no] == NULL) {
-            internal_error(
-                  "diag_message: missing string substitution");
-          }  /* if */
-#endif /* CHECKING */
-          if (curr_seg->variant.string.quoted) {
-            /* Rebuild the user string surrounded by double quotes. */
-            add_string_to_segment("\"", curr_seg);
-            curr_seg->first_quote = curr_seg->segment + curr_seg->length - 1;
-            add_string_to_segment(error_msg_strings[curr_seg->sequence_no],
-                                  curr_seg);
-            add_string_to_segment("\"", curr_seg);
-            curr_seg->second_quote = curr_seg->segment + curr_seg->length - 1;
-          }  /* if */
-          break;
-        case msk_type:
-#if CHECKING
-          if (error_msg_types[curr_seg->sequence_no] == NULL) {
-            internal_error("diag_message: missing type substitution");
-          }  /* if */
-#endif /* CHECKING */
-          form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
-          break;
-        case msk_source_position:
-#if !STANDALONE_UTILITY_PROGRAM
-#if CHECKING
-          if (error_msg_positions[curr_seg->sequence_no] == NULL) {
-            internal_error("diag_message: missing position substitution");
-          }  /* if */
-#endif /* CHECKING */
-          form_source_position(error_msg_positions[curr_seg->sequence_no],
-                               error_pos, "", "", "", curr_seg);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-          break;
-        case msk_symbol:
-#if !STANDALONE_UTILITY_PROGRAM
-#if CHECKING
-          if (error_msg_syms[curr_seg->sequence_no] == NULL) {
-            internal_error("diag_message: missing symbol substitution");
-          }  /* if */
-#endif /* CHECKING */
-          form_symbol_summary(error_msg_syms[curr_seg->sequence_no],
-                              error_pos, curr_seg);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-          break;
-        default:
-          unexpected_condition_str("diag_message: bad message kind");
-      }  /* switch */
-    }  /* for */
-#if CHECKING
-    for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
-      if (error_msg_strings[i] != NULL) {
-        check_if_fill_in_used(msk_user_string, i, error_code);
-      }  /* if */
-      if (error_msg_types[i] != NULL) {
-        check_if_fill_in_used(msk_type, i, error_code);
-      }  /* if */
-#if !STANDALONE_UTILITY_PROGRAM
-      if (error_msg_syms[i] != NULL) {
-        check_if_fill_in_used(msk_symbol, i, error_code);
-      }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    }  /* for */
-#endif /* CHECKING */
-#if STANDALONE_UTILITY_PROGRAM
-    write_diagnostic(error_code, error_pos, severity, diag_kind);
-#else /* !STANDALONE_UTILITY_PROGRAM */
-    /* Certain conditions, such as errors that occur while instantiating
-       template classes and functions, require additional context information
-       to be supplied after the message is printed.  The context is printed
-       following standalone messages and after the end of a list of messages.
-       The processing is done in two phases.  First, we determine whether
-       any context information is required.  This is needed because the
-       processing of the initial message is handled slightly differently
-       if context is to follow (for example, the error limit check is not
-       done until the end of the context information is printed).  Once we
-       know whether context is required, the original message is issued.
-       Then we issue and context-related messages. */
-    if ((diag_kind != dck_standalone && diag_kind != dck_end_list) ||
-        (severity == es_catastrophe &&
-         !display_error_context_on_catastrophe)) {
-      /* The context display processing is only required after standalone and
-         end-list messages.  The context can optionally be suppressed for
-         catastrophic errors. */
-      write_diagnostic(error_code, error_pos, severity, diag_kind);
-    } else {
-      int		num_of_contexts = 0;
-      a_symbol_ptr	sym;
-      an_error_code	context_error_code;
-      a_boolean		pos_is_in_secondary_trans_unit;
-      /* Check whether we need to supply additional context information. */
-      a_scope_depth	sd;
-      for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
-        if (include_in_context_output(&scope_stack[sd], &sym,
-                                      &context_error_code,
-                                      (a_source_position*)NULL,
-				      /*add_detected_prefix=*/FALSE)) {
-          num_of_contexts++;
-        }  /* if */
-      }  /* for */
-      /* If we are in a secondary translation unit, we need a context line
-         to specify the translation unit name. */
-      pos_is_in_secondary_trans_unit =
-                                      in_secondary_translation_unit(error_pos);
-      if (pos_is_in_secondary_trans_unit) num_of_contexts++;
-      /* Issue the original message. */
-      context_required = num_of_contexts > 0;
-      write_diagnostic(error_code, error_pos, severity, diag_kind);
-      context_required = FALSE;
-      /* Loop through the scope stack and output context information. */
-      if (num_of_contexts > 0) {
-        a_diagnostic_category_kind	context_diag_kind;
-        int				contexts_to_include;
-	int				contexts_processed = 0;
-        int				contexts_skipped = 0;
-        a_boolean			limit_context;
-        /* Check whether we should limit the number of context lines emitted.
-           Ignore the limit if we are just above it. */
-        limit_context = context_limit > 0 &&
-                        num_of_contexts > (context_limit + 1);
-        contexts_to_include = context_limit / 2;
-        if (num_of_contexts != 1) {
-          /* If there is more than one line of context we output an
-	     initial header line. */
-          init_error_params();
-          diag_message(ec_template_detected_during_header, error_pos,
-                       severity, dck_context_primary);
-        }  /* if */
-        for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
-          a_scope_stack_entry_ptr	ssep = &scope_stack[sd];
-          static a_source_position	context_source_pos;
-          if (!include_in_context_output(ssep, &sym,
-                                         &context_error_code,
-                                         &context_source_pos,
-					 /*add_detected_prefix=*/
-					     num_of_contexts == 1)) continue;
-          contexts_processed++;
-          /* If we are limiting the number of context lines, see if this is
-             an entry that should be excluded. */
-          if (limit_context &&
-              contexts_processed > contexts_to_include &&
-              contexts_processed <= (num_of_contexts - contexts_to_include)) {
-            contexts_skipped++;
-            continue;
-          }  /* if */
-          /* When resuming the display of contexts, indicate the number of
-             entries not shown. */
-          if (contexts_skipped > 0) {
-            static char	buffer[50];
-            init_error_params();
-            (void)sprintf(buffer, "%d", contexts_skipped);
-            error_msg_strings[1] = buffer;
-            diag_message(ec_context_lines_skipped,
-                         error_pos, severity, dck_list);
-            contexts_skipped = 0;
-          }  /* if */
-          /* If only one line of context is being issued, then it is
-	     considered the "primary" context line.  Otherwise a header
-	     was issued above and the context lines are handled as list
-	     elements. */
-          if (num_of_contexts == 1) {
- 	    context_diag_kind = dck_context_primary;
-          } else {
- 	    context_diag_kind = dck_list;
-          }  /* if */
-          init_error_params();
-          error_msg_syms[1] = sym;
-	  error_msg_positions[1] = &context_source_pos;
-          error_msg_scopes[1] = ssep;
-          diag_message(context_error_code,
-                       error_pos, severity, context_diag_kind);
-        }  /* for */
-        if (pos_is_in_secondary_trans_unit) {
-          display_trans_unit_context(error_pos, severity,
-                                     /*add_detected_prefix=*/
-                                                         num_of_contexts == 1);
-        }  /* if */
-        /* Issue an "end context" message to indicate that all of the
-           context information has been supplied. */
-        init_error_params();
-        context_required = FALSE;
-        diag_message(ec_no_error, (a_source_position *)NULL, es_none,
-                     dck_end_context);
-      }  /* if */
-    }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-  }  /* if */
-}  /* diag_message */
-
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 BEGIN_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
@@ -4705,6 +4705,84 @@ table is used to reset the value in the current table.
 }  /* set_severity_for_error_number */
 
 
+static void general_diagnostic(
+			an_error_severity	error_severity,
+			an_error_code		error_code,
+			a_source_position	*error_pos,
+			a_const_char		*string1,
+			a_const_char		*string2,
+			a_symbol_ptr		symbol1,
+			a_symbol_ptr		symbol2,
+			a_type_ptr		type1,
+			a_type_ptr		type2,
+			a_source_position	*other_pos)
+/*
+General interface to the diagnostic routines.  Issue a diagnostic with
+the specified severity, error code, and error position.   If any of the
+other parameters is non-NULL, add a fill-in of the given kind.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  if (string1 != NULL) add_string_fill_in(dp, string1);
+  if (string2 != NULL) add_string_fill_in(dp, string2);
+  if (symbol1 != NULL) add_symbol_fill_in(dp, symbol1);
+  if (symbol2 != NULL) add_symbol_fill_in(dp, symbol2);
+  if (type1 != NULL) add_type_fill_in(dp, type1);
+  if (type2 != NULL) add_type_fill_in(dp, type2);
+  if (other_pos != NULL) add_position_fill_in(dp, other_pos);
+  wrap_up_diagnostic(dp);
+}  /* general_diagnostic */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+void str_command_line_warning(an_error_code error_code,
+                              a_const_char  *concat_string)
+/*
+Write a command-line error message concatenated with concat_string, and
+terminate the compilation.
+*/
+{
+  set_position_to(error_position, 0, SP_COL_CMD_LINE);
+  general_diagnostic(es_command_line_warning, error_code, &error_position,
+                     concat_string, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
+}  /* str_command_line_warning */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
+                                       a_const_char  *concat_string)
+/*
+Write a command-line error message concatenated with concat_string, and
+terminate the compilation.
+*/
+{
+  set_position_to(error_position, 0, SP_COL_CMD_LINE);
+  general_diagnostic(es_command_line_error, error_code, &error_position,
+                     concat_string, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  The function above does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* str_command_line_error */
+
+
+DOES_NOT_RETURN command_line_error(an_error_code error_code)
+/*
+Write a command-line error message, and terminate the compilation.
+*/
+{
+  str_command_line_error(error_code, (a_const_char*)NULL);
+}  /* command_line_error */
+
+
 void pos_st_diagnostic(an_error_severity error_severity,
                        an_error_code     error_code,
                        a_source_position *error_pos,
@@ -4714,9 +4792,11 @@ Report the indicated diagnostic message (with the indicated fill-in string)
 at the indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     error_string, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 }  /* pos_st_diagnostic */
 
 
@@ -4750,9 +4830,11 @@ Report the indicated diagnostic (with the indicated type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     type, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 }  /* pos_ty_diagnostic */
 
 
@@ -4766,10 +4848,11 @@ Report the indicated diagnostic (with the two indicated types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     type1, type2,
+                     (a_source_position*)NULL);
 }  /* pos_ty2_diagnostic */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -4783,9 +4866,11 @@ Report the indicated diagnostic (with the indicated symbol) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     symbol, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 }  /* pos_sy_diagnostic */
 
 
@@ -4798,9 +4883,11 @@ Report the indicated diagnostic at the indicated position.  A second position
 is also provided.
 */
 {
-  init_error_params();
-  error_msg_positions[1] = other_pos;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     other_pos);
 }  /* pos2_diagnostic */
 
 
@@ -4814,10 +4901,11 @@ Report the indicated diagnostic (with the indicated symbol) at the
 indicated position, a second position is also provided.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  error_msg_positions[1] = other_pos;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     symbol, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     other_pos);
 }  /* pos2_sy_diagnostic */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4832,10 +4920,14 @@ Report the indicated diagnostic (with the indicated type) at the
 indicated position, a second position is also provided.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  error_msg_positions[1] = other_pos;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL,
+                     (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL,
+                     type,
+                     (a_type_ptr)NULL,
+                     other_pos);
 }  /* pos2_ty_diagnostic */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4851,11 +4943,14 @@ Report the indicated diagnostic (with the indicated symbol and types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL,
+                     (a_const_char*)NULL,
+                     symbol,
+                     (a_symbol_ptr)NULL,
+                     type1,
+                     type2,
+                     (a_source_position*)NULL);
 }  /* pos_sy_ty2_diagnostic */
 
 
@@ -4869,11 +4964,15 @@ Report the indicated diagnostic (with the indicated symbols) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol1;
-  error_msg_syms[2] = symbol2;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
-}  /* pos_sy_diagnostic */
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL,
+                     (a_const_char*)NULL,
+                     symbol1,
+                     symbol2,
+                     (a_type_ptr)NULL,
+                     (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
+}  /* pos_sy2_diagnostic */
 
 
 void sym_diagnostic(an_error_severity  error_severity,
@@ -4898,10 +4997,14 @@ Report the indicated diagnostic (with the indicated symbol and type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL,
+                     (a_const_char*)NULL,
+                     symbol,
+                     (a_symbol_ptr)NULL,
+                     type,
+                     (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 }  /* pos_syty_diagnostic */
 
 
@@ -4915,13 +5018,61 @@ Report the indicated diagnostic (with the indicated fill-in string and symbol)
 at the indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
+  general_diagnostic(error_severity, error_code, error_pos,
+                     error_string,
+                     (a_const_char*)NULL,
+                     symbol,
+                     (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL,
+                     (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
 }  /* pos_stsy_diagnostic */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static
+void pos_stty_diagnostic(an_error_severity  error_severity,
+                         an_error_code      error_code,
+                         a_source_position  *error_pos,
+                         a_const_char       *error_string,
+                         a_type_ptr         type)
+/*
+Report the indicated diagnostic (with the indicated fill-in string and type)
+at the indicated position.
+*/
+{
+  general_diagnostic(error_severity, error_code, error_pos,
+                     error_string,
+                     (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL,
+                     type,
+                     (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
+}  /* pos_stty_diagnostic */
+
+
+static
+void pos_st2_diagnostic(an_error_severity error_severity,
+                        an_error_code     error_code,
+                        a_source_position *error_pos,
+                        a_const_char      *error_string1,
+                        a_const_char      *error_string2)
+/*
+Report the indicated diagnostic (with the indicated fill-in strings) at the
+position indicated by error_position.
+*/
+{
+  general_diagnostic(error_severity, error_code, error_pos,
+                     error_string1,
+                     error_string2,
+                     (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL,
+                     (a_type_ptr)NULL,
+                     (a_source_position*)NULL);
+}  /* pos_st2_diagnostic */
+
 
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
@@ -4931,9 +5082,7 @@ Report the indicated remark (with the indicated fill-in string) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_remark, dck_standalone);
+  pos_st_diagnostic(es_remark, error_code, error_pos, error_string);
 }  /* pos_st_remark */
 
 
@@ -4964,9 +5113,7 @@ Report the indicated remark (with the indicated type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_remark, dck_standalone);
+  pos_ty_diagnostic(es_remark, error_code, error_pos, type);
 }  /* pos_ty_remark */
 
 
@@ -4982,10 +5129,7 @@ Report the indicated remark (with the two indicated types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, es_remark, dck_standalone);
+  pos_ty2_diagnostic(es_remark, error_code, error_pos, type1, type2);
 }  /* pos_ty2_remark */
 
 
@@ -5011,9 +5155,7 @@ Report the indicated remark (with the indicated symbol) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_remark, dck_standalone);
+  pos_sy_diagnostic(es_remark, error_code, error_pos, symbol);
 }  /* pos_sy_remark */
 
 
@@ -5037,10 +5179,7 @@ Report the indicated remark (with the indicated fill-in string and symbol)
 at the indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_remark, dck_standalone);
+  pos_stsy_diagnostic(es_remark, error_code, error_pos, error_string, symbol);
 }  /* pos_stsy_remark */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -5053,9 +5192,7 @@ Report the indicated warning (with the indicated fill-in string) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_st_diagnostic(es_warning, error_code, error_pos, error_string);
 }  /* pos_st_warning */
 
 
@@ -5090,11 +5227,9 @@ Report the indicated warning (with the indicated fill-in strings) at the
 position indicated by error_position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string1;
-  error_msg_strings[2] = error_string2;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
-}  /* pos_str2_warning */
+  pos_st2_diagnostic(es_warning, error_code, error_pos, error_string1,
+                     error_string2);
+}  /* pos_st2_warning */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5115,9 +5250,7 @@ Report the indicated warning (with the indicated type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_ty_diagnostic(es_warning, error_code, error_pos, type);
 }  /* pos_ty_warning */
 
 void pos_ty2_warning(an_error_code     error_code,
@@ -5129,11 +5262,9 @@ Report the indicated warning (with the two indicated types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_ty2_diagnostic(es_warning, error_code, error_pos, type1, type2);
 }  /* pos_ty2_warning */
+
 
 void pos_opt_ty2_warning(an_error_code     error_code,
                          a_source_position *error_pos,
@@ -5145,14 +5276,16 @@ indicated position.  If the error message has no fill-ins, do not
 put the types in the message.
 */
 {
-  init_error_params();
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_warning);
   /* See if the error message contains a fill-in for a type.  If so,
      put out the types. */
   if (message_has_fill_in(error_code)) {
-    error_msg_types[1] = type1;
-    error_msg_types[2] = type2;
+    add_type_fill_in(dp, type1);
+    add_type_fill_in(dp, type2);
   }  /* if */
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  wrap_up_diagnostic(dp);
 }  /* pos_opt_ty2_warning */
 
 
@@ -5177,10 +5310,7 @@ Report the indicated warning (with the indicated symbol and type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_syty_diagnostic(es_warning, error_code, error_pos, symbol, type);
 }  /* pos_syty_warning */
 
 
@@ -5192,9 +5322,7 @@ Report the indicated warning (with the indicated symbol) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_sy_diagnostic(es_warning, error_code, error_pos, symbol);
 }  /* pos_sy_warning */
 
 
@@ -5218,10 +5346,7 @@ Report the indicated warning (with the indicated fill-in string and symbol)
 at the indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_stsy_diagnostic(es_warning, error_code, error_pos, error_string, symbol);
 }  /* pos_stsy_warning */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -5235,10 +5360,7 @@ Report the indicated warning (with the indicated fill-in string and type) at
 the indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_stty_diagnostic(es_warning, error_code, error_pos, error_string, type);
 }  /* pos_stty_warning */
 
 
@@ -5250,9 +5372,7 @@ Report the indicated error (with the indicated fill-in string) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_st_diagnostic(es_error, error_code, error_pos, error_string);
 }  /* pos_st_error */
 
 
@@ -5265,10 +5385,8 @@ Report the indicated error (with the indicated fill-in strings) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string1;
-  error_msg_strings[2] = error_string2;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_st2_diagnostic(es_error, error_code, error_pos, error_string1,
+                     error_string2);
 }  /* pos_st2_error */
 
 
@@ -5281,10 +5399,7 @@ Report the indicated error (with the indicated fill-in string and type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_stty_diagnostic(es_error, error_code, error_pos, error_string, type);
 }  /* pos_stty_error */
 
 
@@ -5326,9 +5441,7 @@ Report the indicated error (with the indicated type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_ty_diagnostic(es_error, error_code, error_pos, type);
 }  /* pos_ty_error */
 
 
@@ -5341,10 +5454,7 @@ Report the indicated error (with the two indicated types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_ty2_diagnostic(es_error, error_code, error_pos, type1, type2);
 }  /* pos_ty2_error */
 
 
@@ -5357,10 +5467,7 @@ Report the indicated error (with the indicated type and string value) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_stty_diagnostic(es_error, error_code, error_pos, error_string, type);
 }  /* pos_ty_str_error */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5375,11 +5482,13 @@ Report the indicated error (with the three indicated types) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  error_msg_types[3] = type3;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_type_fill_in(dp, type1);
+  add_type_fill_in(dp, type2);
+  add_type_fill_in(dp, type3);
+  wrap_up_diagnostic(dp);
 }  /* pos_ty3_error */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5394,14 +5503,16 @@ indicated position.  If the error message has no fill-ins, do not
 put the types in the message.
 */
 {
-  init_error_params();
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
   /* See if the error message contains a fill-in for a type.  If so,
      put out the types. */
   if (message_has_fill_in(error_code)) {
-    error_msg_types[1] = type1;
-    error_msg_types[2] = type2;
+    add_type_fill_in(dp, type1);
+    add_type_fill_in(dp, type2);
   }  /* if */
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  wrap_up_diagnostic(dp);
 }  /* pos_opt_ty2_error */
 
 
@@ -5426,10 +5537,7 @@ Report the indicated error (with the indicated fill-in string) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_stsy_diagnostic(es_error, error_code, error_pos, error_string, symbol);
 }  /* pos_stsy_error */
 
 
@@ -5441,9 +5549,7 @@ Report the indicated error (with the indicated symbol) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_sy_diagnostic(es_error, error_code, error_pos, symbol);
 }  /* pos_sy_error */
 
 
@@ -5456,10 +5562,7 @@ Report the indicated error (with the indicated symbols) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol1;
-  error_msg_syms[2] = symbol2;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_sy2_diagnostic(es_error, error_code, error_pos, symbol1, symbol2);
 }  /* pos_sy2_error */
 
 
@@ -5472,10 +5575,7 @@ Report the indicated error (with the indicated symbol and type) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_standalone);
+  pos_syty_diagnostic(es_error, error_code, error_pos, symbol, type);
 }  /* pos_syty_error */
 
 
@@ -5519,11 +5619,9 @@ Report the indicated catastrophic error (with the indicated fill-in string)
 at the indicated position, and then terminate the compilation.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_catastrophe, dck_standalone);
+  pos_st_diagnostic(es_catastrophe, error_code, error_pos, error_string);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  diag_message does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* pos_st_catastrophe */
@@ -5549,12 +5647,10 @@ Report the indicated catastrophe (with the indicated fill-in strings) at the
 indicated error_position, and then terminate the compilation.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string1;
-  error_msg_strings[2] = error_string2;
-  diag_message(error_code, error_pos, es_catastrophe, dck_standalone);
+  pos_st2_diagnostic(es_catastrophe, error_code, error_pos, error_string1,
+                     error_string2);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  diag_message does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* pos_str2_catastrophe */
@@ -5569,13 +5665,10 @@ DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
 When a WIN32 API fails, issue a diagnostic that describes the failure.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_strings[2] = win32_error_to_str(error_code);
-  diag_message(ec_win32_api_error, &error_position,
-               es_catastrophe, dck_standalone);
+  pos_str2_catastrophe(ec_win32_abi_error, error_string,
+                       win32_error_to_str(error_code), &error_position);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  diag_message does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* win32_catastrophe */
@@ -5587,13 +5680,15 @@ When a random COM API (or other API that hopefully uses ISetErrorInfo) fails,
 this produces a diagnostic that describes the failure.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_strings[2] = com_error_to_str();
-  diag_message(ec_win32_api_error, &error_position,
-               es_catastrophe, dck_standalone);
+  a_const_char	*com_string;
+
+  /* Make a copy of the string as the value returned is in a text buffer. */
+  com_string = com_error_to_str();
+  com_string = diag_copy_string(com_string);
+  pos_str2_catastrophe(ec_win32_api_error, &error_position,
+                       error_string, com_string);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  diag_message does not return in this case. */
+  /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* hresult_catastrophe */
@@ -5611,8 +5706,14 @@ with errno converted to a string fill-in at the position indicated by
 error_position, and then terminate the compilation.
 */
 {
+  char *errno_string;
+
+  /* Make a copy of the strerror value to guard against the unlikely
+     case of another call to strerror happening somewhere. */
+  errno_string = strerror(errno_value);
+  errno_string = diag_copy_string(errno_string);
   pos_str2_catastrophe(error_code, error_string,
-                       strerror(errno_value), &error_position);
+                       errno_string, &error_position);
 }  /* str_errno_catastrophe */
 
 
@@ -5626,8 +5727,14 @@ and with errno converted to a string fill-in at the position indicated by
 error_position, and then terminate the compilation.
 */
 {
+  char *errno_string;
+
+  /* Make a copy of the strerror value to guard against the unlikely
+     case of another call to strerror happening somewhere. */
+  errno_string = strerror(errno_value);
+  errno_string = diag_copy_string(errno_string);
   pos_str2_catastrophe(error_code, error_text(error_code2),
-                       strerror(errno_value), &error_position);
+                       errno_string, &error_position);
 }  /* error_code_errno_catastrophe */
 
 
@@ -5643,204 +5750,228 @@ and then terminate the compilation.
 
 /* The following routines are used to construct multiple message
    diagnostics with various fill-ins. */
-void pos_start_diagnostic(an_error_severity  error_severity,
-                          an_error_code      error_code,
-                          a_source_position  *error_pos)
+
+a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
+                                      an_error_code      error_code,
+                                      a_source_position  *error_pos)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
-and source position.
+and source position.  Return a pointer to the diagnostic entry that
+will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  diag_message(error_code, error_pos, error_severity, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  return dp;
 }  /* pos_start_diagnostic */
 
 
-void pos_ty_start_diagnostic(an_error_severity  error_severity,
-                             an_error_code      error_code,
-                             a_source_position *error_pos,
-                             struct a_type     *type)
+a_diagnostic_ptr pos_ty_start_diagnostic(an_error_severity  error_severity,
+                                         an_error_code      error_code,
+                                         a_source_position *error_pos,
+                                         struct a_type     *type)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
-source position, and type fill-in.
+source position, and type fill-in.  Return a pointer to the diagnostic entry
+that will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, error_severity, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  add_type_fill_in(dp, type);
+  return dp;
 }  /* pos_ty_start_diagnostic */
 
 
-void pos_start_error(an_error_code     error_code,
-                     a_source_position *error_pos)
+a_diagnostic_ptr pos_start_error(an_error_code     error_code,
+                                 a_source_position *error_pos)
 /*
 Begin a multiple message error with the specified error code and source
-position.
+position.  Return a pointer to the diagnostic entry that will be passed
+in for the subsequent messages.
 */
 {
-  init_error_params();
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  return pos_start_diagnostic(es_error, error_code, error_pos);
 }  /* pos_start_error */
 
 
-void pos_st_start_error(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        a_const_char      *error_string)
+a_diagnostic_ptr pos_st_start_error(an_error_code     error_code,
+                                    a_source_position *error_pos,
+                                    a_const_char      *error_string)
 /*
 Begin a multiple message error with the specified error code, source
-position and string fill-in.
+position and string fill-in.  Return a pointer to the diagnostic entry
+that will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_string_fill_in(dp, error_string);
+  return dp;
 }  /* pos_st_start_error */
 
 
-void pos_ty_start_error(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        a_type_ptr        type)
+a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,
+                                    a_source_position *error_pos,
+                                    a_type_ptr        type)
 /*
 Begin a multiple message error with the specified error code, source
-position and type fill-in.
+position and type fill-in.  Return a pointer to the diagnostic entry
+that will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  return pos_ty_start_diagnostic(es_error, error_code, error_pos, type);
 }  /* pos_ty_start_error */
 
 
-void pos_ty2_start_error(an_error_code     error_code,
-                         a_source_position *error_pos,
-                         a_type_ptr        type1,
-                         a_type_ptr        type2)
+a_diagnostic_ptr pos_ty2_start_error(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     a_type_ptr        type1,
+                                     a_type_ptr        type2)
 /*
 Begin a multiple message error with the specified error code, source
-position, and 2 types as fill-ins.
+position, and 2 types as fill-ins.  Return a pointer to the diagnostic entry
+that will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type1;
-  error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_type_fill_in(dp, type1);
+  add_type_fill_in(dp, type2);
+  return dp;
 }  /* pos_ty2_start_error */
 
 
-void ty_add_diag_info(an_error_code error_code,
-                      a_type_ptr    type)
+void ty_add_diag_info(a_diagnostic_ptr primary_dp,
+                      an_error_code    error_code,
+                      a_type_ptr       type)
 
 /*
-Add the specified diagnostic message with the type substitution to the
-multiple message diagnostic being processed.
+Add the specified diagnostic message with the type substitution to primary_dp.
 */
 {
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_type_fill_in(dp, type);
 }  /* ty_add_diag_info */
 
 
-void str_add_diag_info(an_error_code error_code,
-                       a_const_char  *error_string)
+void str_add_diag_info(a_diagnostic_ptr primary_dp,
+                       an_error_code    error_code,
+                       a_const_char     *error_string)
 /*
-Add the specified diagnostic message with the string substitution to the
-multiple message diagnostic being processed.
+Add the specified diagnostic message with the string substitution to
+primary_dp.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_string_fill_in(dp, error_string);
 }  /* str_add_diag_info */
 
 
-void add_diag_info(an_error_code error_code)
+void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
+                            an_error_code    error_code,
+                            a_const_char     *error_string)
 /*
-Add the specified diagnostic message to the multiple message diagnostic
-being processed.
+Add the specified diagnostic message with the string substitution to
+primary_dp.  Make a copy of the string and use the copy for substitution.
 */
 {
-  init_error_params();
-  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+  a_diagnostic_ptr	dp;
+  a_const_char		*string_copy;
+
+  string_copy = diag_copy_string(error_string);
+  dp = create_sub_message(primary_dp, error_code);
+  add_string_fill_in(dp, string_copy);
+}  /* copy_str_add_diag_info */
+
+
+void add_diag_info(a_diagnostic_ptr primary_dp,
+                   an_error_code    error_code)
+/*
+Add the specified diagnostic message to the primary_dp.
+*/
+{
+  (void)create_sub_message(primary_dp, error_code);
 }  /* add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void add_diag_info_with_pos_insert(an_error_code      error_code,
-                                   a_source_position  *pos)
+void add_diag_info_with_pos_insert(a_diagnostic_ptr	primary_dp,
+				   an_error_code	error_code,
+                                   a_source_position	*pos)
 /*
-Add the specified diagnostic message to the multiple message diagnostic
-being processed.  pos refers to a source position that will be embedded
-in the message text using the "%p" convention.
+Add the specified diagnostic message to primary_dp.  pos refers to a source
+position that will be embedded in the message text using the "%p" convention.
 */
 {
-  init_error_params();
-  error_msg_positions[1] = pos;
-  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_position_fill_in(dp, pos);
 }  /* add_diag_info_with_pos_insert */
 
 
-void pos_sy_start_diagnostic(an_error_severity  error_severity,
-                             an_error_code      error_code,
-                             a_source_position  *error_pos,
-                             a_symbol_ptr       symbol)
+a_diagnostic_ptr pos_sy_start_diagnostic(an_error_severity  error_severity,
+                                         an_error_code      error_code,
+                                         a_source_position  *error_pos,
+                                         a_symbol_ptr       symbol)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
-source position, and symbol fill-in.
+source position, and symbol fill-in.  Return a pointer to the diagnostic
+entry that will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, error_severity, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  add_symbol_fill_in(dp, symbol);
+  return dp;
 }  /* pos_sy_start_diagnostic */
 
 
-void pos_sy_start_error(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        a_symbol_ptr      symbol)
+a_diagnostic_ptr pos_sy_start_error(an_error_code     error_code,
+                                    a_source_position *error_pos,
+                                    a_symbol_ptr      symbol)
 /*
 Begin a multiple message error with the specified error code, source
-position and symbol fill-in.
+position and symbol fill-in.  Return a pointer to the diagnostic entry that
+will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_symbol_fill_in(dp, symbol);
+  return dp;
 }  /* pos_sy_start_error */
 
 
-void pos_stsy_start_error(an_error_code     error_code,
-                          a_source_position *error_pos,
-                          a_const_char      *error_string,
-                          a_symbol_ptr      symbol)
+a_diagnostic_ptr pos_stsy_start_error(an_error_code     error_code,
+                                      a_source_position *error_pos,
+                                      a_const_char      *error_string,
+                                      a_symbol_ptr      symbol)
 /*
 Begin a multiple message error with the specified error code, source
-position and symbol fill-in.
+position and symbol fill-in.  Return a pointer to the diagnostic entry that
+will be passed in for the subsequent messages.
 */
 {
-  init_error_params();
-  error_msg_strings[1] = error_string;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_string_fill_in(dp, error_string);
+  add_symbol_fill_in(dp, symbol);
+  return dp;
 }  /* pos_stsy_start_error */
 
-#if 0
-/* This routine is not currently used by the compiler. */
-
-void pos_sy_start_warning(an_error_code     error_code,
-                          a_source_position *error_pos,
-                          a_symbol_ptr      symbol)
-/*
-Begin a multiple message warning with the specified error code, source
-position and symbol fill-in.
-*/
-{
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_warning, dck_primary);
-}  /* pos_sy_start_warning */
-
-#endif /* 0 */
 
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
@@ -5851,23 +5982,22 @@ Report the indicated warning (with the indicated symbols) at the
 indicated position.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol1;
-  error_msg_syms[2] = symbol2;
-  diag_message(error_code, error_pos, es_warning, dck_standalone);
+  pos_sy2_diagnostic(es_warning, error_code, error_pos, symbol1, symbol2);
 }  /* pos_sy2_warning */
 
 
-void sym_add_diag_info(an_error_code error_code,
-                       a_symbol_ptr  symbol)
+void sym_add_diag_info(a_diagnostic_ptr primary_dp,
+                       an_error_code    error_code,
+                       a_symbol_ptr     symbol)
 /*
-Add the specified diagnostic message with the symbol substitution to the
-multiple message diagnostic being processed.
+Add the specified diagnostic message with the symbol substitution to
+primary_dp.
 */
 {
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, (a_source_position *)NULL , es_none, dck_list);
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_symbol_fill_in(dp, symbol);
 }  /* sym_add_diag_info */
 
 
@@ -5909,6 +6039,7 @@ diagnostic is associated; error_code indicates the message to be issued.
   severity = es_discretionary_error;
   pos_diagnostic(severity, error_code, error_pos);
 }  /* embedded_cplusplus_noncompliance_diagnostic */
+
 
 void diag_pragma(a_pending_pragma_ptr	ppp)
 /*
@@ -5979,39 +6110,47 @@ where "arg" is either an error number or an error tag.
   wrapup_rescan_of_pragma_tokens(error_in_pragma);
 }  /* diag_pragma */
 
-
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-void end_error(void)
+void end_diagnostic(a_diagnostic_ptr	dp)
 /*
-Complete the multiple message diagnostic currently being processed.
+Complete the multiple message (dp) diagnostic currently being processed.
 */
 {
-  init_error_params();
-  diag_message(ec_no_error, (a_source_position *)NULL, es_none, dck_end_list);
-}  /* end_error */
+  wrap_up_diagnostic(dp);
+}  /* end_diagnostic */
 
-void start_command_line_error(an_error_code      error_code,
-			      a_const_char	 *error_string)
+
+a_diagnostic_ptr start_command_line_error(an_error_code  error_code,
+			                  a_const_char   *error_string)
 /*
-Begin a multiple message command line error.
+Begin a multiple message command line error.  error_string is a string
+to be used as fill-in and can be NULL if there is no fill-in.  Return a
+pointer to the diagnostic entry that will be passed in for the subsequent
+messages.
 */
 {
-  init_error_params();
+  a_diagnostic_ptr	dp;
+
   set_position_to(error_position, 0, SP_COL_CMD_LINE);
-  error_msg_strings[1] = error_string;
-  diag_message(error_code, &error_position, es_command_line_error,
-               dck_primary);
+  dp = create_primary_diagnostic(error_code, &error_position,
+                                 es_command_line_error);
+  if (error_string != NULL) {
+    /* Make a copy of the string fill-in. */
+    error_string = diag_copy_string(error_string);
+    add_string_fill_in(dp, error_string);
+  }  /* if */
+  return dp;
 }  /* start_command_line_error */
 
 
-DOES_NOT_RETURN end_command_line_error(void)
+DOES_NOT_RETURN end_command_line_error(a_diagnostic_ptr dp)
 /*
-Complete the multiple command line error being processed.
+Complete the multiple message (dp) command line error currently being
+processed.
 */
 {
-  init_error_params();
-  diag_message(ec_no_error, (a_source_position *)NULL, es_none, dck_end_list);
+  wrap_up_diagnostic(dp);
 #ifdef __GNUC__
   /* Avoid gcc warning.  diag_message does not return in this case. */
   exit_compilation(es_internal_error);
@@ -6034,9 +6173,11 @@ line processing is done.
 #if DEBUG
   f_debug = stderr;
 #endif /* DEBUG */
+  diag_memory_region = FRONT_END_REGION_NUMBER;
+  diagnostic_line_length = MAX_ERROR_OUTPUT_LINE_LENGTH;
+  msg_buffer = NULL;
+  prefix_buffer = NULL;
   write_diagnostic_buffer = NULL;
-  write_message_buffer = NULL;
-  write_diagnostic_recursion_level = 0;
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
   cs_saved_severity = (an_error_severity)es_default;
@@ -6062,7 +6203,6 @@ line processing is done.
 #if FULLY_RESOLVED_MACRO_POSITIONS
   macro_positions_in_diagnostics = DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  error_message_head = NULL;
   /* Zeroing this array causes it to be set to es_default. */
   memzero((a_void_ptr)default_severity_for_error_code,
            sizeof(default_severity_for_error_code));
@@ -6123,6 +6263,13 @@ of each compilation.
 */
 {
   total_remarks = total_warnings = total_errors = total_catastrophes = 0;
+  avail_diagnostics = NULL;
+  avail_diag_fill_ins = NULL;
+  diagnostic_indent = 0;
+#if DEBUG
+  num_diagnostics_allocated = 0;
+  num_diag_fill_ins_allocated = 0;
+#endif /* DEBUG */
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
   memzero((a_void_ptr)diagnostic_issued_for_error_code,
@@ -6136,8 +6283,28 @@ of each compilation.
   expected_error_record.string1 = NULL;
   expected_error_record.string2 = NULL;
 #endif /* CHECKING */
-  write_diagnostic_recursion_level = 0;
 }  /* error_init */
+
+#if DEBUG
+
+unsigned long show_error_space_used(void)
+/*
+Display and return the amount of memory used for error processing
+structure for space tracking purposes.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  db_space_used_header("Error table use:");
+  db_space_used_lost("diagnostic", avail_diagnostics,
+                     num_diagnostics_allocated, a_diagnostic);
+  db_space_used_lost("diag fill-in", avail_diag_fill_ins,
+                     num_diag_fill_ins_allocated, a_diag_fill_in);
+  db_space_used_total();
+  return grand_total;
+}  /* show_error_space_used */
+
+#endif /* DEBUG */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

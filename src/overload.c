@@ -1693,12 +1693,14 @@ overload resolution problem.
 }  /* format_arg_list_elem_type_for_display */
 
 
-void display_object_type(a_type_ptr object_type)
+void display_object_type(a_type_ptr       object_type,
+                         a_diagnostic_ptr dp)
 /*
 Output a diagnostic line that displays the indicated type as the
 object type, as part of producing a diagnostic for an overload
 resolution problem.  The object type can be a class type or a pointer
-to class type (or an error type).
+to class type (or an error type).  dp points to the diagnostic being
+generated.
 */
 {
   if (is_pointer_type(object_type)) {
@@ -1707,19 +1709,21 @@ to class type (or an error type).
   set_up_for_argument_type_formatting();
   format_argument_type_for_display(object_type);
   put_ch_to_temp_text_buffer('\0');
-  str_add_diag_info(ec_object_type_add_on, temp_text_buffer);
+  copy_str_add_diag_info(dp, ec_object_type_add_on, temp_text_buffer);
 }  /* display_object_type */
 
 
 static void display_argument_list_types(a_type_ptr           object_type,
-                                        an_arg_list_elem_ptr arg_list)
+                                        an_arg_list_elem_ptr arg_list,
+                                        a_diagnostic_ptr     dp)
 /*
 Output a diagnostic line that displays the types of the arguments in
 arg_list, as part of producing a diagnostic for an overload
 resolution problem.  object_type is the selector object type,
 if there is one, or NULL otherwise; output a line giving the type if
 it is provided.  The start_error or equivalent has already been done.
-This routine does not call end_error.
+dp points to the diagnostic being generated.  This routine does not call
+end_diagnostic.
 */
 {
   an_arg_list_elem_ptr alep;
@@ -1737,21 +1741,23 @@ This routine does not call end_error.
       }  /* if */
     }  /* for */
     put_ch_to_temp_text_buffer('\0');
-    str_add_diag_info(ec_argument_list_types_add_on, temp_text_buffer);
+    copy_str_add_diag_info(dp, ec_argument_list_types_add_on,
+                           temp_text_buffer);
   }  /* if */
   if (object_type != NULL) {
-    display_object_type(object_type);
+    display_object_type(object_type, dp);
   }  /* if */
 }  /* display_argument_list_types */
 
 
 static void display_operand_types(an_arg_list_elem_ptr operand_list,
-                                  an_opname_kind       kind)
+                                  an_opname_kind       kind,
+                                  a_diagnostic_ptr     dp)
 /*
 Put the types of the operands (given by operand_list) of an operator
 (given by kind) into temp_text_buffer so they can be used in a diagnostic.
-The start_error or equivalent has already been done.  This routine does not
-call end_error.
+The start_error or equivalent has already been done.  dp points to the
+diagnostic being generated.  This routine does not call end_diagnostic.
 */
 {
   an_arg_list_elem_ptr alep;
@@ -1818,7 +1824,7 @@ call end_error.
     }  /* if */
   }  /* for */
   put_ch_to_temp_text_buffer('\0');
-  str_add_diag_info(ec_operand_types_add_on, temp_text_buffer);
+  copy_str_add_diag_info(dp, ec_operand_types_add_on, temp_text_buffer);
 }  /* display_operand_types */
 
 
@@ -2024,15 +2030,16 @@ static void diagnose_overload_ambiguity(
                              a_candidate_function_ptr candidate_functions,
                              an_operand               *bound_function_selector,
                              an_arg_list_elem_ptr     arg_list,
-                             an_opname_kind           kind)
+                             an_opname_kind           kind,
+                             a_diagnostic_ptr         dp)
 /*
-Issue the add-on diagnostics to describe an overloading ambiguity.
+Issue the add-on diagnostics to dp to describe an overloading ambiguity.
 candidate_functions gives the list of functions in the best-match set.
 arg_list gives the operand list, but is NULL if the operand types
 should not be listed.  bound_function_selector is the selector object,
 if there is one, or NULL otherwise.  kind gives the operator associated
 with any entries in the set for built-in operators.  The start_error
-or equivalent has already been done, and this routine does the end_error
+or equivalent has already been done, and this routine does the end_diagnostic
 call.
 */
 {
@@ -2057,10 +2064,10 @@ call.
         err_code = ec_ambiguous_function_add_on;
         reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
-      sym_add_diag_info(err_code, function_sym);
+      sym_add_diag_info(dp, err_code, function_sym);
     } else if (cfp->surrogate_function_conv_sym != NULL) {
       /* Surrogate function. */
-      sym_add_diag_info(ec_surrogate_func_add_on,
+      sym_add_diag_info(dp, ec_surrogate_func_add_on,
                         cfp->surrogate_function_conv_sym);
     } else {
       /* Built-in operator case. */
@@ -2090,7 +2097,7 @@ call.
         (void)sprintf(buf, "%s %s %s", name_for_type_code(pattern[0]), opname,
                                        name_for_type_code(pattern[1]));
       }  /* if */
-      str_add_diag_info(ec_builtin_operator_add_on, buf);
+      str_add_diag_info(dp, ec_builtin_operator_add_on, buf);
     }  /* if */
   }  /* for */
   if (arg_list != NULL) {
@@ -2100,13 +2107,13 @@ call.
       if (bound_function_selector != NULL) {
         object_type = bound_function_selector->type;
       }  /* if */
-      display_argument_list_types(object_type, arg_list);
+      display_argument_list_types(object_type, arg_list, dp);
     } else {
       check_assertion(bound_function_selector == NULL);
-      display_operand_types(arg_list, kind);
+      display_operand_types(arg_list, kind, dp);
     }  /* if */
   }  /* if */
-  end_error();
+  end_diagnostic(dp);
 }  /* diagnose_overload_ambiguity */
 
 
@@ -8993,11 +9000,12 @@ normal_no_function_matches:
         }  /* if */
       }  /* if */
       if (expr_error_should_be_issued()) {
-        pos_sy_start_error(err_none_applies, call_position,
-                           overloaded_function_symbol);
-        display_argument_list_types(object_type, arg_list);
-        add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-        end_error();
+        a_diagnostic_ptr dp;
+        dp = pos_sy_start_error(err_none_applies, call_position,
+                                overloaded_function_symbol);
+        display_argument_list_types(object_type, arg_list, dp);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
+        end_diagnostic(dp);
       }  /* if */
     }  /* if */
     if (template_arg_list != NULL && template_arg_list->arg_operand != NULL) {
@@ -9028,6 +9036,7 @@ normal_no_function_matches:
          functions. */
       a_boolean                use_class_call_message = FALSE;
       a_candidate_function_ptr cfp;
+      a_diagnostic_ptr         dp = NULL;
       for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
         if (cfp->surrogate_function_conv_sym != NULL) {
           use_class_call_message = TRUE;
@@ -9043,14 +9052,14 @@ normal_no_function_matches:
           object_class_type = type_pointed_to(object_class_type);
         }  /* if */
         if (expr_error_should_be_issued()) {
-          pos_ty_start_error(ec_ambiguous_class_call, call_position,
-                             object_class_type);
+          dp = pos_ty_start_error(ec_ambiguous_class_call, call_position,
+                                  object_class_type);
         }  /* if */
       } else {
         /* Normal case (not a class call). */
         check_assertion(overloaded_function_symbol != NULL);
         if (expr_error_should_be_issued()) {
-          pos_sy_start_error(err_ambiguous, call_position,
+          dp = pos_sy_start_error(err_ambiguous, call_position,
                              overloaded_function_symbol);
         }  /* if */
       }  /* if */
@@ -9058,7 +9067,7 @@ normal_no_function_matches:
         diagnose_overload_ambiguity(candidate_functions,
                                     bound_function_selector,
                                     arg_list,
-                                    (an_opname_kind)onk_none);
+                                    (an_opname_kind)onk_none, dp);
       }  /* if */
     }  /* if */
   } else {
@@ -15403,12 +15412,13 @@ Adjust the operand type to match the type requirement.
            of an error (no additional error is needed). */
         if (ambiguity_list != NULL) {
           if (expr_error_should_be_issued()) {
-            pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
-                               &operand->position, operand->type);
+            a_diagnostic_ptr dp;
+            dp = pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                                    &operand->position, operand->type);
             diagnose_overload_ambiguity(ambiguity_list,
                                         (an_operand *)NULL,
                                         (an_arg_list_elem *)NULL,
-                                        (an_opname_kind)onk_none);
+                                        (an_opname_kind)onk_none, dp);
           }  /* if */
           free_candidate_function_list(ambiguity_list);
         }  /* if */
@@ -16241,13 +16251,14 @@ no_applicable_operator_function:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             *processed = TRUE;
             if (expr_error_should_be_issued()) {
-              pos_st_start_error(ec_no_matching_operator_function,
-                                 operator_position,
-                                 opname_names[(int)kind]);
-              display_operand_types(arg_list, kind);
+              a_diagnostic_ptr dp;
+              dp = pos_st_start_error(ec_no_matching_operator_function,
+                                      operator_position,
+                                      opname_names[(int)kind]);
+              display_operand_types(arg_list, kind, dp);
               add_on_diag_for_skipped_inaccessible_function(
-                                                           inaccessible_match);
-              end_error();
+                                                       inaccessible_match, dp);
+              end_diagnostic(dp);
             }  /* if */
             make_error_operand(result);
             arg_list_not_used = TRUE;
@@ -16262,13 +16273,14 @@ no_applicable_operator_function:
           }  /* if */
 #endif /* DEBUG */
           if (expr_error_should_be_issued()) {
-            pos_st_start_error(ec_ambiguous_operator_function,
-                               operator_position,
-                               opname_names[(int)kind]);
+            a_diagnostic_ptr dp;
+            dp = pos_st_start_error(ec_ambiguous_operator_function,
+                                    operator_position,
+                                    opname_names[(int)kind]);
             diagnose_overload_ambiguity(candidate_functions,
                                         (an_operand *)NULL,
                                         arg_list,
-                                        kind);
+                                        kind, dp);
           }  /* if */
           make_error_operand(result);
           arg_list_not_used = TRUE;
@@ -17262,12 +17274,13 @@ error and set *processed to TRUE if the conversion is ambiguous.
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
         if (expr_error_should_be_issued()) {
-          pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
-                             &operand->position, operand->type);
+          a_diagnostic_ptr dp;
+          dp = pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                                  &operand->position, operand->type);
           diagnose_overload_ambiguity(ambiguity_list,
                                       (an_operand *)NULL,
                                       (an_arg_list_elem *)NULL,
-                                      (an_opname_kind)onk_none);
+                                      (an_opname_kind)onk_none, dp);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
       }  /* if */
@@ -17669,17 +17682,18 @@ that case).
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
         if (expr_error_should_be_issued()) {
+          a_diagnostic_ptr dp;
           if (single_type_message) {
-            pos_ty_start_error(err_code, &source_operand->position,
-                               class_type);
+            dp = pos_ty_start_error(err_code, &source_operand->position,
+                                    class_type);
           } else {
-            pos_ty2_start_error(err_code, &source_operand->position,
-                                source_type, diag_dest_type);
+            dp = pos_ty2_start_error(err_code, &source_operand->position,
+                                     source_type, diag_dest_type);
           }  /* if */
           diagnose_overload_ambiguity(ambiguity_list,
                                       (an_operand *)NULL,
                                       (an_arg_list_elem *)NULL,
-                                      (an_opname_kind)onk_none);
+                                      (an_opname_kind)onk_none, dp);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
       }  /* if */
@@ -20610,6 +20624,7 @@ the conversion.
       if (expr_error_should_be_issued()) {
         a_boolean                ctor_included = FALSE;
         a_candidate_function_ptr cfp;
+        a_diagnostic_ptr         dp;
         for (cfp = ambiguity_list; cfp != NULL; cfp = cfp->next) {
           if (cfp->function_symbol != NULL &&
               is_constructor_symbol(cfp->function_symbol)) {
@@ -20617,15 +20632,15 @@ the conversion.
             break;
           }  /* if */
         }  /* for */
-        pos_ty2_start_error(ctor_included ?
-                              ec_ambiguous_user_defined_conversion:
-                              ec_ambiguous_conversion_function,
-                            &source_operand->position, orig_source_type,
-                            base_dest_type);
+        dp = pos_ty2_start_error(ctor_included ?
+                                   ec_ambiguous_user_defined_conversion:
+                                   ec_ambiguous_conversion_function,
+                                 &source_operand->position, orig_source_type,
+                                 base_dest_type);
         diagnose_overload_ambiguity(ambiguity_list,
                                     (an_operand *)NULL,
                                     (an_arg_list_elem *)NULL,
-                                    (an_opname_kind)onk_none);
+                                    (an_opname_kind)onk_none, dp);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
       conv_to_error_operand(source_operand);
@@ -23919,12 +23934,13 @@ can convert to or from handles.
     /* The conversion is ambiguous.  Issue an error. */
     if (!error_issued) {
       if (expr_error_should_be_issued()) {
-        pos_ty2_start_error(ec_ambiguous_user_defined_conversion,
-                            &op1->position, op1->type, conv_dest_type);
+        a_diagnostic_ptr dp;
+        dp = pos_ty2_start_error(ec_ambiguous_user_defined_conversion,
+                                 &op1->position, op1->type, conv_dest_type);
         diagnose_overload_ambiguity(ambiguity_list,
                                     (an_operand *)NULL,
                                     (an_arg_list_elem *)NULL,
-                                    (an_opname_kind)onk_none);
+                                    (an_opname_kind)onk_none, dp);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
     }  /* if */

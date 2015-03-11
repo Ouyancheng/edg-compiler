@@ -3214,9 +3214,9 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
-    (void)write_file_name(curr_ise->file_name, f_pp_output,
-                          /*process_escapes=*/!pcc_preprocessing_mode,
-                          /*escape_nonprintable_chars=*/TRUE);
+    write_file_name(curr_ise->file_name, f_pp_output,
+                    /*process_escapes=*/!pcc_preprocessing_mode,
+                    /*escape_nonprintable_chars=*/TRUE);
     fputc('"', f_pp_output);
 #if GEN_EXTRA_LINE_ID_INFO
     if (pcc_preprocessing_mode) {
@@ -5112,8 +5112,8 @@ is TRUE, and search_path is empty.
           }  /* if */
           /* Save a copy the file name. */
           reset_text_buffer(suffix_replacement_buffer);
-          (void)add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
-                                   buffer->size);
+          add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
+                             buffer->size);
           /* Loop through the linked list of suffixes. */
           for (fsp = suffix_list;
                fsp != NULL;
@@ -5131,9 +5131,9 @@ is TRUE, and search_path is empty.
             if (fsp->next != NULL) {
               /* Copy the original file name back into the buffer. */
               reset_text_buffer(buffer);
-              (void)add_to_text_buffer(buffer,
-                                       suffix_replacement_buffer->buffer,
-                                       suffix_replacement_buffer->size);
+              add_to_text_buffer(buffer,
+                                 suffix_replacement_buffer->buffer,
+                                 suffix_replacement_buffer->size);
             }  /* if */
           }  /* for */
         }  /* if */
@@ -9372,7 +9372,7 @@ are the prefix characters to be used for 4-digit and 8-digit output.
   }  /* for */
   add_char_to_text_buffer(ucn_buffer, '\\');
   add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? prefix8 : prefix4);
-  (void)add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+  add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
   /* Record the fact that an identifier containing a UCN or UCN-like
      character has been encountered. */
   il_header.UCN_identifiers_used = TRUE;
@@ -11459,8 +11459,8 @@ tok_ud_literal; otherwise, return tok_string_literal.
           saw_macro_instead_of_udl_suffix = TRUE;
         } else if (ud_lit_suffix_buffer->size == 0) {
           /* This is the first one -- copy the identifier. */
-          (void)add_to_text_buffer(ud_lit_suffix_buffer, canonical_id,
-                                   suffix_len);
+          add_to_text_buffer(ud_lit_suffix_buffer, canonical_id,
+                             suffix_len);
           add_char_to_text_buffer(ud_lit_suffix_buffer, '\0');
           end_of_curr_token = curr_char_loc - 1;
         } else if (!suffix_mismatch) {

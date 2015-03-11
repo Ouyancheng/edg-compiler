@@ -788,8 +788,8 @@ Write a #line directive for the indicated line number and file.
     if (gen_old_style_line_dirs) process_escapes = FALSE;
     (void)putc(' ', f_C_output);
     (void)putc('"', f_C_output);
-    (void)write_file_name(curr_output_file->file_name, f_C_output,
-                          process_escapes, /*escape_nonprintable_chars=*/TRUE);
+    write_file_name(curr_output_file->file_name, f_C_output,
+                    process_escapes, /*escape_nonprintable_chars=*/TRUE);
     (void)putc('"', f_C_output);
     if (gcc_or_clang_is_generated_code_target &&
         new_output_file->from_system_include_dir) {

@@ -67,6 +67,7 @@ Show the amount of memory allocated.
   /* Show space use in various categories. */
   total_space += show_symbol_space_used();
   total_space += show_macro_space_used();
+  total_space += show_error_space_used();
   total_space += show_lexical_space_used();
   total_space += show_decl_space_used();
   total_space += show_expr_space_used();

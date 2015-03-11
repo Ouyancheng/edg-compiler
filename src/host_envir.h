@@ -3224,6 +3224,7 @@ typedef enum /*an_error_severity*/ {
   es_none,
   es_remark,
   es_warning,
+  es_command_line_warning,
   es_discretionary_error,
   es_error,
   es_catastrophe,
@@ -3340,12 +3341,12 @@ extern a_const_char *make_module_id(a_const_char *external_name);
 
 #endif /* MODULE_ID_NEEDED */
 
-extern unsigned long write_file_name(a_const_char *name,
-                                     FILE         *f_output,
-                                     a_boolean    process_escapes,
-				     a_boolean    escape_nonprintable_chars);
+extern void write_file_name(a_const_char *name,
+                            FILE         *f_output,
+                            a_boolean    process_escapes,
+                            a_boolean    escape_nonprintable_chars);
 
-extern unsigned long write_file_name_to_text_buffer(
+extern void write_file_name_to_text_buffer(
                                   a_const_char     *name,
                                   a_text_buffer_ptr buffer,
                                   a_boolean         process_escapes,

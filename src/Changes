@@ -1,5 +1,20 @@
 Version 4.11
 
+3/11/15  [EDGcpfe/16084]
+Changes to diagnostic processing
+
+The diagnostic processing routines have been reworked to provide a mechanism
+that can be used to provide additional information about the cause of
+an error (for example, the reason for a constexpr evaluation failure).
+The new structure builds all of the information about a diagnostic and
+then uses that to generate the output.  The new structure is easier
+to customize if the diagnostic information is to be displayed in a
+format different from what we provide by default.  The new mechanism
+uses a different method of wrapping long lines.  Specifically, it now
+breaks lines on spaces that occur within fill-in entries.  It also
+fixes a bug that caused lines to often wrap before they should have.
+
+
 3/10/15  [EDGcpfe/16077]
 C++14 compatibility: "deprecated" attribute
 

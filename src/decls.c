@@ -1925,6 +1925,7 @@ static a_boolean compare_exception_specification_type_list(
                               an_exception_specification_ptr  spec_1,
                               an_exception_specification_ptr  spec_2,
                               a_source_position_ptr           throw_pos,
+                              a_diagnostic_ptr                *dp,
                               an_error_code                   diff_msg,
                               an_error_code                   intro_msg,
                               a_symbol_ptr                    prev_sym,
@@ -1933,7 +1934,8 @@ static a_boolean compare_exception_specification_type_list(
 Helper function to report differences between two exception specifications
 spec_1 and spec_2.  Normally this routine is called twice with the arguments
 for spec_1 and spec_2 exchanged and diff_msg set to an error message that
-reports missing or extraneous types.  The position of the keyword "throw" that
+reports missing or extraneous types.  If a diagnostic is started, *dp is
+set to that diagnostic entry.  The position of the keyword "throw" that
 introduced the latest declaration is throw_pos.  The earlier declaration
 resulted in symbol prev_sym.
 If difference_seen is FALSE and a difference is seen in this comparison, an
@@ -1975,10 +1977,10 @@ The routine returns difference_seen.
              by additional messages identifying the specific discrepancy.
              This is the first diagnostic, so put out the header message
              first. */
-          pos_stsy_start_error(intro_msg, throw_pos, ":", prev_sym);
+          *dp = pos_stsy_start_error(intro_msg, throw_pos, ":", prev_sym);
           difference_seen = TRUE;
         }  /* if */
-        ty_add_diag_info(diff_msg, etype_1->type);
+        ty_add_diag_info(*dp, diff_msg, etype_1->type);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -2194,26 +2196,28 @@ consistent with that of the previous declaration.
          It is compatible only with another nonthrowing specification on the
          current declaration. */
       if (!is_nothrow_spec(new_esp)) {
-        pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
-        add_diag_info(ec_previous_exception_specification_was_empty);
-        end_error();
+        a_diagnostic_ptr dp;
+        dp = pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
+        add_diag_info(dp, ec_previous_exception_specification_was_empty);
+        end_diagnostic(dp);
       }  /* if */
     } else {
       /* Both specifications list the types that will be thrown or the new one
          is noexcept and the previous one lists some types.  Describe the
          mismatch between the two specifications, if any. */
+      a_diagnostic_ptr dp;
       any_difference_seen = FALSE;
       /* Check extraneous types: */
       any_difference_seen = compare_exception_specification_type_list(
-                              new_esp, old_esp, throw_pos,
+                              new_esp, old_esp, throw_pos, &dp,
                               ec_omitted_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
       /* Check missing types: */
       any_difference_seen = compare_exception_specification_type_list(
-                              old_esp, new_esp, throw_pos,
+                              old_esp, new_esp, throw_pos, &dp,
                               ec_included_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
-      if (any_difference_seen) end_error();
+      if (any_difference_seen) end_diagnostic(dp);
     }  /* if */
   }  /* if */
 done:
@@ -6087,11 +6091,12 @@ to TRUE if we are in Microsoft mode and in a for-init block.
               prev_decl->variant.variable.declared_in_for_init)) {
           /* Do not issue a warning if the hidden variable is a for-init
              declaration since that is common and unsurprising practice. */
-          pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
-                               &loc->source_position);
-          add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
+          a_diagnostic_ptr	dp;
+          dp = pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
+                                    &loc->source_position);
+          add_diag_info_with_pos_insert(dp, ec_for_init_hidden_declaration,
                                         &prev_decl->decl_position);
-          end_error();
+          end_diagnostic(dp);
         }  /* if */
         hiding = TRUE;
       }  /*if */

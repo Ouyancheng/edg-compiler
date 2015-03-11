@@ -5094,7 +5094,9 @@ a_boolean use_hide_by_sig_lookup(
 #define treat_as_cli_class_for_lookup(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void add_on_diag_for_skipped_inaccessible_function(a_symbol_ptr sym);
+extern void add_on_diag_for_skipped_inaccessible_function(
+                                                   a_symbol_ptr sym,
+                                                   a_diagnostic_ptr dp);
 
 extern a_routine_ptr select_default_constructor_full(
                                          a_type_ptr        class_type,
@@ -6367,7 +6369,7 @@ extern a_symbol_ptr find_literal_operator(a_const_char      *name,
                                           sizeof_t          name_len,
                                           a_source_position *pos,
                                           a_type_ptr        literal_type,
-                                          a_boolean         display_errors);
+                                          a_diagnostic_ptr  dp);
 
 /*
 Return TRUE if "tp" is a proxy class.

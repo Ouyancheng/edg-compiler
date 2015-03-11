@@ -842,6 +842,7 @@ an error is found, issue the diagnostic and return TRUE.
 
 
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
+                                    a_diagnostic_ptr          *prev_dp,
                                     an_error_severity         *prev_severity)
 /*
 This routine traverses the portion of the control_flow_descr_list associated
@@ -851,7 +852,9 @@ transfer of control to a case label.  Once the last case label in the
 block has been reached, the search stops, since any subsequent initialization
 cannot be jumped over (at least, not by the switch).  When an initialization
 is found, a diagnostic is issued (an error in C++, a warning otherwise), and
-*err is set to TRUE.
+*err is set to TRUE.  If *prev_severity is es_none, no diagnostic is in the
+process of being generated.  If it not es_none, *prev_dp is the diagnostic
+that is being generated.
 */
 {
   a_control_flow_descr_ptr  cfdp, next_cfdp = NULL, parent;
@@ -879,7 +882,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
            contained or in a subblock) search for initializations. */
         next_cfdp = cfdp->variant.block.end_of_block->next;
         if (cfdp->variant.block.last_case_label != NULL) {
-          report_switch_past_init(cfdp, prev_severity);
+          report_switch_past_init(cfdp, prev_dp, prev_severity);
           /* All case labels will have been removed.  Is there any reason to
              keep this block around? */
           check_assertion(cfdp->variant.block.last_case_label == NULL);
@@ -987,7 +990,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         }  /* if */
         if (severity != es_none) {
           if (severity != *prev_severity) {
-            if (*prev_severity != es_none) end_error();
+            if (*prev_severity != es_none) end_diagnostic(*prev_dp);
             /* This is the first initializing declaration seen.  Issue the
                header diagnostic. */
             /* We need the switch block itself for the error position. */
@@ -998,18 +1001,21 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
             check_assertion(parent->variant.block.is_switch_block);
             /* Issue a warning in C mode or for compatibility with cfront 2.1.
                Otherwise, issue an error. */
-            pos_start_diagnostic(severity, ec_branch_past_initialization,
-                                 &parent->source_pos);
+            *prev_dp = pos_start_diagnostic(severity,
+                                            ec_branch_past_initialization,
+                                            &parent->source_pos);
             *prev_severity = severity;
           }  /* if */
           if (vp != NULL) {
             /* Issue the diagnostic addendum that identifies this particular
                variable. */
             if (vp->is_anonymous_parent_object) {
-              add_diag_info_with_pos_insert(ec_anon_union_at_decl_position,
+              add_diag_info_with_pos_insert(*prev_dp,
+                                            ec_anon_union_at_decl_position,
                                             &vp->source_corresp.decl_position);
             } else {
-              sym_add_diag_info((sp != NULL &&
+              sym_add_diag_info(*prev_dp,
+                                (sp != NULL &&
                                  sp->kind == (a_statement_kind)stmk_vla_decl) ?
                                     ec_vla_name_at_decl_position :
                                     ec_name_at_decl_position,
@@ -1019,7 +1025,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
             /* Diagnostic addendum that identifies the VLA declaration. */
             a_source_position  pos;
             set_position_from_stmt_source_position(pos, sp->position);
-            add_diag_info_with_pos_insert(ec_vla_at_decl_pos, &pos);
+            add_diag_info_with_pos_insert(*prev_dp, ec_vla_at_decl_pos, &pos);
           }  /* if */
         }  /* if */
         /*FALLTHROUGH*/
@@ -1350,12 +1356,14 @@ initializing declarations.
           new_cfdp->variant.start_of_block->
                                       variant.block.last_case_label != NULL) {
         an_error_severity  severity = es_none;
+        a_diagnostic_ptr   dp = NULL;
 
         /* Check for and report switch-over errors. */
-        report_switch_past_init(new_cfdp->variant.start_of_block, &severity);
+        report_switch_past_init(new_cfdp->variant.start_of_block, &dp,
+                                &severity);
         /* Unless the initializations were of static variables only, there
            will have been at least one diagnostic. */
-        if (severity != es_none) end_error();
+        if (dp != NULL) end_diagnostic(dp);
       }  /* if */
       /* Remove all init entries in the block that trail the last label or
          case label in the block; if there is no label or case label *all*
@@ -4997,12 +5005,16 @@ Where "in" is a context-sensitive keyword.
 static void report_goto_past_init(a_control_flow_descr_ptr  start_cfdp,
                                   a_control_flow_descr_ptr  end_cfdp,
                                   a_source_position         *error_pos,
+                                  a_diagnostic_ptr          *prev_dp,
                                   an_error_severity         *prev_severity)
 /*
 This routine moves from entry start_cfdp to entry end_cfdp on the
 control_flow_descr_list looking for init entries, which point to stmk_init
 statements and represent initializing declarations.  For any that are found,
 issue a diagnostic complaining about skipping over an initialization.
+If *prev_severity is es_none, no diagnostic is in the process of being
+generated.  If it not es_none, *prev_dp is the diagnostic that is being
+generated.
 */
 {
   a_control_flow_descr_ptr  cfdp;
@@ -5019,7 +5031,7 @@ issue a diagnostic complaining about skipping over an initialization.
 #endif /* DEBUG */
   if (end_cfdp->parent != start_cfdp->parent) {
     report_goto_past_init(start_cfdp, end_cfdp->parent->prev, error_pos,
-                          prev_severity);
+                          prev_dp, prev_severity);
     start_cfdp = end_cfdp->parent->next;
   }  /* if */
   cfdp = start_cfdp;
@@ -5090,21 +5102,24 @@ issue a diagnostic complaining about skipping over an initialization.
       }  /* if */
       if (severity != es_none) {
         if (severity != *prev_severity) {
-          if (*prev_severity != es_none) end_error();
+          if (*prev_severity != es_none) end_diagnostic(*prev_dp);
           /* This is the first initializing declaration seen.  Issue the
              header diagnostic. */
-          pos_start_diagnostic(severity, ec_branch_past_initialization,
-                               error_pos);
+          *prev_dp = pos_start_diagnostic(severity,
+                                          ec_branch_past_initialization,
+                                          error_pos);
           *prev_severity = severity;
         }  /* if */
         if (vp != NULL) {
           /* Issue the diagnostic addendum that identifies this particular
              variable. */
           if (vp->is_anonymous_parent_object) {
-            add_diag_info_with_pos_insert(ec_anon_union_at_decl_position,
-                                            &vp->source_corresp.decl_position);
+            add_diag_info_with_pos_insert(*prev_dp,
+                                          ec_anon_union_at_decl_position,
+                                          &vp->source_corresp.decl_position);
           } else {
-            sym_add_diag_info((sp != NULL &&
+            sym_add_diag_info(*prev_dp,
+                              (sp != NULL &&
                                sp->kind == (a_statement_kind)stmk_vla_decl) ?
                                  ec_vla_name_at_decl_position :
                                  ec_name_at_decl_position,
@@ -5114,7 +5129,7 @@ issue a diagnostic complaining about skipping over an initialization.
           /* Diagnostic addendum that identifies the VLA declaration. */
           a_source_position  pos;
           set_position_from_stmt_source_position(pos, sp->position);
-          add_diag_info_with_pos_insert(ec_vla_at_decl_pos, &pos);
+          add_diag_info_with_pos_insert(*prev_dp, ec_vla_at_decl_pos, &pos);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5307,6 +5322,7 @@ diagnose the condition.
     /* If the above algorithm indicates starting at a block that contains
        the label, enter that block and start at its first statement.
        (Otherwise the search will try to skip the block.) */
+    a_diagnostic_ptr dp = NULL;
     while (start_cfdp->kind == (a_control_flow_descr_kind)cfdk_block &&
            is_on_cfd_parent_list(start_cfdp, label_cfdp)) {
       start_cfdp = start_cfdp->next;
@@ -5317,8 +5333,8 @@ diagnose the condition.
        which case terminate the multi-line message. */
     severity = es_none;
     report_goto_past_init(start_cfdp, label_cfdp,
-                          &goto_cfdp->source_pos, &severity);
-    if (severity != es_none) end_error();
+                          &goto_cfdp->source_pos, &dp, &severity);
+    if (severity != es_none) end_diagnostic(dp);
   }  /* if */
   if (!C_mode()) {
     /* Find the common object lifetime containing both the goto statement and

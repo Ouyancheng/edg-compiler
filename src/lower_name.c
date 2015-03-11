@@ -910,7 +910,7 @@ Add the indicated null-terminated string to the mangled name.
 
   /* Count characters. */
   mctl->length += len;
-  (void)add_to_text_buffer(mangling_text_buffer, str, len);
+  add_to_text_buffer(mangling_text_buffer, str, len);
   check_assertion(mctl->length + mctl->num_leftover_spaces ==
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
@@ -1091,7 +1091,7 @@ encoding.
   sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)value, buffer);
 
   mctl->length += len;
-  (void)add_to_text_buffer(mangling_text_buffer, buffer, len);
+  add_to_text_buffer(mangling_text_buffer, buffer, len);
   check_assertion(mctl->length + mctl->num_leftover_spaces ==
                                                    mangling_text_buffer->size);
 }  /* add_number_to_mangled_name */
@@ -1114,7 +1114,7 @@ encoding.  A negative value is prefixed by "n".
   /* Handle negative numbers by replacing '-' with 'n'. */
   if (buffer[0] == '-') buffer[0] = 'n';
   mctl->length += len;
-  (void)add_to_text_buffer(mangling_text_buffer, buffer, len);
+  add_to_text_buffer(mangling_text_buffer, buffer, len);
   check_assertion(mctl->length + mctl->num_leftover_spaces ==
                                                    mangling_text_buffer->size);
 }  /* add_signed_number_to_mangled_name */
@@ -11307,8 +11307,8 @@ to the point where the base name appears.
       /* Copy the name to a mangling buffer so we can change it. */
       push_mangling_text_buffer();
       reset_text_buffer(mangling_text_buffer);
-      (void)add_to_text_buffer(mangling_text_buffer, mangled_name,
-                               strlen(mangled_name)+1);
+      add_to_text_buffer(mangling_text_buffer, mangled_name,
+                         strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
       mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
       pop_mangling_text_buffer();

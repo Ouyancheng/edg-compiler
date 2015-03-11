@@ -4753,17 +4753,18 @@ match.
     } else {
       /* Not a value category mismatch.  It must therefore be a qualifier
          mismatch (e.g., calling a non-const member on a const value). */
+      a_diagnostic_ptr dp;
       if (routine != NULL) {
         /* The member function called is known. */
-        pos_sy_start_error(ec_unqual_named_function_with_qual_object,
-                           &bound_function_selector->position,
-                           symbol_for(routine));
+        dp = pos_sy_start_error(ec_unqual_named_function_with_qual_object,
+                                &bound_function_selector->position,
+                                symbol_for(routine));
       } else {
-        pos_start_error(ec_unqual_function_with_qual_object,
-                        &bound_function_selector->position);
+        dp = pos_start_error(ec_unqual_function_with_qual_object,
+                             &bound_function_selector->position);
       }  /* if */
-      display_object_type(bound_function_selector->type);
-      end_error();
+      display_object_type(bound_function_selector->type, dp);
+      end_diagnostic(dp);
     }  /* if */
   }  /* if */
 }  /* report_this_param_mismatch */
@@ -30687,13 +30688,13 @@ issue an error; otherwise, return TRUE.
     /* The set of matching literal operators (including possibly a template)
        results in an ambiguity: Report the error. */
     a_symbol_header_ptr sym_hdr = ud_lit_op_sym_for_curr_token->header;
-    pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
+    a_diagnostic_ptr    dp;
+    dp = pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
     (void)find_literal_operator(
           ud_suffix_from_literal_operator_id(sym_hdr->identifier),
           sym_hdr->identifier_length - LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
-          &pos_curr_token, const_for_curr_token.type,
-          /*display_errors=*/TRUE);
-    end_error();
+          &pos_curr_token, const_for_curr_token.type, dp);
+    end_diagnostic(dp);
     make_error_operand(result);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
     /* An ordinary (i.e., non-template) literal operator.  Use the operator
@@ -40730,11 +40731,13 @@ specifier or member declaration for the subobject to be copied.
                        class_type);
         } else {
           /* Unusual case: volatile or const-volatile expected. */
-          pos_ty_start_error(ec_no_suitable_assignment_operator,
-                             dest_decl_pos,
-                             class_type);
-          add_on_diag_for_skipped_inaccessible_function(inaccessible_match);
-          end_error();
+          a_diagnostic_ptr dp;
+          dp = pos_ty_start_error(ec_no_suitable_assignment_operator,
+                                  dest_decl_pos,
+                                  class_type);
+          add_on_diag_for_skipped_inaccessible_function(inaccessible_match,
+                                                        dp);
+          end_diagnostic(dp);
         }  /* if */
       }  /* if */
     } else {
