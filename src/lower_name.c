@@ -13120,7 +13120,7 @@ correspondence entry for the entity whose name this is.
           /* Replace the string by "JnnnJ", where "nnn" is the position of
              the previous identical string. */
           (void)sprintf(buffer, "J%luJ", (unsigned long)cspp->str_pos);
-          (void)add_string_to_text_buffer(mangling_text_buffer, buffer);
+          add_string_to_text_buffer(mangling_text_buffer, buffer);
           /* Continue scanning the original string after the full string
              that was compressed away. */
           src_pos += length;

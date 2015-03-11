@@ -1716,6 +1716,20 @@ Add "length" characters of "string" to the text buffer pointed to "buffer".
 }  /* add_to_text_buffer */
 
 
+void f_add_string_to_text_buffer(a_text_buffer_ptr	buffer,
+			         a_const_char		*string)
+/*
+Add the specified string to a text buffer.  This version can be called
+(instead of the macro) when the string argument has side-effects.
+*/
+{
+  sizeof_t	length;
+
+  length = strlen(string);
+  add_to_text_buffer(buffer, string, length);
+}  /* add_to_text_buffer */
+
+
 void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer)
 /*
 If the last character of the text buffer is a null terminator, update
@@ -1738,7 +1752,7 @@ is a string used to label the output, and may be NULL.  "buf" is the buffer
 to be displayed.
 */
 {
-  int i;
+  unsigned int i;
   if (prefix != NULL) fprintf(f_debug, "%s: ", prefix);
   for (i = 0; i < buf->size; ++i) {
    char	c = buf->buffer[i];

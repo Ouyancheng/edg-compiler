@@ -956,7 +956,7 @@ redundant file names in a diagnostic.
       if (file_name_needed) {
         char *formatted_file_name;
         if (line_number != SP_LINE_UNKNOWN) {
-          add_string_to_text_buffer(msg_buffer, error_text(ec_of));
+          f_add_string_to_text_buffer(msg_buffer, error_text(ec_of));
         }  /* if */
         add_string_to_text_buffer(msg_buffer, "\"");
         formatted_file_name = format_file_name(file_name);
@@ -1142,7 +1142,7 @@ level.
           /* This is the first argument displayed -- add the introduction
              string to the message. */
           add_string_to_text_buffer(msg_buffer, " [");
-          add_string_to_text_buffer(msg_buffer, error_text(ec_with));
+          f_add_string_to_text_buffer(msg_buffer, error_text(ec_with));
           *any_args = TRUE;
         } else {
           /* This is not the first argument -- add "," separator. */
@@ -1245,7 +1245,7 @@ specified by dp.
       /* The name of a keyword is extracted from the token_names array, and
          is handled differently from other symbols. */
       if (! dfip->variant.symbol.name_only) {
-        add_string_to_text_buffer(msg_buffer, error_text(ec_keyword));
+        f_add_string_to_text_buffer(msg_buffer, error_text(ec_keyword));
         add_string_to_text_buffer(msg_buffer, " ");
       } /* if */
       add_string_to_text_buffer(msg_buffer, "\"");
@@ -1472,7 +1472,7 @@ symbol_name:
       if (! dfip->variant.symbol.name_only &&
           ! (dfip->variant.symbol.full_type && is_declaration_like) ) {
         if (entity_kind != ec_no_error) {
-          add_string_to_text_buffer(msg_buffer, error_text(entity_kind));
+          f_add_string_to_text_buffer(msg_buffer, error_text(entity_kind));
           add_string_to_text_buffer(msg_buffer, " ");
         }  /* if */
       } /* if */
@@ -1622,10 +1622,10 @@ symbol_name:
       add_string_to_text_buffer(msg_buffer, " ");
       advance_to_next_template_arg_simple(&tap);
       if (tap != NULL) {
-        add_string_to_text_buffer(
+        f_add_string_to_text_buffer(
                        msg_buffer, error_text(ec_based_on_template_arguments));
       } else {
-        add_string_to_text_buffer(
+        f_add_string_to_text_buffer(
                         msg_buffer, error_text(ec_based_on_template_argument));
       }  /* if */
       add_string_to_text_buffer(msg_buffer, " ");
@@ -1642,8 +1642,8 @@ symbol_name:
          expressions, however, look sufficiently like the operator() they
          generate that the expression position can be reported as the position
          at which the corresponding operator() is declared. */
-      add_string_to_text_buffer(msg_buffer,
-                                error_text(ec_declared_implicitly));
+      f_add_string_to_text_buffer(msg_buffer,
+                                  error_text(ec_declared_implicitly));
     } else {
       form_source_position(&sym->decl_position, &dp->position,
                            error_text(ec_declared_prefix), ")",
@@ -1674,7 +1674,7 @@ symbol_name:
       add_string_to_text_buffer(msg_buffer, " (");
       /* This message code includes the explanatory text (e.g.,
          "from translation unit"). */
-      add_string_to_text_buffer(msg_buffer, error_text(ec_from_trans_unit));
+      f_add_string_to_text_buffer(msg_buffer, error_text(ec_from_trans_unit));
       add_string_to_text_buffer(msg_buffer, "\"");
       formatted_file_name = format_file_name(tup->source_file->file_name);
       add_string_to_text_buffer(msg_buffer, formatted_file_name);
@@ -4271,7 +4271,9 @@ The message is formatted into text strings and is output.
     }  /* if */
 #if !STANDALONE_UTILITY_PROGRAM
     /* Generate information about the context in which the error occurred. */
-    if (dp->severity != es_internal_error) {
+    if (dp->severity != es_internal_error &&
+        (dp->severity != es_catastrophe ||
+         display_error_context_on_catastrophe)) {
       add_error_context(dp);
     }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -4333,7 +4335,7 @@ returned by the file open routine.
   if (severity == (an_error_severity)es_command_line_error) {
     set_position_to(local_error_pos, 0, SP_COL_CMD_LINE);
   }  /* if */
-  dp = create_primary_diagnostic(error_code, error_pos, severity);
+  dp = create_primary_diagnostic(error_code, &local_error_pos, severity);
   add_string_fill_in(dp, error_text(file_kind));
   add_string_fill_in(dp, file_name);
   if (reason != NULL) {

@@ -20401,7 +20401,7 @@ is used as the beginning and end source position for each token in the string.
   /* Copy the string to the buffer. */
   buffer = token_insertion_buffer;
   reset_text_buffer(buffer);
-  (void)add_string_to_text_buffer(buffer, string);
+  add_string_to_text_buffer(buffer, string);
   /* Add the lexical escape for a newline. */
   add_char_to_text_buffer(buffer, LE_ESCAPE);
   add_char_to_text_buffer(buffer, LE_NEWLINE);

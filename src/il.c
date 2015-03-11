@@ -317,7 +317,7 @@ void put_str_into_text_buffer(a_const_char                          *str,
 Output a string into the db_name_str buffer.
 */
 {
-  (void)add_string_to_text_buffer(octl->text_buffer, str);
+  add_string_to_text_buffer(octl->text_buffer, str);
 }  /* put_str_into_text_buffer */
 
 #if DEBUG
@@ -371,9 +371,9 @@ is TRUE, include type information for function parameters.
       if (!in_secondary_trans_unit(scp)) {
         /* This entity was in a secondary translation unit, but has been
            copied to the primary IL. */
-        (void)add_string_to_text_buffer(db_name_str_buffer, "copied from ");
+        add_string_to_text_buffer(db_name_str_buffer, "copied from ");
       }  /* if */
-      (void)add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
+      add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
       add_char_to_text_buffer(db_name_str_buffer, ']');
     }  /* if */
   }  /* if */
@@ -387,16 +387,16 @@ is TRUE, include type information for function parameters.
 #if DO_IL_LOWERING && IA64_ABI
     switch (rout->ctor_dtor_kind) {
       case cdk_complete:
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [complete]");
+        add_string_to_text_buffer(db_name_str_buffer, " [complete]");
         break;
       case cdk_subobject:
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [subobject]");
+        add_string_to_text_buffer(db_name_str_buffer, " [subobject]");
         break;
       case cdk_deleting:
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
+        add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
         break;
       case cdk_delegation:
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [delegation]");
+        add_string_to_text_buffer(db_name_str_buffer, " [delegation]");
         break;
       case cdk_none:
         break;
@@ -407,8 +407,8 @@ is TRUE, include type information for function parameters.
 #if USE_X86_FUNCTION_MULTIVERSIONING
     if (has_gnu_routine_supp(rout)) {
       if (gnu_routine_supp(rout)->is_representative) {
-        (void)add_string_to_text_buffer(db_name_str_buffer,
-                                        " [mv:representative]");
+        add_string_to_text_buffer(db_name_str_buffer,
+                                  " [mv:representative]");
       } else if (gnu_routine_supp(rout)->is_target_specific_version) {
         a_const_char *target_str =
 #if STANDALONE_UTILITY_PROGRAM
@@ -418,9 +418,9 @@ is TRUE, include type information for function parameters.
                                             "default" :
                                             target_specific_distinction(rout);
 #endif /* STANDALONE_UTILITY_PROGRAM */
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [mv:");
-        (void)add_string_to_text_buffer(db_name_str_buffer, target_str);
-        (void)add_string_to_text_buffer(db_name_str_buffer, "]");
+        add_string_to_text_buffer(db_name_str_buffer, " [mv:");
+        add_string_to_text_buffer(db_name_str_buffer, target_str);
+        add_string_to_text_buffer(db_name_str_buffer, "]");
       }  /* if */
     }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -1070,7 +1070,7 @@ buffer.  If "qualifier" is TQ_NONE, unconditionally add "name"
     if (db_qualifiers_str_buffer->size != 0) {
       add_char_to_text_buffer(db_qualifiers_str_buffer, ' ');
     }  /* if */
-    (void)add_string_to_text_buffer(db_qualifiers_str_buffer, name);
+    add_string_to_text_buffer(db_qualifiers_str_buffer, name);
   }  /* if */
 }  /* db_add_qualifier_to_string */
 

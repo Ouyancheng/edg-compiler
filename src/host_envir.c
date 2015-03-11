@@ -1105,7 +1105,7 @@ Add "name" to the path name in "buffer".
     add_char_to_text_buffer(buffer, separator_char);
   }  /* if */
   /* Add the file name to the directory name. */
-  (void)add_string_to_text_buffer(buffer, name);
+  add_string_to_text_buffer(buffer, name);
   /* Add a null terminator. */
   add_char_to_text_buffer(buffer, '\0');
 }  /* append_to_path_name */
@@ -1132,7 +1132,7 @@ overwritten by the next call that uses it).
   }  /* if */
   /* Clear the buffer. */
   reset_text_buffer(buffer);
-  (void)add_string_to_text_buffer(buffer, dir_name);
+  add_string_to_text_buffer(buffer, dir_name);
   /* Add the file name to the directory name. */
   append_to_path_name(buffer, file_name);
   return buffer;
@@ -4767,14 +4767,14 @@ null-terminated.
       len++;
     } else if (ch == '\n') {
       /* Put out newline as \n. */
-      (void)add_string_to_text_buffer(buffer, "\\n");
+      add_string_to_text_buffer(buffer, "\\n");
       len += 2;
     } else {
       char sprintf_buffer[20];
       /* Unprintable characters: put out as \ooo. */
       (void)sprintf(sprintf_buffer, "\\%03o",
                     (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
-      (void)add_string_to_text_buffer(buffer, sprintf_buffer);
+      add_string_to_text_buffer(buffer, sprintf_buffer);
       len += 4;
     }  /* if */
   }  /* for */

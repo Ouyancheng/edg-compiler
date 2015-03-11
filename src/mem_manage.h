@@ -340,6 +340,9 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 			       a_const_char		*string,
 			       sizeof_t			length);
 
+extern void f_add_string_to_text_buffer(a_text_buffer_ptr	buffer,
+				        a_const_char		*string);
+
 extern
 void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer);
 
