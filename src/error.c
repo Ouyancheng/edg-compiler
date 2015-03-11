@@ -3741,6 +3741,7 @@ diagnostic to be provided.
 #if !STANDALONE_UTILITY_PROGRAM
   if (severity == es_command_line_error ||
       severity == es_command_line_warning ||
+      severity == es_internal_error ||
       severity == es_catastrophe) {
     /* For these error severities it may not be possible to allocate
        memory in IL memory yet, so allocate it in general memory. */
