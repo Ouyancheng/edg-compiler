@@ -86,7 +86,9 @@ With version 4.10 of the front end, g(S) cannot be called because the copy
 constructor of S is deleted (in C++11 mode) or the call triggers the
 generation of the copy constructor's definition which triggers an error
 (since S::v cannot be copied). However, some earlier versions of the front
-end did permit g(S) to be called.
+end did permit g(S) to be called.  In particular, versions 4.7 through 4.9
+allowed such calls and pass the class type argument via a pointer, which
+means those versions were affected by this ABI bug/incompatibility.
 
 
 3/9/15  [EDGcpfe/16030,EDGcpfe/16074]
