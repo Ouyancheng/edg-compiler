@@ -938,11 +938,11 @@ redundant file names in a diagnostic.
       if (line_number == SP_LINE_UNKNOWN) {
         /* No line number (e.g., C++/CLI assemblies). */
         if (file_name_needed) {
-          add_string_to_text_buffer(msg_buffer, error_text(ec_in));
+          f_add_string_to_text_buffer(msg_buffer, error_text(ec_in));
         }  /* if */
       } else {
         /* Emit the line number. */
-        add_string_to_text_buffer(msg_buffer, error_text(ec_at_line));
+        f_add_string_to_text_buffer(msg_buffer, error_text(ec_at_line));
 #if CHECKING
         if (digits_to_represent((unsigned long)pos->seq)
                             >= sizeof(buffer)) {
@@ -2846,13 +2846,6 @@ may not have their severity altered.
 }  /* check_for_overridden_severity */
 
 
-static an_error_severity  cs_saved_severity;
-			/* The saved severity used by check_severity.
-			   This is a file-scope static so that it can
-			   be cleared during initialization of the
-			   front end. */
-
-				
 static a_boolean check_severity(a_diagnostic_ptr	dp)
 /*
 Determine whether this message should have its severity overridden by a
@@ -4151,6 +4144,7 @@ create the diagnostic entries for the context.
   }  /* if */
 }  /* add_instantiation_context */
 
+#if RECORD_MACRO_INVOCATIONS
 
 static void add_macro_context(a_diagnostic_ptr	dp)
 /*
@@ -4158,7 +4152,6 @@ If we are recording macro invocations and/or fully resolved macro
 positions, create the context diagnostic information for those.
 */
 {
-#if RECORD_MACRO_INVOCATIONS
   a_source_position		*error_pos = &dp->position;
   a_macro_invocation_record_ptr	mirp = NULL;
 
@@ -4202,9 +4195,13 @@ positions, create the context diagnostic information for those.
       mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
     }  /* for */
   }  /* if */
-#endif /* RECORD_MACRO_INVOCATIONS */
 }  /* add_macro_context */
 
+#else /* !RECORD_MACRO_INVOCATIONS */
+
+#define add_macro_context(dp) /* Nothing */
+
+#endif /* RECORD_MACRO_INVOCATIONS */
 
 static void add_error_context(a_diagnostic_ptr	dp)
 /*
@@ -6182,7 +6179,6 @@ line processing is done.
   write_diagnostic_buffer = NULL;
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
-  cs_saved_severity = (an_error_severity)es_default;
   error_limit = 100;
   context_limit = DEFAULT_CONTEXT_LIMIT;
   strict_ansi_error_severity = es_warning;
