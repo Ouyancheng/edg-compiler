@@ -1161,11 +1161,11 @@ typedef struct a_class_def_state {
 			   a field of volatile class type has been seen where
 			   the unqualified class type is trivially copyable.
 			   For example:
-			     struct E {};
-			     struct S { volatile E e; };
+			     struct T {};
+			     struct S { volatile T v; };
 			     static_assert(!__is_trivially_copyable(S), "X");
-			   The trivial copy constructor of E cannot copy a
-			   volatile E since it takes an "E const&". */
+			   The trivial copy constructor of T cannot copy a
+			   volatile T since it takes a "T const&". */
   a_bit_field	rule_out_bitwise_copy_for_deleted_ctor:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a copy/move constructor is deleted. */

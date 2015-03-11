@@ -19,18 +19,18 @@ now does):
   }
 
 
-3/10/15 [EDGcpfe/16025]
+3/10/15  [EDGcpfe/16025]
 Volatile class fields and bitwise copyability (ABI Change)
 
-A field of a volatile class type X, cannot be copied with a generated copy
-constructor since that constructor would have a "X const&" or "X&" parameter.
+A field of a volatile class type T cannot be copied with a generated copy
+constructor since that constructor would have a "T const&" or "T&" parameter.
 The enclosing class is therefore not trivially copyable.  Previously, the
 front end therefore marked the class as not bitwise copyable.  Unfortunately,
 that has ABI implications in the sense that a function taking such a class by
 value will really pass the class via a pointer.  For example (C++11 mode):
 
-  struct X {};
-  struct S { volatile X x; };  // S is not trivially copyable.  Now, however,
+  struct T {};
+  struct S { volatile T v; };  // S is not trivially copyable.  Now, however,
                                // it is still treated as "bitwise copyable".
   static_assert(!__is_trivially_copyable(S), "Unexpected!");
   void g(S) {}  // Previously, the lowered g passed its parameter via a
@@ -39,8 +39,10 @@ value will really pass the class via a pointer.  For example (C++11 mode):
                 // lowered function type passes the parameter by value.
 
 With version 4.10 of the front end, g(S) cannot be called because the copy
-constructor of S is deleted (since S::x cannot be copied), but some earlier
-versions of the front end did permit g(S) to be called.
+constructor of S is deleted (in C++11 mode) or the call triggers the
+generation of the copy constructor's definition which triggers an error
+(since S::v cannot be copied). However, some earlier versions of the front
+end did permit g(S) to be called.
 
 
 3/9/15  [EDGcpfe/16030,EDGcpfe/16074]
