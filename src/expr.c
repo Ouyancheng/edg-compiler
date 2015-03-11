@@ -37872,7 +37872,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   }  /* if */
   if (microsoft_mode && param_type != NULL &&
       scope_stack_top().in_prototype_instantiation &&
-      !is_constant_operand(&result)) {
+      !is_constant_operand(&result) && !is_reference_type(param_type)) {
     relaxed_ms_case = TRUE;
   }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
