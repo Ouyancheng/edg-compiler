@@ -1,6 +1,6 @@
 Version 4.11
 
-3/10/15 [EDGcpfe/16077]
+3/10/15  [EDGcpfe/16077]
 C++14 compatibility: "deprecated" attribute
 
 The "deprecated" attribute is accepted by the front end in GNU and Microsoft
