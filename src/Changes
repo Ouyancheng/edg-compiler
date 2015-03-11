@@ -32,6 +32,17 @@ uses a different method of wrapping long lines.  Specifically, it now
 breaks lines on spaces that occur within fill-in entries.  It also
 fixes a bug that caused lines to often wrap before they should have.
 
+Formerly, the diagnostic routines produced their output immediately
+when called, so it was possible to pass in the address of a local
+buffer as a string fill-in.  Now, the pointer is saved and used later,
+so a local buffer, or a buffer that might be overwritten must be
+copied before being passed to the diagnostic routines.
+
+Command-line errors that are passed to str_command_line error must now
+have explicit %s fill-ins.  This also means that the fill-in can be
+located anywhere (formerly, the string was just appended to the end
+of the message).  There is also a new %d fill-in for numeric values.
+
 
 3/10/15  [EDGcpfe/16077]
 C++14 compatibility: "deprecated" attribute
