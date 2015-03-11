@@ -3439,21 +3439,25 @@ listing file (if needed).
   reset_text_buffer(msg_buffer);
 }  /* display_message */
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
 
 static void write_source_line_for_macro(a_diagnostic_ptr	dp)
 /*
 Write the source line of the macro invocation, if needed.
 */
 {
-#if FULLY_RESOLVED_MACRO_POSITIONS
   if (macro_positions_in_diagnostics) {
     if (dp->diag_header_pos.seq != dp->position.seq) {
       write_source_line(&dp->position, &dp->source_info);
     }  /* if */
   }  /* if */
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* write_source_line_for_macro */
 
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+
+#define write_source_line_for_macro(dp)  /* Nothing */
+
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 static void construct_message(a_diagnostic_ptr	dp)
 /*
