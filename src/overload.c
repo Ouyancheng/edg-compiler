@@ -2097,7 +2097,7 @@ call.
         (void)sprintf(buf, "%s %s %s", name_for_type_code(pattern[0]), opname,
                                        name_for_type_code(pattern[1]));
       }  /* if */
-      str_add_diag_info(dp, ec_builtin_operator_add_on, buf);
+      copy_str_add_diag_info(dp, ec_builtin_operator_add_on, buf);
     }  /* if */
   }  /* for */
   if (arg_list != NULL) {
