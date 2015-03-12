@@ -1936,7 +1936,7 @@ ec_first_decl_not_gnu_inline;;"function was previously declared without the \"gn
 ec_gnu_inline_requires_inline;;"the \"gnu_inline\" attribute is ignored on non-inline functions"
 ec_carries_dependency_not_on_first_decl;;"%n previously declared without the carries_dependency attribute"
 ec_bad_array_member_initialization;;"invalid initializer for array %n"
-ec_cl_must_specify_cpp11_mode;;"must specify C++11 mode when building runtime library"
+ec_cl_must_specify_cpp11_mode;;"must specify C++11 or C++14 mode when building runtime library"
 ec_attr_disallows_function_type;;"attribute %sq does not apply to function types"
 ec_attr_requires_function_type;;"attribute %sq requires a function type"
 ec_attribute_ignored_on_nonstatic_member_function;;"attribute %sq does not apply to nonstatic member functions"
