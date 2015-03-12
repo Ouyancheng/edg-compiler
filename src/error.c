@@ -3707,7 +3707,7 @@ newly created entry.
     dp->primary_diag = primary_diagnostic;
   }  /* if */
   if (primary_diagnostic != NULL) {
-    a_diag_list_ptr	dlp;
+    a_diag_list_ptr	dlp = NULL;
     switch (kind) {
       case dck_sub_message:   dlp = &primary_diagnostic->sub_msgs;      break;
       case dck_context:       dlp = &primary_diagnostic->context;       break;
