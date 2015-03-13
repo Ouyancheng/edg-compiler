@@ -14501,6 +14501,81 @@ implicitly declared member functions.
 }  /* decl_member_function */
 
 
+static a_boolean compatible_member_function_template_param_types(
+                                                 a_template_param_ptr  tpl1,
+                                                 a_type_ptr            tp1,
+                                                 a_template_param_ptr  tpl2,
+                                                 a_type_ptr            tp2)
+/*
+tp1 and tp2 are the (parameterized) types of member function templates with
+associated template parameter lists tpl1 and tpl2 (respectively).  Return TRUE
+if the parameter types of the members (excluding the implied "this" parameter)
+and their associated template parameter lists are compatible.
+
+The nesting depth of the parameters is ignored for this compatibility checking.
+*/
+{
+  a_boolean                 result, restore_tnd1 = FALSE, restore_tnd2 = FALSE;
+  a_template_nesting_depth  tnd1, tnd2;
+  a_template_param_ptr      tpp1 = tpl1, tpp2 = tpl2;
+
+  /* The actual comparison is done with equiv_template_param_lists and
+     param_types_are_compatible, but the two parameter lists may be declared
+     at different nesting depths (e.g., one may be a member template in a
+     class template that derives from a nontemplate base class in which the
+     a compatible member template is declared.  We therefore temporarily set
+     the nesting depth of the two member templates to the "deepest" depth of
+     the two. */
+  for (; tpp1 != NULL && tpp2 != NULL; tpp1 = tpp1->next, tpp2 = tpp2->next) {
+    /* Only type parameters have an associated depth. */
+    if (symbol_is(tpp1->param_symbol, sk_type)) {
+      tnd1 = tpp1->variant.type->variant.template_param.extra_info
+                               ->coordinates.depth;
+      if (symbol_is(tpp2->param_symbol, sk_type)) {
+        tnd2 = tpp2->variant.type->variant.template_param.extra_info
+                                 ->coordinates.depth;
+        if (tnd1 == tnd2) {
+          /* The two member templates are at the same depth: No adjustment
+             needed. */
+          break;
+        } else if (tnd1 < tnd2) {
+          restore_tnd1 = TRUE;
+          tpp1->variant.type->variant.template_param.extra_info
+                            ->coordinates.depth = tnd2;
+        } else {
+          restore_tnd2 = TRUE;
+          tpp2->variant.type->variant.template_param.extra_info
+                            ->coordinates.depth = tnd1;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* The depths have been updated if needed: Now do the actual compatibility
+     check. */
+  result = equiv_template_param_lists(tpl1, tpl2, /*issue_errors=*/FALSE,
+                                      ETP_NO_OPTIONS, (a_source_position*)NULL,
+                                      es_error) &&
+           param_types_are_compatible(tp1, tp2, TCF_NO_FLAGS);
+  /* Restore the original depths if needed. */
+  if (restore_tnd1) {
+    for (tpp1 = tpl1; tpp1 != NULL; tpp1 = tpp1->next) {
+      if (symbol_is(tpp1->param_symbol, sk_type)) {
+        tpp1->variant.type->variant.template_param.extra_info
+                          ->coordinates.depth = tnd1;
+      }  /* if */
+    }  /* for */
+  } else if (restore_tnd2) {
+    for (tpp2 = tpl2; tpp2 != NULL; tpp2 = tpp2->next) {
+      if (symbol_is(tpp1->param_symbol, sk_type)) {
+        tpp2->variant.type->variant.template_param.extra_info
+                          ->coordinates.depth = tnd2;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* compatible_member_function_template_param_types */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* il_template_entry is not used in all configurations. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -14587,12 +14662,8 @@ decl_member_function, which handles in-class member function declarations.)
           tp = other_rp->type;
           other_templ_param_list =
                  other_tssp->variant.function.decl_cache.decl_info->parameters;
-          if (equiv_template_param_lists(other_templ_param_list,
-                                         templ_param_list,
-                                         /*issue_errors=*/FALSE,
-                                         ETP_NO_OPTIONS,
-                                         (a_source_position*)NULL, es_error) &&
-              param_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
+          if (compatible_member_function_template_param_types(
+                  other_templ_param_list, tp, templ_param_list, member_type)) {
             an_error_code  error_code = ec_no_error;
             if (other_sym != fund_sym) {
               /* We found a matching using-declaration: Remove it from the
@@ -22323,8 +22394,7 @@ declaration from a using-declaration.)
       if (!err) {
         /* Issue an error if a using-declaration introduces a name that is
            the same as the current class name. */
-        a_symbol_ptr  class_sym = (a_symbol_ptr)class_type->
-                                                  source_corresp.assoc_info;
+        a_symbol_ptr  class_sym = symbol_for(class_type);
         if (locator.symbol_header == class_sym->header) {
           pos_error(ec_class_and_member_name_conflict, &decl_pos);
           err = TRUE;

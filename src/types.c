@@ -5148,10 +5148,11 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
     /* Go to the class symbol supplements for the types. */
     /* Watch out for types created by IL lowering, which do not have the
        assoc_info pointer. */
-    if (type_1->source_corresp.assoc_info != NULL &&
-        type_2->source_corresp.assoc_info != NULL) {
-      cssp_1 = symbol_supplement_for_class(type_1);
-      cssp_2 = symbol_supplement_for_class(type_2);
+    a_symbol_ptr  type_sym_1 = symbol_for(type_1),
+                  type_sym_2 = symbol_for(type_2);
+    if (type_sym_1 != NULL && type_sym_2 != NULL) {
+      cssp_1 = class_symbol_supp(type_sym_1);
+      cssp_2 = class_symbol_supp(type_sym_2);
       if (cssp_1->template_param_for_proxy_class != NULL &&
           cssp_2->template_param_for_proxy_class != NULL) {
         /* Both types are proxy classes for template parameters.  See if the
@@ -5206,11 +5207,9 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
               eta_options |= ETA_EXACT_MATCH_REQUIRED;
             }  /* if */
             if (equiv_template_arg_lists(
-                             type_1->variant.class_struct_union.extra_info->
-                                                            template_arg_list,
-                             type_2->variant.class_struct_union.extra_info->
-                                                            template_arg_list,
-                             eta_options)) {
+                                 class_type_supp(type_1)->template_arg_list,
+                                 class_type_supp(type_2)->template_arg_list,
+                                 eta_options)) {
               equiv = TRUE;
             }  /* if */
           }  /* if */
