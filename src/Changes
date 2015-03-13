@@ -8,15 +8,15 @@ pointed-to operand) to four GNU generic __atomic_... functions (namely
 __atomic_load, __atomic_store, __atomic_exchange, and
 __atomic_compare_exchange).  A change has been made in C- and C++-generating
 back end configurations (where GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED is TRUE) to
-strip the compiler-generated argument (so the resulting generated C or C++
-source will be compilable by an appropriate GNU compiler).  For example (with
---gnu_version 40700):
+strip the compiler-generated argument as well as any compiler-generated
+casts (so the resulting generated C or C++ source will be compilable by an
+appropriate GNU compiler).  For example (with --gnu_version 40700):
 
-  void f(char x) { 
-    __atomic_load(&x, &x, 0); 
-    __atomic_store(&x, &x, 0); 
-    __atomic_exchange(&x, &x, &x, 0); 
-    __atomic_compare_exchange(&x, &x, &x, 0, 0); 
+  void f(char x) {
+    __atomic_load(&x, &x, 0);
+    __atomic_store(&x, &x, 0);
+    __atomic_exchange(&x, &x, &x, 0);
+    __atomic_compare_exchange(&x, &x, &x, 0, 0, 0);
   } 
 
 
