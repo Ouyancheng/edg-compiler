@@ -930,8 +930,11 @@ with same_src_error; otherwise, use distinct_src_error.
          instantiation, while this is a real instantiation). */
     } else {
       a_source_file_ptr  prim_file2 = primary_source_file_for_seq(pos2->seq);
+      a_const_char       *file_copy;
+      file_copy = format_file_name(prim_file2->name_as_written);
+      file_copy = copy_string_to_region(FRONT_END_REGION_NUMBER, file_copy);
       pos_stsy_error(same_src_error, &sym->decl_position,
-                     format_file_name(prim_file2->name_as_written), sym);
+                     file_copy, sym);
       record_prototype_diagnostic(same_src_error, es_error,
                                   &sym->decl_position);
     }  /* if */
