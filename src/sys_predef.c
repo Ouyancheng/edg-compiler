@@ -545,11 +545,14 @@ of GNU.
                             void_volatile_star, void_star, int);
     enter_gnu_builtin_func4(_atomic_exchange, no_return,
                             void_volatile_star, void_star, void_star, int);
-    /* Note that the GNU documentation shows six arguments, but testing
-       reveals only five arguments. */
-    enter_gnu_builtin_func5(_atomic_compare_exchange, boolean,
+    /* When invoked by a call, __atomic_compare_exchange has six arguments
+       (as documented), but when its address is taken, the resulting type
+       also has six arguments, but they're different than expected: an
+       initial size_t argument (as described above) is added, but the bool
+       argument is missing.  Use the documented signature. */
+    enter_gnu_builtin_func6(_atomic_compare_exchange, boolean,
                             void_volatile_star, void_star,
-                            void_star, int, int);
+                            void_star, boolean, int, int);
     /* builtin-test:start */
     enter_gnu_builtin_func2(_atomic_clear, no_return, void_volatile_star, int);
     enter_gnu_builtin_func2(_atomic_test_and_set, boolean,

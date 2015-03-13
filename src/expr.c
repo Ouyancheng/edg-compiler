@@ -4374,12 +4374,9 @@ will be called to check and adjust the argument types.
       *n_args = 4;
       break;
     case bfk_atomic_compare_exchange_n:
-      *result_type = bool_type();
-      *n_args = 6;
-      break;
     case bfk_atomic_compare_exchange:
       *result_type = bool_type();
-      *n_args = 5;
+      *n_args = 6;
       break;
     case bfk_atomic_add_fetch:
     case bfk_atomic_fetch_add:
