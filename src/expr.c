@@ -4631,6 +4631,11 @@ that the final call needs to be cast to the indicated type.
         *arg_list = expr_arg;
         end_arg_list = expr_arg;
         release_local_constant(&size_constant);
+        /* Mark the routine as being a generic __atomic_... function (this is
+           used to strip the added argument in C++- and C-generating back
+           ends). */
+        target->variant.expression->variant.routine.special_kind =
+                      (a_special_function_kind)sfk_gnu_atomic_generic_function;
       } /* if */
       /* Convert the prescanned arguments to the type expected by the
          function (if needed) and build the argument list in expression

@@ -3849,6 +3849,10 @@ enum a_special_function_kind_tag {
 			   (__atomic_load_n, etc.).  These are treated
 			   separately to allow the original source form to
 			   be accurately determined. */
+  sfk_gnu_atomic_generic_function,
+			/* Represents a generic GNU __atomic_... function.
+			   Generic functions have an initial size_t argument
+			   added by the front end. */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
@@ -3874,6 +3878,7 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
    "gnu sync concrete function",
    "gnu atomic nongeneric function",
+   "gnu atomic generic function",
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
