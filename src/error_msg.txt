@@ -52,7 +52,7 @@
 #
 # where "#" is an optional number in the range of 1 to N (defaulted to 1) that
 # indicates which of multiple substitutions of given kind should be used.
-# the upper limit is based on the number of fill-ins of that kind actually
+# The upper limit is based on the number of fill-ins of that kind actually
 # required by the message.
 #
 # String inserts may have an optional "q" modifier which specifies that the
@@ -68,7 +68,7 @@
 # Symbol name expansions may have a declaration position modifier "d" which
 # requests that the declaration position of the symbol be added at the end
 # of the expansion.  They may also have a "T" modifier which indicates
-# that the translation unit of the symbol should be displayed if it is
+# that the translation unit of the symbol should be displayed if the
 # current translation unit is not the primary translation unit, or the
 # symbol is not from the current translation unit.
 #

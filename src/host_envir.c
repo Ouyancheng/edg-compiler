@@ -4710,7 +4710,7 @@ If escape_nonprintable_chars is TRUE, nonprintable characters will be
 put out using escape sequences.  Escape processing is generally suppressed
 for names appearing in error messages, so that multibyte characters will
 be output without escapes.  Escape processing is done when outputting names
-in preprocessed output, and similar contexts.  The result is not
+in preprocessed output and similar contexts.  The result is not
 null-terminated.
 */
 {
@@ -4797,7 +4797,7 @@ is TRUE, nonprintable characters will be put out using escape
 sequences.  Escape processing is generally suppressed for names
 appearing in error messages, so that multibyte characters will be
 output without escapes.  Escape processing is done when outputting
-names in preprocessed output, and similar contexts.  This routine is
+names in preprocessed output and similar contexts.  This routine is
 used (directly or by routines such as write_file_name) to write out the
 file name in #line directives error messages, etc.  The text buffer will
 be reused on the next call to this routine, so the contents can only be
@@ -4845,7 +4845,7 @@ If escape_nonprintable_chars is TRUE, nonprintable characters will be
 put out using escape sequences.  Escape processing is generally suppressed
 for names appearing in error messages, so that multibyte characters will
 be output without escapes.  Escape processing is done when outputting names
-in preprocessed output, and similar contexts.  The caller must put out
+in preprocessed output and similar contexts.  The caller must put out
 surrounding quotes if they are needed.
 */
 {

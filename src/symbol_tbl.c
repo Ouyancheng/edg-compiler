@@ -15078,8 +15078,9 @@ to refer to the corresponding literal-operator-id.
             if (matching_sym != NULL) {
               /* We already saw a matching symbol. */
               ambiguous_matching_sym = TRUE;
-              if (dp != NULL) {
-                /* This is an error; no need to keep scanning. */
+              if (dp == NULL) {
+                /* This is an error (and we are not producing diagnostics);
+                   no need to keep scanning. */
                 break;
               }  /* if */
             }  /* if */
