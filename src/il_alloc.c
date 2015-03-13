@@ -3252,8 +3252,11 @@ fields to default values.
       node->variant.routine.ptr = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
       node->variant.routine.property_or_event_descr = NULL;
-      node->variant.routine.special_kind = (a_special_function_kind)sfk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
+    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+      node->variant.routine.special_kind = (a_special_function_kind)sfk_none;
+#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
       break;
     case enk_field:
       node->variant.field = NULL;

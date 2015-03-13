@@ -4230,11 +4230,17 @@ Display the indicated expression node.
         disp_ptr("property_or_event_descr",
                  (char *)ptr->variant.routine.property_or_event_descr,
                  iek_property_or_event_descr);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
+    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+      if (ptr->variant.routine.special_kind !=
+                                           (a_special_function_kind)sfk_none) {
         disp_name("special_kind");
         disp_special_function_kind_name(ptr->variant.routine.special_kind);
         (void)printf("\n");
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
       break;
     case enk_field:
       (void)printf("enk_field\n");
