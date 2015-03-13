@@ -687,7 +687,9 @@ of freed entries if possible.
 {
   a_diagnostic_ptr	dp;
 
-  if (avail_diagnostics != NULL) {
+  /* Don't attempt reuse if the allocation is from general memory. */
+  if (avail_diagnostics != NULL &&
+      diag_memory_region != NO_MEMORY_REGION_NUMBER) {
     /* Reuse an existing entry. */
     dp = avail_diagnostics;
     avail_diagnostics = avail_diagnostics->next;
@@ -743,18 +745,21 @@ Add the diagnostic entry specified by "dp" to the list of diagnostic entries
 that are available for reuse.
 */
 {
-  /* If there are sub-lists, free them now. */
-  free_diag_list(&dp->sub_msgs);
-  free_diag_list(&dp->context);
-  free_diag_list(&dp->macro_context);
-  free_diag_list(&dp->more_info);
-  /* If the diagnostic has fill-ins, add them to the available list. */
-  if (dp->fill_in_head != NULL) {
-    dp->fill_in_tail->next = avail_diag_fill_ins;
-    avail_diag_fill_ins = dp->fill_in_head;
+  /* Don't put entries from general memory on the available lists. */
+  if (diag_memory_region != NO_MEMORY_REGION_NUMBER) {
+    /* If there are sub-lists, free them now. */
+    free_diag_list(&dp->sub_msgs);
+    free_diag_list(&dp->context);
+    free_diag_list(&dp->macro_context);
+    free_diag_list(&dp->more_info);
+    /* If the diagnostic has fill-ins, add them to the available list. */
+    if (dp->fill_in_head != NULL) {
+      dp->fill_in_tail->next = avail_diag_fill_ins;
+      avail_diag_fill_ins = dp->fill_in_head;
+    }  /* if */
+    dp->next = avail_diagnostics;
+    avail_diagnostics = dp;
   }  /* if */
-  dp->next = avail_diagnostics;
-  avail_diagnostics = dp;
 }  /* free_diagnostic */
 
 
@@ -766,7 +771,9 @@ is specified by "kind".
 {
   a_diag_fill_in_ptr	dfip;
 
-  if (avail_diag_fill_ins != NULL) {
+  /* Don't attempt reuse if the allocation is from general memory. */
+  if (avail_diag_fill_ins != NULL &&
+      diag_memory_region != NO_MEMORY_REGION_NUMBER) {
     /* Reuse an existing entry. */
     dfip = avail_diag_fill_ins;
     avail_diag_fill_ins = avail_diag_fill_ins->next;
