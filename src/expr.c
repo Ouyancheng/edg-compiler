@@ -6238,10 +6238,10 @@ qualified_name_check:
             if (!dependent_op1 && !dependent_op2) {
               cssp_for_dtor = symbol_supplement_for_class(type_1);
               member_sym = cssp_for_dtor->destructor;
-            } else if (dependent_op2) {
-              /* The destructor name is dependent (e.g., "~decltype(T())").
-                 It's safe to use a recorded destructor symbol in the proxy
-                 type. */
+            } else if (!dependent_op1 && dependent_op2) {
+              /* The destructor name is dependent (e.g., "~decltype(T())"),
+                 but the left operand is not dependent.  It's safe to use
+                 a recorded destructor symbol in the proxy type. */
               if (dtor_type->kind == (a_type_kind)tk_template_param) {
                 dtor_type = proxy_class_for_template_param(dtor_type);
               }  /* if */
@@ -6254,10 +6254,10 @@ qualified_name_check:
                                         IDL_NO_OPTIONS, &locator_for_curr_id);
               }  /* if */
             } else {
-              /* The left operand is dependent (but not the right operand):
-                 Create the destructor representation in the proxy class type
-                 of the left operand, but don't record it since other
-                 destructor expressions may be added there. */
+              /* The left operand is dependent.  Create the destructor
+                 representation in the proxy class type of the left operand,
+                 but don't record it since other destructor expressions
+                 may be added there. */
               member_sym = create_proxy_or_nonreal_class_member_of_kind(
                                         type_1, (a_symbol_kind)sk_constant, 
                                         IDL_NO_OPTIONS, &locator_for_curr_id);

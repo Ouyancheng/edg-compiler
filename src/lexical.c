@@ -14947,8 +14947,12 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
              (or finalizer) locator below, but we want to return T as the
              destructor (or finalizer) type. */
           type_for_locator = type_symbol_type(orig_type_sym);
-          type_for_locator =
+          if (!type_for_locator->source_corresp.is_class_member ||
+              !is_template_dependent_context() ||
+              !is_template_dependent_type(parent_class_of(type_for_locator))) {
+            type_for_locator =
                       skip_typerefs_not_dependent_decltypes(type_for_locator);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
