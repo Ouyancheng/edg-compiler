@@ -29,7 +29,7 @@ interpret.c -- IL interpreter for constexpr functions
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
-allowed a constant expressions in C++14.
+allowed in a constant expression in C++14.
 
 
 The Interpreter
@@ -206,7 +206,7 @@ typedef struct a_data_map {
 static a_data_map
 		persistent_map;
 			/* Map that persists across interpreter invocations.
-			   In particular, its entries describing the layout of
+			   In particular, its entries describe the layout of
 			   data in the interpreter. */
 
 
@@ -273,7 +273,7 @@ Release the storage for the given map's table.
 
   /* Embed the map information into the first bytes of the table. */
   *self_map = *map;
-  /* Prepend the new table of the "free tables" list. */
+  /* Prepend the new table to the "free tables" list. */
   self_map->table = (a_data_map_entry*)free_map_tables;
   free_map_tables = (a_byte*)self_map;
 }  /* release_data_map_table */
@@ -317,12 +317,12 @@ typedef struct an_interpreter_state {
 			   failed to produce a constant result). */
   unsigned long	cost;
 			/* An interpretation "cost" counter.  It counts the
-			   number of calls, and loop-back branches. */
+			   number of calls and loop-back branches. */
 } an_interpreter_state;
 
 
 #define cost_exceeded(ips)                                                   \
-  ((ips)->cost > 1000000)
+  (++(ips)->cost > 1000000)
 
 
 static a_byte	*free_stack_blocks;
@@ -393,7 +393,7 @@ Initialize the given interpreter state.
 
 static void release_interpreter_state(an_interpreter_state  *ips)
 /*
-Release the storage allocate for the given interpreter state.
+Release the storage allocated for the given interpreter state.
 */
 {
   release_constexpr_stack(&ips->storage_stack);
@@ -505,6 +505,19 @@ because of performance concerns).
 
 
 /*
+Convenience macro to extract a host large integer from the integer value at
+bytes of type tp, which must be a tk_integer type.  The result is left in
+val.  ovfl is set to TRUE if the value is too large or small for a host
+large integer.
+*/
+#define get_int_val_from(bytes, tp, val, ovfl)                                \
+  conv_integer_value_to_host_large_integer(                                   \
+                            (an_integer_value *)(bytes),                      \
+                            int_kind_is_signed[tp->variant.integer.int_kind], \
+                            &(val), &(ovfl))
+
+
+/*
 Macros to push and pop call frames.
 */
 #define push_call_frame(ips, p_frame, rp, p_result)                          \
@@ -521,22 +534,22 @@ Macros to push and pop call frames.
 
 #if HOST_ALIGNMENT_REQUIRED == 1
 #define HASH_PTR_SHIFT 0
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 1 */
 #if HOST_ALIGNMENT_REQUIRED == 2
 #define HASH_PTR_SHIFT 1
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 2 */
 #if HOST_ALIGNMENT_REQUIRED == 4
 #define HASH_PTR_SHIFT 2
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 4 */
 #if HOST_ALIGNMENT_REQUIRED == 8
 #define HASH_PTR_SHIFT 3
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 8 */
 #if HOST_ALIGNMENT_REQUIRED == 16
 #define HASH_PTR_SHIFT 4
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 16 */
 #if HOST_ALIGNMENT_REQUIRED == 32
 #define HASH_PTR_SHIFT 5
-#else
+#else /* HOST_ALIGNMENT_REQUIRED > 32 */
 #define HASH_PTR_SHIFT 6
 #endif /* == 32 */
 #endif /* == 16 */
@@ -584,7 +597,7 @@ given index.
 
 
 /*
-Macro to retrieve a pointer (dptr) associated with an pointer into the IL
+Macro to retrieve a pointer (dptr) associated with a pointer into the IL
 (iptr) from a given data map.
 */
 #define get_mapped_ptr(map, iptr, dptr)                                      \
@@ -603,7 +616,7 @@ Macro to retrieve a pointer (dptr) associated with an pointer into the IL
   }
 
 /*
-Macro to retrieve a byte count (bcount) associated with an pointer into the IL
+Macro to retrieve a byte count (bcount) associated with a pointer into the IL
 (iptr) from a given data map.
 */
 #define get_mapped_byte_count(map, iptr, bcount)                             \
@@ -786,7 +799,6 @@ typedef struct a_constexpr_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
-#if /*FIXME: enable when used*/0
   a_bit_field
 		in_array:1;
 			/* TRUE if this is a pointer to an array element
@@ -812,13 +824,78 @@ typedef struct a_constexpr_address {
     a_byte
 		*base_address;
 			/* For an array element, the address of element #0. */
-    /* When is_function-address or is_runtime_data_address is TRUE: */
+    /* When is_function_address is TRUE: */
+    a_routine_ptr
+		routine;
+    			/* For addresses of functions. */
+    /* When is_runtime_data_address is TRUE: */
     a_constant_ptr
 		runtime_constant;
-			/* For constant addresses of run-time entities. */
+			/* For constant addresses of run-time objects. */
   } variant;
-#endif /*0*/
 } a_constexpr_address;
+
+
+/*
+Convenience macro to get a pointer to the value addressed by the
+a_constexpr_address addr.
+*/
+#define value_bytes_at(addr) (((a_constexpr_address *)(addr))->address)
+
+
+/*
+Convenience macro to get a pointer to the integer value addressed by the
+a_constexpr_address addr.
+*/
+#define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
+
+
+/*
+Convenience macro to get a pointer to the float value addressed by the
+a_constexpr_address addr.
+*/
+#define float_value_at(addr) ((an_internal_float_value *)value_bytes_at(addr))
+
+
+/*
+Macro to initialize a constant address at addr referring to the interpreter
+value at targ_addr.
+*/
+#define clear_address(addr, targ_addr)                    \
+  memzero((char *)(addr), sizeof(a_constexpr_address));   \
+  ((a_constexpr_address *)(addr))->address = (targ_addr);
+
+
+/*
+Macro to initialize a constant address at addr referring to the array
+element at targ_addr, which is a member of the interpreter array of len
+elements starting at base.
+*/
+#define clear_array_address(addr, targ_addr, len, base)           \
+  clear_address(addr, targ_addr);                                 \
+  ((a_constexpr_address *)(addr))->is_array = TRUE;               \
+  ((a_constexpr_address *)(addr))->length = (len);                \
+  ((a_constexpr_address *)(addr))->variant.base_address = (base);
+
+
+/*
+Macro to initialize a constant address at addr referring to the function
+denoted by the IL a_routine entry rout.
+*/
+#define clear_function_address(addr, rout)                     \
+  memzero((char *)(addr), sizeof(a_constexpr_address));        \
+  ((a_constexpr_address *)(addr))->is_function_address = TRUE; \
+  ((a_constexpr_address *)(addr))->variant.routine = rout;
+
+
+/*
+Macro to initialize a constant address at addr referring to the
+(non-interpreter) constant address described by the ck_address constant con.
+*/
+#define clear_runtime_constant_address(addr, con)                  \
+  memzero((char *)(addr), sizeof(a_constexpr_address));            \
+  ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
+  ((a_constexpr_address *)(addr))->variant.runtime_constant = con;
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -849,7 +926,7 @@ a function type.
 */
 #define ptr_or_ref_is_to_function(tp)                                        \
   (skip_typerefs(tp->variant.pointer.type)->kind == (a_type_kind)tk_routine)
-#endif
+#endif /*FIXME: delete?*/
 
 
 /*
@@ -874,6 +951,20 @@ failure (*ips is updated accordingly).
    /* else */                                                                \
        f_value_bytes_for_type(ips, tp))
 
+/*
+Macro returning the larger of two values.
+*/
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
+
+/*
+Macro giving the number of bytes required for a scalar value.
+*/
+#define VALUE_BYTES_FOR_SCALAR                  \
+  max(max(max(sizeof(an_integer_value),         \
+              sizeof(an_internal_float_value)), \
+          sizeof(a_constexpr_address)),         \
+      sizeof(a_constexpr_ptr_to_mem_function))
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr  tp);
@@ -1168,12 +1259,31 @@ interpreted for the current call frame (either because of an error, or because
 stmt is a return statement).  Otherwise, return TRUE.
 */
 {
-  a_boolean  result;
+  a_boolean             result;
+  an_expr_node_ptr      expr;
+  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR];
+  a_byte                *expr_value;
+  a_storage_stack_state saved_stack;
+  a_host_large_integer  bool_val;
+  a_type_ptr            tp;
+  a_boolean             ovfl;
 
   switch (stmt->kind) {
-    case stmk_block:
-      { a_block_ptr  block = stmt->variant.block.extra_info;
-        result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+    case stmk_expr:
+      {
+        expr = stmt->expr;
+        tp = skip_typerefs(expr->type);
+        save_storage_stack(ips, saved_stack);
+        if (tp->size > VALUE_BYTES_FOR_SCALAR &&
+            !expr->is_lvalue && !expr->is_xvalue) {
+          /* The value is larger than a scalar type, so allocate space for
+             it on the stack. */
+          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, tp), expr_value);
+        } else {
+          expr_value = expr_bytes;
+        }  /* if */
+        result = do_constexpr_expression(ips, expr, expr_value);
+        restore_storage_stack(ips, saved_stack);
       }
       break;
     case stmk_return:
@@ -1186,6 +1296,72 @@ stmt is a return statement).  Otherwise, return TRUE.
         unexpected_condition();
       }  /* if */
       result = FALSE;
+      break;
+    case stmk_block:
+      { a_block_ptr  block = stmt->variant.block.extra_info;
+        result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+      }
+      break;
+    case stmk_for:
+      {
+        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           *incr_value;
+        an_expr_node_ptr incr;
+        a_type_ptr       incr_type;
+        expr = stmt->expr;
+        tp = skip_typerefs(expr->type);
+        incr = stmt->variant.for_loop.extra_info->increment;
+        incr_type = skip_typerefs(incr->type);
+        save_storage_stack(ips, saved_stack);
+        if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
+            !incr->is_lvalue && !incr->is_xvalue) {
+          /* The result of the increment expression is larger than a scalar
+             type, so allocate space for it on the stack. */
+          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, incr_type),
+                            incr_value);
+        } else {
+          incr_value = incr_bytes;
+        }  /* if */
+        /* Initialization is handled by an stmk_init in the containing
+           block and not as part of the stmk_for processing. */
+        do {
+          /* Evaluate the test expression.  The result is known to have
+             type bool, so we can use expr_bytes directly to hold the
+             result. */
+          if (cost_exceeded(ips)) {
+            result = FALSE;
+            /* FIXME: record a diagnostic. */
+          } else {
+            do_constexpr_full_expression(ips, expr, expr_bytes, result);
+          }  /* if */
+          if (result) {
+            /* Evaluation of the test expression succeeded.  Get its value
+               to see if the dependent statement should be executed. */
+            get_int_val_from(expr_bytes, tp, bool_val, ovfl);
+            if (bool_val) {
+              /* Execute the dependent statement. */
+              result = do_constexpr_statement(
+                                             ips,
+                                             stmt->variant.for_loop.statement);
+              if (result) {
+                /* Execution of the dependent statement succeeded, so
+                   evaluate the increment expression. */
+                do_constexpr_full_expression(ips, incr, incr_value, result);
+              }  /* if */
+            }  /* if */
+          }   /* if */
+        } while (result && bool_val);
+        restore_storage_stack(ips, saved_stack);
+      }
+      break;
+    case stmk_init:
+      /* FIXME: handle initialization. */
+      break;
+    case stmk_decl:
+      /* Nothing to do; variables are handled when the scope is opened. */
+      break;
+    case stmk_empty:
+      /* Nothing to do. */
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */
@@ -1207,8 +1383,8 @@ accordingly.
   a_routine_ptr     callee;
   a_memory_region_number
                     callee_region;
+  a_boolean         result = TRUE;
 
-  ips->cost += 1;
   callee_node = call_node->variant.operation.operands;
   arg_nodes = callee_node->next;
   /* FIXME: eok_dot_static case may not be handled correctly by the following
@@ -1228,8 +1404,8 @@ accordingly.
     /* error. */
 #endif /* 0 */
   } else if (cost_exceeded(ips)) {
-    /* FIXME: error. */
-    unexpected_condition();
+    /* FIXME: record an error. */
+    result = FALSE;
   } else {
     a_scope_ptr     callee_scope = il_header.region_scope_entry[callee_region];
     a_storage_stack_state
@@ -1273,31 +1449,246 @@ accordingly.
 reclaim_arg_storage:
     restore_storage_stack(ips, saved_stack);
   }  /* if */
-  return ips->diagnostic == NULL;
+  return result && ips->diagnostic == NULL;
 }  /* do_constexpr_call */
 
+
+/*
+Useful constants.
+*/
+static an_integer_value
+		zero_int;
+static an_integer_value
+		one_int;
+static an_internal_float_value
+		zero_flt[(int)fk_last];
+static an_internal_float_value
+		one_flt[(int)fk_last];
 
 static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
                                          an_expr_node_ptr      expr,
                                          a_byte                *result_storage)
 /*
 Interpret the given expression in the given interpreter context.  If
-successful return TRUE and store the result at *result_bytes.  Otherwise,
-return FALSE and update the *ips accordingly.
+successful return TRUE and store the result at *result_storage.  Otherwise,
+return FALSE and update *ips accordingly.  A glvalue result is represented
+as an a_constexpr_address value, so result_storage must be at least large
+enough for that type; otherwise, it need only be large enough for the type
+of the prvalue result.
 */
 {
-  a_boolean  result = TRUE;
+  a_boolean            result = TRUE;
+  a_type_ptr           tp = skip_typerefs(expr->type);
+  a_byte_count         n_bytes = value_bytes_for_type(ips, tp);
+  an_integer_kind      int_kind;
+  a_boolean            is_signed;
+  a_host_large_integer host_int_val;
+  a_float_kind         float_kind;
 
   switch (expr->kind) {
     case enk_operation:
       {
-        switch (expr->variant.operation.kind) {
-          case eok_assign:
-            /* FIXME */
-            break;
-          default:
-            unexpected_condition();  /* FIXME: handle errors. */
-        }  /* switch */
+        /* An operation node.  Lvalue-to-rvalue conversions and casts are
+           assumed to have already been applied to the operands, as
+           required by the semantics of the operation. */
+        an_expr_node_ptr opnd1;
+        a_type_ptr       opnd1_type;
+        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           *opnd1_value;
+        an_expr_node_ptr opnd2;
+        a_type_ptr       opnd2_type;
+        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           *opnd2_value;
+        a_boolean        ovfl;
+        
+/*
+Macro to set result_storage from either the address in opnd1 or the value
+to which that address points, depending on whether the result is a glvalue
+or a prvalue.  This is used for operations that produce glvalues but may
+incorporate an implicit lvalue-to-rvalue conversion.
+*/
+#define set_result_val_from_opnd1_glvalue()                                   \
+  ((expr->is_lvalue || expr->is_xvalue)                                       \
+   ? *((a_constexpr_address *)result_storage) =                               \
+                                          *(a_constexpr_address *)opnd1_value \
+   : (void)memcpy(result_storage,                                             \
+                  ((a_constexpr_address *)opnd1_value)->address,              \
+                  size_t_arg(n_bytes)))
+
+/*
+Macro that returns TRUE if the integer result of an operation (in
+host_int_val) is within the range representable by its type.  This includes
+checking the value of ovfl, which will have been set to TRUE if the the
+operation overflowed a host large integer value.
+*/
+#define within_int_range()                                                    \
+  (!ovfl &&                                                                   \
+   host_int_val <=                                                            \
+                 (a_host_large_integer)max_integer_value_of_kind[int_kind] && \
+   (!is_signed ||                                                             \
+    host_int_val >=                                                           \
+                  (a_host_large_integer)min_integer_value_of_kind[int_kind]))
+
+        opnd1 = expr->variant.operation.operands;
+        opnd2 = opnd1->next;
+        opnd1_type = skip_typerefs(opnd1->type);
+        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
+            !opnd1->is_lvalue && !opnd1->is_xvalue) {
+          /* The value is larger than a scalar type, so allocate
+             space for it on the stack. */
+          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, opnd1_type),
+                            opnd1_value);
+        } else {
+          opnd1_value = opnd1_bytes;
+        }  /* if */
+        result = do_constexpr_expression(ips, opnd1, opnd1_value);
+        if (result && opnd2 != NULL &&
+            !node_operator_is(expr, eok_land) &&
+            !node_operator_is(expr, eok_lor) &&
+            !node_operator_is(expr, eok_question)) {
+          /* Evaluate the second operand.  For short-circuiting operators,
+             whether to evaluate the second operand will be decided below
+             in the specific code for each such operator. */
+          opnd2_type = skip_typerefs(opnd2->type);
+          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
+              !opnd2->is_lvalue && !opnd2->is_xvalue) {
+            /* The value may be larger than a scalar type, so allocate
+               space for it on the stack. */
+            alloc_stack_bytes(ips, f_value_bytes_for_type(ips, opnd2_type),
+                              opnd2_value);
+          } else {
+            opnd2_value = opnd2_bytes;
+          }  /* if */
+          result = do_constexpr_expression(ips, opnd2, opnd2_value);
+        }  /* if */
+        if (result) {
+          /* The operand(s) were evaluated successfully.  Process the
+             operation. */
+          switch (expr->variant.operation.kind) {
+            case eok_cast:
+              if (tp->kind == opnd1_type->kind) {
+                /* The type kinds are the same, so the representation is
+                   the same, and we can just copy the opnd1 value. */
+                (void)memcpy(result_storage, opnd1_value, n_bytes);
+              } else {
+                unexpected_condition();  /* FIXME: implement conversions. */
+              }  /* if */
+              break;
+            case eok_pre_incr:
+              if (((a_constexpr_address *)opnd1_value)->
+                                                     is_runtime_data_address) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                /* FIXME: record a diagnostic. */
+                result = FALSE;
+              } else if (tp->kind == (a_type_kind)tk_integer) {
+                /* An integral type. */
+                if (tp->variant.integer.bool_type) {
+                  /* Incrementing a bool variable sets it to TRUE. */
+                  *(an_integer_value *)value_bytes_at(opnd1_value) = one_int;
+                } else {
+                  /* An integer. */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  add_integer_values(int_value_at(opnd1_value), &one_int,
+                                     is_signed, &ovfl);
+                  if (!ovfl) {
+                    get_int_val_from(int_value_at(opnd1_value), tp,
+                                     host_int_val, ovfl);
+                    result = within_int_range();
+                  }  /* if */
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                }  /* if */
+              } else if (tp->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (tp->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                /* Invalid type for prefix ++. */
+                unexpected_condition();
+              }  /* if */
+              if (result) {
+                /* Return either the address or the value, as
+                   appropriate. */
+                set_result_val_from_opnd1_glvalue();
+              }  /* if */
+              break;
+            case eok_shiftl:
+              /* Check for a valid value of opnd2, which must be non-negative
+                 and less than the number of bits in opnd1. */
+              int_kind = tp->variant.integer.int_kind;
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                result = FALSE;
+              } else if (host_int_val < 0 ||
+                         host_int_val >= tp->size * targ_char_bit) {
+                result = FALSE;
+              }  /* if */
+              if (result) {
+                shift_left_integer_value((an_integer_value *)opnd1_value,
+                                         (int)host_int_val, &ovfl);
+                if (!ovfl) {
+                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
+                                   ovfl);
+                }  /* if */
+                if (within_int_range()) {
+                  *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                } else {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic for invalid result. */
+                }  /* if */
+              } else {
+                /* FIXME: record a diagnostic for invalid opnd2. */
+              }  /* if */
+              break;
+            case eok_lt:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) < 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            case eok_assign:
+              if (((a_constexpr_address *)opnd1_value)->
+                                                     is_runtime_data_address) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                /* FIXME: record a diagnostic. */
+                result = FALSE;
+              } else {
+                /* Copy the value of the right operand to the indicated
+                   address and return either the address or the value, as
+                   appropriate. */
+                (void)memcpy(value_bytes_at(opnd1_value), opnd2_value,
+                             size_t_arg(n_bytes));
+                set_result_val_from_opnd1_glvalue();
+              }  /* if */
+              break;
+            default:
+              unexpected_condition();  /* FIXME: handle errors. */
+          }  /* switch */
+        }  /* if */
       }
       break;
     case enk_constant:
@@ -1312,29 +1703,38 @@ return FALSE and update the *ips accordingly.
       }
       break;
     case enk_variable:
-      if (!expr->is_lvalue && !expr->is_xvalue) {
-        /* A variable used as an rvalue: Copy its associated value bytes. */
+      {
         a_variable_ptr  var = expr->variant.variable;
-        a_type_ptr      tp = skip_typerefs(expr->type);
-        a_byte_count    n_bytes = value_bytes_for_type(ips, tp);
         a_byte          *var_bytes;
         get_stack_bytes(ips, var, var_bytes);
-        if (var_bytes != NULL) {
-          (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+        if (!expr->is_lvalue && !expr->is_xvalue) {
+          /* A variable used as an rvalue; the result is its associated
+             value bytes. */
+          if (var_bytes != NULL) {
+            /* This is a variable on the interpreter stack. */
+            (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+          } else {
+             /* FIXME: handle constant-valued variable that aren't mapped
+                during interpretation (e.g., a namespace-scope constexpr
+                variable). */
+             unexpected_condition();
+          }  /* if */
         } else {
-           /* FIXME: handle constant-valued variable that aren't mapped
-              during interpretation (e.g., a namespace-scope constexpr
-              variable). */
-           unexpected_condition();
+          /* A variable used as a glvalue; the result is its address. */
+          if (var_bytes != NULL) {
+            clear_address(result_storage, var_bytes);
+          } else {
+            /* FIXME: handle a runtime constant address. */
+          }  /* if */
         }  /* if */
-      } else {
-        unexpected_condition();  /* FIXME: handle lvalue/xvalue. */
-      }  /* if */
+      }
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */
   }  /* switch */
   return result;
+#undef set_result_from_opnd1
+#undef within_int_range
 }  /* do_constexpr_expression */
 
 
@@ -1396,6 +1796,9 @@ void interpret_one_time_init(void)
 One-time initialization for interpret.c static variables.
 */
 {
+  a_float_kind fk;
+  a_boolean    dummy;
+  
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -1409,7 +1812,15 @@ One-time initialization for interpret.c static variables.
   /* Static variables in interpret.c. */
   register_trans_unit_variable(persistent_data);
   register_trans_unit_variable(persistent_map);
-
+  /* Initialize useful constants. */
+  set_integer_value(&zero_int, (a_host_large_integer)0);
+  set_integer_value(&one_int, (a_host_large_integer)1);
+  for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
+    fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
+                                   &zero_flt[(int)fk], &dummy);
+    fp_host_large_integer_to_float(fk, (a_host_large_integer)1,
+                                   &one_flt[(int)fk], &dummy);
+  }  /* for */
 }  /* interpret_one_time_init */
 /******************************************************************************
 *                                                             \  ___  /       *

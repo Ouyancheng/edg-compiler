@@ -60,6 +60,11 @@ const_ints.h -- Declarations related to manipulation of target integer
   (*(intval) = (an_integer_value)(value))
 
 
+/* Extract a host large integer *val from an_integer_value *intval. */
+#define conv_integer_value_to_host_large_integer(intval, is_signed, val, err) \
+  (*(val) = *(a_host_large_integer *)(intval), *(err) = FALSE)
+
+
 /* Logical OR two integer values.  The result is returned in the first
    operand (op_1 = op_1 | op_2). */
 #define or_integer_values(op_1, op_2)					\
@@ -105,6 +110,12 @@ extern void set_integer_value(an_integer_value		*intval,
 
 extern void set_unsigned_integer_value(an_integer_value		*intval,
                                        a_host_large_unsigned	value);
+
+extern void conv_integer_value_to_host_large_integer(
+                                             an_integer_value        *intval,
+                                             a_boolean               is_signed,
+                                             a_host_large_integer    *value,
+                                             a_boolean               *err);
 
 extern void or_integer_values(an_integer_value *op_1,
 		              an_integer_value *op_2);

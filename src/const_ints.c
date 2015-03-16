@@ -59,14 +59,9 @@ Set the integer value entry *intval to the unsigned value "value".
     value = value >> BITS_IN_INT_VALUE_PART;
   }  /* if */
 }  /* set_unsigned_integer_value */
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-/* is_signed is not used when integer values are host integers. */
-/*ARGSUSED*/
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-static void conv_integer_value_to_host_large_integer(
+void conv_integer_value_to_host_large_integer(
 			        an_integer_value	*intval,
                                 a_boolean		is_signed,
 				a_host_large_integer	*value,
@@ -80,10 +75,6 @@ TRUE if the value cannot be represented in a host large integer (or host
 large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 */
 {
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  *value = (a_host_large_integer)*intval;
-  *err = FALSE;
-#else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int			i;
   int	        	bits_so_far = 0;
   int	        	bits_discarded = BITS_IN_AN_INTEGER_VALUE -
@@ -120,8 +111,9 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
   }  /* if */
   *value = (a_host_large_integer)result;
   *err = overflow;
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* conv_integer_value_to_host_large_integer */
+
+#endif /* !INTEGER_VALUE_IS_A_HOST_LARGE_INTEGER */
 
 /* Forward declaration. */
 static char *str_for_integer_value(an_integer_value *p_value,
