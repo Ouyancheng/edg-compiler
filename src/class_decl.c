@@ -14519,7 +14519,7 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   a_template_param_ptr      tpp1 = tpl1, tpp2 = tpl2;
   a_template_param_coordinate_ptr
                             tpcp1, tpcp2;
-  a_template_nesting_depth  tnd1, tnd2;
+  a_template_nesting_depth  tnd1 = NO_NESTING_DEPTH, tnd2 = NO_NESTING_DEPTH;
 
   /* The actual comparison is done with equiv_template_param_lists and
      param_types_are_compatible, but the two parameter lists may be declared
