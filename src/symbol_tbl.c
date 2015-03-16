@@ -9820,11 +9820,11 @@ compiler-generated flag should be cleared.
                  make_routine_type(return_type, param1_type, param2_type,
                                    (a_type_ptr)NULL, (a_type_ptr)NULL));
   if (microsoft_mode) {
-    if (microsoft_version >= 1400) {
+    if (microsoft_version >= 1400 && !sized_version) {
       /* More recent Microsoft compilers treat the implicit declaration of
          array new and array delete as synonyms for the corresponding non-
          array versions.  A user declaration of these functions does declare
-         a distinct routine, however. */
+         a distinct routine, however.  Sized versions don't get an alias. */
       a_symbol_ptr  av_sym;
       if (opname == (an_opname_kind)onk_new) {
         make_opname_locator((an_opname_kind)onk_array_new, &locator,
