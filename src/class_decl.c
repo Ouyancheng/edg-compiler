@@ -14522,12 +14522,11 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   a_template_nesting_depth  tnd1 = NO_NESTING_DEPTH, tnd2 = NO_NESTING_DEPTH;
 
   /* The actual comparison is done with equiv_template_param_lists and
-     param_types_are_compatible, but the two parameter lists may be declared
-     at different nesting depths (e.g., one may be a member template in a
-     class template that derives from a nontemplate base class in which the
-     a compatible member template is declared.  We therefore temporarily set
-     the nesting depth of the two member templates to the "deepest" depth of
-     the two. */
+     param_types_are_compatible, but the two parameter lists may be declared at
+     different nesting depths (e.g., one may be a member template in a class
+     template that derives from a nontemplate base class in which the other
+     member template is declared).  We therefore temporarily set the nesting
+     depth of the two member templates to the "deepest" depth of the two. */
   for (; tpp1 != NULL && tpp2 != NULL; tpp1 = tpp1->next, tpp2 = tpp2->next) {
     tpcp1 = coordinates_of_template_param(tpp1);
     tnd1 = tpcp1->depth;

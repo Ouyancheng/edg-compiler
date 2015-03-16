@@ -25,7 +25,7 @@ Invalid handling of using-declaration referring to a base class member template
 
 The front end sometimes incorrectly dealt with a using-declaration referring to
 a member template of a base class when it was followed by a member template
-declaration in the base class that displaces the base-class import.  The
+declaration in the derived class that displaces the base-class import.  The
 problem, which usually manifested itself as a spurious ambiguity error, only
 occurred when the base and derived classes had different template
 parameterization levels.  For example:
