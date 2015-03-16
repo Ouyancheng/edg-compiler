@@ -2754,7 +2754,7 @@ specified by sym.
 }  /* coordinates_of_template_param_symbol */
 
 
-static a_template_param_coordinate_ptr coordinates_of_template_param(
+a_template_param_coordinate_ptr coordinates_of_template_param(
                                                    a_template_param_ptr tpp)
 /*
 Return the address of the template coordinates of the template parameter

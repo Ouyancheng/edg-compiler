@@ -14516,8 +14516,10 @@ The nesting depth of the parameters is ignored for this compatibility checking.
 */
 {
   a_boolean                 result, restore_tnd1 = FALSE, restore_tnd2 = FALSE;
-  a_template_nesting_depth  tnd1, tnd2;
   a_template_param_ptr      tpp1 = tpl1, tpp2 = tpl2;
+  a_template_param_coordinate_ptr
+                            tpcp1, tpcp2;
+  a_template_nesting_depth  tnd1, tnd2;
 
   /* The actual comparison is done with equiv_template_param_lists and
      param_types_are_compatible, but the two parameter lists may be declared
@@ -14527,27 +14529,20 @@ The nesting depth of the parameters is ignored for this compatibility checking.
      the nesting depth of the two member templates to the "deepest" depth of
      the two. */
   for (; tpp1 != NULL && tpp2 != NULL; tpp1 = tpp1->next, tpp2 = tpp2->next) {
-    /* Only type parameters have an associated depth. */
-    if (symbol_is(tpp1->param_symbol, sk_type)) {
-      tnd1 = tpp1->variant.type->variant.template_param.extra_info
-                               ->coordinates.depth;
-      if (symbol_is(tpp2->param_symbol, sk_type)) {
-        tnd2 = tpp2->variant.type->variant.template_param.extra_info
-                                 ->coordinates.depth;
-        if (tnd1 == tnd2) {
-          /* The two member templates are at the same depth: No adjustment
-             needed. */
-          break;
-        } else if (tnd1 < tnd2) {
-          restore_tnd1 = TRUE;
-          tpp1->variant.type->variant.template_param.extra_info
-                            ->coordinates.depth = tnd2;
-        } else {
-          restore_tnd2 = TRUE;
-          tpp2->variant.type->variant.template_param.extra_info
-                            ->coordinates.depth = tnd1;
-        }  /* if */
-      }  /* if */
+    tpcp1 = coordinates_of_template_param(tpp1);
+    tnd1 = tpcp1->depth;
+    tpcp2 = coordinates_of_template_param(tpp2);
+    tnd2 = tpcp2->depth;
+    if (tnd1 == tnd2) {
+      /* The two member templates are at the same depth: No adjustment
+         needed. */
+      break;
+    } else if (tnd1 < tnd2) {
+      restore_tnd1 = TRUE;
+      tpcp1->depth = tnd2;
+    } else {
+      restore_tnd2 = TRUE;
+      tpcp2->depth = tnd1;
     }  /* if */
   }  /* for */
   /* The depths have been updated if needed: Now do the actual compatibility
@@ -14559,17 +14554,11 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   /* Restore the original depths if needed. */
   if (restore_tnd1) {
     for (tpp1 = tpl1; tpp1 != NULL; tpp1 = tpp1->next) {
-      if (symbol_is(tpp1->param_symbol, sk_type)) {
-        tpp1->variant.type->variant.template_param.extra_info
-                          ->coordinates.depth = tnd1;
-      }  /* if */
+      coordinates_of_template_param(tpp1)->depth = tnd1;
     }  /* for */
   } else if (restore_tnd2) {
     for (tpp2 = tpl2; tpp2 != NULL; tpp2 = tpp2->next) {
-      if (symbol_is(tpp1->param_symbol, sk_type)) {
-        tpp2->variant.type->variant.template_param.extra_info
-                          ->coordinates.depth = tnd2;
-      }  /* if */
+      coordinates_of_template_param(tpp2)->depth = tnd2;
     }  /* for */
   }  /* if */
   return result;
