@@ -6071,8 +6071,27 @@ that a function might throw.
 {
   an_exception_specification_type_ptr estp;
 
-  check_assertion(!esp->arg_cached);
-  if (esp->compiler_generated) {
+  if (esp->arg_cached) {
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Instantiations are rendered as specializations, but the exception
+       specification of a member function of a class template is parsed only if
+       the member function is really used.  That would, e.g., not be the case
+       with the following translation unit:
+           template<class T> struct S {
+             void f() noexcept(T()) {}
+           };
+           S<int> s; // S<int>::f never used.
+       In cases where the exception specification was never parsed (which is
+       what a TRUE arg_cached flag indicates), we simply don't render that
+       exception specification (if it were needed, it would have been
+       instantiated). */
+    check_assertion(curr_name_context_is_a_class() &&
+                    curr_name_context_class()
+                              ->variant.class_struct_union.is_template_class);
+#else /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    unexpected_condition();
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  } else if (esp->compiler_generated) {
     /* Don't render compiler-generated exception specifications. */
   } else if (esp->is_noexcept) {
     if (esp->variant.noexcept_arg == NULL) {

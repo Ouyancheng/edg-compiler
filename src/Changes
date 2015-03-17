@@ -1,5 +1,32 @@
 Version 4.11
 
+3/16/15  [EDGcpfe/16081]
+C++-generating back end and exception specifications on instantiations
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to
+TRUE, the C++-generating back end renders instantiations as explicit
+specializations.  Previously, if an unused member function of an instantiated
+class template included an exception specification, this triggered an internal
+error because the operand of an exception specification is never parsed if the
+member member function is never used (so no IL is available to render the
+exception specification).  For example:
+
+  template<class T> struct S {
+    void f() noexcept(T()) {}
+  };
+  S<int> s;  // Previously, the C++-generating back end's attempt at rendering
+             // a definition for S<int> triggered an internal error because
+             // no IL is available to render "T()" with T == int.
+
+Now, the C++-generating back end simply doesn't render an exception
+specification in such cases.  I.e., for the case above, the specialization of
+S<int> looks as follows:
+
+  template<> struct S< int>  { 
+  void f(); 
+  }; 
+
+
 3/16/15  [EDGcpfe/15750]
 C++-generating back end: incorrect destructor name emitted
 
