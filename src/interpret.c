@@ -799,6 +799,8 @@ typedef struct a_constexpr_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
+#if 0
+/* Not needed yet: eliminate to placate lint. */  
   a_bit_field
 		in_array:1;
 			/* TRUE if this is a pointer to an array element
@@ -806,12 +808,15 @@ typedef struct a_constexpr_address {
   a_bit_field
 		is_function_address:1;
 			/* TRUE if this is the address of a function. */
+#endif /* 0 */  
   a_bit_field
 		is_runtime_data_address:1;
 			/* TRUE if this is a data pointer that is constant at
 			   run time, but not a pointer into interpreter
 			   storage (i.e., a pointer to a static-duration
 			   variable of some kind). */
+#if 0
+/* Not needed yet: eliminate to placate lint. */  
   a_bit_field
 		cannot_dereference:1;
 			/* TRUE if this address cannot be dereferenced. */
@@ -833,6 +838,7 @@ typedef struct a_constexpr_address {
 		runtime_constant;
 			/* For constant addresses of run-time objects. */
   } variant;
+#endif /* 0 */  
 } a_constexpr_address;
 
 
@@ -865,7 +871,8 @@ value at targ_addr.
   memzero((char *)(addr), sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr);
 
-
+#if 0
+/* Not needed yet: eliminate so lint won't complain. */
 /*
 Macro to initialize a constant address at addr referring to the array
 element at targ_addr, which is a member of the interpreter array of len
@@ -896,7 +903,7 @@ Macro to initialize a constant address at addr referring to the
   memzero((char *)(addr), sizeof(a_constexpr_address));            \
   ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
   ((a_constexpr_address *)(addr))->variant.runtime_constant = con;
-
+#endif /* 0 */
 
 typedef struct a_constexpr_ptr_to_mem_function {
   a_routine_ptr	member_function;
@@ -1261,7 +1268,7 @@ stmt is a return statement).  Otherwise, return TRUE.
 {
   a_boolean             result = TRUE;
   an_expr_node_ptr      expr;
-  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR];
+  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
   a_byte                *expr_value;
   a_storage_stack_state saved_stack;
   a_host_large_integer  bool_val;
@@ -1276,7 +1283,7 @@ stmt is a return statement).  Otherwise, return TRUE.
         tp = skip_typerefs(expr->type);
         n_bytes = f_value_bytes_for_type(ips, tp);
         save_storage_stack(ips, saved_stack);
-        if (tp->size > VALUE_BYTES_FOR_SCALAR &&
+        if (tp->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
             !expr->is_lvalue && !expr->is_xvalue) {
           /* The value is larger than a scalar type, so allocate space for
              it on the stack. */
@@ -1306,7 +1313,7 @@ stmt is a return statement).  Otherwise, return TRUE.
       break;
     case stmk_for:
       {
-        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
         a_byte           *incr_value;
         an_expr_node_ptr incr;
         a_type_ptr       incr_type;
@@ -1316,7 +1323,7 @@ stmt is a return statement).  Otherwise, return TRUE.
         incr_type = skip_typerefs(incr->type);
         n_bytes = f_value_bytes_for_type(ips, incr_type);
         save_storage_stack(ips, saved_stack);
-        if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
+        if (incr_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
             !incr->is_lvalue && !incr->is_xvalue) {
           /* The result of the increment expression is larger than a scalar
              type, so allocate space for it on the stack. */
@@ -1494,11 +1501,11 @@ of the prvalue result.
            required by the semantics of the operation. */
         an_expr_node_ptr opnd1;
         a_type_ptr       opnd1_type;
-        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
         a_byte           *opnd1_value;
         an_expr_node_ptr opnd2;
         a_type_ptr       opnd2_type;
-        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
+        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
         a_byte           *opnd2_value;
         a_boolean        ovfl;
         a_byte_count     opnd_n_bytes;
@@ -1555,7 +1562,7 @@ type.  This includes checking the value of ovfl by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = f_value_bytes_for_type(ips, opnd1_type);
-        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
+        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
              space for it on the stack. */
@@ -1573,7 +1580,7 @@ type.  This includes checking the value of ovfl by the operation.
              in the specific code for each such operator. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = f_value_bytes_for_type(ips, opnd2_type);
-          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
+          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
                space for it on the stack. */
@@ -1614,7 +1621,7 @@ type.  This includes checking the value of ovfl by the operation.
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(int_value_at(opnd1_value), &one_int,
                                      is_signed, &ovfl);
-                  check_int_range(opnd1_value, tp, result);
+                  check_int_range(int_value_at(opnd1_value), tp, result);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
                   }  /* if */
@@ -1644,7 +1651,8 @@ type.  This includes checking the value of ovfl by the operation.
               if (ovfl) {
                 result = FALSE;
               } else if (host_int_val < 0 ||
-                         host_int_val >= tp->size * targ_char_bit) {
+                         host_int_val >=
+                              (a_host_large_integer)tp->size * targ_char_bit) {
                 result = FALSE;
               }  /* if */
               if (result) {
