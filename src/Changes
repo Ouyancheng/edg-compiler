@@ -1,5 +1,21 @@
 Version 4.11
 
+3/16/15  [EDGcpfe/14503]
+Spurious access error on instantiation of out-of-class partial specialization
+
+A spurious access error was sometimes issued on the instantiation of a
+member class template partial specialization declared outside of its class.
+Now fixed.
+
+  template<class T> class A {
+    template<class U> class B {};
+  };
+  template<class T> template<class U> struct A<T>::B<U*> {};
+  int main() {
+    A<int> a;
+  }
+
+
 3/16/15  [EDGcpfe/16081]
 C++-generating back end and exception specifications on instantiations
 

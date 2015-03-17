@@ -3364,6 +3364,9 @@ with "instance_sym".
 	                                  /*push_lex_state=*/TRUE,
 		                          PS_NO_OPTIONS);
   reactivate_template_declaration_scope(decl_info);
+  /* Defer access checks so that access errors on the class being
+     declared can be suppressed. */
+  begin_deferral_of_access_checks();
   /* The rescan requires a template declaration state block.  Build
      one to represent the state in which the partial specialization
      is to be processed. */
@@ -3376,6 +3379,7 @@ with "instance_sym".
   rescan_reusable_cache(&oocpsp->cache.tokens);
   class_template_declaration(&decl_state, &new_sym, &resolution,
                              /*out_of_class_partial_spec=*/TRUE);
+  end_deferral_of_access_checks();
   new_tssp = new_sym->variant.template_info;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(new_sym, (a_statement_ptr)NULL);
@@ -18083,8 +18087,8 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
   decl_state->defines_something = is_definition;
-  if (is_definition && locator_for_curr_id.is_qualified_name &&
-      any_deferred_access_checks()) {
+  if ((is_definition || out_of_class_partial_spec) &&
+      locator_for_curr_id.is_qualified_name && any_deferred_access_checks()) {
     /* When defining a class member outside of its class definition
        using a qualified name, any access errors that may have been
        detected when scanning the qualified name should be suppressed.
