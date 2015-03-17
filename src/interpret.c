@@ -954,16 +954,16 @@ failure (*ips is updated accordingly).
 /*
 Macro returning the larger of two values.
 */
-#define max(a, b) (((a) > (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))/*lint --e(506)*/
 
 
 /*
 Macro giving the number of bytes required for a scalar value.
 */
-#define VALUE_BYTES_FOR_SCALAR                  \
-  max(max(max(sizeof(an_integer_value),         \
-              sizeof(an_internal_float_value)), \
-          sizeof(a_constexpr_address)),         \
+#define VALUE_BYTES_FOR_SCALAR                                   \
+  max(max(max(sizeof(an_integer_value),                          \
+              sizeof(an_internal_float_value))/*lint --e(506)*/, \
+          sizeof(a_constexpr_address))/*lint --e(506)*/,         \
       sizeof(a_constexpr_ptr_to_mem_function))/*lint --e(506)*/
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
@@ -1521,19 +1521,36 @@ incorporate an implicit lvalue-to-rvalue conversion.
   }
 
 /*
-Macro that returns TRUE if the integer result of an operation (in
-host_int_val) is within the range representable by its type.  This includes
-checking the value of ovfl, which will have been set to TRUE if the the
-operation overflowed a host large integer value.
+Macro that sets result to TRUE or FALSE depending on whether the integer
+result of an operation (in val) is within the range representable by its
+type.  This includes checking the value of ovfl by the operation.
 */
-#define within_int_range()                                                    \
-  (!ovfl &&                                                                   \
-   host_int_val <=                                                            \
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+#define check_int_range(val, tp, result)                                      \
+{                                                                             \
+  if (!ovfl) {                                                                \
+    get_int_val_from((val), (tp), host_int_val, ovfl);                        \
+    (result) = (!ovfl &&                                                      \
+                host_int_val <=                                               \
                  (a_host_large_integer)max_integer_value_of_kind[int_kind] && \
-   (!is_signed ||                                                             \
-    host_int_val >=                                                           \
-                  (a_host_large_integer)min_integer_value_of_kind[int_kind]))
-
+                (!is_signed ||                                                \
+                 host_int_val >=                                              \
+                 (a_host_large_integer)min_integer_value_of_kind[int_kind])); \
+  } else {                                                                    \
+    (result) = FALSE;                                                         \
+  }                                                                           \
+}
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#define check_int_range(val, tp, result)                                 \
+        ((result) = (!ovfl &&                                            \
+               cmp_integer_values((an_integer_value *)(val), is_signed,  \
+                                  &max_integer_value_of_kind[int_kind],  \
+                                  is_signed) <= 0 &&                     \
+               (!is_signed ||                                            \
+                cmp_integer_values((an_integer_value *)(val), is_signed, \
+                                   &min_integer_value_of_kind[int_kind], \
+                                   is_signed) >= 0)))
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
@@ -1597,11 +1614,7 @@ operation overflowed a host large integer value.
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(int_value_at(opnd1_value), &one_int,
                                      is_signed, &ovfl);
-                  if (!ovfl) {
-                    get_int_val_from(int_value_at(opnd1_value), tp,
-                                     host_int_val, ovfl);
-                    result = within_int_range();
-                  }  /* if */
+                  check_int_range(opnd1_value, tp, result);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
                   }  /* if */
@@ -1626,6 +1639,7 @@ operation overflowed a host large integer value.
               /* Check for a valid value of opnd2, which must be non-negative
                  and less than the number of bits in opnd1. */
               int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
               get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
               if (ovfl) {
                 result = FALSE;
@@ -1636,15 +1650,11 @@ operation overflowed a host large integer value.
               if (result) {
                 shift_left_integer_value((an_integer_value *)opnd1_value,
                                          (int)host_int_val, &ovfl);
-                if (!ovfl) {
-                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
-                                   ovfl);
-                }  /* if */
-                if (within_int_range()) {
+                check_int_range(opnd1_value, opnd1_type, result);
+                if (result) {
                   *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
                 } else {
-                  result = FALSE;
                   /* FIXME: record a diagnostic for invalid result. */
                 }  /* if */
               } else {
