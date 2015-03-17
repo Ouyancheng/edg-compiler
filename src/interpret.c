@@ -1653,7 +1653,7 @@ type.  This includes checking the value of ovfl by the operation.
                 result = FALSE;
               } else if (host_int_val < 0 ||
                          host_int_val >=
-                              (a_host_large_integer)tp->size * targ_char_bit) {
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
                 result = FALSE;
               }  /* if */
               if (result) {
