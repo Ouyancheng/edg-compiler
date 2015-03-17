@@ -964,7 +964,7 @@ Macro giving the number of bytes required for a scalar value.
   max(max(max(sizeof(an_integer_value),         \
               sizeof(an_internal_float_value)), \
           sizeof(a_constexpr_address)),         \
-      sizeof(a_constexpr_ptr_to_mem_function))
+      sizeof(a_constexpr_ptr_to_mem_function))/*lint --e(506)*/
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr  tp);
@@ -1267,18 +1267,20 @@ stmt is a return statement).  Otherwise, return TRUE.
   a_host_large_integer  bool_val;
   a_type_ptr            tp;
   a_boolean             ovfl;
+  a_byte_count          n_bytes;
 
   switch (stmt->kind) {
     case stmk_expr:
       {
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
+        n_bytes = f_value_bytes_for_type(ips, tp);
         save_storage_stack(ips, saved_stack);
         if (tp->size > VALUE_BYTES_FOR_SCALAR &&
             !expr->is_lvalue && !expr->is_xvalue) {
           /* The value is larger than a scalar type, so allocate space for
              it on the stack. */
-          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, tp), expr_value);
+          alloc_stack_bytes(ips, n_bytes, expr_value);
         } else {
           expr_value = expr_bytes;
         }  /* if */
@@ -1312,13 +1314,13 @@ stmt is a return statement).  Otherwise, return TRUE.
         tp = skip_typerefs(expr->type);
         incr = stmt->variant.for_loop.extra_info->increment;
         incr_type = skip_typerefs(incr->type);
+        n_bytes = f_value_bytes_for_type(ips, incr_type);
         save_storage_stack(ips, saved_stack);
         if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
             !incr->is_lvalue && !incr->is_xvalue) {
           /* The result of the increment expression is larger than a scalar
              type, so allocate space for it on the stack. */
-          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, incr_type),
-                            incr_value);
+          alloc_stack_bytes(ips, n_bytes, incr_value);
         } else {
           incr_value = incr_bytes;
         }  /* if */
@@ -1338,7 +1340,7 @@ stmt is a return statement).  Otherwise, return TRUE.
             /* Evaluation of the test expression succeeded.  Get its value
                to see if the dependent statement should be executed. */
             get_int_val_from(expr_bytes, tp, bool_val, ovfl);
-            if (bool_val) {
+            if (!ovfl && bool_val) {
               /* Execute the dependent statement. */
               result = do_constexpr_statement(
                                              ips,
@@ -1499,6 +1501,7 @@ of the prvalue result.
         a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd2_value;
         a_boolean        ovfl;
+        a_byte_count     opnd_n_bytes;
         
 /*
 Macro to set result_storage from either the address in opnd1 or the value
@@ -1507,12 +1510,15 @@ or a prvalue.  This is used for operations that produce glvalues but may
 incorporate an implicit lvalue-to-rvalue conversion.
 */
 #define set_result_val_from_opnd1_glvalue()                                   \
-  ((expr->is_lvalue || expr->is_xvalue)                                       \
-   ? *((a_constexpr_address *)result_storage) =                               \
-                                          *(a_constexpr_address *)opnd1_value \
-   : (void)memcpy(result_storage,                                             \
-                  ((a_constexpr_address *)opnd1_value)->address,              \
-                  size_t_arg(n_bytes)))
+  {                                                                           \
+    if (expr->is_lvalue || expr->is_xvalue) {                                 \
+      *(a_constexpr_address *)result_storage =                                \
+                                         *(a_constexpr_address *)opnd1_value; \
+    } else {                                                                  \
+      (void)memcpy(result_storage, value_bytes_at(opnd1_value),               \
+                   size_t_arg(n_bytes));                                      \
+    }                                                                         \
+  }
 
 /*
 Macro that returns TRUE if the integer result of an operation (in
@@ -1531,12 +1537,12 @@ operation overflowed a host large integer value.
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
+        opnd_n_bytes = f_value_bytes_for_type(ips, opnd1_type);
         if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
              space for it on the stack. */
-          alloc_stack_bytes(ips, f_value_bytes_for_type(ips, opnd1_type),
-                            opnd1_value);
+          alloc_stack_bytes(ips, opnd_n_bytes, opnd1_value);
         } else {
           opnd1_value = opnd1_bytes;
         }  /* if */
@@ -1549,12 +1555,12 @@ operation overflowed a host large integer value.
              whether to evaluate the second operand will be decided below
              in the specific code for each such operator. */
           opnd2_type = skip_typerefs(opnd2->type);
+          opnd_n_bytes = f_value_bytes_for_type(ips, opnd2_type);
           if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
                space for it on the stack. */
-            alloc_stack_bytes(ips, f_value_bytes_for_type(ips, opnd2_type),
-                              opnd2_value);
+            alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
           } else {
             opnd2_value = opnd2_bytes;
           }  /* if */
