@@ -4659,7 +4659,7 @@ pack expansion even though the C++ standard does not permit this.  For example:
 This is now fixed: A discretionary error is emitted.
 
 
-7/14/14  [EDGcpfe/15284]
+7/14/14  [EDGcpfe/6235,EDGcpfe/9112,EDGcpfe/14852,EDGcpfe/15284]
 Microsoft compatibility: Truncation of enum constant values
 
 In Microsoft modes, the front end now allows the specified constant value of an
