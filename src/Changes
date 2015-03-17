@@ -1,5 +1,16 @@
 Version 4.11
 
+3/17/15  [EDGcpfe/15809]
+Ignore files being included when using #include_next
+
+When searching for a file for an #include_next directive, the search
+begins at the include search path entry following the one that was
+used to find the current file.  If a directory name appears more than
+once in the search path a file that is in the process of being included
+could be included again by #include_next.  #include_next now ignores
+any files that are in the process of being included.
+
+
 3/17/15  [EDGcpfe/14503]
 Spurious access error on instantiation of out-of-class partial specialization
 

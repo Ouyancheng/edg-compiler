@@ -4191,6 +4191,7 @@ a pointer.
   ifhp->ifdef_guard = FALSE;
   ifhp->ifndef_guard = FALSE;
   ifhp->use_canonical_name = FALSE;
+  ifhp->on_input_stack = FALSE;
   ifhp->controlling_macro_name = NULL;
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
   clear_unique_file_id(&ifhp->unique_id);
@@ -4766,6 +4767,7 @@ the file pointer if the open succeeds, or NULL otherwise.
 static a_boolean try_to_open_source_file_if_not_already_included(
                                     a_const_char          *name_to_try,
                                     FILE                  **new_input_file,
+				    a_boolean             is_include_next,
                                     a_boolean             *suppress_include,
 				    an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
@@ -4774,7 +4776,8 @@ Try to open the source file specified by name_to_try.  Before
 attempting to open the file, check whether an inclusion of the file
 should be suppressed because the file has already been included.
 Return TRUE if the file was found (the file was either opened or a
-previously included file was found).  If the file was opened, the file
+previously included file was found).  is_include_next is TRUE if the file
+is being included using #include_next.  If the file was opened, the file
 pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
 suppress_include.  *unicode_source_kind is set to indicate the Unicode
@@ -4795,6 +4798,9 @@ if the open fails.
     /* This include should be suppressed.  No further action is needed. */
     *suppress_include = TRUE;
     found = TRUE;
+  } else if (is_include_next && ifhp != NULL && ifhp->on_input_stack) {
+    /* For an include_next, consider the file not found if it is already
+       in the process of being included. */
   } else {
     /* It was not previously included. Attempt to open the file. */
     *new_input_file = try_to_open_source_file(name_to_try,
@@ -4953,6 +4959,7 @@ static a_boolean search_for_input_file(
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			is_implicit_include,
 			a_boolean			is_system_include,
+			a_boolean			is_include_next,
 			a_boolean			is_preinclude,
 			a_const_char			**name_found,
 			FILE				**new_input_file,
@@ -4973,10 +4980,11 @@ suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
 used.  is_system_include is TRUE if the included file name was specified
-in <...>.  is_preinclude is TRUE for files included via the preinclude or
-preinclude_macros command-line options.  Return TRUE if the file was found
-(the file was either opened or a previously included file was found).  If
-the file was opened, the file pointer is returned in new_input_file.
+in <...>.  is_include_next is TRUE if the file is being opened for an
+#include_next directive.  is_preinclude is TRUE for files included via the
+preinclude or preinclude_macros command-line options.  Return TRUE if the file
+was found (the file was either opened or a previously included file was found).
+If the file was opened, the file pointer is returned in new_input_file.
 If the include is to be suppressed because the file was already
 included, TRUE is returned in suppress_include.  *unicode_source_kind
 is set to indicate the Unicode encoding form for the file, or usk_none
@@ -5075,7 +5083,7 @@ is TRUE, and search_path is empty.
           /* Attempt to open the file from the previous search. */
           name_to_try = isrp->result_file;
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file,
+                             name_to_try, new_input_file, is_include_next,
                              suppress_include, open_result,
                              unicode_source_kind);
         }  /* if */
@@ -5100,7 +5108,7 @@ is TRUE, and search_path is empty.
           /* We don't need to replace the suffix.  Just try the
              file/directory combination just constructed. */
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file,
+                             name_to_try, new_input_file, is_include_next,
                              suppress_include, open_result,
                              unicode_source_kind);
         } else {
@@ -5124,7 +5132,7 @@ is TRUE, and search_path is empty.
             name_to_try = buffer->buffer;
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file,
+                             name_to_try, new_input_file, is_include_next,
                              suppress_include, open_result,
                              unicode_source_kind);
             if (file_found) break;
@@ -5212,7 +5220,8 @@ value of is_system_include.
   result = search_for_input_file(filename, /*use_search_path=*/TRUE,
                                  search_path, include_file_suffix_list,
                                  /*is_implicit_include=*/FALSE,
-                                 is_system_include, /*is_preinclude=*/FALSE,
+                                 is_system_include, is_include_next,
+                                 /*is_preinclude=*/FALSE,
                                  &temp_file_name, &fp, &suppress_include,
                                  &open_result, &unicode_source_kind,
                                  &dir_entry, /*suppress_diagnostics=*/TRUE);
@@ -5316,6 +5325,7 @@ a catastrophic error is not issued, FALSE is returned.
     file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
                                        is_implicit_include, is_system_include,
+                                       is_include_next,
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
@@ -5327,6 +5337,7 @@ a catastrophic error is not issued, FALSE is returned.
                                        include_file_suffix_list,
                                        /*is_implicit_include=*/FALSE,
                                        is_system_include,
+                                       is_include_next,
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
@@ -5513,7 +5524,10 @@ used to find this file.
   curr_ise->is_include_file = is_include_file;
   curr_ise->from_system_include_dir = from_system_include_dir;
   curr_ise->nested_inclusion = (times_name_appears != 0);
-  curr_ise->include_history   = ifhp;
+  curr_ise->include_history = ifhp;
+  if (ifhp != NULL) {
+    ifhp->on_input_stack = TRUE;
+  }  /* if */
   curr_ise->ifg_state = IFG_STATE_START;
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
@@ -5795,6 +5809,9 @@ at the next level down.
        includes. */
     curr_ise->include_history->suppress_subsequent_include = TRUE;
   }
+  if (curr_ise->include_history != NULL) {
+    curr_ise->include_history->on_input_stack = FALSE;
+  }  /* if */
   /* Restore the previous value of the any_tokens_fetched flag. */
   any_tokens_fetched_from_curr_input_file =
 					  curr_ise->saved_any_tokens_fetched;

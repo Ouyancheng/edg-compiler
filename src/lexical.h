@@ -674,6 +674,9 @@ typedef struct an_include_file_history {
 			   compare_include_file_history routine to indicate
 			   whether the file name comparison should use the
 			   canonical form of the file name. */
+  a_bit_field	on_input_stack:1;
+			/* TRUE if the file is currently on the input
+			   stack. */
   a_const_char  *controlling_macro_name;
 			/* The name of the macro used to guard the include
 			   file against multiple inclusions. */
