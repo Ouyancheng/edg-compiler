@@ -855,13 +855,14 @@ a_constexpr_address addr.
 */
 #define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
 
-
+#if 0
+/* Not needed yet: eliminate to placate lint. */
 /*
 Convenience macro to get a pointer to the float value addressed by the
 a_constexpr_address addr.
 */
 #define float_value_at(addr) ((an_internal_float_value *)value_bytes_at(addr))
-
+#endif /* 0 */
 
 /*
 Macro to initialize a constant address at addr referring to the interpreter
@@ -961,7 +962,7 @@ failure (*ips is updated accordingly).
 /*
 Macro returning the larger of two values.
 */
-#define max(a, b) (((a) > (b)) ? (a) : (b))/*lint --e(506)*/
+#define max(a, b) (((a) > (b))/*lint --e(506)*/ ? (a) : (b))/*lint --e(506)*/
 
 
 /*
