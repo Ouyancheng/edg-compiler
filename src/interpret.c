@@ -1449,7 +1449,7 @@ accordingly.
       /* FIXME: should be an ordinary failure */
       unexpected_condition();
     } else {
-      (void)do_constexpr_block_statement(ips, block_stmt, callee_scope);
+      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
     pop_call_frame(ips);
     /* Release the storage and mappings of the parameters. */
