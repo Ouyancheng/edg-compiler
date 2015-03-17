@@ -962,17 +962,17 @@ failure (*ips is updated accordingly).
 /*
 Macro returning the larger of two values.
 */
-#define max(a, b) (((a) > (b))/*lint --e(506)*/ ? (a) : (b))/*lint --e(506)*/
+#define max(a, b) (((a) > (b))/*lint --e(506)*/ ? (a) : (b))
 
 
 /*
 Macro giving the number of bytes required for a scalar value.
 */
-#define VALUE_BYTES_FOR_SCALAR                                   \
-  max(max(max(sizeof(an_integer_value),                          \
-              sizeof(an_internal_float_value))/*lint --e(506)*/, \
-          sizeof(a_constexpr_address))/*lint --e(506)*/,         \
-      sizeof(a_constexpr_ptr_to_mem_function))/*lint --e(506)*/
+#define VALUE_BYTES_FOR_SCALAR                  \
+  max(max(max(sizeof(an_integer_value),         \
+              sizeof(an_internal_float_value)), \
+          sizeof(a_constexpr_address)),         \
+      sizeof(a_constexpr_ptr_to_mem_function))
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr  tp);
@@ -1269,7 +1269,7 @@ stmt is a return statement).  Otherwise, return TRUE.
 {
   a_boolean             result = TRUE;
   an_expr_node_ptr      expr;
-  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
+  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR];
   a_byte                *expr_value;
   a_storage_stack_state saved_stack;
   a_host_large_integer  bool_val;
@@ -1284,7 +1284,7 @@ stmt is a return statement).  Otherwise, return TRUE.
         tp = skip_typerefs(expr->type);
         n_bytes = f_value_bytes_for_type(ips, tp);
         save_storage_stack(ips, saved_stack);
-        if (tp->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
+        if (tp->size > VALUE_BYTES_FOR_SCALAR &&
             !expr->is_lvalue && !expr->is_xvalue) {
           /* The value is larger than a scalar type, so allocate space for
              it on the stack. */
@@ -1314,17 +1314,18 @@ stmt is a return statement).  Otherwise, return TRUE.
       break;
     case stmk_for:
       {
-        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
+        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *incr_value;
         an_expr_node_ptr incr;
         a_type_ptr       incr_type;
         expr = stmt->expr;
+        expr_value = expr_bytes;
         tp = skip_typerefs(expr->type);
         incr = stmt->variant.for_loop.extra_info->increment;
         incr_type = skip_typerefs(incr->type);
         n_bytes = f_value_bytes_for_type(ips, incr_type);
         save_storage_stack(ips, saved_stack);
-        if (incr_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
+        if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
             !incr->is_lvalue && !incr->is_xvalue) {
           /* The result of the increment expression is larger than a scalar
              type, so allocate space for it on the stack. */
@@ -1342,12 +1343,12 @@ stmt is a return statement).  Otherwise, return TRUE.
             result = FALSE;
             /* FIXME: record a diagnostic. */
           } else {
-            do_constexpr_full_expression(ips, expr, expr_bytes, result);
+            do_constexpr_full_expression(ips, expr, expr_value, result);
           }  /* if */
           if (result) {
             /* Evaluation of the test expression succeeded.  Get its value
                to see if the dependent statement should be executed. */
-            get_int_val_from(expr_bytes, tp, bool_val, ovfl);
+            get_int_val_from(expr_value, tp, bool_val, ovfl);
             if (!ovfl && bool_val) {
               /* Execute the dependent statement. */
               result = do_constexpr_statement(
@@ -1502,11 +1503,11 @@ of the prvalue result.
            required by the semantics of the operation. */
         an_expr_node_ptr opnd1;
         a_type_ptr       opnd1_type;
-        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
+        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd1_value;
         an_expr_node_ptr opnd2;
         a_type_ptr       opnd2_type;
-        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/];
+        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd2_value;
         a_boolean        ovfl;
         a_byte_count     opnd_n_bytes;
@@ -1563,7 +1564,7 @@ type.  This includes checking the value of ovfl by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = f_value_bytes_for_type(ips, opnd1_type);
-        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
+        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
              space for it on the stack. */
@@ -1581,7 +1582,7 @@ type.  This includes checking the value of ovfl by the operation.
              in the specific code for each such operator. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = f_value_bytes_for_type(ips, opnd2_type);
-          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR/*lint --e(506)*/ &&
+          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
                space for it on the stack. */
@@ -1590,6 +1591,8 @@ type.  This includes checking the value of ovfl by the operation.
             opnd2_value = opnd2_bytes;
           }  /* if */
           result = do_constexpr_expression(ips, opnd2, opnd2_value);
+        } else {
+          opnd2_value = NULL;
         }  /* if */
         if (result) {
           /* The operand(s) were evaluated successfully.  Process the
@@ -1599,7 +1602,21 @@ type.  This includes checking the value of ovfl by the operation.
               if (tp->kind == opnd1_type->kind) {
                 /* The type kinds are the same, so the representation is
                    the same, and we can just copy the opnd1 value. */
-                (void)memcpy(result_storage, opnd1_value, n_bytes);
+                if (tp->kind == (a_type_kind)tk_integer) {
+                  /* Integers: make sure the value fits in the target. */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  ovfl = FALSE;
+                  check_int_range(opnd1_value, tp, result);
+                  if (result) {
+                    *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                  } else {
+                    /* FIXME: record an overflow diagnostic. */
+                  }  /* if */
+                } else {
+                  unexpected_condition(); /* FIXME: implement non-ints. */
+                }  /* if */
               } else {
                 unexpected_condition();  /* FIXME: implement conversions. */
               }  /* if */
