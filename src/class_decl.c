@@ -14533,7 +14533,7 @@ The nesting depth of the parameters is ignored for this compatibility checking.
     tpcp2 = coordinates_of_template_param(tpp2);
     tnd2 = tpcp2->depth;
     if (tnd1 == tnd2) {
-      /* The two member templates are at the same depth: No adjustment
+      /* The two member templates are at the same depth: No adjustment is
          needed. */
       break;
     } else if (tnd1 < tnd2) {
