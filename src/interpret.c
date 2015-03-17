@@ -1592,7 +1592,7 @@ type.  This includes checking the value of ovfl by the operation.
           }  /* if */
           result = do_constexpr_expression(ips, opnd2, opnd2_value);
         } else {
-          opnd2_value = NULL;
+          opnd2_value = opnd2_bytes;
         }  /* if */
         if (result) {
           /* The operand(s) were evaluated successfully.  Process the
