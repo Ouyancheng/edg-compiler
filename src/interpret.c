@@ -1259,7 +1259,7 @@ interpreted for the current call frame (either because of an error, or because
 stmt is a return statement).  Otherwise, return TRUE.
 */
 {
-  a_boolean             result;
+  a_boolean             result = TRUE;
   an_expr_node_ptr      expr;
   a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR];
   a_byte                *expr_value;
@@ -1483,7 +1483,6 @@ of the prvalue result.
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
-  a_float_kind         float_kind;
 
   switch (expr->kind) {
     case enk_operation:
