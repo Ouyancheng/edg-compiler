@@ -1,6 +1,6 @@
 Version 4.11
 
-3/16/15  [EDGcpfe/14503]
+3/17/15  [EDGcpfe/14503]
 Spurious access error on instantiation of out-of-class partial specialization
 
 A spurious access error was sometimes issued on the instantiation of a
