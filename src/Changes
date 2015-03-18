@@ -1,5 +1,38 @@
 Version 4.11
 
+3/18/15  [EDGcpfe/15900]
+Incorrect lowered IL for repeated aggregate initialization in C++14 mode
+
+As a result of changes in 4.10 for C++14, the front end had, in some cases,
+generated a ck_init_repeat on top of a ck_aggregate which contains a
+ck_dynamic_init as a means of initializing certain aggregates.  This
+particular sequence causes problems during lowering because a ck_init_repeat
+requires a general purpose looping construct, but the C language doesn't have
+any looping constructs that can appear in an expression context.  The result
+had been that lowering generated incorrect or invalid IL for such constructs.
+
+A change has been made in the front end in cases where an aggregate class with
+a nontrivial default constructor is initialized with a pair of empty braces.
+In such cases, the aggregate is now initialized with a ck_dynamic_init
+constant that invokes a default constructor, or, if the default constructor
+has been deleted, an "internal constructor" which is created for this
+particular situation.
+
+For example, with --c++14, this example had compiled and generated legal
+lowered IL, but would fail at run time (because the IL was incorrect):
+
+  int f() {return 37;}
+  struct A {
+    int y = f();
+  };
+  int main() {
+    A a[2]{};
+    return !(a[0].y == 37 && a[1].y == 37);
+  }
+
+Note that the same example works with --c++11 prior to this change.
+
+
 3/18/15  [EDGcpfe/16094]
 Invalid IL on implicit cast in constant-expression appearing in a template
 
