@@ -4769,7 +4769,7 @@ static a_boolean try_to_open_source_file_if_not_already_included(
                                     FILE                  **new_input_file,
                                     a_boolean             is_include_next,
                                     a_boolean             *suppress_include,
-				    an_open_file_result   *open_result,
+                                    an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
 /*
 Try to open the source file specified by name_to_try.  Before
