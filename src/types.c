@@ -2213,10 +2213,11 @@ no user-provided constructors, etc.
 {
   a_boolean is_aggr = FALSE;
 
-  if (is_array_type(tp)) {
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
     is_aggr = TRUE;
-  } else if (is_class_struct_union_type(tp)) {
-    if (symbol_supplement_for_class(tp)->is_class_aggregate) {
+  } else if (is_immediate_class_type(tp)) {
+    if (class_symbol_supp(symbol_for(tp))->is_class_aggregate) {
       is_aggr = TRUE;
     }  /* if */
   }  /* if */

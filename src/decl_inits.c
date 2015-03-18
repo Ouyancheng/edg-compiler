@@ -3032,6 +3032,107 @@ initialization as a whole.
 }  /* check_address_constant_init */
 
 
+static void aggr_init_aggregate_class_with_nontrivial_default_ctor(
+                                   an_init_component_ptr  icp,
+                                   a_type_ptr             etype,
+                                   an_init_state          *is,
+                                   a_source_position      *diag_pos,
+                                   a_constant_ptr         *init_con)
+/*
+Create in *init_con a dynamic aggregate initializer for an element of an
+aggregate class type etype that has a nontrivial default constructor.  icp is
+the explicit or implicit aggregate initializer and always represents empty
+braces.  *is tracks the initialization state.  diag_pos is the position to use
+for diagnostics.
+
+Although the resulting initializer invokes a constructor, its semantics must
+be equivalent to those of aggregate initialization with "{}".  In C++14 this
+means that the regular default constructor might not be usable (it could be
+deleted): In such cases an "internal constructor" is created for this
+particular situation.
+*/
+{
+  a_routine_ptr       rp, ctor = NULL, dtor;
+  a_scope_ptr         class_scope;
+
+  check_assertion(is_immediate_class_type(etype));
+  /* Look for an ordinary default constructor (one that is not deleted and
+     that has no default arguments).  If this routine was previously called
+     for the same type, we're guaranteed to find such a constructor (because
+     the first time around it would have been created below if needed). */
+  class_scope = class_type_supp(etype)->assoc_scope;
+  for (rp = class_scope->routines; rp != NULL; rp = rp->next) {
+    if (special_kind_is(rp, sfk_constructor) && !rp->is_deleted) {
+      a_type_ptr  rtp = skip_typerefs(rp->type);
+      if (rtp->variant.routine.extra_info->param_type_list == NULL) {
+        ctor = rp;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (ctor == NULL) {
+    /* If no appropriate constructor was found, create an internal default
+       constructor (one not visible to user code). */
+    a_type_ptr        rtp = alloc_type((a_type_kind)tk_routine);
+    a_routine_type_supplement_ptr
+                      rtsp = rtp->variant.routine.extra_info;
+    a_symbol_locator  loc;
+    a_symbol_ptr      ctor_sym;
+    /* Construct the routine type rtp first. */
+    rtp->variant.routine.return_type = void_type();
+    rtsp->assoc_routine_is_ctor = TRUE;
+    rtsp->this_class = etype;
+    rtsp->prototyped = TRUE;
+    rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    set_routine_calling_method_flag(rtp, &null_source_position);
+    /* Now make a symbol for the routine, but the symbol is not added to the
+       symbol table (or a cssp->constructor field).  That ensures that user
+       code will not find this constructor. */
+    make_locator_for_symbol(symbol_for(etype), &loc);
+    change_class_locator_into_constructor_locator(&loc, diag_pos,
+                                                  /*is_static_ctor=*/FALSE);
+    ctor_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                            loc.symbol_header, diag_pos);
+    ctor_sym->decl_scope = class_scope->number;
+    /* Create the routine's IL entry. */
+    ctor = make_routine(rtp, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+    ctor->compiler_generated = TRUE;
+    ctor_sym->variant.routine.ptr = ctor;
+    set_source_corresp(&ctor->source_corresp, ctor_sym);
+    set_class_membership(ctor_sym, &ctor->source_corresp, etype);
+    set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
+    set_inline_flag(ctor, TRUE);
+    ctor->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    /* Finally, insert it in the routines list of the parent class. */
+    ctor->next = class_scope->routines;
+    class_scope->routines = ctor;
+  }  /* if */
+  force_definition_of_compiler_generated_routine(ctor);
+  dtor = get_init_destructor(etype, is, diag_pos);
+  if (is->check_validity_only) {
+    *init_con = NULL;
+  } else {
+    a_dynamic_init_ptr  dip;
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    dip->variant.constructor.ptr = ctor;
+    if (dtor != NULL) {
+      dip->destructor = dtor;
+      record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+    }  /* if */
+    *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    (*init_con)->variant.dynamic_init = dip;
+    (*init_con)->type = etype;
+    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (!is_designator_component(icp)) {
+      (*init_con)->end_position = *init_component_end_pos(icp);
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  is->has_dynamic_init_component = TRUE;
+}  /* aggr_init_aggregate_class_with_nontrivial_default_ctor */
+
+
 static void aggr_init_element_full(an_init_component_ptr  *p_icp,
                                    a_type_ptr             etype,
                                    a_field_ptr            field,
@@ -3055,6 +3156,7 @@ a ck_aggregate constant.
 {
   an_init_component_ptr  icp = *p_icp;
   a_boolean              pack_expansion = FALSE;
+  a_type_ptr             base_etype;
   a_type_kind            etype_kind;
   a_boolean              saved_non_top_level_aggregate
                                                  = is->non_top_level_aggregate;
@@ -3066,6 +3168,7 @@ a ck_aggregate constant.
     /* If this component is a pack expansion, don't attempt to match up types
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
+    base_etype = etype;
     pack_expansion = is->pack_expansion_handled = TRUE;
   } else if (gpp_mode && is_prototype_instantiation_context() &&
              is_class_struct_union_type(etype)) {
@@ -3073,18 +3176,42 @@ a ck_aggregate constant.
        template definitions, even if the type is fully known (i.e.,
        nondependent). */
     etype = type_of_unknown_templ_param_nontype;
+    base_etype = etype;
+  } else {
+    base_etype = skip_typerefs(etype);
   }  /* if */
-  etype_kind = skip_typerefs(etype)->kind;
+  etype_kind = base_etype->kind;
   if (etype_kind == (a_type_kind)tk_array) {
     /* Array. */
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_array(p_icp, &etype, is, diag_pos, init_con);
-  } else if (is_aggregate_type(etype)) {
+  } else if (is_aggregate_type(base_etype)) {
     /* Aggregate class (since the array case was already tested for). */
-    is->non_top_level_aggregate = TRUE;
-    is->arg_match = NULL;
-    aggr_init_class(p_icp, etype, is, diag_pos, init_con);
+    a_class_symbol_supplement_ptr  cssp;
+    cssp = class_symbol_supp(symbol_for(base_etype));
+    if (is_braced_init_component(icp) && icp->variant.braced.list == NULL &&
+        cssp->has_nontrivial_default_constructor && list_init_enabled) {
+      /* An aggregate class with a nontrivial default constructor and
+         initialized with a pair of empty braces.  We could generate an
+         ordinary aggregate initializer for this case, but in cases where the
+         resulting constant appears under a ck_init_repeat this presents
+         lowering problems because it may require us to embed a loop in an
+         expression, and there is no standard C construct that implements that
+         (lowering could move the loop into a function, but we may as well use
+         use the constructor in that case).  The ck_init_repeat case only
+         occurs for the default initialization of array elements and that
+         default initialization produces an empty ick_braced initializer
+         component only when list_init_enabled is TRUE
+         (see default_nontrivial_init_constant_for_aggr_member). */
+      aggr_init_aggregate_class_with_nontrivial_default_ctor(
+                                          icp, etype, is, diag_pos, init_con);
+      *p_icp = next_elem(icp);
+    } else {
+      is->non_top_level_aggregate = TRUE;
+      is->arg_match = NULL;
+      aggr_init_class(p_icp, etype, is, diag_pos, init_con);
+    }  /* if */
   } else if (is_template_param_or_nonreal_class_type(etype) ||
              etype_kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
