@@ -539,19 +539,28 @@ generate a name for it and return TRUE (FALSE otherwise).
     a_type_ptr	type = (a_type_ptr)scp;
     if (is_immediate_class_type(type) &&
         class_type_supp(type)->is_lambda_closure_class) {
+      a_boolean  gen_signature = FALSE;
+#if !STANDALONE_UTILITY_PROGRAM
+      gen_signature = in_front_end;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       result = TRUE;
       octl->output_str("lambda []", octl);
-#if STANDALONE_UTILITY_PROGRAM
-      { a_source_position  *pos = &type->source_corresp.decl_position;
+      if (!gen_signature) {
+        /* Generating the signature requires the front end's symbol table.
+           In back ends and stand-alone utilities we therefore do not render
+           the signature and instead identify the lambda through the source
+           position. */
+        a_source_position  *pos = &type->source_corresp.decl_position;
         octl->output_str(" type at line ", octl);
         form_unsigned_num((a_host_large_unsigned)pos->seq, octl);
         octl->output_str(", col. ", octl);
         form_unsigned_num((a_host_large_unsigned)pos->column, octl);
-      }
+      } else {
+#if STANDALONE_UTILITY_PROGRAM
+        unexpected_condition();
 #else /* !STANDALONE_UTILITY_PROGRAM */
-      { a_routine_ptr  rp;
         /* Get the routine entry for the lambda body. */
-        rp = lambda_body_for_closure(type);
+        a_routine_ptr  rp = lambda_body_for_closure(type);
         /* Add the routine type of the lambda routine to the output.  The
            routine pointer for the lambda body can be NULL if this routine is
            called after the closure class has been created but before the
@@ -569,8 +578,8 @@ generate a name for it and return TRUE (FALSE otherwise).
           form_type(rp->type, octl);
           octl->suppress_compiler_generated_parameters = saved_suppress_flag;
         }  /* if */
-      }
 #endif /* STANDALONE_UTILITY_PROGRAM */
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;

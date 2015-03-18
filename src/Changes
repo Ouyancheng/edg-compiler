@@ -1,5 +1,16 @@
 Version 4.11
 
+3/18/15  [EDGcpfe/16095]
+Use of il_to_str.c routines after the symbol table has been freed
+
+Usually, using the il_to_str.c routines in back ends is safe even after the
+front end's symbol table has been freed.  However, the rendering of signatures
+for generic lambdas cannot always be done without the symbol table.  An
+alternative output format (not involving the lambda's signature) was already
+used for standalone utilities; now, that same format is used when in_front_end
+is FALSE.
+
+
 3/18/15  [EDGcpfe/16099]
 Using "auto" as a storage class specifier in C++11 parameter declarations
 
