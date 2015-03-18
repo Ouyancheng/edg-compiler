@@ -1,5 +1,16 @@
 Version 4.11
 
+3/18/15  [EDGcpfe/16099]
+Using "auto" as a storage class specifier in C++11 parameter declarations
+
+C++11 removed "auto" as a storage class specifier, making it a type specifier
+instead.  The front end provides an option "--auto_storage" to enable the
+traditional (C, C++03) meaning of "auto" in C++11 modes, but previously that
+did not extend to parameter declarations.  Now it does.  For example:
+
+  void f(auto double x);  // Now accepted with "--c++11 --auto_storage".
+
+
 3/18/15  [EDGcpfe/14165,EDGcpfe/16097]
 Core issue 974: Default arguments and lambda expressions
 

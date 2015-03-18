@@ -10891,13 +10891,13 @@ no_get_token:
   }  /* for */
 #undef record_qualifiers_pos
 exit_loop:
-  if (state->auto_type_specifier_seen && !is_parameter &&
+  if (state->auto_type_specifier_seen &&
       auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
     /* The "auto" token was seen among the specifiers, but we could not decide
        if it is a storage class specifier or a type specifier until now. */
-    process_auto_specifier(auto_type_allowed, auto_is_first, input_flags,
-                           state, decl_pos_block, &decl_specifiers_seen,
-                           &basic_type, type_ptr, &err);
+    process_auto_specifier((auto_type_allowed && !is_parameter), auto_is_first,
+                           input_flags, state, decl_pos_block,
+                           &decl_specifiers_seen, &basic_type, type_ptr, &err);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* coverity[dead_error_condition] */
