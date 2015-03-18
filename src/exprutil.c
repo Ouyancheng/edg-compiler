@@ -8121,16 +8121,24 @@ user-defined conversions.
           /* Mark the constant as the result of a reinterpret_cast if it
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
+          a_boolean  need_backing_expr = FALSE;
           local_con->is_reinterpret_cast |= is_reinterpret_cast;
           /* Record the original type if it materially changed. */
           if (local_con->orig_type == NULL &&
               !cast_identical_types(operand->type, new_type)) {
-            local_con->orig_type = strip_routine_default_args(operand->type);
+            if (!prototype_instantiations_in_il &&
+                is_template_dependent_context()) {
+              /* Don't record the original type since it may be dependent.
+                 If needed, check the backing expression instead. */
+              need_backing_expr = TRUE;
+            } else {
+              local_con->orig_type = strip_routine_default_args(operand->type);
+            }  /* if */
           }  /* if */
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_con->expr = orig_expr;
-            if (reduce_backing_expression_use &&
+            if (reduce_backing_expression_use && !need_backing_expr &&
                 is_implicit_cast && expr_stack->in_static_initializer &&
                 expr_stack->prev == NULL &&
                 !(orig_expr != NULL || has_name(&operand->variant.constant)) &&

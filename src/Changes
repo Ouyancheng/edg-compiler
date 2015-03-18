@@ -1,5 +1,27 @@
 Version 4.11
 
+3/18/15  [EDGcpfe/16094]
+Invalid IL on implicit cast in constant-expression appearing in a template
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to FALSE, the front
+end sometimes incorrectly recorded a type involving template parameters in the
+IL.  This occurred when performing certain implicit conversions in a
+constant-expression context, and could, e.g., result in an IL write-read error
+in configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE.  For example,
+in C++11 mode:
+
+  template<typename T> struct X {
+    typedef short size_type;
+    static const size_type N = 5;
+    T  m_dim[N];  /* N is implicitly cast to size_t.  The original type
+                     X<T>::size_type was previously recorded in the IL even
+  };                 in configurations that don't recorded template-based
+                     types. */
+  template struct X<double>;
+
+This regression (introduced in version 4.9 of the front end) is now fixed.
+
+
 3/18/15  [EDGcpfe/16095]
 Use of il_to_str.c routines after the symbol table has been freed
 
