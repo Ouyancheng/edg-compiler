@@ -2279,6 +2279,7 @@ by a command line option.
       if (!option_kind_used[(int)optk_lambdas]) {
         lambdas_enabled = TRUE;
         if (microsoft_version >= 1900) {
+          lambda_default_args_enabled = TRUE;
           generic_lambdas_enabled = TRUE;
           if (!cpp14_mode) {
             /* Current versions of the Microsoft compiler do not permit
@@ -3264,6 +3265,14 @@ setting is used, and to set various unmentioned settings as needed.
   } else {
     /* Set default C++11 extensions. */
     check_and_set_default_cpp11_extensions();
+  }  /* if */
+  if (lambdas_enabled && microsoft_mode) {
+    /* Originally, the C++11 standard did not permit lambda expressions with
+       default arguments.  The resolution for Core issue 974 changed that.
+       Enable the feature in all modes that accept lambdas, except certain
+       Microsoft modes (we enable the feature for specific Microsoft modes in
+       set_microsoft_mode_flags). */
+    lambda_default_args_enabled = TRUE;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (option_kind_used[(int)optk_gnu_c89_inlining]) {

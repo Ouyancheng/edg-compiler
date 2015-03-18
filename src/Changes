@@ -1,5 +1,18 @@
 Version 4.11
 
+3/18/15  [EDGcpfe/14165,EDGcpfe/16097]
+Core issue 974: Default arguments and lambda expressions
+
+In C++11 modes and in Microsoft C++ mode with microsoft_version >= 1900, the
+front end now accepts lambda expressions with default arguments.  For example:
+
+  auto lambda = [](int p = 0) { return p; };
+
+Such cases were already permitted in GNU C++ modes that accept lambda
+expressions.  This implements the standards committee's resolution for Core
+issue 974.
+
+
 3/17/15  [EDGcpfe/15809]
 Ignore files being included when using #include_next
 

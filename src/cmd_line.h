@@ -1108,6 +1108,11 @@ EXTERN a_boolean
 			/* TRUE if C++11 lambdas should be accepted in C++. */
 
 EXTERN a_boolean
+		lambda_default_args_enabled;
+			/* TRUE if default arguments are permitted in lambda
+			   expressions. */
+
+EXTERN a_boolean
 		generic_lambdas_enabled;
 			/* TRUE if C++14 generic lambdas should be accepted. */
 

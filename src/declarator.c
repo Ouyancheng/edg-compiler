@@ -3642,7 +3642,6 @@ the left parenthesis introducing the declarator-like construct.
   a_type_ptr               func_type = void_type(), closure_class;
   a_decl_flag_set          di_flags = DI_NONSTATIC_MEMBER;
   a_symbol_locator         loc;
-  a_boolean                disallow_default_args = !gpp_mode;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
   check_assertion(curr_token == tok_lparen);
@@ -3666,7 +3665,7 @@ the left parenthesis introducing the declarator-like construct.
                       closure_class,
                       /*is_nonstatic_member=*/TRUE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
-                      /*is_finalizer=*/FALSE, disallow_default_args,
+                      /*is_finalizer=*/FALSE, !lambda_default_args_enabled,
                       /*disallow_exception_spec=*/FALSE, decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;
