@@ -1475,6 +1475,10 @@ static an_internal_float_value
 		zero_flt[(int)fk_last];
 static an_internal_float_value
 		one_flt[(int)fk_last];
+static a_boolean
+		useful_constants_initialized;
+			/* Flag indicating whether these constants have
+			   been initialized yet. */
 
 static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
                                          an_expr_node_ptr      expr,
@@ -1780,10 +1784,36 @@ type.  This includes checking the value of ovfl by the operation.
 
 
 static a_boolean
-		persistent_storage_and_map_initialized;
+		trans_unit_initialization_needed;
 			/* Flag indicating whether persistent_data and
 			   persistent_storage have been initialized for this
 			   translation unit. */
+
+
+static void initialize_interpreter_data(void)
+/*
+Perform various initializations (both per-translation-unit and one-time)
+that are needed for the operation of the interpreter.
+*/
+{
+  init_constexpr_stack(&persistent_data);
+  init_data_map(&persistent_map);
+  if (!useful_constants_initialized) {
+    /* Initialize useful constants. */
+    a_float_kind fk;
+    a_boolean    dummy;
+    set_integer_value(&zero_int, (a_host_large_integer)0);
+    set_integer_value(&one_int, (a_host_large_integer)1);
+    for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
+      fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
+                                     &zero_flt[(int)fk], &dummy);
+      fp_host_large_integer_to_float(fk, (a_host_large_integer)1,
+                                     &one_flt[(int)fk], &dummy);
+    }  /* for */
+    useful_constants_initialized = TRUE;
+  }  /* if */
+}  /* initialize_interpreter_data */
+
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
                                    a_constant_ptr        result_con)
@@ -1798,10 +1828,9 @@ return FALSE.
   a_byte                *result_storage;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
-  if (!persistent_storage_and_map_initialized) {
-    persistent_storage_and_map_initialized = TRUE;
-    init_constexpr_stack(&persistent_data);
-    init_data_map(&persistent_map);
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
   if (result_type->kind == (a_type_kind)tk_integer) {
@@ -1828,7 +1857,7 @@ Initialize static variables related to the interpreter.  These are variables
 that need initialization for every (primary and secondary) translation unit.
 */
 {
-  persistent_storage_and_map_initialized = FALSE;
+  trans_unit_initialization_needed = TRUE;
 }  /* interpret_trans_unit_init */
 
 
@@ -1837,9 +1866,6 @@ void interpret_one_time_init(void)
 One-time initialization for interpret.c static variables.
 */
 {
-  a_float_kind fk;
-  a_boolean    dummy;
-  
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -1853,15 +1879,7 @@ One-time initialization for interpret.c static variables.
   /* Static variables in interpret.c. */
   register_trans_unit_variable(persistent_data);
   register_trans_unit_variable(persistent_map);
-  /* Initialize useful constants. */
-  set_integer_value(&zero_int, (a_host_large_integer)0);
-  set_integer_value(&one_int, (a_host_large_integer)1);
-  for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
-    fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
-                                   &zero_flt[(int)fk], &dummy);
-    fp_host_large_integer_to_float(fk, (a_host_large_integer)1,
-                                   &one_flt[(int)fk], &dummy);
-  }  /* for */
+  useful_constants_initialized = FALSE;
 }  /* interpret_one_time_init */
 /******************************************************************************
 *                                                             \  ___  /       *
