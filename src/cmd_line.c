@@ -3266,7 +3266,7 @@ setting is used, and to set various unmentioned settings as needed.
     /* Set default C++11 extensions. */
     check_and_set_default_cpp11_extensions();
   }  /* if */
-  if (lambdas_enabled && microsoft_mode) {
+  if (lambdas_enabled && !microsoft_mode) {
     /* Originally, the C++11 standard did not permit lambda expressions with
        default arguments.  The resolution for Core issue 974 changed that.
        Enable the feature in all modes that accept lambdas, except certain
@@ -10612,6 +10612,7 @@ variables declared in cmd_line.h.
   enum_qualifiers_enabled = FALSE;
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
+  lambda_default_args_enabled = FALSE;
   generic_lambdas_enabled = FALSE;
   generic_lambdas_can_implicitly_capture = FALSE;
   init_capture_enabled = FALSE;
