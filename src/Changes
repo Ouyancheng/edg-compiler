@@ -13,10 +13,10 @@ in C++11 mode:
   template<typename T> struct X {
     typedef short size_type;
     static const size_type N = 5;
-    T  m_dim[N];  /* N is implicitly cast to size_t.  The original type
-                     X<T>::size_type was previously recorded in the IL even
-  };                 in configurations that don't recorded template-based
-                     types. */
+    T  m_dim[N];  // N is implicitly cast to size_t.  The original type
+                  // X<T>::size_type was previously recorded in the IL even
+  };              // in configurations that don't recorded template-based
+                  // types.
   template struct X<double>;
 
 This regression (introduced in version 4.9 of the front end) is now fixed.
