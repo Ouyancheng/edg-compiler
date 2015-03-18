@@ -18,8 +18,8 @@ constant that invokes a default constructor, or, if the default constructor
 has been deleted, an "internal constructor" which is created for this
 particular situation.
 
-For example, with --c++14, this example had compiled and generated legal
-lowered IL, but would fail at run time (because the IL was incorrect):
+For example, in C++14 mode, the lowered IL for the following example did not
+correspond to the required behavior (the program would return 1 instead of 0):
 
   int f() {return 37;}
   struct A {
@@ -30,7 +30,7 @@ lowered IL, but would fail at run time (because the IL was incorrect):
     return !(a[0].y == 37 && a[1].y == 37);
   }
 
-Note that the same example works with --c++11 prior to this change.
+The program had returned 0 in C++11 mode.
 
 
 3/18/15  [EDGcpfe/16094]
