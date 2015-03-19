@@ -1420,6 +1420,10 @@ Return TRUE if the given type is:
               implicit_init_involves_ref_init(sym->variant.field.ptr->type)) {
             result = TRUE;
             break;
+          } else if (tp->kind == (a_type_kind)tk_union) {
+            /* For unions, default initialization only applies to the first
+               nonstatic data member. */
+            break;
           }  /* if */
         }  /* for */
       }  /* if */
@@ -1610,8 +1614,12 @@ the position at which diagnostics should be issued.
          trivial. */
       a_constant_ptr  remainder_con;
       partial_init_flag = FALSE;
+      /* Create the element value to use for initialization.  It will be
+         placed under a ck_init_repeat entry unless no IL is generated. */
+      is->repeated_element = TRUE;
       remainder_con = default_nontrivial_init_constant_for_aggr_member(
                                                          etype, is, diag_pos);
+      is->repeated_element = FALSE;
       if (!is->check_validity_only) {
         remainder_con->implicit_aggr_element = TRUE;
         /* Add the constant entry to the list of constants, but add a
@@ -2352,7 +2360,7 @@ position for which diagnostics should be issued.
       /* The field initializer must be used to initialize this field. */
       last_dyn_field = fp;
     } else if (implicit_init_involves_ref_init(ftp)) {
-      /* An uninitialized reference will likely result in a diagnostic. */
+      /* An uninitialized reference will result in a diagnostic. */
       is->any_uninitialized_const_or_ref_member = TRUE;
     } else {
       if (is_array_type(ftp)) ftp = underlying_array_element_type(ftp);
@@ -3106,8 +3114,13 @@ particular situation.
     /* Finally, insert it in the routines list of the parent class. */
     ctor->next = class_scope->routines;
     class_scope->routines = ctor;
+    if (instantiate_extern_inline) {
+      add_to_inline_function_list(ctor);
+    }  /* if */
   }  /* if */
-  force_definition_of_compiler_generated_routine(ctor);
+  /* Mark the routine as referenced, which will also trigger the generation
+     of its definition. */
+  mark_routine_referenced(ctor);
   dtor = get_init_destructor(etype, is, diag_pos);
   if (is->check_validity_only) {
     *init_con = NULL;
@@ -3162,8 +3175,10 @@ a ck_aggregate constant.
                                                  = is->non_top_level_aggregate;
   struct an_arg_match_summary
                          *saved_arg_match = is->arg_match;
+  a_boolean              repeated_element = is->repeated_element;
 
   check_assertion(init_con != NULL);
+  is->repeated_element = FALSE;
   if (is_pack_expansion_component(icp)) {
     /* If this component is a pack expansion, don't attempt to match up types
        since we don't know how many elements it should match. */
@@ -3190,8 +3205,9 @@ a ck_aggregate constant.
     /* Aggregate class (since the array case was already tested for). */
     a_class_symbol_supplement_ptr  cssp;
     cssp = class_symbol_supp(symbol_for(base_etype));
-    if (is_braced_init_component(icp) && icp->variant.braced.list == NULL &&
-        cssp->has_nontrivial_default_constructor && list_init_enabled) {
+    if (repeated_element &&
+        is_braced_init_component(icp) && icp->variant.braced.list == NULL &&
+        cssp->has_nontrivial_default_constructor) {
       /* An aggregate class with a nontrivial default constructor and
          initialized with a pair of empty braces.  We could generate an
          ordinary aggregate initializer for this case, but in cases where the
@@ -3199,11 +3215,8 @@ a ck_aggregate constant.
          lowering problems because it may require us to embed a loop in an
          expression, and there is no standard C construct that implements that
          (lowering could move the loop into a function, but we may as well use
-         use the constructor in that case).  The ck_init_repeat case only
-         occurs for the default initialization of array elements and that
-         default initialization produces an empty ick_braced initializer
-         component only when list_init_enabled is TRUE
-         (see default_nontrivial_init_constant_for_aggr_member). */
+         use the constructor in that case).  The ck_init_repeat case currently
+         only occurs for the default initialization of array elements. */
       aggr_init_aggregate_class_with_nontrivial_default_ctor(
                                           icp, etype, is, diag_pos, init_con);
       *p_icp = next_elem(icp);
@@ -3454,14 +3467,11 @@ the type pointed to is opaque to declaration processing.
     prep_initializer_result(is, dtor_rp);
   }  /* if */
   if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
-    /* A const or reference field was not initialized.  Issue a diagnostic,
-       except in unions. */
-    if (!is_union_type(dtype)) {
-      if (is->no_diagnostics) {
-        is->init_error = TRUE;
-      } else {
-        pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
-      }  /* if */
+    /* A const or reference field was not initialized.  Issue a diagnostic. */
+    if (is->no_diagnostics) {
+      is->init_error = TRUE;
+    } else {
+      pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
     }  /* if */
   }  /* if */
   is->arg_match = saved_arg_match;
@@ -3732,18 +3742,15 @@ initializer, already copied and substituted.
     prep_initializer_result(is, dtor_rp);
   }  /* if */
   if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
-    /* A const or reference field was not initialized.  Issue a diagnostic,
-       except in unions. */
-    if (!is_union_type(dtype)) {
-      if (C_mode()) {
-        pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
-      } else if (is->no_diagnostics) {
-        is->init_error = TRUE;
-      } else if (is_var_init) {
-        pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
-      } else {
-        pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
-      }  /* if */
+    /* A const or reference field was not initialized.  Issue a diagnostic. */
+    if (C_mode()) {
+      pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
+    } else if (is->no_diagnostics) {
+      is->init_error = TRUE;
+    } else if (is_var_init) {
+      pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
+    } else {
+      pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
     }  /* if */
   }  /* if */
   is->no_diagnostics = saved_no_diagnostics;

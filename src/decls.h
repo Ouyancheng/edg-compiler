@@ -491,6 +491,10 @@ typedef struct an_init_state {
 			/* TRUE if resumable is TRUE and parsing is currently
 			   suspended (which implies that additional elements
 			   are pending). */
+  a_bit_field	repeated_element:1;
+			/* TRUE while processing an element of an aggregate
+			   constant that will appear under a ck_init_repeat
+			   constant (unless no IL is generated). */
 } an_init_state;
 
 

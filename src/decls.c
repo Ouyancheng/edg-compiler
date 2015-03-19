@@ -124,6 +124,7 @@ Clear the fields of *is.
   is->constant_expr_ruled_out = FALSE;
   is->resumable = FALSE;
   is->pending_elements = FALSE;
+  is->repeated_element = TRUE;
 }  /* clear_init_state_fields */
 
 #endif /* !NULL_POINTER_IS_ZERO */
