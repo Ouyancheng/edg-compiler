@@ -28,6 +28,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "exprutil.h"
 
+#include "folding.h"
+
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
