@@ -1,5 +1,36 @@
 Version 4.11
 
+3/19/15  [EDGcpfe/16092]
+C++14: "constexpr" no longer implies "const" for non-static member functions
+
+In the C++11 version of the C++ standard, a non-static member function
+declared with the "constexpr" specifier was also implicitly declared "const".
+That has changed in the C++14 version of the standard, and the front end
+has been modified to reflect that.
+
+Unfortunately, this change may cause valid C++11 programs to become invalid
+when compiled in C++14 mode.  The example below is a valid C++11 program
+(because the implicit "const" added as a result of declaring the first member
+function results in two different function types which may be differentiated
+during overload resolution), but is an invalid C++14 program:
+
+  struct A {
+    constexpr int f() { return 0; }
+    int f() { return 0; }
+  };
+
+In order to better manage this transition, a new warning has been added
+in C++11 mode in cases where "const" is implicitly added.
+
+Another side-effect of this change is that non-static member functions where
+"const" had been implicitly added will have different mangled names when
+compiled in C++14 mode (because function cv-qualifiers are included in
+mangled names).  A new global variable, mangle_had_been_implicitly_const,
+has been introduced which, when TRUE, will maintain the original mangled
+name.  Note that setting this variable to TRUE is non-standard and may result
+in name collisions.  The default value is FALSE.
+
+
 3/18/15  [EDGcpfe/16003,EDGcpfe/16093]
 __is_convertible_to with private or ambiguous base classes
 

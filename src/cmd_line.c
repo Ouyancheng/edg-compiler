@@ -1999,6 +1999,8 @@ static a_flag_name
 #if /*FIXME: delete once relaxed constexpr is enabled in C++14 mode.*/1
   { "relaxed_constexpr", &relaxed_constexpr_enabled },
 #endif /*FIXME*/
+  { "constexpr_implies_const", &constexpr_implies_const },
+  { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
   { NULL, NULL }  /* must be last */
 };
 
@@ -3076,6 +3078,7 @@ default mode (e.g., exception handling).
   raw_string_literals_enabled = value;
   std_thread_local_storage_specifier_enabled = value;
   std_override_modifiers_enabled = value;
+  constexpr_implies_const = value;
   if (cpp14_mode) {
     if (auto_type_specifier_enabled) {
       decltype_auto_enabled = TRUE;
@@ -3098,6 +3101,7 @@ default mode (e.g., exception handling).
     relaxed_constexpr_enabled = TRUE;
 #endif /*FIXME*/
     sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
+    constexpr_implies_const = FALSE;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -10908,6 +10912,7 @@ variables declared in cmd_line.h.
   std_override_modifiers_enabled = FALSE;
   define_portable_feature_test_macros = TRUE;
   sized_deallocation_enabled = FALSE;
+  mangle_had_been_implicitly_const = FALSE;
 }  /* cmd_line_static_var_init */
 
 

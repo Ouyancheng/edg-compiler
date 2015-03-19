@@ -2327,9 +2327,22 @@ this is a helper function.
     }  /* if */
     if ((state->dso_flags & DSO_CONSTEXPR) != 0 &&
         !(is_constructor || is_destructor || is_finalizer)) {
-      /* constexpr nonstatic member functions are implicitly "const" (this
-         does not apply to constructors, destructors, and finalizers). */
-      qualifiers |= TQ_CONST;
+      if (constexpr_implies_const) {
+        /* constexpr nonstatic member functions are implicitly "const" in
+           C++11, but not C++14 (this does not apply to constructors,
+           destructors, and finalizers). */
+        if ((qualifiers & TQ_CONST) == 0 && !cpp14_mode) {
+          /* Issue a warning in C++11 mode to indicate that the behavior will
+             be different in C++14 mode. */
+          pos_warning(ec_constexpr_not_const, &state->constexpr_pos);
+        }  /* if */
+        qualifiers |= TQ_CONST;
+      } else if ((qualifiers & TQ_CONST) == 0) {
+        /* This member function had been implicitly "const" in C++11 mode,
+           but is no longer; mark it as its mangled name will be affected by
+           this change. */
+        rtsp->had_been_implicitly_const = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* The implicit "this" param type will be either "pointer to class-type"

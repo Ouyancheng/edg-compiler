@@ -2107,6 +2107,13 @@ function type and FALSE otherwise).
   a_type_qualifier_set          qualifiers = rtsp->qualifiers;
 
 #if ABI_COMPATIBILITY_VERSION >= 406
+  if (rtsp->had_been_implicitly_const && mangle_had_been_implicitly_const) {
+    /* A change in the C++ standard between C++11 and C++14 will result in
+       different mangled names for constexpr non-static member functions that
+       are not otherwise declared "const".  Add the "const" qualification to
+       the mangled name if mangle_had_been_implicitly_const is TRUE. */
+    qualifiers |= TQ_CONST;
+  }  /* if */
   if (qualifiers != TQ_NONE) {
     /* In later versions of the ABI, cv-qualifiers are mangled on
        functions as well as member functions (static member functions don't

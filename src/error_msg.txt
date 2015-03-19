@@ -2738,6 +2738,7 @@ ec_cl_must_specify_cpp14_mode;;"must specify C++14 mode when building runtime li
 ec_internal_error_fill_in;INTERNAL;"%s"
 ec_command_line_warning;INTERNAL;"command-line warning"
 ec_Command_line_warning;INTERNAL;"Command-line warning"
+ec_constexpr_not_const;;"constexpr non-static member function will not be implicitly 'const' in C++14"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

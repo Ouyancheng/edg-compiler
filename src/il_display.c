@@ -1533,6 +1533,9 @@ Display a_routine_type_supplement.
     disp_boolean("explicit_calling_convention", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+  if (ptr->had_been_implicitly_const) {
+    disp_boolean("had_been_implicitly_const", TRUE);
+  }  /* if */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   }  /* if */

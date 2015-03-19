@@ -535,6 +535,21 @@ EXTERN a_boolean
 			   constructs in constexpr functions). */
 
 EXTERN a_boolean
+		constexpr_implies_const;
+			/* TRUE if a constexpr non-static member function
+			   should implicitly be considered "const".  This is
+			   TRUE in C++11, but FALSE in C++14. */
+
+EXTERN a_boolean
+		mangle_had_been_implicitly_const;
+			/* When TRUE, non-static member functions that had
+			   been implicitly const in C++11, but not C++14 are
+			   mangled as though they are still "const".  Setting
+			   this to TRUE prevents unexpected mangled name
+			   changes between C++11 and C++14, but may lead to
+			   name collisions in valid code. */
+
+EXTERN a_boolean
 		rtti_enabled;
 			/* TRUE if support for runtime type identification
 			   (RTTI) is enabled.  Significant only in C++ mode.

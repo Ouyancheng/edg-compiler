@@ -6359,6 +6359,13 @@ typedef struct a_routine_type_supplement {
 			/* TRUE is a calling convention was specified
 			   explicitly. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+  a_bit_field	had_been_implicitly_const:1;
+			/* TRUE if the (non-static member function) type had
+			   been implicitly considered "const" in C++11 mode
+			   but is no longer in C++14.  Member functions with
+			   this flag set will have a different mangled name in
+			   C++11 and C++14 (unless
+			   mangle_had_been_implicitly_const is TRUE). */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
