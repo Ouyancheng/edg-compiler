@@ -26,6 +26,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "pch.h"
 
+#include "exprutil.h"
+
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
@@ -657,7 +659,7 @@ Double the size of the overflow area of the given map.
                                                     * sizeof(a_data_map_entry);
   map->table = (a_data_map_entry*)realloc_buffer((char*)map->table,
                                                  old_byte_size, new_byte_size);
-  init_map_free_list(map, NUM_DATA_MAP_HASH_HEADERS+map->overflow_size, 
+  init_map_free_list(map, NUM_DATA_MAP_HASH_HEADERS+map->overflow_size,
                      NUM_DATA_MAP_HASH_HEADERS+2*map->overflow_size-1);
   map->overflow_size *= 2;
 }  /* expand_map */
@@ -800,7 +802,7 @@ typedef struct a_constexpr_address {
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
 #if 0
-/* Not needed yet: eliminate to placate lint. */  
+/* Not needed yet: eliminate to placate lint. */
   a_bit_field
 		in_array:1;
 			/* TRUE if this is a pointer to an array element
@@ -808,7 +810,7 @@ typedef struct a_constexpr_address {
   a_bit_field
 		is_function_address:1;
 			/* TRUE if this is the address of a function. */
-#endif /* 0 */  
+#endif /* 0 */
   a_bit_field
 		is_runtime_data_address:1;
 			/* TRUE if this is a data pointer that is constant at
@@ -816,7 +818,7 @@ typedef struct a_constexpr_address {
 			   storage (i.e., a pointer to a static-duration
 			   variable of some kind). */
 #if 0
-/* Not needed yet: eliminate to placate lint. */  
+/* Not needed yet: eliminate to placate lint. */
   a_bit_field
 		cannot_dereference:1;
 			/* TRUE if this address cannot be dereferenced. */
@@ -824,7 +826,9 @@ typedef struct a_constexpr_address {
 		length: 24;
 			/* If in_array is TRUE, the number of
 			   elements in the array. */
+#endif /* 0 */  
   union {
+#if 0    
     /* When in_array is TRUE: */
     a_byte
 		*base_address;
@@ -833,12 +837,16 @@ typedef struct a_constexpr_address {
     a_routine_ptr
 		routine;
     			/* For addresses of functions. */
+#endif /* 0 */    
     /* When is_runtime_data_address is TRUE: */
     a_constant_ptr
 		runtime_constant;
-			/* For constant addresses of run-time objects. */
+			/* For constant addresses of run-time objects.  This
+			   will always point to a constant acquired from
+			   local_constant() and must be released when the
+			   lvalue_to_rvalue conversion is applied or when
+			   the expression is discarded. */
   } variant;
-#endif /* 0 */  
 } a_constexpr_address;
 
 
@@ -894,6 +902,7 @@ denoted by the IL a_routine entry rout.
   memzero((char *)(addr), sizeof(a_constexpr_address));        \
   ((a_constexpr_address *)(addr))->is_function_address = TRUE; \
   ((a_constexpr_address *)(addr))->variant.routine = rout;
+#endif /* 0 */
 
 
 /*
@@ -904,7 +913,7 @@ Macro to initialize a constant address at addr referring to the
   memzero((char *)(addr), sizeof(a_constexpr_address));            \
   ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
   ((a_constexpr_address *)(addr))->variant.runtime_constant = con;
-#endif /* 0 */
+
 
 typedef struct a_constexpr_ptr_to_mem_function {
   a_routine_ptr	member_function;
@@ -1191,7 +1200,6 @@ expose an_interpreter_state in outside this source file).
 #endif /* DEBUG */
 
 
-
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
@@ -1199,6 +1207,21 @@ static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
                                        a_byte                *result_storage);
+
+/*
+Macro to release a local constant captured by a glvalue or pointer
+expression (i.e., an a_constexpr_address value).
+*/
+#define release_local_constant_from_address(expr, value)                      \
+{                                                                             \
+  if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
+       is_pointer_type((expr)->type)) &&                                      \
+      ((a_constexpr_address *)value)->is_runtime_data_address) {              \
+    release_local_constant(&((a_constexpr_address *)value)->                  \
+                                                   variant.runtime_constant); \
+  }  /* if */                                                                 \
+}  /* release_local_constant_from_address */
+
 
 /*
 Macro to interpret a full-expression.
@@ -1241,9 +1264,10 @@ Interpret the given block statement and its associated scope (if any).
     }  /* for */
   }  /* if */
   /* Interpret the statements in the block. */
-  for (; stmt != NULL; stmt = stmt->next) {
-    if (!do_constexpr_statement(ips, stmt)) {
-      result = FALSE;
+  for (; result && stmt != NULL; stmt = stmt->next) {
+    result = do_constexpr_statement(ips, stmt);
+    if (stmt->kind == (a_statement_kind)stmk_return) {
+      /* A return statement ends execution for this block. */
       break;
     }  /* if */
   }  /* for */
@@ -1262,9 +1286,8 @@ Interpret the given block statement and its associated scope (if any).
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt)
 /*
-Interpret the given statement.  Return FALSE if no more statements should be
-interpreted for the current call frame (either because of an error, or because
-stmt is a return statement).  Otherwise, return TRUE.
+Interpret the given statement.  Return TRUE if the statement was
+successfully interpreted, FALSE otherwise.
 */
 {
   a_boolean             result = TRUE;
@@ -1293,6 +1316,7 @@ stmt is a return statement).  Otherwise, return TRUE.
           expr_value = expr_bytes;
         }  /* if */
         result = do_constexpr_expression(ips, expr, expr_value);
+        release_local_constant_from_address(expr, expr_value);
         restore_storage_stack(ips, saved_stack);
       }
       break;
@@ -1305,7 +1329,6 @@ stmt is a return statement).  Otherwise, return TRUE.
         /* Handle return_dynamic_init case. FIXME */
         unexpected_condition();
       }  /* if */
-      result = FALSE;
       break;
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
@@ -1344,6 +1367,7 @@ stmt is a return statement).  Otherwise, return TRUE.
             /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
+            release_local_constant_from_address(expr, expr_value);
           }  /* if */
           if (result) {
             /* Evaluation of the test expression succeeded.  Get its value
@@ -1358,6 +1382,7 @@ stmt is a return statement).  Otherwise, return TRUE.
                 /* Execution of the dependent statement succeeded, so
                    evaluate the increment expression. */
                 do_constexpr_full_expression(ips, incr, incr_value, result);
+                release_local_constant_from_address(incr, incr_value);
               }  /* if */
             }  /* if */
           }   /* if */
@@ -1480,6 +1505,27 @@ static a_boolean
 			/* Flag indicating whether these constants have
 			   been initialized yet. */
 
+
+static void extract_value_from_constant(a_constant_ptr       con,
+                                        a_byte               *value)
+/*
+Copy the value of con into the interpreter storage at value, converting
+formats as necessary.
+*/
+{
+  switch (con->kind) {
+    case ck_integer:
+      *(an_integer_value *)value = con->variant.integer_value;
+      break;
+    case ck_float:
+      *(an_internal_float_value *)value = con->variant.float_value;
+      break;
+    default:
+      unexpected_condition();  /* FIXME: handle more kinds of constants. */
+  }  /* switch */
+}  /* extract_value_from_constant */
+
+
 static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
                                          an_expr_node_ptr      expr,
                                          a_byte                *result_storage)
@@ -1498,6 +1544,24 @@ of the prvalue result.
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
+  a_constant_ptr       con;
+
+/*
+Macro to set result_storage from the value of the specified constant.
+Duplicates some cases from extract_value_from_constant for performance
+reasons.
+*/
+#define copy_result_val_from_constant(con)                                    \
+  {                                                                           \
+    if ((con)->kind == (a_constant_repr_kind)ck_integer) {                    \
+      *(an_integer_value *)result_storage = (con)->variant.integer_value;     \
+    } else if ((con)->kind == (a_constant_repr_kind)ck_float) {               \
+      *(an_internal_float_value *)result_storage =                            \
+                                                  (con)->variant.float_value; \
+    } else {                                                                  \
+      extract_value_from_constant((con), result_storage);                     \
+    }  /* if */                                                               \
+  }  /* copy_result_val_from_constant */
 
   switch (expr->kind) {
     case enk_operation:
@@ -1515,7 +1579,7 @@ of the prvalue result.
         a_byte           *opnd2_value;
         a_boolean        ovfl;
         a_byte_count     opnd_n_bytes;
-        
+
 /*
 Macro to set result_storage from either the address in opnd1 or the value
 to which that address points, depending on whether the result is a glvalue
@@ -1525,18 +1589,21 @@ incorporate an implicit lvalue-to-rvalue conversion.
 #define set_result_val_from_opnd1_glvalue()                                   \
   {                                                                           \
     if (expr->is_lvalue || expr->is_xvalue) {                                 \
+      /* Copy the address. */                                                 \
       *(a_constexpr_address *)result_storage =                                \
                                          *(a_constexpr_address *)opnd1_value; \
     } else {                                                                  \
+      /* Do the lvalue-to-rvalue conversion into the result. */               \
       (void)memcpy(result_storage, value_bytes_at(opnd1_value),               \
                    size_t_arg(n_bytes));                                      \
+      release_local_constant_from_address(expr, opnd1_value);                 \
     }                                                                         \
-  }
+  }  /* set_result_val_from_opnd1_glvalue */
 
 /*
 Macro that sets result to TRUE or FALSE depending on whether the integer
 result of an operation (in val) is within the range representable by its
-type.  This includes checking the value of ovfl by the operation.
+type.  This includes checking the value of ovfl set by the operation.
 */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define check_int_range(val, tp, result)                                      \
@@ -1551,19 +1618,20 @@ type.  This includes checking the value of ovfl by the operation.
                  (a_host_large_integer)min_integer_value_of_kind[int_kind])); \
   } else {                                                                    \
     (result) = FALSE;                                                         \
-  }                                                                           \
-}
+  } /* if */                                                                  \
+}  /* check_int_range */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#define check_int_range(val, tp, result)                                 \
-        ((result) = (!ovfl &&                                            \
-               cmp_integer_values((an_integer_value *)(val), is_signed,  \
-                                  &max_integer_value_of_kind[int_kind],  \
-                                  is_signed) <= 0 &&                     \
-               (!is_signed ||                                            \
-                cmp_integer_values((an_integer_value *)(val), is_signed, \
-                                   &min_integer_value_of_kind[int_kind], \
-                                   is_signed) >= 0)))
+#define check_int_range(val, tp, result)                           \
+  ((result) = (!ovfl &&                                            \
+         cmp_integer_values((an_integer_value *)(val), is_signed,  \
+                            &max_integer_value_of_kind[int_kind],  \
+                            is_signed) <= 0 &&                     \
+         (!is_signed ||                                            \
+          cmp_integer_values((an_integer_value *)(val), is_signed, \
+                             &min_integer_value_of_kind[int_kind], \
+                             is_signed) >= 0)))
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
@@ -1737,15 +1805,7 @@ type.  This includes checking the value of ovfl by the operation.
       }
       break;
     case enk_constant:
-      { a_constant_ptr  con = expr->variant.constant;
-        switch (con->kind) {
-          case ck_integer:
-            *(an_integer_value*)result_storage = con->variant.integer_value;
-            break;
-          default:
-            unexpected_condition();  /* FIXME: handle errors. */
-        }  /* switch */
-      }
+      copy_result_val_from_constant(expr->variant.constant);
       break;
     case enk_variable:
       {
@@ -1759,17 +1819,28 @@ type.  This includes checking the value of ovfl by the operation.
             /* This is a variable on the interpreter stack. */
             (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
           } else {
-             /* FIXME: handle constant-valued variable that aren't mapped
-                during interpretation (e.g., a namespace-scope constexpr
-                variable). */
-             unexpected_condition();
+            con = var_constant_value(var);
+            if (con != NULL) {
+              copy_result_val_from_constant(con);
+            } else {
+              /* FIXME: record a diagnostic. */
+              result = FALSE;
+            }  /* if */
           }  /* if */
         } else {
           /* A variable used as a glvalue; the result is its address. */
           if (var_bytes != NULL) {
             clear_address(result_storage, var_bytes);
           } else {
-            /* FIXME: handle a runtime constant address. */
+            con = local_constant();
+            if (constant_glvalue_address(expr, con,
+                                         /*address_escapes=*/FALSE)) {
+              clear_runtime_constant_address(result_storage, con);
+            } else {
+              release_local_constant(&con);
+              /* FIXME: record a diagnostic. */
+              result = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }
