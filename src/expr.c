@@ -40904,6 +40904,7 @@ destination types in Microsoft mode.
        references. */
     src_val = make_declval_arg(src_type);
     if (src_val != NULL) {
+      a_base_class_ptr  bcp;
       determine_arg_match_level(operand_of_arg_list_elem(src_val),
                                 (a_type_ptr)NULL, dst_type,
                                 (a_param_type_ptr)NULL,
@@ -40912,7 +40913,10 @@ destination types in Microsoft mode.
                                 /*allow_expl_conv_funcs=*/FALSE,
                                 &arg_match);
       free_init_component_list(src_val);
-      result = (arg_match.match_level != aml_none);
+      bcp = arg_match.conversion.std.cast_base_class;
+      result = (arg_match.match_level != aml_none) &&
+               !(bcp != NULL &&
+                 (bcp->ambiguous || !is_accessible_base_class(bcp)));
     } else {
       /* This can occur with references to incomplete types. */
       check_assertion(is_any_reference_type(src_type));
