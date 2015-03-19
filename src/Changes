@@ -4,9 +4,9 @@ Version 4.11
 __is_convertible_to with private or ambiguous base classes
 
 Previously, the front end's implementation of __is_convertible incorrectly
-produced a "true" value when one type is a privately or ambiguously derived
-from the other.  The same problem occurred for pointers or references to such
-types.  For example:
+produced a "true" value when one type is privately or ambiguously derived from
+the other.  The same problem occurred for pointers or references to such types.
+For example:
 
   struct B {};
   struct C: private B {};  // Private base class.
