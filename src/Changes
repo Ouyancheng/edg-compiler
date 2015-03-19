@@ -39,8 +39,8 @@ had been that lowering generated incorrect or invalid IL for such constructs.
 A change has been made in the front end in cases where an aggregate class with
 a nontrivial default constructor is initialized with a pair of empty braces.
 In such cases, the aggregate is now initialized with a ck_dynamic_init
-constant that invokes a default constructor, or, if the default constructor
-has been deleted, an "internal constructor" which is created for this
+constant that invokes a default constructor or, if the default constructor
+has been deleted, an "internal constructor" that is created for this
 particular situation.
 
 For example, in C++14 mode, the lowered IL for the following example did not
