@@ -9,7 +9,7 @@ restriction is now lifted.  For example:
 
   int f(int x) {
     auto fn = [=](auto p){ return p+x; };  // Now accepted when
-    return fn(2);                          //  microsoft_version == 1900.
+    return fn(2);                          // microsoft_version == 1900.
   }
 
 
