@@ -516,9 +516,9 @@ large integer.
 */
 #define get_int_val_from(bytes, tp, val, ovfl)                                \
   conv_integer_value_to_host_large_integer(                                   \
-                            (an_integer_value *)(bytes),                      \
-                            int_kind_is_signed[tp->variant.integer.int_kind], \
-                            &(val), &(ovfl))
+                          (an_integer_value *)(bytes),                        \
+                          int_kind_is_signed[(tp)->variant.integer.int_kind], \
+                          &(val), &(ovfl))
 
 
 /*
@@ -890,7 +890,7 @@ element at targ_addr, which is a member of the interpreter array of len
 elements starting at base.
 */
 #define clear_array_address(addr, targ_addr, len, base)           \
-  clear_address(addr, targ_addr);                                 \
+  clear_address((addr), targ_addr);                               \
   ((a_constexpr_address *)(addr))->is_array = TRUE;               \
   ((a_constexpr_address *)(addr))->length = (len);                \
   ((a_constexpr_address *)(addr))->variant.base_address = (base);
@@ -903,7 +903,7 @@ denoted by the IL a_routine entry rout.
 #define clear_function_address(addr, rout)                     \
   memzero((char *)(addr), sizeof(a_constexpr_address));        \
   ((a_constexpr_address *)(addr))->is_function_address = TRUE; \
-  ((a_constexpr_address *)(addr))->variant.routine = rout;
+  ((a_constexpr_address *)(addr))->variant.routine = (rout);
 #endif /* 0 */
 
 
@@ -914,7 +914,7 @@ Macro to initialize a constant address at addr referring to the
 #define clear_runtime_constant_address(addr, con)                  \
   memzero((char *)(addr), sizeof(a_constexpr_address));            \
   ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
-  ((a_constexpr_address *)(addr))->variant.addr_con = con;
+  ((a_constexpr_address *)(addr))->variant.addr_con = (con);
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -968,7 +968,7 @@ failure (*ips is updated accordingly).
    (tp)->kind == (a_type_kind)tk_float ?                                     \
        sizeof(an_internal_float_value) :                                     \
    /* else */                                                                \
-       f_value_bytes_for_type(ips, tp))
+    f_value_bytes_for_type((ips), (tp)))
 
 /*
 Macro returning the larger of two values.
@@ -1212,28 +1212,30 @@ static a_boolean do_constexpr_expression(
 
 /*
 Macro to release a local constant captured by a glvalue or pointer
-expression (i.e., an a_constexpr_address value).
+expression (i.e., an a_constexpr_address value).  expr is the expression
+corresponding to the interpreter storage at value and tp is the type of
+expr after applying skip_typerefs.
 */
-#define release_local_constant_from_address(expr, value)              \
-{                                                                     \
-  if (((expr)->is_lvalue || (expr)->is_xvalue ||                      \
-       is_pointer_type((expr)->type)) &&                              \
-      ((a_constexpr_address *)value)->is_runtime_data_address) {      \
-    release_local_constant(&((a_constexpr_address *)value)->          \
-                                                   variant.addr_con); \
-  }  /* if */                                                         \
+#define release_local_constant_from_address(expr, tp, value)                  \
+{                                                                             \
+  if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
+       (tp)->kind == (a_type_kind)tk_pointer) &&                              \
+      ((a_constexpr_address *)(value))->is_runtime_data_address) {            \
+    release_local_constant(&((a_constexpr_address *)(value))->                \
+                                                           variant.addr_con); \
+  }  /* if */                                                                 \
 }  /* release_local_constant_from_address */
 
 
 /*
 Macro to interpret a full-expression.
 */
-#define do_constexpr_full_expression(ips, expr, result_storage, result_flag) \
-  {                                                                          \
-    a_storage_stack_state  saved_stack_for_full_expr;                        \
-    save_storage_stack(ips, saved_stack_for_full_expr);                      \
-    (result_flag) = do_constexpr_expression(ips, expr, result_storage);      \
-    restore_storage_stack(ips, saved_stack_for_full_expr);                   \
+#define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
+  {                                                                           \
+    a_storage_stack_state  saved_stack_for_full_expr;                         \
+    save_storage_stack((ips), saved_stack_for_full_expr);                     \
+    (result_flag) = do_constexpr_expression((ips), (expr), (result_storage)); \
+    restore_storage_stack(ips, saved_stack_for_full_expr);                    \
   }
 
 
@@ -1318,7 +1320,7 @@ successfully interpreted, FALSE otherwise.
           expr_value = expr_bytes;
         }  /* if */
         result = do_constexpr_expression(ips, expr, expr_value);
-        release_local_constant_from_address(expr, expr_value);
+        release_local_constant_from_address(expr, tp, expr_value);
         restore_storage_stack(ips, saved_stack);
       }
       break;
@@ -1344,6 +1346,8 @@ successfully interpreted, FALSE otherwise.
         an_expr_node_ptr incr;
         a_type_ptr       incr_type;
         expr = stmt->expr;
+        /* The type of the test expression is known to be bool, which will
+           fit within the expr_bytes array. */
         expr_value = expr_bytes;
         tp = skip_typerefs(expr->type);
         incr = stmt->variant.for_loop.extra_info->increment;
@@ -1361,15 +1365,13 @@ successfully interpreted, FALSE otherwise.
         /* Initialization is handled by an stmk_init in the containing
            block and not as part of the stmk_for processing. */
         do {
-          /* Evaluate the test expression.  The result is known to have
-             type bool, so we can use expr_bytes directly to hold the
-             result. */
+          /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
             result = FALSE;
             /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
-            release_local_constant_from_address(expr, expr_value);
+            release_local_constant_from_address(expr, tp, expr_value);
           }  /* if */
           if (result) {
             /* Evaluation of the test expression succeeded.  Get its value
@@ -1384,7 +1386,8 @@ successfully interpreted, FALSE otherwise.
                 /* Execution of the dependent statement succeeded, so
                    evaluate the increment expression. */
                 do_constexpr_full_expression(ips, incr, incr_value, result);
-                release_local_constant_from_address(incr, incr_value);
+                release_local_constant_from_address(incr, incr_type,
+                                                    incr_value);
               }  /* if */
             }  /* if */
           }   /* if */
