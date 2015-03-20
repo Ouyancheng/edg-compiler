@@ -543,8 +543,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		mangle_had_been_implicitly_const;
 			/* When TRUE, non-static member functions that had
-			   been implicitly const in C++11, but not C++14 are
-			   mangled as though they are still "const".  Setting
+			   been implicitly const in C++11 but not C++14 are
+			   mangled as though they were still "const".  Setting
 			   this to TRUE prevents unexpected mangled name
 			   changes between C++11 and C++14, but may lead to
 			   name collisions in valid code. */

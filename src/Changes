@@ -35,7 +35,7 @@ has been modified to reflect that.
 Unfortunately, this change may cause valid C++11 programs to become invalid
 when compiled in C++14 mode.  The example below is a valid C++11 program
 (because the implicit "const" added as a result of declaring the first member
-function results in two different function types which may be differentiated
+function results in two different function types that can be differentiated
 during overload resolution), but is an invalid C++14 program:
 
   struct A {
@@ -50,7 +50,7 @@ Another side-effect of this change is that non-static member functions where
 "const" had been implicitly added will have different mangled names when
 compiled in C++14 mode (because function cv-qualifiers are included in
 mangled names).  A new global variable, mangle_had_been_implicitly_const,
-has been introduced which, when TRUE, will maintain the original mangled
+has been introduced that, when TRUE, will maintain the original mangled
 name.  Note that setting this variable to TRUE is non-standard and may result
 in name collisions.  The default value is FALSE.
 
