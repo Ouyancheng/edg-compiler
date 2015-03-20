@@ -1977,7 +1977,7 @@ return FALSE.
   } else if (result_type->kind == (a_type_kind)tk_float) {
     clear_constant(result_con, (a_constant_repr_kind)ck_float);
     result_storage = (a_byte*)&result_con->variant.float_value;
-  } else if (result_type->kind = (a_type_kind)tk_pointer) {
+  } else if (result_type->kind == (a_type_kind)tk_pointer) {
     /* A pointer or reference.  The result will be the an
        a_constexpr_address, which will be further handled after
        interpretation is finished. */
