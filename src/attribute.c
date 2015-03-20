@@ -2232,7 +2232,10 @@ is made.
                  ms_declspec_attributes_enabled) {
         /* Microsoft __declspec attributes are allowed only in a few syntactic
            contexts. */
-        if (loc == al_prefix || loc == al_specifier || loc == al_tag_name) {
+        if (loc == al_prefix || loc == al_specifier || loc == al_tag_name ||
+            (loc == al_post_func &&
+             scope_stack_top().decl_parse_state != NULL &&
+             scope_stack_top().decl_parse_state->is_lambda)) {
           *p_attributes = scan_ms_declspec_group((an_attribute_location)loc);
           new_attr_seen = TRUE;
         }  /* if */

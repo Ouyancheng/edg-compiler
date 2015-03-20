@@ -89,10 +89,11 @@ standard-attribute syntax).
   attributes = scan_attributes(syn_loc);
   /* Reclassify attributes if necessary. */
   if (attributes != NULL) {
-    if (gnu_attributes_enabled) {
+    if (gnu_attributes_enabled || (microsoft_mode && dps->is_lambda)) {
       /* Move any non-type-transforming GNU attributes to the
          dps->id_declarator list, and change their syntactic location to
-         al_postfix or al_id_equivalent. */
+         al_postfix or al_id_equivalent.  Similarly, treat an al_post_func
+         __declspec attribute on a lambda as al_id_equivalent. */
       an_attribute_ptr  ap, *p_from = &attributes, *p_to;
       p_to = last_attribute_link(&dps->id_attributes);
       do {
@@ -109,6 +110,15 @@ standard-attribute syntax).
             ap->syntactic_location =
                                   (a_byte_attribute_location)al_id_equivalent;
           }  /* if */
+          *p_to = ap;
+          p_to = &ap->next;
+        } else if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+          /* The only kind of __declspec attributes allowed on declarators are
+             al_post_func attributes on lambdas. */
+          check_assertion(ap->syntactic_location ==
+                                     (a_byte_attribute_location)al_post_func);
+          ap->syntactic_location = (a_byte_attribute_location)al_id_equivalent;
+          *p_from = ap->next;
           *p_to = ap;
           p_to = &ap->next;
         } else {
@@ -128,13 +138,14 @@ standard-attribute syntax).
     }  /*if */
   }  /* if */
   if (attributes != NULL) {
-    /* Microsoft __declspec attributes cannot appear in declarators: Disable
-       any that were scanned (and issue an error in that case).  Similarly
-       handle standard attributes that appear as the first construct in a
-       nested declarator. */
+    /* Microsoft __declspec attributes cannot appear in declarators (with an
+       exception for lambda declarators): Disable any that were scanned (and
+       issue an error in that case).  Similarly handle standard attributes
+       that appear as the first construct in a nested declarator. */
     an_attribute_ptr  ap = attributes;
     for (; ap != NULL; ap = ap->next) {
-      if (ap->family == (a_byte_attribute_family)af_ms_declspec ||
+      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
+           !(syn_loc == al_post_func && dps->is_lambda)) ||
           (is_std_attribute(ap) && syn_loc == al_specifier)) {
         if (!error_issued) {
           pos_error(ec_invalid_attribute_location, &ap->position);

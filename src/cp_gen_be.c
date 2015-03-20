@@ -6672,8 +6672,20 @@ default arguments should be suppressed (needed for template specializations).
   if (rtsp->exception_specification != NULL) {
     gen_exception_specification(rtsp->exception_specification);
   }  /* if */
-  gen_attributes(type->source_corresp.attributes, al_explicit,
-                 /*primary_only=*/FALSE);
+  { an_attribute_ptr  attributes;
+    if ((microsoft_mode || msvc_is_generated_code_target) &&
+        rtsp->assoc_routine != NULL && rtsp->assoc_routine->is_lambda_body) {
+      /* MSVC applies attributes in this location to the routine itself rather
+         than to the routine type. */
+      attributes = rtsp->assoc_routine->source_corresp.attributes;
+    } else {
+      attributes = type->source_corresp.attributes;
+    }  /* if */
+    if (attributes != NULL) {
+      write_space();
+      gen_attributes(attributes, al_explicit, /*primary_only=*/FALSE);
+    }  /* if */
+  }  /* if */
   if (rtsp->trailing_return_type) {
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);

@@ -1,5 +1,16 @@
 Version 4.11
 
+3/19/15  [EDGcpfe/16098]
+Microsoft compatibility: __declspec attributes on lambdas
+
+In Microsoft C++ modes that accept lambdas, the front end now accepts
+__declspec attributes on such lambdas.  For example:
+
+  auto fn = [](int x) __declspec(dllexport) { return x; };
+
+Such attributes apply to the call operator of the associated closure type.
+
+
 3/19/15  [EDGcpfe/16092]
 C++14: "constexpr" no longer implies "const" for non-static member functions
 
