@@ -526,7 +526,7 @@ Macros to push and pop call frames.
 */
 #define push_call_frame(ips, p_frame, rp, p_result)                          \
   {                                                                          \
-    (p_frame)->parent = (ips)->curr_call_frame;                        \
+    (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
     (p_frame)->result_storage = (p_result);                                  \
     (ips)->curr_call_frame = (p_frame);                                      \
@@ -842,7 +842,7 @@ typedef struct a_constexpr_address {
 #endif /* 0 */    
     /* When is_runtime_data_address is TRUE: */
     a_constant_ptr
-		runtime_constant;
+		addr_con;
 			/* For constant addresses of run-time objects.  This
 			   will always point to a constant acquired from
 			   local_constant() and must be released when the
@@ -914,7 +914,7 @@ Macro to initialize a constant address at addr referring to the
 #define clear_runtime_constant_address(addr, con)                  \
   memzero((char *)(addr), sizeof(a_constexpr_address));            \
   ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
-  ((a_constexpr_address *)(addr))->variant.runtime_constant = con;
+  ((a_constexpr_address *)(addr))->variant.addr_con = con;
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -1075,7 +1075,7 @@ redo:
     default:
       unexpected_condition();
   }  /* switch */
-  return 0;
+  return result;
 }  /* f_value_bytes_for_type */
 
 
@@ -1214,14 +1214,14 @@ static a_boolean do_constexpr_expression(
 Macro to release a local constant captured by a glvalue or pointer
 expression (i.e., an a_constexpr_address value).
 */
-#define release_local_constant_from_address(expr, value)                      \
-{                                                                             \
-  if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
-       is_pointer_type((expr)->type)) &&                                      \
-      ((a_constexpr_address *)value)->is_runtime_data_address) {              \
-    release_local_constant(&((a_constexpr_address *)value)->                  \
-                                                   variant.runtime_constant); \
-  }  /* if */                                                                 \
+#define release_local_constant_from_address(expr, value)              \
+{                                                                     \
+  if (((expr)->is_lvalue || (expr)->is_xvalue ||                      \
+       is_pointer_type((expr)->type)) &&                              \
+      ((a_constexpr_address *)value)->is_runtime_data_address) {      \
+    release_local_constant(&((a_constexpr_address *)value)->          \
+                                                   variant.addr_con); \
+  }  /* if */                                                         \
 }  /* release_local_constant_from_address */
 
 
@@ -1307,7 +1307,7 @@ successfully interpreted, FALSE otherwise.
       {
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
-        n_bytes = f_value_bytes_for_type(ips, tp);
+        n_bytes = value_bytes_for_type(ips, tp);
         save_storage_stack(ips, saved_stack);
         if (tp->size > VALUE_BYTES_FOR_SCALAR &&
             !expr->is_lvalue && !expr->is_xvalue) {
@@ -1348,7 +1348,7 @@ successfully interpreted, FALSE otherwise.
         tp = skip_typerefs(expr->type);
         incr = stmt->variant.for_loop.extra_info->increment;
         incr_type = skip_typerefs(incr->type);
-        n_bytes = f_value_bytes_for_type(ips, incr_type);
+        n_bytes = value_bytes_for_type(ips, incr_type);
         save_storage_stack(ips, saved_stack);
         if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
             !incr->is_lvalue && !incr->is_xvalue) {
@@ -1461,6 +1461,7 @@ accordingly.
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
       if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        result = FALSE;
         /* Undo the mappings so far. */
         a_variable_ptr  up = callee_scope->variant.routine.parameters;
         for (; up != param; up = up->next) unmap_stack_bytes(ips, up);
@@ -1487,7 +1488,7 @@ accordingly.
 reclaim_arg_storage:
     restore_storage_stack(ips, saved_stack);
   }  /* if */
-  return result && ips->diagnostic == NULL;
+  return result;
 }  /* do_constexpr_call */
 
 
@@ -1522,10 +1523,43 @@ formats as necessary.
     case ck_float:
       *(an_internal_float_value *)value = con->variant.float_value;
       break;
+    case ck_address:
+      {
+        /* Create an a_constexpr_address for the runtime constant, which
+           requires a local constant. */
+        a_constant_ptr addr_con = local_constant();
+        copy_constant(con, addr_con);
+        clear_runtime_constant_address(value, addr_con);
+      }
+      break;
     default:
       unexpected_condition();  /* FIXME: handle more kinds of constants. */
   }  /* switch */
 }  /* extract_value_from_constant */
+
+
+static a_boolean get_value_from_address_constant(a_constant_ptr addr_con,
+                                                 a_byte         *value)
+/*
+If addr_con is the address of a constant, copy it into the interpreter
+storage at value and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_constant_ptr val_con = local_constant();
+  a_boolean      result;
+
+  if (constant_value_at_address(addr_con,
+                                /*a_constexpr_evaluation_block=*/NULL,
+                                val_con)) {
+    /* Copy the constant value. */
+    extract_value_from_constant(val_con, value);
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  release_local_constant(&val_con);
+  return result;
+}  /* get_value_from_address_constant */
 
 
 static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
@@ -1583,24 +1617,37 @@ reasons.
         a_byte_count     opnd_n_bytes;
 
 /*
-Macro to set result_storage from either the address in opnd1 or the value
+Macro to set result_storage from either the address in opnd or the value
 to which that address points, depending on whether the result is a glvalue
 or a prvalue.  This is used for operations that produce glvalues but may
-incorporate an implicit lvalue-to-rvalue conversion.
+incorporate an implicit lvalue-to-rvalue conversion, i.e., "rvalueable"
+nodes.
 */
-#define set_result_val_from_opnd1_glvalue()                                   \
+#define set_result_val_from_operand_address(opnd)                             \
   {                                                                           \
     if (expr->is_lvalue || expr->is_xvalue) {                                 \
       /* Copy the address. */                                                 \
-      *(a_constexpr_address *)result_storage =                                \
-                                         *(a_constexpr_address *)opnd1_value; \
+      *(a_constexpr_address *)result_storage = *(a_constexpr_address *)(opnd);\
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
-      (void)memcpy(result_storage, value_bytes_at(opnd1_value),               \
-                   size_t_arg(n_bytes));                                      \
-      release_local_constant_from_address(expr, opnd1_value);                 \
-    }                                                                         \
-  }  /* set_result_val_from_opnd1_glvalue */
+      if (((a_constexpr_address *)(opnd))->is_runtime_data_address) {         \
+        if (!get_value_from_address_constant(                                 \
+                   ((a_constexpr_address *)(opnd))->variant.addr_con,         \
+                   result_storage)) {                                         \
+          /* Not a compile-time constant value. */                            \
+          result = FALSE;                                                     \
+          /* FIXME: record a diagnostic. */                                   \
+        }  /* if */                                                           \
+        /* Release the local constant acquired when this a_constexpr_address  \
+           was created. */                                                    \
+        release_local_constant(&((a_constexpr_address *)(opnd))->             \
+                                                           variant.addr_con); \
+      } else {                                                                \
+        (void)memcpy(result_storage, value_bytes_at(opnd),                    \
+                     size_t_arg(n_bytes));                                    \
+      }  /* if */                                                             \
+    }  /* if */                                                               \
+  }  /* set_result_val_from_operand_address */
 
 /*
 Macro that sets result to TRUE or FALSE depending on whether the integer
@@ -1637,7 +1684,7 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
-        opnd_n_bytes = f_value_bytes_for_type(ips, opnd1_type);
+        opnd_n_bytes = value_bytes_for_type(ips, opnd1_type);
         if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
@@ -1655,7 +1702,7 @@ type.  This includes checking the value of ovfl set by the operation.
              whether to evaluate the second operand will be decided below
              in the specific code for each such operator. */
           opnd2_type = skip_typerefs(opnd2->type);
-          opnd_n_bytes = f_value_bytes_for_type(ips, opnd2_type);
+          opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
           if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
@@ -1673,6 +1720,21 @@ type.  This includes checking the value of ovfl set by the operation.
           /* The operand(s) were evaluated successfully.  Process the
              operation. */
           switch (expr->variant.operation.kind) {
+            case eok_address_of:
+            case eok_reference_to:
+              /* The result is an a_constexpr_address designating the
+                 object, and the operand is already an a_constexpr_address
+                 (glvalue or temporary), so just copy the operand. */
+              *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address *)opnd1_value;
+              break;
+            case eok_indirect:
+            case eok_ref_indirect:
+              /* The result is either a copy of the operand (which is an
+                 a_constexpr_address) if the result is a glvalue or the
+                 value to which the address points for a prvalue. */
+              set_result_val_from_operand_address(opnd1_value);
+              break;
             case eok_cast:
               if (tp->kind == opnd1_type->kind) {
                 /* The type kinds are the same, so the representation is
@@ -1732,7 +1794,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (result) {
                 /* Return either the address or the value, as
                    appropriate. */
-                set_result_val_from_opnd1_glvalue();
+                set_result_val_from_operand_address(opnd1_value);
               }  /* if */
               break;
             case eok_shiftl:
@@ -1798,7 +1860,7 @@ type.  This includes checking the value of ovfl set by the operation.
                    appropriate. */
                 (void)memcpy(value_bytes_at(opnd1_value), opnd2_value,
                              size_t_arg(n_bytes));
-                set_result_val_from_opnd1_glvalue();
+                set_result_val_from_operand_address(opnd1_value);
               }  /* if */
               break;
             default:
@@ -1852,6 +1914,7 @@ type.  This includes checking the value of ovfl set by the operation.
       unexpected_condition();  /* FIXME: handle errors. */
   }  /* switch */
   return result;
+#undef copy_result_val_from_constant
 #undef set_result_from_opnd1
 #undef within_int_range
 }  /* do_constexpr_expression */
@@ -1899,6 +1962,7 @@ return FALSE.
 {
   a_boolean             result = FALSE;
   an_interpreter_state  ips;
+  a_byte                result_bytes[VALUE_BYTES_FOR_SCALAR];
   a_byte                *result_storage;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
@@ -1913,6 +1977,11 @@ return FALSE.
   } else if (result_type->kind == (a_type_kind)tk_float) {
     clear_constant(result_con, (a_constant_repr_kind)ck_float);
     result_storage = (a_byte*)&result_con->variant.float_value;
+  } else if (result_type->kind = (a_type_kind)tk_pointer) {
+    /* A pointer or reference.  The result will be the an
+       a_constexpr_address, which will be further handled after
+       interpretation is finished. */
+    result_storage = result_bytes;
   } else {
     /* FIXME: Handle other type kinds */
     result_storage = NULL;
@@ -1920,6 +1989,21 @@ return FALSE.
   }  /* if */
   result_con->type = result_type;
   result = do_constexpr_call(&ips, call_expr, result_storage);
+  if (result && result_type->kind == (a_type_kind)tk_pointer) {
+    /* A constexpr function can return an address constant; if it returns
+       an interpreter address, the invocation is non-constant. */
+    a_constexpr_address *cap = (a_constexpr_address *)result_storage;
+    if (cap->is_runtime_data_address) {
+      /* Copy the address constant to result_con and release the local
+         constant. */
+      copy_constant(cap->variant.addr_con, result_con);
+      release_local_constant(&cap->variant.addr_con);
+    } else {
+      /* The address designates an interpreter value, which will be a
+         dangling pointer or reference and thus cannot be constant. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
   release_interpreter_state(&ips);
   return result;
 }  /* interpret_constexpr_call */

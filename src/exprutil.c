@@ -5653,36 +5653,32 @@ of the call.
 
   if (constexpr_call_folding_should_be_done()) {
     a_constant_ptr  result_con = local_constant();
+    an_error_code   failure_warning = ec_no_error;
     if (relaxed_constexpr_enabled) {
       folded = interpret_constexpr_call(call_expr, result_con);
-      if (folded) {
-        make_constant_operand(result_con, result);
-        result->position = *pos;
-      }  /* if */
     } else {
-      an_error_code failure_warning;
-      a_boolean     need_backing_expr =
+      a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-      if (fold_constexpr_call(call_expr, need_backing_expr, pos,
-                              result_con, &failure_warning)) {
-        folded = TRUE;
-        make_constant_operand(result_con, result);
-        result->position = *pos;
-        if (is_reference_type(result->type)) {
-          a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
-          add_reference_indirection(result);
-          if (is_rvalue_ref) {
-            /* A call of a function that returns an rvalue reference is an
-               xvalue. */
-            conv_rvalue_reference_result_to_xvalue(result);
-          }  /* if */
-        } else if (!curr_expr_kind_is_const() &&
-                   is_class_struct_union_type(result->type)) {
-          temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
+      folded = fold_constexpr_call(call_expr, need_backing_expr, pos,
+                                   result_con, &failure_warning);
+    }  /* if */
+    if (folded) {
+      make_constant_operand(result_con, result);
+      result->position = *pos;
+      if (is_reference_type(result->type)) {
+        a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
+        add_reference_indirection(result);
+        if (is_rvalue_ref) {
+          /* A call of a function that returns an rvalue reference is an
+             xvalue. */
+          conv_rvalue_reference_result_to_xvalue(result);
         }  /* if */
-      } else if (failure_warning != ec_no_error) {
-        expr_pos_warning(failure_warning, pos);
+      } else if (!curr_expr_kind_is_const() &&
+                 is_class_struct_union_type(result->type)) {
+        temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
+    } else if (failure_warning != ec_no_error) {
+      expr_pos_warning(failure_warning, pos);
     }  /* if */
     release_local_constant(&result_con);
   }  /* if */
