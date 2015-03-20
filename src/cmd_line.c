@@ -2283,11 +2283,7 @@ by a command line option.
         if (microsoft_version >= 1900) {
           lambda_default_args_enabled = TRUE;
           generic_lambdas_enabled = TRUE;
-          if (!cpp14_mode) {
-            /* Current versions of the Microsoft compiler do not permit
-               implicit capture by generic lambdas. */
-            generic_lambdas_can_implicitly_capture = FALSE;
-          }  /* if */
+          generic_lambdas_can_implicitly_capture = TRUE;
           init_capture_enabled = TRUE;
         }  /* if */
       }  /* if */
