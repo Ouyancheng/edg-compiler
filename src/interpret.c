@@ -1309,7 +1309,7 @@ successfully interpreted, FALSE otherwise.
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp);
         save_storage_stack(ips, saved_stack);
-        if (tp->size > VALUE_BYTES_FOR_SCALAR &&
+        if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
             !expr->is_lvalue && !expr->is_xvalue) {
           /* The value is larger than a scalar type, so allocate space for
              it on the stack. */
@@ -1350,7 +1350,7 @@ successfully interpreted, FALSE otherwise.
         incr_type = skip_typerefs(incr->type);
         n_bytes = value_bytes_for_type(ips, incr_type);
         save_storage_stack(ips, saved_stack);
-        if (incr_type->size > VALUE_BYTES_FOR_SCALAR &&
+        if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
             !incr->is_lvalue && !incr->is_xvalue) {
           /* The result of the increment expression is larger than a scalar
              type, so allocate space for it on the stack. */
@@ -1461,10 +1461,10 @@ accordingly.
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
       if (!do_constexpr_expression(ips, arg, arg_bytes)) {
-        result = FALSE;
         /* Undo the mappings so far. */
         a_variable_ptr  up = callee_scope->variant.routine.parameters;
         for (; up != param; up = up->next) unmap_stack_bytes(ips, up);
+        result = FALSE;
         goto reclaim_arg_storage;
       }  /* if */
       map_stack_bytes(ips, param, arg_bytes);
@@ -1685,7 +1685,7 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = value_bytes_for_type(ips, opnd1_type);
-        if (opnd1_type->size > VALUE_BYTES_FOR_SCALAR &&
+        if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
              space for it on the stack. */
@@ -1703,7 +1703,7 @@ type.  This includes checking the value of ovfl set by the operation.
              in the specific code for each such operator. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
-          if (opnd2_type->size > VALUE_BYTES_FOR_SCALAR &&
+          if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
                space for it on the stack. */
