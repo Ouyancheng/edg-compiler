@@ -1073,6 +1073,9 @@ redo:
     case tk_template_param:
     case tk_unknown:
     default:
+      /* The GNU optimizer complains if result is not assigned a value on
+         this branch. */
+      result = (a_byte_count)tp->size;
       unexpected_condition();
   }  /* switch */
   return result;
