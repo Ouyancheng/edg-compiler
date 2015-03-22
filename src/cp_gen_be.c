@@ -7356,10 +7356,16 @@ static void gen_field_initializer(a_field_ptr  field)
   if (!field->has_direct_braced_initializer) {
     write_tok_str(" = ");
   } else if (!(field->initializer->is_braced_initializer &&
-               field->initializer->kind ==
-                                       (a_dynamic_init_kind)dik_constructor)) {
+               (field->initializer->kind ==
+                                        (a_dynamic_init_kind)dik_constructor ||
+                field->initializer->kind ==
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+                (field->initializer->kind ==
+                                           (a_dynamic_init_kind)dik_constant &&
+                 field->initializer->variant.constant->kind ==
+                                       (a_constant_repr_kind)ck_aggregate)))) {
     /* gen_dynamic_init will supply the braces for a braced constructor
-       call. */
+       call.  Similarly, an aggregate will have its own set of braces. */
     write_tok_ch('{');
     need_closing_brace = TRUE;
   }  /* if */
@@ -15722,37 +15728,59 @@ and the output of the type name.
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
         an_expr_node_ptr args = dip->variant.constructor.args;
         a_boolean        no_args = FALSE;
-        if (is_var_init && paren_form) {
-          if (args == NULL || args->generated_default_arg) {
-            /* The only way to get this situation -- a parenthesized
-               variable initializer that invokes the default constructor --
-               is with a C++11-style empty braced-init-list, e.g.,
-               something like "T x(T{})".  (Although this is technically an
-               invocation of T's copy/move constructor with a
-               value-initialized temporary, the copy/move is elided, so it
-               is represented in the IL as directly initializing the
-               variable.)  Put out this form as a special case, in order to
-               avoid generating "T x()" (which declares a function, not a
-               variable), and suppress the argument list. */
-            check_assertion(il_header.std_version >= 201103);
-            if (ctor != NULL) {
-              /* If the class is known and named, put out "T{}" to avoid
-                 possible ambiguities with other constructors.  Otherwise,
-                 just put out "{}". */
-              a_type_ptr class_type = parent_class_or_null(ctor);
-              if (class_type != NULL && has_name_before_mangling(class_type)) {
-                gen_type_reference(class_type);
+        if (is_var_init) {
+          if (paren_form) {
+            if (args == NULL || args->generated_default_arg) {
+              /* The only way to get this situation -- a parenthesized
+                 variable initializer that invokes the default constructor --
+                 is with a C++11-style empty braced-init-list, e.g.,
+                 something like "T x(T{})".  (Although this is technically an
+                 invocation of T's copy/move constructor with a
+                 value-initialized temporary, the copy/move is elided, so it
+                 is represented in the IL as directly initializing the
+                 variable.)  Put out this form as a special case, in order to
+                 avoid generating "T x()" (which declares a function, not a
+                 variable), and suppress the argument list. */
+              check_assertion(il_header.std_version >= 201103);
+              if (ctor != NULL) {
+                /* If the class is known and named, put out "T{}" to avoid
+                   possible ambiguities with other constructors.  Otherwise,
+                   just put out "{}". */
+                a_type_ptr class_type = parent_class_or_null(ctor);
+                if (class_type != NULL &&
+                                        has_name_before_mangling(class_type)) {
+                  gen_type_reference(class_type);
+                }  /* if */
+              }  /* if */
+              write_tok_str("{}");
+              no_args = TRUE;
+            } else if (args != NULL && args->next == NULL &&
+                       !args->generated_default_arg &&
+                       expr_may_look_like_type(args)) {
+              /* We need an extra level of parentheses to avoid the
+                 declaration/expression ambiguity. */
+              write_tok_ch('(');
+              need_disambiguation_close_paren = TRUE;
+            }  /* if */
+          } else {
+            /* A braced initializer. */
+            if (args != NULL && args->next == NULL &&
+                args->kind == (an_expr_node_kind)enk_temp_init) {
+              /* A single argument that is a temporary.  Check to see if it
+                 is a generated call to a std::initializer_list
+                 constructor. */
+              a_dynamic_init_ptr arg_dip = args->variant.init.dynamic_init;
+              if (arg_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+                  arg_dip->is_creation_of_initializer_list_object) {
+                /* The generated code will have an aggregate as the
+                   argument to the std::initializer_list constructor, which
+                   would ordinarily be enclosed in braces.  However, we put
+                   out the braces for this initializer here, so we need to
+                   suppress the aggregate braces to prevent incorrect
+                   double braces. */
+                arg_dip->suppress_init_list_arg_braces = TRUE;
               }  /* if */
             }  /* if */
-            write_tok_str("{}");
-            no_args = TRUE;
-          } else if (args != NULL && args->next == NULL &&
-                     !args->generated_default_arg &&
-                     expr_may_look_like_type(args)) {
-            /* We need an extra level of parentheses to avoid the
-               declaration/expression ambiguity. */
-            write_tok_ch('(');
-            need_disambiguation_close_paren = TRUE;
           }  /* if */
         }  /* if */
         if (!no_args) {

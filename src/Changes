@@ -1,5 +1,33 @@
 Version 4.11
 
+3/21/15  [EDGcpfe/16033]
+C++-generating back end: incorrectly-braced initializer lists
+
+The C++-generating back end sometimes incorrectly enclosed a braced
+initializer list in an extra set of braces.  One such case is the
+direct-list-initialization of a variable whose type has an
+initializer-list constructor.  For example, with --c++11:
+
+  #include <initializer_list>
+  struct S {
+    S(std::initializer_list<int>);
+  };
+  S s{0};   // Previously generated as s{{0}}
+
+Another case is the aggregate initialization of a non-static data member
+using the form without an "=":
+
+  struct A {
+    int i;
+    int j;
+  };
+  struct B {
+    A a{1, 2};   // Previously generated as a{{1, 2}}
+  };
+
+These are now fixed.
+
+
 3/19/15  [EDGcpfe/16106]
 Microsoft compatibility: Implicit captures and generic lambdas
 
