@@ -1,5 +1,25 @@
 Version 4.11
 
+3/23/15  [EDGcpfe/16105]
+Abort on indirect capture from a generic lambda
+
+When a generic lambda captures a variable that is first captured by an
+enclosing nongeneric lambda, the front end often aborted with an internal
+error in scope_depth_for_capture (expr.c).  For example:
+
+  void g() {
+    auto lambda = [](int x) {
+                    return [x]() {
+                             return [x](auto y) { sizeof(x); };
+                           };
+                  };
+    L(3)()(3);
+  }
+
+In this example, the front end aborted while processing the reference to x
+in "sizeof(x)".  This is now fixed.
+
+
 3/23/15  [EDGcpfe/16108]
 Incorrect accessibility given to class template member defined out-of-class
 

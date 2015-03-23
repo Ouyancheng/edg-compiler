@@ -30401,9 +30401,6 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
           field_sel = field_lvalue_selection_expr(this_expr, source_field);
         }  /* if */
         make_glvalue_expression_operand(field_sel, &operand);
-        /* Now that we've gotten what we need from the variable pointer, clear
-           it because it's a memory-region issue. */
-        lcp->captured.variable = NULL;
       }  /* if */
       /* See whether the copy is of a class type or array of class type. */
       base_dest_type = dest_type;

@@ -18103,7 +18103,7 @@ typedef struct a_lambda_capture {
 			/* Pointer to the variable entry for the local variable
 			   or "this" pointer to be captured.  NULL for
 			   variables captured indirectly through an enclosing
-			   lambda's capture. */
+			   lambda's capture (except while in the front end). */
     /* When is_init_capture is TRUE. */
     a_dynamic_init_ptr
 		initializer;
@@ -18117,8 +18117,7 @@ typedef struct a_lambda_capture {
 			   this gives the field of the closure class that
 			   should be the source of the current capture.
 			   When this field is non-NULL, the "variable" field
-			   will be NULL (except for a short period of time
-			   within the front end). */
+			   will be NULL (except within the front end). */
     /* When is_init_capture is TRUE: */
     struct a_decl_parse_state
     		*init_capture_dps;
