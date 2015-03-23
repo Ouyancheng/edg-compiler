@@ -13,7 +13,7 @@ error in scope_depth_for_capture (expr.c).  For example:
                              return [x](auto y) { sizeof(x); };
                            };
                   };
-    L(3)()(3);
+    lambdas(1)()(2);
   }
 
 In this example, the front end aborted while processing the reference to x
