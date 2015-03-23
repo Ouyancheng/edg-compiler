@@ -1,5 +1,22 @@
 Version 4.11
 
+3/23/15  [EDGcpfe/15997]
+Microsoft and GNU C++ compatibility: casts in non-type template arguments
+
+The C++11 Standard requires that a template argument for a pointer or
+pointer-to-member non-type template parameter be an id-expression,
+optionally preceded by an "&".  The Microsoft and g++ (in C++11 mode)
+compilers do not strictly enforce this requirement, accepting cast
+expressions as template arguments in these cases.  The front end has now
+been changed to do the same in the corresponding emulation modes.  For
+example, with --g++ --c++11:
+
+  typedef void (*PF)();
+  template<PF P> struct S { };
+  void f();
+  S<(PF)f> sf0;   // Now accepted
+
+
 3/23/15  [EDGcpfe/16105]
 Abort on indirect capture from a generic lambda
 

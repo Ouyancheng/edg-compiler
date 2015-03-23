@@ -15861,16 +15861,20 @@ a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
 Return TRUE if the given constant represents a valid pointer or pointer-to-
 member template argument that is not an id-expression or an id-expression
 prefixed with "&".  The most common valid cases are null-pointer-like
-constants.
+constants and (in some emulations) folded cast expressions.
 */
 {
   a_boolean  result = FALSE;
   a_boolean  null_value_okay = cpp11_mode ||
                                (microsoft_mode && microsoft_version >= 1800);
+  a_boolean  cast_okay = (microsoft_mode ||
+                          (cpp11_mode && gpp_mode && !clang_mode));
   /* The C++11 standard allows not only "null pointer constants", but, more
      generally, "null pointer values" (which can result from casting a null
      pointer constant to a pointer type).  Microsoft compilers also allow
-     something like "&typeid(X)". */
+     something like "&typeid(X)".  Microsoft compilers, as well as g++ (but
+     not clang) in C++11 mode, accept casts on pointers and pointers to
+     members. */
   if (null_value_okay && is_null_pointer_constant(con)) {
     result = TRUE;
   } else if (con->kind == (a_constant_repr_kind)ck_address) {
@@ -15878,20 +15882,21 @@ constants.
               con->variant.address.kind == (an_address_base_kind)abk_typeid) {
       result = TRUE;
     } else if (!null_value_okay) {
-      /* The remaining clauses test null pointer value cases. */
+      /* The remaining clauses test null pointer value and cast cases. */
     } else if (con->variant.address.kind ==
                                           (an_address_base_kind)abk_routine) {
-      result = con->variant.address.variant.routine == NULL;
+      result = con->variant.address.variant.routine == NULL || cast_okay;
     } else if (con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
-      result = con->variant.address.variant.variable == NULL;
+      result = con->variant.address.variant.variable == NULL || cast_okay;
     }  /* if */
   } else if (null_value_okay &&
              con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
-    /* A null-pointer value for a pointer-to-member constant. */
-    result = con->variant.ptr_to_member.is_function_ptr ?
-                            con->variant.ptr_to_member.variant.routine == NULL
-                          : con->variant.ptr_to_member.variant.field == NULL;
+    /* A null pointer value or cast for a pointer-to-member constant. */
+    result = ((con->variant.ptr_to_member.is_function_ptr
+                         ? con->variant.ptr_to_member.variant.routine == NULL
+                         : con->variant.ptr_to_member.variant.field == NULL) ||
+              cast_okay);
   } else if (null_value_okay &&
              con->kind == (a_constant_repr_kind)ck_integer &&
              (is_pointer_type(con->type) ||
