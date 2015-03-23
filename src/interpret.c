@@ -75,9 +75,9 @@ the macro alloc_stack_bytes.  Deallocation, on the other hand, is batched
 macros save_storage_stack and restore_storage_stack support this.
 
 The second kind of storage persists across interpreter invocations.  It also
-uses a storage stack, although the ability to efficiently deallocate is not
-exploited in that case.  The macro alloc_bytes can be used for these
-allocations.
+uses a storage stack (static variable persistent_data), although the ability to
+efficiently deallocate is not exploited in that case.  The macro alloc_bytes
+can be used for these allocations.
 
 
 Mappings
@@ -96,7 +96,11 @@ recursive function invocation), the last mapping is returned by get_mapped_ptr
 (or get_stack_bytes), and if that last mapping is "unmapped", the previous
 mapping becomes available again.
 
-FIXME: Add note about second "persistent" data map when it's introduced.
+Besides the data map associated with an interpreter state, another map is kept
+that persists across interpreter invocations (static variable persistent_map).
+This map, e.g., holds data layout information for associated with types and
+fields (the data layout for the interpreter is different from that for the
+target architecture).
 */
 
 typedef unsigned int a_byte_count;
@@ -1083,8 +1087,13 @@ redo:
 
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
-                                       a_type_ptr  tp)
+                                       a_type_ptr            tp)
 /*
+Compute and return the size of the given non-union class type.  Also record
+offsets in any associated fields as well as any direct or virtual base classes.
+If needed, this will recursively lay out types this class type is composed of.
+ips is used to record an interpretation failure if the size exceeds the
+interpreter's limits.
 */
 {
   a_byte_count      total_size = 0;
@@ -1144,10 +1153,12 @@ done:
 
 
 static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
-                                       a_type_ptr  tp)
+                                       a_type_ptr            tp)
 /*
 Return the size that should be allocated for the given union type, and record
-the offsets of its fields.
+the offsets of its fields.  If needed, this will recursively lay out the types
+of the fields.  ips is used to record an interpretation failure if the size
+exceeds the interpreter's limits.
 */
 {
   a_byte_count      prefix_size = 0, max_field_size = 0, total_size;
@@ -1375,6 +1386,7 @@ successfully interpreted, FALSE otherwise.
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_local_constant_from_address(expr, tp, expr_value);
+            ips->cost += 1;
           }  /* if */
           if (result) {
             /* Evaluation of the test expression succeeded.  Get its value
@@ -1493,6 +1505,7 @@ accordingly.
     }  /* for */
 reclaim_arg_storage:
     restore_storage_stack(ips, saved_stack);
+    ips->cost += 1;
   }  /* if */
   return result;
 }  /* do_constexpr_call */
