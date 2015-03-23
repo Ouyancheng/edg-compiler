@@ -1,5 +1,26 @@
 Version 4.11
 
+3/23/15  [EDGcpfe/16108]
+Incorrect accessibility given to class template member defined out-of-class
+
+Members of a class defined using the "struct" keyword are public by default.
+If a member class of a class template was initially declared with "class"
+and later defined out-of-class with "struct", instantiations of the class
+were incorrectly treated as if they were defined with "class", making their
+members private by default (and vice-versa if declared with "struct" and
+later defined with "class".  This would result in spurious access errors
+or failure to issue access errors.  Now fixed.
+
+  template<typename T> struct A {
+    template<typename T2> class B;
+  };
+  template<typename T> template<typename T2> struct A<T>::B { void f(); };
+  int main() {
+    A<int>::B<int> d;
+    d.f();
+  }
+
+
 3/21/15  [EDGcpfe/16033]
 C++-generating back end: incorrectly-braced initializer lists
 
