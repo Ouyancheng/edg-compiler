@@ -15516,7 +15516,8 @@ output_functional_notation_cast_arguments:
              an argument in a call. */
           write_tok_ch('{');
           brace_list_case = TRUE;
-          if (args != NULL && args->next == NULL) {
+          if (args != NULL &&
+              (args->next == NULL || args->next->generated_default_arg)) {
             /* There is a single argument to the constructor.  Check to see
                if it is a compiler-generated std::initializer_list
                temporary. */
@@ -15764,7 +15765,8 @@ and the output of the type name.
             }  /* if */
           } else {
             /* A braced initializer. */
-            if (args != NULL && args->next == NULL &&
+            if (args != NULL &&
+                (args->next == NULL || args->next->generated_default_arg) &&
                 args->kind == (an_expr_node_kind)enk_temp_init) {
               /* A single argument that is a temporary.  Check to see if it
                  is a generated call to a std::initializer_list
