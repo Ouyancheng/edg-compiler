@@ -3450,8 +3450,9 @@ of a constant-expression.
   a_type_ptr    class_type = sym_parent_class(var_sym);
 
   check_assertion(symbol_is(var_sym, sk_static_data_member));
-  if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
-      same_entities(scope_stack_top().assoc_type, class_type)) {
+  if (!class_type->incomplete ||
+      (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+       same_entities(scope_stack_top().assoc_type, class_type))) {
     a_class_symbol_supplement_ptr  cssp;
     an_initializer_fixup_ptr       *p_ifp, ifp;
     cssp = symbol_supplement_for_class(class_type);
