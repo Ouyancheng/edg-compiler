@@ -3541,8 +3541,8 @@ after_entry_from_class:
         } else {
           if (ptr->capture_info.source_closure_field != NULL) {
             /* captured.variable is an indirectly captured variable; i.e., the
-               variable is not local the current enclosing function, but to a
-               function enclosing that one.  So we can only keep that field
+               variable is not local to the current enclosing function, but to
+               a function enclosing that one.  So we can only keep that field
                during front end processing. */
             conditionally_clear_fe_pointer(ptr->captured.variable);
           } else {
