@@ -45,7 +45,7 @@ If a member class of a class template was initially declared with "class"
 and later defined out-of-class with "struct", instantiations of the class
 were incorrectly treated as if they were defined with "class", making their
 members private by default (and vice-versa if declared with "struct" and
-later defined with "class".  This would result in spurious access errors
+later defined with "class").  This would result in spurious access errors
 or failure to issue access errors.  Now fixed.
 
   template<typename T> struct A {

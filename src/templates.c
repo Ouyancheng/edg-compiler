@@ -1516,7 +1516,7 @@ is the token sequence number to be used as the identifier for this template.
       /* Create the pointer back to the original template. */
       tssp->prototype_template = sym;
       tssp->variant.class_template.prototype_instantiation_complete = TRUE;
-      /* Use the type kind from the definition, which could be different than
+      /* Use the type kind from the definition, which could be different from
          the type kind from the declaration in the class. */
       tssp->variant.class_template.type_kind =
                                    orig_tssp->variant.class_template.type_kind;
