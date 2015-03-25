@@ -7230,6 +7230,162 @@ constant will be set as well.
   constant->type = expr->type;
 }  /* fold_is_assignable */
 
+
+static a_boolean compute_has_nothrow_assign(a_type_ptr  class_type)
+/*
+Return TRUE if (and only if) this class' copy constructors are known not to
+throw exceptions.  This can be used to determine the value of the type trait
+pseudo-function __has_nothrow_copy, but in Microsoft mode, additional checking
+is needed (see microsoft_has_copy_predicate). 
+*/
+{
+  a_field_ptr       fp;
+  a_base_class_ptr  bcp;
+  a_type_ptr        tp;
+  a_symbol_ptr      sym;
+  a_boolean         is_list;
+  a_boolean         result = TRUE;
+
+  /* First examine any copy assignment operators. */
+  sym = class_symbol_supp(symbol_for(class_type))->assignment_operator;
+  if (sym != NULL) {
+    a_boolean  found_copy_assign = FALSE;
+    if (symbol_is(sym, sk_overloaded_function)) {
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_list = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      if (symbol_is(sym, sk_member_function)) {
+        a_type_qualifier_set  qualifiers;
+        a_boolean             ref_param, is_base_class_match;
+        a_routine_ptr         rp = sym->variant.routine.ptr;
+        if (!rp->compiler_generated &&
+            is_assignment_operator_for_copy(
+                                  sym, /*move_assign_okay=*/FALSE, &ref_param,
+                                  &qualifiers, &is_base_class_match)) {
+          found_copy_assign = TRUE;
+          if (is_non_throwing_routine(rp)) {
+            /* This copy assignment operator is known not to throw exceptions:
+               Continue checking other operators (if any). */
+          } else {
+            /* A throwing copy assignment operator. */
+            break;
+          }  /*if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (found_copy_assign) {
+      /* There were user-declared copy assignment operators.  If any throws,
+         sym points to the first one encountered. */
+      result = sym == NULL;
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* The copy assignment operator is generated: Look through the fields and
+     direct base classes to see if any of them make the result FALSE. */
+  fp = class_type->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    tp = skip_array_types(fp->type);
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) && !compute_has_nothrow_assign(tp)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  bcp = base_classes_of(class_type);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      tp = skip_typerefs(bcp->type);
+      if (is_immediate_class_type(tp) && !compute_has_nothrow_assign(tp)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  return result;
+}  /*  compute_has_nothrow_assign */
+
+
+static a_boolean compute_has_nothrow_copy(a_type_ptr  class_type)
+/*
+Return TRUE if (and only if) this class' copy constructors are known not to
+throw exceptions.  This can be used to determine the value of the type trait
+pseudo-function __has_nothrow_copy, but in Microsoft mode, additional checking
+is needed (see microsoft_has_copy_predicate). 
+*/
+{
+  a_field_ptr       fp;
+  a_base_class_ptr  bcp;
+  a_type_ptr        tp;
+  a_symbol_ptr      sym;
+  a_boolean         is_list;
+  a_boolean         result = TRUE;
+
+  /* First examine any copy constructors. */
+  sym = class_symbol_supp(symbol_for(class_type))->constructor;
+  if (sym != NULL) {
+    a_boolean  found_copy_ctor = FALSE;
+    if (symbol_is(sym, sk_overloaded_function)) {
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_list = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      if (symbol_is(sym, sk_member_function)) {
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        a_type_ptr     rtp = skip_typerefs(rp->type);
+        if (!rp->compiler_generated &&
+            is_copy_constructor_type(rtp, class_type,
+                                     (a_type_qualifier_set *)NULL,
+                                     /*include_move_ctors=*/FALSE,
+                                     /*is_declarative_context=*/TRUE)) {
+          found_copy_ctor = TRUE;
+          if (is_non_throwing_routine(rp)) {
+            /* This copy constructor is known not to throw exceptions:
+               Continue checking other constructors (if any). */
+          } else {
+            /* A throwing copy constructor. */
+            break;
+          }  /*if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (found_copy_ctor) {
+      /* There were user-declared copy constructors.  If any throws, sym points
+         to the first one encountered. */
+      result = sym == NULL;
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* The copy constructor is generated: Look through the fields and direct
+     base classes to see if any of them make the result FALSE. */
+  fp = class_type->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    tp = skip_array_types(fp->type);
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) && !compute_has_nothrow_copy(tp)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  bcp = base_classes_of(class_type);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      tp = skip_typerefs(bcp->type);
+      if (is_immediate_class_type(tp) && !compute_has_nothrow_copy(tp)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  return result;
+}  /*  compute_has_nothrow_copy */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean microsoft_has_assign_predicate(a_type_ptr                type,
@@ -7290,7 +7446,7 @@ of declaration of the assignment operators.
     /* If no copy assignment operator was found in the class, return the
        flag as recorded in the class supplement (which is independent of the
        declaration order of e.g. operator= in base classes). */
-    result = cssp->has_nothrow_assign;
+    result = compute_has_nothrow_assign(type);
   }  /* if */
   return result;
 }  /* microsoft_has_assign_predicate */
@@ -7352,7 +7508,7 @@ of declaration of the constructors.
     /* If no copy constructor was found in the class, return the flag as
        recorded in the class supplement (which is independent of the
        declaration order of e.g. constructors in base classes). */
-    result = cssp->has_nothrow_copy;
+    result = compute_has_nothrow_copy(type);
   }  /* if */
   return result;
 }  /* microsoft_has_copy_predicate */
@@ -7730,7 +7886,7 @@ constant will be set as well.
         if (!microsoft_mode) {
           check_assertion(kind ==
                             (a_builtin_operation_kind)bok_has_nothrow_assign);
-          result = !is_const && cssp->has_nothrow_assign;
+          result = !is_const && compute_has_nothrow_assign(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
           result = microsoft_has_assign_predicate(type, kind);
@@ -7743,7 +7899,7 @@ constant will be set as well.
         if (!microsoft_mode) {
           check_assertion(kind ==
                               (a_builtin_operation_kind)bok_has_nothrow_copy);
-          result = cssp->has_nothrow_copy;
+          result = compute_has_nothrow_copy(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
           result = microsoft_has_copy_predicate(type, kind);

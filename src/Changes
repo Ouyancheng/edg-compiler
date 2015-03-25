@@ -1,5 +1,25 @@
 Version 4.11
 
+3/24/15  [EDGcpfe/16110]
+Over-eager instantiation of noexcept-specifier arguments
+
+Consider the following example in GNU C++ mode:
+
+  template<typename T> struct S {
+    S();
+    S(const S&) noexcept(S<T>::value);
+  };
+  S<int> t;
+
+The front end previously issued an error on S<int>::value even though the
+associated constructor is not used in this code.  The was triggered by an
+attempt of the front end to pre-compute the results of the __has_nothrow_copy
+and __has_nothrow_assign type trait helper operators.  The front end no longer
+does this precomputation and the example is now accepted in GNU C++ mode (in
+strict mode, the code elicits an error because that constructor has no valid
+instantiation for any T).
+
+
 3/24/15  [EDGcpfe/16103]
 Abort on use of a static data member of a managed class in constant context
 

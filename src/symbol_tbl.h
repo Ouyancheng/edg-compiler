@@ -1279,12 +1279,6 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	standard_layout:1;
 			/* TRUE if this is a "standard layout" class as
 			   defined by C++11. */
-  a_bit_field	has_nothrow_copy:1;
-			/* TRUE if this class' copy constructors are known not
-			   to throw exceptions. */
-  a_bit_field	has_nothrow_assign:1;
-			/* TRUE if this class' copy assignment operators are
-			   known not to throw exceptions. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	disable_dispose_pattern_implementation:1;
 			/* TRUE if check_for_reserved_dispose_pattern_member

@@ -8732,12 +8732,6 @@ to FALSE before returning).
   if (!bcp_cssp->standard_layout) {
     cssp->standard_layout = FALSE;
   }  /* if */
-  if (!bcp_cssp->has_nothrow_copy) {
-    cssp->has_nothrow_copy = FALSE;
-  }  /* if */
-  if (!bcp_cssp->has_nothrow_assign) {
-    cssp->has_nothrow_assign = FALSE;
-  }  /* if */
   if (bcp_type->variant.class_struct_union.any_volatile_member) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
   }  /* if */
@@ -18187,12 +18181,6 @@ be entered.
         if (!member_cssp->standard_layout) {
           cssp->standard_layout = FALSE;
         }  /* if */
-        if (!member_cssp->has_nothrow_copy) {
-          cssp->has_nothrow_copy = FALSE;
-        }  /* if */
-        if (!member_cssp->has_nothrow_assign) {
-          cssp->has_nothrow_assign = FALSE;
-        }  /* if */
         /* If the member type has any members of ref type, propagate the
            flag to the parent type. */
         if (member_cssp->any_ref_member) cssp->any_ref_member = TRUE;
@@ -27542,102 +27530,6 @@ from TRUE to FALSE.
 }  /* wrapup_standard_layout_flag */
 
 
-static void wrapup_nothrow_assign_and_copy_flags(a_type_ptr  class_type)
-/*
-Update the has_nothrow_assign and has_nothrow_copy flags in the symbol
-supplement of the given type to reflect the presence of, respectively,
-copy assignment operators and copy constructors that might throw exceptions
-when called.  (These flags can be used to determine the value of the type
-trait pseudo-functions __has_nothrow_assign and __has_nothrow_copy, but in
-Microsoft mode, additional checking is needed.) 
-*/
-{
-  a_class_symbol_supplement_ptr
-                cssp = symbol_supplement_for_class(class_type);
-  a_symbol_ptr  sym;
-  a_boolean     is_list;
-
-  /* Look through the list of constructors for copy constructors: If any one
-     might throw, set the has_nothrow_copy flag to FALSE.  If there are no
-     user-declared copy constructors, leave the flag value unchanged (on entry
-     it reflects whether a generated copy constructor might throw). */
-  sym = cssp->constructor;
-  if (sym == NULL) {
-    /* No (copy) constructor is declared in this class.  Leave the
-       has_nothrow_copy flag as concluded from bases and members. */
-  } else {
-    a_boolean  found_copy_ctor = FALSE;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_list = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_list = FALSE;
-    }  /* if */
-    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        a_routine_ptr  rp = sym->variant.routine.ptr;
-        a_type_ptr     rtp = skip_typerefs(rp->type);
-        if (!rp->compiler_generated &&
-            is_copy_constructor_type(rtp, class_type,
-                                     (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/FALSE,
-                                     /*is_declarative_context=*/TRUE)) {
-          found_copy_ctor = TRUE;
-          if (is_non_throwing_routine(rp)) {
-            /* This copy constructor is known not to throw exceptions:
-               Continue checking other constructors (if any). */
-          } else {
-            /* A throwing copy constructor. */
-            break;
-          }  /*if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (found_copy_ctor) {
-      cssp->has_nothrow_copy = (sym == NULL);
-    }  /* if */
-  }  /* if */
-  /* Apply a similar process for assignment operators. */
-  sym = cssp->assignment_operator;
-  if (sym == NULL) {
-    /* No (copy) assignment operator is declared in this class.  Leave the
-       has_nothrow_assign flag as concluded from bases and members. */
-  } else {
-    a_boolean  found_copy_assign = FALSE;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_list = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_list = FALSE;
-    }  /* if */
-    /* Look for a throwing copy assignment operator. */
-    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        a_type_qualifier_set  qualifiers;
-        a_boolean             ref_param, is_base_class_match;
-        a_routine_ptr         rp = sym->variant.routine.ptr;
-        if (!rp->compiler_generated &&
-            is_assignment_operator_for_copy(
-                                  sym, /*move_assign_okay=*/FALSE, &ref_param,
-                                  &qualifiers, &is_base_class_match)) {
-          found_copy_assign = TRUE;
-          if (is_non_throwing_routine(rp)) {
-            /* This copy assignment operator is known not to throw exceptions:
-               Continue checking other operators (if any). */
-          } else {
-            /* A throwing copy assignment operator. */
-            break;
-          }  /*if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (found_copy_assign) {
-      cssp->has_nothrow_assign = (sym == NULL);
-    }  /* if */
-  }  /* if */
-}  /* wrapup_nothrow_assign_and_copy_flags */
-
-
 static void instantiate_delayed_exception_spec_args_if_needed(
                                               a_class_def_state  *class_state)
 /*
@@ -28339,9 +28231,6 @@ wrap_up_class_definition.
     check_base_member_hiding(class_state);
     /* Add final checks for the "standard_layout" flag. */
     wrapup_standard_layout_flag(class_type);
-    /* Add final checks for the "has_nothrow_copy" and "has_nothrow_assign"
-       flags. */
-    wrapup_nothrow_assign_and_copy_flags(class_type);
     /* Check the exception specification relationship for override pairs where
        the overrider's exception specification was not known at the point of
        declaration. */
