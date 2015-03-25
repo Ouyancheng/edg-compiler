@@ -4354,6 +4354,7 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;
+  a_boolean             need_closing_paren = FALSE;
 
   write_tok_str("(");
   for (; aap != NULL; aap = aap->next) {
@@ -4370,7 +4371,26 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         write_tok_str(aap->variant.token);
         break;
       case aak_constant:
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+        if (gcc_is_generated_code_target &&
+                                           gnu_target_version_number < 40600) {
+          /* Versions of g++ prior to 4.6 apparently require that a
+             non-type template parameter used as an attribute argument be
+             enclosed in an extra set of parentheses.  Otherwise, the
+             argument is not recognized as being a constant when the
+             template is instantiated.  We cannot rely on the need_parens
+             argument to gen_constant because it only puts out parentheses
+             when the precedence might be wrong, which will not be the case
+             for the name of a template parameter, so we put out the extra
+             parentheses directly here. */
+          write_tok_ch('(');
+          need_closing_paren = TRUE;
+        }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
         gen_constant(aap->variant.constant, /*need_parens=*/FALSE);
+        if (need_closing_paren) {
+          write_tok_ch(')');
+        }  /* if */
         break;
       case aak_type:
         gen_type(aap->variant.type);

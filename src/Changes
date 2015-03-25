@@ -1,5 +1,24 @@
 Version 4.11
 
+3/25/15  [EDGcpfe/15245]
+C++-generating back end, GNU compatibility: parenthesized non-type template
+parameters as attribute arguments
+
+Versions of g++ prior to 4.6 require that a non-type template parameter
+used as an argument to an attribute be enclosed in an extra set of
+parentheses.  The C++-generating back end has now been changed to
+accommodate this requirement.  For example, in a configuration with
+CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT set to TRUE and
+--gnu_version=40500:
+
+  template<int I> struct S {
+    // The following was previously generated as "__aligned(I)":
+    struct __attribute__((__aligned__((I)))) { } a;
+  };
+  int i = sizeof(S<4>);  // Previously caused a "not a constant" error in
+                         // g++ versions 4.5 and earlier
+
+
 3/25/15  [EDGcpfe/16111]
 Assertion failure when lowering initialization of multi-dimensional array
 
