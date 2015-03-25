@@ -27,12 +27,12 @@ Consider the following example in GNU C++ mode:
   S<int> t;
 
 The front end previously issued an error on S<int>::value even though the
-associated constructor is not used in this code.  The was triggered by an
-attempt of the front end to pre-compute the results of the __has_nothrow_copy
-and __has_nothrow_assign type trait helper operators.  The front end no longer
-does this precomputation and the example is now accepted in GNU C++ mode (in
-strict mode, the code elicits an error because that constructor has no valid
-instantiation for any T).
+associated constructor is not used in this code.  The error was triggered by
+an attempt of the front end to pre-compute the results of the type trait
+helper operators __has_nothrow_copy and __has_nothrow_assign.  The front end
+no longer does this precomputation and the example is now accepted in GNU C++
+mode (in strict mode, the code elicits an error because that constructor has
+no valid instantiation for any T).
 
 
 3/24/15  [EDGcpfe/16103]

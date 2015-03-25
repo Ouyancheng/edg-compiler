@@ -7233,10 +7233,10 @@ constant will be set as well.
 
 static a_boolean compute_has_nothrow_assign(a_type_ptr  class_type)
 /*
-Return TRUE if (and only if) this class' copy constructors are known not to
-throw exceptions.  This can be used to determine the value of the type trait
-pseudo-function __has_nothrow_copy, but in Microsoft mode, additional checking
-is needed (see microsoft_has_copy_predicate). 
+Return TRUE if (and only if) this class' copy assignment operators are known
+not to throw exceptions.  This can be used to determine the value of the type
+trait pseudo-function __has_nothrow_assign, but in Microsoft mode, additional
+checking is needed (see microsoft_has_assign_predicate). 
 */
 {
   a_field_ptr       fp;
@@ -7393,9 +7393,9 @@ static a_boolean microsoft_has_assign_predicate(a_type_ptr                type,
 /*
 Determine the value of the __has_assign or __has_nothrow_assign pseudo-function
 (as indicated by kind) applied to the given type in Microsoft mode.
-Ordinarily, the result for __has_nothrow_assign can be retrieved from a class'
-symbol supplement, but in Microsoft mode, the result can depend on the order
-of declaration of the assignment operators.
+Ordinarily, the result for __has_nothrow_assign is determined by a call to
+compute_has_nothrow_assign, but in Microsoft mode, the result can depend on
+the order of declaration of the assignment operators.
 */
 {
   a_class_symbol_supplement_ptr
@@ -7444,8 +7444,8 @@ of declaration of the assignment operators.
   if (!found_copy_assign &&
       kind == (a_builtin_operation_kind)bok_has_nothrow_assign) {
     /* If no copy assignment operator was found in the class, return the
-       flag as recorded in the class supplement (which is independent of the
-       declaration order of e.g. operator= in base classes). */
+       normal value (which is independent of the declaration order of, e.g.,
+       operator= in base classes). */
     result = compute_has_nothrow_assign(type);
   }  /* if */
   return result;
@@ -7457,9 +7457,9 @@ static a_boolean microsoft_has_copy_predicate(a_type_ptr                type,
 /*
 Determine the value of the __has_copy or __has_nothrow_copy pseudo-function
 (as indicated by kind) applied to the given type in Microsoft mode.
-Ordinarily, the result for __has_nothrow_copy can be retrieved from a class'
-symbol supplement, but in Microsoft mode, the result can depend on the order
-of declaration of the constructors.
+Ordinarily, the result for __has_nothrow_copy is determined by a call to
+compute_has_nothrow_copy, but in Microsoft mode, the result can depend on the
+order of declaration of the constructors.
 */
 {
   a_class_symbol_supplement_ptr
@@ -7505,9 +7505,9 @@ of declaration of the constructors.
   }  /* if */
   if (!found_copy_ctor &&
       kind == (a_builtin_operation_kind)bok_has_nothrow_copy) {
-    /* If no copy constructor was found in the class, return the flag as
-       recorded in the class supplement (which is independent of the
-       declaration order of e.g. constructors in base classes). */
+    /* If no copy constructor was found in the class, return the normal value
+       (which is independent of the declaration order of, e.g., constructors
+       in base classes). */
     result = compute_has_nothrow_copy(type);
   }  /* if */
   return result;
