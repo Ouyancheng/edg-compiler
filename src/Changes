@@ -23,7 +23,7 @@ instantiation for any T).
 3/24/15  [EDGcpfe/16103]
 Abort on use of a static data member of a managed class in constant context
 
-In modes combining C++/CLI and C++11 (e.g., with "--cppcli --c++11) the front
+In modes combining C++/CLI and C++11 (e.g., with "--cppcli --c++11") the front
 end sometimes aborted (with a null pointer dereference in
 define_template_static_data_member) when a const static data member with an
 in-class initializer was used in a constant-expression context.  For example:
