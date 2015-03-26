@@ -15872,14 +15872,15 @@ constants and (in some emulations) folded cast expressions.
   /* The C++11 standard allows not only "null pointer constants", but, more
      generally, "null pointer values" (which can result from casting a null
      pointer constant to a pointer type).  Microsoft compilers also allow
-     something like "&typeid(X)".  Microsoft compilers, as well as g++ (but
-     not clang) in C++11 mode, accept casts on pointers and pointers to
-     members. */
+     things like "&typeid(X)" and "&__uuidof(X)".  Microsoft compilers, as
+     well as g++ (but not clang) in C++11 mode, accept casts on pointers
+     and pointers to members. */
   if (null_value_okay && is_null_pointer_constant(con)) {
     result = TRUE;
   } else if (con->kind == (a_constant_repr_kind)ck_address) {
     if (microsoft_mode &&
-              con->variant.address.kind == (an_address_base_kind)abk_typeid) {
+             (con->variant.address.kind == (an_address_base_kind)abk_typeid ||
+              con->variant.address.kind == (an_address_base_kind)abk_uuidof)) {
       result = TRUE;
     } else if (!null_value_okay) {
       /* The remaining clauses test null pointer value and cast cases. */
