@@ -2481,47 +2481,51 @@ arrays, give the total number of elements.
 }  /* num_array_elements */
 
 
-a_boolean types_have_same_array_dimensions(
-                                     a_type_ptr tp1,
-                                     a_type_ptr tp2,
-                                     a_boolean  ignore_dimension_on_char_array)
+a_boolean constant_fully_initializes_type(a_constant_ptr con,
+                                          a_type_ptr     type)
 /*
-Returns TRUE if the specified types have the same array dimensions (i.e.,
-number of dimensions as well as dimensions themselves).  Two types that aren't
-array types are considered to have the same dimension.  When
-ignore_dimension_on_char_array is TRUE, return TRUE if the underlying
-elements of the two array types are character types and the dimensions are
-not the same (occurs when initializing character arrays to smaller character
-strings).
+Returns TRUE if the specified constant fully initializes the specified type.
+Generally this verifies that the constant and the type have the same "shape",
+that is that if relevant types have the same array dimensions (i.e., number of
+dimensions as well as dimensions themselves).  The exception is that a
+ck_string constant is considered to fully initialize a character array.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean   result = FALSE;
+  a_type_ptr  con_type;
 
-  tp1 = skip_typerefs(tp1);
-  tp2 = skip_typerefs(tp2);
-  if (!is_array(tp1) && !is_array(tp2)) {
+  if (con->kind == (a_constant_repr_kind)ck_designator) {
+    /* Skip any designators. */
+    check_assertion(con->next != NULL);
+    con = con->next;
+  }  /* if */
+  if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* Use the repeated constant for type comparisons. */
+    con = con->variant.init_repeat.constant;
+  }  /* if */
+  con_type = skip_typerefs(con->type);
+  type = skip_typerefs(type);
+  if (!is_array(type) && !is_array(con_type)) {
     /* Neither type is an array, so they have the same "dimension". */
     result = TRUE;
-  } else if (is_array(tp1) && is_array(tp2)) {
-    if (tp1->variant.array.variant.number_of_elements ==
-                             tp2->variant.array.variant.number_of_elements) {
+  } else if (is_array(type) && is_array(con_type)) {
+    if (con->kind == (a_constant_repr_kind)ck_string &&
+               is_character_type(skip_typerefs(
+                                          type->variant.array.element_type))) {
+      /* A ck_string fully initializes a character array. */
+      result = TRUE;
+    } else if (type->variant.array.variant.number_of_elements ==
+                          con_type->variant.array.variant.number_of_elements) {
       /* Both are array types and have the same number of elements; check the
          element types. */
-      result = types_have_same_array_dimensions(
-                                              tp1->variant.array.element_type,
-                                              tp2->variant.array.element_type,
-                                              ignore_dimension_on_char_array);
-    } else if (ignore_dimension_on_char_array &&
-               is_character_type(skip_typerefs(
-                                           tp1->variant.array.element_type)) &&
-               is_character_type(skip_typerefs(
-                                           tp2->variant.array.element_type))) {
-      /* Both are arrays of characters, but the dimensions differ. */
-      result = TRUE;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
+      con = con->variant.aggregate.first_constant;
+      result = constant_fully_initializes_type(con,
+                                             type->variant.array.element_type);
     }  /* if */
   }  /* if */
   return result;
-}  /* types_have_same_array_dimensions */
+}  /* constant_fully_initializes_type */
 
 #if GNU_VECTOR_TYPES_ALLOWED
 

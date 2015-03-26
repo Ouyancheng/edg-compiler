@@ -12870,8 +12870,7 @@ have already had their designated initializers lowered.
         a_type_ptr     elem_type;
         check_assertion(is_array_type(aggr_type));
         elem_type = array_element_type(aggr_type);
-        if (!types_have_same_array_dimensions(elem_type, repeated_con->type,
-                                    /*ignore_dimension_on_char_array=*/TRUE)) {
+        if (!constant_fully_initializes_type(repeated_con, elem_type)) {
           /* As a shortcut, the IL allows a single "leaf" entity to be
              repeated for a multi-dimensional aggregate constant.  Remove
              this shortcut and create IL that represents the structure of the
