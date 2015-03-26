@@ -305,9 +305,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,find_mv_target_specific_routine)*/
 /*lint -esym(765,find_mv_target_specific_routine)*/
 /*lint -esym(769,ec_resolver_routine_required)*/
-/*lint -esym(759,types_have_same_array_dimensions)*/
-/*lint -esym(714,types_have_same_array_dimensions)*/
-/*lint -esym(765,types_have_same_array_dimensions)*/
+/*lint -esym(759,constant_fully_initializes_type)*/
+/*lint -esym(714,constant_fully_initializes_type)*/
+/*lint -esym(765,constant_fully_initializes_type)*/
 /*lint -esym(759,copy_array_type_replacing_element_type)*/
 /*lint -esym(765,copy_array_type_replacing_element_type)*/
 #endif /* !DO_IL_LOWERING */
