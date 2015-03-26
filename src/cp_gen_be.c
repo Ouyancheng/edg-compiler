@@ -4373,7 +4373,9 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       case aak_constant:
 #if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
         if (gcc_is_generated_code_target &&
-                                           gnu_target_version_number < 40600) {
+            gnu_target_version_number < 40600 &&
+            aap->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
           /* Versions of g++ prior to 4.6 apparently require that a
              non-type template parameter used as an attribute argument be
              enclosed in an extra set of parentheses.  Otherwise, the
