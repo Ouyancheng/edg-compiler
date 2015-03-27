@@ -2486,7 +2486,7 @@ a_boolean constant_fully_initializes_type(a_constant_ptr con,
 /*
 Returns TRUE if the specified constant fully initializes the specified type.
 Generally this verifies that the constant and the type have the same "shape",
-that is that if relevant types have the same array dimensions (i.e., number of
+that is, the relevant types have the same array dimensions (i.e., number of
 dimensions as well as dimensions themselves).  The exception is that a
 ck_string constant is considered to fully initialize a character array.
 */
