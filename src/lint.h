@@ -410,6 +410,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_signed_integer_value)*/
 /*lint -esym(765, db_hash_ptr)*/
 /*lint -esym(714, db_hash_ptr)*/
+/*lint -esym(765, db_int_val)*/
+/*lint -esym(714, db_int_val)*/
 /*lint -esym(765, db_call_stack)*/
 /*lint -esym(714, db_call_stack)*/
 #endif /* DEBUG */

@@ -22,6 +22,8 @@ a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);
 
+a_host_large_integer db_int_val(a_byte  *val_bytes);
+
 void db_call_stack(void  *ips);
 #endif /* DEBUG */
 

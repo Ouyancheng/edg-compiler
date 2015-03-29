@@ -480,7 +480,7 @@ Double the size of the overflow area of the given live set.
       }  /* if */                                                            \
     } else {                                                                 \
       /* The stack allocation discipline make this is impossible.*/          \
-      unexpected_condition_str("live set id not found");                     \
+      unexpected_condition_str("live_set id not found");                     \
     }  /* if */                                                              \
   }
 
@@ -1442,7 +1442,7 @@ Debug routine to compute a hash value from within a debugger.
 }  /* db_hash_ptr */
 
 
-int db_int_val(a_byte  *val_bytes)
+a_host_large_integer db_int_val(a_byte  *val_bytes)
 /*
 Return the int value stored at val_bytes.  Overflow is ignored.
 */
@@ -1781,28 +1781,30 @@ successfully interpreted, FALSE otherwise.
         a_variable_ptr      vp = dip->variable;
         a_byte              *var_storage;
         get_stack_bytes(ips, vp, var_storage);
-        /* Evaluate the initializer. */
-        switch (dip->kind) {
-          case dik_constant:
-            result = copy_val_from_constant(dip->variant.constant,
-                                            var_storage);
-            break;
-          case dik_expression:
-            do_constexpr_full_expression(ips, dip->variant.expression,
-                                         var_storage, result);
-            break;
-          case dik_class_result_via_ctor:
-          case dik_constructor:
-          case dik_nonconstant_aggregate:
-          case dik_bitwise_copy:
-            /* FIXME: NYI. */
-            unexpected_condition();
-            break;
-          case dik_zero:
-          case dik_none:
-          default:
-            unexpected_condition();
-        }  /* switch */
+        if (var_storage != NULL) {
+          /* Evaluate the initializer. */
+          switch (dip->kind) {
+            case dik_constant:
+              result = copy_val_from_constant(dip->variant.constant,
+                                              var_storage);
+              break;
+            case dik_expression:
+              do_constexpr_full_expression(ips, dip->variant.expression,
+                                           var_storage, result);
+              break;
+            case dik_class_result_via_ctor:
+            case dik_constructor:
+            case dik_nonconstant_aggregate:
+            case dik_bitwise_copy:
+              /* FIXME: NYI. */
+              unexpected_condition();
+              break;
+            case dik_zero:
+            case dik_none:
+            default:
+              unexpected_condition();
+          }  /* switch */
+        }  /* if */
       }
       break;
     case stmk_decl:
@@ -1938,8 +1940,7 @@ storage at value and return TRUE.  Otherwise, return FALSE.
                                 /*a_constexpr_evaluation_block=*/NULL,
                                 val_con)) {
     /* Copy the constant value. */
-    extract_value_from_constant(val_con, value);
-    result = TRUE;
+    result = copy_val_from_constant(val_con, value);
   } else {
     result = FALSE;
   }  /* if */
@@ -2280,7 +2281,7 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               break;
             case eok_call:
-              do_constexpr_call(ips, expr, result_storage);
+              result = do_constexpr_call(ips, expr, result_storage);
               break;
             default:
               unexpected_condition();  /* FIXME: handle errors. */
