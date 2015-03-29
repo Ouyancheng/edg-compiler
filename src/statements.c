@@ -6139,9 +6139,10 @@ See also 3.6.6.4.
       update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    if (current_routine_entry()->is_constexpr &&
+    if (current_routine_entry()->is_constexpr && !relaxed_constexpr_enabled &&
         !special_kind_is(current_routine_entry(), sfk_constructor)) {
-      /* A constexpr function must have exactly one return. */
+      /* A C++11 constexpr function must have exactly one return.  (That
+         restriction is lifted in C++14.) */
       a_scope_ptr scope = scope_stack[depth_innermost_function_scope].il_scope;
       if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
         /* There has already been at least one return in this constexpr
@@ -7388,13 +7389,14 @@ through *p_result_type.
   }  /* if */
   remove_stop_token(tok_rbrace);
   if (at_function_level &&
-      current_routine_entry()->is_constexpr &&
+      current_routine_entry()->is_constexpr && !relaxed_constexpr_enabled &&
       !scope_stack[depth_innermost_function_scope].constexpr_ruled_out &&
       !special_kind_is(current_routine_entry(), sfk_constructor) &&
       !scope_stack[depth_innermost_function_scope].has_at_least_one_return) {
-    /* Check that there is exactly one return statement in a constexpr
-       function (an error has already been given if more than one
-       return was encountered). */
+    /* Check that there is exactly one return statement in a C++11 constexpr
+       function (an error has already been given if more than one return was
+       encountered).  This restriction does not apply to C++14 constexpr
+       functions. */
     pos_error(ec_invalid_constexpr_body, &pos_curr_token);
     scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
   }  /* if */

@@ -9882,7 +9882,9 @@ the variable to which p points has a constant value, return that value.
   if (constexpr_enabled &&
       constant_glvalue_address_full(expr, &ceblock, addr_con,
                                     /*address_escapes=*/FALSE,
-                                    CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
+                                    relaxed_constexpr_enabled ?
+                                         CAO_NONE :
+                                         CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                     (a_boolean *)NULL)) {
     result_con = constant_value_at_address(
                                           addr_con,

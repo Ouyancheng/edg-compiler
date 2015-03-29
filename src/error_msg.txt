@@ -2739,6 +2739,9 @@ ec_internal_error_fill_in;INTERNAL;"%s"
 ec_command_line_warning;INTERNAL;"command-line warning"
 ec_Command_line_warning;INTERNAL;"Command-line warning"
 ec_constexpr_not_const;;"constexpr non-static member function will not be implicitly 'const' in C++14"
+ec_nonliteral_var_in_constexpr_function;;"variable type %t in constexpr function is not a literal type"
+ec_nonautomatic_var_in_constexpr_function;;"variable in constexpr function does not have automatic storage duration"
+ec_uninitialized_var_in_constexpr_function;;"variable in constexpr function is uninitialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

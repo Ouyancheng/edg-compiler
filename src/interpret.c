@@ -105,6 +105,8 @@ target architecture).
 
 typedef unsigned int a_byte_count;
 
+typedef unsigned int an_alloc_seq_number;
+
 /*
 Macro defining the size of large blocks allocated for the storage stack.  These
 large blocks are then parceled out in smaller chunks as requested through the
@@ -138,6 +140,9 @@ typedef struct a_storage_stack_state {
   a_byte	*large_blocks;
 			/* A pointer to the last allocated large block (or NULL
 			   if there is none). */
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* A sequence number used to detect leaks. */
 } a_storage_stack_state;
 
 
@@ -158,7 +163,7 @@ static a_storage_stack_state
 
 
 /*
-Type to use to index into the data map.
+Type to use to index into a data map.
 */
 typedef unsigned int a_map_index;
 
@@ -303,6 +308,220 @@ typedef struct a_call_frame {
 } a_call_frame;
 
 
+
+/*
+Type to use to index into a live set.
+*/
+typedef unsigned int a_live_set_index;
+
+/*
+Type for the entries in a live set table.
+*/
+typedef struct a_live_set_entry {
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* An sequence number in the set. */
+  a_live_set_index
+		next_index;
+			/* The index of the next set entry with an identical
+			   hash value. */
+} a_live_set_entry;
+
+
+/* Macro defining the number of entries in the live set's hash table proper
+   (i.e., not including overflow entries). */
+#define NUM_LIVE_SET_HASH_HEADERS (1<<16)
+
+
+/*
+A hash table maintaining a set of "live" allocation sequence numbers (i.e., the
+sequence numbers of allocations that have not been deallocated yet).
+*/
+typedef struct a_live_set {
+  a_live_set_entry
+		*table;
+			/* The hash table proper. */
+  a_live_set_index
+		overflow_size;
+			/* Number of overflow entries (used in case of hashing
+			   collisions) in the hash table. */
+  a_live_set_index
+		next_free;
+			/* Index of the next available overflow entry. */
+} a_live_set;
+
+
+static void init_live_set_free_list(a_live_set        *set,
+                                    a_live_set_index  first,
+                                    a_live_set_index  last)
+/*
+Establish a "free list" structure on the entries set->table[first] through
+set->table[last].  I.e., each set->table[k].next_index points to the next,
+except for the last entry whose next_index field is set to 0.
+*/
+{
+  a_live_set_entry  *table = set->table;
+
+  while (first != last) {
+    table[first].next_index = first+1;
+    first = first+1;
+  }  /* while */
+  table[last].next_index = 0;
+}  /* init_live_set_free_list */
+
+
+static a_byte	*free_live_set_tables;
+			/* List of live set tables available for reuse. */
+
+static void init_live_set(a_live_set  *set)
+/*
+Initialize the given live set.
+*/
+{
+  if (free_live_set_tables == NULL) {
+    /* Allocate a new table. */
+    a_byte_count  n_bytes;
+    set->overflow_size = 100;
+    set->next_free = NUM_LIVE_SET_HASH_HEADERS;
+    n_bytes = (NUM_LIVE_SET_HASH_HEADERS+set->overflow_size)
+                                         * sizeof(a_live_set_entry);
+    set->table = (a_live_set_entry*)alloc_resizable_buffer(n_bytes);
+  } else {
+    /* Reuse a previously allocated table. */
+    a_live_set  *self_set = (a_live_set*)free_live_set_tables;
+    *set = *self_set;
+    set->table = (a_live_set_entry*)free_live_set_tables;
+    free_live_set_tables = (a_byte*)self_set->table;
+  }  /* if */
+  /* Clear the main set entries. */
+  memzero((char*)set->table,
+          size_t_arg(NUM_LIVE_SET_HASH_HEADERS*sizeof(a_live_set_entry)));
+  /* Establish the free-list structure for the overflow entries. */
+  init_live_set_free_list(set, NUM_LIVE_SET_HASH_HEADERS,
+                          NUM_LIVE_SET_HASH_HEADERS+set->overflow_size-1);
+}  /* init_live_set */
+
+
+static void release_live_set_table(a_live_set  *set)
+/*
+Release the storage for the given set's table.
+*/
+{
+  a_live_set  *self_set = (a_live_set*)set->table;
+
+  /* Embed the set information into the first bytes of the table. */
+  *self_set = *set;
+  /* Prepend the new table to the "free tables" list. */
+  self_set->table = (a_live_set_entry*)free_live_set_tables;
+  free_live_set_tables = (a_byte*)self_set;
+}  /* release_live_set_table */
+
+
+static void expand_live_set(a_live_set  *set)
+/*
+Double the size of the overflow area of the given live set.
+*/
+{
+  a_byte_count  old_byte_size, new_byte_size;
+
+  check_assertion(set->next_free == 0);
+  old_byte_size = (NUM_LIVE_SET_HASH_HEADERS+set->overflow_size)
+                                                    * sizeof(a_live_set_entry);
+  new_byte_size = (NUM_LIVE_SET_HASH_HEADERS+2*set->overflow_size)
+                                                    * sizeof(a_live_set_entry);
+  set->table = (a_live_set_entry*)realloc_buffer((char*)set->table,
+                                                 old_byte_size, new_byte_size);
+  init_live_set_free_list(set, NUM_LIVE_SET_HASH_HEADERS+set->overflow_size,
+                          NUM_LIVE_SET_HASH_HEADERS+2*set->overflow_size-1);
+  set->overflow_size *= 2;
+}  /* expand_live_set */
+
+
+#define hash_alloc_seq_number(seq)                                           \
+  ((seq) % NUM_LIVE_SET_HASH_HEADERS)
+
+
+#define add_to_live_set(set, seq)                                            \
+  { a_live_set_index  idx = hash_alloc_seq_number(seq);                      \
+    a_live_set_entry  *table = (set)->table;                                 \
+    an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
+    if (cached_seq_number != 0) {                                            \
+      /* Move the existing entry to an overflow entry. */                    \
+      a_live_set_index  new_index = (set)->next_free;                        \
+      (set)->next_free = table[new_index].next_index;                        \
+      if (new_index == 0) {                                                  \
+        expand_live_set(set);                                                \
+        new_index = (set)->next_free;                                        \
+      }  /* if */                                                            \
+      table[new_index].alloc_seq_number = cached_seq_number;                 \
+      table[new_index].next_index = table[idx].next_index;                   \
+      table[idx].next_index = new_index;                                     \
+    }  /* if */                                                              \
+    table[idx].alloc_seq_number = (seq);                                     \
+  }
+
+
+#define remove_from_live_set(set, seq)                                       \
+  { a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
+    a_live_set_entry     *table = (set)->table;                              \
+    an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
+    if (cached_seq_number == seq) {                                          \
+      a_live_set_index  prev_index = table[idx].next_index;                  \
+      if (prev_index == 0) {                                                 \
+        /* Only one element in the bucket. */                                \
+        table[idx].alloc_seq_number = 0;                                     \
+      } else {                                                               \
+        /* Move the first overflow entry to the main hash table. */          \
+        table[idx].alloc_seq_number = table[prev_index].alloc_seq_number;    \
+        table[idx].next_index = table[prev_index].next_index;                \
+        /* Recycle the overflow entry. */                                    \
+        table[prev_index].next_index = (set)->next_free;                     \
+        (set)->next_free = prev_index;                                       \
+      }  /* if */                                                            \
+    } else {                                                                 \
+      /* The stack allocation discipline make this is impossible.*/          \
+      unexpected_condition_str("live set id not found");                     \
+    }  /* if */                                                              \
+  }
+
+
+/*
+Return TRUE if the given allocation sequence number is in the given live set.
+This macro is written with the assumption that in the vast majority of cases
+the sequence number is present and it is in the main hash table (and not in
+an overflow entry).
+*/
+#define in_live_set(set, seq)                                                \
+  ((set)->table[hash_alloc_seq_number(seq)].alloc_seq_number == seq ?        \
+    TRUE : f_in_live_set(set, seq))
+
+static a_boolean f_in_live_set(a_live_set           *set,
+                               an_alloc_seq_number  seq)
+/*
+Return TRUE if the given allocation sequence number is in the given live set.
+Return FALSE otherwise.  This is normally always called through the macro
+in_live_set.
+*/
+{
+  a_boolean            result;
+  an_alloc_seq_number  stored_seq;
+  a_live_set_index     idx = hash_alloc_seq_number(seq);
+
+  for (;;) {
+    stored_seq = set->table[idx].alloc_seq_number;
+    if (stored_seq == seq) {
+      result = TRUE;
+      break;
+    } else if (stored_seq == 0) {
+      result = FALSE;
+      break;
+    } else {
+      idx = set->table[idx].next_index;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* f_in_live_set */
+
 /*
 Structure maintaining data about the IL interpreter across a complete
 interpretation of a constexpr function and its callees.
@@ -315,6 +534,10 @@ typedef struct an_interpreter_state {
   a_storage_stack_state
 		storage_stack;
 			/* The current state of the storage stack. */
+  a_live_set
+		live_set;
+			/* The set of allocation sequence numbers that are
+			   still "live". */
   a_call_frame_ptr
 		curr_call_frame;
 			/* The currently active call. */
@@ -326,11 +549,16 @@ typedef struct an_interpreter_state {
   unsigned long	cost;
 			/* An interpretation "cost" counter.  It counts the
 			   number of calls and loop-back branches. */
+  an_alloc_seq_number
+		curr_alloc_seq_number;
+			/* A sequence number counting the number of saved
+			   storage stack states.  This is used to detect
+			   dangling pointers. */
 } an_interpreter_state;
 
 
 #define cost_exceeded(ips)                                                   \
-  (++(ips)->cost > 1000000)
+  (++(ips)->cost > 2000000)
 
 
 static a_byte	*free_stack_blocks;
@@ -359,6 +587,7 @@ Initialize stack storage for the given storage stack.
   *(a_byte**)(new_block+ptr_size) = NULL;
   /* Leave space for the bookkeeping information (three pointers). */
   sss->top = sss->curr_block+3*ptr_size;
+  sss->alloc_seq_number = 1;
 }  /* init_constexpr_stack */
 
 
@@ -394,6 +623,8 @@ Initialize the given interpreter state.
 {
   init_data_map(&ips->map);
   init_constexpr_stack(&ips->storage_stack);
+  init_live_set(&ips->live_set);
+  ips->curr_alloc_seq_number = 1;
   ips->diagnostic = NULL;
   ips->cost = 0;
 }  /* init_interpreter_state */
@@ -407,6 +638,8 @@ Release the storage allocated for the given interpreter state.
   release_constexpr_stack(&ips->storage_stack);
   release_data_map_table(&ips->map);
   ips->map.table = NULL;
+  release_live_set_table(&ips->live_set);
+  ips->live_set.table = NULL;
 }  /* release_interpreter_state */
 
 
@@ -483,12 +716,18 @@ state.
 Macros to save and restore an allocation stack state.
 */
 #define save_storage_stack(ips, state)                                       \
-  ((state) = (ips)->storage_stack)
+  {                                                                          \
+    (state) = (ips)->storage_stack;                                          \
+    (ips)->storage_stack.alloc_seq_number = ++(ips)->curr_alloc_seq_number;  \
+    add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);         \
+  }
 
 #define restore_storage_stack(ips, state)                                    \
   {                                                                          \
     a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks,          \
             *saved_large_blocks = (state).large_blocks;                      \
+    remove_from_live_set(&(ips)->live_set,                                   \
+                         (ips)->storage_stack.alloc_seq_number);             \
     while (curr_large_blocks != saved_large_blocks) {                        \
       a_byte  *large_block = curr_large_blocks;                              \
       curr_large_blocks = ((a_large_block_header*)large_block)               \
@@ -609,7 +848,7 @@ Macro to retrieve a pointer (dptr) associated with a pointer into the IL
 (iptr) from a given data map.
 */
 #define get_mapped_ptr(map, iptr, dptr)                                      \
-  { a_byte_count  idx = hash_il_ptr((a_byte*)(iptr));                        \
+  { a_map_index   idx = hash_il_ptr((a_byte*)(iptr));                        \
     a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
     if (cached_ptr == (a_byte*)(iptr)) {                                     \
       (dptr) = (map)->table[idx].data.ptr;                                   \
@@ -628,7 +867,7 @@ Macro to retrieve a byte count (bcount) associated with a pointer into the IL
 (iptr) from a given data map.
 */
 #define get_mapped_byte_count(map, iptr, bcount)                             \
-  { a_byte_count  idx = hash_il_ptr((a_byte*)(iptr));                        \
+  { a_map_index   idx = hash_il_ptr((a_byte*)(iptr));                        \
     a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
     if (cached_ptr == (a_byte*)(iptr)) {                                     \
       (bcount) = (map)->table[idx].data.byte_count;                          \
@@ -674,7 +913,7 @@ Double the size of the overflow area of the given map.
 Macro to add a (pointer, pointer) entry to a data map.
 */
 #define map_ptr(map, iptr, dptr)                                             \
-  { a_byte_count      idx = hash_il_ptr(iptr);                               \
+  { a_map_index       idx = hash_il_ptr(iptr);                               \
     a_data_map_entry  *table = (map)->table;                                 \
     a_byte            *cached_ptr = table[idx].ptr;                          \
     if (cached_ptr != NULL) {                                                \
@@ -684,6 +923,7 @@ Macro to add a (pointer, pointer) entry to a data map.
         expand_map(map);                                                     \
       }  /* if */                                                            \
       new_index = (map)->next_free;                                          \
+      (map)->next_free = table[new_index].next_index;                        \
       table[new_index].ptr = cached_ptr;                                     \
       table[new_index].data = table[idx].data;                               \
       table[new_index].next_index = table[idx].next_index;                   \
@@ -697,7 +937,7 @@ Macro to add a (pointer, pointer) entry to a data map.
 Macro to add a (pointer, byte-count) entry to a data map.
 */
 #define map_byte_count(map, iptr, bcount)                                    \
-  { a_byte_count      idx = hash_il_ptr(iptr);                               \
+  { a_map_index       idx = hash_il_ptr(iptr);                               \
     a_data_map_entry  *table = (map)->table;                                 \
     a_byte            *cached_ptr = table[idx].ptr;                          \
     if (cached_ptr != NULL) {                                                \
@@ -707,6 +947,7 @@ Macro to add a (pointer, byte-count) entry to a data map.
         expand_map(map);                                                     \
       }  /* if */                                                            \
       new_index = (map)->next_free;                                          \
+      (map)->next_free = table[new_index].next_index;                        \
       table[new_index].ptr = cached_ptr;                                     \
       table[new_index].data = table[idx].data;                               \
       table[new_index].next_index = table[idx].next_index;                   \
@@ -833,6 +1074,10 @@ typedef struct a_constexpr_address {
 			/* If in_array is TRUE, the number of
 			   elements in the array. */
 #endif /* 0 */  
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* The allocation sequence number of the storage
+			   pointed to. */
   union {
 #if 0    
     /* When in_array is TRUE: */
@@ -1197,6 +1442,21 @@ Debug routine to compute a hash value from within a debugger.
 }  /* db_hash_ptr */
 
 
+int db_int_val(a_byte  *val_bytes)
+/*
+Return the int value stored at val_bytes.  Overflow is ignored.
+*/
+{
+  a_host_large_integer  val;
+  a_boolean             ovfl;
+
+  conv_integer_value_to_host_large_integer(
+                            (an_integer_value *)val_bytes, /*is_signed=*/TRUE,
+                            &val, &ovfl);
+  return val;
+}  /* db_int_val */
+
+
 void db_call_stack(void  *ips)
 /*
 Output a summary of the interpreted call stack.  ips is a pointer to an
@@ -1216,14 +1476,6 @@ expose an_interpreter_state in outside this source file).
 #endif /* DEBUG */
 
 
-static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
-                                        a_statement_ptr       stmt);
-
-static a_boolean do_constexpr_expression(
-                                       an_interpreter_state  *ips,
-                                       an_expr_node_ptr      expr,
-                                       a_byte                *result_storage);
-
 /*
 Macro to release a local constant captured by a glvalue or pointer
 expression (i.e., an a_constexpr_address value).  expr is the expression
@@ -1242,6 +1494,76 @@ expr after applying skip_typerefs.
 
 
 /*
+Useful constants.
+*/
+static an_integer_value
+		zero_int;
+static an_integer_value
+		one_int;
+static an_internal_float_value
+		zero_flt[(int)fk_last];
+static an_internal_float_value
+		one_flt[(int)fk_last];
+static a_boolean
+		useful_constants_initialized;
+			/* Flag indicating whether these constants have
+			   been initialized yet. */
+
+
+static a_boolean extract_value_from_constant(a_constant_ptr        con,
+                                             a_byte                *value)
+/*
+Copy the value of con into the interpreter storage at value, converting
+formats as necessary.  Return FALSE if the constant is an error constant.
+*/
+{
+  a_boolean  result = TRUE;
+
+  switch (con->kind) {
+    case ck_error:
+      result = FALSE;
+      break;
+    case ck_integer:
+      *(an_integer_value *)value = con->variant.integer_value;
+      break;
+    case ck_float:
+      *(an_internal_float_value *)value = con->variant.float_value;
+      break;
+    case ck_address:
+      {
+        /* Create an a_constexpr_address for the runtime constant, which
+           requires a local constant. */
+        a_constant_ptr addr_con = local_constant();
+        copy_constant(con, addr_con);
+        clear_runtime_constant_address(value, addr_con);
+      }
+      break;
+    default:
+      unexpected_condition();  /* FIXME: handle more kinds of constants. */
+  }  /* switch */
+  return result;
+}  /* extract_value_from_constant */
+
+
+/*
+Macro to set result_storage from the value of the specified constant.
+Duplicates some cases from extract_value_from_constant for performance
+reasons.
+*/
+#define copy_val_from_constant(con, result_storage)                           \
+  (                                                                           \
+    ((con)->kind == (a_constant_repr_kind)ck_integer) ?                       \
+      (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
+       TRUE):                                                                 \
+    ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
+      ((*(an_internal_float_value *)(result_storage) =                        \
+                                  (con)->variant.float_value), TRUE) :        \
+    /* else */                                                                \
+      extract_value_from_constant(con, result_storage)                        \
+  )  /* copy_val_from_constant */
+
+
+/*
 Macro to interpret a full-expression.
 */
 #define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
@@ -1251,6 +1573,15 @@ Macro to interpret a full-expression.
     (result_flag) = do_constexpr_expression((ips), (expr), (result_storage)); \
     restore_storage_stack(ips, saved_stack_for_full_expr);                    \
   }
+
+static a_boolean do_constexpr_expression(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_byte                *result_storage);
+
+
+static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
+                                        a_statement_ptr       stmt);
 
 
 static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
@@ -1270,31 +1601,42 @@ Interpret the given block statement and its associated scope (if any).
        storage.  Don't do this for parameter variables since they're
        already allocated and mapped. */
     a_variable_ptr  vp = scope->nonstatic_variables;
-    for (; vp != NULL; vp = vp->next) {
-      a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
-      a_byte        *var_storage;
-      if (!local_storage) {
-        save_storage_stack(ips, saved_stack);
-        local_storage = TRUE;
+    if (vp != NULL) {
+      save_storage_stack(ips, saved_stack);
+      local_storage = TRUE;
+      do {
+        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
+        a_byte        *var_storage;
+        alloc_stack_bytes(ips, n_bytes, var_storage);
+        /* Associate with the variable its value storage. */
+        map_stack_bytes(ips, vp, var_storage);
+        /* Also associate with the variable (somewhat arbitrarily, with its
+           "storage_class" field) an allocation sequence number that may be
+           used to detect leaks. */
+        map_byte_count(&ips->map, &vp->storage_class,
+                       ips->curr_alloc_seq_number);
+        vp = vp->next;
+      } while (vp != NULL);
+    }  /* if */
+  }  /* if */
+  if (result) {
+    /* Interpret the statements in the block. */
+    for (; result && stmt != NULL; stmt = stmt->next) {
+      result = do_constexpr_statement(ips, stmt);
+      if (stmt->kind == (a_statement_kind)stmk_return) {
+        /* A return statement ends execution for this block. */
+        break;
       }  /* if */
-      alloc_stack_bytes(ips, n_bytes, var_storage);
-      map_stack_bytes(ips, vp, var_storage);
     }  /* for */
   }  /* if */
-  /* Interpret the statements in the block. */
-  for (; result && stmt != NULL; stmt = stmt->next) {
-    result = do_constexpr_statement(ips, stmt);
-    if (stmt->kind == (a_statement_kind)stmk_return) {
-      /* A return statement ends execution for this block. */
-      break;
-    }  /* if */
-  }  /* for */
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
-    for (; vp != NULL; vp = vp->next) {
+    do {
       unmap_stack_bytes(ips, vp);
-    }  /* for */
+      unmap_ptr(&ips->map, &vp->storage_class);
+      vp = vp->next;
+    } while (vp != NULL);
     restore_storage_stack(ips, saved_stack);
   }  /* if */
   return result;
@@ -1336,6 +1678,30 @@ successfully interpreted, FALSE otherwise.
         result = do_constexpr_expression(ips, expr, expr_value);
         release_local_constant_from_address(expr, tp, expr_value);
         restore_storage_stack(ips, saved_stack);
+      }
+      break;
+    case stmk_if:
+      {
+        /* The type of the test expression is known to be bool, which will
+           fit within the expr_bytes array. */
+        expr = stmt->expr;
+        expr_value = expr_bytes;
+        tp = skip_typerefs(expr->type);
+        do_constexpr_full_expression(ips, expr, expr_value, result);
+        release_local_constant_from_address(expr, tp, expr_value);
+        if (result) {
+          /* Evaluation of the test expression succeeded.  Get its value to
+             see which dependent statement should be executed. */
+          get_int_val_from(expr_value, tp, bool_val, ovfl);
+          if (!ovfl && bool_val) {
+            /* Execute the "then" statement. */
+            result = do_constexpr_statement(
+                                   ips, stmt->variant.if_stmt.then_statement);
+          } else {
+            result = do_constexpr_statement(
+                                   ips, stmt->variant.if_stmt.else_statement);
+          }  /* if */
+        }  /* if */
       }
       break;
     case stmk_return:
@@ -1411,7 +1777,33 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_init:
-      /* FIXME: handle initialization. */
+      { a_dynamic_init_ptr  dip = stmt->variant.dynamic_init;
+        a_variable_ptr      vp = dip->variable;
+        a_byte              *var_storage;
+        get_stack_bytes(ips, vp, var_storage);
+        /* Evaluate the initializer. */
+        switch (dip->kind) {
+          case dik_constant:
+            result = copy_val_from_constant(dip->variant.constant,
+                                            var_storage);
+            break;
+          case dik_expression:
+            do_constexpr_full_expression(ips, dip->variant.expression,
+                                         var_storage, result);
+            break;
+          case dik_class_result_via_ctor:
+          case dik_constructor:
+          case dik_nonconstant_aggregate:
+          case dik_bitwise_copy:
+            /* FIXME: NYI. */
+            unexpected_condition();
+            break;
+          case dik_zero:
+          case dik_none:
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }
       break;
     case stmk_decl:
       /* Nothing to do; variables are handled when the scope is opened. */
@@ -1454,10 +1846,11 @@ accordingly.
   callee_region = callee->assoc_scope;
   if (callee_region == NULL_region_number) {
     /* FIXME: error. */
-    unexpected_condition();
+    result = FALSE;
 #if /*FIXME*/0
   } else if (ellipsis_case) {
     /* error. */
+    result = FALSE;
 #endif /* 0 */
   } else if (cost_exceeded(ips)) {
     /* FIXME: record an error. */
@@ -1470,6 +1863,16 @@ accordingly.
                     block_stmt = callee_scope->assoc_block;
     a_call_frame    frame;
     a_variable_ptr  param = callee_scope->variant.routine.parameters;
+    /* Don't attempt to interpret a non-constexpr function.  The flag
+       scope->is_constexpr_routine is set at the end of a constexpr function
+       definition, so this also prevents the interpretation of a function that
+       is not fully parsed (e.g., requested due to a recursive call in a
+       constexpr function). */
+    if (!callee_scope->is_constexpr_routine) {
+      result = FALSE;
+      /* FIXME: record an error. */
+      goto done;
+    }  /* if */
     /* Set up arguments, including "this" if applicable. */
     /* FIXME: handle "this". */
     save_storage_stack(ips, saved_stack);
@@ -1481,11 +1884,19 @@ accordingly.
       if (!do_constexpr_expression(ips, arg, arg_bytes)) {
         /* Undo the mappings so far. */
         a_variable_ptr  up = callee_scope->variant.routine.parameters;
-        for (; up != param; up = up->next) unmap_stack_bytes(ips, up);
+        for (; up != param; up = up->next) {
+          unmap_stack_bytes(ips, up);
+          unmap_ptr(&ips->map, &up->storage_class);
+        }  /* for */
         result = FALSE;
         goto reclaim_arg_storage;
       }  /* if */
+/* FIXME!  This mapping must be done after all the arguments have been
+   evaluated because other arguments might refer to the same parameters in
+   recursive calls. */
       map_stack_bytes(ips, param, arg_bytes);
+      map_byte_count(&ips->map, &param->storage_class,
+                     ips->curr_alloc_seq_number);
     }  /* for */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, result_storage);
@@ -1500,61 +1911,17 @@ accordingly.
     pop_call_frame(ips);
     /* Release the storage and mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
-    for (; param != NULL && param->is_parameter; param = param->next) {
+    for (; param != NULL; param = param->next) {
       unmap_stack_bytes(ips, param);
+      unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
 reclaim_arg_storage:
     restore_storage_stack(ips, saved_stack);
     ips->cost += 1;
   }  /* if */
+done:
   return result;
 }  /* do_constexpr_call */
-
-
-/*
-Useful constants.
-*/
-static an_integer_value
-		zero_int;
-static an_integer_value
-		one_int;
-static an_internal_float_value
-		zero_flt[(int)fk_last];
-static an_internal_float_value
-		one_flt[(int)fk_last];
-static a_boolean
-		useful_constants_initialized;
-			/* Flag indicating whether these constants have
-			   been initialized yet. */
-
-
-static void extract_value_from_constant(a_constant_ptr       con,
-                                        a_byte               *value)
-/*
-Copy the value of con into the interpreter storage at value, converting
-formats as necessary.
-*/
-{
-  switch (con->kind) {
-    case ck_integer:
-      *(an_integer_value *)value = con->variant.integer_value;
-      break;
-    case ck_float:
-      *(an_internal_float_value *)value = con->variant.float_value;
-      break;
-    case ck_address:
-      {
-        /* Create an a_constexpr_address for the runtime constant, which
-           requires a local constant. */
-        a_constant_ptr addr_con = local_constant();
-        copy_constant(con, addr_con);
-        clear_runtime_constant_address(value, addr_con);
-      }
-      break;
-    default:
-      unexpected_condition();  /* FIXME: handle more kinds of constants. */
-  }  /* switch */
-}  /* extract_value_from_constant */
 
 
 static a_boolean get_value_from_address_constant(a_constant_ptr addr_con,
@@ -1601,23 +1968,6 @@ of the prvalue result.
   a_host_large_integer host_int_val;
   a_constant_ptr       con;
 
-/*
-Macro to set result_storage from the value of the specified constant.
-Duplicates some cases from extract_value_from_constant for performance
-reasons.
-*/
-#define copy_result_val_from_constant(con)                                    \
-  {                                                                           \
-    if ((con)->kind == (a_constant_repr_kind)ck_integer) {                    \
-      *(an_integer_value *)result_storage = (con)->variant.integer_value;     \
-    } else if ((con)->kind == (a_constant_repr_kind)ck_float) {               \
-      *(an_internal_float_value *)result_storage =                            \
-                                                  (con)->variant.float_value; \
-    } else {                                                                  \
-      extract_value_from_constant((con), result_storage);                     \
-    }  /* if */                                                               \
-  }  /* copy_result_val_from_constant */
-
   switch (expr->kind) {
     case enk_operation:
       {
@@ -1635,6 +1985,12 @@ reasons.
         a_boolean        ovfl;
         a_byte_count     opnd_n_bytes;
 
+        if (is_call_node(expr)) {
+          /* Call nodes are handled separately.  FIXME: Maybe this should not
+             be the case. */
+          result = do_constexpr_call(ips, expr, result_storage);
+          goto done;
+        }  /* if */
 /*
 Macro to set result_storage from either the address in opnd or the value
 to which that address points, depending on whether the result is a glvalue
@@ -1661,6 +2017,11 @@ nodes.
            was created. */                                                    \
         release_local_constant(&((a_constexpr_address *)(opnd))->             \
                                                            variant.addr_con); \
+      } else if (!in_live_set(&ips->live_set,                                 \
+                              ((a_constexpr_address *)(opnd))                 \
+                                                      ->alloc_seq_number)) {  \
+        result = FALSE;                                                       \
+        /* FIXME: record a diagnostic. */                                     \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
@@ -1816,6 +2177,42 @@ type.  This includes checking the value of ovfl set by the operation.
                 set_result_val_from_operand_address(opnd1_value);
               }  /* if */
               break;
+            case eok_add:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                add_integer_values((an_integer_value*)result_storage,
+                                   (an_integer_value*)opnd2_value,
+                                   is_signed, &ovfl);
+                check_int_range((an_integer_value*)(opnd1_value), tp, result);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                /* FIXME: Other type kinds NYI. */
+              }  /* if */
+              break;
+            case eok_subtract:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                subtract_integer_values((an_integer_value*)result_storage,
+                                        (an_integer_value*)opnd2_value,
+                                        is_signed, &ovfl);
+                check_int_range((an_integer_value*)(opnd1_value), tp, result);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                /* FIXME: Other type kinds NYI. */
+              }  /* if */
+              break;
             case eok_shiftl:
               /* Check for a valid value of opnd2, which must be non-negative
                  and less than the number of bits in opnd1. */
@@ -1882,6 +2279,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 set_result_val_from_operand_address(opnd1_value);
               }  /* if */
               break;
+            case eok_call:
+              do_constexpr_call(ips, expr, result_storage);
+              break;
             default:
               unexpected_condition();  /* FIXME: handle errors. */
           }  /* switch */
@@ -1889,7 +2289,7 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     case enk_constant:
-      copy_result_val_from_constant(expr->variant.constant);
+      result = copy_val_from_constant(expr->variant.constant, result_storage);
       break;
     case enk_variable:
       {
@@ -1905,7 +2305,7 @@ type.  This includes checking the value of ovfl set by the operation.
           } else {
             con = var_constant_value(var);
             if (con != NULL) {
-              copy_result_val_from_constant(con);
+              result = copy_val_from_constant(con, result_storage);
             } else {
               /* FIXME: record a diagnostic. */
               result = FALSE;
@@ -1914,7 +2314,13 @@ type.  This includes checking the value of ovfl set by the operation.
         } else {
           /* A variable used as a glvalue; the result is its address. */
           if (var_bytes != NULL) {
+            a_constexpr_address
+                            *p_address = (a_constexpr_address*)result_storage;
             clear_address(result_storage, var_bytes);
+            /* Record the allocation sequence number for this variable in the
+               address record. */
+            get_mapped_byte_count(&ips->map, &var->storage_class,
+                                  p_address->alloc_seq_number);
           } else {
             con = local_constant();
             if (constant_glvalue_address(expr, con,
@@ -1932,8 +2338,8 @@ type.  This includes checking the value of ovfl set by the operation.
     default:
       unexpected_condition();  /* FIXME: handle errors. */
   }  /* switch */
+done:
   return result;
-#undef copy_result_val_from_constant
 #undef set_result_from_opnd1
 #undef within_int_range
 }  /* do_constexpr_expression */
@@ -2049,6 +2455,7 @@ One-time initialization for interpret.c static variables.
       pch_saved_var_array_elem(persistent_data),
       pch_saved_var_array_elem(free_stack_blocks),
       pch_saved_var_array_elem(free_map_tables),
+      pch_saved_var_array_elem(free_live_set_tables),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

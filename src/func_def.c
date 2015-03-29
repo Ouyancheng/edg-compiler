@@ -930,13 +930,14 @@ constructor.
     check_assertion(scope->kind == (a_scope_kind)sck_function);
     routine = scope->variant.routine.ptr;
     check_assertion(routine->is_constexpr);
+    if (relaxed_constexpr_enabled) {
+      /* C++14 doesn't impose the constraints checked for below. */
+      scope->is_constexpr_routine = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    if (routine->contains_statement_expression) {
+    } else if (routine->contains_statement_expression) {
       /* We can't expand the function if it contains statement expressions. */
-    } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (special_kind_is(routine, sfk_constructor)) {
+    } else if (special_kind_is(routine, sfk_constructor)) {
       /* Constructor.  Must have an empty statement as the body, i.e.,
          an implicit return. */
       a_constructor_init_ptr ctor_init, *next_ptr_ptr;

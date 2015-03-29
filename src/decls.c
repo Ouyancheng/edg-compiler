@@ -16803,33 +16803,50 @@ if one is present.
 #endif /* DEBUG */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   copy_source_position(locator->source_position, error_position);
-  if (var_ptr != NULL && !is_error_locator(*locator) &&
-      is_incomplete_type(var_ptr->type)) {
-    /* Issue an error on a variable for which this is the defining declaration
-       but whose type is incomplete.  Also, in C mode, issue an error on a
-       static variable with incomplete type (6.7.2 para 3) or an externally
-       linked variable with a tentative definition but an uncompletable type
-       (a case like "void i;" at file scope).  And in C++ mode, since no
-       object may be of void type, issue the error for cases like
-       "extern void i;" even though it is not a defining declaration. */
-    if (is_variable_def ||
-        (!C_mode() && is_void_type(state->type)) ||
-        (is_tentative_def && is_void_type(state->type))) {
-      if (!incomplete_type_error_reported) {
-        pos_error(incomplete_type_err_code(var_ptr->type),
-                  &locator->source_position);
+  if (var_ptr != NULL && !is_error_locator(*locator)) {
+    if (is_incomplete_type(var_ptr->type)) {
+      /* Issue an error on a variable defined with an incomplete type.  Also,
+         in C mode, issue an error on a static variable with incomplete type
+         (6.7.2 para 3) or an externally linked variable with a tentative
+         definition but an uncompletable type (a case like "void i;" at file
+         scope).  And in C++ mode, since no object may be of void type, issue
+         the error for cases like "extern void i;" even though it is not a
+         defining declaration. */
+      if (is_variable_def ||
+          (!C_mode() && is_void_type(state->type)) ||
+          (is_tentative_def && is_void_type(state->type))) {
+        if (!incomplete_type_error_reported) {
+          pos_error(incomplete_type_err_code(var_ptr->type),
+                    &locator->source_position);
+        }  /* if */
+        var_ptr->type = error_type();
+      } else if (strict_ansi_mode && is_tentative_def && 
+                 state->storage_class == (a_storage_class)sc_static) {
+        /* The C standard prohibits tentative declarations with incomplete type
+           and internal linkage in 6.7.2 para 3, but a reading of 6.1.2.5 may
+           lead to the conclusion that the prohibition does not exist: issue a
+           discretionary error instead of a "hard" error. */
+        if (!incomplete_type_error_reported) {
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_incomplete_type_not_allowed,
+                         &locator->source_position);
+        }  /* if */
       }  /* if */
-      var_ptr->type = error_type();
-    } else if (strict_ansi_mode && is_tentative_def && 
-               state->storage_class == (a_storage_class)sc_static) {
-      /* The C standard prohibits tentative declarations with incomplete type
-         and internal linkage in 6.7.2 para 3, but a reading of 6.1.2.5 may
-         lead to the conclusion that the prohibition does not exist: issue a
-         discretionary error instead of a "hard" error. */
-      if (!incomplete_type_error_reported) {
-        pos_diagnostic(strict_ansi_discretionary_severity,
-                       ec_incomplete_type_not_allowed,
-                       &locator->source_position);
+    }  /* if */
+    if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+        innermost_function_scope->variant.routine.ptr->is_constexpr) {
+      /* Variable in C++14-style constexpr function declarations must have
+         automatic storage duration, a literal type, and be initialized. */
+      if (var_has_static_or_thread_storage_duration(var_ptr)) {
+        pos_error(ec_nonautomatic_var_in_constexpr_function,
+                  &locator->source_position);
+      } else if (!is_literal_type(var_ptr->type)) {
+        pos_ty_error(ec_nonliteral_var_in_constexpr_function,
+                     &locator->source_position, var_ptr->type);
+        var_ptr->type = error_type();
+      } else if (var_ptr->init_kind == (an_init_kind)initk_none) {
+        pos_error(ec_uninitialized_var_in_constexpr_function,
+                  &locator->source_position);
       }  /* if */
     }  /* if */
   }  /* if */
