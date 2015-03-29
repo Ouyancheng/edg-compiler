@@ -1444,15 +1444,17 @@ Debug routine to compute a hash value from within a debugger.
 
 a_host_large_integer db_int_val(a_byte  *val_bytes)
 /*
-Return the int value stored at val_bytes.  Overflow is ignored.
+Return the int value stored at val_bytes.  Output a diagnostic in case of
+overflow.
 */
 {
   a_host_large_integer  val;
-  a_boolean             ovfl;
+  a_boolean             ovflo;
 
   conv_integer_value_to_host_large_integer(
                             (an_integer_value *)val_bytes, /*is_signed=*/TRUE,
-                            &val, &ovfl);
+                            &val, &ovflo);
+  if (ovflo) (void)fprintf(f_debug, "overflow!\n");
   return val;
 }  /* db_int_val */
 
