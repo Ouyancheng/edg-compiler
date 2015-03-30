@@ -3097,18 +3097,19 @@ the string returned that describes the error.
                        &error_position);
 }  /* str_GetLastError_catastrophe */
 
+
 void open_mapped_il_temp_file(void)
 /*
 Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  char		temp_dir[MAX_PATH];
+  char		win_temp_dir[MAX_PATH];
   char		temp_file_name[MAX_PATH];
 
   db_enter(3, "open_mapped_il_temp_file");
-  if (GetTempPath(MAX_PATH, temp_dir) == 0 ||
-      GetTempFileName(temp_dir, "edg", 0, temp_file_name) == 0) {
+  if (GetTempPath(MAX_PATH, win_temp_dir) == 0 ||
+      GetTempFileName(win_temp_dir, "edg", 0, temp_file_name) == 0) {
     catastrophe(ec_cannot_build_temp_file_name);
   }  /* if */
   f_mmap_file = CreateFile(temp_file_name, GENERIC_READ | GENERIC_WRITE,

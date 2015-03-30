@@ -5674,8 +5674,13 @@ DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
 When a WIN32 API fails, issue a diagnostic that describes the failure.
 */
 {
-  pos_str2_catastrophe(ec_win32_abi_error, error_string,
-                       win32_error_to_str(error_code), &error_position);
+  a_const_char	*com_string;
+  
+  /* Make a copy of the string as the value returned is in a text buffer. */
+  com_string = win32_error_to_str(error_code);
+  com_string = diag_copy_string(com_string);
+  pos_str2_catastrophe(ec_win32_api_error, error_string, com_string,
+                       &error_position);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
@@ -5694,8 +5699,8 @@ this produces a diagnostic that describes the failure.
   /* Make a copy of the string as the value returned is in a text buffer. */
   com_string = com_error_to_str();
   com_string = diag_copy_string(com_string);
-  pos_str2_catastrophe(ec_win32_api_error, &error_position,
-                       error_string, com_string);
+  pos_str2_catastrophe(ec_win32_api_error, error_string, com_string,
+                       &error_position);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
