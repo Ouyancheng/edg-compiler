@@ -2505,7 +2505,10 @@ ck_string constant is considered to fully initialize a character array.
   }  /* if */
   con_type = skip_typerefs(con->type);
   type = skip_typerefs(type);
-  if (!is_array(type) && !is_array(con_type)) {
+  if (con_type == type) {
+    /* Types are the same, so they must have the same "dimension". */
+    return TRUE;
+  } else if (!is_array(type) && !is_array(con_type)) {
     /* Neither type is an array, so they have the same "dimension". */
     result = TRUE;
   } else if (is_array(type) && is_array(con_type)) {
