@@ -762,7 +762,6 @@ of the given string that starts at the position indicated by chars_to_skip.
       string              utf8_identifier = conv_wide_to_utf8(
                                     const_cast<wchar_t*>(identifier.c_str()) +
                                                                chars_to_skip);
-      a_source_position   null_source_position = { 0, SP_COL_UNKNOWN };
       clear_locator(&locator, &null_source_position);
       header = find_symbol_header(const_cast<char*>(utf8_identifier.c_str()),
                                   utf8_identifier.length(),
@@ -1077,11 +1076,11 @@ public:
   }  /* create */
 
   static a_type_wrapper_ptr create(CorElementType element_type,
-                                   bool           wchar_t_is_keyword = true);
+                                   bool           builtin_wchar_t = true);
 
   static a_type_wrapper_ptr create(
                                CorSerializationType serialization_type,
-                               bool                 wchar_t_is_keyword = true)
+                               bool                 builtin_wchar_t = true)
   {
     a_type_wrapper_ptr type;
     switch (serialization_type) {
@@ -1099,7 +1098,7 @@ public:
       case SERIALIZATION_TYPE_R8:
       case SERIALIZATION_TYPE_STRING:
         type = create(static_cast<CorElementType>(serialization_type),
-                      wchar_t_is_keyword);
+                      builtin_wchar_t);
         break;
       case SERIALIZATION_TYPE_TAGGED_OBJECT:
         type = create(ELEMENT_TYPE_OBJECT);
@@ -1677,7 +1676,7 @@ private:
 
 
 a_type_wrapper_ptr a_type_wrapper::create(CorElementType element_type,
-                                          bool           wchar_t_is_keyword)
+                                          bool           builtin_wchar_t)
 {
   a_type_wrapper_ptr type;
   switch (element_type) {
@@ -1688,7 +1687,7 @@ a_type_wrapper_ptr a_type_wrapper::create(CorElementType element_type,
       type = create(twk_bool);
       break;
     case ELEMENT_TYPE_CHAR:
-      if (wchar_t_is_keyword || is_cppcx_metadata) {
+      if (builtin_wchar_t || is_cppcx_metadata) {
         type = create(twk_wchar_t);
       } else {
         type = create(twk_unsigned_short);
@@ -7924,9 +7923,9 @@ Decode a type signature and return it as a std::wstring.
     case ELEMENT_TYPE_CHAR:
       { auto import_flags =
                    scope_.import_scope().containing_assembly().import_flags();
-        bool wchar_t_is_keyword =
+        bool builtin_wchar_t =
                              (import_flags & cpp_cli_wchar_t_is_keyword) != 0;
-        type = a_type_wrapper::create(element_type, wchar_t_is_keyword);
+        type = a_type_wrapper::create(element_type, builtin_wchar_t);
         break;
       }
     case ELEMENT_TYPE_SZARRAY:
@@ -8967,10 +8966,9 @@ a_type_wrapper_ptr a_custom_attribute_data::read_serialized_type_and_advance()
     case SERIALIZATION_TYPE_CHAR:
       { auto import_flags =
                         import_scope_->containing_assembly().import_flags();
-        bool wchar_t_is_keyword =
+        bool builtin_wchar_t =
                            (import_flags & cpp_cli_wchar_t_is_keyword) != 0;
-        type = a_type_wrapper::create(serialization_type,
-                                      wchar_t_is_keyword);
+        type = a_type_wrapper::create(serialization_type, builtin_wchar_t);
         break;
       }
     case SERIALIZATION_TYPE_SZARRAY:
