@@ -1,5 +1,19 @@
 Version 4.11
 
+3/30/15  [EDGcpfe/16091]
+"Referenced but not defined" functions
+
+When, e.g., a function with internal linkage is declared and referenced but
+not defined, the front end usually issues an error (ec_never_defined; in some
+specific situations a milder diagnostic is issued).  Now, such errors are
+discretionary when they apply to functions or function templates (not
+variables or labels).  For example:
+
+	template<class T> static void f();
+	void g() { f<int>(); }
+	  // Previously a hard error, now a discretionary error.
+
+
 3/25/15  [EDGcpfe/15245]
 C++-generating back end, GNU compatibility: parenthesized non-type template
 parameters as attribute arguments

@@ -5475,7 +5475,7 @@ body.  Only called in C++ mode.
                         rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either
                  extern-inline or has internal linkage. */
-              an_error_severity  severity = (an_error_severity)es_error;
+              an_error_severity  severity = es_discretionary_error;
               if (microsoft_mode ||
                   (gpp_mode && rp->is_inline &&
                    rp->storage_class == (a_storage_class)sc_extern)) {
@@ -5766,7 +5766,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             var_ptr->source_corresp.name_linkage !=
                                          (a_name_linkage_kind)nlk_external) {
           if (sym->referenced) {
-            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+            pos_sy_diagnostic(es_discretionary_error, ec_never_defined,
+                              &sym->decl_position, sym);
           } else {
             report_unreferenced(sym, ec_declared_but_not_referenced,
                                 es_warning);
@@ -6064,7 +6065,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           /* If an attempt was made to explicitly instantiate the function
              template, an error will have been issued already. */
           if (tip != NULL && !tip->explicit_instantiation) {
-            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+            pos_sy_diagnostic(es_discretionary_error, ec_never_defined,
+                              &sym->decl_position, sym);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
@@ -6290,11 +6292,11 @@ curr_routine points to the routine entry; otherwise, it is NULL.
               pos_sy_warning(ec_undefined_static_function_treated_as_extern,
                              &sym->decl_position, sym);
             }  /* if */
-          } else if (gpp_mode && gnu_version >= 40400) {
-            /* g++ 4.4 and later only warn about this. */
-            pos_sy_warning(ec_never_defined, &sym->decl_position, sym);
           } else {
-            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+            /* g++ 4.4 and later only warn about this. */
+            an_error_severity  sev = (gpp_mode && gnu_version >= 40400) ?
+                                          es_warning : es_discretionary_error;
+            pos_sy_diagnostic(sev, ec_never_defined, &sym->decl_position, sym);
           }  /* if */
         }  /* if */
       }  /* if */
