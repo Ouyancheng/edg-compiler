@@ -71,6 +71,10 @@ to know whether or not the C files are being compiled as C or C++ code.
 #define END_EXTERN_C_BLOCK_IN_CPP_FILE }
 #endif /* FRONT_END_C_FILES_COMPILED_AS_CPP */
 
+#ifdef __cplusplus
+EXTERN_C_BLOCK_IN_CPP_FILE
+#endif /* ifdef __cplusplus */
+
 /*
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
@@ -1072,6 +1076,9 @@ Type of the value returned by hash functions.
 typedef uint32_t
 		a_hash_value;
 
+#ifdef __cplusplus
+END_EXTERN_C_BLOCK_IN_CPP_FILE
+#endif /* ifdef __cplusplus */
 
 #endif /* ifndef BASICS_H */
 
