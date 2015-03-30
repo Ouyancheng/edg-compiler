@@ -3097,7 +3097,11 @@ default mode (e.g., exception handling).
     relaxed_constexpr_enabled = TRUE;
 #endif /*FIXME*/
     sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
-    constexpr_implies_const = FALSE;
+    if (gpp_mode && !clang_mode && gnu_version < 50000) {
+      constexpr_implies_const = TRUE;
+    } else {
+      constexpr_implies_const = FALSE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
