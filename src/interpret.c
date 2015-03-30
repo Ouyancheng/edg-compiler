@@ -745,7 +745,8 @@ optimizer is enabled (on code where unneeded initialization is undesirable
 because of performance concerns).
 */
 #define init_storage_stack_state_to_silence_GCC(sss)                         \
-  ((sss).top = (sss).curr_block = (sss).large_blocks = NULL)
+  ((sss).top = (sss).curr_block = (sss).large_blocks = NULL,                 \
+   (sss).alloc_seq_number = 0)
 #else /* !defined(__GNUC__) && ... */
 #define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
 #endif /* defined(__GNUC__) && ... */
