@@ -8323,7 +8323,7 @@ public:
                                a_cpp_cli_token         typedef_token,
                                bool                    class_body_only);
   bool initialize();
-  bool trans_unit_init(a_const_char *trans_unit_file_name);
+  bool trans_unit_init(a_const_char *tu_file_name);
   void trans_unit_wrapup();
 
   HRESULT create_assembly_name_object(IAssemblyName **assembly_name_object,
@@ -9144,7 +9144,7 @@ interfaces.
 }  /* a_metadata_reader::initialize */
 
 
-bool a_metadata_reader::trans_unit_init(a_const_char *trans_unit_file_name)
+bool a_metadata_reader::trans_unit_init(a_const_char *tu_file_name)
 /*
 Do per-translation unit initialization.  This resets the assembly
 index, sets the name of the translation unit, and retrieves a file token for
@@ -9152,7 +9152,7 @@ the translation unit.
 */
 {
   HRESULT hr;
-  wstring input_file(char_string_to_wstring(trans_unit_file_name));
+  wstring input_file(char_string_to_wstring(tu_file_name));
 
   check_assertion(is_initialized());
   assemblies_.clear();
@@ -9638,13 +9638,13 @@ list.  The namespace scopes and class head are omitted.
 
 
 EXTERN_C_IN_CPP_FILE
-void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name)
+void ms_metadata_trans_unit_init(a_const_char *tu_file_name)
 /*
 Reset the metadata reader for reading metadata for the next translation unit.
 */
 {
   if (ms_metadata_init_if_needed()) {
-    (void)metadata_reader->trans_unit_init(trans_unit_file_name);
+    (void)metadata_reader->trans_unit_init(tu_file_name);
   }  /* if */
 }  /* ms_metadata_trans_unit_init */
 
