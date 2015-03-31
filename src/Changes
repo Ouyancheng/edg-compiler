@@ -26,7 +26,7 @@ when microsoft_version >= 1900, as is the C++14 global sized deallocation
 feature (see EDGcpfe/14687).
 
 
-3/31/15  [EDGcpfe/16082]
+3/31/15  [EDGcpfe/12128,EDGcpfe/12504,EDGcpfe/16082]
 Clang and Microsoft C++ compatibility: Qualifiers on constructor declarations
 
 In Clang and Microsoft C++ modes, the front end now accepts constructor
