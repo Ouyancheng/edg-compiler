@@ -1,5 +1,13 @@
 Version 4.11
 
+3/31/15  [EDGcpfe/16117]
+Microsoft compatibility: Enable additional C++11/C++14 features
+
+The C++11 style of attributes, e.g., "[[noreturn]]" is now enabled
+when microsoft_version >= 1900, as is the C++14 global sized deallocation
+feature (see EDGcpfe/14687).
+
+
 3/31/15  [EDGcpfe/16082]
 Clang and Microsoft C++ compatibility: Qualifiers on constructor declarations
 
