@@ -1,5 +1,23 @@
 Version 4.11
 
+3/31/15  [EDGcpfe/16131]
+C++-generating back end: Variable definitions and GENERATE_LINKAGE_SPEC_BLOCKS
+
+In configurations with GENERATE_LINKAGE_SPEC_BLOCKS set to TRUE, the
+C++-generating back end sometimes accidentally rendered a variable definition
+as a non-defining declaration.  For example:
+
+  extern "C" { extern double d; }  // Declaration.
+  double d;                        // Definition.
+
+was previously rendered as:
+
+  extern "C" {extern double d; }
+  extern "C" double d;
+
+which doesn't have a definition for variable d.  This is now fixed.
+
+
 3/31/15  [EDGcpfe/16117]
 Microsoft compatibility: Enable additional C++11/C++14 features
 

@@ -16137,9 +16137,18 @@ this one is such a continuation.
       !var->source_corresp.is_class_member &&
       innermost_function_scope == NULL &&
       var_nlk != (a_name_linkage_kind)nlk_none &&
-      var_nlk != (a_name_linkage_kind)nlk_internal) {
+      var_nlk != (a_name_linkage_kind)nlk_internal &&
+      !(is_definition && var->declaration_has_been_put_out)) {
     /* The current default name linkage kind is different from the one on
-       the variable, so a non-braced linkage specifier is needed. */
+       the variable, so a non-braced linkage specifier may be needed.  Don't
+       do that for definitions if a prior declaration has been seen because
+       a non-braced linkage specifier could make it a nondefinition.
+       For example:
+          extern "C" { extern double d; }  // Declaration.
+          double d;                        // Definition.
+       The definition should not be rendered as
+          extern "C" double x;
+       because it would no longer be a definition. */
     explicit_nlk = var_nlk;
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
