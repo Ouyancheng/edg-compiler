@@ -1,5 +1,17 @@
 Version 4.11
 
+3/31/15  [EDGcpfe/16082]
+Clang and Microsoft C++ compatibility: Qualifiers on constructor declarations
+
+In Clang and Microsoft C++ modes, the front end now accepts constructor
+declarations with type qualifiers preceding the constructor name (with a
+warning).  For example:
+
+  struct S {
+    const S();  // Now accepted as a constructor declaration (with a warning)
+  };            // in Clang and Microsoft modes.
+
+
 3/31/15  [EDGcpfe/16116]
 GNU compatibility: Spurious error after unrecognized attribute
 

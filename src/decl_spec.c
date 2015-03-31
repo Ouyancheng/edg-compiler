@@ -8149,9 +8149,13 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        left paren is a right paren or the start of a formal parameter
        declaration. */
     if (is_member_decl && !result) {
-      if (!(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
-                                     DS_EXPLICIT | DS_INLINE | DS_CONSTEXPR |
-                                     DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
+      /* Permit specifiers that apply to member functions.  In Clang and
+         Microsoft modes cv-qualifiers are accepted too. */
+      if (!(decl_specifiers_seen &
+            ~(DS_VIRTUAL | DS_STORAGE_CLASS | DS_EXPLICIT | DS_INLINE |
+              DS_CONSTEXPR | DS_MICROSOFT_INLINE | DS_FORCEINLINE |
+              (clang_mode || microsoft_mode ? DS_TYPE_QUALIFIER
+                                                 : DS_NONE))) &&
           (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
            dps->declared_storage_class == (a_storage_class)sc_static)) {
         a_type_ptr  class_type = enclosing_class_type(input_flags);
@@ -8175,10 +8179,6 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
             } else {
               dps->dso_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
             }  /* if */
-            /* Note that with a branch to exit_loop the get_token call
-               is bypassed.  This means curr_token will still represent
-               the constructor name (= class name) upon return to the
-               caller. */
             result = TRUE;
           } else if ((microsoft_bugs || any_cfront_mode()) &&
                      !is_error_locator(locator_for_curr_id) &&
@@ -10355,6 +10355,18 @@ process_enum_specifier:
             if (unexpected_identifier) {
               goto something_unexpected;
             } else {
+              if (state->dso_flags & DSO_CONSTRUCTOR &&
+                  qualifiers != TQ_NONE) {
+                /* In some modes, qualifiers are accepted on a constructor
+                   declaration.  Ignore them. */
+                pos_warning(ec_type_qualifier_ignored, &state->qualifiers_pos);
+                qualifiers = TQ_NONE;
+                decl_specifiers_seen &= ~(DS_TYPE_QUALIFIER);
+              }  /* if */
+              /* Note that with a branch to exit_loop the get_token call is
+                 bypassed.  In the case of a constructor declaration, this
+                 means curr_token will still represent the constructor name
+                 (= class name) upon return to the caller. */
               goto exit_loop;
             }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
