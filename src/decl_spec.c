@@ -8889,7 +8889,11 @@ dps->specifier_attributes list.
     p_ap  = &dps->specifier_attributes;
     while (*p_ap != NULL) {
       if (!is_type_transforming_attribute(*p_ap) &&
-          !is_unapplicable_attr(*p_ap)) {
+          (!is_unapplicable_attr(*p_ap) ||
+           /* In a case like: "__attribute__((X)) auto f() -> int;" ensure that
+              the unrecognized attribute isn't attached to the "auto" type. */
+           (is_auto_type(dps->specifiers_type) &&
+            (*p_ap)->family == (a_byte_attribute_family)af_gnu))) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (is_std_attribute(ap) &&
