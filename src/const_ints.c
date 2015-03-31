@@ -2081,6 +2081,16 @@ signedness.  If none is found, ik_none is returned.
   /* Compute the size in bytes, making sure no bits are lost. */
   size = number_of_bits / targ_char_bit;
   if (number_of_bits == size * targ_char_bit) {
+    if (gnu_mode) {
+      /* In some configurations (notably where sizeof(int) == sizeof(short)),
+         GNU prefers "int" over "short", so check the appropriate "int" kind
+         to see if it has the desired size before doing a search. */
+      int_kind = is_signed ? ik_int : ik_unsigned_int;
+      get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
+      if (int_size == size) {
+        goto have_kind;
+      }  /* if */
+    }  /* if */
     for (int_kind = (an_integer_kind)0;
          (int)int_kind < (int)ik_last;
          int_kind = (an_integer_kind)((int)int_kind + 1)) {
