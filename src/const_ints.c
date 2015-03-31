@@ -2085,7 +2085,7 @@ signedness.  If none is found, ik_none is returned.
       /* In some configurations (notably where sizeof(int) == sizeof(short)),
          GNU prefers "int" over "short", so check the appropriate "int" kind
          to see if it has the desired size before doing a search. */
-      int_kind = is_signed ? ik_int : ik_unsigned_int;
+      int_kind = (an_integer_kind)(is_signed ? ik_int : ik_unsigned_int);
       get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
       if (int_size == size) {
         goto have_kind;
