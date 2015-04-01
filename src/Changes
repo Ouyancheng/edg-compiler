@@ -1,5 +1,19 @@
 Version 4.11
 
+3/31/15  [EDGcpfe/16124]
+GNU compatibility: Choice of underlying integer kind for vector types
+
+It appears that, at least in some (e.g., 16-bit) configurations, GNU
+prefers "int" over "short" when selecting an integer type as the underlying
+type for a vector.  A change has been made to first check the "int" (or
+"unsigned int") integer kind to see if it is the correct size for the
+underlying type for a vector before searching for integers of different sizes.
+For example, on a configuration where sizeof(int) == sizeof(short), with --gcc:
+
+  typedef int int16_t __attribute__ ((__mode__ (__HI__)));
+  typedef int int16_t;   // no longer an invalid redeclaration error
+
+
 3/31/15  [EDGcpfe/16131]
 C++-generating back end: Variable definitions and GENERATE_LINKAGE_SPEC_BLOCKS
 
