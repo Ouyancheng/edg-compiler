@@ -305,6 +305,13 @@ typedef struct a_call_frame {
   a_byte	*result_storage;
 			/* The storage in which returned expression results
 			   should be placed. */
+  a_bit_field	return_active:1;
+			/* TRUE while backtracking from a return statement. */
+  a_bit_field	break_active:1;
+			/* TRUE while backtracking from a break statement. */
+  a_bit_field	continue_active:1;
+			/* TRUE while backtracking from a continue
+			   statement. */
 } a_call_frame;
 
 
@@ -773,6 +780,9 @@ Macros to push and pop call frames.
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
     (p_frame)->result_storage = (p_result);                                  \
+    (p_frame)->return_active = FALSE;                                        \
+    (p_frame)->break_active = FALSE;                                         \
+    (p_frame)->continue_active = FALSE;                                      \
     (ips)->curr_call_frame = (p_frame);                                      \
   }
 
@@ -1626,8 +1636,10 @@ Interpret the given block statement and its associated scope (if any).
     /* Interpret the statements in the block. */
     for (; result && stmt != NULL; stmt = stmt->next) {
       result = do_constexpr_statement(ips, stmt);
-      if (stmt->kind == (a_statement_kind)stmk_return) {
-        /* A return statement ends execution for this block. */
+      if (ips->curr_call_frame->return_active ||
+          ips->curr_call_frame->break_active ||
+          ips->curr_call_frame->continue_active) {
+        /* A branching statement ends execution for this block. */
         break;
       }  /* if */
     }  /* for */
@@ -1707,6 +1719,19 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
       }
       break;
+    case stmk_goto:
+      if (stmt->variant.label.ptr->break_label) {
+        ips->curr_call_frame->break_active = TRUE;
+      } else if (stmt->variant.label.ptr->continue_label) {
+        ips->curr_call_frame->continue_active = TRUE;
+      } else {
+        /* FIXME: record interpretation error. */
+        result = FALSE;
+      }  /* if */
+      break;
+    case stmk_label:
+      /* Nothing to do. */
+      break;
     case stmk_return:
       if (stmt->expr != NULL) {
         do_constexpr_full_expression(ips, stmt->expr,
@@ -1716,6 +1741,7 @@ successfully interpreted, FALSE otherwise.
         /* Handle return_dynamic_init case. FIXME */
         unexpected_condition();
       }  /* if */
+      ips->curr_call_frame->return_active = TRUE;
       break;
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
@@ -1729,30 +1755,34 @@ successfully interpreted, FALSE otherwise.
         an_expr_node_ptr incr;
         a_type_ptr       incr_type;
         expr = stmt->expr;
-        /* The type of the test expression is known to be bool, which will
-           fit within the expr_bytes array. */
-        expr_value = expr_bytes;
-        tp = skip_typerefs(expr->type);
-        incr = stmt->variant.for_loop.extra_info->increment;
-        incr_type = skip_typerefs(incr->type);
-        n_bytes = value_bytes_for_type(ips, incr_type);
-        save_storage_stack(ips, saved_stack);
-        if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
-            !incr->is_lvalue && !incr->is_xvalue) {
-          /* The result of the increment expression is larger than a scalar
-             type, so allocate space for it on the stack. */
-          alloc_stack_bytes(ips, n_bytes, incr_value);
-        } else {
-          incr_value = incr_bytes;
+        if (expr != NULL) {
+          /* The type of the test expression is known to be bool, which will
+             fit within the expr_bytes array. */
+          expr_value = expr_bytes;
+          tp = skip_typerefs(expr->type);
         }  /* if */
-        /* Initialization is handled by an stmk_init in the containing
-           block and not as part of the stmk_for processing. */
+        incr = stmt->variant.for_loop.extra_info->increment;
+        if (incr != NULL) {
+          incr_type = skip_typerefs(incr->type);
+          n_bytes = value_bytes_for_type(ips, incr_type);
+          save_storage_stack(ips, saved_stack);
+          if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+              !incr->is_lvalue && !incr->is_xvalue) {
+            /* The result of the increment expression is larger than a scalar
+               type, so allocate space for it on the stack. */
+            alloc_stack_bytes(ips, n_bytes, incr_value);
+          } else {
+            incr_value = incr_bytes;
+          }  /* if */
+        }  /* if */
+        /* Initialization is handled by an stmk_init in the containing block
+           and not as part of the stmk_for processing. */
         do {
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
             result = FALSE;
             /* FIXME: record a diagnostic. */
-          } else {
+          } else if (expr != NULL) {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_local_constant_from_address(expr, tp, expr_value);
             ips->cost += 1;
@@ -1760,23 +1790,47 @@ successfully interpreted, FALSE otherwise.
           if (result) {
             /* Evaluation of the test expression succeeded.  Get its value
                to see if the dependent statement should be executed. */
-            get_int_val_from(expr_value, tp, bool_val, ovfl);
+            if (expr != NULL) {
+              get_int_val_from(expr_value, tp, bool_val, ovfl);
+            } else {
+              bool_val = TRUE;
+              ovfl = FALSE;
+            }  /* if */
             if (!ovfl && bool_val) {
               /* Execute the dependent statement. */
               result = do_constexpr_statement(
                                              ips,
                                              stmt->variant.for_loop.statement);
               if (result) {
-                /* Execution of the dependent statement succeeded, so
-                   evaluate the increment expression. */
-                do_constexpr_full_expression(ips, incr, incr_value, result);
-                release_local_constant_from_address(incr, incr_type,
-                                                    incr_value);
+                /* Execution of the dependent statement succeeded, so evaluate
+                   the increment expression (if any) unless we hit a branching
+                   statement. */
+                if (ips->curr_call_frame->return_active) {
+                  /* Break out of the loop (leave the flag active since we may
+                     have to break out of other constructs). */
+                  break;
+                } else if (ips->curr_call_frame->break_active) {
+                  /* Break out of the loop (which completes the execution of
+                     the break statement). */
+                  ips->curr_call_frame->break_active = FALSE;
+                  break;
+                } else if (ips->curr_call_frame->continue_active) {
+                  /* Continue, but clear the continue_active flag since we've
+                     reached the point of continuation. */
+                  ips->curr_call_frame->continue_active = FALSE;
+                }  /* if */
+                if (incr != NULL) {
+                  do_constexpr_full_expression(ips, incr, incr_value, result);
+                  release_local_constant_from_address(incr, incr_type,
+                                                      incr_value);
+                }  /* if */
               }  /* if */
             }  /* if */
           }   /* if */
         } while (result && bool_val);
-        restore_storage_stack(ips, saved_stack);
+        if (incr != NULL) {
+          restore_storage_stack(ips, saved_stack);
+        }  /* if */
       }
       break;
     case stmk_init:
@@ -1953,7 +2007,7 @@ storage at value and return TRUE.  Otherwise, return FALSE.
 
 
 static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
-                                         an_expr_node_ptr      expr,
+                                         an_expr_node_ptr      orig_expr,
                                          a_byte                *result_storage)
 /*
 Interpret the given expression in the given interpreter context.  If
@@ -1965,6 +2019,7 @@ of the prvalue result.
 */
 {
   a_boolean            result = TRUE;
+  an_expr_node_ptr     expr = skip_parens(orig_expr);
   a_type_ptr           tp = skip_typerefs(expr->type);
   a_byte_count         n_bytes = value_bytes_for_type(ips, tp);
   an_integer_kind      int_kind;
@@ -2039,7 +2094,7 @@ result of an operation (in val) is within the range representable by its
 type.  This includes checking the value of ovfl set by the operation.
 */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-#define check_int_range(val, tp, result)                                      \
+#define check_int_range(val, tp, result, ovfl)                                \
 {                                                                             \
   if (!ovfl) {                                                                \
     get_int_val_from((val), (tp), host_int_val, ovfl);                        \
@@ -2054,7 +2109,7 @@ type.  This includes checking the value of ovfl set by the operation.
   } /* if */                                                                  \
 }  /* check_int_range */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#define check_int_range(val, tp, result)                           \
+#define check_int_range(val, tp, result, ovfl)                     \
   ((result) = (!ovfl &&                                            \
          cmp_integer_values((an_integer_value *)(val), is_signed,  \
                             &max_integer_value_of_kind[int_kind],  \
@@ -2128,7 +2183,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   ovfl = FALSE;
-                  check_int_range(opnd1_value, tp, result);
+                  check_int_range(opnd1_value, tp, result, ovfl);
                   if (result) {
                     *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
@@ -2140,6 +2195,22 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 unexpected_condition();  /* FIXME: implement conversions. */
+              }  /* if */
+              break;
+            case eok_bool_cast:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) != 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else {
+                /* FIXME: NYI, other source types. */
               }  /* if */
               break;
             case eok_pre_incr:
@@ -2160,7 +2231,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(int_value_at(opnd1_value), &one_int,
                                      is_signed, &ovfl);
-                  check_int_range(int_value_at(opnd1_value), tp, result);
+                  check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
                   }  /* if */
@@ -2191,7 +2262,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 add_integer_values((an_integer_value*)result_storage,
                                    (an_integer_value*)opnd2_value,
                                    is_signed, &ovfl);
-                check_int_range((an_integer_value*)(opnd1_value), tp, result);
+                check_int_range((an_integer_value*)(opnd1_value), tp, result,
+                                ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
@@ -2209,7 +2281,27 @@ type.  This includes checking the value of ovfl set by the operation.
                 subtract_integer_values((an_integer_value*)result_storage,
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
-                check_int_range((an_integer_value*)(opnd1_value), tp, result);
+                check_int_range((an_integer_value*)(opnd1_value), tp, result,
+                                ovfl);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                /* FIXME: Other type kinds NYI. */
+              }  /* if */
+              break;
+            case eok_multiply:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                multiply_integer_values((an_integer_value*)result_storage,
+                                        (an_integer_value*)opnd2_value,
+                                        is_signed, &ovfl);
+                check_int_range((an_integer_value*)(opnd1_value), tp, result,
+                                ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
@@ -2233,7 +2325,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (result) {
                 shift_left_integer_value((an_integer_value *)opnd1_value,
                                          (int)host_int_val, &ovfl);
-                check_int_range(opnd1_value, opnd1_type, result);
+                check_int_range(opnd1_value, opnd1_type, result, ovfl);
                 if (result) {
                   *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
