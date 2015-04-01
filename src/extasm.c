@@ -857,8 +857,24 @@ even if they are invalid.
           }  /* if */
         } else if (c->kind ==
                         (an_asm_operand_constraint_kind)aoc_mod_earlyclobber) {
-          /* Indicate that the register is clobbered. */
-          input = output = TRUE;
+          if (asm_entry->number_of_constraints == 1 && !clang_mode) {
+            /* Indicate that the register is clobbered.  Clang doesn't appear
+               to do any earlyclobber checks. */
+            input = output = TRUE;
+          } else {
+            /* GNU seems to be inconsistent about issuing errors related to
+               earlyclobbers in multi-alternative constraints.  For example,
+               it issues one error in this case:
+
+                 asm("foo %1,%0;" : "=&a,&b" (out) : "b,b" (in)); // Okay
+                 asm("foo %1,%0;" : "=&a,&b" (out) : "a,a" (in)); // Error
+                 asm("foo %1,%0;" : "=&b,&a" (out) : "b,b" (in)); // Okay
+                 asm("foo %1,%0;" : "=&b,&a" (out) : "a,a" (in)); // Okay
+
+               Until a better understanding of GNU's behavior is attained,
+               suppress any error checking related to earlyclobbers when
+               multi-alternative constraints are used. */
+          }  /* if */
         } else if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS

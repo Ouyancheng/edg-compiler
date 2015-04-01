@@ -1,5 +1,31 @@
 Version 4.11
 
+4/1/15   [EDGcpfe/16125]
+GNU compatibility: Disable checking of register use for multiple alternative
+                   constraints with earlyclobbers in asm statements
+
+The checking for conflicts in register usage when "earlyclobbers" (i.e., the
+"&" modifier) is used in constraint strings that contain multiple alternatives
+has been disabled because such checking resulted in errors that are not
+reported by GNU compilers.  It is unclear what criteria GNU uses for generating
+such errors, as evidenced by the example below (with --gcc):
+
+  int f(int x, int y) {
+    asm("foo %1,%0;" : "=&a" (x) : "b" (y));        // GNU:OK    EDG:OK
+    asm("foo %1,%0;" : "=&b" (x) : "b" (y));        // GNU:Error EDG:Error
+    asm("foo %1,%0;" : "=&a" (x) : "a" (y));        // GNU:Error EDG:Error
+    asm("foo %1,%0;" : "=&a,&b" (x) : "b,b" (y));   // GNU:OK    EDG:Now OK
+    asm("foo %1,%0;" : "=&a,&b" (x) : "a,a" (y));   // GNU:Error EDG:Now OK
+    asm("foo %1,%0;" : "=&b,&a" (x) : "b,b" (y));   // GNU:OK    EDG:Now OK
+    asm("foo %1,%0;" : "=&b,&a" (x) : "a,a" (y));   // GNU:OK    EDG:Now OK
+    return x;
+  }
+
+In Clang emulation mode, earlyclobbers register conflicts have been disabled
+in both single and multiple alternative constraints to match clang's behavior
+(i.e., the example above compiles with no errors with --clang).
+
+
 3/31/15  [EDGcpfe/16124]
 GNU compatibility: Choice of underlying integer kind for vector types
 
