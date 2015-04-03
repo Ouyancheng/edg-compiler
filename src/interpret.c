@@ -1763,7 +1763,7 @@ successfully interpreted, FALSE otherwise.
         } else {
           /* Needed only to avoid spurious GNU compiler optimizer
              warnings. */
-          expr_value = NULL;
+          expr_value = expr_bytes;
           tp = NULL;
         }  /* if */
         incr = stmt->variant.for_loop.extra_info->increment;
@@ -1784,7 +1784,7 @@ successfully interpreted, FALSE otherwise.
              warnings. */
           save_storage_stack(ips, saved_stack);
           incr_type = NULL;
-          incr_value = NULL;
+          incr_value = incr_bytes;
         }  /* if */
         /* Initialization is handled by an stmk_init in the containing block
            and not as part of the stmk_for processing. */
