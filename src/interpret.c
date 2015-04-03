@@ -1760,6 +1760,11 @@ successfully interpreted, FALSE otherwise.
              fit within the expr_bytes array. */
           expr_value = expr_bytes;
           tp = skip_typerefs(expr->type);
+        } else {
+          /* Needed only to avoid spurious GNU compiler optimizer
+             warnings. */
+          expr_value = NULL;
+          tp = NULL;
         }  /* if */
         incr = stmt->variant.for_loop.extra_info->increment;
         if (incr != NULL) {
@@ -1774,6 +1779,12 @@ successfully interpreted, FALSE otherwise.
           } else {
             incr_value = incr_bytes;
           }  /* if */
+        } else {
+          /* Needed only to avoid spurious GNU compiler optimizer
+             warnings. */
+          save_storage_stack(ips, saved_stack);
+          incr_type = NULL;
+          incr_value = NULL;
         }  /* if */
         /* Initialization is handled by an stmk_init in the containing block
            and not as part of the stmk_for processing. */
