@@ -1,5 +1,14 @@
 Version 4.11
 
+4/6/15   [EDGcpfe/2667,EDGcpfe/6204,EDGcpfe/7379,EDGcpfe/16149]
+Microsoft compatibility: Use of undeclared template in default argument
+
+The Microsoft compiler allows the use of an undeclared class template in
+a template default argument.  We now emulate this in Microsoft mode.
+
+  template <typename T1, typename T2 = B<T1> > class A { }; 
+
+
 4/1/15   [EDGcpfe/16125]
 GNU compatibility: Disable checking of register use for multiple alternative
                    constraints with earlyclobbers in asm statements

@@ -16215,6 +16215,13 @@ a routine to lookup the appropriate instance (or generate one if needed).
          error. */
       template_sym = NULL;
       sun_gpp_undefined_template = TRUE;
+    } else if (microsoft_mode && caching_tokens &&
+               scope_is(&scope_stack_top(), sck_template_declaration)) {
+      /* We are caching tokens in a template declaration scope.  Ignore an
+         undefined template in Microsoft mode.  This most frequently occurs
+         when skipping a default template argument. */
+      template_sym = NULL;
+      sun_gpp_undefined_template = TRUE;
     } else if (!is_error_symbol &&
                !lt_permitted_context && !is_expr_context) {
       /* A nontype symbol followed by a template argument list in a
