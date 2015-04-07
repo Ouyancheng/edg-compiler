@@ -2583,14 +2583,24 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
   } else if (pack_expr != NULL) {
-    /* Function parameter. */
-    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref &&
-                    pack_expr->variant.param_ref.param_num != 0);
+    if (pack_expr->kind == (an_expression_kind)enk_param_ref &&
+        pack_expr->variant.param_ref.param_num != 0) {
+      /* Function parameter. */
 #if !IA64_ABI
-    add_to_mangled_name('X', mctl);
-    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+      add_to_mangled_name('X', mctl);
+      store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-    mangled_encoding_for_param_reference(pack_expr, mctl);
+      mangled_encoding_for_param_reference(pack_expr, mctl);
+    } else {
+      /* sizeof... should only be applied to template parameter packs or
+         function parameter packs, but in prototype instantiations, those may
+         be represented by enk_variables; mangle as a generic expression
+         (which can't be decoded, but it's only for a prototype
+         instantiation). */
+      check_assertion(prototype_instantiations_in_il);
+      mangled_encoding_for_expression(pack_expr, /*in_dependent_expr=*/FALSE,
+                                      mctl);
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */

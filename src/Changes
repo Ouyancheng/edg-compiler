@@ -1,5 +1,19 @@
 Version 4.11
 
+4/7/15   [EDGcpfe/16158]
+Assertion failure in mangled_encoding_for_sizeof_pack
+
+In configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and MANGLE_ALL_NAMES
+are both TRUE, an assertion failure (in mangled_encoding_for_sizeof_pack)
+could occur when mangling a type with a C++11 sizeof... expression.  Now fixed.
+For example, with --c++11:
+
+  template <int N> struct X {};
+  template <class... T> void f(T... t) {
+    X<sizeof...(t)> x;
+  }
+
+
 4/6/15   [EDGcpfe/2667,EDGcpfe/6204,EDGcpfe/7379,EDGcpfe/16149]
 Microsoft compatibility: Use of undeclared template in default argument
 
