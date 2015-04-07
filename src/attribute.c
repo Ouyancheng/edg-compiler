@@ -8062,11 +8062,9 @@ process_alias_fixup_list.
   if (!err) {
     sizeof_t  prefix_len = sizeof("redefine_extname ")-1;
     sizeof_t  pragma_len = prefix_len+src_name_len+1+asm_name_len+1;
+    check_assertion(asm_name != NULL);
     add_alias_fixup((a_symbol_ptr)NULL,
-                    asm_name == NULL ? NULL :
-                                       copy_string_to_region(
-                                                    file_scope_region_number,
-                                                    asm_name),
+                    copy_string_to_region(file_scope_region_number, asm_name),
                     src_name,
                     &ppp->pragma_position);
     /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
