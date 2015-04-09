@@ -15205,7 +15205,7 @@ to TRUE.  *source_pos gives the source position for errors.
 {
   a_type_ptr type_1, type_2 = NULL, type_3 = NULL;
   a_type_ptr result_type = *operation_type, promoted_type_2;
-  a_type_ptr composite_type;
+  a_type_ptr usual_conv_type;
   a_boolean  do_promotion, do_usual_arith_conversions;
   a_boolean  bad_types = FALSE;
   a_boolean  result_type_is_bool = FALSE;
@@ -15341,17 +15341,17 @@ to TRUE.  *source_pos gives the source position for errors.
         break;
     }  /* switch */
     if (do_usual_arith_conversions) {
-      composite_type = usual_arithmetic_conversions(type_1, type_2);
+      usual_conv_type = usual_arithmetic_conversions(type_1, type_2);
       if (!assignment_case) {
         cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                        composite_type, source_pos);
+                                        usual_conv_type, source_pos);
       }  /* if */
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
-                                      composite_type, source_pos);
+                                      usual_conv_type, source_pos);
       if (result_type_is_bool) {
         result_type = bool_type();
       } else {
-        result_type = composite_type;
+        result_type = usual_conv_type;
       }  /* if */
     } else if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
