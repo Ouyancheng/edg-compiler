@@ -15205,8 +15205,10 @@ to TRUE.  *source_pos gives the source position for errors.
 {
   a_type_ptr type_1, type_2 = NULL, type_3 = NULL;
   a_type_ptr result_type = *operation_type, promoted_type_2;
+  a_type_ptr composite_type;
   a_boolean  do_promotion, do_usual_arith_conversions;
   a_boolean  bad_types = FALSE;
+  a_boolean  result_type_is_bool = FALSE;
 
   type_1 = unqual_type_of_copied_template_expr(*operand_1, constant_1,
                                                *alloc_con_1);
@@ -15261,6 +15263,9 @@ to TRUE.  *source_pos gives the source position for errors.
       result_type = type_after_integral_promotion(type_1);
       cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
                                       result_type, source_pos);
+    } else if (op == (an_expr_operator_kind)eok_not) {
+      /* The result of !x is always bool, regardless of the type of x. */
+      result_type = bool_type();
     }  /* if */
   } else if (!op_3_present) {
     a_boolean assignment_case = FALSE;
@@ -15287,6 +15292,15 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_lt:
       case eok_ge:
       case eok_le:
+        if (!is_nullptr_type(type_1) && !is_nullptr_type(type_2)) {
+          /* The usual arithmetic conversions are not performed if one of
+             the operands has a nullptr type. */
+          do_usual_arith_conversions = TRUE;
+        }  /* if */
+        /* The result of a comparison is always bool, regardless of the
+           types of the operands. */
+        result_type_is_bool = TRUE;
+        break;
 #if GNU_EXTENSIONS_ALLOWED
       case eok_gnu_min:
       case eok_gnu_max:
@@ -15327,13 +15341,18 @@ to TRUE.  *source_pos gives the source position for errors.
         break;
     }  /* switch */
     if (do_usual_arith_conversions) {
-      result_type = usual_arithmetic_conversions(type_1, type_2);
+      composite_type = usual_arithmetic_conversions(type_1, type_2);
       if (!assignment_case) {
         cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                        result_type, source_pos);
+                                        composite_type, source_pos);
       }  /* if */
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
-                                      result_type, source_pos);
+                                      composite_type, source_pos);
+      if (result_type_is_bool) {
+        result_type = bool_type();
+      } else {
+        result_type = composite_type;
+      }  /* if */
     } else if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
       if (!assignment_case) {

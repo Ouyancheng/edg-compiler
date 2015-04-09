@@ -1,5 +1,27 @@
 Version 4.11
 
+4/9/15   [EDGcpfe/16070]
+GNU C++ compatibility: internal error on "!" operator in SFINAE context with
+ABI_COMPATIBILITY_VERSION < 402
+
+In g++ mode with ABI_COMPATIBILITY_VERSION < 402, an internal error could
+occur in copy_template_param_expr if a template substitution context used
+a "!" operator on a dependent expression.  Now fixed.
+
+  template <bool> struct A ;
+  template <typename> struct B { enum { value }; };
+  template <typename U> struct C {
+    template <typename T> void f(typename A <(1 || ! B <T>::value)>::type) {}
+    template <typename V> void f(C<V>&) {}
+  };
+  int main() {
+    C<int> ci;
+    typedef B<int> X;
+    C<X> cx;
+    ci.f<X>(cx);
+  }
+
+
 4/7/15   [EDGcpfe/16158]
 Assertion failure in mangled_encoding_for_sizeof_pack
 
