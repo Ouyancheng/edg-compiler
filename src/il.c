@@ -15304,13 +15304,13 @@ to TRUE.  *source_pos gives the source position for errors.
 #if GNU_EXTENSIONS_ALLOWED
       case eok_gnu_min:
       case eok_gnu_max:
-#endif /* GNU_EXTENSIONS_ALLOWED */
         if (!is_nullptr_type(type_1) && !is_nullptr_type(type_2)) {
           /* The usual arithmetic conversions are not performed if one of
              the operands has a nullptr type. */
           do_usual_arith_conversions = TRUE;
         }  /* if */
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case eok_add_assign:
       case eok_subtract_assign:
       case eok_multiply_assign:
