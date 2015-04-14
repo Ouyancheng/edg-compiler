@@ -3664,12 +3664,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            to avoid performance problems with huge hidden name lists when
            there are many instances, with the injected class name of each
            instance of a class template hiding all the other instances.) */
-        if (!(options & GN_NO_TEMPLATE_ARGS)) {
+        if ((options & GN_NO_TEMPLATE_ARGS)) {
           /* If we are suppressing template arguments (which happens in a
              prototype instantiation), we must not qualify the name -- the
              qualified name without the template arguments will refer to
              the template itself, not the current specialization, and thus
              won't be a type, as this name is. */
+          scp->qualification_needed = FALSE;
+        } else {
           scp->qualification_needed = TRUE;
         }  /* if */
       }  /* if */
@@ -16465,7 +16467,12 @@ a constructor.
             type = ctor_init->orig_type == NULL ?
                                           parent_class_of(ctor_routine) :
                                           ctor_init->orig_type;
-            gen_type_name(type);
+            /* There is no need for template arguments on the type -- the
+               bare class name will refer unambiguously to the
+               injected-class-name -- and the Microsoft compiler has a bug
+               that results in a spurious error when they are present. */
+            gen_name(&type->source_corresp, iek_type, GN_NO_TEMPLATE_ARGS,
+                     (a_boolean *)NULL);
           }
           break;
         default:

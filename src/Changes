@@ -1,5 +1,24 @@
 Version 4.11
 
+4/14/15  [EDGcpfe/16104]
+C++-generating back end, Microsoft compatibility: delegating constructor of
+class template
+
+In a configuration in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end put out the name of the class in the
+mem-initializer using a qualified name and a template argument list.
+Although this is correct code, the Microsoft compiler reports spurious
+errors when the argument list passed to the target constructor is enclosed
+in braces instead of parentheses.  To work around this issue, the
+C++-generating back end now puts out the name of class in this context as
+a bare name, referring to the injected-class-name.  For example:
+
+  template<typename T> struct S {
+    S(int);
+    S() : S{0} { }  // Previously generated as ::S<T>{(0)}, an error in MSVC
+  };
+
+
 4/9/15   [EDGcpfe/16070]
 GNU C++ compatibility: internal error on "!" operator in SFINAE context with
 ABI_COMPATIBILITY_VERSION < 402
