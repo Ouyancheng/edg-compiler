@@ -1,5 +1,25 @@
 Version 4.11
 
+4/14/15  [EDGcpfe/15918]
+C++14: Direct braced initializers and placeholder types
+
+In C++11 mode, a variable declared with a placeholder type ("auto" or
+"decltype(auto)") and with a "direct" braced initializer is deduced to have a
+std::initializer_list<...> type.  In C++14 mode and in Microsoft C++ mode with
+microsoft_version >= 1900, such cases are now only permitted if the braces
+enclose a single element and in such situations the outer braces are ignored.
+For example:
+
+  auto x{ 1, 2 };  // std::initializer_list<int> in C++11 mode; now an error
+                   // in C++14 mode.
+  auto y{1};       // std::initializer_list<int> in C++11 mode; now int in
+                   // C++14 mode.
+
+This rule is a result of a language change introduced by the C++ standards
+committee's paper N3922.  It does not currently apply in GNU and Clang C++14
+modes.
+
+
 4/14/15  [EDGcpfe/16173]
 Over-eager generation of virtual defaulted destructor definitions
 

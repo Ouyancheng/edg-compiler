@@ -457,6 +457,24 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     undeduced_type = make_qualified_type(undeduced_type,
                                          (a_type_qualifier_set)TQ_CONST);
   }  /* if */
+  if (is_braced_init_component(icp) && dps->has_direct_initializer &&
+      ((cpp14_mode && !(gpp_mode || clang_mode)) ||
+       (microsoft_mode && microsoft_version >= 1900))) {
+    /* In C++14 mode, direct-list-initialization with a placeholder type only
+       permits a single braced element, and in that case the braces are
+       ignored (rule introduced by the C++ standardization committee's paper
+       N3922). */
+    an_init_component_ptr  elem_icp = icp->variant.braced.list;
+    if (elem_icp != NULL && is_last_elem(elem_icp)) {
+      /* A single brace-enclosed element: Proceed with just the element. */
+      icp = elem_icp;
+    } else {
+      /* Issue a diagnostic and proceed with the braced list. */
+      pos_diagnostic(es_discretionary_error,
+                     ec_auto_direct_list_init_requires_singleton,
+                     init_component_pos(icp));
+    }  /* if */
+  }  /* if */
   if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
                                undeduced_type,
                                dps->auto_type,
