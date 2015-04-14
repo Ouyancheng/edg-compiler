@@ -1,5 +1,29 @@
 Version 4.11
 
+4/14/15  [EDGcpfe/16173]
+Over-eager generation of virtual defaulted destructor definitions
+
+The front end sometimes generated definitions for virtual defaulted destructors
+when that was not actually needed.  This could result in spurious errors.
+For example:
+
+  template <typename T> struct U {
+    ~U() {
+      if (sizeof(T)>8) {}
+    }	
+  };
+  struct X;
+  struct Y {
+    virtual ~Y() = default;
+    U<X> x;
+  };
+
+In this example previously generated a body for Y::~Y(), which in turn
+triggered the instantiation of U<X>::~U() and that resulted in an error since
+the sizeof operator cannot be applied to the incomplete type X.  This is now
+fixed (the definition of Y::~Y() is no longer forced).
+
+
 4/14/15  [EDGcpfe/16104]
 C++-generating back end, Microsoft compatibility: delegating constructor of
 class template

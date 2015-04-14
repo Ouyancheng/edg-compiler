@@ -230,7 +230,7 @@ trigger its definition elsewhere).
 
   if (dtor_sym != NULL) {
     a_routine_ptr  dtor = dtor_sym->variant.routine.ptr;
-    if (dtor->compiler_generated && dtor->is_virtual &&
+    if ((dtor->compiler_generated || dtor->is_defaulted) && dtor->is_virtual &&
         !routine_has_been_defined(dtor)) {
       /* A virtual generated destructor that hasn't been defined yet. */
       a_boolean  generate = FALSE;

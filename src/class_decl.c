@@ -3596,9 +3596,6 @@ Also, if the member is virtual, force its definition to be generated.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (rp->is_virtual) {
-        force_definition_of_compiler_generated_routine(rp);
-      }  /* if */
     }  /* if */
   }  /* for */
 }  /* complete_defaulted_member_decl */
