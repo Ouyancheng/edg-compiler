@@ -465,14 +465,19 @@ swallowed); otherwise, it's "="-form or "{...}" form.
        ignored (rule introduced by the C++ standardization committee's paper
        N3922). */
     an_init_component_ptr  elem_icp = icp->variant.braced.list;
-    if (elem_icp != NULL && is_last_elem(elem_icp)) {
-      /* A single brace-enclosed element: Proceed with just the element. */
-      icp = elem_icp;
-    } else {
-      /* Issue a diagnostic and proceed with the braced list. */
+    if (elem_icp == NULL || !is_last_elem(elem_icp)) {
+      /* Not a single element: Issue a diagnostic and proceed with the braced
+         list. */
       pos_diagnostic(es_discretionary_error,
                      ec_auto_direct_list_init_requires_singleton,
                      init_component_pos(icp));
+    } else if (is_braced_init_component(elem_icp)) {
+      /* Something like "auto x{ { 3 } };".  A deduction error will be issued
+         later. */
+      expect_error();
+    } else {
+      /* A single brace-enclosed element: Proceed with just the element. */
+      icp = elem_icp;
     }  /* if */
   }  /* if */
   if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
