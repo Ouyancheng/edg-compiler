@@ -38,10 +38,10 @@ For example:
     U<X> x;
   };
 
-In this example previously generated a body for Y::~Y(), which in turn
-triggered the instantiation of U<X>::~U() and that resulted in an error since
-the sizeof operator cannot be applied to the incomplete type X.  This is now
-fixed (the definition of Y::~Y() is no longer forced).
+In this example the front end previously generated a body for Y::~Y(), which
+in turn triggered the instantiation of U<X>::~U() and that resulted in an
+error since the sizeof operator cannot be applied to the incomplete type X.
+This is now fixed (the definition of Y::~Y() is no longer forced).
 
 
 4/14/15  [EDGcpfe/16104]
