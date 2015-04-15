@@ -21719,7 +21719,7 @@ for each compilation.
   /* If we are going to run the C-generating back end, the types list must be
      ordered to ensure that when the definition of a type T is rendered, all
      the types X that T depends on have been declared/defined appropriately.
-     ENSURE_LOWERED_TYPE_LIST_ORDER can also be set to TRUE for other back
+     ENSURE_LOWERED_TYPE_LIST_ORDERING can also be set to TRUE for other back
      ends that want to see the types in a C-compatible order. */
   perform_type_list_ordering = TRUE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
