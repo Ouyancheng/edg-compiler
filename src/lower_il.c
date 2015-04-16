@@ -15110,10 +15110,6 @@ expression).  This routine is used in lowering both C and C++.
            expression. */
         change_block_into_statement_expression(result_stmt);
         check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
-      } else {
-        /* The block doesn't return a value; indicate that the node no longer
-           returns a value. */
-        set_expr_result_not_used(expr);
       }  /* if */
     } else {
       /* If it's not a block, it should be the original statement (and
@@ -15123,7 +15119,8 @@ expression).  This routine is used in lowering both C and C++.
                       result_stmt->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
     }  /* if */
-    if (result_stmt->next != NULL) {
+    if (result_stmt->next != NULL &&
+        result_stmt->kind == (a_statement_kind)stmk_stmt_expr_result) {
       /* Statements have been added by lowering after the stmk_stmt_expr_result
          statement (that indicates the statement expression's result).
          The back end expects that the last statement in the statement
@@ -18792,7 +18789,7 @@ Do IL lowering of the indicated statement and everything under it.
                                                         curr_context->scope);
           if (gse_return_value_pointer_variable == NULL) {
             /* A case where there's no variable being initialized, e.g.,
-                 S *p = new S(({ S(); }));
+                 new S(({ S(); }));
                In this case, an initialization position description has been
                saved that represents the entity being initialized. */
             check_assertion(gse_init_position != NULL);
