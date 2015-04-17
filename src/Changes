@@ -594,14 +594,12 @@ issue 974.
 
 
 3/17/15  [EDGcpfe/15809]
-Ignore files being included when using #include_next
+Remove duplicate include directories from the search path
 
-When searching for a file for an #include_next directive, the search
-begins at the include search path entry following the one that was
-used to find the current file.  If a directory name appears more than
-once in the search path a file that is in the process of being included
-could be included again by #include_next.  #include_next now ignores
-any files that are in the process of being included.
+In GNU mode when gnu_version >= 30300 if an include directory is specified
+more than once in the search path, the duplicate entries are removed.
+Formerly, this was only done if one was a system include and the other
+was not.
 
 
 3/17/15  [EDGcpfe/14503]

@@ -4191,7 +4191,6 @@ a pointer.
   ifhp->ifdef_guard = FALSE;
   ifhp->ifndef_guard = FALSE;
   ifhp->use_canonical_name = FALSE;
-  ifhp->on_input_stack = FALSE;
   ifhp->controlling_macro_name = NULL;
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
   clear_unique_file_id(&ifhp->unique_id);
@@ -4798,9 +4797,6 @@ if the open fails.
     /* This include should be suppressed.  No further action is needed. */
     *suppress_include = TRUE;
     found = TRUE;
-  } else if (is_include_next && ifhp != NULL && ifhp->on_input_stack) {
-    /* For an include_next, consider the file not found if it is already
-       in the process of being included. */
   } else {
     /* It was not previously included. Attempt to open the file. */
     *new_input_file = try_to_open_source_file(name_to_try,
@@ -5525,9 +5521,6 @@ used to find this file.
   curr_ise->from_system_include_dir = from_system_include_dir;
   curr_ise->nested_inclusion = (times_name_appears != 0);
   curr_ise->include_history = ifhp;
-  if (ifhp != NULL) {
-    ifhp->on_input_stack = TRUE;
-  }  /* if */
   curr_ise->ifg_state = IFG_STATE_START;
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
@@ -5809,9 +5802,6 @@ at the next level down.
        includes. */
     curr_ise->include_history->suppress_subsequent_include = TRUE;
   }
-  if (curr_ise->include_history != NULL) {
-    curr_ise->include_history->on_input_stack = FALSE;
-  }  /* if */
   /* Restore the previous value of the any_tokens_fetched flag. */
   any_tokens_fetched_from_curr_input_file =
 					  curr_ise->saved_any_tokens_fetched;

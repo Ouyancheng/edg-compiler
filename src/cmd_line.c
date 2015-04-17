@@ -10107,6 +10107,8 @@ enable_microsoft_mode:
        --sys_include, the -I is ignored. */
     remove_duplicate_include_dirs(&include_path_boundary,
                                   /*sys_includes_only=*/TRUE);
+    remove_duplicate_include_dirs(&include_path_boundary,
+                                  /*sys_includes_only=*/FALSE);
   }  /* if */
   /* If there was a -I- option, the system include search path starts at
      the indicated point.  Otherwise, the system include search path is
