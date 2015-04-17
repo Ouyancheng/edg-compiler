@@ -1,5 +1,31 @@
 Version 4.11
 
+4/17/15  [EDGcpfe/16176]
+Indeterminate exception specifications and the never_throws flag
+
+For defaulted special members, the front end sometimes records an
+"indeterminate" exception specification (see the entry for EDGcpfe/13735).
+Such an entry may later be "resolved", but in cases where that resolution
+reveals that the special member throws no exception, the front end previously
+failed to set the associated routine's never_throws flag to TRUE.  For example:
+
+  struct S {
+    virtual void v() { return; }
+  };
+  int main() {
+    S s;
+    s.v();
+    return (int)noexcept(S());
+  }
+
+In nonstrict modes, the default constructor of S is first generated with an
+"indeterminate" exception specification.  The noexcept operator, however,
+causes that indeterminacy to be resolved and the resulting exception
+specification is "noexcept" (i.e., the constructor is known to never throw
+an exception).  Previously, the default constructor's never_throws flag did
+not reflect this; now it does.
+
+
 4/16/15  [EDGcpfe/16175]
 GNU compatibility: segfault in lower_gnu_statement_expression
 

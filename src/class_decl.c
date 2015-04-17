@@ -19387,6 +19387,11 @@ routine issues an error accordingly when that happens.
     rtsp->exception_specification = NULL;
     form_exception_specification_for_generated_function(
                                                       rp, (a_symbol_ptr)NULL);
+    /* Set the routine's never_throws flag if needed. */
+    if (rtsp->exception_specification != NULL &&
+        is_nothrow_type(skip_typerefs(rp->type))) {
+      rp->never_throws = TRUE;
+    }  /* if */
   }  /* if */
 }  /* resolve_indeterminate_exception_specification */
 
