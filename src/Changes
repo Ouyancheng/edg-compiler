@@ -1,5 +1,18 @@
 Version 4.11
 
+4/17/15  [EDGcpfe/16150]
+Clang compatibility: _Static_assert and __has_feature(cxx_static_assert)
+
+Changes have been made to be more compatible with clang in this area;
+_Static_assert is now accepted in all C++ modes, and
+__has_feature(cxx_static_assert) is now FALSE in C modes (it is only
+TRUE in --c++11 mode).  This is now accepted with --clang:
+
+  void f() {
+    _Static_assert(1, "test");
+  }
+
+
 4/17/15  [EDGcpfe/16176]
 Indeterminate exception specifications and the never_throws flag
 

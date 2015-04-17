@@ -2621,7 +2621,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
   gnu_c89_inlining = FALSE;
   c99_bool_is_keyword = TRUE;
   if (c11_mode) {
-    static_assert_enabled = TRUE;
+    static_assert_enabled = !clang_mode;
     allow_c11_anonymous_unions = TRUE;
     alignas_enabled = TRUE;
     alignof_enabled = TRUE;
@@ -4094,7 +4094,7 @@ This function is also called in clang mode.
     gnu_c89_inlining = TRUE;
   }  /* if */
   c99_bool_is_keyword = TRUE;
-  if (gnu_version >= 40600) {
+  if (gnu_version >= 40600 && !clang_mode) {
     static_assert_enabled = TRUE;
   }  /* if */
   if (gnu_version >= 40700) {

@@ -1115,6 +1115,10 @@ Install the keywords in the symbol table.
     if (static_assert_enabled) {
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");
     }  /* if */
+    if (clang_mode) {
+      /* Clang allows _Static_assert in all C++ modes. */
+      enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+    }  /* if */
     if (decltype_enabled) {
       /* In some GNU C++ modes, the decltype feature is only available via the
          alternative spelling "__decltype".  In other GNU C++ modes, both
