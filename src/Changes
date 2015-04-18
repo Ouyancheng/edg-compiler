@@ -1,5 +1,33 @@
 Version 4.11
 
+4/18/15  [EDGcpfe/16101]
+C++-generating back end, Microsoft compatibility: typedefs used as qualifiers
+in template arguments in class templates
+
+The Microsoft compiler has a bug that causes it in some cases to report
+spurious errors when a dependent type is used as a qualifier in a template
+argument appearing inside a class template definition.  This problem does
+not normally occur in user-written code because member typedefs are
+typically used to shorten the template arguments.  However, the IL produced
+by the front end generally refers to the underlying type, not the typedef,
+in such template arguments.  This occasionally caused problems when
+compiling the output of the C++-generating back end when
+PROTOTYPE_INSTANTIATIONS_IN_IL is set to TRUE.  To work around this bug in
+the Microsoft compiler, when msvc_is_generated_code_target is TRUE, the
+C++-generating back end in such configurations has now been changed to use
+a member typedef when one is available instead of a dependent type when it
+occurs in such contexts.  The following example did not trigger the
+Microsoft compiler bug but illustrates the effect of this change when
+compiled with --microsoft:
+
+  template<typename T> struct A { };
+  template<typename T> struct B {
+    typedef typename A<T>::type X;
+    typedef A<typename X::type> Y;  // Previously generated as
+                                    // "A<typename A<T>::type::type>"
+  };
+
+
 4/17/15  [EDGcpfe/16150]
 Clang compatibility: _Static_assert and __has_feature(cxx_static_assert)
 
