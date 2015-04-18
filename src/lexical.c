@@ -4766,7 +4766,6 @@ the file pointer if the open succeeds, or NULL otherwise.
 static a_boolean try_to_open_source_file_if_not_already_included(
                                     a_const_char          *name_to_try,
                                     FILE                  **new_input_file,
-                                    a_boolean             is_include_next,
                                     a_boolean             *suppress_include,
                                     an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
@@ -4775,8 +4774,7 @@ Try to open the source file specified by name_to_try.  Before
 attempting to open the file, check whether an inclusion of the file
 should be suppressed because the file has already been included.
 Return TRUE if the file was found (the file was either opened or a
-previously included file was found).  is_include_next is TRUE if the file
-is being included using #include_next.  If the file was opened, the file
+previously included file was found).  If the file was opened, the file
 pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
 suppress_include.  *unicode_source_kind is set to indicate the Unicode
@@ -5079,7 +5077,7 @@ is TRUE, and search_path is empty.
           /* Attempt to open the file from the previous search. */
           name_to_try = isrp->result_file;
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file, is_include_next,
+                             name_to_try, new_input_file,
                              suppress_include, open_result,
                              unicode_source_kind);
         }  /* if */
@@ -5104,7 +5102,7 @@ is TRUE, and search_path is empty.
           /* We don't need to replace the suffix.  Just try the
              file/directory combination just constructed. */
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file, is_include_next,
+                             name_to_try, new_input_file,
                              suppress_include, open_result,
                              unicode_source_kind);
         } else {
@@ -5128,7 +5126,7 @@ is TRUE, and search_path is empty.
             name_to_try = buffer->buffer;
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, new_input_file, is_include_next,
+                             name_to_try, new_input_file,
                              suppress_include, open_result,
                              unicode_source_kind);
             if (file_found) break;
