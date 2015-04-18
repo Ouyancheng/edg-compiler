@@ -4953,7 +4953,6 @@ static a_boolean search_for_input_file(
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			is_implicit_include,
 			a_boolean			is_system_include,
-			a_boolean			is_include_next,
 			a_boolean			is_preinclude,
 			a_const_char			**name_found,
 			FILE				**new_input_file,
@@ -4974,9 +4973,8 @@ suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
 used.  is_system_include is TRUE if the included file name was specified
-in <...>.  is_include_next is TRUE if the file is being opened for an
-#include_next directive.  is_preinclude is TRUE for files included via the
-preinclude or preinclude_macros command-line options.  Return TRUE if the file
+in <...>.  is_preinclude is TRUE for files included via the preinclude
+or preinclude_macros command-line options.  Return TRUE if the file
 was found (the file was either opened or a previously included file was found).
 If the file was opened, the file pointer is returned in new_input_file.
 If the include is to be suppressed because the file was already
@@ -5214,7 +5212,7 @@ value of is_system_include.
   result = search_for_input_file(filename, /*use_search_path=*/TRUE,
                                  search_path, include_file_suffix_list,
                                  /*is_implicit_include=*/FALSE,
-                                 is_system_include, is_include_next,
+                                 is_system_include,
                                  /*is_preinclude=*/FALSE,
                                  &temp_file_name, &fp, &suppress_include,
                                  &open_result, &unicode_source_kind,
@@ -5319,7 +5317,6 @@ a catastrophic error is not issued, FALSE is returned.
     file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
                                        is_implicit_include, is_system_include,
-                                       is_include_next,
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
@@ -5331,7 +5328,6 @@ a catastrophic error is not issued, FALSE is returned.
                                        include_file_suffix_list,
                                        /*is_implicit_include=*/FALSE,
                                        is_system_include,
-                                       is_include_next,
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
