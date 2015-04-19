@@ -1,5 +1,35 @@
 Version 4.11
 
+4/18/15  [EDGcpfe/16179]
+Microsoft compatibility: handling of comma in variadic macro arguments
+
+In the Microsoft preprocessor, a comma appearing in the text passed to an
+ellipsis macro parameter generally does not delimit macro arguments when
+__VA_ARGS__ is passed as the argument to another macro in the expansion of
+the variadic macro.  However, this special treatment of commas does not
+apply when the name of that secondary macro is itself the result of a
+deeply-nested macro expansion.  The front end previously failed to make
+this distinction but has now been changed to emulate the Microsoft
+preprocessor more closely.  For example, with --microsoft -E,
+
+  #define A(x,y) B(x,y)
+  #define B(x,y) concat(x,2)
+  #define concat(x,y) x##y
+  #define C2(x,y) y,x
+  #define C(...) A(C, abc) (__VA_ARGS__)
+  C(x, y)
+
+now produces the output "y,x", as does the Microsoft preprocessor, because
+the comma in the __VA_ARGS__ string separates "x" and "y" into distinct
+arguments.  Replacing the definition of B, however, with
+
+  #define B(x,y) C2
+
+results in a warning about too few arguments for C2 and the output ",x, y";
+__VA_ARGS__ is treated as a single argument because the macro name C2 is
+not the result of a nested macro expansion.
+
+
 4/18/15  [EDGcpfe/16101]
 C++-generating back end, Microsoft compatibility: typedefs used as qualifiers
 in template arguments in class templates

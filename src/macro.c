@@ -271,6 +271,13 @@ static a_boolean
 			   preprocessor idiosyncrasy.  See
 			   choose_raw_or_expanded_arg for details. */
 
+static a_source_line_modif_ptr
+		top_microsoft_slmp;
+			/* In Microsoft mode, points to the top-level
+			   source line modification passed to
+			   expand_top_level_pcc_macro when that routine is
+			   active; NULL otherwise. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -4435,6 +4442,7 @@ associated global variables will also have been set).
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
   a_source_line_modif_ptr
                   invocation_slmp = NULL;
+  unsigned long   macro_name_depth = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
@@ -4616,6 +4624,16 @@ end_scan_for_macro_modifs:;
        see if it's associated with the macro we are about to expand.  If
        so, the macro name is inert and should be left alone. */
     slmp = assoc_source_line_modif(temp_ptr);
+    if (top_microsoft_slmp != NULL)  {
+      /* This invocation is nested in the expansion of another macro
+         invocation.  Find out how deeply nested the macro name is, which
+         matters in the handling of the comma_is_from_argument flag
+         below. */
+      for (slmp2 = slmp; slmp2 != top_microsoft_slmp && slmp2 != NULL;
+           slmp2 = parent_source_line_modif(slmp2)) {
+        ++macro_name_depth;
+      }  /* for */
+    }  /* if */
     invocation_slmp = slmp;
 #if RECORD_MACRO_INVOCATIONS
     parent_macro_invocation_record = slmp->invocation_record;
@@ -5160,32 +5178,54 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
-            if (comma_is_from_argument && paren_count > 0) {
-              /* The Microsoft preprocessor ignores whether a comma
-                 originated in a macro argument in invocations appearing
-                 within the argument of another macro.  (We take the fact
-                 that this comma is nested within parentheses as an
-                 indication that it is in a macro argument.  If it's just
-                 parenthesized text and not a macro invocation, it doesn't
-                 matter because commas nested within parentheses don't
-                 delimit macro arguments in any case.)  Overwrite the
-                 LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
-                 innocuous substitution, since all commas start new
-                 tokens). */
-              char *cp = (char *)start_of_curr_token;
-              /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
-                 LE_END_OF_TOKEN escape and/or a single space character,
-                 in that order, as per add_curr_token_text_to_buffer. */
-              if (cp[-1] == ' ') {
-                --cp;
+            if (comma_is_from_argument) {
+              if (paren_count > 0) {
+                /* The Microsoft preprocessor ignores whether a comma
+                   originated in a macro argument in invocations appearing
+                   within the argument of another macro.  (We take the fact
+                   that this comma is nested within parentheses as an
+                   indication that it is in a macro argument.  If it's just
+                   parenthesized text and not a macro invocation, it doesn't
+                   matter because commas nested within parentheses don't
+                   delimit macro arguments in any case.)  Overwrite the
+                   LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
+                   innocuous substitution, since all commas start new
+                   tokens). */
+                char *cp = (char *)start_of_curr_token;
+                /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
+                   LE_END_OF_TOKEN escape and/or a single space character,
+                   in that order, as per add_curr_token_text_to_buffer. */
+                if (cp[-1] == ' ') {
+                  --cp;
+                }  /* if */
+                if (cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+                    cp[-LE_ESCAPE_LEN+1] == LE_END_OF_TOKEN) {
+                  cp -= LE_ESCAPE_LEN;
+                }  /* if */
+                check_assertion(
+                               cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+                               cp[-LE_ESCAPE_LEN+1] == LE_COMMA_FROM_ARGUMENT);
+                cp[-LE_ESCAPE_LEN+1] = LE_END_OF_TOKEN;
+              } else if (top_microsoft_slmp != NULL &&
+                         ptr_in_range(start_of_curr_token,
+                                      top_microsoft_slmp->inserted_text,
+                                      top_microsoft_slmp->end_inserted_text) &&
+                         macro_name_depth > 2) {
+                /* The Microsoft preprocessor does not give special meaning
+                   to a comma from an argument if it's used as an argument
+                   in a macro invocation in which the macro name is the
+                   result of a deeply-nested macro expansion.  For example,
+                   given something like
+
+                     #define M(...) X(__VA_ARGS__)(__VA_ARGS__)
+                     M(x,y)
+
+                   where X is a macro whose ultimate expansion is the name
+                   of a macro Y, whether Y is invoked with one or two
+                   arguments depends on how deeply nested the name Y is in
+                   the expansion of the invocation of X. */
+                comma_is_from_argument = FALSE;
               }  /* if */
-              if (cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
-                  cp[-LE_ESCAPE_LEN+1] == LE_END_OF_TOKEN) {
-                cp -= LE_ESCAPE_LEN;
-              }  /* if */
-              check_assertion(cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
-                              cp[-LE_ESCAPE_LEN+1] == LE_COMMA_FROM_ARGUMENT);
-              cp[-LE_ESCAPE_LEN+1] = LE_END_OF_TOKEN;
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
@@ -6327,7 +6367,11 @@ copy_done:
     /* Free any allocated macro buffers now, to make their space available
        in the macro expansions about to be done. */
     free_macro_arg_entries(prev_end_of_macro_arg_list);
+    if (microsoft_mode) {
+      top_microsoft_slmp = slmp;
+    }  /* if */
     expand_top_level_pcc_macro(slmp);
+    top_microsoft_slmp = NULL;
     /* The location of the inserted text may have changed. */
     rescan_loc = slmp->inserted_text;
   }  /* if */
@@ -10056,6 +10100,7 @@ after this function.
   access_control_sfinae = FALSE;
   contextual_conversions = FALSE;
   use_raw_version_of_arg = FALSE;
+  top_microsoft_slmp = NULL;
 }  /* macro_trans_unit_init */
 
 
