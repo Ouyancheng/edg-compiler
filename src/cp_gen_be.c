@@ -1385,7 +1385,7 @@ class template and the generated code target is MSVC, add it to the list of
 such typedefs.
 */
 {
-  a_type_ptr targ_type;
+  a_type_ptr                  targ_type;
   a_substitutable_typedef_ptr stp;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
