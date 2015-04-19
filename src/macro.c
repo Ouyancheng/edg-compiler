@@ -5207,9 +5207,6 @@ do_argument_again:
                                cp[-LE_ESCAPE_LEN+1] == LE_COMMA_FROM_ARGUMENT);
                 cp[-LE_ESCAPE_LEN+1] = LE_END_OF_TOKEN;
               } else if (top_microsoft_slmp != NULL &&
-                         ptr_in_range(start_of_curr_token,
-                                      top_microsoft_slmp->inserted_text,
-                                      top_microsoft_slmp->end_inserted_text) &&
                          macro_name_depth > 2) {
                 /* The Microsoft preprocessor does not give special meaning
                    to a comma from an argument if it's used as an argument
@@ -5223,8 +5220,17 @@ do_argument_again:
                    where X is a macro whose ultimate expansion is the name
                    of a macro Y, whether Y is invoked with one or two
                    arguments depends on how deeply nested the name Y is in
-                   the expansion of the invocation of X. */
-                comma_is_from_argument = FALSE;
+                   the expansion of the invocation of X relative to the
+                   nesting depth of the comma. */
+                unsigned long comma_depth = 0;
+                for (slmp2 = assoc_source_line_modif(start_of_curr_token);
+                     slmp2 != top_microsoft_slmp && slmp2 != NULL;
+                     slmp2 = parent_source_line_modif(slmp2)) {
+                  ++comma_depth;
+                }  /* for */
+                if (macro_name_depth > comma_depth + 2) {
+                  comma_is_from_argument = FALSE;
+                }  /* if */
               }  /* if */
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
