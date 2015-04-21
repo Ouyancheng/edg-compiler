@@ -15916,7 +15916,7 @@ constants and (in some emulations) folded cast expressions.
     result = ((con->variant.ptr_to_member.is_function_ptr
                          ? con->variant.ptr_to_member.variant.routine == NULL
                          : con->variant.ptr_to_member.variant.field == NULL) ||
-              cast_okay);
+              (cast_okay && con->explicit_cast_applied));
   } else if (null_value_okay &&
              con->kind == (a_constant_repr_kind)ck_integer &&
              (is_pointer_type(con->type) ||
