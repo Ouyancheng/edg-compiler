@@ -1255,7 +1255,19 @@ single backing expression, the expressions in subsequent references will be
 discarded, even if they cause other template instantiations.
 */
 #ifndef KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+/* It is particularly important when generating template definitions from
+   the prototype instantiation IL to have the backing expression for a
+   non-type template argument; otherwise, the constant might be folded to a
+   form that cannot be used in the generated code, with no way of
+   recovering the original form of the argument.  For example, a constexpr
+   variable's folded form could be an aggregate constant, which cannot be
+   passed to a parameter pack; the original pack expansion naming the
+   variable can only be retrieved from the constant's backing expression. */
+#define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION TRUE
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION FALSE
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
 #if KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && DO_IL_LOWERING && \
     !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
