@@ -207,16 +207,15 @@ other command-line processing.
                     target_index < NUM_TARGET_CONFIGURATIONS);
     target = &target_configurations[target_configuration_index];
     target->set_target_config();
-    if (EDG_AUXILIARY_INFO_DIR_NAME != NULL) {
-      /* Create a target-specific version of this name so that predefined
-         macros can be different for each target configuration. */
-      auxiliary_info_dir_name = alloc_general(
-                                          strlen(EDG_AUXILIARY_INFO_DIR_NAME) +
-                                          strlen(target->name) + 2);
-      (void)strcpy(auxiliary_info_dir_name, EDG_AUXILIARY_INFO_DIR_NAME);
-      (void)strcat(auxiliary_info_dir_name, "_");
-      (void)strcat(auxiliary_info_dir_name, target->name);
-    }  /* if */
+    /* Create a target-specific version of this name so that predefined
+       macros can be different for each target configuration. */
+    check_assertion(EDG_AUXILIARY_INFO_DIR_NAME != NULL);
+    auxiliary_info_dir_name = alloc_general(
+                                        strlen(EDG_AUXILIARY_INFO_DIR_NAME) +
+                                        strlen(target->name) + 2);
+    (void)strcpy(auxiliary_info_dir_name, EDG_AUXILIARY_INFO_DIR_NAME);
+    (void)strcat(auxiliary_info_dir_name, "_");
+    (void)strcat(auxiliary_info_dir_name, target->name);
   }  /* if */
 }  /* set_target_configuration */
 
