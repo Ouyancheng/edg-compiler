@@ -1207,6 +1207,7 @@ extern int fileno(FILE *);
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
+/*lint -esym(755,concat)*/
 
 #endif /* ifndef LINT_H */
 

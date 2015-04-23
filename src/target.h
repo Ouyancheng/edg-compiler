@@ -124,6 +124,13 @@ EXTERN an_integer_kind
 EXTERN an_integer_kind
 		targ_c_bool_int_kind;
 			/* Integer kind associated with bool in C mode. */
+
+/*
+Macro to return the value of targ_c_bool_int_kind or targ_bool_int_kind
+as appropriate depending on the mode.
+*/
+#define BOOL_INT_KIND (C_mode() ? targ_c_bool_int_kind : targ_bool_int_kind)
+
 /*
 Integer types:
 */

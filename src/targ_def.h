@@ -1827,7 +1827,7 @@ Integral kind to be used for the bool type in C++.
 #ifndef TARG_BOOL_INT_KIND
 #define TARG_BOOL_INT_KIND ((an_integer_kind)ik_char)
 			/* Default value, used to initialize global variable
-			   targ_bool_int_kind. */
+			   targ_bool_int_kind.  See BOOL_INT_KIND. */
 #endif /* !defined(TARG_BOOL_INT_KIND) */
 
 /*
@@ -1837,14 +1837,8 @@ require this to be an unsigned type).
 #ifndef TARG_C_BOOL_INT_KIND
 #define TARG_C_BOOL_INT_KIND ((an_integer_kind)ik_unsigned_char)
 			/* Default value, used to initialize global variable
-			   targ_c_bool_int_kind. */
+			   targ_c_bool_int_kind.  See BOOL_INT_KIND. */
 #endif /* !defined(TARG_C_BOOL_INT_KIND) */
-
-/*
-Macro to return the value of targ_c_bool_int_kind or targ_bool_int_kind
-as appropriate depending on the mode.
-*/
-#define BOOL_INT_KIND (C_mode() ? targ_c_bool_int_kind : targ_bool_int_kind)
 
 /*
 Pointer types:

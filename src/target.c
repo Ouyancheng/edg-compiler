@@ -103,12 +103,13 @@ Define a macro to initialize an a_target_configuration entry
     concat(set_target_config ## _, name) \
   }
 #endif /* DUMP_CONFIG_ENABLED */
+/*lint -esym(750,DEFINE_TARGET_CONFIGURATION)*/
 
 /*
 This array contains an entry for each target configuration that has been
 defined at compilation time.
 */
-a_target_configuration target_configurations[] = {
+static a_target_configuration target_configurations[] = {
 #ifdef TARGET_CONFIGURATION_1
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_1),
 #endif /* defined(TARGET_CONFIGURATION_1) */
@@ -180,7 +181,7 @@ has been specified.
 {
   int32_t  i, result = NO_TARGET_CONFIG;
 
-  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) {
+  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
     if (strcmp(target_configurations[i].name, config) == 0) {
       result = i;
       break;
@@ -230,7 +231,7 @@ can be re-read as a defines.h (as part of the processing for
 {
   int  i;
 
-  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) {
+  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
     fprintf(f_error, "\n/* Target configuration: %s */\n",
             target_configurations[i].name);
     fprintf(f_error, "#define TARGET_CONFIGURATION_%d %s\n", i+1,
@@ -838,10 +839,10 @@ header has been read and the target has been determined).
 #if IA64_ABI
   targ_ia64_vtable_entry_int_kind = TARG_IA64_VTABLE_ENTRY_INT_KIND;
 #endif /* IA64_ABI */
-#endif /* DO_IL_LOWERING */
 #if GENERATE_EH_TABLES
   targ_region_number_int_kind = TARG_REGION_NUMBER_INT_KIND;
 #endif /* GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
   targ_sizeof_largest_integer = TARG_SIZEOF_LARGEST_INTEGER;
 #if FIXED_POINT_ALLOWED
   targ_sizeof_largest_fixed_point = TARG_SIZEOF_LARGEST_FIXED_POINT;

@@ -21,6 +21,7 @@ does not have an include guard.
 
 /* Define a shorthand notation for TARGET_CONFIGURATION. */
 #define _TC TARGET_CONFIGURATION
+/*lint -esym(755,_TC)*/
 
 #if FIXED_POINT_ALLOWED
 /*
@@ -214,7 +215,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_int128_field_alignment, _TC)
 #endif /* INT128_EXTENSIONS_ALLOWED */
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-#if DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
   TARGET_MAP_MACRO(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT,
                    targ_jmp_buf_elements_are_float, _TC)
   TARGET_MAP_MACRO(TARG_JMP_BUF_ELEMENT_FLOAT_KIND,
@@ -223,7 +224,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_jmp_buf_element_int_kind, _TC)
   TARGET_MAP_MACRO(TARG_JMP_BUF_NUM_ELEMENTS,
                    targ_jmp_buf_num_elements, _TC)
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
   TARGET_MAP_MACRO(TARG_LDBL_MANT_DIG, targ_ldbl_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_LDBL_MAX_EXP, targ_ldbl_max_exp, _TC)
   TARGET_MAP_MACRO(TARG_LDBL_MIN_EXP, targ_ldbl_min_exp, _TC)
@@ -272,10 +273,10 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   TARGET_MAP_MACRO(TARG_PTRDIFF_T_INT_KIND,
                    targ_ptrdiff_t_int_kind, _TC)
-#if GENERATE_EH_TABLES
+#if DO_IL_LOWERING && GENERATE_EH_TABLES
   TARGET_MAP_MACRO(TARG_REGION_NUMBER_INT_KIND,
                    targ_region_number_int_kind, _TC)
-#endif /* GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
   TARGET_MAP_MACRO(TARG_RIGHT_SHIFT_IS_ARITHMETIC,
                    targ_right_shift_is_arithmetic, _TC)
 #if !IA64_ABI
@@ -361,9 +362,9 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    packing_applies_to_base_classes, _TC)
   TARGET_MAP_MACRO(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS,
                    targ_user_control_of_struct_packing_affects_bit_fields, _TC)
-#if GENERATE_EH_TABLES
+#if DO_IL_LOWERING && GENERATE_EH_TABLES
   TARGET_MAP_MACRO(TARG_VAR_HANDLE_INT_KIND, targ_var_handle_int_kind, _TC)
-#endif /* GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
 #if DO_IL_LOWERING
   TARGET_MAP_MACRO(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND,
                    targ_virtual_function_index_int_kind, _TC)
