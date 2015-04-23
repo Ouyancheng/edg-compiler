@@ -59,15 +59,21 @@ Return the type of a virtual function table entry.
 {
   a_type_ptr vtbl_entry_type;
 
-#if IA64_ABI && DO_IL_LOWERING
+#if IA64_ABI
+#if DO_IL_LOWERING
   /* The IA-64 virtual function table contains offsets and pointers.
      The element type must be an integral type large enough to accommodate both
      of these types.  Typically, this is ptrdiff_t, but on some systems it may
      be larger. */
   vtbl_entry_type = integer_type(targ_ia64_vtable_entry_int_kind);
-#else /* !IA64_ABI && DO_IL_LOWERING */
+#else /* !DO_IL_LOWERING */
+  /* In some cp_gen_be configurations that do mangling, this code is
+     compiled (though not executed); return an arbitrary type. */
+  vtbl_entry_type = integer_type((an_integer_kind)ik_int);
+#endif /* DO_IL_LOWERING */
+#else /* !IA64_ABI */
   vtbl_entry_type = make_mptr_type();
-#endif /* IA64_ABI && DO_IL_LOWERING */
+#endif /* IA64_ABI */
   return vtbl_entry_type;
 }  /* make_vtbl_entry_type */
 
