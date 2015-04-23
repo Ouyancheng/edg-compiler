@@ -1,5 +1,18 @@
 Version 4.11
 
+4/23/15  [EDGcpfe/16180]
+Spurious error in function default argument involving pack expansion
+
+A spurious error was sometimes issued when a function default argument
+used a pack expansion.  Now fixed.
+
+  template< class... Types> class A { }; 
+  template< class... Types> void f(A<Types...> a = A<Types...>()) { }
+  int main() {
+    f<int,char>();
+  }
+
+
 4/23/15  [EDGcpfe/15604,EDGcpfe/15397,EDGcpfe/15717,EDGcpfe/15851,
           EDGcpfe/16160]
 Allow run time target configuration

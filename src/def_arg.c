@@ -136,6 +136,8 @@ when either is_function_template or is_template_param are FALSE.
   a_token_sequence_number	first_tsn;
   a_token_sequence_number	last_tsn;
   a_scope_stack_entry_ptr	ssep;
+  a_source_position		start_pos;
+  a_cts_flag_set		cts_options;
 
   db_enter(3, "prescan_default_arg_expr");
   /* Initialize a local stop token set. */
@@ -154,24 +156,24 @@ when either is_function_template or is_template_param are FALSE.
   clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* When scanning a template default argument add ">" to the stop tokens. */
   if (is_template_param) {
-    /* For template parameters, the background caching mechanism is used.
-       Once the end of the default argument is found, the original
-       (non-coalesced) tokens are extracted from the background cache.
-       The caller should have enabled the caching, but it is also done here
-       to handle certain error cases. */
-    a_source_position	start_pos = pos_curr_token;
-    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     incr_token_set_array_element(stop_tokens, tok_gt);
-    cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens,
-                            CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
-    end_caching_fetched_tokens();
-    if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
-      /* We ended up at an unexpected place because of mismatched
-         delimiters in the default argument. */
-      pos_error(ec_invalid_default_arg, &start_pos);
-    }  /* if */
-  } else {
-    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
+  }  /* if */
+  /* The background caching mechanism is used.  Once the end of the default
+     argument is found, the original (non-coalesced) tokens are extracted
+     from the background cache.  The caller may should have enabled the
+     caching, but it is also done here to handle certain error cases. */
+  start_pos = pos_curr_token;
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  cts_options = CTS_COALESCE_IDS;
+  if (is_template_param) cts_options |= CTS_STOP_ON_STATEMENT_END;
+  cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens, cts_options);
+  end_caching_fetched_tokens();
+  if (is_template_param &&
+      (curr_token == tok_semicolon || curr_token == tok_rbrace)) {
+    /* We ended up at an unexpected place because of mismatched
+       delimiters in the default argument.  A diagnostic is issued elsewhere
+       for function default argument cases. */
+    pos_error(ec_invalid_default_arg, &start_pos);
   }  /* if */
   /* Save the token sequence number of the last token of the default
      argument.  For things other than template parameters, the cache
@@ -180,22 +182,20 @@ when either is_function_template or is_template_param are FALSE.
      segment. */
   last_tsn = curr_token_sequence_number;
   if (!is_template_param) last_tsn--;
-  if (is_template_param) {
-    /* Normally the last token of the cache (usually a comma or the ">" that
-       ends the template parameter list) is not included.  But if we are
-       rescanning the default argument from a cache and hit the
-       tok_end_of_source terminator (which will not be in the cache),
-       we want to include the last token that is in the cache. */
-    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
-                           /*include_last_token=*/
+  /* Normally the last token of the cache (usually a comma, ")", or the ">"
+     that ends the template parameter list) is not included.  But if we are
+     rescanning the default argument from a cache and hit the
+     tok_end_of_source terminator (which will not be in the cache),
+     we want to include the last token that is in the cache. */
+  copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
+                         /*include_last_token=*/
                                                curr_token == tok_end_of_source,
-                           token_cache);
-    /* Normally tokens are cached directly into a reusable cache or are
-       moved from one reusable cache to another.  In this case, however,
-       the tokens are being copied from one reusable cache to another.
-       Update the token handles to refer to the copy of the cached token. */
-    adjust_token_handles(token_cache);
-  }  /* if */
+                         token_cache);
+  /* Normally tokens are cached directly into a reusable cache or are
+     moved from one reusable cache to another.  In this case, however,
+     the tokens are being copied from one reusable cache to another.
+     Update the token handles to refer to the copy of the cached token. */
+  adjust_token_handles(token_cache);
   ssep = &scope_stack[depth_scope_stack];
   if (!is_template_param &&
       ((ssep->in_prototype_instantiation && !is_friend_decl) ||
