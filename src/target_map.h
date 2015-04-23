@@ -378,6 +378,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_zero_width_bit_field_affects_struct_alignment, _TC)
   TARGET_MAP_MACRO(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT,
                    targ_zero_width_bit_field_alignment, _TC)
+  TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
 }  /* TARGET_MAP_ROUTINE_NAME */
 
 /* #undef the local macros defined above. */

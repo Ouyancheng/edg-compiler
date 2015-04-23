@@ -2410,9 +2410,9 @@ typedef enum an_attribute_kind_tag {
   ak_alloc_size,        /* "alloc_size" (gnu). */
   ak_always_inline,	/* "always_inline" (gnu). */
   ak_artificial,        /* "artificial" (gnu). */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   ak_cdecl,		/* "cdecl" (gnu). */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   ak_cleanup,		/* "cleanup" (gnu). */
   ak_cold,		/* "cold" (gnu). */
   ak_common,		/* "common" (gnu). */
@@ -2422,9 +2422,9 @@ typedef enum an_attribute_kind_tag {
   ak_error,		/* "error" (gnu). */
   ak_externally_visible,
 			/* "externally_visible" (gnu). */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   ak_fastcall,		/* "fastcall" (gnu). */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   ak_flatten,		/* "flatten" (gnu). */
   ak_format,		/* "format" (gnu). */
   ak_format_arg,	/* "format_arg" (gnu). */
@@ -2446,9 +2446,9 @@ typedef enum an_attribute_kind_tag {
   ak_packed,		/* "packed" (gnu). */
   ak_pure,		/* "pure" (gnu). */
   ak_sentinel,		/* "sentinel" (gnu). */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   ak_stdcall,		/* "stdcall" (gnu). */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   ak_strong,		/* "strong" (gnu). */
   ak_target,		/* "target" (gnu) function multiversioning. */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -7648,7 +7648,6 @@ typedef struct a_class_type_supplement {
 			   "inline template" directive, which is used to
 			   cause a vtable to be emitted in a given translation
 			   unit. */
-#if USE_X86_64
   a_bit_field   is_va_list_tag:1;
 			/* TRUE if this class is the __va_list_tag class used
 			   to implement __builtin_va_list on some 64-bit
@@ -7656,7 +7655,6 @@ typedef struct a_class_type_supplement {
 			   during name lookup (where it is exempt from
 			   argument-dependent name lookup) and in the
 			   C-generating back end. */
-#endif /* USE_X86_64 */
   a_bit_field	defined_in_parent_class:1;
 			/* TRUE for nested classes defined in their parent
 			   class. */

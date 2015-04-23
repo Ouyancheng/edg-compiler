@@ -6105,14 +6105,10 @@ associated namespaces and classes to "namespace_list" and "class_list".
     case tk_struct:
     case tk_union:
       ctsp = type->variant.class_struct_union.extra_info;
-#if USE_X86_64
-      if (ctsp->is_va_list_tag) {
+      if (targ_supports_x86_64 && ctsp->is_va_list_tag) {
         /* The __va_list_tag predeclared class doesn't participate in
            this lookup. */
-      } else
-#endif /* USE_X86_64 */
-      /* Do not insert code here. */
-      {
+      } else {
         /* The standard specifies different behavior for unions vs. classes.
            Specifically, the class of which a class is a member is not
            an associated class, and a union is not one of its own associated

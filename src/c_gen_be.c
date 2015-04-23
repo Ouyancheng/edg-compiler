@@ -1929,18 +1929,14 @@ or enum.  This is always a reference/declaration, never a definition.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
-#if USE_X86_64
   if (gcc_or_clang_is_generated_code_target && is_immediate_class_type(type) &&
-      class_type_supp(type)->is_va_list_tag) {
+      targ_supports_x86_64 && class_type_supp(type)->is_va_list_tag) {
     /* The predefined struct __va_list_tag is necessarily distinct from,
        and hence not compatible with, the type used internally by gcc as
        the base of __builtin_va_list.  Use the typedef that was defined in
        dump_type_decl in its place. */
     write_tok_str("__va_list_tag_type");
-  } else
-#endif /* USE_X86_64 */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     write_tok_str(tag_kind(type->kind));
@@ -3836,8 +3832,9 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         output_defn = FALSE;
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
       if (gcc_or_clang_is_generated_code_target &&
+          targ_supports_x86_64 &&
           class_type_supp(type)->is_va_list_tag) {
         /* The predeclared struct __va_list_tag is necessarily distinct
            from, and hence not compatible with, the type used internally by
@@ -3849,7 +3846,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           write_tok_str("__va_list_tag_type;");
         }  /* if */
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
       /* Do not insert code here. */
       { if (pass == 1) {
           if (start_unreferenced_bracket(&type->source_corresp,

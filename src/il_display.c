@@ -5374,9 +5374,9 @@ Display the indicated attribute entry.
     case ak_alloc_size:          kind_name = "alloc_size";          break;
     case ak_always_inline:       kind_name = "always_inline";       break;
     case ak_artificial:          kind_name = "artificial";          break;
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
     case ak_cdecl:               kind_name = "cdecl";               break;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     case ak_cleanup:             kind_name = "cleanup";             break;
     case ak_cold:                kind_name = "cold";                break;
     case ak_const:               kind_name = "const";               break;
@@ -5406,9 +5406,9 @@ Display the indicated attribute entry.
     case ak_packed:              kind_name = "packed";              break;
     case ak_pure:                kind_name = "pure";                break;
     case ak_sentinel:            kind_name = "sentinel";            break;
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
     case ak_stdcall:             kind_name = "stdcall";             break;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     case ak_strong:              kind_name = "strong";              break;
     case ak_target:              kind_name = "target";              break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -6661,11 +6661,9 @@ Display the indicated class type supplement entry.
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
   }  /* if */
-#if USE_X86_64
   if (ptr->is_va_list_tag) {
     disp_boolean("is_va_list_tag", TRUE);
   }  /* if */
-#endif /* USE_X86_64 */
   if (ptr->defined_in_parent_class) {
     disp_boolean("defined_in_parent_class", TRUE);
   }  /* if */

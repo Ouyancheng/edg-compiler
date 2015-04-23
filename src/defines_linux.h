@@ -43,22 +43,22 @@ declarations needed for the mmap routines.
 #endif /* __STDC__ != 0 */
 
 /*
-USE_X86_64 should be set when targeting the x86-64 variant of the i386
+TARG_SUPPORTS_X86_64 should be set when targeting the x86-64 variant of the x86
 platform.
 */
-#ifndef USE_X86_64
+#ifndef TARG_SUPPORTS_X86_64
 #ifdef __x86_64
-#define USE_X86_64 1
+#define TARG_SUPPORTS_X86_64 1
 #else /* ifndef __x86_64 */
-#define USE_X86_64 0
+#define TARG_SUPPORTS_X86_64 0
 #endif /* ifdef __x86_64 */
-#endif /* ifndef USE_X86_64 */
+#endif /* ifndef TARG_SUPPORTS_X86_64 */
 
 #ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 #define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED 1
 #endif /* ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
-#if USE_X86_64
+#if TARG_SUPPORTS_X86_64
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
 #define TARG_SIZEOF_POINTER 8
@@ -79,7 +79,7 @@ platform.
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
-#else /* USE_X86_64 */
+#else /* TARG_SUPPORTS_X86_64 */
 #ifdef __x86_64
 /* Building a 32 bit target configuration on a 64 bit host. */
 #define TYPE_FOR_AN_FP_VALUE_PART unsigned int
@@ -98,7 +98,7 @@ platform.
 /* double and long long have two different alignments on Linux. */
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
-#endif /* USE_X86_64 */
+#endif /* TARG_SUPPORTS_X86_64 */
 
 /*
 wint_t has a different signedness from wchar_t with both 32-bit and 64-bit

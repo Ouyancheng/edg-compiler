@@ -365,10 +365,15 @@ EXTERN int	targ_pad_bit_fields_larger_than_base_type;
 			   padding bits. */
 
 EXTERN a_boolean
-		packing_applies_to_base_classes;
-			/* TRUE if "#pragma pack(n)" affects the alignment of
-			   base classes (in addition to that of proper
-			   fields). */
+                targ_supports_x86_64;
+                        /* TRUE if the target supports the 64-bit version of
+                           the x86 instruction set. */
+
+EXTERN a_boolean
+                packing_applies_to_base_classes;
+                        /* TRUE if "#pragma pack(n)" affects the alignment of
+                           base classes (in addition to that of proper
+                           fields). */
 
 /*
 Pointer types:
@@ -1150,6 +1155,7 @@ EXTERN an_integer_kind
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 #endif /* BACK_END_IS_C_GEN_BE */
+#undef TARG_SUPPORTS_X86_64
 #undef EDG_AUXILIARY_INFO_DIR_NAME
 /* MAKE_TARG_NAMES_REFER_TO_VARIABLES cannot be set when this file is included
    by target.c.  If it was previously defined, undefine it and set it to the
@@ -1293,7 +1299,6 @@ EXTERN an_integer_kind
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 #endif /* BACK_END_IS_C_GEN_BE */
-#define EDG_AUXILIARY_INFO_DIR_NAME auxiliary_info_dir_name
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

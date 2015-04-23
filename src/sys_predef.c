@@ -23,9 +23,7 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#if USE_X86_64
 #include "class_decl.h"
-#endif /* USE_X86_64 */
 #include "macro.h"
 #include "sys_predef.h"
 #if USE_X86_FUNCTION_MULTIVERSIONING
@@ -46,33 +44,33 @@ Linux using the gcc/g++ header files.
   }  /* if */
   (void)enter_predef_macro("1", "__unix__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#if USE_X86_64
-  /* Macro definitions for the 64-bit version of the x86 architecture. */
-  (void)enter_predef_macro("long int", "__PTRDIFF_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("long unsigned int", "__SIZE_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("1", "__x86_64", /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("int", "__WCHAR_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-#else /* !USE_X86_64 */
-  /* Macro definitions for the 32-bit version of the x86 architecture. */
-  (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("unsigned int", "__SIZE_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("long int", "__WCHAR_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-#endif /* USE_X86_64 */
+  if (targ_supports_x86_64) {
+    /* Macro definitions for the 64-bit version of the x86 architecture. */
+    (void)enter_predef_macro("long int", "__PTRDIFF_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("long unsigned int", "__SIZE_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "__x86_64", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("int", "__WCHAR_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  } else {
+    /* Macro definitions for the 32-bit version of the x86 architecture. */
+    (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("unsigned int", "__SIZE_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("long int", "__WCHAR_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if defined(__i386) || defined(__i386__)
@@ -2653,28 +2651,28 @@ instead of being mapped on an actual header file.
     /* Use type_underlying_va_list if it has been configured. */
     tp = type_underlying_va_list;
   } else {
-#if USE_X86_64
-    /* The x86-64 __builtin_va_list type is defined as follows:
-         struct __va_list_tag {
-           unsigned int  gp_offset;
-           unsigned int  fp_offset;
-           void          *overflow_arg_area;
-           void          *reg_save_area;
-         };
-         typedef struct __va_list_tag __builtin_va_list[1];
-    */    
-    tp = alloc_type((a_type_kind)tk_array);
-    tp->variant.array.element_type = make_va_list_tag_type();
-    tp->variant.array.variant.number_of_elements = 1;
-    set_type_size(tp);
-#else /* !USE_X86_64 */
-    /* Use char* in Microsoft and GNU modes, and void* otherwise. */
-    if (microsoft_mode || gnu_mode) {
-      tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
+    if (targ_supports_x86_64) {
+      /* The x86-64 __builtin_va_list type is defined as follows:
+           struct __va_list_tag {
+             unsigned int  gp_offset;
+             unsigned int  fp_offset;
+             void          *overflow_arg_area;
+             void          *reg_save_area;
+           };
+           typedef struct __va_list_tag __builtin_va_list[1];
+      */    
+      tp = alloc_type((a_type_kind)tk_array);
+      tp->variant.array.element_type = make_va_list_tag_type();
+      tp->variant.array.variant.number_of_elements = 1;
+      set_type_size(tp);
     } else {
-      tp = make_pointer_type(void_type());
+      /* Use char* in Microsoft and GNU modes, and void* otherwise. */
+      if (microsoft_mode || gnu_mode) {
+        tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
+      } else {
+        tp = make_pointer_type(void_type());
+      }  /* if */
     }  /* if */
-#endif /* USE_X86_64 */
   }  /* if */
   return tp;
 }  /* get_default_va_list_type */

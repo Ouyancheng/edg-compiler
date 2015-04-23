@@ -537,6 +537,16 @@ are diagnosed.
 #if IA64_ABI
   check_assertion(targ_optimize_empty_base_class_layout);
 #endif /* IA64_ABI */
+  if (targ_supports_x86_64 && targ_sizeof_long != 8) {
+    internal_error(
+                  "check_target_config: targ_supports_x86_64 requires 64-bit");
+  }  /* if */
+#if !LONG_LONG_ALLOWED
+  if (targ_supports_x86_64) {
+    internal_error(
+               "check_target_config: targ_supports_x86_64 requires long long");
+  }  /* if */
+#endif /* !LONG_LONG_ALLOWED */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */
@@ -846,6 +856,7 @@ header has been read and the target has been determined).
 #if FIXED_POINT_ALLOWED
   targ_sizeof_largest_fixed_point = TARG_SIZEOF_LARGEST_FIXED_POINT;
 #endif /* FIXED_POINT_ALLOWED */
+  targ_supports_x86_64 = TARG_SUPPORTS_X86_64;
 }  /* target_early_init */
 
 

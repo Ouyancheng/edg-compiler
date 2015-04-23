@@ -1620,9 +1620,7 @@ class is available.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ctsp->named_in_inline_template_directive
                                           = FALSE;
-#if USE_X86_64
   ctsp->is_va_list_tag                    = FALSE;
-#endif /* USE_X86_64 */
   ctsp->defined_in_parent_class           = FALSE;
   ctsp->trivially_copyable                = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;

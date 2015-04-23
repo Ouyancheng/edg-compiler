@@ -258,15 +258,31 @@ bugs are emulated).
 #endif /* DEFAULT_GNU_ABI_VERSION < 30200 */
 
 /*
-Flag that is TRUE if the target is a 64-bit x86 platform.
+Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the
+initial setting for targ_supports_x86_64 (which should be used in lieu of
+the macro value as its value is target-specific).
 */
-#if !defined(USE_X86_64)
+#ifndef TARG_SUPPORTS_X86_64
+#if defined(USE_X86_64)
+/* For backward compatibility, use the value of USE_X86_64. */
+#if USE_X86_64
+#define TARG_SUPPORTS_X86_64 TRUE
+#else /* !USE_X86_64 */
+#define TARG_SUPPORTS_X86_64 FALSE
+#endif /* USE_X86_64 */
+#else  /* !defined(USE_X86_64) */
+/* Default to 64-bit if the host compiler is 64-bit. */
 #if defined(__x86_64)
-#define USE_X86_64 TRUE
+#define TARG_SUPPORTS_X86_64 TRUE
 #else /* !defined(__x86_64) */
-#define USE_X86_64 FALSE
+#define TARG_SUPPORTS_X86_64 FALSE
 #endif /* defined(__x86_64) */
-#endif /* !defined(USE_X86_64) */
+#endif /* defined(USE_X86_64) */
+#endif /* defined(TARG_SUPPORTS_X86_64) */
+
+/* #undef the old macro to catch places that should now use the
+   targ_supports_x86_64 global variable. */
+#undef USE_X86_64
 
 /*
 Flag that is TRUE if support for exported templates can be enabled.
@@ -591,10 +607,6 @@ whether C99 IL extensions are supported, and that is only known here.
 #define LONG_LONG_ALLOWED FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED || ... */
 #endif /* ifndef LONG_LONG_ALLOWED */
-
-#if USE_X86_64 && !LONG_LONG_ALLOWED
- #error -- USE_X86_64 requires that LONG_LONG_ALLOWED be TRUE
-#endif /* USE_X86_64 && !LONG_LONG_ALLOWED */
 
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !LONG_LONG_ALLOWED
  #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires LONG_LONG_ALLOWED

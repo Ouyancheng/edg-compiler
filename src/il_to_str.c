@@ -6050,42 +6050,44 @@ Do the output in the way described by octl.
   if (rtsp->is_const) {
     form_simple_attribute("__const__", need_leading_space, octl);
   }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-  switch (rtsp->calling_convention) {
-    case cc_default:
-      /* No attribute to generate. */
-      break;
-    case cc_cdecl:
-      form_simple_attribute("__cdecl__", need_leading_space, octl);
-      break;
-    case cc_fastcall:
-      if (!octl->gen_compilable_code
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  if (!targ_supports_x86_64) {
+    switch (rtsp->calling_convention) {
+      case cc_default:
+        /* No attribute to generate. */
+        break;
+      case cc_cdecl:
+        form_simple_attribute("__cdecl__", need_leading_space, octl);
+        break;
+      case cc_fastcall:
+        if (!octl->gen_compilable_code
 #if GCC_IS_GENERATED_CODE_TARGET
-          || gnu_target_version_number >= 40200
+            || gnu_target_version_number >= 40200
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
-                                               ) {
-        form_simple_attribute("__fastcall__", need_leading_space, octl);
-      }  /* if */
-      break;
-    case cc_stdcall:
-      form_simple_attribute("__stdcall__", need_leading_space, octl);
-      break;
-    case cc_thiscall:
-      /* A Microsoft-only calling convention.  These aren't generated for
-         the GNU C compiler. */
-      break;
-    case cc_vectorcall:
-      /* A Microsoft-only calling convention.  These aren't generated for
-         the GNU C compiler. */
-      break;
-    case cc_clrcall:
-      /* A Microsoft-only calling convention.  These aren't generated for
-         the GNU C compiler. */
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+                                                 ) {
+          form_simple_attribute("__fastcall__", need_leading_space, octl);
+        }  /* if */
+        break;
+      case cc_stdcall:
+        form_simple_attribute("__stdcall__", need_leading_space, octl);
+        break;
+      case cc_thiscall:
+        /* A Microsoft-only calling convention.  These aren't generated for
+           the GNU C compiler. */
+        break;
+      case cc_vectorcall:
+        /* A Microsoft-only calling convention.  These aren't generated for
+           the GNU C compiler. */
+        break;
+      case cc_clrcall:
+        /* A Microsoft-only calling convention.  These aren't generated for
+           the GNU C compiler. */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   if (!octl->c_generating_back_end) {
     /* Don't emit the following attributes in generated C code to avoid having
        a back-end C compiler duplicate a diagnostic already emitted by the

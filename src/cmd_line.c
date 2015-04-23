@@ -8007,6 +8007,11 @@ file.
 #else /* !defined(TARG_SSIZE_T_INT_KIND) */
   comment_undefined_macro_name(TARG_SSIZE_T_INT_KIND);
 #endif /* defined(TARG_SSIZE_T_INT_KIND) */
+#if defined(TARG_SUPPORTS_X86_64)
+  define_numeric_valued_macro(TARG_SUPPORTS_X86_64);
+#else /* !defined(TARG_SUPPORTS_X86_64) */
+  comment_undefined_macro_name(TARG_SUPPORTS_X86_64);
+#endif /* defined(TARG_SUPPORTS_X86_64) */
 #if defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE)
   define_numeric_valued_macro(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE);
 #else /* !defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE) */
@@ -8227,11 +8232,6 @@ file.
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */
   comment_undefined_macro_name(USE_TEMPLATE_INFO_FILE);
 #endif /* defined(USE_TEMPLATE_INFO_FILE) */
-#if defined(USE_X86_64)
-  define_numeric_valued_macro(USE_X86_64);
-#else /* !defined(USE_X86_64) */
-  comment_undefined_macro_name(USE_X86_64);
-#endif /* defined(USE_X86_64) */
 #if defined(USE_X86_FUNCTION_MULTIVERSIONING)
   define_numeric_valued_macro(USE_X86_FUNCTION_MULTIVERSIONING);
 #else /* !defined(USE_X86_FUNCTION_MULTIVERSIONING) */

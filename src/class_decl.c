@@ -30486,7 +30486,6 @@ For example:
   return lambda;
 }  /* scan_lambda */
 
-#if USE_X86_64
 
 static void add_field_to_generated_type(a_const_char *name,
                                         a_type_ptr   type)
@@ -30535,6 +30534,7 @@ Create and return the __va_list_tag struct type that is predefined by certain
                                            source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+  check_assertion(targ_supports_x86_64);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Don't issue source sequence entries for generated entities. */
   source_sequence_entries_disallowed = TRUE;
@@ -30571,7 +30571,6 @@ Create and return the __va_list_tag struct type that is predefined by certain
   return type;
 }  /* make_va_list_tag_type */
 
-#endif /* USE_X86_64 */
 
 /* Forward declaration for recursive call. */
 static void check_type_for_linkage_change(a_type_ptr type,

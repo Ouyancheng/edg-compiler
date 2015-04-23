@@ -217,9 +217,9 @@ static an_attr_descr known_attr_table[] = {
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
   { "artificial", "", "gx(40000-)", ak_artificial },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { "cdecl", "", "gx", ak_cdecl },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { "cleanup", "(n)", "gc", ak_cleanup },
   { "cold", "", "gx(40300-)", ak_cold },
   { "common", "", "gx", ak_common },
@@ -237,9 +237,9 @@ static an_attr_descr known_attr_table[] = {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "error", "(sn)", "gx(40000-)", ak_error },
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { "fastcall", "", "gx(30400-)", ak_fastcall },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { "flatten", "", "gx(40000-)", ak_flatten },
   { "format", "(n,ci,ci)", "gx", ak_format },
   { "format_arg", "(ci)", "gx", ak_format_arg },
@@ -268,9 +268,9 @@ static an_attr_descr known_attr_table[] = {
   { "pure", "", "gx", ak_pure },
   { "section", "(sn)", "gx", ak_section },
   { "sentinel", "?(ci)", "gx", ak_sentinel },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { "stdcall", "", "gx", ak_stdcall },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { "strong", "", "gx", ak_strong },
   { "target", "(*)", "gx(40400-)", ak_target },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -488,17 +488,17 @@ static an_attr_application_fn apply_section_attr;
 static an_attr_application_fn apply_alias_attr;
 static an_attr_application_fn apply_alloc_size_attr;
 static an_attr_application_fn apply_always_inline_attr;
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_cdecl_attr;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 static an_attr_application_fn apply_cleanup_attr;
 static an_attr_application_fn apply_common_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
 static an_attr_application_fn apply_destructor_attr;
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_fastcall_attr;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 static an_attr_application_fn apply_format_attr;
 static an_attr_application_fn apply_format_arg_attr;
 static an_attr_application_fn apply_gnu_inline_attr;
@@ -516,9 +516,9 @@ static an_attr_application_fn apply_nonnull_attr;
 static an_attr_application_fn apply_packed_attr;
 static an_attr_application_fn apply_pure_attr;
 static an_attr_application_fn apply_sentinel_attr;
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_stdcall_attr;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 static an_attr_application_fn apply_strong_attr;
 static an_attr_application_fn apply_target_attr;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -605,9 +605,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_alloc_size, "", apply_alloc_size_attr },
   { ak_always_inline, "r|Wt|Wp|Wv|Wd", apply_always_inline_attr },
   { ak_artificial, "r:+i", NO_APPL_FN },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { ak_cleanup, "v|Wp", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
   { ak_common, "v:-a|Wr", apply_common_attr },
@@ -616,9 +616,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
   { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { ak_fastcall, "t|r|v|d|p", apply_fastcall_attr },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { ak_flatten, "r", NO_APPL_FN },
   { ak_format, "t|r|v|d|p", apply_format_attr },
   { ak_format_arg, "r", apply_format_arg_attr },
@@ -638,9 +638,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_packed, "c|e|d|Wv|Wp|Wr|Wt", apply_packed_attr },
   { ak_pure, "r|Wv", apply_pure_attr },
   { ak_sentinel, "t|r|v|d", apply_sentinel_attr },
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
   { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { ak_strong, "u", apply_strong_attr },
   { ak_target, "r", apply_target_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -4634,7 +4634,7 @@ to it and return the entity.
   return entity;
 }  /* apply_always_inline_attr */
 
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 
 static char* apply_cdecl_attr(an_attribute_ptr  ap,
                               char              *entity,
@@ -4645,7 +4645,11 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (func_type != NULL) {
+  if (targ_supports_x86_64) {
+    /* This attribute isn't supported in x86_64 configurations. */
+    pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
     if (rtsp->calling_convention != (a_calling_convention)cc_default &&
@@ -4662,7 +4666,7 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
   return entity;
 }  /* apply_cdecl_attr */
 
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
 /*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_cleanup_attr(an_attribute_ptr  ap,
@@ -4877,7 +4881,7 @@ it and return the entity.
   return entity;
 }  /* apply_destructor_attr */
 
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 
 static char* apply_fastcall_attr(an_attribute_ptr  ap,
                                  char              *entity,
@@ -4888,7 +4892,11 @@ Apply the GNU "fastcall" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (func_type != NULL) {
+  if (targ_supports_x86_64) {
+    /* This attribute isn't supported in x86_64 configurations. */
+    pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
     if (rtsp->calling_convention != (a_calling_convention)cc_default &&
@@ -4907,7 +4915,7 @@ Apply the GNU "fastcall" attribute to the given entity and return that entity.
   return entity;
 }  /* apply_fastcall_attr */
 
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
 static struct {
   /* Data structure for table entries mapping the argument to a GNU "format"
@@ -5694,7 +5702,7 @@ Apply the GNU "sentinel" attribute to the given entity and return that entity.
   return entity;
 }  /* apply_sentinel_attr */
 
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+#if GNU_X86_ATTRIBUTES_ALLOWED
 
 static char* apply_stdcall_attr(an_attribute_ptr  ap,
                                 char              *entity,
@@ -5705,7 +5713,11 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (func_type != NULL) {
+  if (targ_supports_x86_64) {
+    /* This attribute isn't supported in x86_64 configurations. */
+    pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
     if (rtsp->calling_convention != (a_calling_convention)cc_default &&
@@ -5724,7 +5736,7 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
   return entity;
 }  /* apply_stdcall_attr */
 
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
 static char* apply_strong_attr(an_attribute_ptr  ap,
                                char              *entity,

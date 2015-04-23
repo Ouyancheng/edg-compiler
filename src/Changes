@@ -47,6 +47,11 @@ possible to have an IA-64 ABI and Cfront ABI target configuration selectable
 at run time, or one that has GNU_EXTENSIONS_ALLOWED and another that has
 MICROSOFT_EXTENSIONS_ALLOWED).
 
+As part of these changes, the USE_X86_64 configuration macro has been
+replaced by the TARG_SUPPORTS_X86_64 target-specific configuration macro,
+but any use of the USE_X64_64 macro should be replaced by a run-time check of
+the new targ_supports_x86_64 global variable.
+
 Note that each new target configuration will likely require a suitably-compiled
 libC.a, as well as a predefined_macros.txt whose values match those for the
 new target configuration.  To aid in managing multiple sets of these files,
