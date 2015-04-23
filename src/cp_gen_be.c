@@ -332,37 +332,6 @@ Given that the current name context is a class, return the class type.
 
 
 /*
-Entry used to record a typedef that is a synonym for a type that might be
-unusable directly in the code (e.g., because of an inaccessible name in a
-template argument).  This allows a use of that type to be replaced by the
-typedef to avoid errors.  This situation arises with template arguments
-(where the type reflects the argument in the first reference to the
-instance, which might have been at a point where the non-public type was
-accessible) and in qualifiers generated when name_references are not
-available.
-*/
-typedef struct a_substitutable_typedef *a_substitutable_typedef_ptr;
-typedef struct a_substitutable_typedef {
-  a_substitutable_typedef_ptr
-		next;	/* The next typedef in the list. */
-  a_type_ptr	type;	/* The substitutable typedef. */
-} a_substitutable_typedef;
-
-static a_substitutable_typedef_ptr
-		accessible_typedefs;
-			/* Root of a list of accessible typedefs. */
-
-static a_substitutable_typedef_ptr
-		proto_inst_member_typedefs;
-			/* Root of a list of typedefs that are members of
-			   the prototype instantiation of a class template.
-			   This is used to work around a bug in Microsoft
-			   compilers that causes an error when a template
-			   argument uses the underlying type instead of the
-			   typedef. */
-
-
-/*
 Macro to test a type kind to see if it is a class, struct, or union.
 */
 #define is_class_type_kind(kind)                                      \
@@ -1372,6 +1341,107 @@ the list of accessible typedefs.
 }  /* target_type_has_circularity */
 
 
+/*
+Hash tables for substitutable typedefs.  In some cases a type cannot be
+used directly, perhaps because it or one of its template arguments is
+inaccessible in the current context.  There is also a bug in the Microsoft
+compiler that causes it to issue spurious diagnostics when a dependent type
+appears as a qualifier in a template argument.  In such cases, if there is
+a typedef whose underlying type is the problematic one, that typedef can be
+used in place of the problematic type.  These hash tables facilitate
+finding such typedefs, keyed by the underlying type.
+*/
+static a_hash_table_ptr
+		accessible_typedef_map;
+			/* Hash table for accessible typedefs with
+			   inaccessible underlying types. */
+
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+static a_hash_table_ptr
+		proto_inst_typedef_map;
+			/* Hash table for typedefs that are members of
+			   prototype instantiations of class templates and
+			   whose underlying types are dependent. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+
+
+a_hash_value hash_substitutable_typedef(a_void_ptr type)
+/*
+Simple hash function for use with substitutable typedef maps.  There won't
+be very many such types, so the hash function doesn't have to be very good.
+This one just uses the low-order bits of the type's address.
+*/
+{
+  return (a_hash_value)(unsigned long)type;
+}  /* hash_type_pointer */
+
+
+a_boolean compare_for_substitutable_typedef_map(a_void_ptr entry,
+                                                a_void_ptr key)
+/*
+A comparison function for the substitutable typedef hash tables, where
+entry and key are a_type_ptr values: key designates a type and entry
+designates a typedef type.  Return TRUE if the underlying type of the entry
+designates the same type as key, FALSE otherwise.
+*/
+{
+  a_type_ptr type = (a_type_ptr)entry;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref);
+  return standalone_identical_types(type->variant.typeref.type,
+                                    (a_type_ptr)key);
+}  /* compare_for_substitutable_typedef_map */
+
+
+static void add_to_substitutable_typedef_map(a_hash_table_ptr *mapp,
+                                             a_type_ptr       type)
+/*
+Add the typedef type to the hash table indicated by *mapp (creating it if
+it does not exist already); if there is already an entry for the underlying
+type, replace it with the new type (which is probably reasonable for
+locality of reference).
+*/
+{
+  a_type_ptr *entry;
+
+  check_assertion(type_is_typedef(type));
+  if (*mapp == NULL) {
+    /* Create and initialize the hash table. */
+    *mapp = alloc_hash_table(
+                       NO_MEMORY_REGION_NUMBER, (a_hash_table_size)1000,
+                       fn_for_function(hash_substitutable_typedef),
+                       fn_for_function(compare_for_substitutable_typedef_map));
+  }  /* if */
+  entry = (a_type_ptr *)hash_find(*mapp,
+                                  (a_void_ptr)type->variant.typeref.type,
+                                  /*create=*/TRUE);
+  *entry = type;
+}  /* add_to_substitutable_typedef_map */
+
+
+static a_type_ptr substitutable_typedef_for(a_hash_table_ptr map,
+                                            a_type_ptr       type)
+/*
+If map is non-NULL and contains an entry for a typedef whose underlying
+type is type, return that typedef; otherwise, return type.
+*/
+{
+  a_type_ptr result = type;
+
+  if (map != NULL) {
+    /* The hash table exists; look up type to see if there's a
+       corresponding typedef. */
+    a_type_ptr *entry;
+    entry = (a_type_ptr *)hash_find(map, (a_void_ptr)type, /*create=*/FALSE);
+    if (entry != NULL) {
+      /* A typedef for type was found; use it instead of type. */
+      result = *entry;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* substitutable_typedef_for */
+
+
 static void register_substitutable_typedef(a_type_ptr type)
 /*
 type is a typedef that has just been defined.  If it is publicly accessible
@@ -1385,8 +1455,7 @@ class template and the generated code target is MSVC, add it to the list of
 such typedefs.
 */
 {
-  a_type_ptr                  targ_type;
-  a_substitutable_typedef_ptr stp;
+  a_type_ptr targ_type;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   targ_type = type->variant.typeref.type;
@@ -1397,13 +1466,10 @@ such typedefs.
                                  /*ignore_context=*/TRUE) &&
       !target_type_has_circularity(type)) {
     /* This typedef can be substituted for the target type when that type
-       is inaccessible.  Add it to the list of such typedefs. */
-    stp = (a_substitutable_typedef_ptr)alloc_general(
-                                              sizeof(a_substitutable_typedef));
-    stp->next = accessible_typedefs;
-    accessible_typedefs = stp;
-    stp->type = type;
+       is inaccessible.  Add it to the map of such typedefs. */
+    add_to_substitutable_typedef_map(&accessible_typedef_map, type);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (msvc_is_generated_code_target) {
     /* The Microsoft compiler has a bug such that using the underlying
        type of a typedef as a qualifier in a template argument appearing in
@@ -1415,13 +1481,10 @@ such typedefs.
     a_type_ptr parent_class = parent_class_or_null(type);
     if (parent_class != NULL &&
         parent_class->variant.class_struct_union.is_prototype_instantiation) {
-      stp = (a_substitutable_typedef_ptr)alloc_general(
-                                              sizeof(a_substitutable_typedef));
-      stp ->next = proto_inst_member_typedefs;
-      proto_inst_member_typedefs = stp;
-      stp->type = type;
+      add_to_substitutable_typedef_map(&proto_inst_typedef_map, type);
     }  /* if */
   }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* register_substitutable_typedef */
 
 
@@ -3142,7 +3205,7 @@ for the meaning of need_closing_paren.
       a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
                                     class_type_supp(class_type)->proxy_of_type;
-      a_type_ptr                  substitute_typedef = NULL;
+      a_type_ptr                  substitute_typedef = template_param_type;
       if (msvc_is_generated_code_target && in_template_argument_list) {
         /* MSVC has a bug that sometimes results in spurious errors if a
            dependent type is used as a qualifier in a template argument
@@ -3151,20 +3214,10 @@ for the meaning of need_closing_paren.
            will have been replaced with the underlying type in the IL.  See
            if there is a typedef we can use in the generated code to avoid
            triggering the bug. */
-        a_substitutable_typedef_ptr stp;
-        for (stp = proto_inst_member_typedefs;
-             substitute_typedef == NULL && stp != NULL;
-             stp = stp->next) {
-          if (standalone_identical_types(template_param_type,
-                                         stp->type->variant.typeref.type) &&
-              scope_is_in_name_context_stack(
-                                     stp->type->source_corresp.parent_scope)) {
-            /* Found a typedef that can be used. */
-            substitute_typedef = stp->type;
-          }  /* if */
-        }  /* for */
+        substitute_typedef = substitutable_typedef_for(proto_inst_typedef_map,
+                                                       template_param_type);
       }  /* if */
-      if (substitute_typedef != NULL) {
+      if (substitute_typedef != template_param_type) {
         /* Use the typedef instead of the underlying type. */
         gen_name(&substitute_typedef->source_corresp, iek_type,
                  options | GN_QUALIFIER, need_closing_paren);
@@ -3507,15 +3560,10 @@ designates the same type, set *scp to point to that typedef instead.
 */
 {
   if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE)) {
-    a_substitutable_typedef_ptr atp;
-    a_type_ptr                  type = (a_type_ptr)*scp;
-    for (atp = accessible_typedefs; atp != NULL; atp = atp->next) {
-      if (standalone_identical_types(type, atp->type->variant.typeref.type)) {
-        /* Found an accessible substitute. */
-        *scp = &atp->type->source_corresp;
-        break;
-      }  /* if */
-    }  /* for */
+    a_type_ptr type = (a_type_ptr)*scp;
+    a_type_ptr typedef_type =
+                      substitutable_typedef_for(accessible_typedef_map, type);
+    *scp = &typedef_type->source_corresp;
   }  /* if */
 }  /* replace_inaccessible_type_with_accessible_typedef */
 
@@ -7882,16 +7930,6 @@ is the one associated with the definition of the class.
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
   pop_name_context_if_member(&type->source_corresp);
-  if (type->variant.class_struct_union.is_prototype_instantiation) {
-    /* Remove any registered member typedefs. */
-    while (proto_inst_member_typedefs != NULL &&
-           parent_class_of(proto_inst_member_typedefs->type) == type) {
-      a_substitutable_typedef_ptr next = proto_inst_member_typedefs->next;
-      free_general(proto_inst_member_typedefs,
-                   sizeof(a_substitutable_typedef));
-      proto_inst_member_typedefs = next;
-    }  /* while */
-  }  /* if */
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
 }  /* gen_class_definition */
@@ -18008,8 +18046,8 @@ Initialize for the C++/C-generating back end.
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
   in_class_scope_with_dependent_base = FALSE;
-  accessible_typedefs = NULL;
-  proto_inst_member_typedefs = NULL;
+  accessible_typedef_map = NULL;
+  proto_inst_typedef_map = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
