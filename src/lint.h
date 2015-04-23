@@ -1204,6 +1204,9 @@ extern int fileno(FILE *);
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
 /*lint -esym(755,il_entry_prefix_of_no_check)*/
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if !GNU_X86_ATTRIBUTES_ALLOWED
+/*lint -esym(769,ec_attribute_not_supported_in_x86_64)*/
+#endif /* !GNU_X86_ATTRIBUTES_ALLOWED */
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
