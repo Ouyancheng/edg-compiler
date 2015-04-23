@@ -1567,7 +1567,8 @@ bit field's a_field entry.
    targ_plain_int_bit_field_is_unsigned.  Note that the signedness of 1-bit
    fields is controlled by TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED. */
 #ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
-#define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!TARG_HAS_SIGNED_CHARS)
+#define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED \
+                                        (!TARG_HAS_SIGNED_CHARS) /*lint !e506*/
 			/* Default value, used to initialize global variable
 			   targ_plain_int_bit_field_is_unsigned. */
 #endif /* ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
@@ -2344,19 +2345,19 @@ but implementations are free to do otherwise.
    the size of "long int".) */
 #ifndef TARG_WORD_MODE
 #if TARG_SIZEOF_LONG == 1
-#define TARG_WORD_MODE tmk_QI
+#define TARG_WORD_MODE ((a_type_mode_kind)tmk_QI)
 #else /* TARG_SIZEOF_LONG != 1 */
 #if TARG_SIZEOF_LONG == 2
-#define TARG_WORD_MODE tmk_HI
+#define TARG_WORD_MODE ((a_type_mode_kind)tmk_HI)
 #else /* TARG_SIZEOF_LONG != 2 */
 #if TARG_SIZEOF_LONG == 4
-#define TARG_WORD_MODE tmk_SI
+#define TARG_WORD_MODE ((a_type_mode_kind)tmk_SI)
 #else /* TARG_SIZEOF_LONG != 4 */
 #if TARG_SIZEOF_LONG == 8
-#define TARG_WORD_MODE tmk_DI
+#define TARG_WORD_MODE ((a_type_mode_kind)tmk_DI)
 #else /* TARG_SIZEOF_LONG != 8 */
 #if TARG_SIZEOF_LONG == 16
-#define TARG_WORD_MODE tmk_TI
+#define TARG_WORD_MODE ((a_type_mode_kind)tmk_TI)
 #else /* TARG_SIZEOF_LONG != 16 */
  #error -- do not know how to set TARG_WORD_MODE
 #endif /* TARG_SIZEOF_LONG != 16 */
@@ -2388,19 +2389,19 @@ but implementations are free to do otherwise.
 #if TARG_ALL_POINTERS_SAME_SIZE
 #ifndef TARG_POINTER_MODE
 #if TARG_SIZEOF_POINTER == 1
-#define TARG_POINTER_MODE tmk_QI
+#define TARG_POINTER_MODE ((a_type_mode_kind)tmk_QI)
 #else /* TARG_SIZEOF_POINTER != 1 */
 #if TARG_SIZEOF_POINTER == 2
-#define TARG_POINTER_MODE tmk_HI
+#define TARG_POINTER_MODE ((a_type_mode_kind)tmk_HI)
 #else /* TARG_SIZEOF_POINTER != 2 */
 #if TARG_SIZEOF_POINTER == 4
-#define TARG_POINTER_MODE tmk_SI
+#define TARG_POINTER_MODE ((a_type_mode_kind)tmk_SI)
 #else /* TARG_SIZEOF_POINTER != 4 */
 #if TARG_SIZEOF_POINTER == 8
-#define TARG_POINTER_MODE tmk_DI
+#define TARG_POINTER_MODE ((a_type_mode_kind)tmk_DI)
 #else /* TARG_SIZEOF_POINTER != 8 */
 #if TARG_SIZEOF_POINTER == 16
-#define TARG_POINTER_MODE tmk_TI
+#define TARG_POINTER_MODE ((a_type_mode_kind)tmk_TI)
 #else /* TARG_SIZEOF_POINTER != 16 */
  #error -- do not know how to set TARG_POINTER_MODE
 #endif /* TARG_SIZEOF_POINTER != 16 */
@@ -4596,7 +4597,7 @@ macro as well.
 */
 #ifndef TARG_DELTA_INT_KIND
 #if IA64_ABI
-#define TARG_DELTA_INT_KIND targ_ptrdiff_t_int_kind
+#define TARG_DELTA_INT_KIND TARG_PTRDIFF_T_INT_KIND
 #else /* !IA64_ABI */
 #define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
 #endif /* IA64_ABI */
@@ -4785,7 +4786,7 @@ at run-time.
 #ifdef TARG_DELTA_INT_KIND
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_DELTA_INT_KIND
 #else /* !defined TARG_DELTA_INT_KIND */
-#define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ptrdiff_t_int_kind
+#define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_PTRDIFF_T_INT_KIND
 #endif /* defined TARG_DELTA_INT_KIND */
 #endif /* IA64_ABI */
 #endif /* ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND */

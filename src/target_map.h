@@ -142,10 +142,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_CHAR_BIT, targ_char_bit, _TC)
   TARGET_MAP_MACRO(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT,
                    targ_char_constant_first_char_most_significant, _TC)
-#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
-  TARGET_MAP_MACRO(TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES,
-                   targ_cpp_compiler_does_not_visibly_inject_friend_names, _TC)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
   TARGET_MAP_MACRO(TARG_DBL_MANT_DIG, targ_dbl_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_DBL_MAX_EXP, targ_dbl_max_exp, _TC)
   TARGET_MAP_MACRO(TARG_DBL_MIN_EXP, targ_dbl_min_exp, _TC)
@@ -268,9 +264,9 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_pad_bit_fields_larger_than_base_type, _TC)
   TARGET_MAP_MACRO(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED,
                    targ_plain_int_bit_field_is_unsigned, _TC)
-#if TARG_ALL_POINTERS_SAME_SIZE
+#if GNU_EXTENSIONS_ALLOWED && TARG_ALL_POINTERS_SAME_SIZE
   TARGET_MAP_MACRO(TARG_POINTER_MODE, targ_pointer_mode, _TC)
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_ALL_POINTERS_SAME_SIZE */
   TARGET_MAP_MACRO(TARG_PTRDIFF_T_INT_KIND,
                    targ_ptrdiff_t_int_kind, _TC)
 #if DO_IL_LOWERING && GENERATE_EH_TABLES
@@ -350,7 +346,10 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO,
                    targ_sizeof_virtual_function_info, _TC)
   TARGET_MAP_MACRO(TARG_SIZE_T_INT_KIND, targ_size_t_int_kind, _TC)
+#if GNU_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_SSIZE_T_INT_KIND, targ_ssize_t_int_kind, _TC)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
   TARGET_MAP_MACRO(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE,
                    targ_too_large_shift_count_is_taken_modulo_size, _TC)
   TARGET_MAP_MACRO(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT,
@@ -378,7 +377,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_zero_width_bit_field_affects_struct_alignment, _TC)
   TARGET_MAP_MACRO(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT,
                    targ_zero_width_bit_field_alignment, _TC)
-  TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
 }  /* TARGET_MAP_ROUTINE_NAME */
 
 /* #undef the local macros defined above. */

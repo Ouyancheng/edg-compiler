@@ -47,22 +47,22 @@ necessary (also add entries to target_configurations below).
 */
 #ifdef TARGET_CONFIGURATION_1
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_1
-#include "target_cfg.h"
+#include "target_cfg.h"  /*lint !e451 included more than once. */
 #endif /* TARGET_CONFIGURATION_1 */
 
 #ifdef TARGET_CONFIGURATION_2
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_2
-#include "target_cfg.h"
+#include "target_cfg.h"  /*lint !e451 included more than once. */
 #endif /* TARGET_CONFIGURATION_2 */
 
 #ifdef TARGET_CONFIGURATION_3
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_3
-#include "target_cfg.h"
+#include "target_cfg.h"  /*lint !e451 included more than once. */
 #endif /* TARGET_CONFIGURATION_3 */
 
 #ifdef TARGET_CONFIGURATION_4
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_4
-#include "target_cfg.h"
+#include "target_cfg.h"  /*lint !e451 included more than once. */
 #endif /* TARGET_CONFIGURATION_4 */
 
 #ifdef TARGET_CONFIGURATION_5
@@ -131,6 +131,19 @@ static a_target_configuration target_configurations[] = {
 #define NUM_TARGET_CONFIGURATIONS \
   ((int32_t)(sizeof(target_configurations)/sizeof(target_configurations[0])-1))
 
+/*
+Define a set_default_target_config function to initialize target-specific
+global variables to a their default values.
+*/
+/* Routine name: set_default_target_config. */
+#define TARGET_MAP_ROUTINE_NAME(config) \
+  set_default_target_config(void)
+/* Assign the default macro value to the associated global variable. */
+#define TARGET_MAP_MACRO(config_macro, global_var, config) \
+  (global_var) = (config_macro);
+#include "target_map.h"  /*lint !e451 included more than once. */
+
+
 #if DUMP_CONFIG_ENABLED
 
 /*
@@ -148,7 +161,7 @@ configuration macro).
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s_%s %s\n", #config_macro, \
           suffix, stringize(config_macro));
-#include "target_map.h"
+#include "target_map.h"  /*lint !e451 included more than once. */
 
 
 void dump_default_config_as_target_config(a_const_char *config)
@@ -630,33 +643,12 @@ command-line processing, or for the STANDALONE_UTILITY case, after the IL
 header has been read and the target has been determined).
 */
 {
+  /* Set all target-specific global variables to their default values (they
+     will be re-set later if a non-default target configuration is
+     specified).  */
+  set_default_target_config();
   target_configuration_index = NO_TARGET_CONFIG;
-  targ_little_endian = TARG_LITTLE_ENDIAN;
-  targ_char_bit = TARG_CHAR_BIT;
-  targ_host_string_char_bit = TARG_HOST_STRING_CHAR_BIT;
-  targ_has_signed_chars = TARG_HAS_SIGNED_CHARS;
-  targ_char_constant_first_char_most_significant =
-                                TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT;
-  targ_wchar_t_int_kind = TARG_WCHAR_T_INT_KIND;
-  targ_wint_t_int_kind = TARG_WINT_T_INT_KIND;
-  targ_char16_t_int_kind = TARG_CHAR16_T_INT_KIND;
-  targ_char32_t_int_kind = TARG_CHAR32_T_INT_KIND;
-  targ_bool_int_kind = TARG_BOOL_INT_KIND;
-  targ_c_bool_int_kind = TARG_C_BOOL_INT_KIND;
-  targ_sizeof_short = TARG_SIZEOF_SHORT;
-  targ_alignof_short = TARG_ALIGNOF_SHORT;
-  targ_sizeof_int = TARG_SIZEOF_INT;
-  targ_alignof_int = TARG_ALIGNOF_INT;
-  targ_sizeof_long = TARG_SIZEOF_LONG;
-  targ_alignof_long = TARG_ALIGNOF_LONG;
-#if LONG_LONG_ALLOWED
-  targ_sizeof_long_long = TARG_SIZEOF_LONG_LONG;
-  targ_alignof_long_long = TARG_ALIGNOF_LONG_LONG;
-#endif /* LONG_LONG_ALLOWED */
-#if INT128_EXTENSIONS_ALLOWED
-  targ_sizeof_int128 = TARG_SIZEOF_INT128;
-  targ_alignof_int128 = TARG_ALIGNOF_INT128;
-#endif /* INT128_EXTENSIONS_ALLOWED */
+  auxiliary_info_dir_name = (char *)EDG_AUXILIARY_INFO_DIR_NAME;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   targ_int8_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int8_int_kind = ((an_integer_kind)ik_none);
@@ -667,100 +659,7 @@ header has been read and the target has been determined).
   targ_int64_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int64_int_kind = ((an_integer_kind)ik_none);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  targ_max_class_object_size = TARG_MAX_CLASS_OBJECT_SIZE;
-  targ_max_base_class_offset = TARG_MAX_BASE_CLASS_OFFSET;
-  targ_optimize_empty_base_class_layout =
-                                         TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT;
-  targ_bit_field_container_size = TARG_BIT_FIELD_CONTAINER_SIZE;
-  targ_microsoft_bit_field_allocation = TARG_MICROSOFT_BIT_FIELD_ALLOCATION;
-  targ_plain_int_bit_field_is_unsigned =
-                           TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED /*lint !e506*/;
-  targ_force_one_bit_bit_field_to_be_unsigned =
-                                   TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED;
-  targ_enum_bit_fields_are_always_unsigned =
-                                      TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED;
-  targ_nonnegative_enum_bit_field_is_unsigned =
-                                   TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED;
-  targ_zero_width_bit_field_alignment = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT;
-  targ_zero_width_bit_field_affects_struct_alignment =
-                            TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT;
-  targ_unnamed_bit_field_affects_struct_alignment =
-                               TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT;
-  targ_bit_field_affects_union_alignment =
-                                        TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT;
-  targ_user_control_of_struct_packing_affects_bit_fields =
-                        TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS;
-  targ_pad_bit_fields_larger_than_base_type =
-                                     TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE;
-#if TARG_ALL_POINTERS_SAME_SIZE
-  targ_sizeof_pointer = TARG_SIZEOF_POINTER;
-  targ_alignof_pointer = TARG_ALIGNOF_POINTER;
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-#if NEAR_AND_FAR_ALLOWED
-  targ_sizeof_far_pointer = TARG_SIZEOF_FAR_POINTER;
-  targ_alignof_far_pointer = TARG_ALIGNOF_FAR_POINTER;
-  targ_sizeof_near_pointer = TARG_SIZEOF_NEAR_POINTER;
-  targ_alignof_near_pointer = TARG_ALIGNOF_NEAR_POINTER;
-#endif /* NEAR_AND_FAR_ALLOWED */
-  targ_ptrdiff_t_int_kind = TARG_PTRDIFF_T_INT_KIND;
   targ_size_t_max = TARG_SIZE_T_MAX;
-  targ_size_t_int_kind = TARG_SIZE_T_INT_KIND;
-  targ_sizeof_float = TARG_SIZEOF_FLOAT;
-  targ_alignof_float = TARG_ALIGNOF_FLOAT;
-  targ_sizeof_double = TARG_SIZEOF_DOUBLE;
-  targ_alignof_double = TARG_ALIGNOF_DOUBLE;
-  targ_sizeof_long_double = TARG_SIZEOF_LONG_DOUBLE;
-  targ_alignof_long_double = TARG_ALIGNOF_LONG_DOUBLE;
-#if GNU_EXTENSIONS_ALLOWED
-  targ_word_mode = (a_type_mode_kind)TARG_WORD_MODE;
-  targ_unwind_word_mode = (a_type_mode_kind)TARG_UNWIND_WORD_MODE;
-  targ_libgcc_cmp_return_mode = (a_type_mode_kind)TARG_LIBGCC_CMP_RETURN_MODE;
-  targ_libgcc_shift_count_mode =
-                               (a_type_mode_kind)TARG_LIBGCC_SHIFT_COUNT_MODE;
-#if TARG_ALL_POINTERS_SAME_SIZE
-  targ_pointer_mode = (a_type_mode_kind)TARG_POINTER_MODE;
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  targ_ssize_t_int_kind = TARG_SSIZE_T_INT_KIND;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-  targ_short_field_alignment = TARG_SHORT_FIELD_ALIGNMENT;
-  targ_int_field_alignment = TARG_INT_FIELD_ALIGNMENT;
-  targ_long_field_alignment = TARG_LONG_FIELD_ALIGNMENT;
-#if LONG_LONG_ALLOWED
-  targ_long_long_field_alignment = TARG_LONG_LONG_FIELD_ALIGNMENT;
-#endif /* LONG_LONG_ALLOWED */
-#if INT128_EXTENSIONS_ALLOWED
-  targ_int128_field_alignment = TARG_INT128_FIELD_ALIGNMENT;
-#endif /* INT128_EXTENSIONS_ALLOWED */
-  targ_float_field_alignment = TARG_FLOAT_FIELD_ALIGNMENT;
-  targ_double_field_alignment = TARG_DOUBLE_FIELD_ALIGNMENT;
-  targ_long_double_field_alignment = TARG_LONG_DOUBLE_FIELD_ALIGNMENT;
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-  targ_sizeof_ptr_to_data_member = TARG_SIZEOF_PTR_TO_DATA_MEMBER;
-  targ_alignof_ptr_to_data_member = TARG_ALIGNOF_PTR_TO_DATA_MEMBER;
-  targ_sizeof_ptr_to_member_function = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION;
-  targ_alignof_ptr_to_member_function = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION;
-  targ_sizeof_virtual_function_info = TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
-  targ_alignof_virtual_function_info = TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
-#if !IA64_ABI
-  targ_sizeof_ptr_to_virtual_base_class =
-                                         TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS;
-  targ_alignof_ptr_to_virtual_base_class =
-                                        TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS;
-#endif /* !IA64_ABI */
-  targ_enum_types_can_be_smaller_than_int =
-                                       TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT;
-  targ_right_shift_is_arithmetic = TARG_RIGHT_SHIFT_IS_ARITHMETIC;
-  targ_too_large_shift_count_is_taken_modulo_size =
-                               TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE;
-  targ_minimum_struct_alignment = TARG_MINIMUM_STRUCT_ALIGNMENT;
-#if USER_CONTROL_OF_STRUCT_PACKING
-  targ_minimum_pack_alignment = TARG_MINIMUM_PACK_ALIGNMENT;
-  targ_maximum_pack_alignment = TARG_MAXIMUM_PACK_ALIGNMENT;
-  targ_maximum_intrinsic_alignment = TARG_MAXIMUM_INTRINSIC_ALIGNMENT;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  packing_applies_to_base_classes =
-                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   distinct_template_signatures = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES;
   assume_references_cannot_be_null = ASSUME_REFERENCES_CANNOT_BE_NULL;
 #if DO_IL_LOWERING
@@ -769,25 +668,7 @@ header has been read and the target has been determined).
   make_all_functions_unprototyped = MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
   assume_this_cannot_be_null_in_conditional_operators =
                            ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS;
-#if DO_FULL_PORTABLE_EH_LOWERING
-  targ_jmp_buf_num_elements = TARG_JMP_BUF_NUM_ELEMENTS;
-  targ_jmp_buf_elements_are_float = TARG_JMP_BUF_ELEMENTS_ARE_FLOAT;
-  targ_jmp_buf_element_int_kind = TARG_JMP_BUF_ELEMENT_INT_KIND;
-  targ_jmp_buf_element_float_kind = TARG_JMP_BUF_ELEMENT_FLOAT_KIND;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-#if GENERATE_EH_TABLES
-  targ_var_handle_int_kind = TARG_VAR_HANDLE_INT_KIND;
-#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
-  targ_flt_mant_dig = TARG_FLT_MANT_DIG;
-  targ_flt_min_exp = TARG_FLT_MIN_EXP;
-  targ_flt_max_exp = TARG_FLT_MAX_EXP;
-  targ_dbl_mant_dig = TARG_DBL_MANT_DIG;
-  targ_dbl_min_exp = TARG_DBL_MIN_EXP;
-  targ_dbl_max_exp = TARG_DBL_MAX_EXP;
-  targ_ldbl_mant_dig = TARG_LDBL_MANT_DIG;
-  targ_ldbl_min_exp = TARG_LDBL_MIN_EXP;
-  targ_ldbl_max_exp = TARG_LDBL_MAX_EXP;
   remove_qualifiers_from_param_types =
                                     DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES;
   c_and_cpp_function_types_are_distinct =
@@ -835,28 +716,9 @@ header has been read and the target has been determined).
   cp_gen_be_target_matches_source_dialect =
                                        CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if !IA64_ABI
-  targ_runtime_elem_count_int_kind = TARG_RUNTIME_ELEM_COUNT_INT_KIND;
-#endif /* !IA64_ABI */
 #if BACK_END_IS_C_GEN_BE
   use_empty_struct_in_generated_c = USE_EMPTY_STRUCT_IN_GENERATED_C;
 #endif /* BACK_END_IS_C_GEN_BE */
-  auxiliary_info_dir_name = (char *)EDG_AUXILIARY_INFO_DIR_NAME;
-#if DO_IL_LOWERING
-  targ_delta_int_kind = TARG_DELTA_INT_KIND;
-  targ_virtual_function_index_int_kind = TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND;
-#if IA64_ABI
-  targ_ia64_vtable_entry_int_kind = TARG_IA64_VTABLE_ENTRY_INT_KIND;
-#endif /* IA64_ABI */
-#if GENERATE_EH_TABLES
-  targ_region_number_int_kind = TARG_REGION_NUMBER_INT_KIND;
-#endif /* GENERATE_EH_TABLES */
-#endif /* DO_IL_LOWERING */
-  targ_sizeof_largest_integer = TARG_SIZEOF_LARGEST_INTEGER;
-#if FIXED_POINT_ALLOWED
-  targ_sizeof_largest_fixed_point = TARG_SIZEOF_LARGEST_FIXED_POINT;
-#endif /* FIXED_POINT_ALLOWED */
-  targ_supports_x86_64 = TARG_SUPPORTS_X86_64;
 }  /* target_early_init */
 
 

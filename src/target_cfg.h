@@ -29,7 +29,7 @@ variables to a particular set of target-specific values.
 /* Assign the target-specific macro value to the associated global variable. */
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = concat(config_macro ## _, config);
-#include "target_map.h"
+#include "target_map.h"  /*lint !e451 included more than once. */
 
 #if DUMP_CONFIG_ENABLED
 
@@ -46,7 +46,7 @@ configuration macros.
   fprintf(f_error, "#define %s %s\n", \
           #config_macro "_" stringize(config), \
           STRINGIZE_HELPER(concat(config_macro ## _, config)));
-#include "target_map.h"
+#include "target_map.h"  /*lint !e451 included more than once. */
 #undef STRINGIZE_HELPER
 
 #endif /* DUMP_CONFIG_ENABLED */
