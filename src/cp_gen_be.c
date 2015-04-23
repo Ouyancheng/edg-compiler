@@ -18047,7 +18047,9 @@ Initialize for the C++/C-generating back end.
   avail_name_contexts = NULL;
   in_class_scope_with_dependent_base = FALSE;
   accessible_typedef_map = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   proto_inst_typedef_map = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
