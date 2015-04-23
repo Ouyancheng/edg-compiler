@@ -209,7 +209,7 @@ other command-line processing.
     target->set_target_config();
     /* Create a target-specific version of this name so that predefined
        macros can be different for each target configuration. */
-    check_assertion(EDG_AUXILIARY_INFO_DIR_NAME != NULL);
+    check_assertion(EDG_AUXILIARY_INFO_DIR_NAME != NULL /*lint !e779*/);
     auxiliary_info_dir_name = alloc_general(
                                         strlen(EDG_AUXILIARY_INFO_DIR_NAME) +
                                         strlen(target->name) + 2);
