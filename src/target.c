@@ -122,11 +122,13 @@ a_target_configuration target_configurations[] = {
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_4),
 #endif /* defined(TARGET_CONFIGURATION_4) */
   /* More can be added if needed (ensure target_cfg.h is included above). */
+  { "", (void(*)(void))0, (void(*)(void))0 }
 };
 
-/* The number of target configurations defined at compilation time. */
+/* The number of target configurations defined at compilation time (not
+   counting the dummy entry at the end). */
 #define NUM_TARGET_CONFIGURATIONS \
-  sizeof(target_configurations)/sizeof(target_configurations[0])
+  ((int32_t)(sizeof(target_configurations)/sizeof(target_configurations[0])-1))
 
 #if DUMP_CONFIG_ENABLED
 
@@ -199,10 +201,10 @@ other command-line processing.
 */
 {
   if (target_configuration_index != NO_TARGET_CONFIG) {
+    a_target_configuration *target;
     check_assertion(target_index >= 0 &&
                     target_index < NUM_TARGET_CONFIGURATIONS);
-    a_target_configuration *target = &target_configurations[
-                                                   target_configuration_index];
+    target = &target_configurations[target_configuration_index];
     target->set_target_config();
     if (EDG_AUXILIARY_INFO_DIR_NAME != NULL) {
       /* Create a target-specific version of this name so that predefined

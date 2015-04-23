@@ -30,19 +30,31 @@ and targ_fractional_bits_for_fixed_point).  Use these local macros to
 index properly into those arrays.
 */
 #define _SIGNED_ACCUM     [/*is_unsigned=*/0][(int)fpp_default][/*is_fract=*/0]
+/*lint -esym(755,_SIGNED_ACCUM)*/
 #define _SIGNED_FRACT     [/*is_unsigned=*/0][(int)fpp_default][/*is_fract=*/1]
+/*lint -esym(755,_SIGNED_FRACT)*/
 #define _SIGNED_LONG_ACCUM   [/*is_unsigned=*/0][(int)fpp_long][/*is_fract=*/0]
+/*lint -esym(755,_SIGNED_LONG_ACCUM)*/
 #define _SIGNED_LONG_FRACT   [/*is_unsigned=*/0][(int)fpp_long][/*is_fract=*/1]
+/*lint -esym(755,_SIGNED_LONG_FRACT)*/
 #define _SIGNED_SHORT_ACCUM [/*is_unsigned=*/0][(int)fpp_short][/*is_fract=*/0]
+/*lint -esym(755,_SIGNED_SHORT_ACCUM)*/
 #define _SIGNED_SHORT_FRACT [/*is_unsigned=*/0][(int)fpp_short][/*is_fract=*/1]
+/*lint -esym(755,_SIGNED_SHORT_FRACT)*/
 #define _UNSIGNED_ACCUM   [/*is_unsigned=*/1][(int)fpp_default][/*is_fract=*/0]
+/*lint -esym(755,_UNSIGNED_ACCUM)*/
 #define _UNSIGNED_FRACT   [/*is_unsigned=*/1][(int)fpp_default][/*is_fract=*/1]
+/*lint -esym(755,_UNSIGNED_FRACT)*/
 #define _UNSIGNED_LONG_ACCUM [/*is_unsigned=*/1][(int)fpp_long][/*is_fract=*/0]
+/*lint -esym(755,_UNSIGNED_LONG_ACCUM)*/
 #define _UNSIGNED_LONG_FRACT [/*is_unsigned=*/1][(int)fpp_long][/*is_fract=*/1]
+/*lint -esym(755,_UNSIGNED_LONG_FRACT)*/
 #define _UNSIGNED_SHORT_ACCUM \
                             [/*is_unsigned=*/1][(int)fpp_short][/*is_fract=*/0]
+/*lint -esym(755,_UNSIGNED_SHORT_ACCUM)*/
 #define _UNSIGNED_SHORT_FRACT \
                             [/*is_unsigned=*/1][(int)fpp_short][/*is_fract=*/1]
+/*lint -esym(755,_UNSIGNED_SHORT_FRACT)*/
 #endif /* FIXED_POINT_ALLOWED */
 
 /*

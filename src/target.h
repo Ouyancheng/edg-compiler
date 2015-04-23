@@ -1017,7 +1017,6 @@ EXTERN an_integer_kind
                         /* Integer kind used for the size of a vtable entry in
                            the IA-64 ABI. */
 #endif /* IA64_ABI */
-#endif /* DO_IL_LOWERING */
 
 #if GENERATE_EH_TABLES
 EXTERN an_integer_kind
@@ -1025,6 +1024,7 @@ EXTERN an_integer_kind
                         /* The integral kind to be used for a cleanup region
                            number with exception processing. */
 #endif /* GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
 
 #ifndef DO_NOT_UNDEF_TARGET_MACROS
 /* Aside from occasional references in targ_def.h, the following values
