@@ -350,10 +350,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO,
                    targ_sizeof_virtual_function_info, _TC)
   TARGET_MAP_MACRO(TARG_SIZE_T_INT_KIND, targ_size_t_int_kind, _TC)
-#if GNU_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_SSIZE_T_INT_KIND, targ_ssize_t_int_kind, _TC)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
   TARGET_MAP_MACRO(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE,
                    targ_too_large_shift_count_is_taken_modulo_size, _TC)
   TARGET_MAP_MACRO(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT,
@@ -381,6 +378,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_zero_width_bit_field_affects_struct_alignment, _TC)
   TARGET_MAP_MACRO(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT,
                    targ_zero_width_bit_field_alignment, _TC)
+  TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
 }  /* TARGET_MAP_ROUTINE_NAME */
 
 /* #undef the local macros defined above. */
