@@ -18069,12 +18069,10 @@ from the primary source file name in the IL information.
   int  optind = 1;
 
   /* Initialize the components of the front end needed by standalone
-     utility programs. */
-  standalone_utility_init();
+     utility programs; further initialization is performed after the
+     il_header has been read. */
+  standalone_utility_early_init();
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
-  /* Initialize. */
-  init_cp_gen_be();
-  initialize_opname_names();
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
 
@@ -18104,6 +18102,11 @@ from the primary source file name in the IL information.
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);
+  /* Complete initialization (based on il_header that has been read). */
+  standalone_utility_late_init();
+  /* Initialize. */
+  init_cp_gen_be();
+  initialize_opname_names();
   primary_source_file_name = il_header.primary_source_file->file_name;
   /* Generate C++/C code. */
   cp_gen_be();

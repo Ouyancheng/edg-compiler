@@ -8661,20 +8661,20 @@ from the front end to the runtime.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Define the type of the offset field in the Cfront virtual function
      table. */
-  (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
+  (void)enter_predef_macro(int_kind_name(targ_delta_int_kind),
 			   "__EDG_DELTA_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if IA64_ABI
   /* Define the type of an entry in the IA-64 virtual function table. */
-  (void)enter_predef_macro(int_kind_name(TARG_IA64_VTABLE_ENTRY_INT_KIND),
+  (void)enter_predef_macro(int_kind_name(targ_ia64_vtable_entry_int_kind),
 			   "__EDG_IA64_VTABLE_ENTRY_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* IA64_ABI */
   /* Define the type of the virtual function index field of the virtual
      function table. */
-  (void)enter_predef_macro(int_kind_name(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),
+  (void)enter_predef_macro(int_kind_name(targ_virtual_function_index_int_kind),
 			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -8685,7 +8685,7 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the type of a region number field in the EH tables. */
-  (void)enter_predef_macro(int_kind_name(TARG_REGION_NUMBER_INT_KIND),
+  (void)enter_predef_macro(int_kind_name(targ_region_number_int_kind),
 			   "__EDG_REGION_NUMBER_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -9234,7 +9234,7 @@ Return the file descriptor.
   a_const_char		*aux_dir_name;
 
   /* Make sure the auxiliary directory name is not NULL. */
-  aux_dir_name = EDG_AUXILIARY_INFO_DIR_NAME;
+  aux_dir_name = auxiliary_info_dir_name;
   /* coverity[dead_error_condition] */ /* coverity[dead_error_line] */
   if (aux_dir_name == NULL) aux_dir_name = "";
   buf = combine_dir_and_file_name(edg_base_directory, aux_dir_name,

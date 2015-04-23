@@ -44,6 +44,15 @@ mode, these expand to nothing.
 #endif /* __cplusplus */
 
 /*
+Define concat and stringize macros that use the preprocessor to concatenate
+and turn an argument into a string.
+*/
+/* Concatenate two arguments: */
+#define concat(x, y) x ## y
+/* Quote the argument: */
+#define stringize(X) #X
+
+/*
 In some environments, some files linked with the front end are C++ files.
 This occurs, for example, with the ms_metadata.cpp file that is used
 in configurations that support C++/CLI.  In such cases, the C++ files need

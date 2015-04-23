@@ -972,7 +972,7 @@ and return a pointer to it.  Its definition is
                        base_class_spec_type, &last_field);
     /* field: short offset */
     make_lowered_field("offset", 
-                       integer_type(TARG_DELTA_INT_KIND),
+                       integer_type(targ_delta_int_kind),
                        base_class_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
@@ -1097,7 +1097,7 @@ allocated in the file scope memory region.
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_integer_constant_with_overflow_check(offset_con,
                                                (a_host_large_integer)offset,
-                                               TARG_DELTA_INT_KIND,
+                                               targ_delta_int_kind,
                                                bcp->type,
                                                /*preserve_needed_flag=*/FALSE);
       /* Make the flags constant. */
@@ -3388,7 +3388,7 @@ and return a pointer to it.  Its definition is
                        region_descr_type, &last_field);
     /* field: unsigned short next */
     make_lowered_field("next",
-                       integer_type(TARG_REGION_NUMBER_INT_KIND),
+                       integer_type(targ_region_number_int_kind),
                        region_descr_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
@@ -3449,7 +3449,7 @@ This routine is used to relink entries after they've been created.
   a_constant_ptr con_next = con->next;
 
   set_unsigned_integer_constant(con, (a_host_large_unsigned)next_region_number,
-                                TARG_REGION_NUMBER_INT_KIND);
+                                targ_region_number_int_kind);
   con->next = con_next;
 }  /* set_next_region_number */
 
@@ -3564,7 +3564,7 @@ the aggregate constant.
      expects the constant to be the third one on the list. */
   next_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(next_con, (a_host_large_unsigned)next_region,
-                                TARG_REGION_NUMBER_INT_KIND);
+                                targ_region_number_int_kind);
   /* Make the flags constant. */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(flags_con, (a_host_large_unsigned)flags_value,
@@ -4124,7 +4124,7 @@ if it has not already been made.  Return a pointer to it.
     eh_curr_region_var =
                make_lowered_variable("__eh_curr_region",
                                      /*already_il_name=*/FALSE,
-                                     integer_type(TARG_REGION_NUMBER_INT_KIND),
+                                     integer_type(targ_region_number_int_kind),
                                      (a_storage_class)sc_extern);
   }  /* if */
   return eh_curr_region_var;
@@ -4572,7 +4572,7 @@ Its definition is
     ehse_try_rtinfo_field = last_field;
     /* field: unsigned short region_number */
     make_lowered_field("region_number",
-                       integer_type(TARG_REGION_NUMBER_INT_KIND),
+                       integer_type(targ_region_number_int_kind),
                        try_block_struct_type, &last_field);
     ehse_try_region_number_field = last_field;
     finish_class_type(try_block_struct_type);
@@ -4597,7 +4597,7 @@ Its definition is
     ehse_function_array_table_field = last_field;
     /* field: unsigned short saved_region_number */
     make_lowered_field("saved_region_number",
-                       integer_type(TARG_REGION_NUMBER_INT_KIND),
+                       integer_type(targ_region_number_int_kind),
                        function_struct_type, &last_field);
     ehse_function_saved_region_number_field = last_field;
     finish_class_type(function_struct_type);
@@ -4969,7 +4969,7 @@ statement if necessary.
     (void)insert_var_assignment_statement(eh_curr_region_var,
                                           node_for_integer_constant(
                                                  (long)null_eh_region_number,
-                                                 TARG_REGION_NUMBER_INT_KIND),
+                                                 targ_region_number_int_kind),
                                           &insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
     /* Non-portable schemes: generate an enk_lowered_eh_construct/
@@ -6133,7 +6133,7 @@ tables).
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */
   node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
-                                   TARG_REGION_NUMBER_INT_KIND);
+                                   targ_region_number_int_kind);
   assign_to_eh_curr_region(node, insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In the other schemes, generate an enk_lower_eh_construct/
@@ -6431,7 +6431,7 @@ must be initialized for each compilation.
   { a_targ_size_t    size;
     a_targ_alignment align;
     /* Find out how big a field is used for region numbers. */
-    get_integer_size_and_alignment(TARG_REGION_NUMBER_INT_KIND, &size, &align);
+    get_integer_size_and_alignment(targ_region_number_int_kind, &size, &align);
     size = size * targ_char_bit; /* Not "*=" to avoid CodeCenter bug. */
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {

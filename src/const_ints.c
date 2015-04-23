@@ -160,7 +160,7 @@ an error occurred during the conversion.
        character string then converting the string to a float value. */
     char *str = str_for_integer_value(int_value, is_signed,
                                       /*non_arithmetic=*/FALSE,
-                                      TARG_SIZEOF_LARGEST_INTEGER);
+                                      targ_sizeof_largest_integer);
     fp_string_to_float(float_kind, str, float_value, err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */

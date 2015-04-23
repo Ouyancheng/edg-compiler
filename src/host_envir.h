@@ -2021,6 +2021,10 @@ for the purpose of finding the predefined macro definition file.
 The name of the directory in EDG_BASE that contains miscellaneous files
 needed by the front end at execution time.  Currently, the front end uses
 this only for the purpose of finding the predefined macro definition file.
+When the --target command-line option is used, the name of the target
+configuration (and a separating underscore) are appended to this name (this
+allows different predefined macros to be used for different target
+configurations).
 */
 #ifndef EDG_AUXILIARY_INFO_DIR_NAME
 #define EDG_AUXILIARY_INFO_DIR_NAME "lib"

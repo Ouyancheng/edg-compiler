@@ -1,5 +1,63 @@
 Version 4.11
 
+4/23/15  [EDGcpfe/15604,EDGcpfe/15397,EDGcpfe/15717,EDGcpfe/15851,
+          EDGcpfe/16160]
+Allow run time target configuration
+
+To date, the target configuration of the front end has been specified entirely
+at compile time, rendering it impossible to support multiple targets with a
+single front end executable (without local modifications).  A change has been
+made to allow the front end to support multiple target configurations with the
+new --target command-line option.  This option takes the name of a "target
+configuration" and re-initializes target-specific global variables with the
+values appropriate for the specified target configuration.
+
+The existing method for configuring the front end is unchanged; the same
+configuration macros are used, and the resulting configuration is referred to
+as the "default" configuration (which corresponds to no --target command-line
+option being specified).
+
+A subset of the existing configuration macros have been identified as being
+target-specific and creating a new target configuration requires specifying
+values for each of these target-specific configuration macros (as well as
+a unique name for the target configuration).  To aid in this process, another
+new command-line option has been added, --dump_default_as_target, which takes
+the name of the prospective target configuration and dumps (to stderr) a
+list of #defines for target-specific configuration macros with the values
+of the default configuration.  This list can be inserted into your existing
+defines.h (or perhaps #include'ed by it) to create the basis of a new
+target configuration (initially identical to the default configuration).
+
+Note that not all configuration macros are target-specific, and all target
+configurations must use the same front end configuration (e.g., it's not
+possible to have an IA-64 ABI and Cfront ABI target configuration selectable
+at run time, or one that has GNU_EXTENSIONS_ALLOWED and another that has
+MICROSOFT_EXTENSIONS_ALLOWED).
+
+Note that each new target configuration will likely require a suitably-compiled
+libC.a, as well as a predefined_macros.txt whose values match those for the
+new target configuration.  To aid in managing multiple sets of these files,
+the front end (and eccp.sh) now append the target configuration name (and
+a separating underscore) to the value of EDG_AUXILIARY_INFO_DIR_NAME.  So, if
+"--target my_config" is used and EDG_AUXILIARY_INFO_DIR_NAME is "lib", the
+front end will look for predefined_macros.txt file in $EDG_BASE/lib_my_config
+(and eccp.sh will also look there for libC.a).  There is no change for the
+default configuration.
+
+For customers that read the IL from a file, note that a change has been
+made to standalone_utility_init to split it into two routines:
+standalone_utility_early_init and standalone_utility_late_init.  This is
+required because initialization of target-specific global variables is based
+on the target configuration that was specified in the front end and that
+information is not known until after the il_header has been read (so
+standalone_utility_late_init must be called after il_read).
+
+Any local changes that make use of configuration macros that are now
+target-specific should use the associated global variables.
+
+Two new header files, target_cfg.h and target_map.h, have been added.
+
+
 4/21/15  [EDGcpfe/16133]
 C++-generating back end: default value of
 KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION

@@ -259,6 +259,7 @@ typedef enum /*an_option_kind*/ {
   optk_list_macros,
 #if DUMP_CONFIG_ENABLED
   optk_dump_configuration,
+  optk_dump_default_as_target,
 #endif /* DUMP_CONFIG_ENABLED */
   optk_signed_bit_fields,
   optk_unsigned_bit_fields,
@@ -309,6 +310,7 @@ typedef enum /*an_option_kind*/ {
   optk_cpp14_mode,
   optk_c11_mode,
   optk_digit_separators,
+  optk_target,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1926,12 +1928,6 @@ EXTERN a_boolean
 			   base classes for other subobjects of the derived
 			   class. */
 #endif /* IA64_ABI */
-
-EXTERN a_boolean
-		packing_applies_to_base_classes;
-			/* TRUE if "#pragma pack(n)" affects the alignment of
-			   base classes (in addition to that of proper
-			   fields). */
 
 EXTERN a_boolean
 		IEEE_handling_on_float_operation_exceptions;

@@ -30,6 +30,20 @@ configuration values that are incorporated when the compiler is built
 #endif /* ifndef IL_H */
 
 /*
+Indicates that the "default" configuration is used (or no such target
+configuration exists in some cases).
+*/
+#define NO_TARGET_CONFIG (-1)
+
+EXTERN int32_t  target_configuration_index;
+                        /* Gives the index (into target_configurations[]) of
+                           the target configuration that is being used
+                           (either selected by the --target command-line option
+                           or read in from the il_header).  When its value is
+                           NO_TARGET_CONFIG, the "default" configuration is
+                           used. */
+
+/*
 Except as noted, the following variables are initialized to values defined
 for the expected target machine but may be reset to permit reconfiguring
 the EDG front end to different targets with each invocation.
@@ -106,8 +120,10 @@ EXTERN a_targ_size_t
 
 EXTERN an_integer_kind
 		targ_bool_int_kind;
-			/* Integer kind associated with bool.  Initialized
-			   to the default value but reconfigurable. */
+			/* Integer kind associated with bool in C++ mode. */
+EXTERN an_integer_kind
+		targ_c_bool_int_kind;
+			/* Integer kind associated with bool in C mode. */
 /*
 Integer types:
 */
@@ -165,6 +181,11 @@ EXTERN a_targ_alignment
 			   the default value but reconfigurable (in practice,
 			   this almost certainly equals 16). */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+
+EXTERN a_targ_size_t
+		targ_sizeof_largest_integer;
+			/* Size of the longest integer in the configuration.
+                           Must be less than MAX_SIZEOF_LARGEST_INTEGER. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
@@ -336,6 +357,12 @@ EXTERN int	targ_pad_bit_fields_larger_than_base_type;
 			   has the same number of bits; the extra bits are
 			   padding bits. */
 
+EXTERN a_boolean
+		packing_applies_to_base_classes;
+			/* TRUE if "#pragma pack(n)" affects the alignment of
+			   base classes (in addition to that of proper
+			   fields). */
+
 /*
 Pointer types:
 */
@@ -469,6 +496,11 @@ EXTERN a_targ_alignment
 		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT } } }
 #endif /* VAR_INITIALIZERS */
 		                                                          ;
+EXTERN a_targ_size_t
+		targ_sizeof_largest_fixed_point;
+                        /* Size of the longest fixed point type in the
+                           configuration.  Must be less than
+                           MAX_SIZEOF_LARGEST_FIXED_POINT. */
 
 #endif /* FIXED_POINT_ALLOWED */
 
@@ -959,6 +991,41 @@ EXTERN a_boolean
 			   a one-byte padding field. */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+EXTERN char     *auxiliary_info_dir_name;
+                        /* Initialized to EDG_AUXILIARY_INFO_DIR_NAME (e.g.,
+                           "lib"), but re-set to a target-specific directory
+                           by appending the target name (and a separating
+                           underscore) if the --target command-line option is
+                           used. */
+
+#if DO_IL_LOWERING
+EXTERN an_integer_kind
+		targ_delta_int_kind;
+                        /* Integer kind to use for an offset into a class.
+                           This is used for delta fields in pointers to member
+                           functions, etc., but not for pointers to data
+                           members. */
+
+EXTERN an_integer_kind
+		targ_virtual_function_index_int_kind;
+                        /* Integer kind to use for an index into a virtual
+                           function table.  Must be no smaller than the size of
+                           a_virtual_function_number. */
+#if IA64_ABI
+EXTERN an_integer_kind
+		targ_ia64_vtable_entry_int_kind;
+                        /* Integer kind used for the size of a vtable entry in
+                           the IA-64 ABI. */
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
+
+#if GENERATE_EH_TABLES
+EXTERN an_integer_kind
+		targ_region_number_int_kind;
+                        /* The integral kind to be used for a cleanup region
+                           number with exception processing. */
+#endif /* GENERATE_EH_TABLES */
+
 #ifndef DO_NOT_UNDEF_TARGET_MACROS
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
@@ -976,6 +1043,7 @@ EXTERN a_boolean
 #undef TARG_CHAR16_T_INT_KIND
 #undef TARG_CHAR32_T_INT_KIND
 #undef TARG_BOOL_INT_KIND
+#undef TARG_C_BOOL_INT_KIND
 #undef TARG_SIZEOF_SHORT
 #undef TARG_ALIGNOF_SHORT
 #undef TARG_SIZEOF_INT
@@ -990,6 +1058,9 @@ EXTERN a_boolean
 #undef TARG_SIZEOF_INT128
 #undef TARG_ALIGNOF_INT128
 #endif /* INT128_EXTENSIONS_ALLOWED */
+/* TARG_SIZEOF_LARGEST_INTEGER and TARG_SIZEOF_LARGEST_FIXED_POINT are not
+   #undef'ed here (their definitions are used in MAX_SIZEOF_LARGEST_INTEGER and
+   MAX_SIZEOF_LARGEST_FIXED_POINT. */
 #undef TARG_MAX_CLASS_OBJECT_SIZE
 #undef TARG_MAX_BASE_CLASS_OFFSET
 #undef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
@@ -1061,7 +1132,18 @@ EXTERN a_boolean
 #endif /* !IA64_ABI */
 #if BACK_END_IS_C_GEN_BE
 #undef USE_EMPTY_STRUCT_IN_GENERATED_C
+#if DO_IL_LOWERING
+#undef TARG_DELTA_INT_KIND
+#undef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
+#if IA64_ABI
+#undef TARG_IA64_VTABLE_ENTRY_INT_KIND
+#if GENERATE_EH_TABLES
+#undef TARG_REGION_NUMBER_INT_KIND
+#endif /* GENERATE_EH_TABLES */
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
 #endif /* BACK_END_IS_C_GEN_BE */
+#undef EDG_AUXILIARY_INFO_DIR_NAME
 /* MAKE_TARG_NAMES_REFER_TO_VARIABLES cannot be set when this file is included
    by target.c.  If it was previously defined, undefine it and set it to the
    value required by target.c. */
@@ -1089,6 +1171,8 @@ EXTERN a_boolean
 #define TARG_WINT_T_INT_KIND targ_wint_t_int_kind
 #define TARG_CHAR16_T_INT_KIND targ_char16_t_int_kind
 #define TARG_CHAR32_T_INT_KIND targ_char32_t_int_kind
+#define TARG_BOOL_INT_KIND targ_bool_int_kind
+#define TARG_C_BOOL_INT_KIND targ_c_bool_int_kind
 #define TARG_SIZEOF_SHORT targ_sizeof_short
 #define TARG_ALIGNOF_SHORT targ_alignof_short
 #define TARG_SIZEOF_INT targ_sizeof_int
@@ -1190,7 +1274,19 @@ EXTERN a_boolean
 #endif /* !IA64_ABI */
 #if BACK_END_IS_C_GEN_BE
 #define USE_EMPTY_STRUCT_IN_GENERATED_C use_empty_struct_in_generated_c
+#if DO_IL_LOWERING
+#define TARG_DELTA_INT_KIND targ_delta_int_kind
+#define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND                            \
+                        targ_virtual_function_index_int_kind
+#if IA64_ABI
+#define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ia64_vtable_entry_int_kind
+#if GENERATE_EH_TABLES
+#define TARG_REGION_NUMBER_INT_KIND targ_region_number_int_kind
+#endif /* GENERATE_EH_TABLES */
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
 #endif /* BACK_END_IS_C_GEN_BE */
+#define EDG_AUXILIARY_INFO_DIR_NAME auxiliary_info_dir_name
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1207,6 +1303,16 @@ extern void check_target_configuration(void);
 #if BACK_END_IS_CP_GEN_BE
 extern void select_cp_gen_be_target_dialect(void);
 #endif /* BACK_END_IS_CP_GEN_BE */
+
+extern int32_t find_target_configuration(a_const_char *config);
+
+extern void set_target_configuration(int32_t target_index);
+
+#if DUMP_CONFIG_ENABLED
+extern void dump_target_configurations(void);
+
+extern void dump_default_config_as_target_config(a_const_char *config);
+#endif /* DUMP_CONFIG_ENABLED */
 
 extern void target_init(void);
 

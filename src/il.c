@@ -9490,7 +9490,7 @@ Make or find a type entry for a bool type and return a pointer to it.
   } else {
     /* The type must be created. */
     il_bool_type = pit = alloc_type((a_type_kind)tk_integer);
-    pit->variant.integer.int_kind = targ_bool_int_kind;
+    pit->variant.integer.int_kind = BOOL_INT_KIND;
     pit->variant.integer.bool_type = TRUE;
     set_type_size(pit);
 #if ORPHAN_PROCESSING_NEEDED

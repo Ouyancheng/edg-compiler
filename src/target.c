@@ -31,6 +31,214 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
+
+/*
+In addition to the "default" configuration, a number of target configurations
+may also be specified.  Just as is the case for the default configuration,
+a target configuration is defined by the values given for a set of
+target-specific configuration macros.  Those macro names are the same as their
+"default" conterparts with an underscore and configuration name appended (e.g.,
+TARG_SIZEOF_INT_my_config for the "my_config" target).  These target
+configurations are conditionally compiled into the front end when one or more
+TARGET_CONFIGURATION_* macros are defined with the value of the unique name of
+the configuration (e.g., "#define TARGET_CONFIGURATION_1 my_config").  The
+number of configurations listed here is arbitrary and may be added to as
+necessary (also add entries to target_configurations below).
+*/
+#ifdef TARGET_CONFIGURATION_1
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_1
+#include "target_cfg.h"
+#endif /* TARGET_CONFIGURATION_1 */
+
+#ifdef TARGET_CONFIGURATION_2
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_2
+#include "target_cfg.h"
+#endif /* TARGET_CONFIGURATION_2 */
+
+#ifdef TARGET_CONFIGURATION_3
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_3
+#include "target_cfg.h"
+#endif /* TARGET_CONFIGURATION_3 */
+
+#ifdef TARGET_CONFIGURATION_4
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_4
+#include "target_cfg.h"
+#endif /* TARGET_CONFIGURATION_4 */
+
+#ifdef TARGET_CONFIGURATION_5
+ #error Need to add additional TARGET_CONFIGURATION_X entries
+#endif /* TARGET_CONFIGURATION_5 */
+
+/*
+This structure is used to associate a target configuration name with routines
+to set the target configuration and dump the target configuration.
+*/
+typedef struct a_target_configuration {
+  a_const_char  *name;  /* The name of this target configuration. */
+  void          (*set_target_config)(void);
+                        /* The address of a routine that will set the
+                           target-specific global variables to the values
+                           for this target configuration. */
+#if DUMP_CONFIG_ENABLED
+  void          (*dump_target_config)(void);
+                        /* The address of a routine that will dump the
+                           target-specific configuration macros associated
+                           with this target configuration.  Used for
+                           --dump_configuration. */
+#endif /* DUMP_CONFIG_ENABLED */
+} a_target_configuration;
+
+/*
+Define a macro to initialize an a_target_configuration entry
+*/
+#if DUMP_CONFIG_ENABLED
+#define DEFINE_TARGET_CONFIGURATION(name) \
+  { stringize(name), \
+    concat(set_target_config ## _, name), \
+    concat(dump_target_config ## _, name) \
+  }
+#else /* !DUMP_CONFIG_ENABLED */
+#define DEFINE_TARGET_CONFIGURATION(name) \
+  { stringize(name), \
+    concat(set_target_config ## _, name) \
+  }
+#endif /* DUMP_CONFIG_ENABLED */
+
+/*
+This array contains an entry for each target configuration that has been
+defined at compilation time.
+*/
+a_target_configuration target_configurations[] = {
+#ifdef TARGET_CONFIGURATION_1
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_1),
+#endif /* defined(TARGET_CONFIGURATION_1) */
+#ifdef TARGET_CONFIGURATION_2
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_2),
+#endif /* defined(TARGET_CONFIGURATION_2) */
+#ifdef TARGET_CONFIGURATION_3
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_3),
+#endif /* defined(TARGET_CONFIGURATION_3) */
+#ifdef TARGET_CONFIGURATION_4
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_4),
+#endif /* defined(TARGET_CONFIGURATION_4) */
+  /* More can be added if needed (ensure target_cfg.h is included above). */
+};
+
+/* The number of target configurations defined at compilation time. */
+#define NUM_TARGET_CONFIGURATIONS \
+  sizeof(target_configurations)/sizeof(target_configurations[0])
+
+#if DUMP_CONFIG_ENABLED
+
+/*
+Define the dump_as_target_config function that takes a string argument and
+produces a list of #defines suitable for using the "default" configuration
+as the named target configuration.  E.g., when called with "my_config",
+would emit "#define TARG_SIZEOF_INT_my_config 4" if TARG_SIZEOF_INT has
+the value 4 in the default configuration (for each target-specific
+configuration macro).
+*/
+/* Routine name: dump_as_target_config. */
+#define TARGET_MAP_ROUTINE_NAME(config) \
+  dump_as_target_config(a_const_char *suffix)
+/* Write "#define MACRO_config MACRO-default-value" to stderr. */
+#define TARGET_MAP_MACRO(config_macro, global_var, config) \
+  fprintf(f_error, "#define %s_%s %s\n", #config_macro, \
+          suffix, stringize(config_macro));
+#include "target_map.h"
+
+
+void dump_default_config_as_target_config(a_const_char *config)
+/*
+Called when processing the --dump_default_as_target command-line option.
+This option is used as an aid in creating new target configurations; when used,
+it emits a set of #defines for a new configuration (as named by the argument)
+whose values are the same as those for the "default" configuration of the
+front end.  The output (after modifying the TARGET_CONFIGURATION_X entry)
+can then be included by defines.h and once the front end is recompiled, that
+target configuration becomes available.  Note that other command-line options
+have no effect on the output.
+*/
+{
+  fprintf(f_error, "/* Target configuration: %s */\n", config);
+  fprintf(f_error,
+   "/* NOTE: For multiple configurations, change _1 below as necessary. */\n");
+  fprintf(f_error, "#define TARGET_CONFIGURATION_1 %s\n\n", config);
+  dump_as_target_config(config);
+}  /* dump_default_config_as_target_config */
+
+#endif /* DUMP_CONFIG_ENABLED */
+
+int32_t find_target_configuration(a_const_char *config)
+/*
+Utility to return the target configuration index for the specified target
+configuration string or NO_TARGET_CONFIG if no such target configuration
+has been specified.
+*/
+{
+  int32_t  i, result = NO_TARGET_CONFIG;
+
+  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) {
+    if (strcmp(target_configurations[i].name, config) == 0) {
+      result = i;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* find_target_configuration */
+
+
+void set_target_configuration(int32_t target_index)
+/*
+Called when --target has been specified to set the appropriate global variables
+to their values associated with the specified target configuration index
+(an index into &target_configurations).  Note that this is invoked when
+the --target command-line option is being processed, so there is a race
+condition if any global variable is set here and also as a side-effect of
+other command-line processing.
+*/
+{
+  if (target_configuration_index != NO_TARGET_CONFIG) {
+    check_assertion(target_index >= 0 &&
+                    target_index < NUM_TARGET_CONFIGURATIONS);
+    a_target_configuration *target = &target_configurations[
+                                                   target_configuration_index];
+    target->set_target_config();
+    if (EDG_AUXILIARY_INFO_DIR_NAME != NULL) {
+      /* Create a target-specific version of this name so that predefined
+         macros can be different for each target configuration. */
+      auxiliary_info_dir_name = alloc_general(
+                                          strlen(EDG_AUXILIARY_INFO_DIR_NAME) +
+                                          strlen(target->name) + 2);
+      (void)strcpy(auxiliary_info_dir_name, EDG_AUXILIARY_INFO_DIR_NAME);
+      (void)strcat(auxiliary_info_dir_name, "_");
+      (void)strcat(auxiliary_info_dir_name, target->name);
+    }  /* if */
+  }  /* if */
+}  /* set_target_configuration */
+
+#if DUMP_CONFIG_ENABLED
+
+void dump_target_configurations(void)
+/*
+Dumps any target-configuration specific macros in such a format that they
+can be re-read as a defines.h (as part of the processing for
+--dump_configuration).
+*/
+{
+  int  i;
+
+  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) {
+    fprintf(f_error, "\n/* Target configuration: %s */\n",
+            target_configurations[i].name);
+    fprintf(f_error, "#define TARGET_CONFIGURATION_%d %s\n", i+1,
+            target_configurations[i].name);
+    target_configurations[i].dump_target_config();
+  }  /* for */
+}  /* dump_target_configurations */
+
+#endif /* DUMP_CONFIG_ENABLED */
+
 static void set_plain_char_int_kind(a_boolean plain_chars_are_signed)
 /*
 Set plain_char_int_kind, which indicates the integer kind for "plain"
@@ -146,7 +354,10 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 
 void check_target_configuration(void)
 /*
-Perform consistency check on target configuration variables.
+Perform consistency check on target configuration variables.  Note that
+some checks that are performed at compilation time are re-checked here
+to ensure that incorrect values for configurations specified with --target
+are diagnosed.
 */
 {
   a_targ_size_t    size, size_max_value;
@@ -194,13 +405,27 @@ Perform consistency check on target configuration variables.
   if (size_max_value < targ_size_t_max) {
     internal_error("check_target_config: targ_size_t_max is too large");
   }  /* if */
+  if (targ_sizeof_largest_integer > MAX_SIZEOF_LARGEST_INTEGER) {
+    /* The target-specific value for largest integer must fit in the
+       representation the front end was configured for. */
+    internal_error(
+              "check_target_config: targ_sizeof_largest_integer is too large");
+  }  /* if */
+#if FIXED_POINT_ALLOWED
+  if (targ_sizeof_largest_fixed_point > MAX_SIZEOF_LARGEST_FIXED_POINT) {
+    /* The target-specific value for largest fixed point must fit in the
+       representation the front end was configured for. */
+    internal_error(
+          "check_target_config: targ_sizeof_largest_fixed_point is too large");
+  }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
 #if LONG_LONG_ALLOWED
-  if (TARG_SIZEOF_LARGEST_INTEGER < targ_sizeof_long_long) {
-    internal_error("check_target_config: invalid TARG_SIZEOF_LARGEST_INTEGER");
+  if (targ_sizeof_largest_integer < targ_sizeof_long_long) {
+    internal_error("check_target_config: invalid targ_sizeof_largest_integer");
   }  /* if */
 #else /* !LONG_LONG_ALLOWED */
-  if (TARG_SIZEOF_LARGEST_INTEGER < targ_sizeof_long) {
-    internal_error("check_target_config: invalid TARG_SIZEOF_LARGEST_INTEGER");
+  if (targ_sizeof_largest_integer < targ_sizeof_long) {
+    internal_error("check_target_config: invalid targ_sizeof_largest_integer");
   }  /* if */
 #endif /* LONG_LONG_ALLOWED */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -208,7 +433,7 @@ Perform consistency check on target configuration variables.
      host integer selected is large enough. */
   /* Use variable err instead of testing directly to avoid warnings about
      testing invariant values on some compilers. */
-  err = (TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit >
+  err = (MAX_SIZEOF_LARGEST_INTEGER*targ_char_bit >
          sizeof(an_integer_value)*CHAR_BIT);
   if (err) {
     internal_error("check_target_config: an_integer_value is too small");
@@ -233,7 +458,7 @@ Perform consistency check on target configuration variables.
     internal_error("check_target_config: invalid BITS_IN_INT_VALUE_PART");
   }  /* if */
   err = (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
-         TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
+         MAX_SIZEOF_LARGEST_INTEGER*targ_char_bit);
   if (err) {
     internal_error(
              "check_target_config: invalid INT_VALUE_PARTS_PER_INTEGER_VALUE");
@@ -279,26 +504,37 @@ Perform consistency check on target configuration variables.
     a_targ_size_t    vtbl_entry_size, delta_int_size;
     a_targ_alignment dummy_alignment;
 
-    get_integer_size_and_alignment(TARG_IA64_VTABLE_ENTRY_INT_KIND,
+    get_integer_size_and_alignment(targ_ia64_vtable_entry_int_kind,
                                    &vtbl_entry_size, &dummy_alignment);
-    get_integer_size_and_alignment(TARG_DELTA_INT_KIND,
+    get_integer_size_and_alignment(targ_delta_int_kind,
                                    &delta_int_size, &dummy_alignment);
 #if TARG_ALL_POINTERS_SAME_SIZE
     if (targ_sizeof_pointer != vtbl_entry_size) {
       internal_error(
-	    "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND wrong size");
+	    "check_target_config: targ_ia64_vtable_entry_int_kind wrong size");
     }  /* if */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
     if (delta_int_size > vtbl_entry_size) {
       internal_error(
-          "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND is too small");
+          "check_target_config: targ_ia64_vtable_entry_int_kind is too small");
     }  /* if */
-    if (!int_kind_is_signed[(int)TARG_IA64_VTABLE_ENTRY_INT_KIND]) {
+    if (!int_kind_is_signed[(int)targ_ia64_vtable_entry_int_kind]) {
       internal_error(
-        "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND must be signed");
+        "check_target_config: targ_ia64_vtable_entry_int_kind must be signed");
     }  /* if */
   }
 #endif /* IA64_ABI && DO_IL_LOWERING */
+  if (targ_microsoft_bit_field_allocation &&
+      targ_bit_field_container_size != -1) {
+    internal_error("check_target_config: targ_microsoft_bit_field_allocation "
+                      "must be -1 when targ_bit_field_container_size is TRUE");
+  }  /* if */
+#if ABI_COMPATIBILITY_VERSION <= 241
+  check_assertion(!targ_optimize_empty_base_class_layout);
+#endif /* ABI_COMPATIBILITY_VERSION <= 241 */
+#if IA64_ABI
+  check_assertion(targ_optimize_empty_base_class_layout);
+#endif /* IA64_ABI */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */
@@ -375,9 +611,14 @@ to match the source dialect (including the version of the dialect).
 void target_early_init(void)
 /*
 One time initialization that must take place early on in the front end.
-This is done before command line processing.
+Sets global variables to their "default" configuration; a subset of these
+variables may be re-set to target-specific values if the --target command-line
+option is specified (so these variables should not be used until after
+command-line processing, or for the STANDALONE_UTILITY case, after the IL
+header has been read and the target has been determined).
 */
 {
+  target_configuration_index = NO_TARGET_CONFIG;
   targ_little_endian = TARG_LITTLE_ENDIAN;
   targ_char_bit = TARG_CHAR_BIT;
   targ_host_string_char_bit = TARG_HOST_STRING_CHAR_BIT;
@@ -388,9 +629,8 @@ This is done before command line processing.
   targ_wint_t_int_kind = TARG_WINT_T_INT_KIND;
   targ_char16_t_int_kind = TARG_CHAR16_T_INT_KIND;
   targ_char32_t_int_kind = TARG_CHAR32_T_INT_KIND;
-  /* targ_bool_int_kind will be reset to TARG_C_BOOL_INT_KIND during
-     command-line processing if a C mode is selected. */
   targ_bool_int_kind = TARG_BOOL_INT_KIND;
+  targ_c_bool_int_kind = TARG_C_BOOL_INT_KIND;
   targ_sizeof_short = TARG_SIZEOF_SHORT;
   targ_alignof_short = TARG_ALIGNOF_SHORT;
   targ_sizeof_int = TARG_SIZEOF_INT;
@@ -507,6 +747,8 @@ This is done before command line processing.
   targ_maximum_pack_alignment = TARG_MAXIMUM_PACK_ALIGNMENT;
   targ_maximum_intrinsic_alignment = TARG_MAXIMUM_INTRINSIC_ALIGNMENT;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  packing_applies_to_base_classes =
+                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   distinct_template_signatures = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES;
   assume_references_cannot_be_null = ASSUME_REFERENCES_CANNOT_BE_NULL;
 #if DO_IL_LOWERING
@@ -587,7 +829,21 @@ This is done before command line processing.
 #if BACK_END_IS_C_GEN_BE
   use_empty_struct_in_generated_c = USE_EMPTY_STRUCT_IN_GENERATED_C;
 #endif /* BACK_END_IS_C_GEN_BE */
-  init_character_sizes();
+  auxiliary_info_dir_name = (char *)EDG_AUXILIARY_INFO_DIR_NAME;
+#if DO_IL_LOWERING
+  targ_delta_int_kind = TARG_DELTA_INT_KIND;
+  targ_virtual_function_index_int_kind = TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND;
+#if IA64_ABI
+  targ_ia64_vtable_entry_int_kind = TARG_IA64_VTABLE_ENTRY_INT_KIND;
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
+#if GENERATE_EH_TABLES
+  targ_region_number_int_kind = TARG_REGION_NUMBER_INT_KIND;
+#endif /* GENERATE_EH_TABLES */
+  targ_sizeof_largest_integer = TARG_SIZEOF_LARGEST_INTEGER;
+#if FIXED_POINT_ALLOWED
+  targ_sizeof_largest_fixed_point = TARG_SIZEOF_LARGEST_FIXED_POINT;
+#endif /* FIXED_POINT_ALLOWED */
 }  /* target_early_init */
 
 
@@ -595,11 +851,12 @@ void target_one_time_init(void)
 /*
 Do one-time initialization of variables related to the target.  This is
 executed once after command-line processing, and not again for each source
-file.
+file.  Called after target configuration (if any) has been determined.
 */
 {
   /* Record character sizes in an array that can be indexed by character
      kind. */
+  init_character_sizes();
   character_size[(int)chk_char] = 1;
   character_size[(int)chk_wchar_t] = targ_sizeof_wchar_t;
   character_size[(int)chk_char16_t] = targ_sizeof_char16_t;
@@ -659,11 +916,11 @@ initialization and must be done after command-line processing.
 
     /* Get the size of whatever integer kind is associated with delta field
        of the virtual function table. */
-    get_integer_size_and_alignment(TARG_DELTA_INT_KIND, &size, &alignment);
+    get_integer_size_and_alignment(targ_delta_int_kind, &size, &alignment);
     /* Now given the size, compute the maximum integer value it will
        accommodate. */
     bits = size * targ_char_bit;
-    if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
+    if (int_kind_is_signed[targ_delta_int_kind]) bits -= 1;
     temp = ~((~(a_host_large_unsigned)0) << bits);
     if (temp > (a_host_large_unsigned)targ_size_t_max) {
       /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */

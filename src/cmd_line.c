@@ -1322,6 +1322,10 @@ Initialize the option information table.
   add_option_description(optk_dump_configuration, "dump_configuration",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_dump_default_as_target,
+                         "dump_default_as_target",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #endif /* DUMP_CONFIG_ENABLED */
   add_option_description(optk_signed_bit_fields, "signed_bit_fields",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1456,6 +1460,9 @@ Initialize the option information table.
                          pchek_command_line);
   add_option_description(optk_digit_separators, "no_digit_separators",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_target, "target",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
 
@@ -2740,7 +2747,6 @@ process.
        scopes.  Microsoft C mode will override this. */
     func_prototype_tags_enabled = TRUE;
   }  /* if */
-  targ_bool_int_kind = TARG_C_BOOL_INT_KIND;
 }  /* set_c_mode_flags */
 
 
@@ -4715,8 +4721,6 @@ file.
 */
 {
 /* Macros used to display the various options. */
-/* Quote the argument: */
-#define stringize(X) #X
 /* Write a #define directive for the option, which has a non-numeric value: */
 #define define_string_valued_macro(X) \
   fprintf(f_error, "#define %s %s\n", #X, stringize(X));
@@ -6751,6 +6755,16 @@ file.
 #else /* !defined(MAX_MULTIBYTE_CHAR_LENGTH) */
   comment_undefined_macro_name(MAX_MULTIBYTE_CHAR_LENGTH);
 #endif /* defined(MAX_MULTIBYTE_CHAR_LENGTH) */
+#if defined(MAX_SIZEOF_LARGEST_FIXED_POINT)
+  define_numeric_valued_macro(MAX_SIZEOF_LARGEST_FIXED_POINT);
+#else /* !defined(MAX_SIZEOF_LARGEST_FIXED_POINT) */
+  comment_undefined_macro_name(MAX_SIZEOF_LARGEST_FIXED_POINT);
+#endif /* defined(MAX_SIZEOF_LARGEST_FIXED_POINT) */
+#if defined(MAX_SIZEOF_LARGEST_INTEGER)
+  define_numeric_valued_macro(MAX_SIZEOF_LARGEST_INTEGER);
+#else /* !defined(MAX_SIZEOF_LARGEST_INTEGER) */
+  comment_undefined_macro_name(MAX_SIZEOF_LARGEST_INTEGER);
+#endif /* defined(MAX_SIZEOF_LARGEST_INTEGER) */
 #if defined(MAX_TOTAL_PENDING_INSTANTIATIONS)
   define_numeric_valued_macro(MAX_TOTAL_PENDING_INSTANTIATIONS);
 #else /* !defined(MAX_TOTAL_PENDING_INSTANTIATIONS) */
@@ -8284,7 +8298,8 @@ file.
 #undef define_numeric_valued_macro
 #undef comment_string_valued_macro
 #undef define_string_valued_macro
-#undef stringize
+  /* Dump target configurations (if any). */
+  dump_target_configurations();
 }  /* dump_configuration_macros */
 #endif /* DUMP_CONFIG_ENABLED */
 
@@ -9527,6 +9542,12 @@ enable_microsoft_mode:
         dump_configuration_macros();
         source_file_name_optional = TRUE;
         break;
+      case optk_dump_default_as_target:
+        /* Display a new target configuration based on the default target
+           configuration used when this executable was built. */
+        dump_default_config_as_target_config(opt_arg);
+        source_file_name_optional = TRUE;
+        break;
 #endif /* DUMP_CONFIG_ENABLED */
       case optk_signed_bit_fields:
         targ_plain_int_bit_field_is_unsigned = FALSE;
@@ -9641,6 +9662,27 @@ enable_microsoft_mode:
         break;
       case optk_digit_separators:
         digit_separators_enabled = opt_value;
+        break;
+      case optk_target:
+        if (target_configuration_index != NO_TARGET_CONFIG) {
+          /* Can't specify multiple --target options. */
+          command_line_error(ec_cl_need_single_target);
+        } else {
+          /* Verify that the specified target configuration string is valid,
+             but don't set any target-specific information until after
+             command-line processing is complete. */
+          target_configuration_index = find_target_configuration(opt_arg);
+          if (target_configuration_index != NO_TARGET_CONFIG) {
+            /* Set the target-specific values now.  Note that if there are
+               target-specific global variables that modified by other
+               command-line options, the global variable will be set according
+               to the last command-line argument that effects it.  No warning
+               or error is given. */
+            set_target_configuration(target_configuration_index);
+          } else {
+            str_command_line_error(ec_cl_invalid_target, opt_arg);
+          }  /* if */
+        }  /* if */
         break;
       default:
         /* It should not be possible to get here. */
@@ -10904,8 +10946,6 @@ variables declared in cmd_line.h.
                             DEFAULT_CPP11_SFINAE_IGNORE_ACCESS; /*lint !e506*/
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
-  packing_applies_to_base_classes =
-                     TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
   terse_range_based_for_enabled = FALSE;
   carriage_return_is_line_terminator = FALSE;

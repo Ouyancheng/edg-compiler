@@ -18958,6 +18958,12 @@ typedef struct an_il_header {
 			   variables in the file scope. */
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+  int32_t	target_configuration_index;
+			/* Specifies the target configuration that was used
+			   to create the IL.  If the value is NO_TARGET_CONFIG,
+			   the "default" configuration is used, otherwise
+			   the number is an index into the
+			   target_configurations array. */
 } an_il_header;
 
 EXTERN an_il_header il_header;

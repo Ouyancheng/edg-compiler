@@ -419,6 +419,15 @@ cmd_tmp_file=$eccp_tmpdir/cmd_tmp_file.txt
 #
 output_tmp_file=$eccp_tmpdir/output_filter.txt
 #
+#  When --target is specified, contains the name of the target configuration.
+#  Appended to LIBDIR to allow a different libC.a for each target.
+#
+target=
+#
+#  For certain command-line options, no source file name is required (e.g. -v).
+#
+source_file_name_optional=0
+#
 # Define trap handlers
 #
 # Trap the "abort" signal to eliminate the shell-supplied diagnostic line
@@ -637,6 +646,7 @@ check_abbreviation()
 --diag_warning
 --digit_separators
 --dump_configuration
+--dump_default_as_target
 --display_error_number
 --distinct_template_signatures
 --dollar
@@ -886,6 +896,7 @@ check_abbreviation()
 --suppress_vtbl
 --svr4
 --sys_include
+--target
 --template_directory
 --template_typedefs_in_diagnostics
 --thread_local_storage
@@ -1101,7 +1112,7 @@ process_option()
       EDG_LIB_SUFFIX="_p"
       ;;
     -target)
-#     SunOS 4.n option, as in "-target sun4" -- ignored.
+#     SunOS 4.n option, as in "-target sun4" -- ignored.  See also --target.
       used_two_params=1
       ;;
     -Bstatic | -Bdynamic)
@@ -1529,6 +1540,12 @@ process_option()
         --one_instantiation_per_object)
           one_instantiation_per_object=1
           ;;
+        -v | --version | \
+        --dump_configuration | \
+        --dump_default_as_target)
+          # These options don't require a file name.
+          source_file_name_optional=1
+          ;;
       esac
       ;;
 ###############################################################################
@@ -1596,7 +1613,9 @@ process_option()
          --mscorlib_file_name | \
          --preusing | \
          --using_directory | \
-         --default_calling_convention)
+         --default_calling_convention | \
+         --dump_default_as_target | \
+         --target)
       feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
       used_two_params=1
 #     See if an instantiation mode was specified
@@ -1620,6 +1639,10 @@ process_option()
               curr_param=$curr_dir/$curr_param
             fi
           fi
+          ;;
+        --target)
+          # Capture the specified target configuration.
+          target="$curr_param"
           ;;
       esac
       ;;
@@ -1680,7 +1703,9 @@ process_option()
           --mscorlib_file_name=* | \
           --preusing=* | \
           --using_directory=* | \
-          --default_calling_convention=*)
+          --default_calling_convention=* | \
+          --dump_default_as_target=* | \
+          --target=*)
       feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
 #     See if an instantiation mode was specified
       case $arg in
@@ -1722,6 +1747,11 @@ process_option()
               fi
             fi
           fi
+          ;;
+        --target=*)
+          # Capture the specified target configuration.
+          arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+          target=$arg_value
           ;;
       esac
       ;;
@@ -1822,8 +1852,14 @@ done
 rm -f $cmd_tmp_file
 
 if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
-  echo "$driver_name: no source, object, or library files were specified"
-  error=1
+  if [ $source_file_name_optional -eq 1 ] ; then
+    # For some class of command-line options, no source file is necessary
+    # (but only run the front end in that case).
+    fe_only=1
+  else
+    echo "$driver_name: no source, object, or library files were specified"
+    error=1
+  fi
 fi
 
 # Make sure the instantiation directory exists, if one was explicity
@@ -2034,6 +2070,24 @@ if [ $compile_as_secondary -ne 0 ] ; then
   else
     dummy_primary_file_name=$EDG_DUMMY_PRIMARY_FILE
   fi
+fi
+#
+# If we are using a target-specific configuration, append it to LIBDIR.
+#
+if [ ! -z "$target" ] ; then
+  LIBDIR="${LIBDIR}_$target"
+fi
+#
+# If there are no source files, invoke the front end with the options we
+# have been given.
+#
+if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
+  command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS
+  if [ $driver_debug -ne 0 ] ; then
+    echo $command
+  fi
+  invoke_front_end 0  # Run front end and keep output
+  status=$?
 fi
 #
 # Run through the list of .c files and compile.

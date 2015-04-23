@@ -2743,6 +2743,8 @@ ec_nonliteral_var_in_constexpr_function;;"variable type %t in constexpr function
 ec_nonautomatic_var_in_constexpr_function;;"variable in constexpr function does not have automatic storage duration"
 ec_uninitialized_var_in_constexpr_function;;"variable in constexpr function is uninitialized"
 ec_auto_direct_list_init_requires_singleton;;"braced initialization of a variable declared with a placeholder type but without `=` requires exactly one element inside the braces"
+ec_cl_need_single_target;;"cannot specify multiple --target options"
+ec_cl_invalid_target;;"no \"%s\" --target configuration exists"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

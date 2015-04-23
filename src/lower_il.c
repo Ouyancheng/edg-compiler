@@ -64,7 +64,7 @@ Return the type of a virtual function table entry.
      The element type must be an integral type large enough to accommodate both
      of these types.  Typically, this is ptrdiff_t, but on some systems it may
      be larger. */
-  vtbl_entry_type = integer_type(TARG_IA64_VTABLE_ENTRY_INT_KIND);
+  vtbl_entry_type = integer_type(targ_ia64_vtable_entry_int_kind);
 #else /* !IA64_ABI */
   vtbl_entry_type = make_mptr_type();
 #endif /* IA64_ABI */
@@ -1376,11 +1376,11 @@ index doesn't have one added to it.
     last_field = NULL;
 #if !IA64_ABI
     /* field: short d; (delta) */
-    make_lowered_field("d", integer_type(TARG_DELTA_INT_KIND), mptr_type,
+    make_lowered_field("d", integer_type(targ_delta_int_kind), mptr_type,
                        &last_field);
     mptr_d_field = last_field;
     /* field: short i; (index into virtual function table) */
-    make_lowered_field("i", integer_type(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),
+    make_lowered_field("i", integer_type(targ_virtual_function_index_int_kind),
                        mptr_type, &last_field);
     mptr_i_field = last_field;
 #endif /* !IA64_ABI */
@@ -3971,7 +3971,7 @@ class type is class_type, for use in the error message.
 */
 {
   set_integer_constant_with_overflow_check(delta_con, delta,
-                                           TARG_DELTA_INT_KIND,
+                                           targ_delta_int_kind,
                                            class_type,
                                            /*preserve_needed_flag=*/FALSE);
 }  /* set_delta_constant */
@@ -6865,7 +6865,7 @@ class_type is the class type whose vtbl is being constructed
      tables, only in pointers to member functions. */
   i_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_integer_constant(i_con, (a_host_large_integer)0,
-                       TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+                       targ_virtual_function_index_int_kind);
   /* Put together the aggregate constant. */
   entry_aggr->variant.aggregate.first_constant = delta_con;
   delta_con->next = i_con;
@@ -11146,7 +11146,7 @@ of a base or derived class of that class.
                                      mptr_d_field->type, select_d_node);
       /* Make "temp.i ? temp.d += offset : 0". */
       test_node->next = incr_node;
-      incr_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
+      incr_node->next = node_for_integer_constant(0L, targ_delta_int_kind);
       question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                          incr_node->type, test_node);
       /* Make "temp = pmf". */
@@ -11597,7 +11597,7 @@ lvalue to its logical "not".
     /* Expression can be an lvalue or an rvalue. */
     set_integer_constant(result_constant,
                          (a_host_large_integer)1,
-                         targ_bool_int_kind);
+                         BOOL_INT_KIND);
     result_constant->type = bool_type();
     result_value_node = alloc_node_for_constant(result_constant);
     operand_node->next = result_value_node;
@@ -11628,7 +11628,7 @@ lvalue to its logical "not".
          bool-correctness in the IL for back ends that care. */
       set_integer_constant(result_constant,
                            (a_host_large_integer)1,
-                           targ_bool_int_kind);
+                           BOOL_INT_KIND);
       result_constant->type = bool_type();
       result_value_node = alloc_node_for_constant(result_constant);
     } else {
@@ -12429,7 +12429,7 @@ object_node is the object pointer and pmf_node is an rvalue pointer-to-member.
     select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
     select_i_node = integral_promote_node(select_i_node);
     select_i_node->next = node_for_promoted_integer_constant(0L,
-                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+                                         targ_virtual_function_index_int_kind);
     compare_node = make_operator_node((an_expr_operator_kind)eok_lt,
                                       integer_type((an_integer_kind)ik_int),
                                       select_i_node);
@@ -12471,7 +12471,7 @@ object_node is the object pointer and pmf_node is an rvalue pointer-to-member.
        pointer in the object, so it must be cast from pointer-to-function
        to an integral type. */
     cast_node = add_cast(select_f_for_cast_node,
-                         integer_type(TARG_DELTA_INT_KIND));
+                         integer_type(targ_delta_int_kind));
     /* Add a cast to "char *" to avoid scaling on the pointer addition. */
     this_temp_node = add_cast_to_char_star(var_rvalue_expr(*this_temp_var));
     this_temp_node->next = cast_node;
@@ -12909,7 +12909,7 @@ variables can have changed since the first reference.
       /* The "i" (index) field. */
       comp_expr = node_for_promoted_integer_constant(
                                          (long)idx,
-                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+                                         targ_virtual_function_index_int_kind);
     } else 
 #endif /* !IA64_ABI */
     /* Do not add code here. */
@@ -12917,7 +12917,7 @@ variables can have changed since the first reference.
       /* The "d" (delta) field. */
       comp_expr = node_for_promoted_integer_constant(
                                          (long)delta,
-                                         TARG_DELTA_INT_KIND);
+                                         targ_delta_int_kind);
     } else {
       /* The "f" (function) field has a value that is either the address of
          a function or an offset.  The expression created has to be of
@@ -12928,7 +12928,7 @@ variables can have changed since the first reference.
       check_assertion(field == mptr_f_field);
       if (routine == NULL) {
         set_integer_constant(constant, (a_host_large_integer)offset,
-                             TARG_DELTA_INT_KIND);
+                             targ_delta_int_kind);
       } else {
         set_routine_address_constant(routine, constant,
                                      /*set_address_taken_flag=*/TRUE);
@@ -13094,7 +13094,7 @@ first operand (but not the second) has been lowered already.
         /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
         select1_node->next = node_for_promoted_integer_constant(0L,
 #if !IA64_ABI
-                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
+                                         targ_virtual_function_index_int_kind
 #else /* IA64_ABI */
                                                       targ_ptrdiff_t_int_kind
 #endif /* IA64_ABI */

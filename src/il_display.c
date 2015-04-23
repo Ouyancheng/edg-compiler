@@ -7500,6 +7500,10 @@ Display the IL for the file scope in human-readable form.
   }  /* if */
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+  if (il_header.target_configuration_index != NO_TARGET_CONFIG) {
+    disp_long("target_configuration_index",
+              (long)il_header.target_configuration_index);
+  }  /* if */
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL, (a_remap_function_ptr)NULL,
                      (a_walk_termination_test_function_ptr)NULL,
@@ -7565,8 +7569,9 @@ where file.cil specifies the IL file.  Output is to stdout.
   f_debug = stderr;
 #endif /* DEBUG */
   /* Initialize the components of the front end needed by standalone
-     utility programs. */
-  standalone_utility_init();
+     utility programs; further initialization is done after the il_header
+     has been read. */
+  standalone_utility_early_init();
   /* Set the position for errors to "unknown". */
   set_position_to(error_position, 0, SP_COL_UNKNOWN);
   /* The source file name is unknown until the IL is read correctly. */
@@ -7591,9 +7596,6 @@ where file.cil specifies the IL file.  Output is to stdout.
   if (optind != argc - 1) {
     command_line_error(ec_cl_il_display_requires_il_file_name);
   }  /* if */
-#if CHECKING
-  check_target_configuration();
-#endif /* CHECKING */
   file_name = argv[optind];
   f_il_input = fopen(file_name, "rb");
   if (f_il_input == NULL) {
@@ -7601,6 +7603,8 @@ where file.cil specifies the IL file.  Output is to stdout.
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);
+  /* Complete initialization (based on il_header contents). */
+  standalone_utility_late_init();
   primary_source_file_name = il_header.primary_source_file->file_name;
   (void)printf(
           "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",

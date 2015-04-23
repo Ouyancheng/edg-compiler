@@ -7,32 +7,52 @@
 * Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+
+/*
+It must be possible to include this file more than once, so it intentionally
+does not have an include guard.
+*/
+
 /*
 
-fe_init.h -- Declarations relating to fe_init.c (having to do with
-             global initialization of the front end).
+target_cfg.h -- Generate target-specific routines
 
 */
 
-/* Avoid including these declarations more than once: */
-#ifndef FE_INIT_H
-#define FE_INIT_H 1
+/*
+Define a set_target_config_* function to initialize target-specific global
+variables to a particular set of target-specific values.
+*/
+/* Routine name: set_target_config_X (where X is the configuration name). */
+#define TARGET_MAP_ROUTINE_NAME(config) \
+  concat(set_target_config ## _, config)(void)
+/* Assign the target-specific macro value to the associated global variable. */
+#define TARGET_MAP_MACRO(config_macro, global_var, config) \
+  (global_var) = concat(config_macro ## _, config);
+#include "target_map.h"
 
-#if STANDALONE_UTILITY_PROGRAM
-extern void standalone_utility_early_init(void);
-extern void standalone_utility_late_init(void);
-#else /* !STANDALONE_UTILITY_PROGRAM */
-extern void fe_early_init(void);
-extern void fe_one_time_init(void);
-extern void fe_init_part_1(void);
-extern void fe_init_for_pch_prefix_scan(void);
-extern void fe_init_part_2(void);
-extern void fe_translation_unit_init(void);
-#endif /* STANDALONE_UTILITY_PROGRAM */
+#if DUMP_CONFIG_ENABLED
 
-extern void initialize_opname_names(void);
+/*
+Define a dump_target_config_* function to dump the values of target-specific
+configuration macros.
+*/
+/* Routine name: dump_target_config_X (where X is the configuration name). */
+#define TARGET_MAP_ROUTINE_NAME(config) \
+  concat(dump_target_config ## _, config)(void)
+#define STRINGIZE_HELPER(X) stringize(X)
+/* Write the target-specific macro and its value to stderr in #define format.*/
+#define TARGET_MAP_MACRO(config_macro, global_var, config) \
+  fprintf(f_error, "#define %s %s\n", \
+          #config_macro "_" stringize(config), \
+          STRINGIZE_HELPER(concat(config_macro ## _, config)));
+#include "target_map.h"
+#undef STRINGIZE_HELPER
 
-#endif /* ifndef FE_INIT_H */
+#endif /* DUMP_CONFIG_ENABLED */
+
+#undef TARGET_CONFIGURATION
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

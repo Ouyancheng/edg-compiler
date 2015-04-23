@@ -892,6 +892,13 @@ display program) can query these entities.
   gnu_mode = gcc_mode || gpp_mode;
   gnu_version = il_header.gnu_version;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if STANDALONE_UTILITY_PROGRAM
+  if (il_header.target_configuration_index != NO_TARGET_CONFIG) {
+    /* Set the run-time target configuration to match that of the front end. */
+    target_configuration_index = il_header.target_configuration_index;
+    set_target_configuration(il_header.target_configuration_index);
+  }  /* if */
+#endif /* STANDALONE_UTILITY_PROGRAM */
 }  /* init_flags_and_types */
 
 

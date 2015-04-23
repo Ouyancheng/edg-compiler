@@ -17261,7 +17261,7 @@ be updated on return.
        the size of the underlying type. */
     if (templated_type) {
       max_size_allowed =
-                  (unsigned long)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
+                  (unsigned long)(targ_sizeof_largest_integer*targ_char_bit);
     } else {
       max_size_allowed = (unsigned long)(bit_field_type->size*targ_char_bit);
     }  /* if */

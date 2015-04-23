@@ -47,20 +47,34 @@ in .h files.
 #include "il_read.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-void standalone_utility_init(void)
+void standalone_utility_early_init(void)
 /*
-Initialize global variables that may be used by standalone utility programs.
+Early initialization of global variables that may be used by standalone utility
+programs.  Note that the il_header has not been read yet, and as such the
+front end configuration is not yet known (i.e., the various emulation modes
+and any run-time target configuration), so these routines cannot rely on
+those being set.
 */
 {
   target_early_init();
   error_early_init();
+}  /* standalone_utility_early_init */
+
+
+void standalone_utility_late_init(void)
+/*
+Additional initialization of global variables that may be used by standalone
+utility programs.  This routine should only be called after il_read has been
+called (and init_flags_and_types has parsed the information in il_header).
+*/
+{
   target_one_time_init();
   il_to_str_one_time_init();
   error_one_time_init();
   target_init();
   il_to_str_init();
   error_init();
-}  /* standalone_utility_init */
+}  /* standalone_utility_late_init */
 
 #else /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -1695,6 +1709,7 @@ being used).
             strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
                    instantiation_dir_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+    il_header.target_configuration_index = target_configuration_index;
   }  /* if */
   if (using_a_pch_file) {
     /* The symbol table has been restored from a precompiled header file, so

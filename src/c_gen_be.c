@@ -11071,7 +11071,7 @@ from the primary source file name in the IL information.
 
   /* Initialize the components of the front end needed by standalone
      utility programs. */
-  standalone_utility_init();
+  standalone_utility_early_init();
 
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
@@ -11109,6 +11109,8 @@ from the primary source file name in the IL information.
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);
+  /* Complete initialization (based on IL header that has been read). */
+  standalone_utility_late_init();
   primary_source_file_name = il_header.primary_source_file->file_name;
   /* Generate C code. */
   c_gen_be();

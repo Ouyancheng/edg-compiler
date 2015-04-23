@@ -8808,7 +8808,7 @@ desired.
     internal_error(
             "type_after_bit_field_integral_promotion: bit-field not integral");
   }  /* if */
-  if (field_size > (unsigned int)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit)) {
+  if (field_size > (unsigned int)(targ_sizeof_largest_integer*targ_char_bit)) {
     internal_error(
                  "type_after_bit_field_integral_promotion: bit-field too big");
   }  /* if */

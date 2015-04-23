@@ -970,11 +970,17 @@ Integer types:
 #endif /* INT128_EXTENSIONS_ALLOWED */
 
 /* Specify the size of the largest integer.  Note that this will constrain
-   how targ_sizeof_long and targ_sizeof_long_long are configured at runtime,
-   because TARG_SIZEOF_LARGEST_INTEGER is required to be a compile-time
+   how targ_sizeof_long, targ_sizeof_long_long, and targ_sizeof_largest_integer
+   are configured at runtime.   TARG_SIZEOF_LARGEST_INTEGER represents the
+   size of the largest integer in the "default" configuration;
+   MAX_SIZEOF_LARGEST_INTEGER represents the size of the largest target
+   integer that can be accommodated across all target configurations (and
+   therefore must be larger than every TARG_SIZEOF_LARGEST_INTEGER).
+   MAX_SIZEOF_LARGEST_INTEGER is required to be a compile-time
    constant and so cannot be adjusted at run time the way some other target
    configuration values are.  Therefore, it should be set to the largest
-   value a "long int" (or a "long long int") is allowed to have. */
+   value a "long int" (or a "long long int") is allowed to have in any
+   supported target configuration. */
 #ifndef TARG_SIZEOF_LARGEST_INTEGER
 /* By default, a minimum largest value is supplied, and it is expected to be
    one of 1, 4, 8, or 16.  This can be changed either here or in defines.h,
@@ -1030,6 +1036,13 @@ Integer types:
  #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG */
 #endif /* LONG_LONG_ALLOWED */
+
+#ifndef MAX_SIZEOF_LARGEST_INTEGER
+#define MAX_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LARGEST_INTEGER
+#endif /* defined(MAX_SIZEOF_LARGEST_INTEGER) */
+#if TARG_SIZEOF_LARGEST_INTEGER > MAX_SIZEOF_LARGEST_INTEGER
+ #error -- MAX_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LARGEST_INTEGER
+#endif /* TARG_SIZEOF_LARGEST_INTEGER > MAX_SIZEOF_LARGEST_INTEGER */
 
 /*
 Fixed-point type configuration.
@@ -1209,6 +1222,19 @@ We assume it is one of the "long" precision variants.
 #define TARG_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_SIGNED_LONG_FRACT
 #endif /* TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_FRACT */
 #endif /* ifndef TARG_SIZEOF_LARGEST_FIXED_POINT */
+
+/*
+MAX_SIZEOF_LARGEST_FIXED_POINT represents the size of the largest fixed point
+type that is supported across all target configurations and must be a
+compile-time constant.
+*/
+#ifndef MAX_SIZEOF_LARGEST_FIXED_POINT
+#define MAX_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_LARGEST_FIXED_POINT
+#endif /* defined(MAX_SIZEOF_LARGEST_FIXED_POINT) */
+#if TARG_SIZEOF_LARGEST_FIXED_POINT > MAX_SIZEOF_LARGEST_FIXED_POINT
+ #error -- MAX_SIZEOF_LARGEST_FIXED_POINT too small for \
+           TARG_SIZEOF_LARGEST_FIXED_POINT
+#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT > MAX_SIZEOF_LARGEST_FIXED_POINT */
 
 #endif /* FIXED_POINT_ALLOWED */
 
@@ -1407,12 +1433,12 @@ typedef unsigned long a_host_large_unsigned;
 /* The array is made up of elements of type an_int_value_part.
    Figure out how many.  Note that this representation may also be
    used for fixed-point values. */
-#define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_INTEGER
+#define INTEGER_VALUE_REPRESENTATION_SIZE MAX_SIZEOF_LARGEST_INTEGER
 #if FIXED_POINT_ALLOWED
-#if TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPRESENTATION_SIZE
+#if MAX_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPRESENTATION_SIZE
 #undef INTEGER_VALUE_REPRESENTATION_SIZE
-#define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_FIXED_POINT
-#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPR... */
+#define INTEGER_VALUE_REPRESENTATION_SIZE MAX_SIZEOF_LARGEST_FIXED_POINT
+#endif /* MAX_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPR... */
 #endif /* FIXED_POINT_ALLOWED */
 #define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
   ((INTEGER_VALUE_REPRESENTATION_SIZE*INTERNAL_TARG_CHAR_BIT)/	      \
@@ -1811,8 +1837,14 @@ require this to be an unsigned type).
 #ifndef TARG_C_BOOL_INT_KIND
 #define TARG_C_BOOL_INT_KIND ((an_integer_kind)ik_unsigned_char)
 			/* Default value, used to initialize global variable
-			   targ_bool_int_kind. */
-#endif /* !defined(TARG_BOOL_INT_KIND) */
+			   targ_c_bool_int_kind. */
+#endif /* !defined(TARG_C_BOOL_INT_KIND) */
+
+/*
+Macro to return the value of targ_c_bool_int_kind or targ_bool_int_kind
+as appropriate depending on the mode.
+*/
+#define BOOL_INT_KIND (C_mode() ? targ_c_bool_int_kind : targ_bool_int_kind)
 
 /*
 Pointer types:
