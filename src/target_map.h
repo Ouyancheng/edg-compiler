@@ -346,6 +346,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO,
                    targ_sizeof_virtual_function_info, _TC)
   TARGET_MAP_MACRO(TARG_SIZE_T_INT_KIND, targ_size_t_int_kind, _TC)
+  TARGET_MAP_MACRO(TARG_SIZE_T_MAX, targ_size_t_max, _TC)
 #if GNU_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_SSIZE_T_INT_KIND, targ_ssize_t_int_kind, _TC)
 #endif /* GNU_EXTENSIONS_ALLOWED */

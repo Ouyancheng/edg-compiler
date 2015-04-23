@@ -1568,7 +1568,7 @@ bit field's a_field entry.
    fields is controlled by TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED. */
 #ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED \
-                                        (!TARG_HAS_SIGNED_CHARS) /*lint !e506*/
+                                       (/*lint -e(506)*/!TARG_HAS_SIGNED_CHARS)
 			/* Default value, used to initialize global variable
 			   targ_plain_int_bit_field_is_unsigned. */
 #endif /* ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */

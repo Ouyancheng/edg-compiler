@@ -659,7 +659,6 @@ header has been read and the target has been determined).
   targ_int64_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int64_int_kind = ((an_integer_kind)ik_none);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  targ_size_t_max = TARG_SIZE_T_MAX;
   distinct_template_signatures = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES;
   assume_references_cannot_be_null = ASSUME_REFERENCES_CANNOT_BE_NULL;
 #if DO_IL_LOWERING
