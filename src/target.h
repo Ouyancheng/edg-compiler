@@ -993,6 +993,14 @@ EXTERN an_integer_kind
 			   in the cfront ABI. */
 #endif /* !IA64_ABI */
 
+#if IA64_ABI
+EXTERN a_boolean
+		targ_reuse_tail_padding;
+			/* TRUE if the IA-64 ABI can reuse tail-padding from
+			   base classes for other subobjects of the derived
+			   class. */
+#endif /* IA64_ABI */
+
 EXTERN a_boolean
 		warn_on_try_statement;
 			/* When TRUE (and in Microsoft emulation mode),
@@ -1033,12 +1041,6 @@ EXTERN an_integer_kind
 		targ_ia64_vtable_entry_int_kind;
                         /* Integer kind used for the size of a vtable entry in
                            the IA-64 ABI. */
-
-EXTERN a_boolean
-		targ_reuse_tail_padding;
-			/* TRUE if the IA-64 ABI can reuse tail-padding from
-			   base classes for other subobjects of the derived
-			   class. */
 #endif /* IA64_ABI */
 
 #if GENERATE_EH_TABLES
@@ -1159,12 +1161,14 @@ EXTERN an_integer_kind
 #undef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #if IA64_ABI
 #undef TARG_IA64_VTABLE_ENTRY_INT_KIND
-#undef TARG_REUSE_TAIL_PADDING
 #if GENERATE_EH_TABLES
 #undef TARG_REGION_NUMBER_INT_KIND
 #endif /* GENERATE_EH_TABLES */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
+#if IA64_ABI
+#undef TARG_REUSE_TAIL_PADDING
+#endif /* IA64_ABI */
 #endif /* BACK_END_IS_C_GEN_BE */
 #undef TARG_SUPPORTS_X86_64
 #undef EDG_AUXILIARY_INFO_DIR_NAME
