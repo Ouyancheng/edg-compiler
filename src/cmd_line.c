@@ -10831,7 +10831,6 @@ variables declared in cmd_line.h.
   emulate_unsafe_gnu_abi_bugs = FALSE;
   gnu_abi_version = DEFAULT_GNU_ABI_VERSION;
   warn_about_tail_padding_use = FALSE;
-  targ_reuse_tail_padding = TARG_REUSE_TAIL_PADDING;
 #endif /* IA64_ABI */
   IEEE_handling_on_float_operation_exceptions = TARG_HAS_IEEE_FLOATING_POINT;
 #if UPC_EXTENSIONS_ALLOWED

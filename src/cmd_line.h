@@ -1922,11 +1922,6 @@ EXTERN a_boolean
 			   of a derived class is placed in the tail padding
 			   of its base class. */
 
-EXTERN a_boolean
-		targ_reuse_tail_padding;
-			/* TRUE if the IA-64 ABI can reuse tail-padding from
-			   base classes for other subobjects of the derived
-			   class. */
 #endif /* IA64_ABI */
 
 EXTERN a_boolean

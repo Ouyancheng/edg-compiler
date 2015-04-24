@@ -99,11 +99,6 @@ instead of K&R C.
  #error -- The C-generating back end requires LOWER_CLASS_RVALUE_ADJUST TRUE
 #endif /* !LOWER_CLASS_RVALUE_ADJUST */
 
-#if TARG_REUSE_TAIL_PADDING && !IA64_ABI
- #error -- The C-generating back end only supports tail-padding reuse \
-            with the IA-64 ABI
-#endif /* TARG_REUSE_TAIL_PADDING && !IA64_ABI */
-
 #if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS && \
     !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 /* The C-generating back end doesn't know when threads are created, so it
