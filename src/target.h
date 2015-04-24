@@ -378,17 +378,24 @@ EXTERN a_boolean
 /*
 Pointer types:
 */
-#if TARG_ALL_POINTERS_SAME_SIZE
+
+EXTERN a_boolean
+                targ_all_pointers_same_size;
+                        /* TRUE if all pointers have the same size (see the
+                           caveats for TARG_ALL_POINTERS_SAME_SIZE). */
+
 EXTERN a_targ_size_t
 		targ_sizeof_pointer;
 			/* Size of a pointer.  Initialized to the default
-			   value but reconfigurable. */
+			   value but reconfigurable.  Meaningless when
+			   targ_all_pointers_same_size is FALSE. */
 
 EXTERN a_targ_alignment
 		targ_alignof_pointer;
 			/* Alignment of a pointer.  Initialized to the default
-			   value but reconfigurable. */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+			   value but reconfigurable.  Meaningless when
+			   targ_all_pointers_same_size is FALSE. */
+
 #if NEAR_AND_FAR_ALLOWED
 EXTERN a_targ_size_t
 		targ_sizeof_far_pointer;
@@ -576,14 +583,10 @@ EXTERN a_type_mode_kind
 			   Initialized to the default value but
 			   reconfigurable. */
 
-#if TARG_ALL_POINTERS_SAME_SIZE
-
 EXTERN a_type_mode_kind
 		targ_pointer_mode;
 			/* Mode of a pointer.  Initialized to the
 			   default value but reconfigurable. */
-
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -1087,10 +1090,9 @@ EXTERN an_integer_kind
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #undef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
 #undef TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
-#if TARG_ALL_POINTERS_SAME_SIZE
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#undef TARG_ALL_POINTERS_SAME_SIZE
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #undef TARG_SIZEOF_FAR_POINTER
 #undef TARG_ALIGNOF_FAR_POINTER
@@ -1222,10 +1224,8 @@ EXTERN an_integer_kind
                         targ_user_control_of_struct_packing_affects_bit_fields
 #define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE \
                         targ_pad_bit_fields_larger_than_base_type
-#if TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_SIZEOF_POINTER targ_sizeof_pointer
 #define TARG_ALIGNOF_POINTER targ_alignof_pointer
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TARG_SIZEOF_FAR_POINTER targ_sizeof_far_pointer
 #define TARG_ALIGNOF_FAR_POINTER targ_alignof_far_pointer

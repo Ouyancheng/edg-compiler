@@ -5433,10 +5433,9 @@ doesn't apply to the given type, issue an error and return an error type.
     } else if (strncmp("libgcc_shift_count", name, 18) == 0 &&
                name_len == 18) {
       i = (int)targ_libgcc_shift_count_mode;
-#if TARG_ALL_POINTERS_SAME_SIZE
-    } else if (strncmp("pointer", name, 7) == 0 && name_len == 7) {
+    } else if (strncmp("pointer", name, 7) == 0 && name_len == 7 &&
+               targ_all_pointers_same_size) {
       i = (int)targ_pointer_mode;
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
     }  /* if */
   }  /* if */
   if (i == (int)tmk_last) {

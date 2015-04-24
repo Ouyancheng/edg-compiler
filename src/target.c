@@ -322,9 +322,6 @@ keyword be entered into the symbol table.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if TARG_ALL_POINTERS_SAME_SIZE
-/*ARGSUSED*/ /* Because tp is not used. */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
                                  a_targ_alignment  *alignment)
 /*
@@ -350,17 +347,18 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 #endif /* NEAR_AND_FAR_ALLOWED */
   /* Do not add code here. */
   {
-#if TARG_ALL_POINTERS_SAME_SIZE
-    /* All pointers have the same size and alignment. */
-    size = targ_sizeof_pointer;
-    *alignment = targ_alignof_pointer;
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
- #error -- code must be added here to determine the size of pointers.
-/* If you set TARG_ALL_POINTERS_SAME_SIZE FALSE only because you want 
-   to support near/far, see the comments on TARG_ALL_POINTERS_SAME_SIZE
-   in targ_def.h and the internal documentation; it's probably not what
-   you want. */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+    if (targ_all_pointers_same_size) {
+      /* All pointers have the same size and alignment. */
+      size = targ_sizeof_pointer;
+      *alignment = targ_alignof_pointer;
+    } else {
+      /* If you set TARG_ALL_POINTERS_SAME_SIZE FALSE only because you want 
+         to support near/far, see the comments on TARG_ALL_POINTERS_SAME_SIZE
+         in targ_def.h and the internal documentation; it's probably not what
+         you want. */
+      unexpected_condition_str(
+                  "code must be added here to determine the size of pointers");
+    }  /* if */
   }
   return size;
 }  /* size_of_pointer_to */
@@ -523,12 +521,10 @@ are diagnosed.
                                    &vtbl_entry_size, &dummy_alignment);
     get_integer_size_and_alignment(targ_delta_int_kind,
                                    &delta_int_size, &dummy_alignment);
-#if TARG_ALL_POINTERS_SAME_SIZE
-    if (targ_sizeof_pointer != vtbl_entry_size) {
+    if (targ_sizeof_pointer != vtbl_entry_size && targ_all_pointers_same_size){
       internal_error(
 	    "check_target_config: targ_ia64_vtable_entry_int_kind wrong size");
     }  /* if */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
     if (delta_int_size > vtbl_entry_size) {
       internal_error(
           "check_target_config: targ_ia64_vtable_entry_int_kind is too small");

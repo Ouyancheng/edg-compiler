@@ -1922,15 +1922,15 @@ TARG_ALIGNOF_POINTER should be defined.
 Pointers may have different sizes and alignments, so TARG_SIZEOF_POINTER and
 TARG_ALIGNOF_POINTER are meaningless.  Consequently, all other definitions
 that depend on TARG_SIZEOF_POINTER and TARG_ALIGNOF_POINTER need to be
-configured in other terms, and it also means that global variables
-targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
+configured in other terms, and it also means that the values of global
+variables targ_sizeof_pointer and targ_alignof_pointer are meaningless.
 */
-#ifdef TARG_SIZEOF_POINTER
- #error -- do not use TARG_SIZEOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
-#endif /* defined(TARG_SIZEOF_POINTER) */
-#ifdef TARG_ALIGNOF_POINTER
- #error -- do not use TARG_ALIGNOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
-#endif /* defined(TARG_ALIGNOF_POINTER) */
+#ifndef TARG_SIZEOF_POINTER
+#define TARG_SIZEOF_POINTER 0 /* Arbitrary -- should not be used. */
+#endif /* !defined(TARG_SIZEOF_POINTER) */
+#ifndef TARG_ALIGNOF_POINTER
+#define TARG_ALIGNOF_POINTER 0 /* Arbitrary -- should not be used. */
+#endif /* !defined(TARG_ALIGNOF_POINTER) */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 #if UPC_EXTENSIONS_ALLOWED
