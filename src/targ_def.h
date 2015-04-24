@@ -3608,7 +3608,8 @@ sprintf format directive when USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE.
 /*
 Flag that is TRUE if a field of some built-in type requires a different
 alignment than a variable of that same type.  Some GNU compilers exhibit
-this behavior on Intel x86-based platforms.
+this behavior on Intel x86-based platforms.  Initial value of the
+targ_dual_alignments_for_builtin_types global variable.
 */
 #ifndef TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 #if GCC_IS_GENERATED_CODE_TARGET
@@ -3618,7 +3619,6 @@ this behavior on Intel x86-based platforms.
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* ifndef TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*
 The default field alignments for built-in types.  This is different from the
 intrinsic alignment of the type for some GNU compilers.  By default however,
@@ -3660,7 +3660,6 @@ we define these equal to the corresponding intrinsic alignments.
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_DOUBLE
 #endif /* TARG_LONG_DOUBLE_FIELD_ALIGNMENT */
 
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or

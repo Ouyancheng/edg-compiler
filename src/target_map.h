@@ -148,17 +148,15 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 #if DO_IL_LOWERING
   TARGET_MAP_MACRO(TARG_DELTA_INT_KIND, targ_delta_int_kind, _TC)
 #endif /* DO_IL_LOWERING */
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   TARGET_MAP_MACRO(TARG_DOUBLE_FIELD_ALIGNMENT,
                    targ_double_field_alignment, _TC)
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+  TARGET_MAP_MACRO(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES,
+                   targ_dual_alignments_for_builtin_types, _TC)
   TARGET_MAP_MACRO(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED,
                    targ_enum_bit_fields_are_always_unsigned, _TC)
   TARGET_MAP_MACRO(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT,
                    targ_enum_types_can_be_smaller_than_int, _TC)
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   TARGET_MAP_MACRO(TARG_FLOAT_FIELD_ALIGNMENT, targ_float_field_alignment, _TC)
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
   TARGET_MAP_MACRO(TARG_FLT_MANT_DIG, targ_flt_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MAX_EXP, targ_flt_max_exp, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MIN_EXP, targ_flt_min_exp, _TC)
@@ -204,13 +202,11 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_IA64_VTABLE_ENTRY_INT_KIND,
                    targ_ia64_vtable_entry_int_kind, _TC)
 #endif /* DO_IL_LOWERING && IA64_ABI */
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   TARGET_MAP_MACRO(TARG_INT_FIELD_ALIGNMENT, targ_int_field_alignment, _TC)
 #if INT128_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_INT128_FIELD_ALIGNMENT,
                    targ_int128_field_alignment, _TC)
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 #if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
   TARGET_MAP_MACRO(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT,
                    targ_jmp_buf_elements_are_float, _TC)
@@ -231,7 +227,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_libgcc_shift_count_mode, _TC)
 #endif /* GNU_EXTENSIONS_ALLOWED */
   TARGET_MAP_MACRO(TARG_LITTLE_ENDIAN, targ_little_endian, _TC)
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   TARGET_MAP_MACRO(TARG_LONG_DOUBLE_FIELD_ALIGNMENT,
                    targ_long_double_field_alignment, _TC)
   TARGET_MAP_MACRO(TARG_LONG_FIELD_ALIGNMENT, targ_long_field_alignment, _TC)
@@ -239,7 +234,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_LONG_LONG_FIELD_ALIGNMENT,
                    targ_long_long_field_alignment, _TC)
 #endif /* LONG_LONG_ALLOWED */
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 #if USER_CONTROL_OF_STRUCT_PACKING
   TARGET_MAP_MACRO(TARG_MAXIMUM_INTRINSIC_ALIGNMENT,
                    targ_maximum_intrinsic_alignment, _TC)
@@ -279,9 +273,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_RUNTIME_ELEM_COUNT_INT_KIND,
                    targ_runtime_elem_count_int_kind, _TC)
 #endif /* !IA64_ABI */
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   TARGET_MAP_MACRO(TARG_SHORT_FIELD_ALIGNMENT, targ_short_field_alignment, _TC)
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
   TARGET_MAP_MACRO(TARG_SIZEOF_DOUBLE, targ_sizeof_double, _TC)
 #if NEAR_AND_FAR_ALLOWED
   TARGET_MAP_MACRO(TARG_SIZEOF_FAR_POINTER, targ_sizeof_far_pointer, _TC)

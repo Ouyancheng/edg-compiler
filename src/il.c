@@ -26244,7 +26244,7 @@ return that.  If not, return the original expression.
   return texpr;
 }  /* expr_before_type_adjustment */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES && !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM
 /*
 GNU C and C++ distinguishes between two alignments for fundamental types:
 The intrinsic alignment (returned by __alignof__ in most cases, and imbued on
@@ -26272,6 +26272,7 @@ floating point types.
   int k;
 #endif /* CHECKING */
 
+  check_assertion(targ_dual_alignments_for_builtin_types);
   int_field_alignments[(int)ik_char] = 1;
   int_field_alignments[(int)ik_signed_char] = 1;
   int_field_alignments[(int)ik_unsigned_char] = 1;
@@ -26318,58 +26319,64 @@ Return the field alignment for the given type.
 {
   a_targ_alignment  result;
 
-  switch (type->kind) {
-    case tk_integer:
-      result = int_field_alignments[type->variant.integer.int_kind];
-      break;
-    case tk_float:
+  if (targ_dual_alignments_for_builtin_types) {
+    switch (type->kind) {
+      case tk_integer:
+        result = int_field_alignments[type->variant.integer.int_kind];
+        break;
+      case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case tk_imaginary:
-    case tk_complex:
+      case tk_imaginary:
+      case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      result = float_field_alignments[type->variant.float_kind];
-      break;
-    case tk_typeref:
+        result = float_field_alignments[type->variant.float_kind];
+        break;
+      case tk_typeref:
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-      if (type->alignment_set_explicitly) {
-        result = type->alignment;
-      } else if (!gnu_mode || gnu_version/100 != 303) {
-        /* In a chain of typedefs, the last one with attribute "aligned"
-           normally determines the alignment.  However, gcc/g++ 3.3.x appears
-           to ignore any "intermediate" typedefs. */
-        result = field_alignment_for(type->variant.typeref.type);
-      } else
+        if (type->alignment_set_explicitly) {
+          result = type->alignment;
+        } else if (!gnu_mode || gnu_version/100 != 303) {
+          /* In a chain of typedefs, the last one with attribute "aligned"
+             normally determines the alignment.  However, gcc/g++ 3.3.x appears
+             to ignore any "intermediate" typedefs. */
+          result = field_alignment_for(type->variant.typeref.type);
+        } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      /* Do not insert code here. */
-      {
-        result = field_alignment_for(skip_typerefs(type));
-      }  /* if */
-      break;
-    case tk_array:
+        /* Do not insert code here. */
+        {
+          result = field_alignment_for(skip_typerefs(type));
+        }  /* if */
+        break;
+      case tk_array:
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-      if (type->alignment_set_explicitly) {
-        /* The alignment cannot be set directly for an array type, but when
-           applying cv-qualifiers to a typedef for an array, an alignment
-           attribute on the typedef may need to be copied to the array type. */
-        result = type->alignment;
-      } else
+        if (type->alignment_set_explicitly) {
+          /* The alignment cannot be set directly for an array type, but when
+             applying cv-qualifiers to a typedef for an array, an alignment
+             attribute on the typedef may need to be copied to the array
+             type. */
+          result = type->alignment;
+        } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      /* Do not insert code here. */
-      {
-        result = field_alignment_for(underlying_array_element_type(type));
-      }  /* if */
-      break;
-    default:
-      result = type->alignment;
-  }  /* switch */
+        /* Do not insert code here. */
+        {
+          result = field_alignment_for(underlying_array_element_type(type));
+        }  /* if */
+        break;
+      default:
+        result = type->alignment;
+    }  /* switch */
+  } else {
+    /* The field alignment is equal to the intrinsic alignment of the type. */
+    result = alignment_of_type(type);
+  }  /* if */
   return result;
 }  /* field_alignment_for */
 
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES && !STANDALONE_UTILITY_... */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean pm_constant_is_null(a_constant_ptr constant)
 /*
@@ -26641,9 +26648,9 @@ in il_init.)
   register_trans_unit_variable(n_scheduled_routine_moves);
 
   il_alloc_one_time_init();
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-  init_field_alignment_tables();
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+  if (targ_dual_alignments_for_builtin_types) {
+    init_field_alignment_tables();
+  }  /* if */
 }  /* il_one_time_init */
 
 

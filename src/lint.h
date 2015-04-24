@@ -375,10 +375,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,type_returned_by_cctor)*/
 /*lint -esym(759,lower_c99_statement)*/
 /*lint -esym(765,lower_c99_statement)*/
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
 /*lint -esym(769,ec_bad_variable_for_init_priority)*/

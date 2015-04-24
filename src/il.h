@@ -2622,14 +2622,7 @@ extern void check_result_not_used_flag(an_expr_node_ptr node);
 extern void fix_type_list_ordering_problems(void);
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 extern a_targ_alignment field_alignment_for(a_type_ptr  type);
-#else /* !TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-/*
-The field alignment is equal to the intrinsic alignment of the type.
-*/
-#define field_alignment_for(tp) (alignment_of_type(tp))
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 extern void il_reset(void);
 

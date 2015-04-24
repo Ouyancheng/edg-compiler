@@ -587,7 +587,10 @@ EXTERN a_type_mode_kind
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+EXTERN a_boolean
+                targ_dual_alignments_for_builtin_types;
+                        /* TRUE if field alignment types are different than
+                            the alignment than a variable of that same type. */
 
 EXTERN a_targ_alignment
 		targ_short_field_alignment;
@@ -626,7 +629,6 @@ EXTERN a_targ_alignment
 		targ_long_double_field_alignment;
 			/* Default alignment for fields of type long double. */
 
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 /*
 C++ pointer-to-member type.
