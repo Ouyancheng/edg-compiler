@@ -322,6 +322,9 @@ keyword be entered into the symbol table.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !NEAR_AND_FAR_ALLOWED
+/*ARGSUSED*/ /* Because tp is not used. */
+#endif /* !NEAR_AND_FAR_ALLOWED */
 a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
                                  a_targ_alignment  *alignment)
 /*
