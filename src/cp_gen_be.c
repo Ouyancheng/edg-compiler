@@ -1342,104 +1342,104 @@ the list of accessible typedefs.
 
 
 /*
-Hash tables for substitutable typedefs.  In some cases a type cannot be
-used directly, perhaps because it or one of its template arguments is
-inaccessible in the current context.  There is also a bug in the Microsoft
-compiler that causes it to issue spurious diagnostics when a dependent type
-appears as a qualifier in a template argument.  In such cases, if there is
-a typedef whose underlying type is the problematic one, that typedef can be
-used in place of the problematic type.  These hash tables facilitate
-finding such typedefs, keyed by the underlying type.
+Definitions for a simple hash table of typedefs, keyed by their underlying
+types.  Typedefs are added to the table when defined.  If the underlying
+type appears in the IL in a context where it cannot be used (e.g., because
+its name or template arguments are not accessible, or because of certain
+target compiler bugs), the hash table can provide a typedef that can be put
+out in its place.
 */
-static a_hash_table_ptr
-		accessible_typedef_map;
-			/* Hash table for accessible typedefs with
-			   inaccessible underlying types. */
+typedef struct a_typedef_hash_entry *a_typedef_hash_entry_ptr;
+typedef struct a_typedef_hash_entry {
+  a_typedef_hash_entry_ptr
+		next;	/* The next entry in the bucket, or NULL if none. */
+  a_type_ptr	type;	/* The typedef type designated by this entry. */
+} a_typedef_hash_entry;
 
+/*
+A hash table is simply an array of entries.  Adding an entry to a non-empty
+bucket copies the existing bucket entry to a newly-allocated one and
+replaces the bucket contents, pointing to the new entry as next in the
+list.  This organization has the effect of finding the most recent typedef
+with a given underlying type.
+*/
+#define BUCKETS_FOR_TYPEDEF_HASH_TABLE 511
+/*
+A hash table for accessible typedefs whose underlying types are
+inaccessible.
+*/
+static a_typedef_hash_entry
+                 accessible_typedef_hash_table[BUCKETS_FOR_TYPEDEF_HASH_TABLE];
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-static a_hash_table_ptr
-		proto_inst_typedef_map;
-			/* Hash table for typedefs that are members of
-			   prototype instantiations of class templates and
-			   whose underlying types are dependent. */
+/*
+A hash table for typedefs that are members of the prototype instantiation
+of a class template and whose underlying types are dependent; used to work
+around a problem that causes the Microsoft compiler to issue spurious
+errors in some cases when the dependent types are used directly.
+*/
+static a_typedef_hash_entry
+          proto_inst_member_typedef_hash_table[BUCKETS_FOR_TYPEDEF_HASH_TABLE];
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 
-a_hash_value hash_substitutable_typedef(a_void_ptr type)
+static a_hash_value hash_type_ptr(a_type_ptr type)
 /*
-Simple hash function for use with substitutable typedef maps.  There won't
-be very many such types, so the hash function doesn't have to be very good.
-This one just uses the low-order bits of the type's address.
+Hash function for a type pointer.  Returns the numeric value of the
+pointer, right-shifted three bits to reduce the influence of alignment
+requirements.
 */
 {
-  return (a_hash_value)(unsigned long)type;
-}  /* hash_type_pointer */
+  return (a_hash_value)(((unsigned long)type) >> 3);
+}  /* hash_typedef */
 
 
-a_boolean compare_for_substitutable_typedef_map(a_void_ptr entry,
-                                                a_void_ptr key)
+static void add_typedef_to(a_typedef_hash_entry *hash_table,
+                           a_type_ptr           type)
 /*
-A comparison function for the substitutable typedef hash tables, where
-entry and key are a_type_ptr values: key designates a type and entry
-designates a typedef type.  Return TRUE if the underlying type of the entry
-designates the same type as key, FALSE otherwise.
+Add type (which must be a typedef) to hash_table.
 */
 {
-  a_type_ptr type = (a_type_ptr)entry;
-
-  check_assertion(type->kind == (a_type_kind)tk_typeref);
-  return standalone_identical_types(type->variant.typeref.type,
-                                    (a_type_ptr)key);
-}  /* compare_for_substitutable_typedef_map */
-
-
-static void add_to_substitutable_typedef_map(a_hash_table_ptr *mapp,
-                                             a_type_ptr       type)
-/*
-Add the typedef type to the hash table indicated by *mapp (creating it if
-it does not exist already); if there is already an entry for the underlying
-type, replace it with the new type (which is probably reasonable for
-locality of reference).
-*/
-{
-  a_type_ptr *entry;
+  a_hash_value bucket;
 
   check_assertion(type_is_typedef(type));
-  if (*mapp == NULL) {
-    /* Create and initialize the hash table. */
-    *mapp = alloc_hash_table(
-                       NO_MEMORY_REGION_NUMBER, (a_hash_table_size)1000,
-                       fn_for_function(hash_substitutable_typedef),
-                       fn_for_function(compare_for_substitutable_typedef_map));
+  /* Find the hash bucket, keyed by the underlying type of the typedef. */
+  bucket = hash_type_ptr(type->variant.typeref.type) %
+                                                BUCKETS_FOR_TYPEDEF_HASH_TABLE;
+  if (hash_table[bucket].type != NULL) {
+    /* There's already a type that hashes into this bucket.  Move the
+       current bucket contents to a new entry and link it to the bucket. */
+    a_typedef_hash_entry_ptr entry =
+                                   alloc_general_of_type(a_typedef_hash_entry);
+    *entry = hash_table[bucket];
+    hash_table[bucket].next = entry;
   }  /* if */
-  entry = (a_type_ptr *)hash_find(*mapp,
-                                  (a_void_ptr)type->variant.typeref.type,
-                                  /*create=*/TRUE);
-  *entry = type;
-}  /* add_to_substitutable_typedef_map */
+  /* Set the bucket entry to point to the specified typedef. */
+  hash_table[bucket].type = type;
+}  /* add_typedef_to */
 
 
-static a_type_ptr substitutable_typedef_for(a_hash_table_ptr map,
-                                            a_type_ptr       type)
+static a_type_ptr find_typedef_in(a_typedef_hash_entry *hash_table,
+                                  a_type_ptr           type)
 /*
-If map is non-NULL and contains an entry for a typedef whose underlying
-type is type, return that typedef; otherwise, return type.
+Look up type in hash_table.  If it is found, return the associated typedef;
+otherwise, return NULL.
 */
 {
-  a_type_ptr result = type;
+  a_type_ptr               result = NULL;
+  a_typedef_hash_entry_ptr entry;
+  a_hash_value             bucket;
 
-  if (map != NULL) {
-    /* The hash table exists; look up type to see if there's a
-       corresponding typedef. */
-    a_type_ptr *entry;
-    entry = (a_type_ptr *)hash_find(map, (a_void_ptr)type, /*create=*/FALSE);
-    if (entry != NULL) {
-      /* A typedef for type was found; use it instead of type. */
-      result = *entry;
+  bucket = hash_type_ptr(type) % BUCKETS_FOR_TYPEDEF_HASH_TABLE;
+  for (entry = &hash_table[bucket];
+       result == NULL && entry != NULL && entry->type != NULL;
+       entry = entry->next) {
+    if (standalone_identical_types(entry->type->variant.typeref.type, type)) {
+      /* This typedef can be used in place of the specified type. */
+      result = entry->type;
     }  /* if */
-  }  /* if */
+  }  /* for */
   return result;
-}  /* substitutable_typedef_for */
+}  /* find_typedef_in */
 
 
 static void register_substitutable_typedef(a_type_ptr type)
@@ -1466,8 +1466,8 @@ such typedefs.
                                  /*ignore_context=*/TRUE) &&
       !target_type_has_circularity(type)) {
     /* This typedef can be substituted for the target type when that type
-       is inaccessible.  Add it to the map of such typedefs. */
-    add_to_substitutable_typedef_map(&accessible_typedef_map, type);
+       is inaccessible.  Add it to the table of such typedefs. */
+    add_typedef_to(accessible_typedef_hash_table, type);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (msvc_is_generated_code_target) {
@@ -1481,7 +1481,7 @@ such typedefs.
     a_type_ptr parent_class = parent_class_or_null(type);
     if (parent_class != NULL &&
         parent_class->variant.class_struct_union.is_prototype_instantiation) {
-      add_to_substitutable_typedef_map(&proto_inst_typedef_map, type);
+      add_typedef_to(proto_inst_member_typedef_hash_table, type);
     }  /* if */
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -3205,7 +3205,7 @@ for the meaning of need_closing_paren.
       a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
                                     class_type_supp(class_type)->proxy_of_type;
-      a_type_ptr                  substitute_typedef = template_param_type;
+      a_type_ptr                  substitute_typedef = NULL;
       if (msvc_is_generated_code_target && in_template_argument_list) {
         /* MSVC has a bug that sometimes results in spurious errors if a
            dependent type is used as a qualifier in a template argument
@@ -3214,10 +3214,11 @@ for the meaning of need_closing_paren.
            will have been replaced with the underlying type in the IL.  See
            if there is a typedef we can use in the generated code to avoid
            triggering the bug. */
-        substitute_typedef = substitutable_typedef_for(proto_inst_typedef_map,
-                                                       template_param_type);
+        substitute_typedef =
+                          find_typedef_in(proto_inst_member_typedef_hash_table,
+                                          template_param_type);
       }  /* if */
-      if (substitute_typedef != template_param_type) {
+      if (substitute_typedef != NULL) {
         /* Use the typedef instead of the underlying type. */
         gen_name(&substitute_typedef->source_corresp, iek_type,
                  options | GN_QUALIFIER, need_closing_paren);
@@ -3560,10 +3561,11 @@ designates the same type, set *scp to point to that typedef instead.
 */
 {
   if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE)) {
-    a_type_ptr type = (a_type_ptr)*scp;
     a_type_ptr typedef_type =
-                      substitutable_typedef_for(accessible_typedef_map, type);
-    *scp = &typedef_type->source_corresp;
+              find_typedef_in(accessible_typedef_hash_table, (a_type_ptr)*scp);
+    if (typedef_type != NULL) {
+      *scp = &typedef_type->source_corresp;
+    }  /* if */
   }  /* if */
 }  /* replace_inaccessible_type_with_accessible_typedef */
 
@@ -18012,11 +18014,14 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
-  sizeof_t num_generated_prec_table_elems = 
+  sizeof_t     num_generated_prec_table_elems = 
                 sizeof(generated_precedence) / sizeof(generated_precedence[0]);
-  sizeof_t num_overloadable_operator_prec_table_elems =
+  sizeof_t     num_overloadable_operator_prec_table_elems =
                                    sizeof(overloadable_operator_precedence) /
                                    sizeof(overloadable_operator_precedence[0]);
+#if !NULL_POINTER_IS_ZERO
+  a_hash_value bucket;
+#endif /* !NULL_POINTER_IS_ZERO */
 
   check_assertion_str(num_generated_prec_table_elems ==
                                                       ((sizeof_t)eok_last + 1),
@@ -18046,9 +18051,25 @@ Initialize for the C++/C-generating back end.
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
   in_class_scope_with_dependent_base = FALSE;
-  accessible_typedef_map = NULL;
+#if NULL_POINTER_IS_ZERO
+  memzero((char *)accessible_typedef_hash_table,
+          sizeof(accessible_typedef_hash_table));
+#else /* !NULL_POINTER_IS_ZERO */
+  for (bucket = 0; bucket < BUCKETS_FOR_TYPEDEF_HASH_TABLE; ++bucket) {
+    accessible_typedef_hash_table[bucket].next = NULL;
+    accessible_typedef_hash_table[bucket].type = NULL;
+  }  /* for */
+#endif /* NULL_POINTER_IS_ZERO */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  proto_inst_typedef_map = NULL;
+#if NULL_POINTER_IS_ZERO
+  memzero((char *)proto_inst_member_typedef_hash_table,
+          sizeof(proto_inst_member_typedef_hash_table));
+#else /* !NULL_POINTER_IS_ZERO */
+  for (bucket = 0; bucket < BUCKETS_FOR_TYPEDEF_HASH_TABLE; ++bucket) {
+    proto_inst_member_typedef_hash_table[bucket].next = NULL;
+    proto_inst_member_typedef_hash_table[bucket].type = NULL;
+  }  /* for */
+#endif /* NULL_POINTER_IS_ZERO */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Set out the output control block used for interface with the il_to_str
      routines. */

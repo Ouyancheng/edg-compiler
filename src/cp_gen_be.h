@@ -31,10 +31,6 @@ extern void back_end(void);
 extern void cp_gen_be_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-extern a_hash_value hash_substitutable_typedef(a_void_ptr type);
-extern a_boolean compare_for_substitutable_typedef_map(a_void_ptr entry,
-                                                       a_void_ptr key);
-
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 #endif /* ifndef CP_GEN_BE_H */

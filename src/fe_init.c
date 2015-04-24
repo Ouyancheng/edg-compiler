@@ -259,10 +259,6 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (a_function_pointer)hash_void_pointer,
   (a_function_pointer)compare_for_pointer_pair_map,
-#if BACK_END_IS_CP_GEN_BE
-  (a_function_pointer)hash_substitutable_typedef,
-  (a_function_pointer)compare_for_substitutable_typedef_map,
-#endif /* BACK_END_IS_CP_GEN_BE */
   (a_function_pointer)last               /* fn_last */
 }
 #endif /* VAR_INITIALIZERS */
