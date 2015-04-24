@@ -160,7 +160,7 @@ when either is_function_template or is_template_param are FALSE.
   }  /* if */
   /* The background caching mechanism is used.  Once the end of the default
      argument is found, the original (non-coalesced) tokens are extracted
-     from the background cache.  The caller may should have enabled the
+     from the background cache.  The caller should have enabled the
      caching, but it is also done here to handle certain error cases. */
   start_pos = pos_curr_token;
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
