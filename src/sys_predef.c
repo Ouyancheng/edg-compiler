@@ -1971,10 +1971,6 @@ Enter the standard predeclared functions for GCC.
   intmax_type = integer_type(targ_intmax_kind);
   wint_t_type = integer_type(targ_wint_t_int_kind);
   ssize_t_type = integer_type(targ_ssize_t_int_kind);
-  if (targ_all_pointers_same_size) {
-    pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
-                                    &error_position);
-  }  /* if */
   floating_type = float_type((a_float_kind)fk_float);
   double_type = float_type((a_float_kind)fk_double);
   long_double_type = float_type((a_float_kind)fk_long_double);
@@ -2133,6 +2129,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func0(_dwarf_fp_regnum, unsigned);
   enter_gnu_builtin_func0(_dwarf_sp_column, unsigned);
   if (targ_all_pointers_same_size) {
+    pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
+                                    &error_position);
     enter_gnu_builtin_func2(_eh_return, no_return, pmode, void_star);
   }  /* if */
   enter_gnu_builtin_func1(_eh_return_data_regno, int, int);
