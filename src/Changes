@@ -1,5 +1,22 @@
 Version 4.11
 
+4/26/15  [EDGcpfe/16181]
+Spurious error on pack expansion of class template parameter pack
+
+A spurious error could be issued on the expansion of a class template
+parameter pack used in the declaration of a member template of a
+class template.  Now fixed.
+
+  template <class... Types> class X {};
+  template <template<class...> class... Types> class A {};
+  template <template<class...> class... Types> class B {
+    template <class T> void f(A<Types...> a) {}
+  };
+  int main() {
+    B<X> b;
+  }
+
+
 4/23/15  [EDGcpfe/16180]
 Spurious error in function default argument involving pack expansion
 

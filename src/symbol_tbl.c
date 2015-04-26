@@ -1801,6 +1801,9 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
          marked as a pack. */
       { a_template_symbol_supplement_ptr	tssp;
         a_template_ptr				templ;
+        /* If this is a template template parameter, replace the template
+           symbol with the one referred to by the parameter. */
+        sym = template_argument_if_template_template_param(sym);
         tssp = sym->variant.template_info;
         templ = tssp->il_template_entry;
         result = templ->is_pack;
