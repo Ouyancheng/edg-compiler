@@ -355,11 +355,15 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
       size = targ_sizeof_pointer;
       *alignment = targ_alignof_pointer;
     } else {
+#if CHECKING
       /* If you set TARG_ALL_POINTERS_SAME_SIZE FALSE only because you want 
          to support near/far, see the comments on TARG_ALL_POINTERS_SAME_SIZE
          in targ_def.h and the internal documentation; it's probably not what
          you want. */
       internal_error("size_of_pointer_to: unknown pointer size");
+#else /* !CHECKING */
+      size = 0;
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
   return size;
