@@ -61,7 +61,7 @@ get_predefined_macros()
   output=$2
   header=$3
   echo $header >>info.tmp
-  echo "command: `which $cmd`" >>info.tmp
+  echo "command: `which $cmd` $gnu_opts" >>info.tmp
   echo  >>info.tmp
   $cmd $gnu_opts -v 2>>info.tmp
   result=$?
