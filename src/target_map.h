@@ -156,6 +156,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_enum_bit_fields_are_always_unsigned, _TC)
   TARGET_MAP_MACRO(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT,
                    targ_enum_types_can_be_smaller_than_int, _TC)
+  TARGET_MAP_MACRO(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE,
+                   targ_field_alloc_sequence_equals_decl_sequence, _TC)
   TARGET_MAP_MACRO(TARG_FLOAT_FIELD_ALIGNMENT, targ_float_field_alignment, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MANT_DIG, targ_flt_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MAX_EXP, targ_flt_max_exp, _TC)

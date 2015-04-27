@@ -720,6 +720,13 @@ EXTERN a_targ_alignment
 			   Initialized to the default value but
 			   reconfigurable. */
 
+EXTERN a_boolean
+                targ_field_alloc_sequence_equals_decl_sequence;
+                        /* TRUE if class and struct fields are allocated in the
+                           same order as they are declared, regardless of
+                           access specification.  See
+                           TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE. */
+
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
 		targ_minimum_pack_alignment;
@@ -1133,6 +1140,7 @@ EXTERN an_integer_kind
 #undef TARG_RIGHT_SHIFT_IS_ARITHMETIC
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
 #undef TARG_MINIMUM_PACK_ALIGNMENT
+#undef TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
 #undef MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 #undef ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS
 #undef TARG_JMP_BUF_NUM_ELEMENTS

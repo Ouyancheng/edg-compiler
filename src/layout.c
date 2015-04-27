@@ -83,7 +83,7 @@ B.  Layout options
        depth-first left-to-right traversal of the directed acyclic graph of
        the base classes).
 
-  When TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is FALSE, only item
+  When targ_field_alloc_sequence_equals_decl_sequence is FALSE, only item
   2 of the normal layout is modified.  The order of nonstatic data
   members becomes:  all public members, in declaration order; then, all
   protected members, in declaration order; and lastly, all private members,
@@ -3144,41 +3144,43 @@ nonvirtual direct base or NULL if there is none such.
 static a_field_ptr first_allocated_field(a_type_ptr class_type)
 /*
 Return the first field of a given class to be allocated.  By default this is
-the first declared field; if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is
+the first declared field; if targ_field_alloc_sequence_equals_decl_sequence is
 defined to be FALSE however, it is the first field with the most access (i.e.,
 public is preferred over protected, which is preferred over private).
 Also, in Microsoft mode we must skip over property fields.
 */
 {
-#if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  a_field_ptr  result = class_type->variant.class_struct_union.field_list;
+  a_field_ptr  result;
+
+  if (targ_field_alloc_sequence_equals_decl_sequence) {
+    result = class_type->variant.class_struct_union.field_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    while (result && field_is_nontrivial_property_or_event(result)) {
-      result = result->next;
+    if (microsoft_mode) {
+      while (result && field_is_nontrivial_property_or_event(result)) {
+        result = result->next;
+      }  /* while */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    /* Public fields are allocated first, then the protected ones and finally
+       the private ones; so fetch the first allocated one. */
+    an_access_specifier access = (an_access_specifier)as_inaccessible;
+    a_field_ptr         field =
+                            class_type->variant.class_struct_union.field_list;
+    result = field;
+    while (field) {
+      if (microsoft_mode && field_is_nontrivial_property_or_event(result)) {
+        /* Nontrivial property fields do not take any space. */
+      } else if (field->source_corresp.access ==
+                                             (an_access_specifier)as_public) {
+        break;
+      } else if (field->source_corresp.access < access) {
+        access = field->source_corresp.access;
+        result = field;
+      }  /* if */
+      field = field->next;
     }  /* while */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-  /* Public fields are allocated first, then the protected ones and finally
-     the private ones; so fetch the first allocated one. */
-  an_access_specifier access = (an_access_specifier)as_inaccessible;
-  a_field_ptr         field =
-                            class_type->variant.class_struct_union.field_list;
-  a_field_ptr         result = field;
-  while (field) {
-    if (microsoft_mode && field_is_nontrivial_property(result)) {
-      /* Nontrivial property fields do not take any space. */
-    } else if (field->source_corresp.access ==
-                                             (an_access_specifier)as_public) {
-      break;
-    } else if (field->source_corresp.access < access) {
-      access = field->source_corresp.access;
-      result = field;
-    }  /* if */
-    field = field->next;
-  }  /* while */
-#endif /* TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   return result;
 }  /* first_allocated_field */
 
@@ -3398,9 +3400,9 @@ function to confirm the "is_optimized_empty_base" bit.
 static void set_offsets_for_fields(a_layout_block_ptr  lob)
 /*
 Set the sizes and offsets of the fields of lob->class_type. By default (i.e.,
-when TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is TRUE) the fields are
+when targ_field_alloc_sequence_equals_decl_sequence is TRUE) the fields are
 allocated in exactly the same order in which they were declared. Optionally
-(i.e., when TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is FALSE), fields
+(i.e., when targ_field_alloc_sequence_equals_decl_sequence is FALSE), fields
 are grouped by access before being allocated (though within each group they
 are allocated in declaration order).
 */
@@ -3410,22 +3412,20 @@ are allocated in declaration order).
   a_targ_size_t               initial_byte_offset = lob->byte_offset;
   a_targ_size_t               max_byte_offset = initial_byte_offset;
   an_unnormalized_bit_offset  max_bit_offset = 0;
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  an_access_specifier  access = (an_access_specifier)as_public;
+  an_access_specifier         access = (an_access_specifier)as_public;
 
-  /* Fields are allocated in groups based on access -- first all the public
-     fields, then all the protected fields, and finally all the private
-     fields.  Therefore, there is an outer loop that so that the field list
-     is traversed three times, once for each access category. */
+  /* When targ_field_alloc_sequence_equals_decl_sequence is FALSE, fields are
+     allocated in groups based on access -- first all the public fields, then
+     all the protected fields, and finally all the private fields.  Therefore,
+     there is an outer loop so that the field list is traversed three times,
+     once for each access category. */
   for (;;) {
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
     /* Traverse the field list. */
     for (fp = class_type->variant.class_struct_union.field_list;
          fp != NULL;
          fp = fp->next) {
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-      if (fp->source_corresp.access == access) {
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+      if (targ_field_alloc_sequence_equals_decl_sequence ||
+          fp->source_corresp.access == access) {
         if (class_type->kind == (a_type_kind)tk_union) {
           /* All fields in a union have offset zero. */
           lob->byte_offset = initial_byte_offset;
@@ -3442,12 +3442,12 @@ are allocated in declaration order).
             max_bit_offset = lob->bit_offset;
           }  /* if */
         }  /* if */
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
       }  /* if */
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
       /* Continue the field list traversal. */
     }  /* for */
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+    if (targ_field_alloc_sequence_equals_decl_sequence) {
+      break;
+    }  /* if */
     /* Advance to the next access specifier and resume the outer loop. */
     if (access == (an_access_specifier)as_public) {
       access = (an_access_specifier)as_protected;
@@ -3458,7 +3458,6 @@ are allocated in declaration order).
       break;
     }  /* if */
   }  /* for */
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   if (class_type->kind == (a_type_kind)tk_union) {
     /* Now reset the offset fields in the layout block to reflect the minimum
        size this union has to be. */

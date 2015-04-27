@@ -562,6 +562,12 @@ are diagnosed.
                "check_target_config: targ_supports_x86_64 requires long long");
   }  /* if */
 #endif /* !LONG_LONG_ALLOWED */
+#if IA64_ABI
+  if (!targ_field_alloc_sequence_equals_decl_sequence) {
+    internal_error("check_target_config: "
+                "targ_field_alloc_sequence_equals_decl_sequence must be TRUE");
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */
