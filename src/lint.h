@@ -1205,6 +1205,14 @@ extern int fileno(FILE *);
 #if !GNU_X86_ATTRIBUTES_ALLOWED
 /*lint -esym(769,ec_attribute_not_supported_in_x86_64)*/
 #endif /* !GNU_X86_ATTRIBUTES_ALLOWED */
+#if !INT128_EXTENSIONS_ALLOWED
+/*lint -esym(755,TARG_ALIGNOF_INT128_linux_i686)*/
+/*lint -esym(755,TARG_ALIGNOF_INT128_linux_x86_64)*/
+/*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_linux_i686)*/
+/*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_linux_x86_64)*/
+/*lint -esym(755,TARG_SIZEOF_INT128_linux_i686)*/
+/*lint -esym(755,TARG_SIZEOF_INT128_linux_x86_64)*/
+#endif /* !INT128_EXTENSIONS_ALLOWED */
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
