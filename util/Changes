@@ -1,5 +1,6 @@
 Version 4.11
 
+
 4/23/15  [EDGcpfe/15604,EDGcpfe/15397,EDGcpfe/15717,EDGcpfe/15851,
           EDGcpfe/16160]
 Add --target and --dump_default_as_target command-line options
@@ -14,6 +15,10 @@ for more information.
 In addition, front end command-line options that don't require a source file
 (e.g., --version) no longer result in an error when eccp is invoked without
 a source file.
+
+A change has also been made to make_predef_macro_table to pass command-line
+options other than --gcc and --g++ to gcc/g++.  This can be used to specify
+options like -m32, for example.
 
 
 3/6/15   [EDGcpfe/16068]

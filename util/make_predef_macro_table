@@ -9,10 +9,11 @@
 #                                                                             #
 ###############################################################################
 #
-# Usage: make_predef_macro_table [--gcc gcc_command] [--g++ g++_command]
+# Usage: make_predef_macro_table [--gcc gcc_command] [--g++ g++_command] [opts]
 #
 # If no arguments are specified, the default "gcc" and "g++" are used
-# as the gcc and g++ command names.
+# as the gcc and g++ command names.  Any options other than "--gcc" and "--g++"
+# are passed to gcc/g++.
 #
 # The output is a file named "predefined_macros.txt" in the current directory.
 #
@@ -62,11 +63,11 @@ get_predefined_macros()
   echo $header >>info.tmp
   echo "command: `which $cmd`" >>info.tmp
   echo  >>info.tmp
-  $cmd -v 2>>info.tmp
+  $cmd $gnu_opts -v 2>>info.tmp
   result=$?
   echo  >>info.tmp
   if [ $result -eq 0 ] ; then
-    $cmd -E -dM tmp.c >$output
+    $cmd $gnu_opts -E -dM tmp.c >$output
   else
     echo "make_predef_macro_table: $cmd returned a non-zero status."
     echo "make_predef_macro_table: $header omitted."
@@ -125,6 +126,7 @@ delete_unneeded_entries()
 
 c_command=gcc
 cpp_command=g++
+gnu_opts=
 while [ -n "$1" ]
 do
   arg=$1
@@ -146,8 +148,10 @@ do
       shift;shift;
       ;;
     *)
-      echo "make_predef_macro_table: unrecognized option: $arg"
-      exit 1
+      # Pass any unrecognized options to gcc/g++.
+      gnu_opts=$gnu_opts" $arg";
+      shift;
+      ;;
   esac
 done
 
