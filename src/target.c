@@ -177,9 +177,9 @@ have no effect on the output.
 */
 {
   fprintf(f_error, "/* Target configuration: %s */\n", config);
-  fprintf(f_error,
-   "/* NOTE: For multiple configurations, change _1 below as necessary. */\n");
-  fprintf(f_error, "#define TARGET_CONFIGURATION_1 %s\n\n", config);
+  fprintf(f_error, "/* NOTE: For multiple target configurations, "
+                   "change _1 below as necessary. */\n");
+  fprintf(f_error, "#define TARGET_CONFIGURATION_1 %s\n", config);
   dump_as_target_config(config);
 }  /* dump_default_config_as_target_config */
 
