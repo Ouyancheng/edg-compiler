@@ -1,5 +1,26 @@
 Version 4.11
 
+4/27/15  [EDGcpfe/16194]
+Ignoring benign macro redefinitions
+
+A benign redefinition of a macro (i.e., one in which the new definition is
+identical to the original) should have no effect.  In configurations with
+RECORD_MACROS_IN_IL set to TRUE, however, the front end previously created
+an extra a_macro IL entry for such a redefinition.  Moreover, in
+configurations with FULLY_RESOLVED_MACRO_POSITIONS set to TRUE, the
+original positions resulting from an invocation of the macro (correctly)
+reflect the original definition, even though (with
+MACRO_INVOCATION_TREE_IN_IL set to TRUE) the invocation record referred to
+the IL entry for the redefinition, not the original.  This has now been
+fixed, with a benign redefinition having no effect on the resulting IL.
+For example:
+
+  #define M 10  // #1
+  #define M 10  // #2
+  int i = M;    // Original positions in expression reflected #1 but
+                // invocation referred to #2
+
+
 4/26/15  [EDGcpfe/16181]
 Spurious error on pack expansion of class template parameter pack
 

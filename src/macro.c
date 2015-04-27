@@ -7102,6 +7102,7 @@ Scan and process a #define directive.
   a_source_position
                   end_of_replacement;
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean         discard_new_definition = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -7608,7 +7609,6 @@ Scan and process a #define directive.
     mdp = NULL;
     if (redefinition) {
       a_boolean         defs_are_same = TRUE;
-      a_boolean         discard_new_definition;
       an_error_severity severity;
       an_error_code     code = ec_no_error;
       a_const_char      *saved_macro_def = curr_cmd_line_or_predef_macro_def;
@@ -7793,7 +7793,7 @@ Scan and process a #define directive.
       assoc_symbol->variant.macro_def = mdp;
     }  /* if */
 def_done:;
-    if (assoc_symbol != NULL) {
+    if (assoc_symbol != NULL && !discard_new_definition) {
 #if RECORD_MACROS_IN_IL
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Make an IL entry for the macro and record the start and end
