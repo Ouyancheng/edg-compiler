@@ -1667,7 +1667,9 @@ The following option formats are supported:
         /* Use the next argument as the option value, as in "--output xxx". */
         opt_ind++;
         /* If there are no more arguments, the option is missing. */
-        if (opt_ind >= argc) invalid_argument_error(argc, argv);
+        if (opt_ind >= argc)  {
+          str_command_line_error(ec_cl_missing_argument, argv[opt_ind-1]);
+        }  /* if */
         opt_arg = argv[opt_ind];
       }  /* if */
     } else {

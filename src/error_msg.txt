@@ -2746,6 +2746,7 @@ ec_auto_direct_list_init_requires_singleton;;"braced initialization of a variabl
 ec_cl_need_single_target;;"cannot specify multiple --target options"
 ec_cl_invalid_target;;"no \"%s\" --target configuration exists"
 ec_attribute_not_supported_in_x86_64;;"attribute is not supported in 64-bit x86 configurations"
+ec_cl_missing_argument;;"\"%s\" requires an argument"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
