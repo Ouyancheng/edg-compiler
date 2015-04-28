@@ -16037,8 +16037,8 @@ the delete routine is ambiguous (an error will have been issued).
     if (placement_new &&
         is_default_operator_delete(delete_routine, &is_sized_delete) &&
         is_sized_delete &&
-        ((clang_mode && !gpp_mode) ||
-         (microsoft_mode && microsoft_version >= 1900))) {
+        !((gpp_mode && !clang_mode) ||
+          (microsoft_mode && microsoft_version < 1900))) {
       /* Core issue 429: Give an error if a placement new operation results
          in the selection of a non-placement operator delete function (i.e.,
          one whose second argument is size_t).  Clang and Microsoft implement
