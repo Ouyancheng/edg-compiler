@@ -5421,7 +5421,7 @@ FALSE is returned) for non-class objects.
         }  /* if */
         if (init_dip != NULL && dtor != NULL) {
           /* A constructor (or at least a destructor or a VLA) was found and a
-             dynamic init entry (local_di) was set to represent the
+             dynamic init entry (init_dip) was set to represent the
              initialization. */
           init_dip->destructor = dtor;
         }  /* if */
