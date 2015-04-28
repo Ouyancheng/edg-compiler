@@ -292,8 +292,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_SIZEOF_LARGEST_FIXED_POINT,
                    targ_sizeof_largest_fixed_point, _TC)
 #endif /* FIXED_POINT_ALLOWED */
-  TARGET_MAP_MACRO(TARG_SIZEOF_LARGEST_INTEGER,
-                   targ_sizeof_largest_integer, _TC)
   TARGET_MAP_MACRO(TARG_SIZEOF_LONG, targ_sizeof_long, _TC)
   TARGET_MAP_MACRO(TARG_SIZEOF_LONG_DOUBLE, targ_sizeof_long_double, _TC)
 #if LONG_LONG_ALLOWED

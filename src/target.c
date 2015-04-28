@@ -878,6 +878,15 @@ file.  Called after target configuration (if any) has been determined.
   if (targ_dual_alignments_for_builtin_types) {
     init_field_alignment_tables();
   }  /* if */
+#if INT128_EXTENSIONS_ALLOWED
+  targ_sizeof_largest_integer = targ_sizeof_int128;
+#else /* !INT128_EXTENSIONS_ALLOWED */
+#if LONG_LONG_ALLOWED
+  targ_sizeof_largest_integer = targ_sizeof_long_long;
+#else /* !LONG_LONG_ALLOWED */
+  targ_sizeof_largest_integer = targ_sizeof_long;
+#endif /* !LONG_LONG_ALLOWED */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
