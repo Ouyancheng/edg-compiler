@@ -1516,13 +1516,13 @@ again:
 applies in the decltype context).
 
 
-2/18/15  [EDGcpfe/7107]
+2/18/15  [EDGcpfe/7107, EDGcpfe/16198]
 Core issue 429: Diagnose non-placement delete used for placement new
 
 Core issue 429 specifies that a diagnostic should be issued when a
 two-parameter form of a usual deallocation function is used for a placement
-new operation.  That is now implemented (except in Microsoft and GNU
-emulation modes).  For example (with -x):
+new operation.  That is now implemented (except in GNU emulation mode).
+For example (with -x):
 
   struct S {
     static void* operator new(__EDG_SIZE_TYPE__, __EDG_SIZE_TYPE__);
