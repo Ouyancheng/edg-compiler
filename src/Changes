@@ -1,5 +1,23 @@
 Version 4.11
 
+4/27/15  [EDGcpfe/16195]
+Default initialization and constexpr default constructors
+
+The front end often failed to fold constexpr default constructors when
+processing default initializers.  That in turn could result in dynamic
+initialization where static initialization should be performed instead.
+For example:
+
+  struct N {
+    int n;
+    constexpr N(): n(0) {}
+  };
+  N n;  // Previously the initialization of n was represented as a dynamic
+        // initialization.  Now n is recorded with a static initializer.
+
+This is now fixed.
+
+
 4/27/15  [EDGcpfe/16194]
 Ignoring benign macro redefinitions
 

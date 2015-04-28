@@ -5356,9 +5356,36 @@ FALSE is returned) for non-class objects.
         }  /* if */
       } else {
         if (ctor != NULL) {
+          a_constant  folded_con, *cp;
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE);
-          if (!same_entities(var_type, tp)) {
+          if (ctor->is_constexpr &&
+              fold_constexpr_ctor(init_dip, /*record_backing_expr=*/TRUE,
+                                  err_pos, &folded_con)) {
+            /* The constructor call can be folded. */
+            cp = alloc_unshared_constant(&folded_con);
+            if (!same_entities(var_type, tp)) {
+              /* The object has an array type.  We need to build an aggregate
+                 initialization on top of the constant. */
+              cp = repeat_constant_for_array_init(cp, var_type);
+            }  /* if */
+            if (static_lifetime &&
+                depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+                !has_nontrivial_destructor(cssp)) {
+              /* A nonlocal static-lifetime variable initialized with a
+                 constant value. */
+              var->init_kind = (an_init_kind)initk_static;
+              var->initializer.constant = cp;
+              init_dip = NULL;
+            } else {
+              /* A local variable with automatic storage duration or a variable
+                 requiring nontrivial destruction; use a dynamic init entry. */
+              init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+              init_dip->variant.constant = cp;
+              init_dip->is_partially_initialized =
+                                                 cp->is_partially_initialized;
+            }  /* if */
+          } else if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the other dynamic init entry. */
             /* Save a pointer to init_dip, since it will be modified for
@@ -5392,10 +5419,12 @@ FALSE is returned) for non-class objects.
              classes with no constructor or destructor also get here. */
           init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
-        /* A constructor (or at least a destructor or a VLA) was found and a
-           dynamic init entry (local_di) was set to represent the
-           initialization. */
-        init_dip->destructor = dtor;
+        if (init_dip != NULL && dtor != NULL) {
+          /* A constructor (or at least a destructor or a VLA) was found and a
+             dynamic init entry (local_di) was set to represent the
+             initialization. */
+          init_dip->destructor = dtor;
+        }  /* if */
       }  /* if */
       if (init_dip != NULL) {
         /* Attach the dynamic init entry to the variable. */
