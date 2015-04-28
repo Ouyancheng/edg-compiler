@@ -182,7 +182,6 @@ EDG_FIXED_POINT_LIB=${EDG_FIXED_POINT_LIB-""}
 #
 EDG_C_TO_OBJ_COMPILER=${EDG_C_TO_OBJ_COMPILER-cc}
 EDG_C_TO_OBJ_DEFAULT_OPTIONS=${EDG_C_TO_OBJ_DEFAULT_OPTIONS--temp=$TMPDIR}
-cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 #
 # Flag that indicates that the generated C file should always be created
 # in the current directory.  This provides compatibility with earlier
@@ -420,9 +419,13 @@ cmd_tmp_file=$eccp_tmpdir/cmd_tmp_file.txt
 output_tmp_file=$eccp_tmpdir/output_filter.txt
 #
 #  When --target is specified, contains the name of the target configuration.
-#  Appended to LIBDIR to allow a different libC.a for each target.
 #
 target=
+#
+#  Flag that indicates that EDG_C_TO_OBJ_C99_OPTIONS should be added to
+#  the command line.
+#
+need_c_to_obj_c99_options=0
 #
 #  For certain command-line options, no source file name is required (e.g. -v).
 #
@@ -1513,9 +1516,7 @@ process_option()
 	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
           if [ $arg = "--c99" -o $arg = "--c11" ] ; then
-            if [ "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
-              cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
-            fi
+            need_c_to_obj_c99_options=1
           fi
           ;;
         -b | --c++ | \
@@ -1848,6 +1849,29 @@ do
   fi
 done
 
+#
+# Use target-specific variable values if --target has been specified.
+#
+if [ ! -z "$target" ] ; then
+  LIBDIR="${LIBDIR}_$target"
+  if [ ! -d $LIBDIR ] ; then
+    echo "$driver_name: target-specific $LIBDIR does not exist"
+  fi
+  new_value=$(eval echo \$EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target)
+  if [ ! -z "$EDG_C_TO_OBJ_DEFAULT_OPTIONS" -a -z "$new_value" ] ; then
+    echo "$driver_name: EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target is unset in $config_file"
+  else
+    EDG_C_TO_OBJ_DEFAULT_OPTIONS=$new_value
+  fi
+fi
+
+# Start building the command line.
+cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
+if [ $need_c_to_obj_c99_options -eq 1 -a \
+     "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
+  cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
+fi
+
 # Remove the temporary file used by command line processing.
 rm -f $cmd_tmp_file
 
@@ -2070,12 +2094,6 @@ if [ $compile_as_secondary -ne 0 ] ; then
   else
     dummy_primary_file_name=$EDG_DUMMY_PRIMARY_FILE
   fi
-fi
-#
-# If we are using a target-specific configuration, append it to LIBDIR.
-#
-if [ ! -z "$target" ] ; then
-  LIBDIR="${LIBDIR}_$target"
 fi
 #
 # If there are no source files, invoke the front end with the options we
