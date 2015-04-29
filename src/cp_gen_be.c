@@ -443,6 +443,7 @@ static void gen_name(a_source_correspondence *scp,
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
+static void gen_type_reference(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
@@ -5229,6 +5230,10 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
+    if (constant->explicit_cast_applied) {
+      /* A functional-notation cast with braces; e.g., "X{1, 2}". */
+      gen_type_reference(constant->type);
+    }  /* if */
     if (!suppress_braces && !transparent_case) {
       write_tok_ch('{');
     }  /* if */
@@ -15491,6 +15496,16 @@ when possible.
       /* Use a functional-notation cast. */
 output_functional_notation_cast:
       gen_type_reference(init_entity_type);
+      /* In a case like "auto x = T{};", braced-init will be FALSE,
+         reflecting the use of the "=" in the initializer.  However, if T
+         is an aggregate, we need to use the brace form and not the paren
+         form so we don't end up with "T({})". */
+      if ((dip->kind == (a_dynamic_init_kind)dik_constant &&
+           dip->variant.constant->kind ==
+                                         (a_constant_repr_kind)ck_aggregate) ||
+          dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        braced_init = TRUE;
+      }  /* if */
 output_functional_notation_cast_arguments:
       /* Clear the explicit cast flag so the dynamic init is just the
          operand and not a cast using the operand.  That avoids recursion

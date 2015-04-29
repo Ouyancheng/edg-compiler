@@ -22916,7 +22916,19 @@ previously-scanned braced initializer.
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
   expr = expr_node_from_operand(result);
-  if (expr != NULL) expr->is_brace_notation_cast = TRUE;
+  if (expr != NULL) {
+    /* Record source form information in the associated IL entries if
+       needed. */
+    expr->is_brace_notation_cast = TRUE;
+    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+      dip->is_explicit_cast = TRUE;
+      if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+          dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        dip->variant.constant->explicit_cast_applied = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

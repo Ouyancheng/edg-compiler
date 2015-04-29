@@ -3971,7 +3971,8 @@ typedef struct a_constant {
 			   template_param variant below) when an explicit
 			   cast was used in the source to convert the value
 			   indicated by the representation to the type
-			   indicated above. */
+			   indicated above.  Also TRUE for functional notation
+			   casts applied to braced lists ("T{}"). */
   a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in

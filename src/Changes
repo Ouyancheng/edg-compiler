@@ -1,5 +1,19 @@
 Version 4.11
 
+4/29/15  [EDGcpfe/16130]
+C++-generating back end: Casts of the form T{...}
+
+The C++-generating back end sometimes incorrectly rendered a cast of the form
+T{...} where T is an aggregate type; it dropped the type T.  For example:
+
+  struct S {};
+  void g() {
+    auto x = S{};  // Previously incorrectly rendered as "auto x = {};"
+  }
+
+This is now fixed.
+
+
 4/27/15  [EDGcpfe/16195]
 Default initialization and constexpr default constructors
 
