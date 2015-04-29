@@ -1864,7 +1864,7 @@ if [ ! -z "$target" ] ; then
   if [ ! -d $LIBDIR ] ; then
     echo "$driver_name: target-specific $LIBDIR does not exist"
   fi
-  new_value=`eval echo \$EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target`
+  new_value=`eval echo \\$EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target`
   if [ ! -z "$EDG_C_TO_OBJ_DEFAULT_OPTIONS" -a -z "$new_value" ] ; then
     echo "$driver_name: EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target is unset in $config_file"
   else
