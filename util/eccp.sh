@@ -1852,12 +1852,19 @@ done
 #
 # Use target-specific variable values if --target has been specified.
 #
+if [ -z "$target" ] ; then
+  # If no --target option has been specified, see if there is a default.
+  if [ ! -z "$EDG_DEFAULT_TARGET" ] ; then
+    target=$EDG_DEFAULT_TARGET
+    feoptions=$feoptions" --target $target";
+  fi
+fi
 if [ ! -z "$target" ] ; then
   LIBDIR="${LIBDIR}_$target"
   if [ ! -d $LIBDIR ] ; then
     echo "$driver_name: target-specific $LIBDIR does not exist"
   fi
-  new_value=$(eval echo \$EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target)
+  new_value=`eval echo \$EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target`
   if [ ! -z "$EDG_C_TO_OBJ_DEFAULT_OPTIONS" -a -z "$new_value" ] ; then
     echo "$driver_name: EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target is unset in $config_file"
   else
