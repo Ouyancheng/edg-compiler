@@ -97,19 +97,19 @@ values appropriate for the specified target configuration.
 
 The existing method for configuring the front end is unchanged; the same
 configuration macros are used, and the resulting configuration is referred to
-as the "default" configuration (which corresponds to no --target command-line
+as the "legacy" configuration (which corresponds to no --target command-line
 option being specified).
 
 A subset of the existing configuration macros have been identified as being
 target-specific and creating a new target configuration requires specifying
 values for each of these target-specific configuration macros (as well as
 a unique name for the target configuration).  To aid in this process, another
-new command-line option has been added, --dump_default_as_target, which takes
+new command-line option has been added, --dump_legacy_as_target, which takes
 the name of the prospective target configuration and dumps (to stderr) a
 list of #defines for target-specific configuration macros with the values
-of the default configuration.  This list can be inserted into your existing
+of the legacy configuration.  This list can be inserted into an existing
 defines.h (or perhaps #include'ed by it) to create the basis of a new
-target configuration (initially identical to the default configuration).
+target configuration (initially identical to the legacy configuration).
 
 Note that not all configuration macros are target-specific, and all target
 configurations must use the same front end configuration (e.g., it's not
@@ -130,7 +130,7 @@ a separating underscore) to the value of EDG_AUXILIARY_INFO_DIR_NAME.  So, if
 "--target my_config" is used and EDG_AUXILIARY_INFO_DIR_NAME is "lib", the
 front end will look for predefined_macros.txt file in $EDG_BASE/lib_my_config
 (and eccp.sh will also look there for libC.a).  There is no change for the
-default configuration.
+legacy configuration.
 
 For customers that read the IL from a file, note that a change has been
 made to standalone_utility_init to split it into two routines:

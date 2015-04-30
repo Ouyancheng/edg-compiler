@@ -18960,9 +18960,9 @@ typedef struct an_il_header {
   int32_t	target_configuration_index;
 			/* Specifies the target configuration that was used
 			   to create the IL.  If the value is NO_TARGET_CONFIG,
-			   the "default" configuration is used, otherwise
-			   the number is an index into the
-			   target_configurations array. */
+			   no --target option was given and no default
+			   configuration was specified, otherwise the number
+			   is an index into the target_configurations array. */
 } an_il_header;
 
 EXTERN an_il_header il_header;

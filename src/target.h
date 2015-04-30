@@ -30,8 +30,8 @@ configuration values that are incorporated when the compiler is built
 #endif /* ifndef IL_H */
 
 /*
-Indicates that the "default" configuration is used (or no such target
-configuration exists in some cases).
+A flag that can mean that no target configuration was found or no target
+configuration was specified.
 */
 #define NO_TARGET_CONFIG (-1)
 
@@ -39,9 +39,9 @@ EXTERN int32_t  target_configuration_index;
                         /* Gives the index (into target_configurations[]) of
                            the target configuration that is being used
                            (either selected by the --target command-line option
-                           or read in from the il_header).  When its value is
-                           NO_TARGET_CONFIG, the "default" configuration is
-                           used. */
+                           or read in from the il_header).  Is NO_TARGET_CONFIG
+                           if no --target command is specified and no default
+                           target is specified. */
 
 /*
 Except as noted, the following variables are initialized to values defined
@@ -1405,7 +1405,7 @@ extern void set_target_configuration(int32_t target_index);
 #if DUMP_CONFIG_ENABLED
 extern void dump_target_configurations(void);
 
-extern void dump_default_config_as_target_config(a_const_char *config);
+extern void dump_legacy_config_as_target_config(a_const_char *config);
 #endif /* DUMP_CONFIG_ENABLED */
 
 extern void target_init(void);

@@ -1322,8 +1322,8 @@ Initialize the option information table.
   add_option_description(optk_dump_configuration, "dump_configuration",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_dump_default_as_target,
-                         "dump_default_as_target",
+  add_option_description(optk_dump_legacy_as_target,
+                         "dump_legacy_as_target",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
 #endif /* DUMP_CONFIG_ENABLED */
@@ -5782,6 +5782,11 @@ file.
 #else /* !defined(DEFAULT_SVR4_C_MODE) */
   comment_undefined_macro_name(DEFAULT_SVR4_C_MODE);
 #endif /* defined(DEFAULT_SVR4_C_MODE) */
+#if defined(DEFAULT_TARGET_CONFIGURATION_NAME)
+  define_string_valued_macro(DEFAULT_TARGET_CONFIGURATION_NAME);
+#else /* !defined(DEFAULT_TARGET_CONFIGURATION_NAME) */
+  comment_undefined_macro_name(DEFAULT_TARGET_CONFIGURATION_NAME);
+#endif /* defined(DEFAULT_TARGET_CONFIGURATION_NAME) */
 #if defined(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED)
   define_numeric_valued_macro(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED);
 #else /* !defined(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED) */
@@ -9544,10 +9549,10 @@ enable_microsoft_mode:
         dump_configuration_macros();
         source_file_name_optional = TRUE;
         break;
-      case optk_dump_default_as_target:
-        /* Display a new target configuration based on the default target
+      case optk_dump_legacy_as_target:
+        /* Display a new target configuration based on the legacy target
            configuration used when this executable was built. */
-        dump_default_config_as_target_config(opt_arg);
+        dump_legacy_config_as_target_config(opt_arg);
         source_file_name_optional = TRUE;
         break;
 #endif /* DUMP_CONFIG_ENABLED */
@@ -9666,24 +9671,19 @@ enable_microsoft_mode:
         digit_separators_enabled = opt_value;
         break;
       case optk_target:
+        /* Verify that the specified target configuration string is valid.
+           Note that it is possible to specify multiple --target options
+           (in which case the last one "wins"). */
+        target_configuration_index = find_target_configuration(opt_arg);
         if (target_configuration_index != NO_TARGET_CONFIG) {
-          /* Can't specify multiple --target options. */
-          command_line_error(ec_cl_need_single_target);
+          /* Set the target-specific values now.  Note that if there are
+             target-specific global variables that modified by other
+             command-line options, the global variable will be set according
+             to the last command-line argument that effects it.  No warning
+             or error is given. */
+          set_target_configuration(target_configuration_index);
         } else {
-          /* Verify that the specified target configuration string is valid,
-             but don't set any target-specific information until after
-             command-line processing is complete. */
-          target_configuration_index = find_target_configuration(opt_arg);
-          if (target_configuration_index != NO_TARGET_CONFIG) {
-            /* Set the target-specific values now.  Note that if there are
-               target-specific global variables that modified by other
-               command-line options, the global variable will be set according
-               to the last command-line argument that effects it.  No warning
-               or error is given. */
-            set_target_configuration(target_configuration_index);
-          } else {
-            str_command_line_error(ec_cl_invalid_target, opt_arg);
-          }  /* if */
+          str_command_line_error(ec_cl_invalid_target, opt_arg);
         }  /* if */
         break;
       default:

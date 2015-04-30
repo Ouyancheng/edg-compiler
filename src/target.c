@@ -33,12 +33,13 @@ target.c -- Target configuration support
 
 
 /*
-In addition to the "default" configuration, a number of target configurations
-may also be specified.  Just as is the case for the default configuration,
-a target configuration is defined by the values given for a set of
-target-specific configuration macros.  Those macro names are the same as their
-"default" conterparts with an underscore and configuration name appended (e.g.,
-TARG_SIZEOF_INT_my_config for the "my_config" target).  These target
+In addition to the "legacy" configuration (i.e., the configuration specified by
+target-specific configuration macros without suffixes), a number of target
+configurations may also be specified.  Just as is the case for the legacy
+configuration, a target configuration is defined by the values given for a set
+of target-specific configuration macros.  Those macro names are the same as
+their legacy conterparts with an underscore and configuration name appended
+(e.g., TARG_SIZEOF_INT_my_config for the "my_config" target).  These target
 configurations are conditionally compiled into the front end when one or more
 TARGET_CONFIGURATION_* macros are defined with the value of the unique name of
 the configuration (e.g., "#define TARGET_CONFIGURATION_1 my_config").  The
@@ -89,6 +90,20 @@ typedef struct a_target_configuration {
 } a_target_configuration;
 
 /*
+Define a set_legacy_target_config function to initialize target-specific
+global variables to the values given by the legacy configuration macros
+(i.e., those without target-specific suffixes).
+*/
+/* Routine name: set_legacy_target_config. */
+#define TARGET_MAP_ROUTINE_NAME(config) \
+  set_legacy_target_config(void)
+/* Assign the legacy macro value to the associated global variable. */
+#define TARGET_MAP_MACRO(config_macro, global_var, config) \
+  (global_var) = (config_macro);
+#include "target_map.h"  /*lint !e451 included more than once. */
+
+
+/*
 Define a macro to initialize an a_target_configuration entry
 */
 #if DUMP_CONFIG_ENABLED
@@ -107,9 +122,16 @@ Define a macro to initialize an a_target_configuration entry
 
 /*
 This array contains an entry for each target configuration that has been
-defined at compilation time.
+defined at compilation time.  The legacy configuration is always the first
+entry.
 */
 static a_target_configuration target_configurations[] = {
+  { LEGACY_TARGET_CONFIGURATION_NAME, /* A name for the legacy config. */
+    set_legacy_target_config,
+#if DUMP_CONFIG_ENABLED
+    (void(*)(void))NULL               /* No dump routine needed. */
+#endif /* DUMP_CONFIG_ENABLED */
+  },
 #ifdef TARGET_CONFIGURATION_1
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_1),
 #endif /* defined(TARGET_CONFIGURATION_1) */
@@ -123,53 +145,38 @@ static a_target_configuration target_configurations[] = {
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_4),
 #endif /* defined(TARGET_CONFIGURATION_4) */
   /* More can be added if needed (ensure target_cfg.h is included above). */
-  { "", (void(*)(void))0, (void(*)(void))0 }
 };
 
-/* The number of target configurations defined at compilation time (not
-   counting the dummy entry at the end). */
+/* The number of target configurations defined at compilation time. */
 #define NUM_TARGET_CONFIGURATIONS \
-  ((int32_t)(sizeof(target_configurations)/sizeof(target_configurations[0])-1))
-
-/*
-Define a set_default_target_config function to initialize target-specific
-global variables to a their default values.
-*/
-/* Routine name: set_default_target_config. */
-#define TARGET_MAP_ROUTINE_NAME(config) \
-  set_default_target_config(void)
-/* Assign the default macro value to the associated global variable. */
-#define TARGET_MAP_MACRO(config_macro, global_var, config) \
-  (global_var) = (config_macro);
-#include "target_map.h"  /*lint !e451 included more than once. */
-
+  ((int32_t)(sizeof(target_configurations)/sizeof(target_configurations[0])))
 
 #if DUMP_CONFIG_ENABLED
 
 /*
 Define the dump_as_target_config function that takes a string argument and
-produces a list of #defines suitable for using the "default" configuration
+produces a list of #defines suitable for using the "legacy" configuration
 as the named target configuration.  E.g., when called with "my_config",
 would emit "#define TARG_SIZEOF_INT_my_config 4" if TARG_SIZEOF_INT has
-the value 4 in the default configuration (for each target-specific
+the value 4 in the legacy configuration (for each target-specific
 configuration macro).
 */
 /* Routine name: dump_as_target_config. */
 #define TARGET_MAP_ROUTINE_NAME(config) \
   dump_as_target_config(a_const_char *suffix)
-/* Write "#define MACRO_config MACRO-default-value" to stderr. */
+/* Write "#define MACRO_config MACRO-legacy-value" to stderr. */
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s_%s %s\n", #config_macro, \
           suffix, stringize(config_macro));
 #include "target_map.h"  /*lint !e451 included more than once. */
 
 
-void dump_default_config_as_target_config(a_const_char *config)
+void dump_legacy_config_as_target_config(a_const_char *config)
 /*
-Called when processing the --dump_default_as_target command-line option.
+Called when processing the --dump_legacy_as_target command-line option.
 This option is used as an aid in creating new target configurations; when used,
 it emits a set of #defines for a new configuration (as named by the argument)
-whose values are the same as those for the "default" configuration of the
+whose values are the same as those for the "legacy" configuration of the
 front end.  The output (after modifying the TARGET_CONFIGURATION_X entry)
 can then be included by defines.h and once the front end is recompiled, that
 target configuration becomes available.  Note that other command-line options
@@ -181,7 +188,7 @@ have no effect on the output.
                    "change _1 below as necessary. */\n");
   fprintf(f_error, "#define TARGET_CONFIGURATION_1 %s\n", config);
   dump_as_target_config(config);
-}  /* dump_default_config_as_target_config */
+}  /* dump_legacy_config_as_target_config */
 
 #endif /* DUMP_CONFIG_ENABLED */
 
@@ -195,7 +202,8 @@ has been specified.
   int32_t  i, result = NO_TARGET_CONFIG;
 
   for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
-    if (strcmp(target_configurations[i].name, config) == 0) {
+    if (target_configurations[i].name != NULL &&
+        strcmp(target_configurations[i].name, config) == 0) {
       result = i;
       break;
     }  /* if */
@@ -206,20 +214,36 @@ has been specified.
 
 void set_target_configuration(int32_t target_index)
 /*
-Called when --target has been specified to set the appropriate global variables
-to their values associated with the specified target configuration index
-(an index into &target_configurations).  Note that this is invoked when
-the --target command-line option is being processed, so there is a race
-condition if any global variable is set here and also as a side-effect of
-other command-line processing.
+Called to set target-specific global variables to the values indicated by
+target_configurations[target_index].  If target_index is NO_TARGET_CONFIG,
+the global variables are set to their legacy values.  Invoked during
+early initialization to set values to the default values (which may or may
+not be the legacy configuration), and is re-invoked each time a --target
+command-line option is specified.  Note that there is a race condition if any
+global variable is set here and also as a side-effect of other command-line
+processing (effectively, "last setting wins").
 */
 {
-  if (target_configuration_index != NO_TARGET_CONFIG) {
-    a_target_configuration *target;
-    check_assertion(target_index >= 0 &&
-                    target_index < NUM_TARGET_CONFIGURATIONS);
-    target = &target_configurations[target_configuration_index];
-    target->set_target_config();
+  a_boolean unnamed = FALSE;
+  a_target_configuration *target;
+
+  if (target_index == NO_TARGET_CONFIG) {
+    /* If no target configuration was specified (i.e., no default was given
+       and no --target option), use the legacy configuration and the
+       unadorned value of EDG_AUXILIARY_INFO_DIR_NAME. */
+    target_index = 0;
+    unnamed = TRUE;
+  }  /* if */
+  check_assertion(target_index >= 0 &&
+                  target_index < NUM_TARGET_CONFIGURATIONS);
+  target = &target_configurations[target_index];
+  check_assertion(target->set_target_config != (void(*)(void))NULL);
+  target->set_target_config();
+  if (unnamed || target->name == NULL) {
+    /* If no target is specified, or the target configuration is unnamed,
+       use the legacy version of the directory. */
+    auxiliary_info_dir_name = (char *)EDG_AUXILIARY_INFO_DIR_NAME;
+  } else {
     /* Create a target-specific version of this name so that predefined
        macros can be different for each target configuration. */
     check_assertion(EDG_AUXILIARY_INFO_DIR_NAME != NULL); /*lint !e779*/
@@ -241,13 +265,28 @@ can be re-read as a defines.h (as part of the processing for
 --dump_configuration).
 */
 {
-  int  i;
+  a_target_configuration *legacy = &target_configurations[0];
+  int                    i;
 
-  for (i = 0; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
+  /* The values in the legacy configuration aren't explicitly dumped
+     (they're part of the normal --dump_configuration output), so just emit
+     the "header". */
+  if (legacy->name == NULL) {
+    fprintf(f_error, "\n/* Legacy configuration: <unnamed> */\n");
+    fprintf(f_error, "#define LEGACY_TARGET_CONFIGURATION_NAME NULL\n");
+  } else {
+    fprintf(f_error, "\n/* Legacy configuration: %s */\n", legacy->name);
+    fprintf(f_error, "#define LEGACY_TARGET_CONFIGURATION_NAME \"%s\"\n",
+            legacy->name);
+  }  /* if */
+  /* Dump the remaining configurations. */
+  for (i = 1; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
     fprintf(f_error, "\n/* Target configuration: %s */\n",
             target_configurations[i].name);
     fprintf(f_error, "#define TARGET_CONFIGURATION_%d %s\n", i+1,
             target_configurations[i].name);
+    check_assertion(target_configurations[i].dump_target_config !=
+                    (void(*)(void))NULL);
     target_configurations[i].dump_target_config();
   }  /* for */
 }  /* dump_target_configurations */
@@ -383,6 +422,14 @@ are diagnosed.
   a_targ_alignment alignment;
   a_boolean        err;
 
+#if defined(DEFAULT_TARGET_CONFIGURATION_NAME)
+  /* Verify that if a default target configuration was specified, it was
+     found. */
+  if (target_configuration_index == NO_TARGET_CONFIG) {
+    internal_error(
+                "check_target_config: default target configuration not found");
+  }  /* if */
+#endif /* defined(DEFAULT_TARGET_CONFIGURATION_NAME) */
   /* The target char may be no bigger than the host long. */
   get_integer_size_and_alignment((an_integer_kind)ik_char,
                                  &size, &alignment);
@@ -783,12 +830,15 @@ command-line processing, or for the STANDALONE_UTILITY case, after the IL
 header has been read and the target has been determined).
 */
 {
-  /* Set all target-specific global variables to their default values (they
-     will be re-set later if a non-default target configuration is
-     specified).  */
-  set_default_target_config();
+  /* If a default target configuration is given, use those values as the
+     defaults; otherwise use the legacy target configuration. */
+#if defined(DEFAULT_TARGET_CONFIGURATION_NAME)
+  target_configuration_index =
+                  find_target_configuration(DEFAULT_TARGET_CONFIGURATION_NAME);
+#else /* !defined(DEFAULT_TARGET_CONFIGURATION_NAME) */
   target_configuration_index = NO_TARGET_CONFIG;
-  auxiliary_info_dir_name = (char *)EDG_AUXILIARY_INFO_DIR_NAME;
+#endif /* defined(DEFAULT_TARGET_CONFIGURATION_NAME) */
+  set_target_configuration(target_configuration_index);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   targ_int8_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int8_int_kind = ((an_integer_kind)ik_none);

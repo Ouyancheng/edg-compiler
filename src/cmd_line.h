@@ -259,7 +259,7 @@ typedef enum /*an_option_kind*/ {
   optk_list_macros,
 #if DUMP_CONFIG_ENABLED
   optk_dump_configuration,
-  optk_dump_default_as_target,
+  optk_dump_legacy_as_target,
 #endif /* DUMP_CONFIG_ENABLED */
   optk_signed_bit_fields,
   optk_unsigned_bit_fields,

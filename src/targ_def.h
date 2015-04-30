@@ -5190,6 +5190,27 @@ Setting this flag to TRUE causes these periods to be replaced with underscores.
         BACK_END_IS_C_GEN_BE is TRUE
 #endif /* !REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES && BACK_END_IS_C... */
 
+/*
+In configurations where multiple target configurations are used, the
+"legacy" configuration, i.e., the configuration that is specified by
+target-specific configuration macros without target-specific suffixes, can
+be given a name by assigning the name to the LEGACY_TARGET_CONFIGURATION_NAME
+configuration macro.  This allows the configuration to be referred to by
+name, either in a --target command-line option or by setting
+DEFAULT_TARGET_CONFIGURATION_NAME to the same value.  If the legacy
+configuration is given a name, there is a subtle difference between the use
+of the legacy configuration by name, and the use of the legacy configuration
+by default (when DEFAULT_TARGET_CONFIGURATION_NAME is unset): in the former
+case, auxiliary_info_dir_name uses the value from EDG_AUXILIARY_INFO_DIR_NAME
+and in the latter case, auxiliary_info_dir_name's value is modified to
+append the legacy target's given name.  If both methods are used, it may be
+wise to ensure that both directories contain the same information (say by
+creating a link from one to the other).
+*/
+#ifndef LEGACY_TARGET_CONFIGURATION_NAME
+#define LEGACY_TARGET_CONFIGURATION_NAME (a_const_char *)NULL
+#endif /* defined(LEGACY_TARGET_CONFIGURATION_NAME) */
+
 #endif /* !defined(TARG_DEF_H) */
 
 
