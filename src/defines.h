@@ -346,10 +346,6 @@ Flags to be set for any version that uses the C++ generating back end.
 
 #endif /* LINUX_TEST_VERSION */
 
-#if defined(INT128_EXTENSIONS_ALLOWED) && INT128_EXTENSIONS_ALLOWED
-#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
-#endif /* defined(INT128_EXTENSIONS_ALLOWED) && INT128_EXTENSIONS_ALLOWED */
-
 #include "defines_linux.h"
 
 #if LINUX_TEST_VERSION

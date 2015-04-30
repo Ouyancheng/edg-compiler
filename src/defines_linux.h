@@ -195,13 +195,13 @@ the --target option is used).
 #if TARG_SUPPORTS_X86_64
 
 /* "Other" target is IA-64 ABI 32-bit configuration. */
-
 /* Target configuration: linux_i686 */
 #define TARGET_CONFIGURATION_1 linux_i686
 #define TARG_ALIGNOF_DOUBLE_linux_i686 8
 #define TARG_ALIGNOF_FAR_POINTER_linux_i686 4
 #define TARG_ALIGNOF_FLOAT_linux_i686 4
 #define TARG_ALIGNOF_INT_linux_i686 4
+#define TARG_ALIGNOF_INT128_linux_i686 16
 #define TARG_ALIGNOF_LONG_linux_i686 4
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_i686 4
 #define TARG_ALIGNOF_LONG_LONG_linux_i686 8
@@ -262,6 +262,7 @@ the --target option is used).
 #define TARG_HOST_STRING_CHAR_BIT_linux_i686 8
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_INT_FIELD_ALIGNMENT_linux_i686 4
+#define TARG_INT128_FIELD_ALIGNMENT_linux_i686 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_i686 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
@@ -296,6 +297,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_linux_i686 4
 #define TARG_SIZEOF_FLOAT_linux_i686 4
 #define TARG_SIZEOF_INT_linux_i686 4
+#define TARG_SIZEOF_INT128_linux_i686 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_i686 8
 #define TARG_SIZEOF_LONG_linux_i686 4
 #define TARG_SIZEOF_LONG_DOUBLE_linux_i686 12
@@ -344,6 +346,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_INT_linux_x86_64 4
+#define TARG_ALIGNOF_INT128_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_LONG_linux_x86_64 8
@@ -404,6 +407,7 @@ the --target option is used).
 #define TARG_HOST_STRING_CHAR_BIT_linux_x86_64 8
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_INT_FIELD_ALIGNMENT_linux_x86_64 4
+#define TARG_INT128_FIELD_ALIGNMENT_linux_x86_64 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_x86_64 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
@@ -438,6 +442,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_linux_x86_64 4
 #define TARG_SIZEOF_FLOAT_linux_x86_64 4
 #define TARG_SIZEOF_INT_linux_x86_64 4
+#define TARG_SIZEOF_INT128_linux_x86_64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
@@ -490,6 +495,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_linux_i686 4
 #define TARG_ALIGNOF_FLOAT_linux_i686 4
 #define TARG_ALIGNOF_INT_linux_i686 4
+#define TARG_ALIGNOF_INT128_linux_i686 16
 #define TARG_ALIGNOF_LONG_linux_i686 4
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_i686 4
 #define TARG_ALIGNOF_LONG_LONG_linux_i686 8
@@ -550,6 +556,7 @@ the --target option is used).
 #define TARG_HAS_SIGNED_CHARS_linux_i686 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_i686 8
 #define TARG_INT_FIELD_ALIGNMENT_linux_i686 4
+#define TARG_INT128_FIELD_ALIGNMENT_linux_i686 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_i686 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
@@ -584,6 +591,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_linux_i686 4
 #define TARG_SIZEOF_FLOAT_linux_i686 4
 #define TARG_SIZEOF_INT_linux_i686 4
+#define TARG_SIZEOF_INT128_linux_i686 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_i686 8
 #define TARG_SIZEOF_LONG_linux_i686 4
 #define TARG_SIZEOF_LONG_DOUBLE_linux_i686 12
@@ -633,6 +641,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_INT_linux_x86_64 4
+#define TARG_ALIGNOF_INT128_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_LONG_linux_x86_64 8
@@ -693,6 +702,7 @@ the --target option is used).
 #define TARG_HAS_SIGNED_CHARS_linux_x86_64 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_x86_64 8
 #define TARG_INT_FIELD_ALIGNMENT_linux_x86_64 4
+#define TARG_INT128_FIELD_ALIGNMENT_linux_x86_64 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_x86_64 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
@@ -727,6 +737,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_linux_x86_64 4
 #define TARG_SIZEOF_FLOAT_linux_x86_64 4
 #define TARG_SIZEOF_INT_linux_x86_64 4
+#define TARG_SIZEOF_INT128_linux_x86_64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
