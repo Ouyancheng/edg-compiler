@@ -1025,10 +1025,9 @@ EXTERN a_boolean
 
 EXTERN char     *auxiliary_info_dir_name;
                         /* Initialized to EDG_AUXILIARY_INFO_DIR_NAME (e.g.,
-                           "lib"), but re-set to a target-specific directory
-                           by appending the target name (and a separating
-                           underscore) if the --target command-line option is
-                           used. */
+                           "lib"), when using an unnamed target configuration,
+                           otherwise the target name (and a separating
+                           underscore) is appended to the name. */
 
 #if DO_IL_LOWERING
 EXTERN an_integer_kind

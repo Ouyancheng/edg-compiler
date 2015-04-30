@@ -649,7 +649,7 @@ check_abbreviation()
 --diag_warning
 --digit_separators
 --dump_configuration
---dump_default_as_target
+--dump_legacy_as_target
 --display_error_number
 --distinct_template_signatures
 --dollar
@@ -1543,7 +1543,7 @@ process_option()
           ;;
         -v | --version | \
         --dump_configuration | \
-        --dump_default_as_target)
+        --dump_legacy_as_target)
           # These options don't require a file name.
           source_file_name_optional=1
           ;;
@@ -1615,7 +1615,7 @@ process_option()
          --preusing | \
          --using_directory | \
          --default_calling_convention | \
-         --dump_default_as_target | \
+         --dump_legacy_as_target | \
          --target)
       feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
       used_two_params=1
@@ -1705,7 +1705,7 @@ process_option()
           --preusing=* | \
           --using_directory=* | \
           --default_calling_convention=* | \
-          --dump_default_as_target=* | \
+          --dump_legacy_as_target=* | \
           --target=*)
       feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
 #     See if an instantiation mode was specified
@@ -1850,7 +1850,8 @@ do
 done
 
 #
-# Use target-specific variable values if --target has been specified.
+# Use target-specific variable values if --target has been specified or if
+# there is a default target configuration.
 #
 if [ -z "$target" ] ; then
   # If no --target option has been specified, see if there is a default.

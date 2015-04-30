@@ -5,17 +5,17 @@ Version 4.11
           EDGcpfe/16160]
 Specifying target configuration at run time
 
-The --target and --dump_default_as_target command-line options have been
+The --target and --dump_legacy_as_target command-line options have been
 added to the eccp script.  When the --target command-line option is given,
-the directory searched for libraries, typically $EDG_BASE/lib, is changed
-to include the configuration name, e.g., $EDG_BASE/lib_my_config if
-"--target my_config" is specified.  Also, the value of the shell environment
-variable EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target (where $target is the name of the
-specified target configuration, e.g., EDG_C_TO_OBJ_DEFAULT_OPTIONS_my_config in
-this example) is used in place of the EDG_C_TO_OBJ_DEFAULT_OPTIONS environment
-variable (to allow target-specific options to be passed to the back end
-compiler, e.g., -m32).  See the Changes entry in the src directory for more
-information.
+or if EDG_DEFAULT_TARGET is set, the directory searched for libraries,
+typically $EDG_BASE/lib, is changed to include the configuration name, e.g.,
+$EDG_BASE/lib_my_config if "--target my_config" is specified.  Also, the value
+of the shell environment variable EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target (where
+$target is the name of the specified target configuration, e.g.,
+EDG_C_TO_OBJ_DEFAULT_OPTIONS_my_config in this example) is used in place of the
+EDG_C_TO_OBJ_DEFAULT_OPTIONS environment variable (to allow target-specific
+options to be passed to the back end compiler, e.g., -m32).  See the Changes
+entry in the src directory for more information.
 
 In addition, front end command-line options that don't require a source file
 (e.g., --version) no longer result in an error when eccp is invoked without

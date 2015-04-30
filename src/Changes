@@ -97,8 +97,9 @@ values appropriate for the specified target configuration.
 
 The existing method for configuring the front end is unchanged; the same
 configuration macros are used, and the resulting configuration is referred to
-as the "legacy" configuration (which corresponds to no --target command-line
-option being specified).
+as the "legacy" configuration (and is the default configuration if no other
+target configuration has been designated as the default and no --target
+command-line option is specified).
 
 A subset of the existing configuration macros have been identified as being
 target-specific and creating a new target configuration requires specifying
@@ -118,8 +119,8 @@ at run time, or one that has GNU_EXTENSIONS_ALLOWED and another that has
 MICROSOFT_EXTENSIONS_ALLOWED).
 
 As part of these changes, the USE_X86_64 configuration macro has been
-replaced by the TARG_SUPPORTS_X86_64 target-specific configuration macro,
-but any use of the USE_X64_64 macro should be replaced by a run-time check of
+replaced by the TARG_SUPPORTS_X86_64 target-specific configuration macro.
+Any use of the USE_X64_64 macro should be replaced by a run-time check of
 the new targ_supports_x86_64 global variable.
 
 Note that each new target configuration will likely require a suitably-compiled
@@ -129,8 +130,8 @@ the front end (and eccp.sh) now append the target configuration name (and
 a separating underscore) to the value of EDG_AUXILIARY_INFO_DIR_NAME.  So, if
 "--target my_config" is used and EDG_AUXILIARY_INFO_DIR_NAME is "lib", the
 front end will look for predefined_macros.txt file in $EDG_BASE/lib_my_config
-(and eccp.sh will also look there for libC.a).  There is no change for the
-legacy configuration.
+(and eccp.sh will also look there for libC.a).  There is no change when using
+the unnamed legacy configuration.
 
 For customers that read the IL from a file, note that a change has been
 made to standalone_utility_init to split it into two routines:
@@ -143,7 +144,15 @@ standalone_utility_late_init must be called after il_read).
 Any local changes that make use of configuration macros that are now
 target-specific should use the associated global variables.
 
-Two new header files, target_cfg.h and target_map.h, have been added.
+For an example of using multiple target configurations, see the changes in
+defines.h.linux which now provides both "linux_i686" and "linux_x86_64"
+target configurations.
+
+Two new header files, target_cfg.h and target_map.h, have been added to
+support these changes.  Customers that have additional target-specific
+global variables can make changes in target_map.h to add those global variables
+to the set of target-specific global variables (providing the variables
+meet certain criteria).
 
 
 4/21/15  [EDGcpfe/16133]

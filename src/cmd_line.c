@@ -9677,7 +9677,7 @@ enable_microsoft_mode:
         target_configuration_index = find_target_configuration(opt_arg);
         if (target_configuration_index != NO_TARGET_CONFIG) {
           /* Set the target-specific values now.  Note that if there are
-             target-specific global variables that modified by other
+             target-specific global variables that are modified by other
              command-line options, the global variable will be set according
              to the last command-line argument that effects it.  No warning
              or error is given. */
