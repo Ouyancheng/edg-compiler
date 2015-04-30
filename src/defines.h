@@ -70,11 +70,6 @@ of the host system.
 
 */
 
-/* By default, include target-specific configurations where applicable. */
-#ifndef INCLUDE_EDG_TARGET_CONFIGURATIONS
-#define INCLUDE_EDG_TARGET_CONFIGURATIONS 1
-#endif /* defined(INCLUDE_EDG_TARGET_CONFIGURATIONS) */
-
 #ifdef __CENTERLINE__
 /* Centerline does not define the __sun or __sparc macros. */
 #define __sun 1

@@ -283,7 +283,7 @@ can be re-read as a defines.h (as part of the processing for
   for (i = 1; i < NUM_TARGET_CONFIGURATIONS; i++) { /*lint !e681*/
     fprintf(f_error, "\n/* Target configuration: %s */\n",
             target_configurations[i].name);
-    fprintf(f_error, "#define TARGET_CONFIGURATION_%d %s\n", i+1,
+    fprintf(f_error, "#define TARGET_CONFIGURATION_%d %s\n", i,
             target_configurations[i].name);
     check_assertion(target_configurations[i].dump_target_config !=
                     (void(*)(void))NULL);

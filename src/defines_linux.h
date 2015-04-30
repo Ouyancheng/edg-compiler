@@ -59,8 +59,9 @@ platform.
 #endif /* ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 /*
-Configure the default configuration as 32-bit or 64-bit.  See below for
-32-bit and 64-bit target-specific configurations.
+Configure the legacy configuration as 32-bit or 64-bit (depending on the
+value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
+"other" one of 32-bit or 64-bit) will be defined below.
 */
 #if TARG_SUPPORTS_X86_64
 #define TARG_SIZEOF_LONG 8
@@ -156,47 +157,56 @@ Linux.
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
 
-#if defined(INCLUDE_EDG_TARGET_CONFIGURATIONS) && \
-    INCLUDE_EDG_TARGET_CONFIGURATIONS
+/* By default, include the "other" target configuration. */
+#ifndef INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 1
+#endif /* defined(INCLUDE_ADDITIONAL_TARGET_CONFIGURATION) */
+
+#if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
 /*
-Include "linux_i686" (32-bit) and "linux_x86_64" (64-bit) target
-configurations.  Two sets of configurations are included here, one set for the
-IA-64 ABI and one set for the Cfront ABI.  Note that these target
+The legacy configuration (either a 32-bit or a 64-bit configuration as dictated
+by the setting of TARG_SUPPORTS_X86_64) has been defined above.  Give that
+target configuration the appropriate name, and define the "other"
+configuration.  Note that two sets of configurations are included here, one set
+for the IA-64 ABI and one set for the Cfront ABI.  Note also that these target
 configurations are primarily for demonstration purposes as the actual set of
 target-specific configuration macros depends on the set of features that have
 been selected, and some of the values here may not be correct for your
 configuration(s).  These sets of target-specific configuration macros were
-created using the --dump_default_as_target command-line option; additional
+created using the --dump_legacy_as_target command-line option; additional
 configurations can be created in the same manner.
 */
+
+#if TARG_SUPPORTS_X86_64
+#define LEGACY_TARGET_CONFIGURATION_NAME "linux_x86_64"
+#else /* !TARG_SUPPORTS_X86_64 */
+#define LEGACY_TARGET_CONFIGURATION_NAME "linux_i686"
+#endif /* TARG_SUPPORTS_X86_64 */
+
+/*
+Don't specify a default configuration (this leaves the legacy configuration
+as the default and doesn't require a name change for $EDG_BASE/lib unless
+the --target option is used).
+*/
+#undef DEFAULT_TARGET_CONFIGURATION
+
 #if IA64_ABI
+
+#if TARG_SUPPORTS_X86_64
+
+/* "Other" target is IA-64 ABI 32-bit configuration. */
 /* Target configuration: linux_i686 */
 #define TARGET_CONFIGURATION_1 linux_i686
 #define TARG_ALIGNOF_DOUBLE_linux_i686 8
-#define TARG_ALIGNOF_FAR_POINTER_linux_i686 4
 #define TARG_ALIGNOF_FLOAT_linux_i686 4
 #define TARG_ALIGNOF_INT_linux_i686 4
-#define TARG_ALIGNOF_INT128_linux_i686 16
 #define TARG_ALIGNOF_LONG_linux_i686 4
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_i686 4
 #define TARG_ALIGNOF_LONG_LONG_linux_i686 8
-#define TARG_ALIGNOF_NEAR_POINTER_linux_i686 2
 #define TARG_ALIGNOF_POINTER_linux_i686 4
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER_linux_i686 4
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION_linux_i686 4
 #define TARG_ALIGNOF_SHORT_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_ACCUM_linux_i686 4
-#define TARG_ALIGNOF_SIGNED_FRACT_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_ALIGNOF_SIGNED_LONG_FRACT_linux_i686 4
-#define TARG_ALIGNOF_SIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_SHORT_FRACT_linux_i686 1
-#define TARG_ALIGNOF_UNSIGNED_ACCUM_linux_i686 4
-#define TARG_ALIGNOF_UNSIGNED_FRACT_linux_i686 2
-#define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_ALIGNOF_UNSIGNED_LONG_FRACT_linux_i686 4
-#define TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_ALIGNOF_UNSIGNED_SHORT_FRACT_linux_i686 1
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO_linux_i686 4
 #define TARG_ALL_POINTERS_SAME_SIZE_linux_i686 1
 #define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT_linux_i686 1
@@ -221,23 +231,10 @@ configurations can be created in the same manner.
 #define TARG_FLT_MAX_EXP_linux_i686 128
 #define TARG_FLT_MIN_EXP_linux_i686 (-125)
 #define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED_linux_i686 0
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM_linux_i686 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT_linux_i686 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM_linux_i686 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT_linux_i686 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM_linux_i686 7
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT_linux_i686 7
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM_linux_i686 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT_linux_i686 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM_linux_i686 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT_linux_i686 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM_linux_i686 8
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT_linux_i686 8
 #define TARG_HAS_SIGNED_CHARS_linux_i686 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_i686 8
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_INT_FIELD_ALIGNMENT_linux_i686 4
-#define TARG_INT128_FIELD_ALIGNMENT_linux_i686 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_i686 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
@@ -269,31 +266,15 @@ configurations can be created in the same manner.
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_i686 1
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_i686 2
 #define TARG_SIZEOF_DOUBLE_linux_i686 8
-#define TARG_SIZEOF_FAR_POINTER_linux_i686 4
 #define TARG_SIZEOF_FLOAT_linux_i686 4
 #define TARG_SIZEOF_INT_linux_i686 4
-#define TARG_SIZEOF_INT128_linux_i686 16
-#define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_i686 8
 #define TARG_SIZEOF_LONG_linux_i686 4
 #define TARG_SIZEOF_LONG_DOUBLE_linux_i686 12
 #define TARG_SIZEOF_LONG_LONG_linux_i686 8
-#define TARG_SIZEOF_NEAR_POINTER_linux_i686 2
 #define TARG_SIZEOF_POINTER_linux_i686 4
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER_linux_i686 4
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION_linux_i686 (4+4)
 #define TARG_SIZEOF_SHORT_linux_i686 2
-#define TARG_SIZEOF_SIGNED_ACCUM_linux_i686 4
-#define TARG_SIZEOF_SIGNED_FRACT_linux_i686 2
-#define TARG_SIZEOF_SIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_SIZEOF_SIGNED_LONG_FRACT_linux_i686 4
-#define TARG_SIZEOF_SIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_SIZEOF_SIGNED_SHORT_FRACT_linux_i686 1
-#define TARG_SIZEOF_UNSIGNED_ACCUM_linux_i686 4
-#define TARG_SIZEOF_UNSIGNED_FRACT_linux_i686 2
-#define TARG_SIZEOF_UNSIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_SIZEOF_UNSIGNED_LONG_FRACT_linux_i686 4
-#define TARG_SIZEOF_UNSIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_SIZEOF_UNSIGNED_SHORT_FRACT_linux_i686 1
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_linux_i686 4
 #define TARG_SIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_MAX_linux_i686 ((a_targ_size_t)(2147483647 * 2U + 1U))
@@ -309,36 +290,24 @@ configurations can be created in the same manner.
 #define TARG_WCHAR_T_INT_KIND_linux_i686 ((an_integer_kind)ik_long)
 #define TARG_WINT_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_WORD_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
-#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 1
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_i686 (-1)
 
+#else /* !TARG_SUPPORTS_X86_64 */
+
+/* "Other" target is IA-64 ABI 64-bit configuration. */
 /* Target configuration: linux_x86_64 */
-#define TARGET_CONFIGURATION_2 linux_x86_64
+#define TARGET_CONFIGURATION_1 linux_x86_64
 #define TARG_ALIGNOF_DOUBLE_linux_x86_64 8
-#define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_INT_linux_x86_64 4
-#define TARG_ALIGNOF_INT128_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_LONG_linux_x86_64 8
-#define TARG_ALIGNOF_NEAR_POINTER_linux_x86_64 2
 #define TARG_ALIGNOF_POINTER_linux_x86_64 8
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER_linux_x86_64 8
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION_linux_x86_64 8
 #define TARG_ALIGNOF_SHORT_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_ACCUM_linux_x86_64 4
-#define TARG_ALIGNOF_SIGNED_FRACT_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_ALIGNOF_SIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_ALIGNOF_SIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_SHORT_FRACT_linux_x86_64 1
-#define TARG_ALIGNOF_UNSIGNED_ACCUM_linux_x86_64 4
-#define TARG_ALIGNOF_UNSIGNED_FRACT_linux_x86_64 2
-#define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_ALIGNOF_UNSIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_ALIGNOF_UNSIGNED_SHORT_FRACT_linux_x86_64 1
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO_linux_x86_64 8
 #define TARG_ALL_POINTERS_SAME_SIZE_linux_x86_64 1
 #define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT_linux_x86_64 1
@@ -363,23 +332,10 @@ configurations can be created in the same manner.
 #define TARG_FLT_MAX_EXP_linux_x86_64 128
 #define TARG_FLT_MIN_EXP_linux_x86_64 (-125)
 #define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED_linux_x86_64 0
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM_linux_x86_64 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT_linux_x86_64 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM_linux_x86_64 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT_linux_x86_64 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM_linux_x86_64 7
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT_linux_x86_64 7
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM_linux_x86_64 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT_linux_x86_64 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM_linux_x86_64 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT_linux_x86_64 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM_linux_x86_64 8
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT_linux_x86_64 8
 #define TARG_HAS_SIGNED_CHARS_linux_x86_64 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_x86_64 8
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_INT_FIELD_ALIGNMENT_linux_x86_64 4
-#define TARG_INT128_FIELD_ALIGNMENT_linux_x86_64 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_linux_x86_64 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
@@ -411,31 +367,15 @@ configurations can be created in the same manner.
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_x86_64 1
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_x86_64 2
 #define TARG_SIZEOF_DOUBLE_linux_x86_64 8
-#define TARG_SIZEOF_FAR_POINTER_linux_x86_64 4
 #define TARG_SIZEOF_FLOAT_linux_x86_64 4
 #define TARG_SIZEOF_INT_linux_x86_64 4
-#define TARG_SIZEOF_INT128_linux_x86_64 16
-#define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_SIZEOF_LONG_LONG_linux_x86_64 8
-#define TARG_SIZEOF_NEAR_POINTER_linux_x86_64 2
 #define TARG_SIZEOF_POINTER_linux_x86_64 8
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER_linux_x86_64 8
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION_linux_x86_64 (8+8)
 #define TARG_SIZEOF_SHORT_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_ACCUM_linux_x86_64 4
-#define TARG_SIZEOF_SIGNED_FRACT_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_SIZEOF_SIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_SIZEOF_SIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_SHORT_FRACT_linux_x86_64 1
-#define TARG_SIZEOF_UNSIGNED_ACCUM_linux_x86_64 4
-#define TARG_SIZEOF_UNSIGNED_FRACT_linux_x86_64 2
-#define TARG_SIZEOF_UNSIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_SIZEOF_UNSIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_SIZEOF_UNSIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_SIZEOF_UNSIGNED_SHORT_FRACT_linux_x86_64 1
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_linux_x86_64 8
 #define TARG_SIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_long)
 #define TARG_SIZE_T_MAX_linux_x86_64 ((a_targ_size_t)(9223372036854775807ULL * 2ULL + 1ULL))
@@ -451,38 +391,29 @@ configurations can be created in the same manner.
 #define TARG_WCHAR_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_int)
 #define TARG_WINT_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_WORD_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
-#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 1
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_x86_64 (-1)
+
+#endif /* TARG_SUPPORTS_X86_64 */
 
 #else /* !IA64_ABI */
 
+#if TARG_SUPPORTS_X86_64
+
+/* "Other" target is Cfront 32-bit configuration. */
 /* Target configuration: linux_i686 */
 #define TARGET_CONFIGURATION_1 linux_i686
 #define TARG_ALIGNOF_DOUBLE_linux_i686 8
-#define TARG_ALIGNOF_FAR_POINTER_linux_i686 4
 #define TARG_ALIGNOF_FLOAT_linux_i686 4
 #define TARG_ALIGNOF_INT_linux_i686 4
 #define TARG_ALIGNOF_LONG_linux_i686 4
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_i686 4
 #define TARG_ALIGNOF_LONG_LONG_linux_i686 8
-#define TARG_ALIGNOF_NEAR_POINTER_linux_i686 2
 #define TARG_ALIGNOF_POINTER_linux_i686 4
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER_linux_i686 4
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION_linux_i686 4
 #define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_linux_i686 4
 #define TARG_ALIGNOF_SHORT_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_ACCUM_linux_i686 4
-#define TARG_ALIGNOF_SIGNED_FRACT_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_ALIGNOF_SIGNED_LONG_FRACT_linux_i686 4
-#define TARG_ALIGNOF_SIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_ALIGNOF_SIGNED_SHORT_FRACT_linux_i686 1
-#define TARG_ALIGNOF_UNSIGNED_ACCUM_linux_i686 4
-#define TARG_ALIGNOF_UNSIGNED_FRACT_linux_i686 2
-#define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_ALIGNOF_UNSIGNED_LONG_FRACT_linux_i686 4
-#define TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_ALIGNOF_UNSIGNED_SHORT_FRACT_linux_i686 1
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO_linux_i686 4
 #define TARG_ALL_POINTERS_SAME_SIZE_linux_i686 1
 #define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT_linux_i686 1
@@ -507,18 +438,6 @@ configurations can be created in the same manner.
 #define TARG_FLT_MAX_EXP_linux_i686 128
 #define TARG_FLT_MIN_EXP_linux_i686 (-125)
 #define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED_linux_i686 1
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM_linux_i686 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT_linux_i686 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM_linux_i686 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT_linux_i686 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM_linux_i686 7
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT_linux_i686 7
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM_linux_i686 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT_linux_i686 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM_linux_i686 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT_linux_i686 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM_linux_i686 8
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT_linux_i686 8
 #define TARG_HAS_SIGNED_CHARS_linux_i686 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_i686 8
 #define TARG_INT_FIELD_ALIGNMENT_linux_i686 4
@@ -553,31 +472,16 @@ configurations can be created in the same manner.
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_i686 2
 #define TARG_SIZEOF_DOUBLE_linux_i686 8
-#define TARG_SIZEOF_FAR_POINTER_linux_i686 4
 #define TARG_SIZEOF_FLOAT_linux_i686 4
 #define TARG_SIZEOF_INT_linux_i686 4
-#define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_i686 8
 #define TARG_SIZEOF_LONG_linux_i686 4
 #define TARG_SIZEOF_LONG_DOUBLE_linux_i686 12
 #define TARG_SIZEOF_LONG_LONG_linux_i686 8
-#define TARG_SIZEOF_NEAR_POINTER_linux_i686 2
 #define TARG_SIZEOF_POINTER_linux_i686 4
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER_linux_i686 4
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION_linux_i686 ((((2*2+4-1)/4)+1)* 4)
 #define TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_linux_i686 4
 #define TARG_SIZEOF_SHORT_linux_i686 2
-#define TARG_SIZEOF_SIGNED_ACCUM_linux_i686 4
-#define TARG_SIZEOF_SIGNED_FRACT_linux_i686 2
-#define TARG_SIZEOF_SIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_SIZEOF_SIGNED_LONG_FRACT_linux_i686 4
-#define TARG_SIZEOF_SIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_SIZEOF_SIGNED_SHORT_FRACT_linux_i686 1
-#define TARG_SIZEOF_UNSIGNED_ACCUM_linux_i686 4
-#define TARG_SIZEOF_UNSIGNED_FRACT_linux_i686 2
-#define TARG_SIZEOF_UNSIGNED_LONG_ACCUM_linux_i686 8
-#define TARG_SIZEOF_UNSIGNED_LONG_FRACT_linux_i686 4
-#define TARG_SIZEOF_UNSIGNED_SHORT_ACCUM_linux_i686 2
-#define TARG_SIZEOF_UNSIGNED_SHORT_FRACT_linux_i686 1
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_linux_i686 4
 #define TARG_SIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_MAX_linux_i686 ((a_targ_size_t)(2147483647 * 2U + 1U))
@@ -593,36 +497,25 @@ configurations can be created in the same manner.
 #define TARG_WCHAR_T_INT_KIND_linux_i686 ((an_integer_kind)ik_long)
 #define TARG_WINT_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_WORD_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
-#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 1
-#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_i686 4
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_i686 0
 
+#else /* !TARG_SUPPORTS_X86_64 */
+
+/* "Other" target is Cfront 64-bit configuration. */
 /* Target configuration: linux_x86_64 */
-#define TARGET_CONFIGURATION_2 linux_x86_64
+#define TARGET_CONFIGURATION_1 linux_x86_64
 #define TARG_ALIGNOF_DOUBLE_linux_x86_64 8
-#define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_INT_linux_x86_64 4
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
 #define TARG_ALIGNOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_LONG_linux_x86_64 8
-#define TARG_ALIGNOF_NEAR_POINTER_linux_x86_64 2
 #define TARG_ALIGNOF_POINTER_linux_x86_64 8
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER_linux_x86_64 8
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION_linux_x86_64 8
 #define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_linux_x86_64 8
 #define TARG_ALIGNOF_SHORT_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_ACCUM_linux_x86_64 4
-#define TARG_ALIGNOF_SIGNED_FRACT_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_ALIGNOF_SIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_ALIGNOF_SIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_ALIGNOF_SIGNED_SHORT_FRACT_linux_x86_64 1
-#define TARG_ALIGNOF_UNSIGNED_ACCUM_linux_x86_64 4
-#define TARG_ALIGNOF_UNSIGNED_FRACT_linux_x86_64 2
-#define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_ALIGNOF_UNSIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_ALIGNOF_UNSIGNED_SHORT_FRACT_linux_x86_64 1
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO_linux_x86_64 8
 #define TARG_ALL_POINTERS_SAME_SIZE_linux_x86_64 1
 #define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT_linux_x86_64 1
@@ -647,18 +540,6 @@ configurations can be created in the same manner.
 #define TARG_FLT_MAX_EXP_linux_x86_64 128
 #define TARG_FLT_MIN_EXP_linux_x86_64 (-125)
 #define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED_linux_x86_64 1
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM_linux_x86_64 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT_linux_x86_64 15
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM_linux_x86_64 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT_linux_x86_64 31
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM_linux_x86_64 7
-#define TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT_linux_x86_64 7
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM_linux_x86_64 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT_linux_x86_64 16
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM_linux_x86_64 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT_linux_x86_64 32
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM_linux_x86_64 8
-#define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT_linux_x86_64 8
 #define TARG_HAS_SIGNED_CHARS_linux_x86_64 1
 #define TARG_HOST_STRING_CHAR_BIT_linux_x86_64 8
 #define TARG_INT_FIELD_ALIGNMENT_linux_x86_64 4
@@ -693,31 +574,16 @@ configurations can be created in the same manner.
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_x86_64 2
 #define TARG_SIZEOF_DOUBLE_linux_x86_64 8
-#define TARG_SIZEOF_FAR_POINTER_linux_x86_64 4
 #define TARG_SIZEOF_FLOAT_linux_x86_64 4
 #define TARG_SIZEOF_INT_linux_x86_64 4
-#define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_SIZEOF_LONG_LONG_linux_x86_64 8
-#define TARG_SIZEOF_NEAR_POINTER_linux_x86_64 2
 #define TARG_SIZEOF_POINTER_linux_x86_64 8
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER_linux_x86_64 8
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION_linux_x86_64 ((((2*2+8-1)/8)+1)* 8)
 #define TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_linux_x86_64 8
 #define TARG_SIZEOF_SHORT_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_ACCUM_linux_x86_64 4
-#define TARG_SIZEOF_SIGNED_FRACT_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_SIZEOF_SIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_SIZEOF_SIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_SIZEOF_SIGNED_SHORT_FRACT_linux_x86_64 1
-#define TARG_SIZEOF_UNSIGNED_ACCUM_linux_x86_64 4
-#define TARG_SIZEOF_UNSIGNED_FRACT_linux_x86_64 2
-#define TARG_SIZEOF_UNSIGNED_LONG_ACCUM_linux_x86_64 8
-#define TARG_SIZEOF_UNSIGNED_LONG_FRACT_linux_x86_64 4
-#define TARG_SIZEOF_UNSIGNED_SHORT_ACCUM_linux_x86_64 2
-#define TARG_SIZEOF_UNSIGNED_SHORT_FRACT_linux_x86_64 1
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_linux_x86_64 8
 #define TARG_SIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_long)
 #define TARG_SIZE_T_MAX_linux_x86_64 ((a_targ_size_t)(9223372036854775807ULL * 2ULL + 1ULL))
@@ -733,12 +599,14 @@ configurations can be created in the same manner.
 #define TARG_WCHAR_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_int)
 #define TARG_WINT_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_WORD_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
-#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 1
-#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_x86_64 4
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_x86_64 0
+
+#endif /* TARG_SUPPORTS_X86_64 */
 
 #endif /* IA64_ABI */
 
-#endif /* defined(INCLUDE_EDG_TARGET_CONFIGURATIONS) && INCLUDE_EDG_... */
+#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATION */
 
 #endif /* ifndef DEFINES_LINUX_H */
 
