@@ -1,5 +1,14 @@
 Version 4.11
 
+5/1/15   [EDGcpfe/16208]
+Unnecessary reallocation of attr_name_map
+
+A hash table for attribute names, attr_name_map, had been allocated and
+initialized once at program startup, and then reallocated and re-initialized
+for each translation unit.  The latter allocation and initialization has
+now been removed.
+
+
 4/29/15  [EDGcpfe/16130]
 C++-generating back end: Casts of the form T{...}
 

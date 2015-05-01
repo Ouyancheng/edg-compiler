@@ -1175,9 +1175,6 @@ lookup.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (attr_name_map == NULL) {
-    init_attr_name_map();
-  }  /* if */
   return (an_attr_name_map_entry_ptr *)hash_find(attr_name_map,
                                                  (a_void_ptr)name,
                                                  /*create=*/FALSE);
@@ -8324,7 +8321,6 @@ be initialized for each compilation.
 #endif /* DEBUG */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   memzero((char*)attr_family_seen, sizeof(attr_family_seen));
-  attr_name_map = NULL;
   attr_corresp_checking_map = NULL;
   dummy_attr = NULL;
 }  /* attribute_init */
