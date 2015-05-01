@@ -5230,11 +5230,17 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
-    if (constant->explicit_cast_applied) {
-      /* A functional-notation cast with braces; e.g., "X{1, 2}". */
-      gen_type_reference(constant->type);
-    }  /* if */
     if (!suppress_braces && !transparent_case) {
+      if (constant->explicit_cast_applied) {
+        /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
+           type name and left brace were already put out by the caller when
+           suppress_braces is TRUE.) */
+        if (type != NULL) {
+          gen_type_reference(type);
+        } else {
+          gen_type_reference(constant->type);
+        }  /* if */
+      }  /* if */
       write_tok_ch('{');
     }  /* if */
     /* Figure out the kind of aggregate so we can track the type as we
