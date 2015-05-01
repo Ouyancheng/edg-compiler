@@ -109,21 +109,20 @@ Define a macro to initialize an a_target_configuration entry
 #if DUMP_CONFIG_ENABLED
 #define DEFINE_TARGET_CONFIGURATION(name) \
   { stringize(name), \
-    concat(set_target_config ## _, name), \
-    concat(dump_target_config ## _, name) \
+    concat(set_target_config_, name), \
+    concat(dump_target_config_, name) \
   }
 #else /* !DUMP_CONFIG_ENABLED */
 #define DEFINE_TARGET_CONFIGURATION(name) \
   { stringize(name), \
-    concat(set_target_config ## _, name) \
+    concat(set_target_config_, name) \
   }
 #endif /* DUMP_CONFIG_ENABLED */
 /*lint -esym(750,DEFINE_TARGET_CONFIGURATION)*/
 
 /*
-This array contains an entry for each target configuration that has been
-defined at compilation time.  The legacy configuration is always the first
-entry.
+This array contains an entry for each target configuration defined when the
+front end is built.  The legacy configuration is always the first entry.
 */
 static a_target_configuration target_configurations[] = {
   { LEGACY_TARGET_CONFIGURATION_NAME, /* A name for the legacy config. */
@@ -147,7 +146,7 @@ static a_target_configuration target_configurations[] = {
   /* More can be added if needed (ensure target_cfg.h is included above). */
 };
 
-/* The number of target configurations defined at compilation time. */
+/* The number of target configurations defined when the front end is built. */
 #define NUM_TARGET_CONFIGURATIONS \
   ((int32_t)(sizeof(target_configurations)/sizeof(target_configurations[0])))
 

@@ -63,7 +63,7 @@ Generic function to invoke the specified TARGET_MAP_MACRO for each
 configuration macro that makes up a target configuration.
 TARGET_MAP_ROUTINE_NAME and TARGET_MAP_MACRO are defined by the caller.
 
-The minimum criteria for a configuration macro to be included in this list is:
+The minimum criteria for a configuration macro to be included in this list are:
 
   - The corresponding configuration macro should not be used in any #if
     directives (other than for --dump_configuration purposes).

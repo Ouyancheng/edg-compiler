@@ -39,6 +39,7 @@ il_read.c -- Read the intermediate language.
 #include "il_file.h"
 #include "il_read.h"
 #include "il_walk.h"
+#include "fe_init.h"
 
 #ifdef __CENTERLINE__
 extern int centerline_untype(void *, unsigned int);
@@ -896,6 +897,9 @@ display program) can query these entities.
   /* Set the run-time target configuration to match that of the front end. */
   target_configuration_index = il_header.target_configuration_index;
   set_target_configuration(il_header.target_configuration_index);
+#if CHECKING
+  il_header_has_been_read = TRUE;
+#endif /* CHECKING */
 #endif /* STANDALONE_UTILITY_PROGRAM */
 }  /* init_flags_and_types */
 

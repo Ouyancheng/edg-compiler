@@ -56,6 +56,9 @@ and any run-time target configuration), so these routines cannot rely on
 those being set.
 */
 {
+#if CHECKING
+  il_header_has_been_read = FALSE;
+#endif /* CHECKING */
   target_early_init();
   error_early_init();
 }  /* standalone_utility_early_init */
@@ -68,6 +71,7 @@ utility programs.  This routine should only be called after il_read has been
 called (and init_flags_and_types has parsed the information in il_header).
 */
 {
+  check_assertion(il_header_has_been_read);
   target_one_time_init();
   il_to_str_one_time_init();
   error_one_time_init();

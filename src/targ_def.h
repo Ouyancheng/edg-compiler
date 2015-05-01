@@ -987,7 +987,7 @@ Integer types:
    size of the largest integer in the "default" configuration;
    MAX_SIZEOF_LARGEST_INTEGER represents the size of the largest target
    integer that can be accommodated across all target configurations (and
-   therefore must be larger than every TARG_SIZEOF_LARGEST_INTEGER).
+   therefore must be at least as large as every TARG_SIZEOF_LARGEST_INTEGER).
    MAX_SIZEOF_LARGEST_INTEGER is required to be a compile-time
    constant and so cannot be adjusted at run time the way some other target
    configuration values are.  Therefore, it should be set to the largest
@@ -5194,9 +5194,9 @@ Setting this flag to TRUE causes these periods to be replaced with underscores.
 In configurations where multiple target configurations are used, the
 "legacy" configuration, i.e., the configuration that is specified by
 target-specific configuration macros without target-specific suffixes, can
-be given a name by assigning the name to the LEGACY_TARGET_CONFIGURATION_NAME
-configuration macro.  This allows the configuration to be referred to by
-name, either in a --target command-line option or by setting
+be given a name by defining LEGACY_TARGET_CONFIGURATION_NAME to be a string
+literal containing the name.  This allows the configuration to be referred
+to by name, either in a --target command-line option or by setting
 DEFAULT_TARGET_CONFIGURATION_NAME to the same value.  If the legacy
 configuration is given a name, there is a subtle difference between the use
 of the legacy configuration by name, and the use of the legacy configuration

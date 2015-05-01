@@ -10,7 +10,7 @@ added to the eccp script.  When the --target command-line option is given,
 or if EDG_DEFAULT_TARGET is set, the directory searched for libraries,
 typically $EDG_BASE/lib, is changed to include the configuration name, e.g.,
 $EDG_BASE/lib_my_config if "--target my_config" is specified.  Also, the value
-of the shell environment variable EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target (where
+of the environment variable EDG_C_TO_OBJ_DEFAULT_OPTIONS_$target (where
 $target is the name of the specified target configuration, e.g.,
 EDG_C_TO_OBJ_DEFAULT_OPTIONS_my_config in this example) is used in place of the
 EDG_C_TO_OBJ_DEFAULT_OPTIONS environment variable (to allow target-specific

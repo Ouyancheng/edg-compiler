@@ -192,7 +192,7 @@ EXTERN a_targ_alignment
 EXTERN a_targ_size_t
 		targ_sizeof_largest_integer;
 			/* Size of the longest integer in the configuration.
-                           Must be less than MAX_SIZEOF_LARGEST_INTEGER. */
+			   Must be no larger than MAX_SIZEOF_LARGEST_INTEGER.*/
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
@@ -518,7 +518,7 @@ EXTERN a_targ_alignment
 EXTERN a_targ_size_t
 		targ_sizeof_largest_fixed_point;
                         /* Size of the longest fixed point type in the
-                           configuration.  Must be less than
+                           configuration.  Must be no larger than
                            MAX_SIZEOF_LARGEST_FIXED_POINT. */
 
 #endif /* FIXED_POINT_ALLOWED */
@@ -592,8 +592,8 @@ EXTERN a_type_mode_kind
 
 EXTERN a_boolean
                 targ_dual_alignments_for_builtin_types;
-                        /* TRUE if field alignment types are different than
-                            the alignment than a variable of that same type. */
+                        /* TRUE if field alignments are different from those of
+                           a variable of the same type. */
 
 EXTERN a_targ_alignment
 		targ_short_field_alignment;

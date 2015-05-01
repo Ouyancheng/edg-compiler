@@ -11101,7 +11101,7 @@ from the primary source file name in the IL information.
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);
-  /* Complete initialization (based on IL header that has been read). */
+  /* Complete the initialization (based on il_header contents). */
   standalone_utility_late_init();
   primary_source_file_name = il_header.primary_source_file->file_name;
   /* Generate C code. */

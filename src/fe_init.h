@@ -21,6 +21,11 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 #if STANDALONE_UTILITY_PROGRAM
 extern void standalone_utility_early_init(void);
 extern void standalone_utility_late_init(void);
+#if CHECKING
+EXTERN a_boolean
+                il_header_has_been_read;
+                        /* Set to TRUE once the IL header has been read. */
+#endif /* CHECKING */
 #else /* !STANDALONE_UTILITY_PROGRAM */
 extern void fe_early_init(void);
 extern void fe_one_time_init(void);

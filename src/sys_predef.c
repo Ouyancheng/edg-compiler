@@ -278,111 +278,97 @@ The following macro is used in those cases.
 We are about to define functions that create hundreds of predeclared functions.
 The code is kept considerably more compact by using the following macros.
 */
-#if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE__) ||   \
-    (defined(_lint) && !defined(SUNOS)) || defined(_MSC_VER)
-#define bfk_prefix(N) (a_builtin_function_kind)bfk##N
-#define edg_concat_impl(X, Y)  X##Y
-#else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
-  /* We cannot count on the "##" preprocessor operator being implemented.
-     Use the old (and nonstandard) comment-trick to paste tokens. */
-#define bfk_prefix(N) (a_builtin_function_kind)bfk/**/N
-#define edg_concat_impl(X, Y)  X/**/Y
-  /* Nested invocations of the macros bfk_prefix and edg_concat with old-style
-     preprocessors can lead to the form "bfkedg_concat(...)".  Define a
-     corresponding macro to perform the double concatenation in such cases. */
-#define bfkedg_concat(X, Y)  bfk/**/X/**/Y
-#endif /* defined(__STDC__) || defined(__cplusplus) || ... */
-#define edg_concat(X, Y)  edg_concat_impl(X,Y)
+#define bfk_prefix(N) (a_builtin_function_kind)concat(bfk,N)
 #define enter_gnu_builtin_func0(name, rtp)                                   \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), (a_type_ptr)NULL,        \
+                             concat(rtp,_type), (a_type_ptr)NULL,            \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func0(name, rtp)                            \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), (a_type_ptr)NULL,        \
+                             concat(rtp,_type), (a_type_ptr)NULL,            \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func1(name, rtp, a1tp)                             \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             concat(rtp,_type), concat(a1tp,_type),          \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func1(name, rtp, a1tp)                      \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             concat(rtp,_type), concat(a1tp,_type),          \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func2(name, rtp, a1tp, a2tp)                       \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), (a_type_ptr)NULL,       \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), (a_type_ptr)NULL,           \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func2(name, rtp, a1tp, a2tp)                \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), (a_type_ptr)NULL,       \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), (a_type_ptr)NULL,           \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func3(name, rtp, a1tp, a2tp, a3tp)                 \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func3(name, rtp, a1tp, a2tp, a3tp)          \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func4(name, rtp, a1tp, a2tp, a3tp, a4tp)           \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), (a_type_ptr)NULL,       \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
+                             concat(a4tp,_type), (a_type_ptr)NULL,           \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func4(name, rtp, a1tp, a2tp, a3tp, a4tp)    \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), (a_type_ptr)NULL,       \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
+                             concat(a4tp,_type), (a_type_ptr)NULL,           \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func5(name, rtp, a1tp, a2tp, a3tp, a4tp, a5tp)     \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
+                             concat(a4tp,_type), concat(a5tp,_type),         \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func5(name,rtp,a1tp,a2tp,a3tp,a4tp,a5tp)    \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
+                             concat(a4tp,_type), concat(a5tp,_type),         \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func6(name,rtp,a1tp,a2tp,a3tp,a4tp,a5tp,a6tp)      \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
-                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
-                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
-                             edg_concat(a6tp,_type), /*is_varargs=*/FALSE);
+                             concat(rtp,_type), concat(a1tp,_type),          \
+                             concat(a2tp,_type), concat(a3tp,_type),         \
+                             concat(a4tp,_type), concat(a5tp,_type),         \
+                             concat(a6tp,_type), /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_real_math_funcs0(name)                             \
   enter_gnu_builtin_func0(name, double);                                     \
-  enter_gnu_builtin_func0(edg_concat(name,f), floating);                     \
-  enter_gnu_builtin_func0(edg_concat(name,l), long_double)
+  enter_gnu_builtin_func0(concat(name,f), floating);                         \
+  enter_gnu_builtin_func0(concat(name,l), long_double)
 #define enter_gnu_builtin_real_math_funcs1(name)                             \
   enter_gnu_builtin_func1(name, double, double);                             \
-  enter_gnu_builtin_func1(edg_concat(name,f), floating, floating);           \
-  enter_gnu_builtin_func1(edg_concat(name,l), long_double, long_double)
+  enter_gnu_builtin_func1(concat(name,f), floating, floating);               \
+  enter_gnu_builtin_func1(concat(name,l), long_double, long_double)
 #define enter_gnu_builtin_real_math_funcs2(name)                             \
   enter_gnu_builtin_func2(name, double, double, double);                     \
-  enter_gnu_builtin_func2(edg_concat(name,f), floating, floating, floating); \
-  enter_gnu_builtin_func2(edg_concat(name,l), long_double, long_double,      \
+  enter_gnu_builtin_func2(concat(name,f), floating, floating, floating);     \
+  enter_gnu_builtin_func2(concat(name,l), long_double, long_double,          \
                           long_double)
 #if C99_IL_EXTENSIONS_SUPPORTED
 #if LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
@@ -395,58 +381,58 @@ The code is kept considerably more compact by using the following macros.
    back end to determine which builtin functions need to be declared. */
 #define make_gnu_builtin_func1(name, rtp, a1tp)                              \
   make_gnu_builtin_function(bfk_prefix(name),                                \
-                            edg_concat(rtp,_type), edg_concat(a1tp,_type),   \
+                            concat(rtp,_type), concat(a1tp,_type),           \
                             (a_type_ptr)NULL, (a_type_ptr)NULL,              \
                             (a_type_ptr)NULL, (a_type_ptr)NULL,              \
                             (a_type_ptr)NULL, /*is_varargs=*/FALSE)
 #define make_gnu_builtin_func2(name, rtp, a1tp, a2tp)                        \
   make_gnu_builtin_function(bfk_prefix(name),                                \
-                            edg_concat(rtp,_type), edg_concat(a1tp,_type),   \
-                            edg_concat(a2tp,_type), (a_type_ptr)NULL,        \
+                            concat(rtp,_type), concat(a1tp,_type),           \
+                            concat(a2tp,_type), (a_type_ptr)NULL,            \
                             (a_type_ptr)NULL, (a_type_ptr)NULL,              \
                             (a_type_ptr)NULL, /*is_varargs=*/FALSE)
 #define enter_gnu_builtin_complex_to_real_funcs(name)                        \
   make_gnu_builtin_func1(name, double, complex_double)->                     \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func1(edg_concat(name,f), floating, complex_float)->      \
+  make_gnu_builtin_func1(concat(name,f), floating, complex_float)->          \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func1(edg_concat(name,l), long_double,                    \
+  make_gnu_builtin_func1(concat(name,l), long_double,                        \
                          complex_long_double)->                              \
                                          builtin_using_complex_type = TRUE
 #define enter_gnu_builtin_complex_math_funcs1(name)                          \
   make_gnu_builtin_func1(name, complex_double, complex_double)->             \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func1(edg_concat(name,f), complex_float, complex_float)-> \
+  make_gnu_builtin_func1(concat(name,f), complex_float, complex_float)->     \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func1(edg_concat(name,l), complex_long_double,            \
+  make_gnu_builtin_func1(concat(name,l), complex_long_double,                \
                          complex_long_double)->                              \
                                          builtin_using_complex_type = TRUE
 #define enter_gnu_builtin_complex_math_funcs2(name)                          \
   make_gnu_builtin_func2(name, complex_double,                               \
                          complex_double, complex_double)->                   \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func2(edg_concat(name,f),                                 \
+  make_gnu_builtin_func2(concat(name,f),                                     \
                          complex_float, complex_float, complex_float)->      \
                                          builtin_using_complex_type = TRUE;  \
-  make_gnu_builtin_func2(edg_concat(name,l), complex_long_double,            \
+  make_gnu_builtin_func2(concat(name,l), complex_long_double,                \
                          complex_long_double, complex_long_double)->         \
                                          builtin_using_complex_type = TRUE
 #else /* !(LOWER_COMPLEX && BACK_END_IS_C_GEN_BE) */
 #define enter_gnu_builtin_complex_to_real_funcs(name)                        \
   enter_gnu_builtin_func1(name, double, complex_double);                     \
-  enter_gnu_builtin_func1(edg_concat(name,f), floating, complex_float);      \
-  enter_gnu_builtin_func1(edg_concat(name,l), long_double, complex_long_double)
+  enter_gnu_builtin_func1(concat(name,f), floating, complex_float);          \
+  enter_gnu_builtin_func1(concat(name,l), long_double, complex_long_double)
 #define enter_gnu_builtin_complex_math_funcs1(name)                          \
   enter_gnu_builtin_func1(name, complex_double, complex_double);             \
-  enter_gnu_builtin_func1(edg_concat(name,f), complex_float, complex_float); \
-  enter_gnu_builtin_func1(edg_concat(name,l), complex_long_double,           \
+  enter_gnu_builtin_func1(concat(name,f), complex_float, complex_float);     \
+  enter_gnu_builtin_func1(concat(name,l), complex_long_double,               \
                           complex_long_double)
 #define enter_gnu_builtin_complex_math_funcs2(name)                          \
   enter_gnu_builtin_func2(name, complex_double,                              \
                           complex_double, complex_double);                   \
-  enter_gnu_builtin_func2(edg_concat(name,f),                                \
+  enter_gnu_builtin_func2(concat(name,f),                                    \
                           complex_float, complex_float, complex_float);      \
-  enter_gnu_builtin_func2(edg_concat(name,l), complex_long_double,           \
+  enter_gnu_builtin_func2(concat(name,l), complex_long_double,               \
                           complex_long_double, complex_long_double)
 #endif /* LOWER_COMPLEX && BACK_END_IS_C_GEN_BE */
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
@@ -457,12 +443,12 @@ The code is kept considerably more compact by using the following macros.
 #if LONG_LONG_ALLOWED
 #define enter_gnu_builtin_bit_count_funcs(name)                              \
   enter_gnu_builtin_func1(name, int, unsigned);                              \
-  enter_gnu_builtin_func1(edg_concat(name,l), int, unsigned_long);           \
-  enter_gnu_builtin_func1(edg_concat(name,ll), int, unsigned_long_long)
+  enter_gnu_builtin_func1(concat(name,l), int, unsigned_long);               \
+  enter_gnu_builtin_func1(concat(name,ll), int, unsigned_long_long)
 #else /* !LONG_LONG_ALLOWED */
 #define enter_gnu_builtin_bit_count_funcs(name)                              \
   enter_gnu_builtin_func1(name, int, unsigned);                              \
-  enter_gnu_builtin_func1(edg_concat(name,l), int, unsigned_long);
+  enter_gnu_builtin_func1(concat(name,l), int, unsigned_long);
 #endif /* LONG_LONG_ALLOWED */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
@@ -2456,12 +2442,7 @@ Enter the standard predeclared functions for GCC.
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 }  /* enter_gnu_predeclared_functions */
 
-#undef edg_concat_impl
-#undef edg_concat
 #undef bfk_prefix
-#ifdef bfkedg_concat
-#undef bfkedg_concat
-#endif /* bfkedg_concat */
 #undef enter_gnu_builtin_func0
 #undef enter_gnu_builtin_vararg_func0
 #undef enter_gnu_builtin_func1

@@ -18184,7 +18184,7 @@ from the primary source file name in the IL information.
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);
-  /* Complete initialization (based on il_header that has been read). */
+  /* Complete the initialization (based on il_header contents). */
   standalone_utility_late_init();
   /* Initialize. */
   init_cp_gen_be();
