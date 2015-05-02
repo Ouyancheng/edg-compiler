@@ -5117,6 +5117,11 @@ file.
 #else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
   comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
 #endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
+#if defined(COROUTINES_ALLOWED)
+  define_numeric_valued_macro(COROUTINES_ALLOWED);
+#else /* !defined(COROUTINES_ALLOWED) */
+  comment_undefined_macro_name(COROUTINES_ALLOWED);
+#endif /* defined(COROUTINES_ALLOWED) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */
