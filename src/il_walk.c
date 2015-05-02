@@ -3479,8 +3479,8 @@ as specified in the control block.
       if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
       }  /* if */
-#endif /* COROUTINES_ALLOWED */
       break;
+#endif /* COROUTINES_ALLOWED */
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);
       if (innermost_function_scope != NULL &&

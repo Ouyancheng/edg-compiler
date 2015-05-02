@@ -1217,6 +1217,16 @@ extern int fileno(FILE *);
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
 /*lint -esym(755,concat)*/
+#if !COROUTINES_ALLOWED
+/*lint -esym(769,ec_yield_in_special_member)*/
+/*lint -esym(769,ec_yield_in_main)*/
+/*lint -esym(769,ec_yield_in_catch)*/
+/*lint -esym(769,ec_yield_in_constexpr_function)*/
+/*lint -esym(769,ec_await_no_matching_overload)*/
+/*lint -esym(769,ec_await_undefined_identifier)*/
+/*lint -esym(769,ec_await_no_eventual_value)*/
+/*lint -esym(769,ec_special_class_template_not_found)*/
+#endif /* !COROUTINES_ALLOWED */
 
 #endif /* ifndef LINT_H */
 
