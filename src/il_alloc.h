@@ -232,6 +232,10 @@ extern an_accessible_base_class_ptr alloc_accessible_base_class(
 
 extern a_handler_ptr alloc_handler(void);
 
+#if COROUTINES_ALLOWED
+extern a_coroutine_descr_ptr alloc_coroutine_descr(void);
+#endif /* COROUTINES_ALLOWED */
+
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);
 

@@ -1120,6 +1120,21 @@ EXTERN a_boolean
 			/* TRUE if C++11-style opaque enumeration declarations
 			   (like "enum B: char;") should be accepted. */
 
+#if COROUTINES_ALLOWED
+EXTERN a_boolean
+		coroutines_enabled;
+			/* TRUE if a coroutine facility like the one proposed
+			   in the C++ standardization committee's paper N4286
+			   should be accepted. */
+
+EXTERN a_boolean
+		coroutine_keywords_suppressed;
+			/* TRUE if the coroutine keywords "await" and "yield"
+			   (the latter is contextual) should not be recognized
+			   even when coroutines are enabled ("__await" and
+			   "__yield" remain as alternatives in that case). */
+#endif /* COROUTINES_ALLOWED */
+
 EXTERN a_boolean
 		lambdas_enabled;
 			/* TRUE if C++11 lambdas should be accepted in C++. */

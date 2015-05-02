@@ -1780,6 +1780,13 @@ Return TRUE if it is a ranged-based-for, FALSE if it is not.
                       /*cache_tokens=*/TRUE);
   check_assertion(curr_token == tok_for);
   (void)get_token();
+#if COROUTINES_ALLOWED
+  if (curr_token == tok_await) {
+    /* The await token actually implies a range-based-for statement, but it
+       doesn't hurt to just ignore it for disambiguation purposes. */
+    (void)get_token();
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   if (curr_token == tok_lparen) {
     a_token_set_array	stop_token_array;
     (void)get_token();

@@ -34,6 +34,9 @@ statements.c -- Scanning of statements.
 #include "statements.h"
 #include "macro.h"
 
+#if COROUTINES_ALLOWED
+#include "func_def.h"
+#endif /* COROUTINES_ALLOWED */
 
 static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container;
@@ -1767,7 +1770,12 @@ the current statement sequence.
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
-  } else if (kind == (a_statement_kind)stmk_return) {
+  } else if (kind == (a_statement_kind)stmk_return
+#if COROUTINES_ALLOWED
+             || kind == (a_statement_kind)stmk_coroutine_return
+             || kind == (a_statement_kind)stmk_yield
+#endif /* COROUTINES_ALLOWED */
+                                                    ) {
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1797,6 +1805,10 @@ the current statement sequence.
 #if GNU_EXTENSIONS_ALLOWED
       kind == (a_statement_kind)stmk_assigned_goto ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+      kind == (a_statement_kind)stmk_coroutine_return ||
+      kind == (a_statement_kind)stmk_yield ||
+#endif /* COROUTINES_ALLOWED */
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
@@ -4706,6 +4718,12 @@ The affinity can be an expression or the keyword "continue".
   check_assertion_str(processing_upc_forall || curr_token == tok_for,
                       "for_statement: expected for");
   (void)get_token();
+#if COROUTINES_ALLOWED
+  if (is_range_based_for && curr_token == tok_await) {
+    rbflp->use_await = TRUE;
+    (void)get_token();
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
@@ -5917,11 +5935,11 @@ static void return_statement(void)
 Scan a "return" statement and add it to the current statement sequence.
 The syntax is:
 
-3.6.6  jump-statement:
-		return expression    ;
-                                 opt
-
-See also 3.6.6.4.
+     jump-statement:
+          return expression    ;
+                           opt
+          return brace-init-list ;  // C++11 only.
+                 
 */
 {
   a_statement_ptr    sp;
@@ -5992,7 +6010,19 @@ See also 3.6.6.4.
     /* See if the optional expression is present. */
     if (!expr_present) {
       /* The expression is missing. */
-      check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
+#if COROUTINES_ALLOWED
+      if (rout->is_coroutine) {
+        a_coroutine_descr_ptr cdp = get_coroutine_descr(rout);
+        if (cdp->eventual_value) {
+          return_expr = make_coroutine_result_expression(
+                              (an_arg_list_elem_ptr)NULL, /*is_return=*/TRUE);
+        }  /* if */
+      } else
+#endif /* COROUTINES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
+      }  /* if */
     } else {
       /* The expression is present. */
       a_boolean  return_type_checked = FALSE;
@@ -6114,8 +6144,13 @@ See also 3.6.6.4.
     sp = add_statement((a_statement_kind)stmk_expr);
   } else {
     /* Allocate the return statement. */
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-                                   &return_pos);
+    a_statement_kind  kind = (a_statement_kind)stmk_return;
+#if COROUTINES_ALLOWED
+    if (rout->is_coroutine) {
+      kind = (a_statement_kind)stmk_coroutine_return;
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
+    sp = add_statement_at_stmt_pos(kind, &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6186,6 +6221,104 @@ See also 3.6.6.4.
   db_exit();
 }  /* return_statement */
 
+#if COROUTINES_ALLOWED
+
+static a_boolean in_catch_clause(void)
+/*
+*/
+{
+  a_boolean  result = FALSE;
+  int        depth = depth_stmt_stack;
+
+  for (; depth > 0; --depth) {
+    if (struct_stmt_stack[depth].is_catch_clause) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* in_catch_clause */
+
+
+static void yield_statement(void)
+/*
+Scan a "yield" statement in a C++ coroutine.  The following forms
+are possible:
+	yield <expr> ;
+	yield { ... } ;
+Add a corresponding stmk_yield statement to the current statement sequence.
+*/
+{
+  an_expr_node_ptr   result_expr = NULL;
+  a_routine_ptr      rout;
+  a_source_position  stmt_pos;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+                     src_seq_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  check_for_unreachable_code();
+  /* Save the position of the beginning of the yield statement. */
+  stmt_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Skip the "yield" (or "__yield") token. */
+  check_assertion(curr_token == tok_yield);
+  (void)get_token();
+  /* Get a pointer to the current routine entry, and its return type. */
+  rout = current_routine_entry();
+  add_stop_token(tok_semicolon);
+  if (special_kind_is(rout, sfk_constructor) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      special_kind_is(rout, sfk_static_constructor) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      special_kind_is(rout, sfk_destructor)) {
+    pos_error(ec_yield_in_special_member, &stmt_pos);
+  } else if (rout == il_header.main_routine) {
+    pos_sy_error(ec_yield_in_main, &stmt_pos, symbol_for(rout));
+  } else if (rout->is_constexpr) {
+    pos_error(ec_yield_in_constexpr_function, &stmt_pos);
+  } else if (in_catch_clause()) {
+    pos_error(ec_yield_in_catch, &stmt_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_or_cx_enabled && inside_finally_clause()) {
+    /* This is a return statement inside of a finally block. */
+    pos_error(ec_return_from_finally, &stmt_pos);
+    discard_curr_construct_pragmas();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    src_seq_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  /* Scan the operand (if any) and produce a corresponding call to the
+     appropriate member of the coroutine's promise. */
+  result_expr = scan_yield_operand();
+  /* Allocate the statement. */
+  a_statement_ptr  sp = add_statement_at_stmt_pos(stmk_yield, &stmt_pos);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  /* Put the expression into the statement. */
+  sp->expr = result_expr;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and ignore the final semicolon. */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+}  /* yield_statement */
+
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean conflicting_switch_case_ranges(a_switch_case_entry_ptr  scep1,
@@ -6726,19 +6859,19 @@ rescan_statement:
       if (!strict_ansi_mode) can_appear_in_constexpr_body = TRUE;
       break;
     case tok_if:
-      /* If statement (3.6.4). */
+      /* If statement. */
       if_statement();
       break;
     case tok_switch:
-      /* Switch statement (3.6.4). */
+      /* Switch statement. */
       switch_statement();
       break;
     case tok_while:
-      /* While statement (3.6.5). */
+      /* While statement. */
       while_statement();
       break;
     case tok_do:
-      /* do .. while statement (3.6.5). */
+      /* do .. while statement. */
       do_statement();
       break;
 #if UPC_EXTENSIONS_ALLOWED
@@ -6748,7 +6881,7 @@ rescan_statement:
       /*FALLTHROUGH*/
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
-      /* For statement (3.6.5) and range-based-for ([stmt.ranged]). */
+      /* For statement and range-based-for ([stmt.ranged]). */
       for_statement();
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6759,20 +6892,20 @@ rescan_statement:
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_goto:
-      /* Goto statement (3.6.6). */
+      /* Goto statement. */
       goto_statement();
       can_appear_in_constexpr_body = FALSE;
       break;
     case tok_continue:
-      /* Continue statement (3.6.6). */
+      /* Continue statement. */
       continue_statement();
       break;
     case tok_break:
-      /* Break statement (3.6.6). */
+      /* Break statement. */
       break_statement();
       break;
     case tok_return:
-      /* Return statement (3.6.6). */
+      /* Return statement. */
       return_statement();
       if (current_routine_entry()->is_constexpr &&
           !special_kind_is(current_routine_entry(), sfk_constructor)) {
@@ -6780,9 +6913,15 @@ rescan_statement:
         can_appear_in_constexpr_body = TRUE;
       }  /* if */
       break;
+#if COROUTINES_ALLOWED
+    case tok_yield:
+yield_case:
+      yield_statement();
+      break;
+#endif /* COROUTINES_ALLOWED */
     case tok_asm:
     case tok_microsoft_asm:
-      /* Asm "declaration" (ARM 7.3) or Microsoft mode asm block. */
+      /* Asm "declaration" or Microsoft mode asm block. */
       asm_statement();
       can_appear_in_constexpr_body = FALSE;
       break;
@@ -6814,7 +6953,7 @@ rescan_statement:
 #if MICROSOFT_EXTENSIONS_ALLOWED
 default_label_case:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Default label (3.6.1). */
+      /* Default label. */
       default_label();
       prev_was_label = TRUE;
       get_another_statement = TRUE;
@@ -6829,22 +6968,30 @@ default_label_case:
           !locator_for_curr_id.is_template_id &&
           !locator_for_curr_id.is_conversion_name &&
           !locator_for_curr_id.is_operator_name &&
-          !is_error_locator(locator_for_curr_id) &&
-          next_token() == tok_colon) {
-        /* This is a label definition.  In Microsoft mode, it might be the
-           "default" label of a switch statement. */
+          !is_error_locator(locator_for_curr_id)) {
+        a_token_kind  next_tok = next_token();
+        if (next_tok == tok_colon) {
+          /* This is a label definition.  In Microsoft mode, it might be the
+             "default" label of a switch statement. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version >= 1400 &&
-            check_context_sensitive_keyword(tok_default, "default")) {
-          goto default_label_case;
-        } else
+          if (microsoft_mode && microsoft_version >= 1400 &&
+              check_context_sensitive_keyword(tok_default, "default")) {
+            goto default_label_case;
+          } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          label_definition();
-          prev_was_label = TRUE;
-          get_another_statement = TRUE;
-          break;
+          /* Do not insert code here. */
+          {
+            label_definition();
+            prev_was_label = TRUE;
+            get_another_statement = TRUE;
+            break;
+          }  /* if */
+#if COROUTINES_ALLOWED
+        } else if (coroutines_enabled && next_tok != tok_lparen &&
+                   !coroutine_keywords_suppressed &&
+                   check_context_sensitive_keyword(tok_yield, "yield")) {
+          goto yield_case;
+#endif /* COROUTINES_ALLOWED */
         }  /* if */
       }  /* if */
       /* Other cases are expression statements. */

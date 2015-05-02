@@ -720,6 +720,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_gnu_routine_supplement,
                         /* a_gnu_routine_supplement */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if COROUTINES_ALLOWED
+  iek_coroutine_descr,	/* a_coroutine_descr */
+#endif /* COROUTINES_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -881,6 +884,9 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /* iek_gnu_routine_supplement */        "gnu-routine-supplement",
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if COROUTINES_ALLOWED
+/* iek_coroutine_descr */		"coroutine-descr",
+#endif /* COROUTINES_ALLOWED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -1275,6 +1281,10 @@ typedef enum /*a_token_kind*/ {
   tok_noreturn,
   tok_builtin_complex,
   tok_c11_generic,
+#if COROUTINES_ALLOWED
+  tok_yield,
+  tok_await,
+#endif /* COROUTINES_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1440,6 +1450,9 @@ EXTERN a_const_char
    "_Noreturn",
    "__builtin_complex",
    "_Generic",
+#if COROUTINES_ALLOWED
+   "__yield", "__await",
+#endif /* COROUTINES_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13938,6 +13951,14 @@ typedef struct a_routine {
   a_bit_field	contains_generic_lambda:1;
 			/* TRUE if the routine contains a generic lambda
 			   (directly or in another lambda or local class). */
+#if COROUTINES_ALLOWED
+  a_bit_field	is_coroutine:1;
+			/* TRUE if the definition of this function is
+			   resumable (i.e., it is a coroutine).   Additional
+			   information is recorded in the first statement of
+			   the function's top-level compound statement (a
+			   stmk_coroutine entry). */
+#endif /* COROUTINES_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -14459,6 +14480,9 @@ enum an_expr_node_kind_tag {
   enk_braced_init_list,	/* A C++11 brace-enclosed initializer list. */
   enk_c11_generic,	/* Used to represent a C11 _Generic expression
 			   selection. */
+#if COROUTINES_ALLOWED
+  enk_await,		/* An "await" operation. */
+#endif /* COROUTINES_ALLOWED */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -16018,6 +16042,20 @@ typedef struct an_expr_node {
 			/* The selected expression.  This points to a node in
 			   the operands list. */
     } c11_generic;
+#if COROUTINES_ALLOWED
+    /* When kind == enk_await: */
+    struct {
+      an_expr_node_ptr
+		operand;
+			/* The operand of the await operator. */
+      an_expr_node_ptr
+		ready_suspend_resume;
+			/* A list of three expressions representing the calls
+			   to await_ready, await_suspend, and await_resume
+			   needed to implement the "await" operation.  The
+			   operand should be evaluated first. */
+    } await_info;
+#endif /* COROUTINES_ALLOWED */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
@@ -16057,7 +16095,13 @@ enum a_statement_kind_tag {
   stmk_while,		/* Loop, test at top. */
   stmk_goto,		/* Goto. */
   stmk_label,		/* Code label. */
-  stmk_return,		/* Return. */
+  stmk_return,		/* Return (not for a coroutine). */
+#if COROUTINES_ALLOWED
+  stmk_coroutine,	/* Coroutine information. */
+  stmk_coroutine_return,
+			/* Return (for a coroutine). */
+  stmk_yield,		/* Yield. */
+#endif /* COROUTINES_ALLOWED */
   stmk_block,		/* A list of statements, possibly one with its
 			   own declarations and scope. */
   stmk_end_test_while,	/* Loop, test at bottom. */
@@ -16262,6 +16306,11 @@ typedef struct a_range_based_for_loop {
   an_expr_node_ptr
                 incr_call_expr;
                         /* Expression for the "++__begin" increment. */
+#if COROUTINES_ALLOWED
+  a_bit_field	use_await:1;
+			/* TRUE in the case of a "for await (...)"
+			   statement. */
+#endif /* COROUTINES_ALLOWED */
 } a_range_based_for_loop;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16647,6 +16696,28 @@ typedef struct a_microsoft_try_supplement {
 } a_microsoft_try_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if COROUTINES_ALLOWED
+
+/*
+Description of a coroutine definition (pointed to by an stmk_coroutine
+statement).
+*/
+typedef struct a_coroutine_descr *a_coroutine_descr_ptr;
+typedef struct a_coroutine_descr {
+  a_type_ptr
+		traits;
+			/* The std::experimental::resumable_traits instance
+			   associated with this coroutine. */
+  a_variable_ptr
+		promise;
+			/* A placeholder variable representing the promise
+			   for the coroutine invocation. */
+  a_bit_field	eventual_value:1;
+			/* TRUE if the promise type has a member function
+			   set_result. */
+} a_coroutine_descr;
+
+#endif /* COROUTINES_ALLOWED */
 
 typedef struct a_statement {
   /* Definition of an executable statement. */
@@ -16716,6 +16787,9 @@ typedef struct a_statement {
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == stmk_expr or stmk_empty, no variant fields. */
+#if COROUTINES_ALLOWED
+    /* Likewise for stmk_coroutine_return and stmk_yield. */
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16843,6 +16917,15 @@ typedef struct a_statement {
 			   dynamic initialization entry that initializes the
 			   return value.  NULL otherwise.  When this is
 			   non-NULL, expr is NULL. */
+#if COROUTINES_ALLOWED
+    /* When kind == stmk_coroutine: */
+    struct {
+      a_coroutine_descr_ptr
+		descr;
+			/* A pointer to an entry describing various key
+			   entities and operations in the coroutine. */
+    } coroutine;
+#endif /* COROUTINES_ALLOWED */
     /* When kind == stmk_block: */
     struct {
       a_statement_ptr
@@ -19245,6 +19328,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   sizeof(a_gnu_routine_supplement),
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if COROUTINES_ALLOWED
+  sizeof(a_coroutine_descr),
+#endif /* COROUTINES_ALLOWED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

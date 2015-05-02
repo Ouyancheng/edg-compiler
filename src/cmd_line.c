@@ -2010,6 +2010,9 @@ static a_flag_name
 #endif /*FIXME*/
   { "constexpr_implies_const", &constexpr_implies_const },
   { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
+#if COROUTINES_ALLOWED
+  { "coroutines", &coroutines_enabled },
+#endif /* COROUTINES_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
 
@@ -10958,6 +10961,10 @@ variables declared in cmd_line.h.
   define_portable_feature_test_macros = TRUE;
   sized_deallocation_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
+#if COROUTINES_ALLOWED
+  coroutines_enabled = FALSE;
+  coroutine_keywords_suppressed = FALSE;
+#endif /* COROUTINES_ALLOWED */
 }  /* cmd_line_static_var_init */
 
 

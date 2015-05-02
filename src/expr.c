@@ -29,6 +29,9 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
+#if COROUTINES_ALLOWED
+#include "func_def.h"
+#endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -96,6 +99,11 @@ static a_boolean process_runtime_checked_safe_cast(
                                             a_source_position  *start_position,
                                             a_cast_source_form source_form);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+static void scan_await_expression(a_rescan_control_block *rcblock,
+                                  an_operand             *result);
+#endif /* COROUTINES_ALLOWED */
+
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
 #define scan_expr(result, prec_level, local_options)                  \
@@ -31390,6 +31398,12 @@ handle_identifier:
                                  &local_result);
       break;
 
+#if COROUTINES_ALLOWED
+    case tok_await:
+      scan_await_expression((a_rescan_control_block *) NULL, &local_result);
+      break;
+#endif /* COROUTINES_ALLOWED */
+
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_localsizeof:
     case tok_upc_elemsizeof:
@@ -33782,15 +33796,14 @@ operation implementing the allocation of the array and its initialization.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_symbol_ptr look_up_enhanced_for_member_function(
-                                                     a_type_ptr       type,
-                                                     a_const_char     *name,
-                                                     a_symbol_locator *locator)
+static a_symbol_ptr look_up_named_member_function(a_type_ptr       type,
+                                                  a_const_char     *name,
+                                                  a_symbol_locator *locator)
 /*
 This is a helper function used when parsing an enhanced-for (i.e., a
 range-based-for or a for-each) that looks up a function name (name) within a
 class scope (type) or base class.  If a member function is found, the
-corresponding symbol is returned and *locator is set to to the symbol locator;
+corresponding symbol is returned and *locator is set to the symbol locator;
 otherwise, NULL is returned.
 */
 {
@@ -33805,7 +33818,7 @@ otherwise, NULL is returned.
     symbol = NULL;
   }  /* if */
   return symbol;
-}  /* look_up_enhanced_for_member_function */
+}  /* look_up_named_member_function */
 
 
 static a_boolean has_range_based_for_begin_or_end_member(a_type_ptr type)
@@ -33817,8 +33830,8 @@ successful within the class scope; returns FALSE otherwise.
   a_boolean        passed = FALSE;
   a_symbol_locator locator;
   
-  if (look_up_enhanced_for_member_function(type, "begin", &locator) != NULL ||
-      look_up_enhanced_for_member_function(type, "end", &locator) != NULL) {
+  if (look_up_named_member_function(type, "begin", &locator) != NULL ||
+      look_up_named_member_function(type, "end", &locator) != NULL) {
     passed = TRUE;
   }  /* if */
   return passed;
@@ -33973,7 +33986,7 @@ a for-each statement (otherwise it's a range-based-for statement).
     bound_function_selector->selector_is_object_pointer = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  symbol = look_up_enhanced_for_member_function(type, function_name, &locator);
+  symbol = look_up_named_member_function(type, function_name, &locator);
   if (symbol == NULL) {
     /* Look up failed. */
     pos_stty_error(is_for_each ? ec_for_each_missing_function :
@@ -34184,11 +34197,101 @@ variable.
 }  /* iterator_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
 
+static void add_await_to_operand(an_operand              *operand,
+                                 a_source_position       *pos,
+                                 a_token_sequence_number tok_seq_number,
+                                 an_operand              *result)
+/*
+If *operand represents an expression "X", produce an operand in *result
+representing "await X".  Use pos as the position for diagnostics, and
+tok_seq_number to decide which token position to look up associated
+functions (like await_resume) from.
+*/
+{
+  an_operand        ready_operand, ready_call;
+  an_operand        suspend_operand, suspend_call;
+  an_operand        resume_operand, resume_call;
+  a_type_ptr        utp = skip_typerefs(operand->type);
+  a_symbol_locator  loc;
+  a_boolean         temp_init_used;
+  an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_await);
+
+  clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
+                &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
+  clone_operand(&resume_operand, &ready_operand, /*vars_can_change=*/TRUE,
+                &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
+  clone_operand(&resume_operand, &suspend_operand, /*vars_can_change=*/TRUE,
+                &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
+  if (is_immediate_class_type(utp) &&
+      (look_up_named_member_function(utp, "await_ready", &loc) != NULL ||
+       look_up_named_member_function(utp, "await_suspend", &loc) != NULL ||
+       look_up_named_member_function(utp, "await_resume", &loc) != NULL)) {
+    /* Call the await_ready, await_suspend, and await_resume member
+       functions. */
+    call_named_member_function(&ready_operand, "await_ready",
+                               (an_arg_list_elem_ptr)NULL,
+                               &ready_operand, &ready_call);
+#if /*FIXME: _Resumable_handle arg */0
+    call_named_member_function(&suspend_operand, "await_suspend",
+                               (an_arg_list_elem_ptr)NULL,
+                               &suspend_operand, &suspend_call);
+#endif /*FIXME*/
+    call_named_member_function(&resume_operand, "await_resume",
+                               (an_arg_list_elem_ptr)NULL,
+                               &resume_operand, &resume_call);
+  } else {
+    /* Call await_ready, await_suspend, and await_resume functions found by
+       argument-dependent lookup. */
+    an_arg_list_elem_ptr  alep;
+    alep = alloc_arg_list_elem_for_operand(&ready_operand);
+    call_adl_named_function("await_ready", alep, pos, tok_seq_number,
+                            ec_await_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_await_undefined_identifier,
+                            &ready_call, (an_expr_node_ptr*)NULL);
+    free_arg_list(alep);
+#if /*FIXME: _Resumable_handle arg */0
+    alep = alloc_arg_list_elem_for_operand(&suspend_operand);
+    call_adl_named_function("await_suspend", alep, pos, tok_seq_number,
+                            ec_await_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_await_undefined_identifier,
+                            &suspend_call, (an_expr_node_ptr*)NULL);
+    free_arg_list(alep);
+#endif /*FIXME*/
+    alep = alloc_arg_list_elem_for_operand(&resume_operand);
+    call_adl_named_function("await_resume", alep, pos, tok_seq_number,
+                            ec_await_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_await_undefined_identifier,
+                            &resume_call, (an_expr_node_ptr*)NULL);
+    free_arg_list(alep);
+  }  /* if */
+  node->type = resume_call.type;
+  node->variant.await_info.operand = make_node_from_operand(operand);
+  node->variant.await_info.ready_suspend_resume =
+                                          make_node_from_operand(&ready_call);
+  node->variant.await_info.ready_suspend_resume->next =
+#if /*FIXME: _Resumable_handle arg */0
+                                        make_node_from_operand(&suspend_call);
+  node->variant.await_info.ready_suspend_resume->next->next =
+#endif /*FIXME*/
+                                         make_node_from_operand(&resume_call);
+  make_expression_operand(node, result);
+}  /* add_await_to_operand */
+
+#endif /* COROUTINES_ALLOWED */
+
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/ /* use_await is not used in some configurations. */
+#endif /* !COROUTINES_ALLOWED */
 static a_boolean generate_enhanced_for_ne_and_incr_expressions(
                                        a_variable_ptr          begin_var,
                                        a_variable_ptr          end_var,
                                        a_boolean               is_for_each,
+                                       a_boolean               use_await,
                                        a_source_position       *expr_position,
                                        a_token_sequence_number tok_seq_number,
                                        an_expr_node_ptr        *ne_call_expr,
@@ -34219,6 +34322,10 @@ map directly to i, cend, INIT, and END, respectively in the for-each case.
 This routine creates expressions for "__begin != __end" and "++__begin" and
 returns them (in *ne_call_expr and *incr_call_expr respectively).  The
 initialization for the iterator is handled by the caller.
+
+If use_await is TRUE, then the evaluation of begin-expr and ++__begin are
+replaced by await begin-expr (handled elsewhere) and await ++__begin (handled
+here), respectively.
 
 begin_var and end_var are the __begin/i and __end/cend variables for
 range-based-for and for-each statements respectively.  *ne_call_expr and
@@ -34336,6 +34443,11 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                  prvalue_type(operand1.type), &operand);
     }  /* if */
   }  /* if */
+#if COROUTINES_ALLOWED
+  if (use_await) {
+    add_await_to_operand(&operand, expr_position, tok_seq_number, &operand);
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   if (passed) {
     if (is_error_operand(&operand)) {
       passed = FALSE;
@@ -34371,13 +34483,20 @@ FALSE otherwise.
   an_operand          operand1, operand;
   a_boolean           processed, passed;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           use_await = FALSE;
 
   check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
   /* Generate the "__begin != __end" and "++__begin" expressions. */
+#if COROUTINES_ALLOWED
+  if (rbflp->use_await) {
+    use_await = TRUE;
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   passed = generate_enhanced_for_ne_and_incr_expressions(
                                                 rbflp->begin,
                                                 rbflp->end,
                                                 /*is_for_each=*/FALSE,
+                                                use_await,
                                                 expr_position,
                                                 tok_seq_number,
                                                 &rbflp->ne_call_expr,
@@ -34477,6 +34596,7 @@ previously created, needed to reactivate that scope.
                               felp->temporary_variable,
                               felp->variant.stl_array_pattern.end_variable,
                               /*is_for_each=*/TRUE,
+                              /*use_await=*/FALSE,
                               expr_position,
                               tok_seq_number,
                               &felp->variant.stl_array_pattern.ne_call_expr,
@@ -34556,12 +34676,16 @@ end_of_routine:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/ /* use_await is not used in some configurations. */
+#endif /* !COROUTINES_ALLOWED */
 static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         a_variable_ptr          selector_var,
                                         a_const_char            *function_name,
                                         a_boolean               is_for_each,
                                         a_source_position       *expr_position,
                                         a_token_sequence_number tok_seq_number,
+                                        a_boolean               use_await,
                                         a_variable_ptr          *loop_var,
                                         a_type_ptr              *type)
 /*
@@ -34579,6 +34703,9 @@ with the appropriate initializer) if an appropriate member function is
 found; otherwise issues an error message (and *loop_var is unmodified).
 Returns FALSE (without issuing any error messages) in the template
 dependent case.
+
+When use_await is TRUE, the "await" operator should be applied to the
+initializer of *loop_var.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -34597,6 +34724,12 @@ dependent case.
                                                tok_seq_number,
                                                (an_operand *)NULL,
                                                &member_call_operand)) {
+#if COROUTINES_ALLOWED
+    if (use_await) {
+      add_await_to_operand(&member_call_operand, &member_call_operand.position,
+                           tok_seq_number, &member_call_operand);
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
     /* Make the variable and initialize it from the expression just made. */
     *loop_var = alloc_temporary_variable(
                                make_unqualified_type(member_call_operand.type),
@@ -34628,10 +34761,10 @@ successful within the class scope; returns FALSE otherwise.
   a_boolean        passed = FALSE;
   a_symbol_locator locator;
   
-  if (look_up_enhanced_for_member_function(collection_type,
-                                           "begin", &locator) != NULL &&
-      look_up_enhanced_for_member_function(collection_type,
-                                           "end", &locator) != NULL) {
+  if (look_up_named_member_function(collection_type, "begin",
+                                    &locator) != NULL &&
+      look_up_named_member_function(collection_type, "end",
+                                    &locator) != NULL) {
     passed = TRUE;
   }  /* if */
   return passed;
@@ -34712,9 +34845,8 @@ set it to NULL.
     /* The collection type implements one of the IEnumerable interfaces,
        so the CLI collection pattern can be used. */
     result = TRUE;
-  } else if (look_up_enhanced_for_member_function(collection_type,
-                                                  "GetEnumerator",
-                                                  &locator) != NULL) {
+  } else if (look_up_named_member_function(collection_type, "GetEnumerator",
+                                           &locator) != NULL) {
     /* There is a GetEnumerator member function, so the type is eligible
        that way. */
     result = TRUE;
@@ -35292,6 +35424,7 @@ created, needed to reactivate that scope.
                                                     /*is_for_each=*/TRUE,
                                                     expr_position,
                                                     tok_seq_number,
+                                                    /*use_await=*/FALSE,
                                                     &cend_var,
                                                     &end_type)) {
     passed = FALSE;
@@ -35303,6 +35436,7 @@ created, needed to reactivate that scope.
                                                     /*is_for_each=*/TRUE,
                                                     expr_position,
                                                     tok_seq_number,
+                                                    /*use_await=*/FALSE,
                                                     &temp_var,
                                                     &begin_type)) {
     passed = FALSE;
@@ -36159,15 +36293,21 @@ issued and FALSE is returned.
 */
 {
   a_type_ptr        begin_type, end_type;
-  a_boolean         passed = TRUE;
+  a_boolean         passed = TRUE, add_await = FALSE;
 
   /* Make "__range.begin()". */
+#if COROUTINES_ALLOWED
+  if (rbflp->use_await) {
+    add_await = TRUE;
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   if (!make_enhanced_for_initializer_for_call_to_member_function(
                                                          rbflp->range,
                                                          "begin",
                                                          /*is_for_each=*/FALSE,
                                                          expr_position,
                                                          tok_seq_number,
+                                                         add_await,
                                                          &rbflp->begin,
                                                          &begin_type)) {
     passed = FALSE;
@@ -36179,6 +36319,7 @@ issued and FALSE is returned.
                                                          /*is_for_each=*/FALSE,
                                                          expr_position,
                                                          tok_seq_number,
+                                                         /*use_await=*/FALSE,
                                                          &rbflp->end,
                                                          &end_type)) {
     passed = FALSE;
@@ -36188,11 +36329,15 @@ issued and FALSE is returned.
 }  /* check_range_based_for_member_case */
 
 
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/ /* use_await is not used in some configurations. */
+#endif /* !COROUTINES_ALLOWED */
 static a_boolean create_range_based_for_variable_for_function_call(
                                         a_variable_ptr          range_var,
                                         a_const_char            *function_name,
                                         a_source_position       *expr_position,
                                         a_token_sequence_number tok_seq_number,
+                                        a_boolean               use_await,
                                         a_variable_ptr          *variable)
 /*
 This utility is used during processing of a range-based-for to create a
@@ -36206,19 +36351,16 @@ number of the range-based-for expression.  Returns TRUE
 was found; otherwise reports an error and returns FALSE (with *variable
 unmodified).  Note also that this routine will return FALSE (and not issue any
 errors) in the case where the expression is template dependent.
+
+When use_await is TRUE, the "await" operator should be applied to the
+initializer of *variable.
 */
 {
-  a_symbol_locator        locator;
-  a_symbol_ptr            symbol;
-  an_operand              range_operand, result;
-  an_expr_stack_entry     expr_stack_entry;
-  a_type_ptr              range_type;
-  a_boolean               passed = FALSE;
-  an_expr_node_ptr        argument_list;
-  an_operand              function_operand, dummy_bound_function_selector;
-  an_expr_node_ptr        func_call_node;
-  a_boolean               found_through_adl = FALSE;
-  an_arg_list_elem_ptr    arg_list = NULL;
+  an_operand            range_operand, result;
+  a_type_ptr            range_type;
+  a_boolean             passed = FALSE;
+  an_expr_node_ptr      func_call_node;
+  an_arg_list_elem_ptr  arg_list = NULL;
 
 
   range_type = range_var->type;
@@ -36226,71 +36368,37 @@ errors) in the case where the expression is template dependent.
     range_type = type_pointed_to(range_type);
   }  /* if */
   if (!is_error_type(range_type)) {
-    /* Perform a lookup in the associated namespaces (including std).
-       See core issue 1442 which clarifies that this is "pure ADL" (and
-       not a normal+ADL) lookup. */
-    clear_locator(&locator, &null_source_position);
-    (void)find_symbol(function_name, strlen(function_name), &locator);
-    symbol = make_dummy_undefined_symbol(locator.symbol_header,
-                                         &locator.source_position);
+    an_expr_stack_entry  expr_stack_entry;
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    /* Perform a lookup in the associated namespaces (including std) and call
+       the function found with given operand.  See core issue 1442 which
+       clarifies that this is "pure ADL" (and not a normal+ADL) lookup. */
     make_enhanced_for_expression_operand(range_var, &range_operand);
     arg_list = alloc_arg_list_elem_for_operand(&range_operand);
-    /* Determine which function will be called. */
-    if (select_and_prepare_to_call_overloaded_function(
-                                       symbol,
-                                       /*is_template_id=*/FALSE,
-                                       (a_template_arg_ptr)NULL,
-                                       /*have_selector=*/FALSE,
-                                       (an_operand *)NULL,
-                                       arg_list,
-                                       /*do_arg_dep_lookup=*/TRUE,
-                                       /*use_pure_arg_dep_lookup=*/TRUE,
-                                       /*use_std_for_arg_dep_lookup=*/TRUE,
-                                       /*try_surrogate_functions=*/FALSE,
-                                       /*is_property=*/FALSE,
-                                       /*compiler_generated=*/TRUE,
-                                       ec_range_based_for_no_matching_overload,
-                                       ec_ambiguous_overloaded_function,
-                                       ec_range_based_for_undefined_identifier,
-                                       (an_operand *)NULL,
-                                       expr_position,
-                                       tok_seq_number,
-                                       (a_source_position *)NULL,
-                                       &found_through_adl,
-                                       &function_operand,
-                                       &argument_list)) {
-      /* Generate the expression for the function call. */
-#ifdef _lint
-      /* We pass dummy_bound_function_selector rather than a null pointer
-         constant to avoid a spurious diagnostic by Gimpel lint. */
-#endif /* ifdef _lint */
-      assemble_function_call(&function_operand, 
-                             &dummy_bound_function_selector,
-                             argument_list,
-                             /*compiler_generated=*/TRUE,
-                             /*arg_dep_lookup_suppressed=*/FALSE,
-                             /*is_qualified_name=*/FALSE,
-                             found_through_adl,
-                             /*uses_operator_syntax=*/FALSE,
-                             expr_position,
-                             &result,
-                             &func_call_node);
-      if (func_call_node != NULL) {
-        /* Make the variable and initialize it with the result of the call
-           just made. */
-        *variable = alloc_temporary_variable(
-                                            make_unqualified_type(result.type),
-                                            /*force_static=*/FALSE);
-        set_variable_initializer(*variable, &result);
-        passed = TRUE;
-      }  /* if */
+    call_adl_named_function(function_name, arg_list, expr_position,
+                            tok_seq_number,
+                            ec_range_based_for_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_range_based_for_undefined_identifier,
+                            &result, &func_call_node);
+#if COROUTINES_ALLOWED
+    if (use_await) {
+      add_await_to_operand(&result, &result.position, tok_seq_number, &result);
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
+    if (func_call_node != NULL) {
+      /* Make the variable and initialize it with the result of the call
+         just made. */
+      *variable = alloc_temporary_variable(make_unqualified_type(result.type),
+                                           /*force_static=*/FALSE);
+      set_variable_initializer(*variable, &result);
+      passed = TRUE;
     }  /* if */
     pop_expr_stack();
+    free_arg_list(arg_list);
   }  /* if */
-  free_arg_list(arg_list);
   return passed;
 }  /* create_range_based_for_variable_for_function_call */
 
@@ -36314,13 +36422,19 @@ will return FALSE (and not issue any errors) in the case where the expression
 is template dependent.
 */
 {
-  a_boolean       passed = TRUE;
+  a_boolean       passed = TRUE, add_await = FALSE;
 
   /* Find a suitable "begin" function. */
+#if COROUTINES_ALLOWED
+  if (rbflp->use_await) {
+    add_await = TRUE;
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "begin",
                                                          expr_position,
                                                          tok_seq_number,
+                                                         add_await,
                                                          &rbflp->begin)) {
     passed = FALSE;
   }  /* if */
@@ -36329,6 +36443,7 @@ is template dependent.
                                                          "end",
                                                          expr_position,
                                                          tok_seq_number,
+                                                         /*add_await=*/FALSE,
                                                          &rbflp->end)) {
     passed = FALSE;
   }  /* if */
@@ -37144,6 +37259,61 @@ class (nullptr_t is fine too).
 }  /* check_vccorlib_ctor_return_expr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+
+an_expr_node_ptr make_coroutine_result_expression(
+                                              an_arg_list_elem_ptr  alep,
+                                              a_boolean             is_return)
+/*
+alep points to a representation of a "yield" or "return" operand in a
+coroutine.  For a yield statement, create and return an expression
+    _Pr.yield_value(_V)
+where _V is the expression or braced initializer just scanned, and _Pr is the
+variable recorded for the current routine's promise.  Similarly, create one of
+the following expressions for the various forms of return statements:
+    _Pr.set_result()     for "return ;"
+    _V, _Pr.set_result() for "return <expr> ;" where <expr> has type void
+    _Pr.set_result(_V)   otherwise
+*/
+{
+  an_expr_node_ptr      result, void_expr = NULL;
+  a_routine_ptr         curr_routine = current_routine_entry();
+  a_coroutine_descr_ptr cdp;
+  an_operand            selector_operand, call_operand;
+  a_source_position     pos, end_pos;
+
+  check_assertion(curr_routine->is_coroutine);
+  /* Use the position of the given operand if one is given, and that of the
+     current token otherwise. */
+  pos = alep == NULL ? pos_curr_token : *init_component_pos(alep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos = alep == NULL ? end_pos_curr_token : *init_component_end_pos(alep);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+  end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  cdp = get_coroutine_descr(curr_routine);
+  make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
+                               (a_ref_entry *)NULL);
+  if (is_return && is_expression_component(alep)) {
+    an_operand *operand = operand_of_arg_list_elem(alep);
+    if (is_void_type(operand->type)) {
+      void_expr = make_node_from_operand(operand);
+      alep = NULL;
+    }  /* if */
+  }  /* if */
+  call_named_member_function(&selector_operand,
+                             is_return ? "set_result" : "yield_value",
+                             alep, &selector_operand, &call_operand);
+  result = make_node_from_operand(&call_operand);
+  if (void_expr != NULL) {
+    result = make_comma_node(void_expr, result);
+  }  /* if */
+  wrap_up_full_expression(result);
+  return result;
+}  /* make_coroutine_result_expression */
+
+#endif /* COROUTINES_ALLOWED */
+
 
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
@@ -37199,6 +37369,18 @@ required_type will be void if the expression should have void type
                        &pos_curr_token);
     }  /* if */
     icp = parse_braced_init_list(/*bundle=*/FALSE);
+#if COROUTINES_ALLOWED
+    if (curr_routine->is_coroutine) {
+      /* Bypass the usual processing on return expressions, and handle this
+         as a coroutine return instead. */
+      /* It turns out we didn't need to treat this as a cctor elision
+         context, so make sure we add destructors to any dynamic
+         initialization entries where they were partially suppressed. */
+      fix_up_dynamic_init_dtors();
+      expression = make_coroutine_result_expression(icp, /*is_return=*/TRUE);
+      goto done;
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
     if (deduced_return_type) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
@@ -37236,6 +37418,19 @@ required_type will be void if the expression should have void type
   } else {
     /* Normal case: Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+#if COROUTINES_ALLOWED
+    if (curr_routine->is_coroutine) {
+      /* It turns out we didn't need to treat this as a cctor elision
+         context, so make sure we add destructors to any dynamic
+         initialization entries where they were partially suppressed. */
+      fix_up_dynamic_init_dtors();
+      /* Bypass the usual processing on return expressions, and handle this
+         as a coroutine return instead. */
+      icp = alloc_arg_list_elem_for_operand(&result);
+      expression = make_coroutine_result_expression(icp, /*is_return=*/TRUE);
+      goto done;
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
     if (deduced_return_type) {
       /* Set the return type from the expression type. */
 handle_deduced_return_type:
@@ -37380,6 +37575,9 @@ handle_deduced_return_type:
                           pos);
     }  /* if */
   }  /* if */
+#if COROUTINES_ALLOWED
+done:
+#endif /* COROUTINES_ALLOWED */
   free_init_component_list(icp);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -37393,10 +37591,97 @@ handle_deduced_return_type:
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-
   return expression;
 }  /* scan_return_expression */
 
+#if COROUTINES_ALLOWED
+
+an_expr_node_ptr scan_yield_operand()
+/*
+Scan the operand (if any) of a yield statement in a coroutine:
+	yield <expr> ;
+	yield { ... } ;
+and return an expression node representing the underlying call on the promise
+associated with the coroutine.
+*/
+{
+  a_routine_ptr         curr_routine = current_routine_entry();
+  a_boolean             deducible_return_type;
+  an_arg_list_elem_ptr  alep;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+  an_expr_node_ptr      result;
+
+  deducible_return_type = curr_routine->has_deducible_return_type &&
+                          !curr_routine->is_prototype_instantiation;
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (curr_token == tok_lbrace && list_init_enabled) {
+    alep = parse_braced_init_list(/*bundle=*/FALSE);
+  } else {
+    alep = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
+  }  /* if */
+  if (deducible_return_type) {
+    /* FIXME: Not implemented yet. */
+  }  /* if */
+  result = make_coroutine_result_expression(alep, /*is_return=*/FALSE);
+  free_arg_list(alep);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* scan_yield_operand */
+
+
+static void scan_await_expression(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
+/*
+Scan a coroutine "await" expression of the form
+
+	await <expr>
+
+and return its representation in *result (or an error indication in *rcblock
+if applicable).
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned "await"
+expression.
+*/
+{
+  an_operand              operand;
+  a_source_position       operator_position;
+  a_token_sequence_number operator_tok_seq_number;
+
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_await);
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the operand. */
+    (void)get_token();
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  }  /* if */
+  add_await_to_operand(&operand, &operator_position, operator_tok_seq_number,
+                       result);
+  set_operand_position(result, &operator_position, &operand.end_position,
+                       &operator_position);
+  if (expr_stack->potentially_evaluated) {
+    a_routine_ptr           curr_routine = current_routine_entry();
+    a_coroutine_descr_ptr   cdp = get_coroutine_descr(curr_routine);
+    if (!cdp->eventual_value) {
+      pos_ty_error(ec_await_no_eventual_value, &operator_position,
+                   cdp->promise->type);
+    }  /* if */
+  }  /* if */
+}  /* scan_await_expression */
+
+#endif /* COROUTINES_ALLOWED */
 
 void scan_pp_expression(a_constant *constant)
 /*
@@ -38831,6 +39116,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_not:
         scan_arith_prefix_operator(rcblock, result);
         break;
+#if COROUTINES_ALLOWED
+      case tok_await:
+        scan_await_expression(rcblock, result);
+        break;
+#endif /* COROUTINES_ALLOWED */
       case tok_sizeof:
         scan_sizeof_operator(rcblock, result);
         break;

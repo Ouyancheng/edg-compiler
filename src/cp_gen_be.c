@@ -12948,6 +12948,13 @@ sizeof_cases:
     case enk_c11_generic:
       gen_c11_generic(expr);
       break;
+#if COROUTINES_ALLOWED
+    case enk_await:
+      write_tok_str("await ");
+      gen_expression(expr->variant.await_info.operand);
+      break;
+#endif /* COROUTINES_ALLOWED */
+
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
@@ -13147,7 +13154,15 @@ Generate code for the indicated range-based-for statement.
                             statement->variant.range_based_for_loop.extra_info;
   a_variable_ptr      ref_var;
 
-  write_tok_str("for (");
+#if COROUTINES_ALLOWED
+  if (rbflp->use_await) {
+    write_tok_str("for await (");
+  } else
+#endif /* COROUTINES_ALLOWED */
+  /* Do not insert code here. */
+  {
+    write_tok_str("for (");
+  }  /* if */
   /* Generate the iteration variable. */
   gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
                     /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
@@ -15044,6 +15059,62 @@ one that yields the value) of a statement expression.
         }  /* if */
       }
       break;
+#if COROUTINES_ALLOWED
+    case stmk_coroutine_return:
+      /* "return" statement in a coroutine: generate "return <expr>;" or
+         "return ;". */
+      { an_expr_node_ptr  expr = statement->expr;
+        write_tok_str("return ");
+        if (expr != NULL) {
+          check_assertion(is_operation_node(expr));
+          if (node_operator_is(expr, eok_comma)) {
+            /* expr is of the form <expr>, _Pr.set_result().  Render the first
+               operand of the comma operator (only). */
+            expr = expr->variant.operation.operands;
+          } else {
+            check_assertion(node_operator_is(expr, eok_dot_member_call));
+            /* expr is of the form _Pr.set_result(...).  Render the operand of
+               that call (only). */
+            expr = expr->variant.operation.operands;
+            /* The first operand is the routine entry for "set_result", the
+               second operand is the promise variable ("_Pr" above).  Move to
+               the third operand (which corresponds to the actual operand of
+               the return statement). */
+            expr = expr->next->next;
+          }  /* if */
+          /* Process any tags declared within the expression (e.g., in
+             casts). */
+          skip_embedded_declarations();
+          gen_expression(expr);
+        }  /* if */
+        write_tok_ch(';');
+      }
+      break;
+    case stmk_yield:
+      /* "yield" statement: generate "yield <expr>;". */
+      { an_expr_node_ptr  expr = statement->expr;
+        write_tok_str("yield ");
+        check_assertion(expr != NULL && is_operation_node(expr) &&
+                        node_operator_is(expr, eok_dot_member_call));
+        /* Process any tags declared within the expression (e.g., in casts). */
+        skip_embedded_declarations();
+        /* expr is of the form _Pr.yield_value(...).  Render the operand of
+           that call (only). */
+        expr = skip_parens(expr->variant.operation.operands);
+        /* The first operand is the routine entry for "yield_value", the second
+           operand is the promise variable ("_Pr" above).  Move to the third
+           operand (which corresponds to the actual operand of the yield
+           statement). */
+        expr = expr->next->next;
+        gen_expression(expr);
+        write_tok_ch(';');
+      }
+      break;
+    case stmk_coroutine:
+      /* stmk_coroutine entries are always compiler-generated: Nothing to
+         do. */
+      break;
+#endif /* COROUTINES_ALLOWED */
     case stmk_block:
       /* Block: generate "{ ... }". */
       gen_block_statement(statement, is_stmt_expression);

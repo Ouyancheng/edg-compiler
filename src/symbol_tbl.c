@@ -7604,9 +7604,12 @@ Don't put its symbol into the symbol table yet.
 }  /* make_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 
-static a_symbol_ptr look_up_name_string_in_namespace(
+#if !COROUTINES_ALLOWED
+static
+#endif /* !COROUTINES_ALLOWED */
+a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options)
@@ -7627,6 +7630,9 @@ NULL).  Return the symbol found, if any.
   }  /* if */
   return sym;
 }  /* look_up_name_string_in_namespace */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_cli_symbol(a_cli_symbol_kind  csk);
 
@@ -8284,7 +8290,179 @@ namespace abi was encountered in the source.
 }  /* enter_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
+#if COROUTINES_ALLOWED
 
+a_symbol_ptr look_up_name_string_in_class(
+                                        a_const_char             *symbol_name,
+                                        a_type_ptr               class_type,
+                                        an_id_lookup_options_set options)
+/*
+Look up symbol_name in the specified class type.  Return the symbol found, if
+any.
+*/
+{
+  a_symbol_locator loc;
+  a_symbol_ptr     sym;
+
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(symbol_name, (sizeof_t)strlen(symbol_name), &loc);
+  complete_type_is_needed(class_type);
+  sym = class_qualified_id_lookup(&loc, class_type, options);
+  return sym;
+}  /* look_up_name_string_in_class */
+
+
+static a_symbol_ptr find_class_template_instance(
+                                              a_symbol_ptr        class_templ,
+                                              a_template_arg_ptr  *arg_list)
+/*
+Find the instance of the given class template matching the given template
+argument list.  The heavy lifting is mostly done by a call to
+find_template_class, but this function transforms arg_list to account for
+template parameter packs prior to the call (as such, the given template
+argument list is assumed not to have "is_pack_element" flags set nor to have
+tak_start_of_pack_expansion delimiter entries).
+*/
+{
+  a_template_arg_ptr    *tap = arg_list, sop_entry;
+  a_template_param_ptr  tpp;
+  a_boolean             in_pack = FALSE;
+
+  tpp = class_templ->variant.template_info
+                   ->variant.class_template.initial_decl_cache.decl_info
+                   ->parameters;
+  for (;;) {
+    check_assertion(tpp != NULL);
+    if (!tpp->is_pack) {
+      tpp = tpp->next;
+    } else {
+      if (!in_pack) {
+        /* This is the first time we see the pack parameter.  Create a
+           start-of-pack-expansion entry in the argument list.  Note that this
+           is done even for an empty expansion. */
+        sop_entry = alloc_template_arg(
+                               (a_templ_arg_kind)tak_start_of_pack_expansion);
+        sop_entry->next = *tap;
+        *tap = sop_entry;
+        tap = &sop_entry->next;
+        in_pack = TRUE;
+      }  /* if */
+    }  /* if */
+    if (*tap == NULL) {
+      break;
+    } else {
+      if (in_pack) (*tap)->is_pack_element = TRUE;
+      tap = &(*tap)->next;
+    }  /* if */
+  }  /* if */
+  return find_template_class(class_templ, arg_list,
+                             /*any_prototype_allowed=*/FALSE,
+                             /*specific_prototype_allowed=*/NULL,
+                             /*instantiate_nonreal=*/FALSE,
+                             /*do_not_create=*/FALSE);
+
+}  /* find_class_template_instance */
+
+
+void init_coroutine_descr(a_routine_ptr          rp,
+                          a_coroutine_descr_ptr  cdp)
+/*
+Initialize some basic fields of the given coroutine description (associated
+with the given coroutine).
+
+Specifically, record in cdp->traits the traits type instance
+	std::experimental::resumable_traits<R, P1, P2, ...>
+and in cdp->promise record a new variable of type traits::promise_type.
+(R is the return type of rp and P1, P2, ... are the parameter types of rp; for
+a nonstatic member function, P1 is the type of this.)
+
+Also record in cdp->eventual_value whether the promise type has a set_result
+member.
+*/
+{
+  a_namespace_ptr  std_nsp;
+  a_namespace_ptr  experimental_nsp;
+  a_symbol_ptr     ns_sym, traits_sym = NULL, traits_inst_sym, promise_sym;
+  a_symbol_ptr     set_result_sym;
+  a_type_ptr       traits = NULL, promise_type = NULL,
+                   rtp = skip_typerefs(rp->type);
+  a_template_arg_ptr
+                   tap_list, *p_tap;
+  a_param_type_ptr ptp;
+
+  /* First look up std::experimental::resumable_traits. */
+  if (symbol_for_namespace_std != NULL) {
+    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
+    if (std_nsp != NULL) {
+      ns_sym = look_up_name_string_in_namespace("experimental", std_nsp,
+                                                IDL_NO_OPTIONS);
+      if (ns_sym != NULL && symbol_is(ns_sym, sk_namespace)) {
+        experimental_nsp = ns_sym->variant.namespace_info.ptr;
+      } else {
+        experimental_nsp = NULL;
+      }  /* if */
+      if (experimental_nsp != NULL) {
+        traits_sym = look_up_name_string_in_namespace(
+                        "resumable_traits", experimental_nsp, IDL_NO_OPTIONS);
+        if (traits_sym != NULL && !symbol_is(traits_sym, sk_class_template)) {
+          traits_sym = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (traits_sym == NULL) {
+    pos_st_error(ec_special_class_template_not_found, &error_position,
+                 "std::experimental::resumable_traits");
+    traits = NULL;
+  } else {
+    /* Now instantiate resumable_traits<R, P1, P2, ...> where R is the return
+       type of rp, and P1, P2, ... its parameters types. */
+    tap_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+    tap_list->variant.type = rtp->variant.routine.return_type;
+    p_tap = &tap_list->next;
+    if (routine_type_is_nonstatic_member_function(rtp)) {
+      *p_tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+      (*p_tap)->variant.type = f_implicit_this_param_type_of(rtp);
+      p_tap = &(*p_tap)->next;
+    }  /* if */
+    for (ptp = function_type_params(rtp); ptp != NULL; ptp = ptp->next) {
+      *p_tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+      (*p_tap)->variant.type = ptp->type;
+      p_tap = &(*p_tap)->next;
+    }  /* for */ 
+    traits_inst_sym = find_class_template_instance(traits_sym, &tap_list);
+    if (traits_inst_sym == NULL || !is_type_symbol(traits_inst_sym)) {
+      expect_error();
+      traits = NULL;
+    } else {
+      traits = type_symbol_type(traits_inst_sym);
+    }  /* if */
+  }  /* if */
+  if (traits != NULL) {
+    /* Retrieve the promise type from the traits instantiation. */
+    promise_sym = look_up_name_string_in_class("promise_type", traits,
+                                               IDL_NO_OPTIONS);
+    if (promise_sym == NULL || !is_type_symbol(promise_sym)) {
+      pos_stty_error(ec_not_a_member, &error_position, "promise_type", traits);
+      promise_type = error_type();
+    } else {
+      promise_type = type_symbol_type(promise_sym);
+    }  /* if */
+  } else {
+    promise_type = error_type();
+  }  /* if */
+  cdp->traits = traits = NULL ? error_type() : traits;
+  cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
+                               NO_SCOPE_DEPTH);
+  /* Record whether this is an "eventual value" coroutine. */
+  set_result_sym = look_up_name_string_in_class("set_result", promise_type,
+                                                IDL_NO_OPTIONS);
+  if (set_result_sym != NULL && is_member_function_symbol(set_result_sym)) {
+    cdp->eventual_value = TRUE;
+  }  /* if */
+}  /* init_coroutine_descr */
+
+#endif /* COROUTINES_ALLOWED */
 #if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)
 
 static a_boolean define_guard_macro(a_const_char *macro_name)

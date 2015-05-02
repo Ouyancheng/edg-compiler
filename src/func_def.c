@@ -3236,6 +3236,67 @@ in case it's useful.
 #endif /* DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238 */
 }  /* generate_required_virtual_destructor_bodies */
 
+#if COROUTINES_ALLOWED
+
+a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr  rp)
+/*
+Return a coroutine description for the given routine (which must have a
+definition).  If no description was allocated for this routine yet, one is
+allocated at this time, recorded in the definition through a leading
+stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
+*/
+{
+  a_coroutine_descr_ptr   cdp;
+  a_memory_region_number  mrn = rp->assoc_scope;
+  a_scope_ptr             func_scope;
+  a_statement_ptr         body_stmt;
+  a_struct_stmt_stack_entry_ptr
+                          top_sssep = &struct_stmt_stack_top();
+
+  check_assertion(mrn != NO_SCOPE_NUMBER);
+  func_scope = il_header.region_scope_entry[mrn];
+  check_assertion(func_scope != NULL);
+  body_stmt = func_scope->assoc_block;
+  if (body_stmt == NULL) {
+    /* The top-level block is still being parsed and has therefore not been
+       associated with the function scope yet.  Use the structured statement
+       stack to get the top-level block instead. */
+    body_stmt = top_sssep->statement;
+  }  /* if */
+  if (body_stmt->kind == (a_statement_kind)stmk_try_block) {
+    /* For a function-try-block, use the associated dependent block. */
+    body_stmt = body_stmt->variant.try_block->statement;
+    top_sssep += 1;
+  }  /* if */
+  if (rp->is_coroutine) {
+    /* This is not the first time we're calling this function for this routine
+       entry.  Retrieve the previously allocated description. */
+    a_statement_ptr  csp = body_stmt->variant.block.statements;
+    check_assertion(csp != NULL &&
+                    csp->kind == (a_statement_kind)stmk_coroutine);
+    cdp = csp->variant.coroutine.descr;
+  } else {
+    /* Allocate a new description and associated stmk_coroutine entry. */
+    a_statement_ptr  csp = alloc_statement((a_statement_kind)stmk_coroutine);
+    cdp = alloc_coroutine_descr();
+    csp->variant.coroutine.descr = cdp;
+    csp->next = body_stmt->variant.block.statements;
+    body_stmt->variant.block.statements = csp;
+    if (csp->next == NULL) {
+      /* There are no statements recorded in the top-level block yet (because
+         we're still parsing the first statement; there must be one since
+         coroutine definitions are the result of specific construct like
+         "yield" statements or "await" expressions).  Record the stmk_coroutine
+         entry as the last statement on the list for now. */
+      top_sssep->last_dep_statement = csp;
+    }  /* if */
+    rp->is_coroutine = TRUE;
+    init_coroutine_descr(rp, cdp);
+  }  /* if */
+  return cdp;
+}  /* get_coroutine_descr */
+
+#endif /* COROUTINES_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -1713,6 +1713,24 @@ extern void rewrite_event_ref_for_call(
                                    an_operand        *operand,
                                    an_operand        *bound_function_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+void call_named_member_function(an_operand           *selector_operand,
+                                a_const_char         *member_name,
+                                an_arg_list_elem_ptr alep,
+                                an_operand           *orig_operand,
+                                an_operand           *result);
+#endif /* COROUTINES_ALLOWED */
+
+extern
+void call_adl_named_function(a_const_char            *func_name,
+                             an_arg_list_elem_ptr    alep,
+                             a_source_position       *pos,
+                             a_token_sequence_number tok_seq_number,
+                             an_error_code           err_none_applies,
+                             an_error_code           err_ambiguous,
+                             an_error_code           err_undefined_identifier,
+                             an_operand              *result,
+                             an_expr_node_ptr        *call_node);
 
 extern void convert_function_template_to_single_function_if_possible(
                                                         an_operand *operand,

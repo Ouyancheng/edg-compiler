@@ -3344,6 +3344,13 @@ as specified in the control block.
     case enk_c11_generic:
       traverse_expr_list(expr->variant.c11_generic.operands, tblock);
       break;
+#if COROUTINES_ALLOWED
+    case enk_await:
+      traverse_expr(expr->variant.await_info.operand, tblock);
+      traverse_expr_list(expr->variant.await_info.ready_suspend_resume,
+                         tblock);
+      break;
+#endif /* COROUTINES_ALLOWED */
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
@@ -3465,6 +3472,14 @@ as specified in the control block.
       } else if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
       }  /* if */
+      break;
+#if COROUTINES_ALLOWED
+    case stmk_coroutine_return:
+    case stmk_yield:
+      if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+      }  /* if */
+#endif /* COROUTINES_ALLOWED */
       break;
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);

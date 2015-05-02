@@ -85,6 +85,10 @@ extern void require_definitions_of_virtual_functions_in_class(
 							a_type_ptr class_type);
 
 
+#if COROUTINES_ALLOWED
+extern a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr  rp);
+#endif /* COROUTINES_ALLOWED */
+
 #endif /* FUNC_DEF_H */
 
 /******************************************************************************

@@ -2746,6 +2746,14 @@ ec_auto_direct_list_init_requires_singleton;;"braced initialization of a variabl
 ec_cl_invalid_target;;"no \"%s\" --target configuration exists"
 ec_attribute_not_supported_in_x86_64;;"attribute is not supported in 64-bit x86 configurations"
 ec_cl_missing_argument;;"\"%s\" requires an argument"
+ec_yield_in_special_member;;"yield statements are not permitted in a constructor or destructor"
+ec_yield_in_main;;"yield statements are not permitted in %n"
+ec_yield_in_catch;;"yield statements are not permitted in a catch clause"
+ec_yield_in_constexpr_function;;"yield statements are not permitted in a constexpr functions"
+ec_await_no_matching_overload;;"in this await expression, no instance of %no matches the argument list"
+ec_await_undefined_identifier;;"this await expression requires a suitable %sq function and none was found"
+ec_await_no_eventual_value;;"await expression is not allowed here because promise type %t has not member function \"set_result\""
+ec_special_class_template_not_found;;"class template %sq not found"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

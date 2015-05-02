@@ -4509,6 +4509,17 @@ extern void make_symbol_for_namespace_abi(void);
 extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #endif /* IA64_ABI */
 
+#if COROUTINES_ALLOWED
+extern a_symbol_ptr look_up_name_string_in_namespace(
+                                        a_const_char             *symbol_name,
+                                        a_namespace_ptr          ns_ptr,
+                                        an_id_lookup_options_set options);
+
+extern void init_coroutine_descr(a_routine_ptr          rp,
+                                 a_coroutine_descr_ptr  cdp);
+
+#endif /* COROUTINES_ALLOWED */
+
 EXTERN a_symbol_ptr
 		symbol_for_std_initializer_list;
 			/* Symbol for "std::initializer_list", a class

@@ -485,6 +485,14 @@ extern an_expr_node_ptr scan_return_expression(
                                               an_error_code      err_code,
                                               a_dynamic_init_ptr *dip);
 
+#if COROUTINES_ALLOWED
+extern an_expr_node_ptr make_coroutine_result_expression(
+                                              an_arg_list_elem_ptr  alep,
+                                              a_boolean             is_return);
+
+extern an_expr_node_ptr scan_yield_operand();
+#endif /* COROUTINES_ALLOWED */
+
 extern void scan_pp_expression(a_constant *constant);
 
 extern void scan_integral_constant_expression(a_constant *constant);

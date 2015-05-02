@@ -1161,6 +1161,15 @@ Install the keywords in the symbol table.
     if (alignof_enabled) {
       enter_keyword((a_token_kind)tok_alignof, "alignof");
     }  /* if */
+#if COROUTINES_ALLOWED
+    if (coroutines_enabled) {
+      enter_keyword((a_token_kind)tok_yield, "__yield");
+      enter_keyword((a_token_kind)tok_await, "__await");
+      if (!coroutine_keywords_suppressed) {
+        enter_keyword((a_token_kind)tok_await, "await");
+      }  /* if */
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
   }  /* if */
   if (microsoft_mode && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.

@@ -2034,6 +2034,14 @@ sizeof_cases:
         operand = operand->next;
       }  /* while */
       break;
+#if COROUTINES_ALLOWED
+    case enk_await:
+      fputs("await:\n", f_debug);
+      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      fprintf(f_debug, "<operand> =\n");
+      db_expr_node(node->variant.await_info.operand, level + 2);
+      break;
+#endif /* COROUTINES_ALLOWED */
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -2376,6 +2384,10 @@ Dump a statement kind, for debug purposes.
     case stmk_goto:             s = "goto";              break;
     case stmk_label:            s = "label";             break;
     case stmk_return:           s = "return";            break;
+#if COROUTINES_ALLOWED
+    case stmk_yield:            s = "yield";             break;
+    case stmk_coroutine:        s = "coroutine";         break;
+#endif /* COROUTINES_ALLOWED */
     case stmk_block:            s = "block";             break;
     case stmk_end_test_while:   s = "end-test-while";    break;
     case stmk_for:              s = "for";               break;

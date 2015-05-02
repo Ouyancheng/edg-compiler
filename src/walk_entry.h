@@ -2001,6 +2001,17 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
                      iek_dynamic_init);
             break;
+#if COROUTINES_ALLOWED
+          case stmk_yield:
+            walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
+                     iek_dynamic_init);
+            break;
+          case stmk_coroutine:
+            walk_ptr(ptr->variant.coroutine.descr, a_coroutine_descr_ptr,
+                     iek_coroutine_descr);
+            break;
+            
+#endif /* COROUTINES_ALLOWED */
           case stmk_block:
             /* Do extra_info before statements to get declarations out
                before the statements that use them. */
@@ -3620,6 +3631,13 @@ after_entry_from_class:
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+    case iek_coroutine_descr:
+      { a_coroutine_descr_ptr  ptr = (a_coroutine_descr_ptr)entry_ptr;
+        walk_ptr(ptr->promise, a_variable_ptr, iek_variable);
+      }
+      break;
+#endif /* COROUTINES_ALLOWED */
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

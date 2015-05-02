@@ -91,6 +91,9 @@ static unsigned long
 		num_ms_if_exists_allocated,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 		num_blocks_allocated,
+#if COROUTINES_ALLOWED
+                num_coroutine_descriptions_allocated,
+#endif /* COROUTINES_ALLOWED */
 		num_for_loops_allocated,
 		num_statements_allocated,
 		num_constructor_inits_allocated,
@@ -2911,6 +2914,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_deducible_return_type   = FALSE;
   rp->has_deduced_return_type     = FALSE;
   rp->contains_generic_lambda     = FALSE;
+#if COROUTINES_ALLOWED
+  rp->is_coroutine                = FALSE;
+#endif /* COROUTINES_ALLOWED */
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -3402,6 +3408,12 @@ fields to default values.
       node->variant.c11_generic.operands = NULL;
       node->variant.c11_generic.result = NULL;
       break;
+#if COROUTINES_ALLOWED
+    case enk_await:
+      node->variant.await_info.operand = NULL;
+      node->variant.await_info.ready_suspend_resume = NULL;
+      break;
+#endif /* COROUTINES_ALLOWED */
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */
@@ -3576,6 +3588,9 @@ Clear the indicated range-based-for loop entry.
   rbflp->end = NULL;
   rbflp->ne_call_expr = NULL;
   rbflp->incr_call_expr = NULL;
+#if COROUTINES_ALLOWED
+  rbflp->use_await = FALSE;
+#endif /* COROUTINES_ALLOWED */
 }  /* clear_range_based_for_loop */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3711,7 +3726,7 @@ a_handler_ptr alloc_handler(void)
 Allocate a handler, clear it to default values, and return a pointer to it.
 */
 {
-  register a_handler_ptr hp;
+  a_handler_ptr hp;
 
   hp = (a_handler_ptr)alloc_cil(sizeof(a_handler));
 #if DEBUG
@@ -3729,6 +3744,28 @@ Allocate a handler, clear it to default values, and return a pointer to it.
   return hp;
 }  /* alloc_handler */
 
+#if COROUTINES_ALLOWED
+
+a_coroutine_descr_ptr alloc_coroutine_descr(void)
+/*
+Allocate a coroutine description, initialize it to default values, and return
+a pointer to it.
+*/
+{
+  a_coroutine_descr_ptr  cdp = (a_coroutine_descr_ptr)
+                                         alloc_cil(sizeof(a_coroutine_descr));
+
+  cdp->traits = NULL;
+  cdp->promise = NULL;
+  cdp->eventual_value = FALSE;
+#if DEBUG
+  num_coroutine_descriptions_allocated++;
+#endif /* DEBUG */
+
+  return cdp;
+}  /* alloc_coroutine_descr */
+
+#endif /* COROUTINES_ALLOWED */
 
 void set_statement_kind(a_statement_ptr  sp,
                         a_statement_kind stmt_kind)
@@ -3751,6 +3788,10 @@ fields to default values.
   switch (stmt_kind) {
     case stmk_empty:
     case stmk_expr:
+#if COROUTINES_ALLOWED
+    case stmk_coroutine_return:
+    case stmk_yield:
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3820,6 +3861,11 @@ fields to default values.
     case stmk_return:
       sp->variant.return_dynamic_init = NULL;
       break;
+#if COROUTINES_ALLOWED
+    case stmk_coroutine:
+      sp->variant.coroutine.descr = NULL;
+      break;
+#endif /* COROUTINES_ALLOWED */
     case stmk_block:
       sp->variant.block.statements = NULL;
       sp->variant.block.extra_info = bp =
@@ -5495,6 +5541,10 @@ Display and return the amount of space used for various IL tables.
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
+#if COROUTINES_ALLOWED
+  db_space_used("coroutine_descr", num_coroutine_descriptions_allocated,
+                a_coroutine_descr);
+#endif /* COROUTINES_ALLOWED */
   db_space_used("statement", num_statements_allocated, a_statement);
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
@@ -5778,6 +5828,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_exception_specifications_allocated),
       pch_saved_var_array_elem(num_expr_nodes_allocated),
       pch_saved_var_array_elem(num_fields_allocated),
+#if COROUTINES_ALLOWED
+      pch_saved_var_array_elem(num_coroutine_descriptions_allocated),
+#endif /* COROUTINES_ALLOWED */
       pch_saved_var_array_elem(num_for_loops_allocated),
       pch_saved_var_array_elem(num_handlers_allocated),
       pch_saved_var_array_elem(num_try_supplements_allocated),
@@ -6008,6 +6061,9 @@ initializations that are done for each compilation.
   num_seq_number_lookup_entries_allocated
                                          = 0;
   num_blocks_allocated                   = 0;
+#if COROUTINES_ALLOWED
+  num_coroutine_descriptions_allocated   = 0;
+#endif /* COROUTINES_ALLOWED */
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;
   num_constructor_inits_allocated        = 0;

@@ -9184,6 +9184,10 @@ Generate C for a statement.
       write_tok_str("upc_fence;");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+    case stmk_coroutine_return:
+    case stmk_yield:
+#endif /* COROUTINES_ALLOWED */
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */

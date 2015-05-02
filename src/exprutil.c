@@ -19934,6 +19934,215 @@ selector expression used to designate the event.
 }  /* rewrite_event_for_call */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+
+void call_named_member_function(an_operand           *selector_operand,
+                                a_const_char         *member_name,
+                                an_arg_list_elem_ptr alep,
+                                an_operand           *orig_operand,
+                                an_operand           *result)
+/*
+Create in *result the representation of a call of the form
+
+	expr.member(a1, a2, ...)
+
+where expr is given by selector_operand, member is determined by member_name,
+and a1, a2, ... is represented by alep (possibly NULL).
+
+Currently, the call must be to a nonstatic member function.
+*/
+{
+  a_type_ptr        class_type;
+  a_symbol_ptr      member_sym;
+  a_symbol_locator  loc;
+
+  class_type = skip_typerefs_not_dependent_decltypes(selector_operand->type);
+  if (class_type->kind == (a_type_kind)tk_typeref) {
+    /* A dependent "decltype": Use an associated proxy class. */
+    class_type = proxy_class_for_template_param(selector_operand->type);
+  } else if (class_type->kind == (a_type_kind)tk_template_param) {
+    class_type = proxy_class_for_template_param(class_type);
+  } else if (!is_immediate_class_type(class_type)) {
+    class_type = NULL;
+  }  /* if */
+  if (class_type != NULL) {
+    clear_locator(&loc, &selector_operand->position);
+    (void)find_symbol(member_name, (sizeof_t)strlen(member_name), &loc);
+    member_sym = class_qualified_id_lookup(&loc, class_type, IDL_NO_OPTIONS);
+    if (member_sym == NULL || !is_member_function_symbol(member_sym)) {
+      if (expr_error_should_be_issued()) {
+        pos_stty_error(ec_not_a_member, &selector_operand->position,
+                       member_name, selector_operand->type);
+      }  /* if */
+      member_sym = NULL;
+    } else {
+      /* Use a projection symbol if there is one. */
+      member_sym = loc.specific_symbol;
+    }  /* if */
+  } else {
+    if (expr_error_should_be_issued()) {
+      pos_error(ec_expr_not_class, &selector_operand->position);
+    }  /* if */
+    member_sym = NULL;
+  }  /* if */
+  if (member_sym != NULL) {
+    an_operand        function_operand;
+    an_expr_node_ptr  arg_node_list;
+    /* Do overload resolution to determine the function to call. */
+    if (!select_and_prepare_to_call_overloaded_function(
+                                       member_sym,
+                                       /*is_template_id=*/FALSE,
+                                       (a_template_arg_ptr)NULL,
+                                       /*have_selector=*/TRUE,
+                                       selector_operand,
+                                       alep,
+                                       /*do_arg_dep_lookup=*/FALSE,
+                                       /*use_pure_arg_dep_lookup=*/FALSE,
+                                       /*use_std_for_arg_dep_lookup=*/FALSE,
+                                       /*try_surrogate_functions=*/FALSE,
+                                       /*is_property=*/FALSE,
+                                       /*compiler_generated=*/TRUE,
+                                       ec_no_matching_function,
+                                       ec_ambiguous_overloaded_function,
+                                       ec_undefined_identifier,
+                                       (an_operand *)NULL,
+                                       &selector_operand->position,
+                                       (a_token_sequence_number)0,
+                                       (a_source_position *)NULL,
+                                       (a_boolean *)NULL,
+                                       &function_operand,
+                                       &arg_node_list)) {
+      /* Some error occurred. */
+      make_error_operand(result);
+    } else {
+      /* Create the function call. */
+      an_expr_node_ptr func_call_node;
+      a_boolean        virtual_function, bound_function;
+      /* Generally speaking, we want to restore the original operand details,
+         but the "virtual_function" and "bound_function" flags should reflect
+         the nature of the call. */
+      bound_function = function_operand.bound_function;
+      virtual_function = function_operand.virtual_function;
+      if (orig_operand != NULL) {
+        restore_operand_details(&function_operand, orig_operand);
+      }  /* if */
+      function_operand.virtual_function = virtual_function;
+      function_operand.bound_function = bound_function;
+      assemble_function_call(&function_operand, selector_operand,
+                             arg_node_list, /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*qualified_function_name=*/FALSE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/FALSE,
+                             &selector_operand->position, result,
+                             &func_call_node);
+    }  /* if */
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  if (!is_error_operand(result)) {
+    if (curr_expr_kind_is_traditional_const()) {
+      error_in_operand(ec_expr_not_constant, result);
+    } else if (construct_not_allowed_in_cpp11_constant_expr(
+                                                         ec_expr_not_constant,
+                                                         &result->position)) {
+      conv_to_error_operand(result);
+    }  /* if */
+  }  /* if */
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
+}  /* call_named_member_function */
+                           
+#endif /* COROUTINES_ALLOWED */
+
+void call_adl_named_function(a_const_char            *func_name,
+                             an_arg_list_elem_ptr    alep,
+                             a_source_position       *pos,
+                             a_token_sequence_number tok_seq_number,
+                             an_error_code           err_none_applies,
+                             an_error_code           err_ambiguous,
+                             an_error_code           err_undefined_identifier,
+                             an_operand              *result,
+                             an_expr_node_ptr        *call_node)
+/*
+Create in *result the representation of a call of the form
+
+	func(a1, a2, ...)
+
+where func is determined by looking up func_name strictly through argument-
+dependent lookup (i.e., ordinary lookup is not done), and a1, a2, ... is
+represented by alep (possibly NULL).  tok_seq_number is the token sequence
+number from where the lookup of func_name should be done.  pos is the position
+to use for this call.
+
+err_none_applies, err_ambiguous, and err_undefined_identifier are error codes
+are error code to be issued when, respectively, functions are found but none
+are viable, functions are found but overload resolution is ambiguous, and
+no functions are found.
+
+If call_node is non-NULL, set *call_node to the node representing the actual
+call.
+*/
+{
+  a_symbol_locator     loc;
+  a_symbol_ptr         sym;
+  an_expr_stack_entry  expr_stack_entry;
+  a_boolean            found_through_adl;
+  an_operand           function_operand, dummy_bound_function_selector;
+  an_expr_node_ptr     arg_nodes;
+
+  clear_locator(&loc, pos);
+  (void)find_symbol(func_name, strlen(func_name), &loc);
+  sym = make_dummy_undefined_symbol(loc.symbol_header, &loc.source_position);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Determine which function will be called. */
+  if (select_and_prepare_to_call_overloaded_function(
+                                     sym,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     /*have_selector=*/FALSE,
+                                     (an_operand *)NULL,
+                                     alep,
+                                     /*do_arg_dep_lookup=*/TRUE,
+                                     /*use_pure_arg_dep_lookup=*/TRUE,
+                                     /*use_std_for_arg_dep_lookup=*/TRUE,
+                                     /*try_surrogate_functions=*/FALSE,
+                                     /*is_property=*/FALSE,
+                                     /*compiler_generated=*/TRUE,
+                                     err_none_applies,
+                                     err_ambiguous,
+                                     err_undefined_identifier,
+                                     (an_operand *)NULL,
+                                     pos,
+                                     tok_seq_number,
+                                     (a_source_position *)NULL,
+                                     &found_through_adl,
+                                     &function_operand,
+                                     &arg_nodes)) {
+    /* Generate the expression for the function call. */
+#ifdef _lint
+    /* We pass dummy_bound_function_selector rather than a null pointer
+       constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
+    assemble_function_call(&function_operand, 
+                           &dummy_bound_function_selector,
+                           arg_nodes,
+                           /*compiler_generated=*/TRUE,
+                           /*arg_dep_lookup_suppressed=*/FALSE,
+                           /*is_qualified_name=*/FALSE,
+                           found_through_adl,
+                           /*uses_operator_syntax=*/FALSE,
+                           pos,
+                           result,
+                           call_node);
+  } else {
+    make_error_operand(result);
+    if (call_node != NULL) *call_node = NULL;
+  }  /* if */
+  pop_expr_stack();
+}  /* call_adl_named_function */
+
 
 static void convert_function_template_to_single_function_full(
                                                 an_operand    *operand,
