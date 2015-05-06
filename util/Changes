@@ -1,6 +1,24 @@
 Version 4.11
 
 
+5/6/15   [EDGcpfe/16147]
+Demangling of template argument packs
+
+Mangled names that contained template argument packs had an extra set
+of angle brackets in the demangled output.  In the example below
+(with --c++11), the IA-64 ABI mangled name for f<A<int>> is
+_Z1fIJ1AIJiEEEEvDpT_, but the demangled name had been
+"void f<<A<<int>>>>(T1...)" and is now demangled to "void f<A<int>>(T1...)".
+Similarly, the Cfront demangled name had been "void f<T1>(T1...) [with
+T1...=<A<<int>>>]" and is now "void f<T1>(T1...) [with T1...=A<int>]".
+
+  template<class... T> struct A {};
+  template<class... Args> void f(Args... args);
+  void g() {
+    auto x = f<A<int>>;
+  }
+
+
 4/23/15  [EDGcpfe/15604,EDGcpfe/15397,EDGcpfe/15717,EDGcpfe/15851,
           EDGcpfe/16160]
 Specifying target configuration at run time

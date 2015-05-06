@@ -224,10 +224,11 @@ static a_const_char *full_demangle_type_name(
                                  a_boolean                  is_destructor_name,
                                  a_decode_control_block_ptr dctl);
 static a_const_char *demangle_template_arguments(
-                                    a_const_char               *ptr,
-                                    a_boolean                  emit_arg_values,
-                                    a_template_param_block_ptr temp_par_info,
-                                    a_decode_control_block_ptr dctl);
+                            a_const_char               *ptr,
+                            a_boolean                  emit_arg_values,
+                            a_boolean                  suppress_angle_brackets,
+                            a_template_param_block_ptr temp_par_info,
+                            a_decode_control_block_ptr dctl);
 static a_boolean is_mangled_type_name(a_const_char               *ptr,
                                       a_decode_control_block_ptr dctl);
 static a_const_char *demangle_name(
@@ -843,6 +844,7 @@ position following what was demangled.
     /* A template template parameter followed by a template
        argument list. */
     p = demangle_template_arguments(p+6, /*emit_arg_values=*/FALSE,
+                                    /*suppress_angle_brackets=*/FALSE,
                                     (a_template_param_block_ptr)NULL, dctl);
   }  /* if */
   /* Check for the final "Z".  This appears in the mangling to avoid
@@ -1577,10 +1579,11 @@ Clear the fields of the indicated template parameter block.
 
 
 static a_const_char *demangle_template_arguments(
-                                    a_const_char               *ptr,
-                                    a_boolean                  emit_arg_values,
-                                    a_template_param_block_ptr temp_par_info,
-                                    a_decode_control_block_ptr dctl)
+                            a_const_char               *ptr,
+                            a_boolean                  emit_arg_values,
+                            a_boolean                  suppress_angle_brackets,
+                            a_template_param_block_ptr temp_par_info,
+                            a_decode_control_block_ptr dctl)
 /*
 Demangle the template class arguments or template parameter pack beginning at
 ptr and output the demangled form.  Return a pointer to the character position
@@ -1588,9 +1591,10 @@ following what was demangled.  ptr points to just past the "__tm__", "__ps__",
 "__pt__", or "__pk__" string.  emit_arg_values is TRUE if the template
 argument "values" (i.e., type or nontype value) should be emitted rather than
 the template parameter name.  This is used for a partial-specialization
-parameter list ("__ps__") or parameter pack ("__pk__").  When temp_par_info !=
-NULL, it points to a block that controls output of extra information on
-template parameters.
+parameter list ("__ps__") or parameter pack ("__pk__").  Angle brackets are
+suppressed when suppress_angle_brackets is TRUE (when called to demangle
+a parameter pack).  When temp_par_info != NULL, it points to a block that
+controls output of extra information on template parameters.
 */
 {
   a_const_char  *p = ptr, *arg_base, *prev_end;
@@ -1612,7 +1616,7 @@ template parameters.
      (as identified by an "X"), a template argument pack (as identified
      by "__pk__"), or types (otherwise).
   */
-  write_id_ch('<', dctl);
+  if (!suppress_angle_brackets) write_id_ch('<', dctl);
   /* Scan the size. */
   p = get_length(p, &nchars, &prev_end, dctl);
   arg_base = p;
@@ -1694,6 +1698,7 @@ template parameters.
       clear_template_param_block(&pack_temp_par_info);
       /* Recurse to handle the template argument pack. */
       p = demangle_template_arguments(p, /*emit_arg_values=*/TRUE,
+                                      /*suppress_angle_brackets=*/TRUE,
                                       &pack_temp_par_info, dctl);
     } else {
       /* Type argument. */
@@ -1706,7 +1711,7 @@ template parameters.
     write_id_str(", ", dctl);
   }  /* for */
   dctl->end_of_name = prev_end;
-  write_id_ch('>', dctl);
+  if (!suppress_angle_brackets) write_id_ch('>', dctl);
   return p;
 }  /* demangle_template_arguments */
 
@@ -2414,6 +2419,7 @@ template parameters.
        argument list is <int>.  The second argument list is scanned but
        not put out, except when argument correspondences are output. */
     end_ptr = demangle_template_arguments(end_ptr+6, /*emit_arg_values=*/TRUE,
+                                          /*suppress_angle_brackets=*/FALSE,
                                           temp_par_info, dctl);
     note_specialization(end_ptr, temp_par_info);
     is_partial_spec = TRUE;
@@ -2446,6 +2452,7 @@ template parameters.
     }  /* if */
     /* Write the arguments. */
     end_ptr = demangle_template_arguments(end_ptr+6, /*emit_arg_values=*/FALSE,
+                                          /*suppress_angle_brackets=*/FALSE,
                                           temp_par_info, dctl);
     if (partial_spec_output_suppressed) dctl->suppress_id_output--;
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
@@ -6881,9 +6888,15 @@ A <template-args> encodes a template argument list.  The syntax is:
 
 */
 {
-  /* Advance past the "I". */
+  a_boolean suppress = FALSE;
+
+  if (*ptr == 'J') {
+    /* In pack expansion cases, suppress generation of angle brackets. */
+    suppress = TRUE;
+  }  /* if */
+  /* Advance past the "I" or "J". */
   ptr++;
-  write_id_ch('<', dctl);
+  if (!suppress) write_id_ch('<', dctl);
   for (;;) {
     if (*ptr == 'X') {
       /* An expression, X <expression> E. */
@@ -6911,7 +6924,7 @@ A <template-args> encodes a template argument list.  The syntax is:
     write_id_str(", ", dctl);
   }  /* for */
   ptr = advance_past('E', ptr, dctl);
-  write_id_ch('>', dctl);
+  if (!suppress) write_id_ch('>', dctl);
   return ptr;
 }  /* demangle_template_args */
 
