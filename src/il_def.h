@@ -2579,6 +2579,10 @@ typedef struct an_attribute {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if the attribute is a variadic template pack
 			   expansion, i.e., it's followed by "...". */
+  a_bit_field	is_std_gcc_attribute:1;
+			/* TRUE if the attribute is a "[[gnu::...]]" standard
+			   attribute.  Its family is af_std, but it is treated
+			   as though it were an af_gnu attribute. */
   a_const_char	*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   a_const_char	*namespace_name;

@@ -1201,6 +1201,7 @@ there is an applicable one; otherwise, return NULL.
        [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
        attribute names with added underscores (see below). */
     family = (a_byte_attribute_family)af_gnu;
+    ap->is_std_gcc_attribute = TRUE;
   }  /* if */
   p_ep = lookup_attribute_name(name, (an_attribute_family)family);
   if (p_ep != NULL) {
@@ -2889,7 +2890,7 @@ appropriate and set ap->kind to ak_unrecognized).
       /* Microsoft compilers ignore recognized attributes on tag names.
          We issue a warning. */
       sev = es_warning;
-    } else if (ap->family == (a_byte_attribute_family)af_gnu &&
+    } else if (is_gcc_attribute(ap) &&
                entity_kind == iek_type &&
                !is_type_transforming_attribute(ap)) {
       /* GCC only issues a warning on recognized attributes incorrectly
@@ -3200,7 +3201,7 @@ construct produces *p_type.
   an_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_gnu &&
+    if (is_gcc_attribute(ap) &&
         is_type_transforming_attribute(ap)) {
       ap->assoc_info = assoc_info;
       *p_type = (a_type_ptr)apply_one_attribute(ap, (char*)*p_type, iek_type);
@@ -3777,7 +3778,15 @@ specifier.
   a_const_char *constr;
   a_boolean    std_specifier = is_std_attribute(ap);
 
-  if (std_specifier) {
+  if (is_gcc_attribute(ap)) {
+    /* GCC allows types and bit fields to have a user-specified alignment. */
+    if (gnu_version >= 40300) {
+      /* Newer versions of GCC also allow the alignment of functions. */
+      constr = "c|e|t|v:-r!|d|r";
+    } else {
+      constr = "c|e|t|v:-r!|d";
+    }  /* if */
+  } else if (std_specifier) {
     constr = "c|e|v:-r!|d:-b!";
     if (c11_mode && ap->family == (a_byte_attribute_family)af_alignas) {
       /* C11 allows _Alignas in syntactic locations different from C++11's
@@ -3787,14 +3796,6 @@ specifier.
         pos_diagnostic(es_discretionary_error, ec_attribute_not_allowed,
                        &ap->position);
       }  /* if */
-    }  /* if */
-  } else if (ap->family == (a_byte_attribute_family)af_gnu) {
-    /* GCC allows types and bit fields to have a user-specified alignment. */
-    if (gnu_version >= 40300) {
-      /* Newer versions of GCC also allow the alignment of functions. */
-      constr = "c|e|t|v:-r!|d|r";
-    } else {
-      constr = "c|e|t|v:-r!|d";
     }  /* if */
   } else {
     check_assertion(ap->family == (a_byte_attribute_family)af_ms_declspec);
@@ -3817,7 +3818,7 @@ specifier.
       if (ap->arguments == NULL) {
         /* If there is no argument to the GNU "aligned" attribute, then the
            maximum alignment useful on the target is implied. */
-        check_assertion(ap->family == (a_byte_attribute_family)af_gnu);
+        check_assertion(is_gcc_attribute(ap));
         alignment = targ_maximum_intrinsic_alignment;
       } else if (aap->kind == (an_attribute_arg_kind)aak_empty) {
         /* alignas accepts pack expansions.  We may get here with an empty
@@ -3890,7 +3891,7 @@ specifier.
         }  /* if */
       } else if (entity_kind == iek_variable) {
         a_variable_ptr  vp = (a_variable_ptr)entity;
-        if (ap->family == (a_byte_attribute_family)af_gnu) {
+        if (is_gcc_attribute(ap)) {
           /* GCC retains the "last" applied alignment.  Declarator attributes
              are applied before prefix attributes. */
           vp->alignment = alignment;
@@ -4255,8 +4256,7 @@ Apply the given "noreturn" attribute to the given entity and return that
 entity.
 */
 {
-  if (entity_kind != iek_routine &&
-      ap->family != (a_byte_attribute_family)af_gnu) {
+  if (entity_kind != iek_routine && !is_gcc_attribute(ap)) {
     /* The standard attribute form and the Microsoft __declspec form apply only
        to routines.  (Early Microsoft compilers simply ignore the attribute
        when it is applied to a non-routine.) */
@@ -4387,7 +4387,7 @@ and return the entity.
   if (entity_kind == iek_routine) {
     a_routine_ptr  rp = (a_routine_ptr)entity;
     rp->never_inline = TRUE;
-    if (rp->is_inline && ap->family == (a_byte_attribute_family)af_gnu) {
+    if (rp->is_inline && is_gcc_attribute(ap)) {
       pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
     }  /* if */
   } else {
@@ -4414,8 +4414,7 @@ entity.
   if (entity_kind != iek_routine) {
     /* The nothrow attribute applies only to routines, but GCC only issues a
        warning in some other contexts. */
-    an_error_severity  sev = ap->family == (a_byte_attribute_family)af_gnu ? 
-                                                        es_warning : es_error;
+    an_error_severity  sev = is_gcc_attribute(ap) ? es_warning : es_error;
     report_bad_attribute_target(sev, ap);
     goto done;
   } else {

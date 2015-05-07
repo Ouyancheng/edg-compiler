@@ -1,5 +1,19 @@
 Version 4.11
 
+5/7/15   [EDGcpfe/16201]
+GNU compatibility: handling of [[gnu:...]] attributes
+
+A change has been made to handle attributes that have the C++11 standard
+syntax and use the "gnu" namespace as though they are af_gnu attributes
+(i.e., as if they had used the __attribute((...)) syntax) when using
+GNU emulation mode and gnu_version >= 40800.  This change allows some
+[[gnu:...]] attributes to be accepted where C++11 standard attributes typically
+are not applicable, for example, with --c++11 --gnu_version 40800:
+
+  char a[4] [[gnu::aligned(2)]];
+  typedef char b[4] [[gnu::aligned(2)]];
+
+
 5/1/15   [EDGcpfe/16208]
 Unnecessary reallocation of attr_name_map
 

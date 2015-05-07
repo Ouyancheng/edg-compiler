@@ -98,8 +98,7 @@ standard-attribute syntax).
       p_to = last_attribute_link(&dps->id_attributes);
       do {
         ap = *p_from;
-        if (ap->family == (a_byte_attribute_family)af_gnu &&
-            !is_type_transforming_attribute(ap)) {
+        if (is_gcc_attribute(ap) && !is_type_transforming_attribute(ap)) {
           *p_from = ap->next;
           /* Non-nested postfix attributes are recorded as al_postfix.  Others
              are recorded as al_id_equivalent. */
@@ -176,7 +175,7 @@ declarator.  Issue an error if non-GNU attributes are scanned.
       /* Check that any scanned attributes are GNU attributes.  (Other
          attribute kinds are not permitted in this syntactic context.) */
       for (ap = attributes; ap != NULL; ap = ap->next) {
-        if (ap->family != (a_byte_attribute_family)af_gnu && !error_issued) {
+        if (!is_gcc_attribute(ap) && !error_issued) {
           pos_error(ec_only_gnu_attributes_here, &ap->position);
           error_issued = TRUE;
         }  /* if */
@@ -5396,7 +5395,7 @@ attributes are applied to the underlying type).
       /* Extract (and reclassify) type transforming GNU attributes. */
       do {
         ap = *p_from;
-        if (ap->family == (a_byte_attribute_family)af_gnu &&
+        if (is_gcc_attribute(ap) &&
             is_type_transforming_attribute(ap)) {
           *p_from = ap->next;
           ap->syntactic_location = to_syn_loc;

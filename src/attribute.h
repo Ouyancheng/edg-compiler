@@ -102,6 +102,14 @@ Reclassify the given attribute as "unrecognized".
 #define make_attr_unrecognized(ap)                                           \
   { (ap)->kind = (a_byte_attribute_kind)ak_unrecognized; }
 
+/*
+Return TRUE if the given attribute is an af_gnu attribute or an af_std
+attribute in the "gnu" namespace.
+*/
+#define is_gcc_attribute(ap)                                                 \
+  ((ap)->family == (a_byte_attribute_family)af_gnu ||                        \
+   (ap)->is_std_gcc_attribute)
+
 extern an_attribute_ptr scan_attributes(an_attribute_location  loc);
 
 extern an_attribute_ptr scan_gnu_attribute_groups(an_attribute_location  loc);

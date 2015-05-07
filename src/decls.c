@@ -702,7 +702,7 @@ of the template was seen; NULL if none).
   an_attribute_ptr  ap, diag_ap = NULL;
 
   for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_gnu) {
+    if (is_gcc_attribute(ap)) {
       if (diag_ap == NULL && !is_unapplicable_attr(ap) &&
           find_attribute(ap->kind, prev_attributes) == NULL) {
         /* This is the first deactivated attribute not mentioned in the
@@ -713,7 +713,7 @@ of the template was seen; NULL if none).
     }  /* if */
   }  /* for */
   for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_gnu) {
+    if (is_gcc_attribute(ap)) {
       if (!is_unapplicable_attr(ap)) {
         if (diag_ap == NULL &&
             find_attribute(ap->kind, prev_attributes) == NULL) {
@@ -11778,7 +11778,7 @@ by *p_list (the list can be empty; i.e., *p_list can be NULL).
 
   /* Extract GNU attributes. */
   for (p_ap = p_list; *p_ap != NULL;) {
-    if ((*p_ap)->family == (a_byte_attribute_family)af_gnu) {
+    if (is_gcc_attribute(*p_ap)) {
       *p_end = *p_ap;
       *p_ap = (*p_ap)->next;
       p_end = &(*p_end)->next;
@@ -15338,7 +15338,7 @@ variable (if applicable).
     an_attribute_ptr  ap = attributes;
     a_boolean         warning_emitted = FALSE, error_emitted = FALSE;
     for (ap = attributes; ap != NULL; ap = ap->next) {
-      if (ap->family != (a_byte_attribute_family)af_gnu) {
+      if (!is_gcc_attribute(ap)) {
         if (!error_emitted) {
           pos_error(ec_attribute_after_parenthesized_initializer,
                     &ap->position);
@@ -15375,7 +15375,7 @@ issue an error.
   if (dps->id_attributes != NULL && gnu_attributes_enabled) {
     an_attribute_ptr  ap = dps->id_attributes;
     for (; ap != NULL; ap = ap->next) {
-      if (ap->family == (a_byte_attribute_family)af_gnu &&
+      if (is_gcc_attribute(ap) &&
           ap->syntactic_location == (a_byte_attribute_location)al_postfix) {
         pos_error(ec_attributes_in_rout_defn, &ap->group->position);
         break;
@@ -16246,7 +16246,7 @@ if prior declarations specified an alignment attribute.
        alignment was the result of an attribute, issue an error. */
     an_attribute_ptr  ap = find_attribute(ak_align,
                                           vp->source_corresp.attributes);
-    if (ap != NULL && is_std_attribute(ap)) {
+    if (ap != NULL && is_std_attribute(ap) && !ap->is_std_gcc_attribute) {
       pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
                       &ap->position, &dps->declarator_pos);
     }  /* if */

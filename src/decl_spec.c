@@ -2887,7 +2887,7 @@ attributes are attached as part of the template instantiation process.
           }  /* if */
           make_attr_unrecognized(ap);
         }  /* if */
-      } else if (ap->family == (a_byte_attribute_family)af_gnu) {
+      } else if (is_gcc_attribute(ap)) {
         /* GNU attributes in this syntactic location are ignored in most
            contexts that aren't definitions. */
         if (ignore_gnu_attributes && !is_unapplicable_attr(ap)) {
@@ -8785,7 +8785,7 @@ FALSE otherwise.
        the presence of a standard attribute (if one is allowed). */
     do {
       a_boolean  drop_attribute = FALSE;
-      if (disallow_gnu && (*p_ap)->family == (a_byte_attribute_family)af_gnu) {
+      if (disallow_gnu && is_gcc_attribute(*p_ap)) {
         drop_attribute = TRUE;
       } else if (is_std_attribute(*p_ap) &&
                  !(c11_mode &&
@@ -8892,7 +8892,7 @@ dps->specifier_attributes list.
           (!is_unapplicable_attr(*p_ap) ||
            /* In a case like: "__attribute__((X)) auto f() -> int;" ensure that
               the unrecognized attribute isn't attached to the "auto" type. */
-           ((*p_ap)->family == (a_byte_attribute_family)af_gnu &&
+           (is_gcc_attribute(*p_ap) &&
             is_auto_type(dps->specifiers_type)))) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;

@@ -5549,6 +5549,9 @@ Display the indicated attribute entry.
   if (ap->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
+  if (ap->is_std_gcc_attribute) {
+    disp_boolean("is_std_gcc_attribute", TRUE);
+  }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
     disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,

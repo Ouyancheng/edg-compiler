@@ -5354,6 +5354,7 @@ Allocate an attribute in file scope memory and return a pointer to it.
   ap->transforms_type_specifier = FALSE;
   ap->must_be_preserved_in_trans_unit_copy = FALSE;
   ap->is_pack_expansion = FALSE;
+  ap->is_std_gcc_attribute = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;
