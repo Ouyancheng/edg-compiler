@@ -1,5 +1,20 @@
 Version 4.11
 
+5/8/15   [EDGcpfe/2314,EDGcpfe/8060,EDGcpfe/11761]
+Better diagnostic for missing "typename" keyword
+
+A change has been made to issue a more informative diagnostic in cases where a
+qualified member of a nonreal, non-prototype-instantiation template class is
+used without specifying the "typename" keyword.  For example (with --dep_name):
+
+  template <class T> struct A {
+    typedef int I;
+  };
+  template <class T> void f(T) {
+    A<T>::I i;        // missing "typename" keyword
+  }
+
+
 5/7/15   [EDGcpfe/16201]
 GNU compatibility: handling of [[gnu:...]] attributes
 

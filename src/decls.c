@@ -972,10 +972,14 @@ expression is permitted.
     } else if (curr_token == tok_microsoft_w64) {
       is_start = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (curr_token == tok_identifier && locator_for_curr_id.is_error &&
-               locator_for_curr_id.is_template_id) {
-      /* This is an error case -- presumably, an ill-formed template-id -- but
-         it is treated as the start of a type anyway. */
+    } else if (curr_token == tok_identifier &&
+               ((locator_for_curr_id.is_error &&
+                 locator_for_curr_id.is_template_id) ||
+                (locator_for_curr_id_is_member_of_nonreal_template_class() &&
+                 next_token() == tok_identifier))) {
+      /* These are error cases -- presumably, an ill-formed template-id or
+         a dependent type with a missing "typename" keyword -- but they are
+         treated as the start of a type anyway (for better diagnostics). */
       is_start = TRUE;
     }  /* if */
   }  /* if */

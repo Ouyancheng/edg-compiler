@@ -406,6 +406,16 @@ Clear a symbol locator.
    }									\
 }
 
+/* Returns TRUE if locator_for_curr_id refers to a qualified class member of a
+   nonreal, non-prototype-instantiation template class. */
+#define locator_for_curr_id_is_member_of_nonreal_template_class()       \
+  (locator_for_curr_id.is_class_member &&                               \
+   locator_for_curr_id.parent.class_type->                              \
+                         variant.class_struct_union.is_nonreal_class && \
+   locator_for_curr_id.parent.class_type->                              \
+                        variant.class_struct_union.is_template_class && \
+   !locator_for_curr_id.parent.class_type->                             \
+                   variant.class_struct_union.is_prototype_instantiation)
 
 #ifndef LEXICAL_H
 #include "lexical.h"

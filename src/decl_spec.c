@@ -7766,7 +7766,15 @@ The parameter input_flags is the same value that was passed to decl_specifiers
       /* No error message has been issued yet. */
       if (sym != NULL) {
         /* The name refers to something, but not a type. */
-        sym_error(ec_sym_not_a_type_name, sym);
+        if (locator_for_curr_id_is_member_of_nonreal_template_class()) {
+          /* If the identifier is a qualified class member of a nonreal,
+             non-prototype-instantiation template class, then it's likely that
+             the "typename" keyword is needed; give a special error message
+             for this case. */
+          sym_error(ec_typename_needed, sym);
+        } else {
+          sym_error(ec_sym_not_a_type_name, sym);
+        }  /* if */
       } else {
         str_error(ec_undefined_identifier,
                   locator_for_curr_id.symbol_header->identifier);
