@@ -11718,6 +11718,12 @@ enum a_builtin_function_kind_tag {
   bfk_fpclassify,		/* __builtin_fpclassify */
   bfk_assume_aligned,		/* __builtin_assume_aligned */
   bfk_unreachable,		/* __builtin_unreachable */
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+  bfk_ia32_cmppd,               /* __builtin_ia32_cmppd */
+  bfk_ia32_cmpps,               /* __builtin_ia32_cmpps */
+  bfk_ia32_cmpsd,               /* __builtin_ia32_cmpsd */
+  bfk_ia32_cmpss,               /* __builtin_ia32_cmpss */
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -13152,6 +13158,12 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_fpclassify */		     "__builtin_fpclassify",
   /* bfk_assume_aligned */	     "__builtin_assume_aligned",
   /* bfk_unreachable */	 	     "__builtin_unreachable",
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+  /* bfk_ia32_cmppd */               "__builtin_ia32_cmppd",
+  /* bfk_ia32_cmpps */               "__builtin_ia32_cmpps",
+  /* bfk_ia32_cmpsd */               "__builtin_ia32_cmpsd",
+  /* bfk_ia32_cmpss */               "__builtin_ia32_cmpss",
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

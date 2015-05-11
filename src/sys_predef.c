@@ -905,6 +905,7 @@ of GNU.
   a_type_ptr  v2di_type = make_vector_type(long_long_type, 2);
   a_type_ptr  di_star_type = make_pointer_type(di_type);
   a_type_ptr  v2si_star_type = make_pointer_type(v2si_type);
+  a_type_ptr  v1di_star_type = make_pointer_type(v1di_type);
   a_type_ptr  v2di_star_type = make_pointer_type(v2di_type);
   a_type_ptr  sf_type = float_type((a_float_kind)fk_float);
   a_type_ptr  df_type = float_type((a_float_kind)fk_double);
@@ -940,20 +941,27 @@ of GNU.
   enter_gnu_builtin_func2(_ia32_psubusw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pmullw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pmulhw, v4hi, v4hi, v4hi);
-  if (gnu_version < 40000) {
-    enter_gnu_builtin_func2(_ia32_pand, unsigned_long_long,
-                            unsigned_long_long, unsigned_long_long);
-    enter_gnu_builtin_func2(_ia32_pandn, unsigned_long_long,
-                            unsigned_long_long, unsigned_long_long);
-    enter_gnu_builtin_func2(_ia32_por, unsigned_long_long,
-                            unsigned_long_long, unsigned_long_long);
-    enter_gnu_builtin_func2(_ia32_pxor, unsigned_long_long,
-                            unsigned_long_long, unsigned_long_long);
+  if (clang_mode) {
+    enter_gnu_builtin_func2(_ia32_pand, v1di, v1di, v1di);
+    enter_gnu_builtin_func2(_ia32_pandn, v1di, v1di, v1di);
+    enter_gnu_builtin_func2(_ia32_por, v1di, v1di, v1di);
+    enter_gnu_builtin_func2(_ia32_pxor, v1di, v1di, v1di);
   } else {
-    enter_gnu_builtin_func2(_ia32_pand, v2si, v2si, v2si);
-    enter_gnu_builtin_func2(_ia32_pandn, v2si, v2si, v2si);
-    enter_gnu_builtin_func2(_ia32_por, v2si, v2si, v2si);
-    enter_gnu_builtin_func2(_ia32_pxor, v2si, v2si, v2si);
+    if (gnu_version < 40000) {
+      enter_gnu_builtin_func2(_ia32_pand, unsigned_long_long,
+                              unsigned_long_long, unsigned_long_long);
+      enter_gnu_builtin_func2(_ia32_pandn, unsigned_long_long,
+                              unsigned_long_long, unsigned_long_long);
+      enter_gnu_builtin_func2(_ia32_por, unsigned_long_long,
+                              unsigned_long_long, unsigned_long_long);
+      enter_gnu_builtin_func2(_ia32_pxor, unsigned_long_long,
+                              unsigned_long_long, unsigned_long_long);
+    } else {
+      enter_gnu_builtin_func2(_ia32_pand, v2si, v2si, v2si);
+      enter_gnu_builtin_func2(_ia32_pandn, v2si, v2si, v2si);
+      enter_gnu_builtin_func2(_ia32_por, v2si, v2si, v2si);
+      enter_gnu_builtin_func2(_ia32_pxor, v2si, v2si, v2si);
+    }  /* if */
   }  /* if */
   enter_gnu_builtin_func2(_ia32_pcmpeqb, v8qi, v8qi, v8qi);
   enter_gnu_builtin_func2(_ia32_pcmpeqw, v4hi, v4hi, v4hi);
@@ -991,7 +999,11 @@ of GNU.
   }  /* if */
   enter_gnu_builtin_func1(_ia32_pmovmskb, int, v8qi);
   enter_gnu_builtin_func3(_ia32_maskmovq, no_return, v8qi, v8qi, char_star);
-  enter_gnu_builtin_func2(_ia32_movntq, no_return, di_star, di);
+  if (clang_mode) {
+    enter_gnu_builtin_func2(_ia32_movntq, no_return, v1di_star, v1di);
+  } else {
+    enter_gnu_builtin_func2(_ia32_movntq, no_return, di_star, di);
+  }  /* if */
   enter_gnu_builtin_func0(_ia32_sfence, no_return);
 
   /* SSE functions. */
@@ -1100,7 +1112,7 @@ of GNU.
   }  /* if */
   /* GCC 4.4 changed the pointer type in the following partial-vector
      load/store functions. */
-  if (gnu_version < 40400) {
+  if (gnu_version < 40400 || clang_mode) {
     enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
     enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);
     enter_gnu_builtin_func2(_ia32_storehps, no_return, v2si_star, v4sf);
@@ -1110,6 +1122,12 @@ of GNU.
     enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2sf_const_star);
     enter_gnu_builtin_func2(_ia32_storehps, no_return, v2sf_star, v4sf);
     enter_gnu_builtin_func2(_ia32_storelps, no_return, v2sf_star, v4sf);
+  }  /* if */
+  if (clang_mode) {
+    enter_gnu_builtin_func3(_ia32_cmppd, v2df, v2df, v2df, char);
+    enter_gnu_builtin_func3(_ia32_cmpps, v4sf, v4sf, v4sf, char);
+    enter_gnu_builtin_func3(_ia32_cmpsd, v2df, v2df, v2df, char);
+    enter_gnu_builtin_func3(_ia32_cmpss, v4sf, v4sf, v4sf, char);
   }  /* if */
 
   /* SSE2 functions. */
@@ -1811,14 +1829,23 @@ of GNU.
   if (gnu_version >= 40400) {
     /* GCC 4.4 adds some "packed shift" functions and revises the types of
        some functions that were accepted in previous GCC versions. */
-    enter_gnu_builtin_func2(_ia32_psllw, v4hi, v4hi, v4hi);
-    enter_gnu_builtin_func2(_ia32_pslld, v2si, v2si, v2si);
+    if (clang_mode) {
+      enter_gnu_builtin_func2(_ia32_psllw, v4hi, v4hi, v1di);
+      enter_gnu_builtin_func2(_ia32_pslld, v2si, v2si, v1di);
+      enter_gnu_builtin_func2(_ia32_psrlw, v4hi, v4hi, v1di);
+      enter_gnu_builtin_func2(_ia32_psrld, v2si, v2si, v1di);
+      enter_gnu_builtin_func2(_ia32_psraw, v4hi, v4hi, v1di);
+      enter_gnu_builtin_func2(_ia32_psrad, v2si, v2si, v1di);
+    } else {
+      enter_gnu_builtin_func2(_ia32_psllw, v4hi, v4hi, v4hi);
+      enter_gnu_builtin_func2(_ia32_pslld, v2si, v2si, v2si);
+      enter_gnu_builtin_func2(_ia32_psrlw, v4hi, v4hi, v4hi);
+      enter_gnu_builtin_func2(_ia32_psrld, v2si, v2si, v2si);
+      enter_gnu_builtin_func2(_ia32_psraw, v4hi, v4hi, v4hi);
+      enter_gnu_builtin_func2(_ia32_psrad, v2si, v2si, v2si);
+    }  /* if */
     enter_gnu_builtin_func2(_ia32_psllq, v1di, v1di, v1di);
-    enter_gnu_builtin_func2(_ia32_psrlw, v4hi, v4hi, v4hi);
-    enter_gnu_builtin_func2(_ia32_psrld, v2si, v2si, v2si);
     enter_gnu_builtin_func2(_ia32_psrlq, v1di, v1di, v1di);
-    enter_gnu_builtin_func2(_ia32_psraw, v4hi, v4hi, v4hi);
-    enter_gnu_builtin_func2(_ia32_psrad, v2si, v2si, v2si);
     enter_gnu_builtin_func2(_ia32_psllwi, v4hi, v4hi, int);
     enter_gnu_builtin_func2(_ia32_pslldi, v2si, v2si, int);
     enter_gnu_builtin_func2(_ia32_psllqi, v1di, v1di, int);
