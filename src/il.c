@@ -11970,6 +11970,7 @@ more than the given number of parameter entries.
                       ptp->orig_param_type_for_unevaluated_default_arg_expr ==
                                                                          NULL);
     }  /* if */
+    new_ptp->attributes = copy_of_attributes_list(ptp->attributes);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Duplicate the Microsoft attributes list (if any). */
     if (ptp->ms_attributes != NULL) {

@@ -1,5 +1,17 @@
 Version 4.11
 
+5/12/15  [EDGcpfe/16224]
+Multiple pointers to same attribute list
+
+When copying an a_param_type, if the parameter type had attributes, those
+attributes had not themselves been copied, resulting in two pointers pointing
+to the same list of attributes.  That had caused problems (an internal error
+"ptr_remap_function: address not in any mem block") in some configurations
+(e.g., where ALTERNATE_IL_FILE_FORMAT is FALSE).  For example, with --c++11:
+
+  void f(int x[[foo,bar]]);
+
+
 5/12/15  [EDGcpfe/16197]
 Assertion failure in constant_value_at_address with indirect base member
 
