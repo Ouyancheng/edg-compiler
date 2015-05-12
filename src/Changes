@@ -1,5 +1,16 @@
 Version 4.11
 
+5/12/15  [EDGcpfe/16119]
+Clang compatibility: builtin functions
+
+A number of changes have been made to the signatures of various builtin
+functions to better emulate the builtins provided by clang.  In addition,
+five new builtins were added: __builtin_ia32_cmppd, __builtin_ia32_cmpps,
+__builtin_ia32_cmpsd, __builtin_ia32_cmpss, and __builtin_shufflevector.
+The __has_builtin(__builtin_shufflevector) macro is now defined to "1"
+when --clang is specified.
+
+
 5/12/15  [EDGcpfe/16224]
 Multiple pointers to same attribute list
 
