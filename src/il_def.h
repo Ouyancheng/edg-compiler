@@ -1277,6 +1277,7 @@ typedef enum /*a_token_kind*/ {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
   tok_builtin_shuffle,
+  tok_builtin_shufflevector,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tok_noreturn,
   tok_builtin_complex,
@@ -1446,6 +1447,7 @@ EXTERN a_const_char
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
    "__builtin_shuffle",
+   "__builtin_shufflevector",
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    "_Noreturn",
    "__builtin_complex",
@@ -15113,6 +15115,9 @@ typedef enum a_builtin_operation_kind_tag {
 			/* __is_valid_winrt_type.  One type operand. */
   bok_is_win_class,	/* __is_win_class.  One type operand. */
   bok_is_win_interface,	/* __is_win_interface.  One type operand. */
+  bok_builtin_shufflevector,
+			/* Clang's __builtin_shufflevector operator.  Two
+			   vector operands followed by a list of integers. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -19188,6 +19193,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_valid_winrt_type",
   "__is_win_class",
   "__is_win_interface",
+  "__builtin_shufflevector",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

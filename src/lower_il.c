@@ -14165,7 +14165,9 @@ bok_offsetof, which can include nonconstant subscripts.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
     case bok_builtin_shuffle:
-      /* For __builtin_shuffle, just lower the operands. */
+    case bok_builtin_shufflevector:
+      /* For __builtin_shuffle and __builtin_shufflevector, just lower the
+         operands. */
       lower_expr_list(expr->variant.builtin_operation.operands,
                       /*is_bool_controlling_expr_mask=*/0,
                       /*assume_expr_is_non_null_mask=*/0);

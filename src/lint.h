@@ -779,6 +779,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_nonintegral_shuffle_mask)*/
 /*lint -esym(769,ec_incompatible_shuffle_mask)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_shuffle)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_shufflevector)*/
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/

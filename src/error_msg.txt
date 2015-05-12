@@ -2755,6 +2755,7 @@ ec_await_undefined_identifier;;"this await expression requires a suitable %sq fu
 ec_await_no_eventual_value;;"await expression is not allowed here because promise type %t has not member function \"set_result\""
 ec_special_class_template_not_found;;"class template %sq not found"
 ec_typename_needed;;"use the \"typename\" keyword to treat %n as a type in a dependent context"
+ec_shufflevector_index_out_of_range;;"argument value must be less than the sum of the vector elements"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
