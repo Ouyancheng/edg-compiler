@@ -1287,7 +1287,11 @@ of GNU.
   enter_gnu_builtin_func3(_ia32_shufpd, v2df, v2df, v2df, int);
   enter_gnu_builtin_func1(_ia32_cvtdq2pd, v2df, v4si);
   enter_gnu_builtin_func1(_ia32_cvtdq2ps, v4sf, v4si);
-  enter_gnu_builtin_func1(_ia32_cvtpd2dq, v4si, v2df);
+  if (clang_mode) {
+    enter_gnu_builtin_func1(_ia32_cvtpd2dq, v2di, v2df);
+  } else {
+    enter_gnu_builtin_func1(_ia32_cvtpd2dq, v4si, v2df);
+  }  /* if */
   enter_gnu_builtin_func1(_ia32_cvtpd2pi, v2si, v2df);
   enter_gnu_builtin_func1(_ia32_cvtpd2ps, v4sf, v2df);
   enter_gnu_builtin_func1(_ia32_cvttpd2dq, v4si, v2df);
