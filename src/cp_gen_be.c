@@ -3218,6 +3218,19 @@ for the meaning of need_closing_paren.
         substitute_typedef =
                           find_typedef_in(proto_inst_member_typedef_hash_table,
                                           template_param_type);
+        if (substitute_typedef != NULL) {
+          a_type_ptr parent_class = parent_class_or_null(substitute_typedef);
+          if (!(parent_class == NULL ||
+                class_is_in_name_context_stack(
+                                  parent_class, /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE) ||
+                (curr_name_context != NULL &&
+                 curr_name_context->class_type_for_access_not_naming ==
+                                                              parent_class))) {
+            /* We cannot safely use a typedef from a different class here. */
+            substitute_typedef = NULL;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (substitute_typedef != NULL) {
         /* Use the typedef instead of the underlying type. */
