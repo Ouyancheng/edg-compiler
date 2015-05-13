@@ -506,7 +506,7 @@ extern an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
                                               a_boolean             is_yield);
 
-extern an_arg_list_elem_ptr scan_yield_operand();
+extern an_arg_list_elem_ptr scan_yield_operand(void);
 
 #endif /* COROUTINES_ALLOWED */
 

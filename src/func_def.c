@@ -988,6 +988,7 @@ return type.
 {
   a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
   a_coroutine_fixup_ptr  cfp, fixups = (a_coroutine_fixup_ptr)cdp->fixups;
+  an_arg_list_elem_ptr   alep;
 
   if (rp->has_deducible_return_type) {
     /* Deduce a coroutine return type.  This is done in two phases.  First we
@@ -1015,8 +1016,7 @@ return type.
       if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
         a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
         a_boolean        is_yield = sp->kind == (a_statement_kind)stmk_yield;
-        an_arg_list_elem_ptr
-                         alep = (an_arg_list_elem_ptr)cfp->operand;
+        alep = (an_arg_list_elem_ptr)cfp->operand;
         check_assertion(is_yield ||
                         sp->kind == (a_statement_kind)stmk_coroutine_return);
         if (alep == NULL) {
@@ -1069,7 +1069,7 @@ return type.
      to implement the coroutine operations. */
   init_coroutine_descr(rp, cdp);
   for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
-    an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
+    alep = (an_arg_list_elem_ptr)cfp->operand;
     if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
       if (sp->kind == (a_statement_kind)stmk_yield) {

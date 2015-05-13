@@ -6309,7 +6309,7 @@ Add a corresponding stmk_yield statement to the current statement sequence.
      appropriate member of the coroutine's promise. */
   yield_opnd = scan_yield_operand();
   /* Allocate the statement. */
-  sp = add_statement_at_stmt_pos(stmk_yield, &stmt_pos);
+  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_yield, &stmt_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

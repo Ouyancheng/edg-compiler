@@ -7606,10 +7606,7 @@ Don't put its symbol into the symbol table yet.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 
-#if !COROUTINES_ALLOWED
-static
-#endif /* !COROUTINES_ALLOWED */
-a_symbol_ptr look_up_name_string_in_namespace(
+static a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options)
@@ -8292,7 +8289,7 @@ namespace abi was encountered in the source.
 #endif /* IA64_ABI */
 #if COROUTINES_ALLOWED
 
-a_symbol_ptr look_up_name_string_in_class(
+static a_symbol_ptr look_up_name_string_in_class(
                                         a_const_char             *symbol_name,
                                         a_type_ptr               class_type,
                                         an_id_lookup_options_set options)
@@ -8445,7 +8442,7 @@ member.
   } else {
     promise_type = error_type();
   }  /* if */
-  cdp->traits = traits = NULL ? error_type() : traits;
+  cdp->traits = (traits == NULL) ? error_type() : traits;
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
   /* Create a placeholder variable for the coroutine "handle". */
