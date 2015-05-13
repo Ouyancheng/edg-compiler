@@ -37910,7 +37910,7 @@ done:
 
 #if COROUTINES_ALLOWED
 
-an_arg_list_elem_ptr scan_yield_operand()
+an_arg_list_elem_ptr scan_yield_operand(void)
 /*
 Scan the operand (if any) of a yield statement in a coroutine:
 	yield <expr> ;

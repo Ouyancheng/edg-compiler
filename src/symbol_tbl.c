@@ -8392,7 +8392,6 @@ member.
 */
 {
   a_symbol_ptr     traits_sym = NULL, traits_inst_sym, promise_sym;
-  a_symbol_ptr     set_result_sym;
   a_type_ptr       traits = NULL, promise_type = NULL, handle_type,
                    rtp = skip_typerefs(rp->type);
   a_template_arg_ptr
@@ -8451,10 +8450,17 @@ member.
   cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                               NO_SCOPE_DEPTH);
   /* Record whether this is an "eventual value" coroutine. */
-  set_result_sym = look_up_name_string_in_class("set_result", promise_type,
-                                                IDL_NO_OPTIONS);
-  if (set_result_sym != NULL && is_member_function_symbol(set_result_sym)) {
-    cdp->eventual_value = TRUE;
+  if (!is_error_type(promise_type)) {
+    a_symbol_ptr  rv_sym;
+    rv_sym = look_up_name_string_in_class("return_value", promise_type,
+                                          IDL_NO_OPTIONS);
+    if (rv_sym == NULL) {
+      rv_sym = look_up_name_string_in_class("return_void", promise_type,
+                                            IDL_NO_OPTIONS);
+    }  /* if */
+    if (rv_sym != NULL && is_member_function_symbol(rv_sym)) {
+      cdp->eventual_value = TRUE;
+    }  /* if */
   }  /* if */
 }  /* init_coroutine_descr */
 
