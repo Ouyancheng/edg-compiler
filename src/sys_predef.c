@@ -1271,7 +1271,7 @@ of GNU.
   enter_gnu_builtin_func1(_ia32_pmovmskb128, int, v16qi);
   enter_gnu_builtin_func2(_ia32_movnti, no_return, int_star, int);
   if (gnu_version >= 40700) {
-    if (target_is_64_bit) {
+    if (target_is_64_bit || clang_mode) {
       enter_gnu_builtin_func2(_ia32_movnti64, no_return,
                               long_long_star, long_long);
     }  /* if */
@@ -1299,7 +1299,7 @@ of GNU.
   enter_gnu_builtin_func1(_ia32_cvtpi2pd, v2df, v2si);
   enter_gnu_builtin_func1(_ia32_cvtsd2si, int, v2df);
   enter_gnu_builtin_func1(_ia32_cvttsd2si, int, v2df);
-  if (target_is_64_bit) {
+  if (target_is_64_bit || clang_mode) {
     enter_gnu_builtin_func1(_ia32_cvtsd2si64, long_long, v2df);
     enter_gnu_builtin_func1(_ia32_cvttsd2si64, long_long, v2df);
   }  /* if */
@@ -1868,7 +1868,7 @@ of GNU.
     enter_gnu_builtin_func2(_ia32_psraw, v4hi, v4hi, di);
     enter_gnu_builtin_func2(_ia32_psrad, v2si, v2si, di);
   }  /* if */
-  if (target_is_64_bit) {
+  if (target_is_64_bit || clang_mode) {
     enter_gnu_builtin_func2(_ia32_cvtsi642ss, v4sf, v4sf, long_long);
     enter_gnu_builtin_func1(_ia32_cvtss2si64, long_long, v4sf);
     enter_gnu_builtin_func1(_ia32_cvttss2si64, long_long, v4sf);
