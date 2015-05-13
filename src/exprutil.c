@@ -19971,7 +19971,7 @@ Currently, the call must be to a nonstatic member function.
     member_sym = class_qualified_id_lookup(&loc, class_type, IDL_NO_OPTIONS);
     if (member_sym == NULL || !is_member_function_symbol(member_sym)) {
       if (expr_error_should_be_issued()) {
-        pos_stty_error(ec_not_a_member, &selector_operand->position,
+        pos_stty_error(ec_not_a_type_member, &selector_operand->position,
                        member_name, selector_operand->type);
       }  /* if */
       member_sym = NULL;

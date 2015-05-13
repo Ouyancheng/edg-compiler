@@ -28,6 +28,12 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 typedef struct a_text_buffer *a_text_buffer_ptr;
 
 /*
+A sequence number is assigned to each token fetched from the input.
+This is the type used to represent the sequence number.
+*/
+typedef uint32_t a_token_sequence_number;
+
+/*
 Vertical tab character.
 */
 #if USING_ISO_C

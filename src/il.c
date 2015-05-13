@@ -2385,8 +2385,9 @@ Dump a statement kind, for debug purposes.
     case stmk_label:            s = "label";             break;
     case stmk_return:           s = "return";            break;
 #if COROUTINES_ALLOWED
-    case stmk_yield:            s = "yield";             break;
     case stmk_coroutine:        s = "coroutine";         break;
+    case stmk_yield:            s = "yield";             break;
+    case stmk_coroutine_return: s = "coroutine return";  break;
 #endif /* COROUTINES_ALLOWED */
     case stmk_block:            s = "block";             break;
     case stmk_end_test_while:   s = "end-test-while";    break;
@@ -8429,6 +8430,26 @@ entry's position information.
   set_type_size(type);
   return type;
 }  /* make_auto_type */
+
+
+a_type_ptr add_placeholder_typeref(a_type_ptr  tp,
+                                   a_boolean   is_decltype_auto)
+/*
+Return a typeref entry pointing to the given type.  The typeref entry
+represents a deduced "auto" type (if is_decl_typeauto is FALSE) or a deduced
+"decltype(auto)" type (if is_decltype_auto is TRUE).
+*/
+{
+  a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+
+  type->variant.typeref.type = tp;
+  if (is_decltype_auto) {
+    type->variant.typeref.is_deduced_decltype_auto = TRUE;
+  } else {
+    type->variant.typeref.is_deduced_auto = TRUE;
+  }  /* if */
+  return type;
+}  /* add_placeholder_typeref */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -25789,6 +25810,65 @@ is found in check_operation_node_consistency.)
 #endif /* CHECKING */
 
 #if !STANDALONE_UTILITY_PROGRAM
+#if COROUTINES_ALLOWED
+#if DEBUG
+static unsigned long
+		num_coroutine_fixups_allocated;
+			/* Number of coroutine fixup entries that have been
+			   allocated. */
+#endif /* DEBUG */
+
+static a_coroutine_fixup_ptr
+		avail_coroutine_fixups;
+			/* A linked list of coroutine fixup entries available
+			   for reuse. */
+
+a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp)
+/*
+Allocate a 
+*/
+{
+  a_coroutine_fixup_ptr  entry;
+  
+  if (avail_coroutine_fixups != NULL) {
+    /* Reuse a previously-freed entry. */
+    entry = avail_coroutine_fixups;
+    avail_coroutine_fixups = entry->next;
+  } else {
+    /* Allocate a new entry. */
+    entry = (a_coroutine_fixup_ptr)alloc_fe(sizeof(a_coroutine_fixup));
+#if DEBUG
+    num_coroutine_fixups_allocated += 1;
+#endif /* DEBUG */
+  }  /* if */
+  entry->next = (a_coroutine_fixup_ptr)cdp->fixups;
+  clear_tagged_ptr(entry->entity);
+  entry->operand = NULL;
+  entry->position = null_source_position;
+  entry->tok_seq_number = NO_TOKEN_SEQUENCE_NUMBER;
+  entry->await_uses_member_calls = FALSE;
+  cdp->fixups = (void*)entry;
+  return entry;
+}  /* add_coroutine_fixup */
+
+
+void release_coroutine_fixups(a_coroutine_descr_ptr  cdp)
+/*
+Return the list of fixups pointed to by cdp to the available entries list.
+*/
+{
+  a_coroutine_fixup_ptr  cfp = (a_coroutine_fixup_ptr)cdp->fixups;
+
+  if (cfp != NULL) {
+    a_coroutine_fixup_ptr  list = avail_coroutine_fixups;
+    avail_coroutine_fixups = cfp;
+    while (cfp->next != NULL) cfp = cfp->next;
+    cfp->next = list;
+    cdp->fixups = NULL;
+  }  /* if */
+}  /* release_coroutine_fixups */
+
+#endif /* COROUTINES_ALLOWED */
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)
@@ -25804,6 +25884,12 @@ Display memory use for entities in front end memory in this file (il.c).
                      avail_copy_remap_entries,
                      num_copy_remap_entries_allocated,
                      a_copy_remap_entry);
+#if COROUTINES_ALLOWED
+  db_space_used_lost("coroutine fixups",
+                     avail_coroutine_fixups,
+                     num_coroutine_fixups_allocated,
+                     a_coroutine_fixup);
+#endif /* COROUTINES_ALLOWED */
   return grand_total;
 }  /* db_show_il_c_fe_space_used */
 
@@ -26457,8 +26543,14 @@ in il_init.)
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
       pch_saved_var_array_elem(num_copy_remap_entries_allocated),
+#if COROUTINES_ALLOWED
+      pch_saved_var_array_elem(num_coroutine_fixups_allocated),
+#endif /* COROUTINES_ALLOWED */
 #endif /* DEBUG */
       pch_saved_var_array_elem(avail_copy_remap_entries),
+#if COROUTINES_ALLOWED
+      pch_saved_var_array_elem(avail_coroutine_fixups),
+#endif /* COROUTINES_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -26646,6 +26738,9 @@ of the front end.
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
   num_copy_remap_entries_allocated       = 0;
+#if COROUTINES_ALLOWED
+  num_coroutine_fixups_allocated         = 0;
+#endif /* COROUTINES_ALLOWED */
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_inheritance_kind = (an_inheritance_kind)ihk_virtual;
@@ -26655,6 +26750,9 @@ of the front end.
 #endif /* UPC_EXTENSIONS_ALLOWED */
   curr_seq_number_lookup_entry = NULL;
   avail_copy_remap_entries = NULL;
+#if COROUTINES_ALLOWED
+  avail_coroutine_fixups = NULL;
+#endif /* COROUTINES_ALLOWED */
   il_alloc_init();
 }  /* il_init */
 

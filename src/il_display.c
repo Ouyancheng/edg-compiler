@@ -4492,8 +4492,8 @@ cleanup_state_common:
       (void)printf("enk_await\n");
       disp_ptr("await_info.operand", (char *)ptr->variant.await_info.operand,
                iek_expr_node);
-      disp_ptr("await_info.ready_suspend_resume",
-               (char *)ptr->variant.await_info.ready_suspend_resume,
+      disp_ptr("await_info.resume_ready_suspend",
+               (char *)ptr->variant.await_info.resume_ready_suspend,
                iek_expr_node);
       break;
 #endif /* COROUTINES_ALLOWED */

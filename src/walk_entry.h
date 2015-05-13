@@ -1772,6 +1772,15 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.c11_generic.result,
                       an_expr_node_ptr, iek_expr_node);
             break;
+#if COROUTINES_ALLOWED
+          case enk_await:
+            walk_ptr(ptr->variant.await_info.operand, an_expr_node_ptr,
+                     iek_expr_node);
+            walk_list(ptr->variant.await_info.resume_ready_suspend,
+                      an_expr_node_ptr, iek_expr_node);
+            break;
+
+#endif /* COROUTINES_ALLOWED */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");
@@ -1973,6 +1982,10 @@ do_set_proper_definition_needed_flag:
           case stmk_upc_barrier:
           case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+          case stmk_yield:
+          case stmk_coroutine_return:
+#endif /* COROUTINES_ALLOWED */
             /* No additional pointers. */
             break;
           case stmk_if:
@@ -2002,15 +2015,10 @@ do_set_proper_definition_needed_flag:
                      iek_dynamic_init);
             break;
 #if COROUTINES_ALLOWED
-          case stmk_yield:
-            walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
-                     iek_dynamic_init);
-            break;
           case stmk_coroutine:
             walk_ptr(ptr->variant.coroutine.descr, a_coroutine_descr_ptr,
                      iek_coroutine_descr);
             break;
-            
 #endif /* COROUTINES_ALLOWED */
           case stmk_block:
             /* Do extra_info before statements to get declarations out
@@ -3634,7 +3642,10 @@ after_entry_from_class:
 #if COROUTINES_ALLOWED
     case iek_coroutine_descr:
       { a_coroutine_descr_ptr  ptr = (a_coroutine_descr_ptr)entry_ptr;
+        remap_ptr(ptr->traits, a_type_ptr, iek_type);
+        walk_ptr(ptr->handle, a_variable_ptr, iek_variable);
         walk_ptr(ptr->promise, a_variable_ptr, iek_variable);
+        conditionally_clear_fe_pointer(ptr->fixups);
       }
       break;
 #endif /* COROUTINES_ALLOWED */

@@ -34406,11 +34406,11 @@ functions (like await_resume) from.
 */
 {
   an_operand        ready_operand, ready_call;
-  an_operand        suspend_operand, suspend_call;
+  an_operand        suspend_operand;
   an_operand        resume_operand, resume_call;
   a_type_ptr        utp = skip_typerefs(operand->type);
   a_symbol_locator  loc;
-  a_boolean         temp_init_used;
+  a_boolean         temp_init_used, use_member_calls;
   an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_await);
 
   clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
@@ -34425,14 +34425,10 @@ functions (like await_resume) from.
        look_up_named_member_function(utp, "await_resume", &loc) != NULL)) {
     /* Call the await_ready, await_suspend, and await_resume member
        functions. */
+    use_member_calls = TRUE;
     call_named_member_function(&ready_operand, "await_ready",
                                (an_arg_list_elem_ptr)NULL,
                                &ready_operand, &ready_call);
-#if /*FIXME: _Resumable_handle arg */0
-    call_named_member_function(&suspend_operand, "await_suspend",
-                               (an_arg_list_elem_ptr)NULL,
-                               &suspend_operand, &suspend_call);
-#endif /*FIXME*/
     call_named_member_function(&resume_operand, "await_resume",
                                (an_arg_list_elem_ptr)NULL,
                                &resume_operand, &resume_call);
@@ -34440,6 +34436,7 @@ functions (like await_resume) from.
     /* Call await_ready, await_suspend, and await_resume functions found by
        argument-dependent lookup. */
     an_arg_list_elem_ptr  alep;
+    use_member_calls = FALSE;
     alep = alloc_arg_list_elem_for_operand(&ready_operand);
     call_adl_named_function("await_ready", alep, pos, tok_seq_number,
                             ec_await_no_matching_overload,
@@ -34447,15 +34444,6 @@ functions (like await_resume) from.
                             ec_await_undefined_identifier,
                             &ready_call, (an_expr_node_ptr*)NULL);
     free_arg_list(alep);
-#if /*FIXME: _Resumable_handle arg */0
-    alep = alloc_arg_list_elem_for_operand(&suspend_operand);
-    call_adl_named_function("await_suspend", alep, pos, tok_seq_number,
-                            ec_await_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_await_undefined_identifier,
-                            &suspend_call, (an_expr_node_ptr*)NULL);
-    free_arg_list(alep);
-#endif /*FIXME*/
     alep = alloc_arg_list_elem_for_operand(&resume_operand);
     call_adl_named_function("await_resume", alep, pos, tok_seq_number,
                             ec_await_no_matching_overload,
@@ -34466,16 +34454,76 @@ functions (like await_resume) from.
   }  /* if */
   node->type = resume_call.type;
   node->variant.await_info.operand = make_node_from_operand(operand);
-  node->variant.await_info.ready_suspend_resume =
+  node->variant.await_info.resume_ready_suspend =
                                           make_node_from_operand(&ready_call);
-  node->variant.await_info.ready_suspend_resume->next =
-#if /*FIXME: _Resumable_handle arg */0
-                                        make_node_from_operand(&suspend_call);
-  node->variant.await_info.ready_suspend_resume->next->next =
-#endif /*FIXME*/
+  node->variant.await_info.resume_ready_suspend->next =
                                          make_node_from_operand(&resume_call);
   make_expression_operand(node, result);
+  if (expr_stack->potentially_evaluated && !is_error_operand(result)) {
+    a_routine_ptr          curr_routine = current_routine_entry();
+    a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine);
+    a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
+    cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
+    cfp->entity.ptr = (char*)node;
+    cfp->operand = (void*)alloc_arg_list_elem_for_operand(&suspend_operand);
+    cfp->position = *pos;
+    cfp->tok_seq_number = tok_seq_number;
+    cfp->await_uses_member_calls = use_member_calls;
+    cdp->has_potentially_evaluated_await = TRUE;
+  }  /* if */
 }  /* add_await_to_operand */
+
+
+void determine_suspend_call_for_await(an_expr_node_ptr         node,
+                                      an_arg_list_elem_ptr     suspend_arg,
+                                      a_boolean                use_member_call,
+                                      a_token_sequence_number  tok_seq_number,
+                                      a_coroutine_descr_ptr    cdp)
+/*
+The given node represents an "await" operation whose "await_suspend" call has
+not been determined yet.  Determine it now (and record its representation).
+suspend_arg is the first operand (or the selector operand, if use_member_call
+is TRUE) of the call.  cdp points to the coroutine description entry for this
+await operation.  This routine frees *suspend_arg.
+*/
+{
+  an_expr_stack_entry   expr_stack_entry;
+  an_operand            handle_opnd, suspend_call;
+  an_arg_list_elem_ptr  handle_arg;
+  a_source_position     *pos, *end_pos;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  pos = init_component_pos(suspend_arg);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos = init_component_end_pos(suspend_arg);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+  end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* First get an operand representing the coroutine handle. */
+  make_lvalue_variable_operand(cdp->handle, pos, end_pos, &handle_opnd,
+                               (a_ref_entry *)NULL);
+  handle_arg = alloc_arg_list_elem_for_operand(&handle_opnd);
+  /* Now create the await_suspend call. */
+  if (use_member_call) {
+    an_operand  *selector = operand_of_arg_list_elem(suspend_arg);
+    call_named_member_function(selector, "await_suspend", handle_arg,
+                               selector, &suspend_call);
+    free_arg_list(handle_arg);
+  } else {
+    append_elem(suspend_arg, handle_arg);
+    call_adl_named_function("await_suspend", suspend_arg, pos, tok_seq_number,
+                            ec_await_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_await_undefined_identifier,
+                            &suspend_call, (an_expr_node_ptr*)NULL);
+  }  /* if */
+  node->variant.await_info.resume_ready_suspend->next->next =
+                                        make_node_from_operand(&suspend_call);
+  free_arg_list(suspend_arg);
+  pop_expr_stack();
+}  /* determine_suspend_call_for_await */
 
 #endif /* COROUTINES_ALLOWED */
 
@@ -37237,7 +37285,11 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/ /* is_yield is not used in some configurations. */
+#endif /* !COROUTINES_ALLOWED */
 static void set_deduced_return_type(a_type_ptr        return_type,
+                                    a_boolean         is_yield,
                                     a_source_position *err_pos)
 /*
 We're currently in a function with a deduced return type (a C++11 lambda body
@@ -37337,39 +37389,46 @@ are left unaffected).
       deduced_return_type = error_type();
     }  /* if */
     if (keep_placeholder) {
-      a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
-      type->variant.typeref.type = deduced_return_type;
-      if (is_decltype_auto_case) {
-        type->variant.typeref.is_deduced_decltype_auto = TRUE;
-      } else {
-        type->variant.typeref.is_deduced_auto = TRUE;
-      }  /* if */
-      deduced_return_type = type;
+      deduced_return_type = add_placeholder_typeref(deduced_return_type,
+                                                    is_decltype_auto_case);
     }  /* if */
-    set_deduced_return_type(deduced_return_type, diag_pos);
+    set_deduced_return_type(deduced_return_type, /*is_yield=*/FALSE, diag_pos);
   }  /* if */
 }  /* deduce_return_type_from_void_operand */
 
 
-static void check_and_adjust_deduced_return_type_if_needed(
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/ /* is_yield is not used in some configurations. */
+static
+#endif /* !COROUTINES_ALLOWED */
+void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
+                                                 a_boolean       is_yield,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
 /*
-return_op represents the expression in the return statement of the current
-function (curr_routine) whose return type is to be set from such an expression.
-*return_type is the type currently thought of as that function's return type
-(it's a copy of the return type from the routine).  Update it and the routine
-type with the type of return_op.
+return_op represents the expression in a return statement (or, if is_yield is
+TRUE, a yield statement) of the current function (curr_routine) whose return
+type is to be set from such an expression.  *return_type is the type currently
+thought of as that function's return type (it's a copy of the return type from
+the routine).  Update it and the routine type with the type of return_op.
 */
 {
   a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
   a_boolean   is_decltype_auto, still_dependent;
   a_boolean   lambda_case = curr_routine->is_lambda_body;
+  a_boolean   keep_placeholder = !lambda_case;
 
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+#if COROUTINES_ALLOWED
+  if (curr_routine->is_coroutine) {
+    /* Don't record a placeholder for coroutines here, because the deduced
+       return type will later be replaced. */
+    keep_placeholder = FALSE;
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   /* Make sure array-to-pointer and function-to-pointer decay are done before
      we use the type as the return type. */
   do_operand_transformations(return_op,
@@ -37394,16 +37453,16 @@ type with the type of return_op.
     *return_type = error_type();
     rout_type->variant.routine.return_type = *return_type;
   } else if (is_void_type(return_op->type)) {
-    deduce_return_type_from_void_operand(curr_routine,
-                                         /*keep_placeholder=*/!lambda_case,
+    check_assertion(!is_yield);
+    deduce_return_type_from_void_operand(curr_routine, keep_placeholder,
                                          &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
   } else if (deduce_placeholder_type(is_decltype_auto, orig_type, auto_type,
-                                     /*keep_placeholder=*/!lambda_case,
-                                     return_op, /*initializer_alep=*/NULL,
+                                     keep_placeholder, return_op,
+                                     /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {
-    set_deduced_return_type(deduced_type, &return_op->position);
+    set_deduced_return_type(deduced_type, is_yield, &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
   } else if (still_dependent) {
     /* The type is still dependent, so leave the return type as it is. */
@@ -37456,19 +37515,58 @@ class (nullptr_t is fine too).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
 
-an_expr_node_ptr make_coroutine_result_expression(
-                                              an_arg_list_elem_ptr  alep,
-                                              a_boolean             is_return)
+
+static void bundle_coroutine_result(an_arg_list_elem_ptr  alep)
 /*
-alep points to a representation of a "yield" or "return" operand in a
-coroutine.  For a yield statement, create and return an expression
+alep represents a just-scanned operand of a yield or coroutine return.  It will
+eventually be used as the operand of a call (after the complete coroutine body
+has been seen).  
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (expr_stack->in_cctor_elision_initializer) {
+    /* We scanned the operand of a return expression, assuming that copy
+       constructor elision may be needed.  We now know that this is for a
+       coroutine return and so the elision does not apply.  Add destructors to
+       any dynamic initialization entries where they were partially
+       suppressed. */
+    fix_up_dynamic_init_dtors();
+  }  /* if */
+  if (is_expression_component(alep)) {
+    an_operand  *operand = operand_of_arg_list_elem(alep);
+    if (lifetime != NULL) {
+      /* Preserve the lifetime associated with the expression.  This is related
+         to what scan_expr_as_init_component does, but in this case the
+         operand has already been scanned, or taken out of a cache and its
+         lifetime restored, so we're just saving here, not wrapping. */
+      check_assertion(curr_object_lifetime == expr_stack->lifetime);
+      alep->variant.expr.lifetime = expr_stack->lifetime;
+      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+      expr_stack->lifetime = NULL;
+      detach_from_object_lifetime_tree(alep->variant.expr.lifetime);
+    }  /* if */
+    alep->bundled = TRUE;
+    detach_ref_entries_from_curr_expr(operand);
+  }  /* if */
+}  /* bundle_coroutine_result */
+
+
+an_expr_node_ptr wrap_up_coroutine_result_expression(
+                                              an_arg_list_elem_ptr  alep,
+                                              a_boolean             is_yield)
+/*
+alep points to a representation of a "yield" (if is_yield is TRUE) or "return"
+(if is_yield is FALSE) operand in a coroutine.  For a yield statement, create
+and return an expression
     _Pr.yield_value(_V)
 where _V is the expression or braced initializer just scanned, and _Pr is the
 variable recorded for the current routine's promise.  Similarly, create one of
 the following expressions for the various forms of return statements:
-    _Pr.set_result()     for "return ;"
-    _V, _Pr.set_result() for "return <expr> ;" where <expr> has type void
-    _Pr.set_result(_V)   otherwise
+    _Pr.return_void()     for "return ;"
+    _V, _Pr.return_void() for "return <expr> ;" where <expr> has type void
+    _Pr.return_value(_V)  otherwise
+This routine frees *alep.
 */
 {
   an_expr_node_ptr      result, void_expr = NULL;
@@ -37476,8 +37574,15 @@ the following expressions for the various forms of return statements:
   a_coroutine_descr_ptr cdp;
   an_operand            selector_operand, call_operand;
   a_source_position     pos, end_pos;
+  a_const_char          *mem_fun_name;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
 
-  check_assertion(curr_routine->is_coroutine);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  check_assertion(curr_routine->is_coroutine || is_yield);
   /* Use the position of the given operand if one is given, and that of the
      current token otherwise. */
   pos = alep == NULL ? pos_curr_token : *init_component_pos(alep);
@@ -37489,30 +37594,48 @@ the following expressions for the various forms of return statements:
   cdp = get_coroutine_descr(curr_routine);
   make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
                                (a_ref_entry *)NULL);
-  if (is_return && is_expression_component(alep)) {
-    an_operand *operand = operand_of_arg_list_elem(alep);
-    if (is_void_type(operand->type)) {
-      void_expr = make_node_from_operand(operand);
-      alep = NULL;
-    }  /* if */
+  if (alep != NULL) {
+    unbundle_init_component_expressions(alep);
   }  /* if */
-  call_named_member_function(&selector_operand,
-                             is_return ? "set_result" : "yield_value",
-                             alep, &selector_operand, &call_operand);
+  if (is_yield) {
+    mem_fun_name = "yield_value";
+  } else {
+    /* A return statement in a coroutine: Call return_value or return_void.
+       Check for the case of returning an expression of type void: The
+       expression must be evaluated, but return_void() is called without
+       arguments. */
+    if (alep != NULL && is_expression_component(alep)) {
+      an_operand *operand = operand_of_arg_list_elem(alep);
+      if (is_void_type(operand->type)) {
+        void_expr = make_node_from_operand(operand);
+        alep = NULL;
+      }  /* if */
+    }  /* if */
+    mem_fun_name = alep == NULL ? "return_void" : "return_value";
+  }  /* if */
+  call_named_member_function(&selector_operand, mem_fun_name, alep,
+                             &selector_operand, &call_operand);
   result = make_node_from_operand(&call_operand);
   if (void_expr != NULL) {
     result = make_comma_node(void_expr, result);
   }  /* if */
-  wrap_up_full_expression(result);
+  result = wrap_up_full_expression(result);
+  free_arg_list(alep);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   return result;
-}  /* make_coroutine_result_expression */
+}  /* wrap_up_coroutine_result_expression */
 
 #endif /* COROUTINES_ALLOWED */
 
 
-an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
-                                        an_error_code      err_code,
-                                        a_dynamic_init_ptr *dip)
+#if !COROUTINES_ALLOWED
+/*ARGSUSED*/  /* alep is not used in some configurations. */
+#endif /* !COROUTINES_ALLOWED */
+an_expr_node_ptr scan_return_expression(a_type_ptr            required_type,
+                                        an_error_code         err_code,
+                                        a_dynamic_init_ptr    *dip,
+                                        an_arg_list_elem_ptr  *alep)
 /*
 Scan an expression on a return statement and convert it to the type
 required_type; issue the error err_code if it cannot be converted to that
@@ -37521,6 +37644,8 @@ one that returns its value via a copy constructor, set *dip to point to
 the appropriate dynamic initialization entry and return NULL.
 required_type will be void if the expression should have void type
 (e.g., in a C++ function with void return type).
+If this turns out to be a coroutine return, return NULL and set *alep to the
+operand of the statement.
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
@@ -37568,11 +37693,9 @@ required_type will be void if the expression should have void type
     if (curr_routine->is_coroutine) {
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
-      /* It turns out we didn't need to treat this as a cctor elision
-         context, so make sure we add destructors to any dynamic
-         initialization entries where they were partially suppressed. */
-      fix_up_dynamic_init_dtors();
-      expression = make_coroutine_result_expression(icp, /*is_return=*/TRUE);
+      expression = NULL;
+      *alep = icp;
+      bundle_coroutine_result(*alep);
       goto done;
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
@@ -37584,7 +37707,9 @@ required_type will be void if the expression should have void type
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       result.end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      expr_pos_error(ec_braced_list_for_implicit_lambda_type,
+      expr_pos_error(curr_routine->is_lambda_body ?
+                                     ec_braced_list_for_implicit_lambda_type
+                                   : ec_braced_list_for_implicit_return_type,
                      &result.position);
       arg_list_will_not_be_used_because_of_error(icp);
       free_init_component_list(icp);
@@ -37615,14 +37740,11 @@ required_type will be void if the expression should have void type
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 #if COROUTINES_ALLOWED
     if (curr_routine->is_coroutine) {
-      /* It turns out we didn't need to treat this as a cctor elision
-         context, so make sure we add destructors to any dynamic
-         initialization entries where they were partially suppressed. */
-      fix_up_dynamic_init_dtors();
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
-      icp = alloc_arg_list_elem_for_operand(&result);
-      expression = make_coroutine_result_expression(icp, /*is_return=*/TRUE);
+      *alep = alloc_arg_list_elem_for_operand(&result);
+      bundle_coroutine_result(*alep);
+      expression = NULL;
       goto done;
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
@@ -37635,8 +37757,8 @@ handle_deduced_return_type:
         expect_error();
         required_type = error_type();
       } else {
-        check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
-                                                       &required_type);
+        check_and_adjust_deduced_return_type_if_needed(
+                   curr_routine, /*is_yield=*/FALSE, &result, &required_type);
         if (routine_type->variant.routine.extra_info
                         ->value_returned_by_cctor) {
           /* The routine is now known to return its value via copy
@@ -37770,10 +37892,10 @@ handle_deduced_return_type:
                           pos);
     }  /* if */
   }  /* if */
+  free_init_component_list(icp);
 #if COROUTINES_ALLOWED
 done:
 #endif /* COROUTINES_ALLOWED */
-  free_init_component_list(icp);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -37791,13 +37913,14 @@ done:
 
 #if COROUTINES_ALLOWED
 
-an_expr_node_ptr scan_yield_operand()
+an_arg_list_elem_ptr scan_yield_operand()
 /*
 Scan the operand (if any) of a yield statement in a coroutine:
 	yield <expr> ;
 	yield { ... } ;
-and return an expression node representing the underlying call on the promise
-associated with the coroutine.
+and return an component representing the underlying call on the promise
+associated with the coroutine.  (The component will eventually be deallocated
+by wrap_up_coroutine_result_expression.
 */
 {
   a_routine_ptr         curr_routine = current_routine_entry();
@@ -37805,7 +37928,6 @@ associated with the coroutine.
   an_arg_list_elem_ptr  alep;
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
-  an_expr_node_ptr      result;
 
   deducible_return_type = curr_routine->has_deducible_return_type &&
                           !curr_routine->is_prototype_instantiation;
@@ -37818,14 +37940,10 @@ associated with the coroutine.
   } else {
     alep = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
   }  /* if */
-  if (deducible_return_type) {
-    /* FIXME: Not implemented yet. */
-  }  /* if */
-  result = make_coroutine_result_expression(alep, /*is_return=*/FALSE);
-  free_arg_list(alep);
+  bundle_coroutine_result(alep);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  return result;
+  return alep;
 }  /* scan_yield_operand */
 
 
@@ -37866,14 +37984,11 @@ expression.
                        result);
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
-  if (expr_stack->potentially_evaluated) {
-    a_routine_ptr           curr_routine = current_routine_entry();
-    a_coroutine_descr_ptr   cdp = get_coroutine_descr(curr_routine);
-    if (!cdp->eventual_value) {
-      pos_ty_error(ec_await_no_eventual_value, &operator_position,
-                   cdp->promise->type);
-    }  /* if */
-  }  /* if */
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_await_expression */
 
 #endif /* COROUTINES_ALLOWED */
@@ -39167,6 +39282,11 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
     /* A braced-init-list. */
     operator_token = tok_lbrace;
+#if COROUTINES_ALLOWED
+  } else if (expr->kind == (an_expr_node_kind)enk_await) {
+    /* An await expression. */
+    operator_token = tok_await;
+#endif /* COROUTINES_ALLOWED */
   } else {
     rescannable = FALSE;
   }  /* if */

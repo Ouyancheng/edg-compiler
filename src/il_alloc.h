@@ -390,6 +390,11 @@ memory region.
    *cp = NULL)
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+#define clear_tagged_ptr(tagged_ptr)                                        \
+  (((tagged_ptr).kind = (a_byte_il_entry_kind)iek_none),                    \
+   ((tagged_ptr).ptr = NULL))
+
 #endif /* ifndef IL_ALLOC_H */
 
 /******************************************************************************

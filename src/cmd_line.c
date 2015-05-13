@@ -2369,6 +2369,9 @@ by a command line option.
       binary_literals_allowed = TRUE;
       std_attributes_enabled = TRUE;
       sized_deallocation_enabled = TRUE;
+#if COROUTINES_ALLOWED
+      coroutines_enabled = TRUE;
+#endif /* COROUTINES_ALLOWED */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

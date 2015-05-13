@@ -409,6 +409,14 @@ extern void deduce_return_type_from_void_operand(
                                           a_boolean          keep_placeholder,
                                           a_source_position  *diag_pos);
 
+#if COROUTINES_ALLOWED
+extern void check_and_adjust_deduced_return_type_if_needed(
+                                                 a_routine_ptr   curr_routine,
+                                                 a_boolean       is_yield,
+                                                 an_operand_ptr  return_op,
+                                                 a_type_ptr      *return_type);
+#endif /* COROUTINES_ALLOWED */
+
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap);
@@ -481,16 +489,26 @@ a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
                                                   a_boolean      move_case);
 
 extern an_expr_node_ptr scan_return_expression(
-                                              a_type_ptr         required_type,
-                                              an_error_code      err_code,
-                                              a_dynamic_init_ptr *dip);
+                                          a_type_ptr            required_type,
+                                          an_error_code         err_code,
+                                          a_dynamic_init_ptr    *dip,
+                                          an_arg_list_elem_ptr  *alep);
 
 #if COROUTINES_ALLOWED
-extern an_expr_node_ptr make_coroutine_result_expression(
-                                              an_arg_list_elem_ptr  alep,
-                                              a_boolean             is_return);
 
-extern an_expr_node_ptr scan_yield_operand();
+extern void determine_suspend_call_for_await(
+                                      an_expr_node_ptr         node,
+                                      an_arg_list_elem_ptr     suspend_arg,
+                                      a_boolean                use_member_call,
+                                      a_token_sequence_number  tok_seq_number,
+                                      a_coroutine_descr_ptr    cdp);
+
+extern an_expr_node_ptr wrap_up_coroutine_result_expression(
+                                              an_arg_list_elem_ptr  alep,
+                                              a_boolean             is_yield);
+
+extern an_arg_list_elem_ptr scan_yield_operand();
+
 #endif /* COROUTINES_ALLOWED */
 
 extern void scan_pp_expression(a_constant *constant);

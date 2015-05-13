@@ -16070,11 +16070,15 @@ typedef struct an_expr_node {
 		operand;
 			/* The operand of the await operator. */
       an_expr_node_ptr
-		ready_suspend_resume;
-			/* A list of three expressions representing the calls
-			   to await_ready, await_suspend, and await_resume
-			   needed to implement the "await" operation.  The
-			   operand should be evaluated first. */
+		resume_ready_suspend;
+			/* A list of two or three expressions representing the
+			   calls to await_resume, await_ready, and (sometimes)
+			   await_suspend needed to implement the "await"
+			   operation.  The call to await_suspend is not
+			   recorded in unevaluated contexts (because that call
+			   is dependent on context that need not exist for
+			   unevaluated calls).  The operand should be evaluated
+			   first. */
     } await_info;
 #endif /* COROUTINES_ALLOWED */
   } variant;
@@ -16730,12 +16734,26 @@ typedef struct a_coroutine_descr {
 			/* The std::experimental::resumable_traits instance
 			   associated with this coroutine. */
   a_variable_ptr
+		handle;
+			/* A placeholder variable representing the handle
+			   for the coroutine invocation. */
+  a_variable_ptr
 		promise;
 			/* A placeholder variable representing the promise
 			   for the coroutine invocation. */
+  void		*fixups;
+			/* An opaque pointer to a front-end-only list of
+			   fixup entries (used to update IL entries for
+			   coroutine entries when the complete coroutine
+			   function body has been seen). */
   a_bit_field	eventual_value:1;
 			/* TRUE if the promise type has a member function
 			   set_result. */
+  a_bit_field	has_yield:1;
+			/* TRUE if the coroutine includes a yield statement. */
+  a_bit_field	has_potentially_evaluated_await:1;
+			/* TRUE if the coroutine includes a potentially-
+			   evaluated await expression. */
 } a_coroutine_descr;
 
 #endif /* COROUTINES_ALLOWED */
@@ -16809,7 +16827,7 @@ typedef struct a_statement {
   union {
     /* When kind == stmk_expr or stmk_empty, no variant fields. */
 #if COROUTINES_ALLOWED
-    /* Likewise for stmk_coroutine_return and stmk_yield. */
+    /* Likewise for stmk_yield and stmk_coroutine_return. */
 #endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */

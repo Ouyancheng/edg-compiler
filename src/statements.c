@@ -5957,6 +5957,8 @@ The syntax is:
   a_source_sequence_entry_ptr
                      src_seq_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  an_arg_list_elem_ptr
+                     alep = NULL;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -6012,11 +6014,10 @@ The syntax is:
       /* The expression is missing. */
 #if COROUTINES_ALLOWED
       if (rout->is_coroutine) {
-        a_coroutine_descr_ptr cdp = get_coroutine_descr(rout);
-        if (cdp->eventual_value) {
-          return_expr = make_coroutine_result_expression(
-                              (an_arg_list_elem_ptr)NULL, /*is_return=*/TRUE);
-        }  /* if */
+        /* A co-routine statement.  It may eventually be transformed into a
+           "return_void()" call.  Set alep to NULL to indicate that no
+           arguments should be passed in such a call. */
+        alep = NULL;
       } else
 #endif /* COROUTINES_ALLOWED */
       /* Do not insert code here. */
@@ -6098,7 +6099,7 @@ The syntax is:
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
-                                         &dip);
+                                         &dip, &alep);
   }  /* if */
   /* The return type might have been deduced.  Reload it. */
   return_type = rout_type->variant.routine.return_type;
@@ -6205,6 +6206,15 @@ The syntax is:
           }  /* if */
         }  /* if */
       }  /* if */
+#if COROUTINES_ALLOWED
+    } else if (rout->is_coroutine) {
+      a_coroutine_descr_ptr  cdp = get_coroutine_descr(rout);
+      a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
+      cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
+      cfp->entity.ptr = (char*)sp;
+      cfp->position = return_pos;
+      cfp->operand = (void*)alep;
+#endif /* COROUTINES_ALLOWED */
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6249,13 +6259,15 @@ are possible:
 Add a corresponding stmk_yield statement to the current statement sequence.
 */
 {
-  an_expr_node_ptr   result_expr = NULL;
-  a_routine_ptr      rout;
-  a_source_position  stmt_pos;
+  an_arg_list_elem_ptr   yield_opnd = NULL;
+  a_routine_ptr          rout;
+  a_source_position      stmt_pos;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
-                     src_seq_entry = NULL;
+                         src_seq_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_coroutine_descr_ptr  cdp;
+  a_statement_ptr        sp;
 
   check_for_unreachable_code();
   /* Save the position of the beginning of the yield statement. */
@@ -6292,19 +6304,31 @@ Add a corresponding stmk_yield statement to the current statement sequence.
     src_seq_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  cdp = get_coroutine_descr(rout);
   /* Scan the operand (if any) and produce a corresponding call to the
      appropriate member of the coroutine's promise. */
-  result_expr = scan_yield_operand();
+  yield_opnd = scan_yield_operand();
   /* Allocate the statement. */
-  a_statement_ptr  sp = add_statement_at_stmt_pos(stmk_yield, &stmt_pos);
+  sp = add_statement_at_stmt_pos(stmk_yield, &stmt_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  /* Put the expression into the statement. */
-  sp->expr = result_expr;
+  if (rout->is_coroutine) {
+    /* Record a fixup to revisit the statement when we've seen the completed
+       coroutine body. */
+    a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
+    cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
+    cfp->entity.ptr = (char*)sp;
+    cfp->position = stmt_pos;
+    cfp->operand = (void*)yield_opnd;
+    /* Note the presence of a yield statement. */
+    cdp->has_yield = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

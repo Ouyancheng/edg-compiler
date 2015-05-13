@@ -8027,6 +8027,70 @@ exist.
   return sym;
 }  /* find_template_class */
 
+#if COROUTINES_ALLOWED
+
+a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
+                                          a_template_arg_ptr  *arg_list)
+/*
+Find the instance of the given class template matching the given template
+argument list.  The heavy lifting is mostly done by a call to
+find_template_class, but this function transforms arg_list to account for
+template parameter packs prior to the call (as such, the given template
+argument list is assumed not to have "is_pack_element" flags set nor to have
+tak_start_of_pack_expansion delimiter entries).
+*/
+{
+  a_template_arg_ptr    *tap = arg_list, sop_entry;
+  a_template_param_ptr  tpp;
+  a_boolean             in_pack = FALSE;
+
+  tpp = class_templ->variant.template_info
+                   ->variant.class_template.initial_decl_cache.decl_info
+                   ->parameters;
+  for (;;) {
+    if (tpp == NULL) {
+      break;
+    } if (!tpp->is_pack) {
+      if (*tap == NULL) {
+        if (tpp->has_default_arg) {
+          /* No argument is provided by the caller, the template parameter has
+             a default. */
+          a_templ_arg_kind  arg_kind;
+          arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+          *tap = alloc_template_arg(arg_kind);
+          get_template_arg_value_from_default(class_templ, *tap, tpp);
+        }  /* if */
+      }  /* if */
+      tpp = tpp->next;
+    } else {
+      if (!in_pack) {
+        /* This is the first time we see the pack parameter.  Create a
+           start-of-pack-expansion entry in the argument list.  Note that this
+           is done even for an empty expansion. */
+        sop_entry = alloc_template_arg(
+                               (a_templ_arg_kind)tak_start_of_pack_expansion);
+        sop_entry->next = *tap;
+        *tap = sop_entry;
+        tap = &sop_entry->next;
+        in_pack = TRUE;
+      }  /* if */
+    }  /* if */
+    if (*tap == NULL) {
+      break;
+    } else {
+      if (in_pack) (*tap)->is_pack_element = TRUE;
+      tap = &(*tap)->next;
+    }  /* if */
+  }  /* for */
+  return find_template_class(class_templ, arg_list,
+                             /*any_prototype_allowed=*/FALSE,
+                             /*specific_prototype_allowed=*/NULL,
+                             /*instantiate_nonreal=*/FALSE,
+                             /*do_not_create=*/FALSE);
+
+}  /* find_class_template_instance */
+
+#endif /* COROUTINES_ALLOWED */
 
 static a_boolean tentatively_matching_template_param_lists(
 			a_template_param_ptr	list1,

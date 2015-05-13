@@ -15079,6 +15079,10 @@ one that yields the value) of a statement expression.
       { an_expr_node_ptr  expr = statement->expr;
         write_tok_str("return ");
         if (expr != NULL) {
+          if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+            /* Skip over a top-level object lifetime. */
+            expr = expr->variant.object_lifetime.expr;
+          }  /* if */
           check_assertion(is_operation_node(expr));
           if (node_operator_is(expr, eok_comma)) {
             /* expr is of the form <expr>, _Pr.set_result().  Render the first

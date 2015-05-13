@@ -9681,6 +9681,13 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+#if COROUTINES_ALLOWED
+    if (coroutines_enabled) {
+      (void)enter_predef_macro("1", "_RESUMABLE_FUNCTIONS_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
     if (cppcli_enabled) {
       /* Define _MANAGED when C++/CLI is enabled. */
       (void)enter_predef_macro("1", "_MANAGED",

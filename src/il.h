@@ -2293,6 +2293,9 @@ a routine.
 extern a_type_ptr make_auto_type(a_source_position *pos,
                                  a_boolean         is_decltype_auto);
 
+extern a_type_ptr add_placeholder_typeref(a_type_ptr  tp,
+                                          a_boolean   is_decltype_auto);
+
 /*
 Macro that produces TRUE if the given variable is declared with a placeholder
 type.
@@ -2708,6 +2711,45 @@ literal-operator-id (operator ""suffix).
 */
 #define ud_suffix_from_literal_operator_id(name) \
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
+
+#if COROUTINES_ALLOWED
+
+/*
+Structure used to keep track of IL entries that need fixing at the end of a
+coroutine function definition.  These are entries representing coroutine return
+statements, yield statements, and await expressions.
+*/
+typedef struct a_coroutine_fixup *a_coroutine_fixup_ptr;
+typedef struct a_coroutine_fixup {
+  a_coroutine_fixup_ptr
+		next;
+			/* Next fixup entry. */
+  a_tagged_pointer
+		entity;
+			/* The IL entry that needs fixing up. */
+  void		*operand;
+			/* An opaque pointer to a representation of the
+			   operand associated with this fixup (i.e., the
+			   operand for a yield, coroutine return, or await). */
+  a_source_position
+		position;
+			/* The position to use for diagnostics. */
+  a_token_sequence_number
+		tok_seq_number;
+			/* The token sequence number of "await" keyword.
+			   (NO_TOKEN_SEQUENCE_NUMBER if this entry is not for
+			   an await expression.) */
+  a_bit_field	await_uses_member_calls:1;
+			/* TRUE if the this is a fixup for an await expression
+			   that is transformed uses calls to class member
+			   functions (as opposed to namespace-scope functions
+			   found through argument-dependent lookup). */
+} a_coroutine_fixup;
+
+extern a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp);
+
+extern void release_coroutine_fixups(a_coroutine_descr_ptr  cdp);
+#endif /* COROUTINES_ALLOWED */
 
 #endif /* ifndef IL_H */
 

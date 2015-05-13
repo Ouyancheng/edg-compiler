@@ -8312,56 +8312,70 @@ any.
 }  /* look_up_name_string_in_class */
 
 
-static a_symbol_ptr find_class_template_instance(
-                                              a_symbol_ptr        class_templ,
-                                              a_template_arg_ptr  *arg_list)
+static
+a_symbol_ptr look_up_class_template_in_std_experimental(a_const_char  *ctname)
 /*
-Find the instance of the given class template matching the given template
-argument list.  The heavy lifting is mostly done by a call to
-find_template_class, but this function transforms arg_list to account for
-template parameter packs prior to the call (as such, the given template
-argument list is assumed not to have "is_pack_element" flags set nor to have
-tak_start_of_pack_expansion delimiter entries).
+Look up a class template of the given name in namespace std::experimental and
+return its associated symbol, or NULL if it is not found.
 */
 {
-  a_template_arg_ptr    *tap = arg_list, sop_entry;
-  a_template_param_ptr  tpp;
-  a_boolean             in_pack = FALSE;
+  a_namespace_ptr  std_nsp;
+  a_namespace_ptr  experimental_nsp;
+  a_symbol_ptr     ns_sym, result_sym = NULL;
 
-  tpp = class_templ->variant.template_info
-                   ->variant.class_template.initial_decl_cache.decl_info
-                   ->parameters;
-  for (;;) {
-    check_assertion(tpp != NULL);
-    if (!tpp->is_pack) {
-      tpp = tpp->next;
-    } else {
-      if (!in_pack) {
-        /* This is the first time we see the pack parameter.  Create a
-           start-of-pack-expansion entry in the argument list.  Note that this
-           is done even for an empty expansion. */
-        sop_entry = alloc_template_arg(
-                               (a_templ_arg_kind)tak_start_of_pack_expansion);
-        sop_entry->next = *tap;
-        *tap = sop_entry;
-        tap = &sop_entry->next;
-        in_pack = TRUE;
+  if (symbol_for_namespace_std != NULL) {
+    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
+    if (std_nsp != NULL) {
+      ns_sym = look_up_name_string_in_namespace("experimental", std_nsp,
+                                                IDL_NO_OPTIONS);
+      if (ns_sym != NULL && symbol_is(ns_sym, sk_namespace)) {
+        experimental_nsp = ns_sym->variant.namespace_info.ptr;
+      } else {
+        experimental_nsp = NULL;
+      }  /* if */
+      if (experimental_nsp != NULL) {
+        result_sym = look_up_name_string_in_namespace(
+                                    ctname, experimental_nsp, IDL_NO_OPTIONS);
+        if (result_sym != NULL && !symbol_is(result_sym, sk_class_template)) {
+          result_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
-    if (*tap == NULL) {
-      break;
-    } else {
-      if (in_pack) (*tap)->is_pack_element = TRUE;
-      tap = &(*tap)->next;
-    }  /* if */
   }  /* if */
-  return find_template_class(class_templ, arg_list,
-                             /*any_prototype_allowed=*/FALSE,
-                             /*specific_prototype_allowed=*/NULL,
-                             /*instantiate_nonreal=*/FALSE,
-                             /*do_not_create=*/FALSE);
+  return result_sym;
+}  /* look_up_class_template_in_std_experimental */
 
-}  /* find_class_template_instance */
+
+a_type_ptr instantiate_std_experimental_class_template_with_one_type(
+                                                        a_const_char  *ctname,
+                                                        a_type_ptr    type)
+/*
+Return the type corresponding to
+	std::experimental::xyz<T>
+where xyz is a class template described by ctname, and T is the given type.
+Return an error type if there is no such class template or if its instantiation
+is unsuccessful.
+*/
+{
+  a_symbol_ptr  class_template;
+  a_type_ptr    result;
+
+  class_template = look_up_class_template_in_std_experimental(ctname);
+  if (class_template != NULL) {
+    a_template_arg_ptr  tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+    a_symbol_ptr        instance;
+    tap->variant.type = type;
+    instance = find_class_template_instance(class_template, &tap);
+    if (instance == NULL || !is_type_symbol(instance)) {
+      result = error_type();
+    } else {
+      result = type_symbol_type(instance);
+    }  /* if */
+  } else {
+    result = error_type();
+  }  /* if */
+  return result;
+}  /* instantiate_std_experimental_class_template_with_one_type */
 
 
 void init_coroutine_descr(a_routine_ptr          rp,
@@ -8380,36 +8394,16 @@ Also record in cdp->eventual_value whether the promise type has a set_result
 member.
 */
 {
-  a_namespace_ptr  std_nsp;
-  a_namespace_ptr  experimental_nsp;
-  a_symbol_ptr     ns_sym, traits_sym = NULL, traits_inst_sym, promise_sym;
+  a_symbol_ptr     traits_sym = NULL, traits_inst_sym, promise_sym;
   a_symbol_ptr     set_result_sym;
-  a_type_ptr       traits = NULL, promise_type = NULL,
+  a_type_ptr       traits = NULL, promise_type = NULL, handle_type,
                    rtp = skip_typerefs(rp->type);
   a_template_arg_ptr
                    tap_list, *p_tap;
   a_param_type_ptr ptp;
 
   /* First look up std::experimental::resumable_traits. */
-  if (symbol_for_namespace_std != NULL) {
-    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
-    if (std_nsp != NULL) {
-      ns_sym = look_up_name_string_in_namespace("experimental", std_nsp,
-                                                IDL_NO_OPTIONS);
-      if (ns_sym != NULL && symbol_is(ns_sym, sk_namespace)) {
-        experimental_nsp = ns_sym->variant.namespace_info.ptr;
-      } else {
-        experimental_nsp = NULL;
-      }  /* if */
-      if (experimental_nsp != NULL) {
-        traits_sym = look_up_name_string_in_namespace(
-                        "resumable_traits", experimental_nsp, IDL_NO_OPTIONS);
-        if (traits_sym != NULL && !symbol_is(traits_sym, sk_class_template)) {
-          traits_sym = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  traits_sym = look_up_class_template_in_std_experimental("resumable_traits");
   if (traits_sym == NULL) {
     pos_st_error(ec_special_class_template_not_found, &error_position,
                  "std::experimental::resumable_traits");
@@ -8454,6 +8448,11 @@ member.
   cdp->traits = traits = NULL ? error_type() : traits;
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
+  /* Create a placeholder variable for the coroutine "handle". */
+  handle_type = instantiate_std_experimental_class_template_with_one_type(
+                                            "resumable_handle", promise_type);
+  cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
+                              NO_SCOPE_DEPTH);
   /* Record whether this is an "eventual value" coroutine. */
   set_result_sym = look_up_name_string_in_class("set_result", promise_type,
                                                 IDL_NO_OPTIONS);
@@ -8461,6 +8460,7 @@ member.
     cdp->eventual_value = TRUE;
   }  /* if */
 }  /* init_coroutine_descr */
+
 
 #endif /* COROUTINES_ALLOWED */
 #if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)

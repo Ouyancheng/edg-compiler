@@ -311,10 +311,6 @@ file-scope and normal allocation methods as necessary).
 }  /* do_any_alloc */
 
 
-#define clear_tagged_ptr(tagged_ptr)                                        \
-  (((tagged_ptr).kind = (a_byte_il_entry_kind)iek_none),                    \
-   ((tagged_ptr).ptr = NULL))
-
 #ifdef TRACE_ALLOC
 /*
 If a problem is found with a node allocated at address A, it is often useful
@@ -3411,7 +3407,7 @@ fields to default values.
 #if COROUTINES_ALLOWED
     case enk_await:
       node->variant.await_info.operand = NULL;
-      node->variant.await_info.ready_suspend_resume = NULL;
+      node->variant.await_info.resume_ready_suspend = NULL;
       break;
 #endif /* COROUTINES_ALLOWED */
     default:
@@ -3756,8 +3752,12 @@ a pointer to it.
                                          alloc_cil(sizeof(a_coroutine_descr));
 
   cdp->traits = NULL;
+  cdp->handle = NULL;
   cdp->promise = NULL;
+  cdp->fixups = NULL;
   cdp->eventual_value = FALSE;
+  cdp->has_yield = FALSE;
+  cdp->has_potentially_evaluated_await = FALSE;
 #if DEBUG
   num_coroutine_descriptions_allocated++;
 #endif /* DEBUG */
@@ -3788,10 +3788,6 @@ fields to default values.
   switch (stmt_kind) {
     case stmk_empty:
     case stmk_expr:
-#if COROUTINES_ALLOWED
-    case stmk_coroutine_return:
-    case stmk_yield:
-#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3801,6 +3797,10 @@ fields to default values.
     case stmk_upc_barrier:
     case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+    case stmk_yield:
+    case stmk_coroutine_return:
+#endif /* COROUTINES_ALLOWED */
       /* No variant fields. */
       break;
     case stmk_if:

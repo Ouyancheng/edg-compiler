@@ -978,6 +978,131 @@ constructor.
   }  /* if */
 }  /* set_routine_constexpr_info */
 
+#if COROUTINES_ALLOWED
+
+static void wrap_up_coroutine(a_routine_ptr  rp)
+/*
+Handle any fixups for the given coroutine function, and, if needed, deduce its
+return type.
+*/
+{
+  a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
+  a_coroutine_fixup_ptr  cfp, fixups = (a_coroutine_fixup_ptr)cdp->fixups;
+
+  if (rp->has_deducible_return_type) {
+    /* Deduce a coroutine return type.  This is done in two phases.  First we
+       deduce a return type T based on the coroutine result operands.  Once
+       that is done, we replace the return type by one of the following:
+           std::experimental::async_stream<T>
+           std::experimental::task<T>
+           std::experimental::generator<T>
+       depending on the presence of "yield" and/or "await".
+    */
+    a_const_char  *ct_name;
+    a_type_ptr    return_type, utp;
+    a_boolean     is_decltype_auto_return = FALSE;
+    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+    return_type = rp->type->variant.routine.return_type;
+    utp = skip_typerefs(return_type);
+    if (is_auto_type(utp) &&
+        utp->variant.template_param.extra_info->coordinates.position
+                                                == DECLTYPE_AUTO_POS_NUMBER) {
+      is_decltype_auto_return = TRUE;
+    }  /* if */
+    /* First determine T.  This will trigger errors if the coroutine result
+       types are inconsistent. */
+    for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
+      if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
+        a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
+        a_boolean        is_yield = sp->kind == (a_statement_kind)stmk_yield;
+        an_arg_list_elem_ptr
+                         alep = (an_arg_list_elem_ptr)cfp->operand;
+        check_assertion(is_yield ||
+                        sp->kind == (a_statement_kind)stmk_coroutine_return);
+        if (alep == NULL) {
+          if (cdp->has_potentially_evaluated_await) {
+            deduce_return_type_from_void_operand(
+                              rp, /*keep_placeholder=*/FALSE, &cfp->position);
+            return_type = skip_typerefs(rp->type)->variant.routine.return_type;
+          }  /* if */
+        } else if (is_expression_component(alep)) {
+          check_and_adjust_deduced_return_type_if_needed(
+                  rp, is_yield, operand_of_arg_list_elem(alep), &return_type);
+        } else if (is_braced_init_component(alep)) {
+          /* A braced initializer list cannot be used for return type
+             deduction. */
+          pos_error(rp->is_lambda_body ?
+                                     ec_braced_list_for_implicit_lambda_type
+                                   : ec_braced_list_for_implicit_return_type,
+                    &cfp->position);
+          return_type = error_type();
+          rp->has_deduced_return_type = TRUE;
+          rp->type->variant.routine.return_type = return_type;
+        } else {
+          unexpected_condition();
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Now replace the deduced return type by the appropriate class template
+       instance. */
+    if (cdp->has_yield && cdp->has_potentially_evaluated_await) {
+      ct_name = "async_stream";
+    } else if (cdp->has_potentially_evaluated_await) {
+      ct_name = "task";
+    } else {
+      ct_name = "generator";
+    }  /* if */
+    return_type = instantiate_std_experimental_class_template_with_one_type(
+                                                        ct_name, return_type);
+    complete_type_is_needed(return_type);
+    if (!rp->is_lambda_body) {
+      /* Record a placeholder type. */
+      return_type = add_placeholder_typeref(return_type,
+                                            is_decltype_auto_return);
+    }  /* if */
+    rp->type->variant.routine.return_type = return_type;
+    set_routine_calling_method_flag(rp->type,
+                                    &rp->source_corresp.decl_position);
+  }  /* if */
+  /* Now that the type of the coroutine is established, we can determine the
+     promise type, which in turn allows us to complete the expressions needed
+     to implement the coroutine operations. */
+  init_coroutine_descr(rp, cdp);
+  for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
+    an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
+    if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
+      a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
+      if (sp->kind == (a_statement_kind)stmk_yield) {
+        /* Call yield_value with the yield statement's operand. */
+        sp->expr = wrap_up_coroutine_result_expression(
+                                                     alep, /*is_yield=*/TRUE);
+      } else if (sp->kind == (a_statement_kind)stmk_coroutine_return) {
+        /* Call return_void or return_value with the coroutine-return
+           statement's operand (unless there is no operand and this coroutine
+           has no "eventual value"). */
+        an_arg_list_elem_ptr  alep;
+        alep = (an_arg_list_elem_ptr)cfp->operand;
+        if (cdp->eventual_value || alep != NULL) {
+          sp->expr = wrap_up_coroutine_result_expression(
+                                                    alep, /*is_yield=*/FALSE);
+        }  /* if */
+      }  /* if */
+    } else if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
+      if (!cdp->eventual_value) {
+        pos_ty_error(ec_await_no_eventual_value, &cfp->position,
+                     cdp->promise->type);
+      } else {
+        /* Resolve the suspend_call. */
+        determine_suspend_call_for_await((an_expr_node_ptr)cfp->entity.ptr,
+                                         alep, cfp->await_uses_member_calls,
+                                         cfp->tok_seq_number, cdp);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  release_coroutine_fixups(cdp);
+}  /* wrap_up_coroutine */
+
+#endif /* COROUTINES_ALLOWED */
 
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
@@ -1498,6 +1623,12 @@ of lambda expressions.
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if COROUTINES_ALLOWED
+  if (rout_ptr->is_coroutine) {
+    wrap_up_coroutine(rout_ptr);
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
+  /* Do not insert code here. */
   if (rout_ptr->has_deducible_return_type) {
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
@@ -3251,7 +3382,7 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
   a_scope_ptr             func_scope;
   a_statement_ptr         body_stmt;
   a_struct_stmt_stack_entry_ptr
-                          top_sssep = &struct_stmt_stack_top();
+                          root_sssep = &struct_stmt_stack[0];
 
   check_assertion(mrn != NO_SCOPE_NUMBER);
   func_scope = il_header.region_scope_entry[mrn];
@@ -3260,13 +3391,13 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
   if (body_stmt == NULL) {
     /* The top-level block is still being parsed and has therefore not been
        associated with the function scope yet.  Use the structured statement
-       stack to get the top-level block instead. */
-    body_stmt = top_sssep->statement;
+       stack to get the outer block instead. */
+    body_stmt = root_sssep->statement;
   }  /* if */
   if (body_stmt->kind == (a_statement_kind)stmk_try_block) {
     /* For a function-try-block, use the associated dependent block. */
     body_stmt = body_stmt->variant.try_block->statement;
-    top_sssep += 1;
+    root_sssep += 1;
   }  /* if */
   if (rp->is_coroutine) {
     /* This is not the first time we're calling this function for this routine
@@ -3285,13 +3416,12 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
     if (csp->next == NULL) {
       /* There are no statements recorded in the top-level block yet (because
          we're still parsing the first statement; there must be one since
-         coroutine definitions are the result of specific construct like
+         coroutine definitions are the result of specific constructs like
          "yield" statements or "await" expressions).  Record the stmk_coroutine
          entry as the last statement on the list for now. */
-      top_sssep->last_dep_statement = csp;
+      root_sssep->last_dep_statement = csp;
     }  /* if */
     rp->is_coroutine = TRUE;
-    init_coroutine_descr(rp, cdp);
   }  /* if */
   return cdp;
 }  /* get_coroutine_descr */

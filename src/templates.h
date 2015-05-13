@@ -451,6 +451,12 @@ extern a_symbol_ptr find_template_class(
 			     a_boolean		 instantiate_nonreal,
 			     a_boolean		 do_not_create);
 
+#if COROUTINES_ALLOWED
+extern a_symbol_ptr find_class_template_instance(
+                                              a_symbol_ptr        class_templ,
+                                              a_template_arg_ptr  *arg_list);
+#endif /* COROUTINES_ALLOWED */
+
 extern a_namespace_ptr determine_referencing_namespace(void);
 
 extern void set_template_arg_to_error(a_template_arg_ptr	tap);

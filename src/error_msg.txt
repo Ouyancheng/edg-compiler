@@ -2756,6 +2756,8 @@ ec_await_no_eventual_value;;"await expression is not allowed here because promis
 ec_special_class_template_not_found;;"class template %sq not found"
 ec_typename_needed;;"use the \"typename\" keyword to treat %n as a type in a dependent context"
 ec_shufflevector_index_out_of_range;;"argument value must be less than the sum of the vector elements"
+ec_not_a_type_member;;"%t has no member %sq"
+ec_braced_list_for_implicit_return_type;;"a brace-enclosed list does not provide a return type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

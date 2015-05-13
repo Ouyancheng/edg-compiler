@@ -39,12 +39,6 @@ typedef struct a_symbol_header a_symbol_header_dummy_typedef;
 
 /* There are more #includes later in this file. */
 
-/*
-A sequence number is assigned to each token fetched from the input.
-This is the type used to represent the sequence number.
-*/
-typedef uint32_t a_token_sequence_number;
-
 EXTERN a_token_sequence_number
 		curr_token_sequence_number;
 			/* The sequence number associated with the

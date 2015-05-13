@@ -3347,7 +3347,7 @@ as specified in the control block.
 #if COROUTINES_ALLOWED
     case enk_await:
       traverse_expr(expr->variant.await_info.operand, tblock);
-      traverse_expr_list(expr->variant.await_info.ready_suspend_resume,
+      traverse_expr_list(expr->variant.await_info.resume_ready_suspend,
                          tblock);
       break;
 #endif /* COROUTINES_ALLOWED */
