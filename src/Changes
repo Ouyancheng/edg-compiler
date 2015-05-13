@@ -1,5 +1,31 @@
 Version 4.11
 
+5/13/15  [EDGcpfe/16203]
+IA-64 ABI: Incorrect virtual function pointer in some lowered code
+
+In configurations that use lowering, when a virtual function table pointer
+is shared between a derived class and one of its base classes, and a variable
+of the derived type is initialized with constant initialization, lowering
+had erroneously set the virtual function table pointer to point to the
+base class, not the derived class.  This affects only the IA-64 ABI.
+For example (with --c++11):
+
+  #include <typeinfo>
+  struct B {
+    virtual void f() {}
+  };
+  struct D: B {};
+  int main() {
+    D d;
+    B &&xb = static_cast<B&&>(d);
+    return !(typeid(d).name() == typeid(xb).name());
+                                              // Had returned 1, now returns 0.
+  }
+
+This particular example only had failed after the changes for EDGcpfe/16195,
+but the problem was pre-existing.
+
+
 5/12/15  [EDGcpfe/16119]
 Clang compatibility: builtin functions
 

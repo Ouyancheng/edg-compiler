@@ -4870,7 +4870,7 @@ in the aggregate have not been lowered (and aren't lowered here).
     constant->vptr_has_been_lowered = TRUE;
     if (!needs_virtual_function_table(class_type) ||
         ctsp->virtual_function_info_base_class != NULL) {
-      /* This class has no virtual function table (though its has at least
+      /* This class has no virtual function table (though it has at least
          one base class that does) or it shares its vptr with a base class,
          so there's no need to look for a vptr in this aggregate (it'll be
          set when we visit the base class). */
@@ -4884,8 +4884,7 @@ in the aggregate have not been lowered (and aren't lowered here).
       } else {
         a_class_type_supplement_ptr pvtbl_ctsp =
                                            class_type_supp(primary_vtbl_class);
-        check_assertion(pvtbl_ctsp->virtual_function_info_base_class != NULL &&
-                        needs_virtual_function_table(primary_vtbl_class));
+        check_assertion(pvtbl_ctsp->virtual_function_info_base_class != NULL);
         if (identical_types(pvtbl_ctsp->virtual_function_info_base_class->type,
                             class_type)) {
           /* This base class is sharing a vptr with primary_vtbl_class;
@@ -4958,7 +4957,9 @@ in the aggregate have not been lowered (and aren't lowered here).
                                 class_type_supp(bcp->type)->
                                                           type_as_subobject)) {
               if (primary_vtbl_class == NULL &&
+#if !IA64_ABI
                   needs_virtual_function_table(class_type) &&
+#endif /* !IA64_ABI */
                   ctsp->virtual_function_info_base_class != NULL) {
                 /* If there is no more-derived class that shares a vtable,
                    use this class. */
