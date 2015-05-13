@@ -15135,10 +15135,11 @@ When init_kind == dik_constructor, does not expand constexpr calls
 
   /* Allocate the dynamic initialization entry. */
   *dip = alloc_dtor_dynamic_init(init_kind, temp_type, position);
-  if (curr_expr_kind_is_const() && (*dip)->destructor != NULL) {
-    /* An operation with a destruction is not allowed in a constant
-       expression (and we would get into trouble trying to attach
-       the dynamic init to a lifetime). */
+  if (curr_expr_kind_is_const() && (*dip)->destructor != NULL &&
+      (curr_expr_is_evaluated() || !cpp11_mode)) {
+    /* An operation with a destruction is not allowed in an evaluated
+       subexpression of a constant expression (and we would get into
+       trouble trying to attach the dynamic init to a lifetime). */
     expr_pos_error(ec_expr_not_constant, position);
     (*dip)->destructor = NULL;
   }  /* if */
