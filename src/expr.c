@@ -12244,7 +12244,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
     if (result_type != error_type() &&
         p_op1 != NULL && p_op2 != NULL &&
         !op1_is_dependent && !op2_is_dependent) {
-      an_expr_node_ptr arg, int_op_arg;
+      an_expr_node_ptr arg, int_op_arg = NULL;
       an_operand       op;
       a_constant_ptr   max_con = local_constant();
       a_constant_ptr   minus_one = local_constant();
