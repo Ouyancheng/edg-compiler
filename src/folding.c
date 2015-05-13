@@ -9731,7 +9731,7 @@ evaluation (e.g., parameter values).
                 } else {
                   base_class_size = class_type_supp(base_class_for_size)->
                                              size_without_virtual_base_classes;
-                }  /* if *
+                }  /* if */
                 /* The order in which base class subobjects appear in the
                    derived class object can be different from the order in
                    which they appear in the base class list.  The
