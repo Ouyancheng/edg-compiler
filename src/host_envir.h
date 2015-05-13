@@ -1152,6 +1152,12 @@ with a C back end.
  #error -- IL lowering cannot be done (currently) when coroutines are allowed
 #endif /* COROUTINES_ALLOWED && DO_IL_LOWERING */
 
+/* FIXME: temporary */
+#if !DO_IL_LOWERING
+#undef COROUTINES_ALLOWED
+#define COROUTINES_ALLOWED TRUE
+#endif /* !DO_IL_LOWERING */
+
 /*
 Flag that is TRUE if IL lowering should normalize boolean controlling
 expressions (e.g., expr in "if (expr)...") to always produce 0/1.
