@@ -1027,7 +1027,7 @@ return type.
           }  /* if */
         } else if (is_expression_component(alep)) {
           check_and_adjust_deduced_return_type_if_needed(
-                  rp, is_yield, operand_of_arg_list_elem(alep), &return_type);
+                            rp, operand_of_arg_list_elem(alep), &return_type);
         } else if (is_braced_init_component(alep)) {
           /* A braced initializer list cannot be used for return type
              deduction. */

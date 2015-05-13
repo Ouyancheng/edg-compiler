@@ -412,7 +412,6 @@ extern void deduce_return_type_from_void_operand(
 #if COROUTINES_ALLOWED
 extern void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
-                                                 a_boolean       is_yield,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type);
 #endif /* COROUTINES_ALLOWED */

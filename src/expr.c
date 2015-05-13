@@ -34499,7 +34499,7 @@ await operation.  This routine frees *suspend_arg.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_pos = init_component_end_pos(suspend_arg);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-  end_pos = null_source_position;
+  end_pos = &null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* First get an operand representing the coroutine handle. */
   make_lvalue_variable_operand(cdp->handle, pos, end_pos, &handle_opnd,
@@ -37289,7 +37289,6 @@ a warning if the value returned is the address of a local variable.
 /*ARGSUSED*/ /* is_yield is not used in some configurations. */
 #endif /* !COROUTINES_ALLOWED */
 static void set_deduced_return_type(a_type_ptr        return_type,
-                                    a_boolean         is_yield,
                                     a_source_position *err_pos)
 /*
 We're currently in a function with a deduced return type (a C++11 lambda body
@@ -37392,7 +37391,7 @@ are left unaffected).
       deduced_return_type = add_placeholder_typeref(deduced_return_type,
                                                     is_decltype_auto_case);
     }  /* if */
-    set_deduced_return_type(deduced_return_type, /*is_yield=*/FALSE, diag_pos);
+    set_deduced_return_type(deduced_return_type, diag_pos);
   }  /* if */
 }  /* deduce_return_type_from_void_operand */
 
@@ -37403,15 +37402,14 @@ static
 #endif /* !COROUTINES_ALLOWED */
 void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
-                                                 a_boolean       is_yield,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
 /*
-return_op represents the expression in a return statement (or, if is_yield is
-TRUE, a yield statement) of the current function (curr_routine) whose return
-type is to be set from such an expression.  *return_type is the type currently
-thought of as that function's return type (it's a copy of the return type from
-the routine).  Update it and the routine type with the type of return_op.
+return_op represents the expression in the return statement of the current
+function (curr_routine) whose return type is to be set from such an expression.
+*return_type is the type currently thought of as that function's return type
+(it's a copy of the return type from the routine).  Update it and the routine
+type with the type of return_op.
 */
 {
   a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
@@ -37453,7 +37451,6 @@ the routine).  Update it and the routine type with the type of return_op.
     *return_type = error_type();
     rout_type->variant.routine.return_type = *return_type;
   } else if (is_void_type(return_op->type)) {
-    check_assertion(!is_yield);
     deduce_return_type_from_void_operand(curr_routine, keep_placeholder,
                                          &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
@@ -37462,7 +37459,7 @@ the routine).  Update it and the routine type with the type of return_op.
                                      /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {
-    set_deduced_return_type(deduced_type, is_yield, &return_op->position);
+    set_deduced_return_type(deduced_type, &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
   } else if (still_dependent) {
     /* The type is still dependent, so leave the return type as it is. */
@@ -37757,8 +37754,8 @@ handle_deduced_return_type:
         expect_error();
         required_type = error_type();
       } else {
-        check_and_adjust_deduced_return_type_if_needed(
-                   curr_routine, /*is_yield=*/FALSE, &result, &required_type);
+        check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
+                                                       &required_type);
         if (routine_type->variant.routine.extra_info
                         ->value_returned_by_cctor) {
           /* The routine is now known to return its value via copy
@@ -37923,14 +37920,10 @@ associated with the coroutine.  (The component will eventually be deallocated
 by wrap_up_coroutine_result_expression.
 */
 {
-  a_routine_ptr         curr_routine = current_routine_entry();
-  a_boolean             deducible_return_type;
   an_arg_list_elem_ptr  alep;
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
 
-  deducible_return_type = curr_routine->has_deducible_return_type &&
-                          !curr_routine->is_prototype_instantiation;
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
