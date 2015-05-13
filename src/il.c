@@ -23019,8 +23019,9 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope
 
   assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
-  /* Skip template declaration scopes. */
-  while (scope_is(ssep, sck_template_declaration)) {
+  /* Skip template declaration and instantiation context scopes. */
+  while (scope_is(ssep, sck_template_declaration) ||
+         scope_is(ssep, sck_instantiation_context)) {
     ssep = previous_scope_of(ssep);
   }  /* while */
   sp = ensure_il_scope_exists(ssep);
