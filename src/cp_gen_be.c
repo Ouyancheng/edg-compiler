@@ -15375,6 +15375,56 @@ to add extra parentheses to disambiguate.
 }  /* expr_may_look_like_type */
 
 
+static void handle_braced_init_list_ctor(an_expr_node_ptr arg)
+/*
+arg is the first constructor argument in a braced dik_constructor dynamic
+init.  If the argument is a compiler-generated temporary for an
+initializer-list constructor, mark it as appearing inside braces so that
+it does not add its own set of braces.
+*/
+{
+  if (arg != NULL &&
+      (arg->next == NULL || arg->next->generated_default_arg)) {
+    /* There is a single argument to the constructor.  Check to see if it
+       is a compiler-generated std::initializer_list temporary. */
+    if (is_operation_node(arg) &&
+        node_operator_is(arg, eok_reference_to)) {
+      /* Skip over the implicit reference node. */
+      arg = arg->variant.operation.operands;
+    }  /* if */
+    if (is_constant_node(arg) && arg->variant.constant->expr != NULL &&
+        arg->variant.constant->expr->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
+      /* A constexpr constructor for std::initializer_list can result in a
+         constant at this level. */
+      arg = arg->variant.constant->expr;
+    }  /* if */
+    if (arg->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr arg_dip = arg->variant.init.dynamic_init;
+      if (arg_dip->kind == (a_dynamic_init_kind)dik_expression) {
+        /* If the selected std::initializer_list constructor is constexpr,
+           the dynamic init at this level may be a dik_expression
+           designating an enk_constant node for a constant whose backing
+           expression points to the actual dynamic init of interest. */
+        an_expr_node_ptr subexpr = arg_dip->variant.expression;
+        if (is_constant_node(subexpr) &&
+            subexpr->variant.constant->expr != NULL &&
+            subexpr->variant.constant->expr->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
+          arg_dip = subexpr->variant.constant->expr->variant.init.dynamic_init;
+        }  /* if */
+      }  /* if */
+      if (arg_dip->is_creation_of_initializer_list_object) {
+        /* The argument is a std::initializer_list temporary.  The array
+           argument to the std::initializer_list constructor should not
+           have extra braces. */
+        arg_dip->suppress_init_list_arg_braces = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* handle_braced_init_list_ctor */
+
+
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              an_expr_node_ptr   assoc_expr,
@@ -15605,6 +15655,10 @@ output_functional_notation_cast_arguments:
          operand and not a cast using the operand.  That avoids recursion
          loops for dik_class_result_via_ctor initializations. */
       dip->is_explicit_cast = FALSE;
+      if (braced_init && dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* Avoid double braces for an initializer-list constructor. */
+        handle_braced_init_list_ctor(dip->variant.constructor.args);
+      }  /* if */
       gen_paren_or_brace_dynamic_init(dip, init_entity_type,
                                       /*paren_form=*/!braced_init,
                                       /*is_var_init=*/FALSE);
@@ -15762,49 +15816,7 @@ output_functional_notation_cast_arguments:
              an argument in a call. */
           write_tok_ch('{');
           brace_list_case = TRUE;
-          if (args != NULL &&
-              (args->next == NULL || args->next->generated_default_arg)) {
-            /* There is a single argument to the constructor.  Check to see
-               if it is a compiler-generated std::initializer_list
-               temporary. */
-            an_expr_node_ptr arg = args;
-            if (is_operation_node(arg) &&
-                node_operator_is(arg, eok_reference_to)) {
-              /* Skip over the implicit reference node. */
-              arg = arg->variant.operation.operands;
-            }  /* if */
-            if (is_constant_node(arg) && arg->variant.constant->expr != NULL &&
-                arg->variant.constant->expr->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
-              /* A constexpr constructor for std::initializer_list can
-                 result in a constant at this level. */
-              arg = arg->variant.constant->expr;
-            }  /* if */
-            if (arg->kind == (an_expr_node_kind)enk_temp_init) {
-              a_dynamic_init_ptr arg_dip = arg->variant.init.dynamic_init;
-              if (arg_dip->kind == (a_dynamic_init_kind)dik_expression) {
-                /* If the selected std::initializer_list constructor is
-                   constexpr, the dynamic init at this level may be a
-                   dik_expression designating an enk_constant node for a
-                   constant whose backing expression points to the actual
-                   dynamic init of interest. */
-                an_expr_node_ptr subexpr = arg_dip->variant.expression;
-                if (is_constant_node(subexpr) &&
-                    subexpr->variant.constant->expr != NULL &&
-                    subexpr->variant.constant->expr->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
-                  arg_dip =
-                    subexpr->variant.constant->expr->variant.init.dynamic_init;
-                }  /* if */
-              }  /* if */
-              if (arg_dip->is_creation_of_initializer_list_object) {
-                /* The argument is a std::initializer_list temporary.  The
-                   array argument to the std::initializer_list constructor
-                   should not have extra braces. */
-                arg_dip->suppress_init_list_arg_braces = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
+          handle_braced_init_list_ctor(args);
         } else {
           /* Normal case, a single expression. */
           /* When the assertion here fails, it's almost always because one of
