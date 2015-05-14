@@ -56,12 +56,9 @@ For example (with --c++11):
     virtual void f() {}
   };
   struct D: B {};
-  int main() {
-    D d;
-    B &&xb = static_cast<B&&>(d);
-    return !(typeid(d).name() == typeid(xb).name());
-                                              // Had returned 1, now returns 0.
-  }
+  D d;
+  B &&xb = static_cast<B&&>(d);
+  bool b = typeid(d) == typeid(xb); // Previously false, now true
 
 This particular example only had failed after the changes for EDGcpfe/16195,
 but the problem was pre-existing.
