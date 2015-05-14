@@ -6406,6 +6406,16 @@ of Microsoft-mode member functions).
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
+  if (microsoft_mode && targ_supports_x86_64) {
+    /* Microsoft x86-64 conventions only distinguish __vector call from other
+       conventions. */
+    if (cc1 != (a_calling_convention)cc_vectorcall) {
+      cc1 = (a_calling_convention)cc_default;
+    }  /* if */
+    if (cc2 != (a_calling_convention)cc_vectorcall) {
+      cc2 = (a_calling_convention)cc_default;
+    }  /* if */
+  }  /* if */
   if (cc1 == cc2) {
     compatible = TRUE;
   } else if (cc1 == (a_calling_convention)cc_default) {

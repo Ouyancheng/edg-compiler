@@ -1,5 +1,19 @@
 Version 4.11
 
+5/14/15  [EDGcpfe/16136]
+Microsoft calling conventions on x86-64 targets
+
+In Microsoft modes with targ_supports_x86_64 set to TRUE, the front end now
+ignores calling conventions other than __vectorcall when determining type
+compatibility.  For example:
+
+  void __stdcall f() {}
+  void g() {
+    void (*pf)() = &f;  // Previously an error in all Microsoft modes.
+  }                     // Now accepted in Microsoft modes that for
+                        // x86-64 targets.
+
+
 5/13/15  [EDGcpfe/15431]
 Preliminary coroutine support
 
