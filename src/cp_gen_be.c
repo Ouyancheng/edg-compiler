@@ -3207,14 +3207,13 @@ for the meaning of need_closing_paren.
       a_type_ptr                  template_param_type =
                                     class_type_supp(class_type)->proxy_of_type;
       a_type_ptr                  substitute_typedef = NULL;
-      if (msvc_is_generated_code_target && in_template_argument_list) {
+      if (msvc_is_generated_code_target) {
         /* MSVC has a bug that sometimes results in spurious errors if a
-           dependent type is used as a qualifier in a template argument
-           list.  If the code previously compiled successfully with MSVC,
-           presumably the dependent type was referenced via a typedef, which
-           will have been replaced with the underlying type in the IL.  See
-           if there is a typedef we can use in the generated code to avoid
-           triggering the bug. */
+           dependent type is used as a qualifier.  If the code previously
+           compiled successfully with MSVC, presumably the dependent type
+           was referenced via a typedef, which will have been replaced with
+           the underlying type in the IL.  See if there is a typedef we can
+           use in the generated code to avoid triggering the bug. */
         substitute_typedef =
                           find_typedef_in(proto_inst_member_typedef_hash_table,
                                           template_param_type);
