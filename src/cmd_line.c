@@ -2012,6 +2012,7 @@ static a_flag_name
   { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
 #if COROUTINES_ALLOWED
   { "coroutines", &coroutines_enabled },
+  { "coroutine_keywords", &coroutine_keywords_enabled },
 #endif /* COROUTINES_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
@@ -10971,7 +10972,7 @@ variables declared in cmd_line.h.
   mangle_had_been_implicitly_const = FALSE;
 #if COROUTINES_ALLOWED
   coroutines_enabled = FALSE;
-  coroutine_keywords_suppressed = FALSE;
+  coroutine_keywords_enabled = FALSE;
 #endif /* COROUTINES_ALLOWED */
 }  /* cmd_line_static_var_init */
 

@@ -4,14 +4,18 @@ Version 4.11
 Preliminary coroutine support
 
 Some preliminary support for C++ coroutines has been added to the front end.
-For this support to be available the front end must be built with the macro
-COROUTINES_ALLOWED set to TRUE, and DO_IL_LOWERING set to FALSE.  Only
-Microsoft mode with microsoft_version >= 1900 enables the feature. The goal
-of this preliminary support is to be able to parse coroutines as specified by
-the C++ standardization committee's paper N4403, and as expected to be
-available in Microsoft VC++ 2015.  In particular, yield statements and await
-expressions are handled sufficiently well to produce correct types and the
-recorded IL can be rendered by the C++-generating back end.  The C++
+For this support to be available the front end must be built with the macros
+COROUTINES_ALLOWED set to TRUE and DO_IL_LOWERING set to FALSE.  Microsoft
+mode with microsoft_version >= 1900 enables the feature with keywords __yield
+and __await; the option --set_flag=coroutines can also be used to enable
+this in other modes.  A keyword await and a contextual keyword yield can be
+activated with the option --set_flag=coroutine_keywords.
+
+The goal of this preliminary support is to be able to parse coroutines as
+specified by the C++ standardization committee's paper N4403, and as expected
+to be available in Microsoft VC++ 2015.  In particular, yield statements and
+await expressions are handled sufficiently well to produce correct types and
+the recorded IL can be rendered by the C++-generating back end.  The C++
 standardization committee's coroutines proposal is still somewhat in flux,
 and the feature will likely undergo significant changes before its possible
 final approval.  If and when the committee finalizes this feature, we expect

@@ -1125,14 +1125,16 @@ EXTERN a_boolean
 		coroutines_enabled;
 			/* TRUE if a coroutine facility like the one proposed
 			   in the C++ standardization committee's paper N4286
-			   should be accepted. */
+			   should be accepted.  Only keywords __await and
+			   __yield are enabled with this option; to enabled
+			   the keyword await and the contextual keyword yield,
+			   see coroutine_keywords_enabled below. */
 
 EXTERN a_boolean
-		coroutine_keywords_suppressed;
-			/* TRUE if the coroutine keywords "await" and "yield"
-			   (the latter is contextual) should not be recognized
-			   even when coroutines are enabled ("__await" and
-			   "__yield" remain as alternatives in that case). */
+		coroutine_keywords_enabled;
+			/* TRUE if the coroutine keyword "await" and the
+			   contextual keyword "yield" should be recognized
+			   when coroutine support is enabled. */
 #endif /* COROUTINES_ALLOWED */
 
 EXTERN a_boolean

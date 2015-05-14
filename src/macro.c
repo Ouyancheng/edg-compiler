@@ -9682,7 +9682,7 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #if COROUTINES_ALLOWED
-    if (coroutines_enabled) {
+    if (coroutines_enabled && coroutine_keywords_enabled) {
       (void)enter_predef_macro("1", "_RESUMABLE_FUNCTIONS_SUPPORTED",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
@@ -9881,13 +9881,6 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
-  if (coroutines_enabled && !coroutine_keywords_suppressed) {
-    (void)enter_predef_macro("1", "_RESUMABLE_FUNCTIONS_SUPPORTED",
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
-  }  /* if */
-#endif /* COROUTINES_ALLOWED */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Look for a file containing predefined macro definitions. */

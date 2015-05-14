@@ -7011,7 +7011,7 @@ default_label_case:
           }  /* if */
 #if COROUTINES_ALLOWED
         } else if (coroutines_enabled && next_tok != tok_lparen &&
-                   !coroutine_keywords_suppressed &&
+                   coroutine_keywords_enabled &&
                    check_context_sensitive_keyword(tok_yield, "yield")) {
           goto yield_case;
 #endif /* COROUTINES_ALLOWED */
