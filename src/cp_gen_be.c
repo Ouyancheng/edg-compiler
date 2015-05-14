@@ -1364,7 +1364,7 @@ replaces the bucket contents, pointing to the new entry as next in the
 list.  This organization has the effect of finding the most recent typedef
 with a given underlying type.
 */
-#define BUCKETS_FOR_TYPEDEF_HASH_TABLE 511
+#define BUCKETS_FOR_TYPEDEF_HASH_TABLE 16383
 /*
 A hash table for accessible typedefs whose underlying types are
 inaccessible.
@@ -1386,11 +1386,10 @@ static a_typedef_hash_entry
 static a_hash_value hash_type_ptr(a_type_ptr type)
 /*
 Hash function for a type pointer.  Returns the numeric value of the
-pointer, right-shifted three bits to reduce the influence of alignment
-requirements.
+pointer, right-shifted six bits to account for the size of an a_type entry.
 */
 {
-  return (a_hash_value)(((unsigned long)type) >> 3);
+  return (a_hash_value)(((unsigned long)type) >> 6);
 }  /* hash_typedef */
 
 
