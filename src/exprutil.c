@@ -19950,7 +19950,7 @@ Create in *result the representation of a call of the form
 where expr is given by selector_operand, member is determined by member_name,
 and a1, a2, ... is represented by alep (possibly NULL).  Operand details other
 than the bound_function and virtual_function flags will be copied from
-orig_detail the function operand created before assembling the final call.
+orig_operand to the function operand created before assembling the final call.
 
 Currently, the call must be to a nonstatic member function.
 */
