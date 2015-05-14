@@ -28,9 +28,9 @@ for assemblies that used certain attributes on generic classes.  Now fixed.
 Short-circuit evaluation in constant expressions
 
 The front end previously issued a spurious "must have a constant value"
-error in c++11 mode if the unevaluated second operand of || or && involves
-creation of a temporary with a non-trivial destructor.  This is now fixed.
-For example, with --c++11:
+error in C++11 mode if the unevaluated second operand of || or && appearing
+in a constant expression involves creation of a temporary with a
+non-trivial destructor.  This is now fixed.  For example, with --c++11:
 
   struct C {
     ~C();
