@@ -2740,8 +2740,8 @@ typedef struct a_coroutine_fixup {
 			   (NO_TOKEN_SEQUENCE_NUMBER if this entry is not for
 			   an await expression.) */
   a_bit_field	await_uses_member_calls:1;
-			/* TRUE if the this is a fixup for an await expression
-			   that is transformed uses calls to class member
+			/* TRUE if this is a fixup for an await expression
+			   that is transformed using calls to class member
 			   functions (as opposed to namespace-scope functions
 			   found through argument-dependent lookup). */
 } a_coroutine_fixup;

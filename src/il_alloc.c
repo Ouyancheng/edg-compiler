@@ -92,7 +92,7 @@ static unsigned long
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 		num_blocks_allocated,
 #if COROUTINES_ALLOWED
-                num_coroutine_descriptions_allocated,
+		num_coroutine_descriptions_allocated,
 #endif /* COROUTINES_ALLOWED */
 		num_for_loops_allocated,
 		num_statements_allocated,

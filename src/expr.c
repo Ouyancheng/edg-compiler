@@ -34483,8 +34483,9 @@ void determine_suspend_call_for_await(an_expr_node_ptr         node,
 The given node represents an "await" operation whose "await_suspend" call has
 not been determined yet.  Determine it now (and record its representation).
 suspend_arg is the first operand (or the selector operand, if use_member_call
-is TRUE) of the call.  cdp points to the coroutine description entry for this
-await operation.  This routine frees *suspend_arg.
+is TRUE) of the call.  tok_seq_number is the token sequence number of the
+await keyword.  cdp points to the coroutine description entry for this await
+operation.  This routine frees *suspend_arg.
 */
 {
   an_expr_stack_entry   expr_stack_entry;
@@ -36616,7 +36617,7 @@ initializer of *variable.
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
     /* Perform a lookup in the associated namespaces (including std) and call
-       the function found with given operand.  See core issue 1442 which
+       the function found with the given operand.  See core issue 1442 which
        clarifies that this is "pure ADL" (and not a normal+ADL) lookup. */
     make_enhanced_for_expression_operand(range_var, &range_operand);
     arg_list = alloc_arg_list_elem_for_operand(&range_operand);
@@ -37285,9 +37286,6 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
-#if !COROUTINES_ALLOWED
-/*ARGSUSED*/ /* is_yield is not used in some configurations. */
-#endif /* !COROUTINES_ALLOWED */
 static void set_deduced_return_type(a_type_ptr        return_type,
                                     a_source_position *err_pos)
 /*
@@ -37397,7 +37395,6 @@ are left unaffected).
 
 
 #if !COROUTINES_ALLOWED
-/*ARGSUSED*/ /* is_yield is not used in some configurations. */
 static
 #endif /* !COROUTINES_ALLOWED */
 void check_and_adjust_deduced_return_type_if_needed(
@@ -37641,8 +37638,10 @@ one that returns its value via a copy constructor, set *dip to point to
 the appropriate dynamic initialization entry and return NULL.
 required_type will be void if the expression should have void type
 (e.g., in a C++ function with void return type).
+
 If this turns out to be a coroutine return, return NULL and set *alep to the
-operand of the statement.
+operand of the statement.  (*alep will eventually be deallocated by
+wrap_up_coroutine_result_expression.)
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
@@ -37915,9 +37914,9 @@ an_arg_list_elem_ptr scan_yield_operand(void)
 Scan the operand (if any) of a yield statement in a coroutine:
 	yield <expr> ;
 	yield { ... } ;
-and return an component representing the underlying call on the promise
+and return a component representing the underlying call on the promise
 associated with the coroutine.  (The component will eventually be deallocated
-by wrap_up_coroutine_result_expression.
+by wrap_up_coroutine_result_expression.)
 */
 {
   an_arg_list_elem_ptr  alep;

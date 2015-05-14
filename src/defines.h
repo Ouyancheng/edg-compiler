@@ -1067,7 +1067,7 @@ Allow C++/CLI and C++/CX to be enabled if Microsoft extensions are allowed.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
 /*
-In configurations that enable Microsoft extension and disable IL lowering,
+In configurations that enable Microsoft extensions and disable IL lowering,
 enable support for coroutine extensions.
 */
 #ifndef COROUTINES_ALLOWED

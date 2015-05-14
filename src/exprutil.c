@@ -19948,7 +19948,9 @@ Create in *result the representation of a call of the form
 	expr.member(a1, a2, ...)
 
 where expr is given by selector_operand, member is determined by member_name,
-and a1, a2, ... is represented by alep (possibly NULL).
+and a1, a2, ... is represented by alep (possibly NULL).  Operand details other
+than the bound_function and virtual_function flags will be copied from
+orig_detail the function operand created before assembling the final call.
 
 Currently, the call must be to a nonstatic member function.
 */
@@ -20076,9 +20078,9 @@ number from where the lookup of func_name should be done.  pos is the position
 to use for this call.
 
 err_none_applies, err_ambiguous, and err_undefined_identifier are error codes
-are error code to be issued when, respectively, functions are found but none
-are viable, functions are found but overload resolution is ambiguous, and
-no functions are found.
+to be issued when, respectively, functions are found but none are viable,
+functions are found but overload resolution is ambiguous, and no functions are
+found.
 
 If call_node is non-NULL, set *call_node to the node representing the actual
 call.

@@ -6235,6 +6235,7 @@ The syntax is:
 
 static a_boolean in_catch_clause(void)
 /*
+Return TRUE if we are currently inside a catch clause.
 */
 {
   a_boolean  result = FALSE;

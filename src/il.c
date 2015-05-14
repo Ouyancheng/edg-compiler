@@ -8436,7 +8436,7 @@ a_type_ptr add_placeholder_typeref(a_type_ptr  tp,
                                    a_boolean   is_decltype_auto)
 /*
 Return a typeref entry pointing to the given type.  The typeref entry
-represents a deduced "auto" type (if is_decl_typeauto is FALSE) or a deduced
+represents a deduced "auto" type (if is_decltype_auto is FALSE) or a deduced
 "decltype(auto)" type (if is_decltype_auto is TRUE).
 */
 {
@@ -25826,7 +25826,9 @@ static a_coroutine_fixup_ptr
 
 a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp)
 /*
-Allocate a 
+Allocate a coroutine fixup entry, initialize it, and insert it in the
+cdp->fixups list (at the front).  Return a pointer to the newly allocated
+entry.
 */
 {
   a_coroutine_fixup_ptr  entry;

@@ -7612,7 +7612,8 @@ static a_symbol_ptr look_up_name_string_in_namespace(
                                         an_id_lookup_options_set options)
 /*
 Look up symbol_name in the specified namespace (or file scope if ns_ptr is
-NULL).  Return the symbol found, if any.
+NULL).  Return the symbol found, if any.  options is passed to the underlying
+call of file_scope_id_lookup or namespace_qualified_id_lookup.
 */
 {
   a_symbol_locator loc;
