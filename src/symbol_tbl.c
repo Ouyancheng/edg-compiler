@@ -8382,7 +8382,7 @@ Initialize some basic fields of the given coroutine description (associated
 with the given coroutine).
 
 Specifically, record in cdp->traits the traits type instance
-	std::experimental::resumable_traits<R, P1, P2, ...>
+	std::experimental::coroutine_traits<R, P1, P2, ...>
 and in cdp->promise record a new variable of type traits::promise_type.
 (R is the return type of rp and P1, P2, ... are the parameter types of rp; for
 a nonstatic member function, P1 is the type of this.)
@@ -8398,14 +8398,14 @@ member.
                    tap_list, *p_tap;
   a_param_type_ptr ptp;
 
-  /* First look up std::experimental::resumable_traits. */
-  traits_sym = look_up_class_template_in_std_experimental("resumable_traits");
+  /* First look up std::experimental::coroutine_traits. */
+  traits_sym = look_up_class_template_in_std_experimental("coroutine_traits");
   if (traits_sym == NULL) {
     pos_st_error(ec_special_class_template_not_found, &error_position,
-                 "std::experimental::resumable_traits");
+                 "std::experimental::coroutine_traits");
     traits = NULL;
   } else {
-    /* Now instantiate resumable_traits<R, P1, P2, ...> where R is the return
+    /* Now instantiate coroutine_traits<R, P1, P2, ...> where R is the return
        type of rp, and P1, P2, ... its parameters types. */
     tap_list = alloc_template_arg((a_templ_arg_kind)tak_type);
     tap_list->variant.type = rtp->variant.routine.return_type;
@@ -8446,7 +8446,7 @@ member.
                                NO_SCOPE_DEPTH);
   /* Create a placeholder variable for the coroutine "handle". */
   handle_type = instantiate_std_experimental_class_template_with_one_type(
-                                            "resumable_handle", promise_type);
+                                            "coroutine_handle", promise_type);
   cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                               NO_SCOPE_DEPTH);
   /* Record whether this is an "eventual value" coroutine. */
