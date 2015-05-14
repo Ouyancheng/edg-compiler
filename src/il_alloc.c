@@ -3748,8 +3748,7 @@ Allocate a coroutine description, initialize it to default values, and return
 a pointer to it.
 */
 {
-  a_coroutine_descr_ptr  cdp = (a_coroutine_descr_ptr)
-                                         alloc_cil(sizeof(a_coroutine_descr));
+  a_coroutine_descr_ptr  cdp = alloc_cil_of_type(a_coroutine_descr);
 
   cdp->traits = NULL;
   cdp->handle = NULL;

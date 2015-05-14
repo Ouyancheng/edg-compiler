@@ -25837,18 +25837,18 @@ Allocate a
     avail_coroutine_fixups = entry->next;
   } else {
     /* Allocate a new entry. */
-    entry = (a_coroutine_fixup_ptr)alloc_fe(sizeof(a_coroutine_fixup));
+    entry = alloc_fe_of_type(a_coroutine_fixup);
 #if DEBUG
     num_coroutine_fixups_allocated += 1;
 #endif /* DEBUG */
   }  /* if */
-  entry->next = (a_coroutine_fixup_ptr)cdp->fixups;
+  entry->next = cdp->fixups;
   clear_tagged_ptr(entry->entity);
   entry->operand = NULL;
   entry->position = null_source_position;
   entry->tok_seq_number = NO_TOKEN_SEQUENCE_NUMBER;
   entry->await_uses_member_calls = FALSE;
-  cdp->fixups = (void*)entry;
+  cdp->fixups = entry;
   return entry;
 }  /* add_coroutine_fixup */
 
@@ -25858,7 +25858,7 @@ void release_coroutine_fixups(a_coroutine_descr_ptr  cdp)
 Return the list of fixups pointed to by cdp to the available entries list.
 */
 {
-  a_coroutine_fixup_ptr  cfp = (a_coroutine_fixup_ptr)cdp->fixups;
+  a_coroutine_fixup_ptr  cfp = cdp->fixups;
 
   if (cfp != NULL) {
     a_coroutine_fixup_ptr  list = avail_coroutine_fixups;

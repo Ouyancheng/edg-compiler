@@ -987,7 +987,7 @@ return type.
 */
 {
   a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
-  a_coroutine_fixup_ptr  cfp, fixups = (a_coroutine_fixup_ptr)cdp->fixups;
+  a_coroutine_fixup_ptr  cfp, fixups = cdp->fixups;
 
   check_assertion(rp->is_coroutine && fixups != NULL);
   if (rp->has_deducible_return_type) {
@@ -1626,7 +1626,6 @@ of lambda expressions.
     wrap_up_coroutine(rout_ptr);
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
-  /* Do not insert code here. */
   if (rout_ptr->has_deducible_return_type) {
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */

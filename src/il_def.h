@@ -16741,7 +16741,8 @@ typedef struct a_coroutine_descr {
 		promise;
 			/* A placeholder variable representing the promise
 			   for the coroutine invocation. */
-  void		*fixups;
+  struct a_coroutine_fixup
+		*fixups;
 			/* An opaque pointer to a front-end-only list of
 			   fixup entries (used to update IL entries for
 			   coroutine entries when the complete coroutine

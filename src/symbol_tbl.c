@@ -8404,7 +8404,7 @@ member.
   check_assertion(rp->is_coroutine && cdp != NULL && cdp->fixups != NULL);
   /* Use as a diagnostic position the position of the first yield or await
      construct. */
-  cfp = (a_coroutine_fixup_ptr)cdp->fixups;
+  cfp = cdp->fixups;
   for (; cfp != NULL; cfp = cfp->next) {
     if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node ||
         (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement &&
