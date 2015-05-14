@@ -8406,8 +8406,8 @@ member.
      construct. */
   cfp = (a_coroutine_fixup_ptr)cdp->fixups;
   for (; cfp != NULL; cfp = cfp->next) {
-    if (cfp->entity.kind == (an_il_entry_kind)iek_expr_node ||
-        (cfp->entity.kind == (an_il_entry_kind)iek_statement &&
+    if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node ||
+        (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement &&
          ((a_statement_ptr)cfp->entity.ptr)->kind ==
                                               (a_statement_kind)stmk_yield)) {
       diag_pos = &cfp->position;
