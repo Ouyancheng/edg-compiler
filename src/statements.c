@@ -6269,7 +6269,6 @@ Add a corresponding stmk_yield statement to the current statement sequence.
   a_coroutine_descr_ptr  cdp;
   a_statement_ptr        sp;
 
-  check_for_unreachable_code();
   /* Save the position of the beginning of the yield statement. */
   stmt_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -8379,7 +8379,9 @@ void init_coroutine_descr(a_routine_ptr          rp,
                           a_coroutine_descr_ptr  cdp)
 /*
 Initialize some basic fields of the given coroutine description (associated
-with the given coroutine).
+with the given coroutine).  This function is called after the coroutine
+function body has been scanned (because in some cases the coroutine type isn't
+known until then).
 
 Specifically, record in cdp->traits the traits type instance
 	std::experimental::coroutine_traits<R, P1, P2, ...>
@@ -8391,17 +8393,30 @@ Also record in cdp->eventual_value whether the promise type has a set_result
 member.
 */
 {
-  a_symbol_ptr     traits_sym = NULL, traits_inst_sym, promise_sym;
-  a_type_ptr       traits = NULL, promise_type = NULL, handle_type,
-                   rtp = skip_typerefs(rp->type);
-  a_template_arg_ptr
-                   tap_list, *p_tap;
-  a_param_type_ptr ptp;
+  a_symbol_ptr           traits_sym = NULL, traits_inst_sym, promise_sym;
+  a_type_ptr             traits = NULL, promise_type = NULL, handle_type,
+                         rtp = skip_typerefs(rp->type);
+  a_template_arg_ptr     tap_list, *p_tap;
+  a_param_type_ptr       ptp;
+  a_source_position      *diag_pos;
+  a_coroutine_fixup_ptr  cfp;
 
+  check_assertion(rp->is_coroutine && cdp != NULL && cdp->fixups != NULL);
+  /* Use as a diagnostic position the position of the first yield or await
+     construct. */
+  cfp = (a_coroutine_fixup_ptr)cdp->fixups;
+  for (; cfp != NULL; cfp = cfp->next) {
+    if (cfp->entity.kind == (an_il_entry_kind)iek_expr_node ||
+        (cfp->entity.kind == (an_il_entry_kind)iek_statement &&
+         ((a_statement_ptr)cfp->entity.ptr)->kind ==
+                                              (a_statement_kind)stmk_yield)) {
+      diag_pos = &cfp->position;
+    }  /* if */
+  }  /* for */
   /* First look up std::experimental::coroutine_traits. */
   traits_sym = look_up_class_template_in_std_experimental("coroutine_traits");
   if (traits_sym == NULL) {
-    pos_st_error(ec_special_class_template_not_found, &error_position,
+    pos_st_error(ec_special_class_template_not_found, diag_pos,
                  "std::experimental::coroutine_traits");
     traits = NULL;
   } else {
@@ -8433,7 +8448,7 @@ member.
     promise_sym = look_up_name_string_in_class("promise_type", traits,
                                                IDL_NO_OPTIONS);
     if (promise_sym == NULL || !is_type_symbol(promise_sym)) {
-      pos_stty_error(ec_not_a_member, &error_position, "promise_type", traits);
+      pos_stty_error(ec_not_a_member, diag_pos, "promise_type", traits);
       promise_type = error_type();
     } else {
       promise_type = type_symbol_type(promise_sym);
@@ -8463,7 +8478,6 @@ member.
     }  /* if */
   }  /* if */
 }  /* init_coroutine_descr */
-
 
 #endif /* COROUTINES_ALLOWED */
 #if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)

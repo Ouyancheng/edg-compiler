@@ -989,6 +989,7 @@ return type.
   a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
   a_coroutine_fixup_ptr  cfp, fixups = (a_coroutine_fixup_ptr)cdp->fixups;
 
+  check_assertion(rp->is_coroutine && fixups != NULL);
   if (rp->has_deducible_return_type) {
     /* Deduce a coroutine return type.  This is done in two phases.  First we
        deduce a return type T based on the coroutine result operands.  Once
