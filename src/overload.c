@@ -14342,7 +14342,29 @@ the target type to be used).
             check_assertion(is_expression_component(operand_list));
             other_operand_type = operand_of_arg_list_elem(operand_list)->type;
           }  /* if */
-          if (!type_matches_type_code(other_operand_type, type_code)) {
+          if (type_matches_type_code(other_operand_type, type_code)) {
+            /* The other operand matches the type code.  In most cases, that
+               means we should try to convert to a common arithmetic type, but
+               in the case of enumeration types and a non-enumeration type
+               code, we should use the promoted type of the enumeration type
+               instead.  For example:
+                   enum E { e }; enum F { f };
+                   struct WF { operator F() const; } w;
+                   struct I { I(int); };
+                   bool operator!=(int, I const&);
+                   bool b = w != e;  // Should select the built-in operator.
+               When trying the "AA" (arithmetic) type code for the != operator,
+               we should not try to convert w to E (which would involve a user-
+               defined conversion followed by a full standard conversion), but
+               to the promoted type of E (which is a better conversion since
+               it only requires promotion). */
+            if (type_code != ENUM_TYPE_CODE  &&
+                type_code != SCOPED_ENUM_TYPE_CODE &&
+                is_unscoped_enum_type(other_operand_type)) {
+              other_operand_type =
+                            type_after_integral_promotion(other_operand_type);
+            }  /* if */
+          } else {
             /* The other operand type is not a builtin type that could be
                used for the current operand, so ignore it. */
             other_operand_type = NULL;
