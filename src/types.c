@@ -6407,12 +6407,15 @@ of Microsoft-mode member functions).
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
   if (microsoft_mode && targ_supports_x86_64) {
-    /* Microsoft x86-64 conventions only distinguish __vector call from other
-       conventions. */
-    if (cc1 != (a_calling_convention)cc_vectorcall) {
+    /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
+       from other conventions.  All other conventions (__cdecl, __fastcall,
+       etc.) are accepted but have no effect. */
+    if (cc1 != (a_calling_convention)cc_vectorcall &&
+        cc1 != (a_calling_convention)cc_clrcall) {
       cc1 = (a_calling_convention)cc_default;
     }  /* if */
-    if (cc2 != (a_calling_convention)cc_vectorcall) {
+    if (cc2 != (a_calling_convention)cc_vectorcall &&
+        cc2 != (a_calling_convention)cc_clrcall) {
       cc2 = (a_calling_convention)cc_default;
     }  /* if */
   }  /* if */

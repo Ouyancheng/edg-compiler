@@ -32,8 +32,8 @@ compatibility.  For example:
   void __stdcall f() {}
   void g() {
     void (*pf)() = &f;  // Previously an error in all Microsoft modes.
-  }                     // Now accepted in Microsoft modes that for
-                        // x86-64 targets.
+  }                     // Now accepted in Microsoft modes with x86-64
+                        // targets.
 
 
 5/13/15  [EDGcpfe/15431]
