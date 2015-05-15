@@ -10550,8 +10550,10 @@ lengths) *err is set to TRUE, FALSE otherwise.
          be NULL until a value is deduced.   It is then cleared when
          the deduction of a given function argument has been completed.
          If an explicit argument list has been specified, deduction can
-         be used to deduce additional elements of the pack. */
-      if (prp->kind == prk_template_param) {
+         be used to deduce additional elements of the pack.  If the
+         reference is for an enclosing pack, ignore it here as it will
+         have been substituted and can't be deduced. */
+      if (prp->kind == prk_template_param && !prp->uses_enclosing_pack) {
         tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
                                             prp->symbol);
         prev_tap = tap;

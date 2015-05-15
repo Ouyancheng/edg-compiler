@@ -1,5 +1,27 @@
 Version 4.11
 
+5/15/15  [EDGcpfe/13858,EDGcpfe/14722,EDGcpfe/15652,EDGcpfe/15628]
+Internal error on use of enclosing template parameter pack in deduction
+
+An internal error could occur (in find_placeholder_arg_for_pack) on
+the use of an enclosing template parameter pack in a deduction context.
+Now fixed.
+
+  template<typename...> struct A { };
+  template<typename T, typename U> struct B { };
+  template<typename ...T> struct X {
+    template<typename> struct Y {
+      static const unsigned int i = 1;
+    };
+    template<typename ...T2> struct Y<A<B<T, T2>...> > {
+      static const unsigned int i = 0;
+    };
+  };
+  int z[X<short, int, long>::Y<A<B<short, unsigned short>,
+                               B<int, unsigned int>,
+                               B<long, unsigned long>>>::i == 0? 1 : 1];
+
+
 5/14/15  [EDGcpfe/16136]
 Microsoft calling conventions on x86-64 targets
 
