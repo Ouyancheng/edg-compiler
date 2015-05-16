@@ -15798,8 +15798,7 @@ output_functional_notation_cast_arguments:
       } else {
         /* Put out the aggregate constant. */
         gen_initializer_constant(con, init_entity_type,
-                                 /*transparent_case=*/FALSE,
-                                 /*suppress_braces=*/FALSE);
+                                 /*transparent_case=*/FALSE, suppress_braces);
       }  /* if */
       break;
     case dik_constructor:
