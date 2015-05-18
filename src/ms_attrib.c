@@ -1785,7 +1785,7 @@ scanned.
     if (err || value > LONG_MAX || value < LONG_MIN) { /*lint !e685*/
       /* Attribute values should be small integers.  Issue an error on an
          attempt to use a very large integer. */
-      error(ec_integer_too_large);
+      pos_error(ec_integer_too_large, &error_position);
     }  /* if */
   }  /* if */
   release_local_constant(&constant);
@@ -2106,13 +2106,13 @@ or NULL if the argument list is invalid.  If the argument list is invalid,
         }  /* if */
       } else if (any_named_args) {
         /* A positional argument cannot follow a named one. */
-        if (!any_errors) error(ec_positional_after_named);
+        if (!any_errors) pos_error(ec_positional_after_named, &error_position);
         /* Flush to the next argument. */
         flush_tokens();
         any_errors = TRUE;
         continue;
       } else if (param == NULL) {
-        if (!any_errors) error(ec_too_many_ms_attr_args);
+        if (!any_errors) pos_error(ec_too_many_ms_attr_args, &error_position);
         flush_tokens();
         any_errors = TRUE;
         continue;

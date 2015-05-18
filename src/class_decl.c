@@ -8382,7 +8382,7 @@ issue an error and return FALSE.
   if (base_class_type->kind == (a_type_kind)tk_union ||
       base_class_type->
                   variant.class_struct_union.contains_flexible_array_member) {
-    error(ec_bad_base_class);
+    pos_error(ec_bad_base_class, &error_position);
     okay = FALSE;
   } else {
     /* Force instantiation if the base class is a template class. */
@@ -8446,7 +8446,7 @@ issue an error and return FALSE.
            That causes the following example to be accepted:
              template<class T> struct S { struct N: S<T> {}; };
            In other modes, such cases result in an error. */
-        warning(ec_unfinished_base_class);
+        pos_warning(ec_unfinished_base_class, &error_position);
       } else if (microsoft_mode &&
                  is_immediate_class_type(type) &&
                  type->variant.class_struct_union
@@ -8456,7 +8456,7 @@ issue an error and return FALSE.
            base classes may involve real incomplete real base classes: Don't
            issue errors on that. */
       } else {
-        error(ec_incomplete_type_not_allowed);
+        pos_error(ec_incomplete_type_not_allowed, &error_position);
         okay = FALSE;
       }  /* if */
     }  /* if */
@@ -8947,7 +8947,7 @@ can only contain CLI interfaces.
   if (type_ptr->kind == (a_type_kind)tk_union) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
        the base class specifiers (without updating the type supplement). */
-    error(ec_base_class_not_allowed_for_union);
+    pos_error(ec_base_class_not_allowed_for_union, &error_position);
     ctsp = NULL;
   } else {
     /* Get the class type supplement entry for this class or struct. */
@@ -9119,13 +9119,13 @@ can only contain CLI interfaces.
                   is_dependent_type = TRUE;
                 } else {
                   /* Error case.  Ignore the specifier. */
-                  error(ec_bad_base_class);
+                  pos_error(ec_bad_base_class, &error_position);
                   goto skip_base_class;
                 }  /* if */
               }  /* if */
             }  /* if */
             if (!is_dependent_type) {
-              error(ec_not_a_class_or_struct_name);
+              pos_error(ec_not_a_class_or_struct_name, &error_position);
               reference_to_invalid_name(&locator_for_curr_id);
               goto skip_base_class;
             }  /* if */
@@ -9233,7 +9233,8 @@ can only contain CLI interfaces.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           if (interface_definition && !is_interface_like(base_class_type)) {
-            error(ec_interface_must_derive_from_interface);
+            pos_error(ec_interface_must_derive_from_interface,
+                      &error_position);
           } else if (cli_class_type_kind_is(base_class_type, cctk_interface)) {
             /* C++/CLI interfaces behave like virtual base classes when
                derived from. */
@@ -9258,7 +9259,7 @@ can only contain CLI interfaces.
                the same class. */
             if (bcp->direct) {
               /* It too is a directly derived base class.  This is an error. */
-              error(ec_dupl_base_class_name);
+              pos_error(ec_dupl_base_class_name, &error_position);
               goto skip_base_class;
             } else if (bcp->is_virtual && is_virtual) {
               /* This virtual base class is already on the list.  Record this
@@ -9707,13 +9708,13 @@ ordinary friend class declaration.
            template class C<long>;
          The friend declaration might be needed if a member template of C
          is specialized. */
-      warning(ec_self_friendship);
+      pos_warning(ec_self_friendship, &error_position);
     } else {
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
       /* Issue a remark if this is a duplicate friend declaration. */
       for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
         if (clep->class_type == class_type) {
-          remark(ec_duplicate_friend_decl);
+          pos_remark(ec_duplicate_friend_decl, &error_position);
           break;
         }  /* if */
       }  /* for */
@@ -10134,7 +10135,7 @@ that the routine indicated by rout_ptr is a friend.
   /* Issue a remark if this is a duplicate friend declaration. */
   for (clep = rout_ptr->befriending_classes; clep != NULL; clep = clep->next) {
     if (clep->class_type == class_type) {
-      remark(ec_duplicate_friend_decl);
+      pos_remark(ec_duplicate_friend_decl, &error_position);
       break;
     } /* if */
   } /* for */
@@ -10608,7 +10609,7 @@ possibility.
             /* Microsoft compilers ignore the inline specifier in this case. */
             func_info->is_inline = FALSE;
           } else {
-            error(ec_inline_not_allowed);
+            pos_error(ec_inline_not_allowed, &error_position);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -15703,7 +15704,7 @@ specific information about the member declaration, respectively.
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
-    error(ec_incomplete_type_not_allowed);
+    pos_error(ec_incomplete_type_not_allowed, &error_position);
     member_type = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled) {
@@ -17193,7 +17194,7 @@ must be unsigned.
     }  /* if */
     /* Check that the enum values will fit in the bit field. */
     if (bits_needed > bit_field_size) {
-      warning(ec_enum_bit_field_too_small);
+      pos_warning(ec_enum_bit_field_too_small, &error_position);
     }  /* if */
     if (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative) {
       type_warning(ec_unsigned_enum_bit_field_with_signed_enumerator,
@@ -17276,7 +17277,7 @@ be updated on return.
         expect_error();
       } else if (ovflo || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
         /* Force the declared size to something reasonable. */
-        error(ec_bad_bit_field_size);
+        pos_error(ec_bad_bit_field_size, &error_position);
         declared_bit_field_size = max_size_allowed;
         err = TRUE;
       } else if (bit_field_size > max_size_allowed) {
@@ -22027,7 +22028,7 @@ TRUE and an error is issued (*err should be passed in as FALSE).
   }  /* for */
 search_done:
   if (direct_bcp == NULL) {
-    error(ec_member_using_must_be_visible_in_direct_base);
+    pos_error(ec_member_using_must_be_visible_in_direct_base, &error_position);
     *err = TRUE;
   }  /* if */
 }  /* check_member_using_visibility */
@@ -22228,7 +22229,7 @@ declaration from a using-declaration.)
     fund_sym = (declared_sym == NULL) ? NULL
                                       : fundamental_symbol_of(declared_sym);
     if (!locator_for_curr_id.is_class_member) {
-      error(ec_class_qualified_name_required);
+      pos_error(ec_class_qualified_name_required, &error_position);
       err = TRUE;
 #if CHECKING
     } else if (declared_sym == NULL) {
@@ -22245,7 +22246,7 @@ declaration from a using-declaration.)
     } else if (locator_for_curr_id.is_template_id) {
       /* A template-id (that is, template-name<template-args>) is not allowed
          here. */
-      error(ec_template_id_not_allowed);
+      pos_error(ec_template_id_not_allowed, &error_position);
       err = TRUE;
     } else {
       /* Check for the form "using B::B;" where B is a base class type.  That
@@ -22291,7 +22292,7 @@ declaration from a using-declaration.)
       } else {
         bcp = find_base_class_of(class_type, parent_class);
         if (bcp == NULL) {
-          error(ec_bad_base_class);
+          pos_error(ec_bad_base_class, &error_position);
           err = TRUE;
         } else if (bcp->ambiguous) {
           /* The base class is ambiguous, but only issue an error if the member
@@ -22805,7 +22806,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
          not want to do the access check until after excluding the possibility
          of an access adjustment declaration. */
       if (curr_token == tok_identifier || is_member_decl_start()) {
-        error(ec_exp_colon);
+        pos_error(ec_exp_colon, &error_position);
       } else {
         syntax_error(ec_exp_colon);
       }  /* if */
@@ -23668,7 +23669,7 @@ consume_any_stray_microsoft_rparen.
     /* In some Microsoft versions a member declaration can start with a left
        parenthesis that can be closed just about anywhere in the declaration
        (or not at all). */
-    warning(ec_microsoft_parenthesized_member);
+    pos_warning(ec_microsoft_parenthesized_member, &error_position);
     (void)get_token();
     if (curr_token != tok_rparen) {
       class_state->ms_parenthesized_member = TRUE;
@@ -25490,7 +25491,7 @@ definition in which the construct appears.
     /* An __implements list must appear before the declaration of any virtual
        member since the declaration of such a member can affect whether an
        interface is correctly implemented. */
-    error(ec_implements_must_precede_virtual_functions);
+    pos_error(ec_implements_must_precede_virtual_functions, &error_position);
   }  /* if */
   cannot_bind_to_curr_construct();
   scan_base_specifier_list(cdsp);
@@ -26057,8 +26058,10 @@ passed via template_decl.
        errors indicating that an identifier (= a declarator) is missing,
        along with a semicolon.  Then branch to the bottom of the loop. */
     set_err_pos_to_curr_token();
-    if (!(dso_flags & DSO_DECLARES_SOMETHING)) error(ec_exp_identifier);
-    error(ec_exp_semicolon);
+    if (!(dso_flags & DSO_DECLARES_SOMETHING)) {
+      pos_error(ec_exp_identifier, &error_position);
+    }  /* if */
+    pos_error(ec_exp_semicolon, &error_position);
     discard_curr_construct_pragmas();
     *skip_semicolon_check = TRUE;
     goto next_declaration;
@@ -28867,7 +28870,7 @@ classes.
            incomplete type. */
         class_type->variant.class_struct_union.is_empty_class = TRUE;
       } else if (C_mode()) {
-        error(ec_exp_declaration);
+        pos_error(ec_exp_declaration, &error_position);
         add_error_field(class_type, &class_state.end_of_field_list);
       }  /* if */
     } else {
@@ -29613,7 +29616,7 @@ caller has already moved past the '[', and this routine leaves the trailing
              "this" of a closure class member.) */
           if (!variable_this_exists(&var, (a_type_ptr *)NULL)) {
             /* We should be in a nonstatic member function. */
-            error(ec_this_used_incorrectly);
+            pos_error(ec_this_used_incorrectly, &error_position);
           } else if (var == NULL && !scope_stack_top().in_field_initializer) {
             /* A "this" in a prototype scope.  There should be an error about
                the lambda not being allowed in this context. */
@@ -29655,7 +29658,7 @@ caller has already moved past the '[', and this routine leaves the trailing
                 var = sym->variant.variable.ptr;
                 if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE,
                                                   &diag)) {
-                  error(diag);
+                  pos_error(diag, &error_position);
                   var = NULL;
                 }  /* if */
               } else if (symbol_is(sym, sk_field) &&
@@ -30352,7 +30355,7 @@ The heavy lifting for this routine is performed by scan_function_body.
     if (curr_token != tok_lbrace) {
       /* If a lambda body is missing, set lambda to NULL since the parsed
          construct may not have been meant as a lambda at all. */
-      error(ec_missing_lambda_body);
+      pos_error(ec_missing_lambda_body, &error_position);
       /* The return type of the routine might be the unknown type.  Set it to
          an error type to avoid surprises (e.g., some IL traversal routines
          expect that no unknown types remain in the IL). */

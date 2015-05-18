@@ -396,7 +396,7 @@ derived type to remove the restrict qualifier.
             /* A restrict qualifier was found and it applies to the pointer
                type that is going to be set to point to the function type.
                Issue a diagnostic and remove the restrict qualifier. */
-            error(ec_restrict_pointer_to_function);
+            pos_error(ec_restrict_pointer_to_function, &error_position);
             if (qualifiers == TQ_RESTRICT) {
               new_tp = *bottom_derived_type;
             } else {
@@ -975,9 +975,11 @@ the specifiers and declarator that formed the new type.
                 temp_type->variant.class_struct_union.
                                 contains_flexible_array_member) {
               if (gnu_mode) {
-                warning(ec_nonstandard_array_with_flexible_array_element);
+                pos_warning(ec_nonstandard_array_with_flexible_array_element,
+                            &error_position);
               } else {
-                error(ec_flexible_array_member_not_allowed);
+                pos_error(ec_flexible_array_member_not_allowed,
+                          &error_position);
                 err = TRUE;
               }  /* if */
             }  /* if */
@@ -1069,20 +1071,20 @@ the specifiers and declarator that formed the new type.
             sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
             err = TRUE;
           } else if (is_function_type(temp_type)) {
-            error(ec_array_of_function);
+            pos_error(ec_array_of_function, &error_position);
             err = TRUE;
           } else if (is_void_type(temp_type)) {
-            error(ec_array_of_void);
+            pos_error(ec_array_of_void, &error_position);
             err = TRUE;
           } else if (is_any_reference_type(temp_type)) {
-            error(ec_array_of_reference);
+            pos_error(ec_array_of_reference, &error_position);
             err = TRUE;
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
             expect_error();
             err = TRUE;
           } else if (!dps->is_declspec_property_field) {
-            error(ec_bad_array_element_type);
+            pos_error(ec_bad_array_element_type, &error_position);
             err = TRUE;
           }  /* if */
         }  /* if */
@@ -1127,7 +1129,7 @@ the specifiers and declarator that formed the new type.
           } else if (is_any_reference_type(new_type_ptr)) {
             /* A pointer-to-reference type is invalid (a handle-to-reference
                would be diagnosed by check_cli_or_cx_type_pointed_to). */
-            error(ec_pointer_to_reference);
+            pos_error(ec_pointer_to_reference, &error_position);
             new_type_ptr = error_type();
           }  /* if */
           check_for_restrict_qualifier_on_derived_type(new_type_ptr,
@@ -1140,7 +1142,7 @@ the specifiers and declarator that formed the new type.
         temp_type = skip_typerefs(new_type_ptr);
         if (is_void_type(temp_type)) {
 	  /* Reference to void is illegal. */
-          error(ec_reference_to_void);
+          pos_error(ec_reference_to_void, &error_position);
 	  err = TRUE;
         } else if (is_member_function_typedef) {
           /* A cfront member function typedef type can only be used in
@@ -1622,7 +1624,7 @@ actually declares a function, member function, or function template).
     /* Syntax error -- left paren is missing.  We don't actually call
        syntax_error or required_token for this, however, since writing
        "throw int" instead of "throw (int)" might be a common mistake. */
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
   }  /* if */
   /* Loop through the types. */
   do {
@@ -1830,15 +1832,16 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
       if ((std_override_modifiers_enabled || accept_ms_modifiers) &&
           check_context_sensitive_keyword(tok_override, "override")) {
         if (func_info->override) {
-          error(ec_duplicate_function_modifier);
+          pos_error(ec_duplicate_function_modifier, &error_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
                    ((locator->is_destructor_name &&
                      microsoft_version < 1700) ||
                     locator->is_finalizer_name)) {
-          error(locator->is_destructor_name ?
+          pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
-                                      : ec_modifier_not_allowed_on_finalizer);
+                                      : ec_modifier_not_allowed_on_finalizer,
+                    &error_position);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           if (gpp_mode && !cpp11_mode) {
@@ -1850,7 +1853,7 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
                   accept_ms_final_modifier) &&
                  check_context_sensitive_keyword(tok_final, "final")) {
         if (func_info->final) {
-          error(ec_duplicate_function_modifier);
+          pos_error(ec_duplicate_function_modifier, &error_position);
         } else {
           if (gpp_mode && !cpp11_mode) {
             pos_warning(ec_override_and_final_is_cpp11, &error_position);
@@ -1861,36 +1864,41 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
       } else if (accept_ms_modifiers &&
                  check_context_sensitive_keyword(tok_abstract, "abstract")) {
         if (func_info->abstract) {
-          error(ec_duplicate_function_modifier);
+          pos_error(ec_duplicate_function_modifier, &error_position);
         } else if (func_info->sealed) {
-          error(ec_function_modifiers_abstract_and_sealed);
+          pos_error(ec_function_modifiers_abstract_and_sealed,
+                    &error_position);
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
-          error(locator->is_destructor_name ?
+          pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
-                                      : ec_modifier_not_allowed_on_finalizer);
+                                      : ec_modifier_not_allowed_on_finalizer,
+                    &error_position);
         } else {
           func_info->abstract = TRUE;
         }  /* if */
       } else if (accept_ms_modifiers &&
                  check_context_sensitive_keyword(tok_sealed, "sealed")) {
         if (func_info->sealed) {
-          error(ec_duplicate_function_modifier);
+          pos_error(ec_duplicate_function_modifier, &error_position);
         } else if (func_info->abstract) {
-          error(ec_function_modifiers_abstract_and_sealed);
+          pos_error(ec_function_modifiers_abstract_and_sealed,
+                    &error_position);
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
-          error(locator->is_destructor_name ?
+          pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
-                                      : ec_modifier_not_allowed_on_finalizer);
+                                      : ec_modifier_not_allowed_on_finalizer,
+                    &error_position);
         } else {
           func_info->sealed = TRUE;
         }  /* if */
       } else if (cli_or_cx_enabled && curr_token == tok_new) {
         if (func_info->new_member) {
-          error(ec_duplicate_function_modifier);
+          pos_error(ec_duplicate_function_modifier, &error_position);
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
-          error(locator->is_destructor_name ?
+          pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
-                                      : ec_modifier_not_allowed_on_finalizer);
+                                      : ec_modifier_not_allowed_on_finalizer,
+                    &error_position);
         } else {
           func_info->new_member = TRUE;
         }  /* if */
@@ -2068,11 +2076,11 @@ routine is also called for the trailing return type of a lambda declarator.
   } else if (!dps->auto_type_specifier_seen ||
              dps->decltype_auto_specifier_seen) {
     /* Something like "int ()->int" or "decltype(auto) f()->void". */
-    error(ec_trailing_return_type_requires_auto);
+    pos_error(ec_trailing_return_type_requires_auto, &error_position);
     err = TRUE;
   } else if (dps->in_nested_declarator) {
     /* Something like "auto (()->int)". */
-    error(ec_trailing_return_type_in_nested_declarator);
+    pos_error(ec_trailing_return_type_in_nested_declarator, &error_position);
     err = TRUE;
   } else if (dps->type != dps->auto_type) {
     /* Something like "auto *()->int". */
@@ -2198,7 +2206,7 @@ this is a helper function.
       if (is_type_qualifier()) {
         /* Type qualifiers are not allowed on lambdas.  If there are, scan
            them and issue a lambda-specific diagnostic. */
-        error(ec_type_qualifier_on_lambda);
+        pos_error(ec_type_qualifier_on_lambda, &error_position);
         (void)collect_type_qualifiers(decl_pos_block, (a_upc_block_size*)NULL);
       }  /* if */
     }  /* if */
@@ -2630,7 +2638,7 @@ an error if a default argument expression is encountered.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_finalizer) {
       /* Finalizers are allowed no arguments. */
-      error(ec_too_many_params_for_finalizer);
+      pos_error(ec_too_many_params_for_finalizer, &error_position);
       any_params = FALSE;
     } else if (cppcli_enabled && is_type_start(/*is_expr_context=*/FALSE)) {
       /* Presumably a C++/CLI parameter array (not allowed in C++/CX). */
@@ -2864,11 +2872,11 @@ an error if a default argument expression is encountered.
         if (is_destructor && last_param_type == NULL) {
           /* Destructors are allowed no arguments.  Issue an error on the
              first parameter. */
-          error(ec_too_many_params_for_destructor);
+          pos_error(ec_too_many_params_for_destructor, &error_position);
         }  else if (is_finalizer && last_param_type == NULL) {
           /* Finalizers are allowed no arguments.  Issue an error on the
              first parameter. */
-          error(ec_too_many_params_for_finalizer);
+          pos_error(ec_too_many_params_for_finalizer, &error_position);
         }  /* if */
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
@@ -3532,7 +3540,7 @@ an error if a default argument expression is encountered.
       if (microsoft_mode && C_mode()) {
         /* No diagnostic in Microsoft C mode. */
       } else {
-        error(ec_param_id_list_needs_function_def);
+        pos_error(ec_param_id_list_needs_function_def, &error_position);
       }  /* if */
     } else if (C_dialect == C_dialect_cplusplus) {
       /* This type of parameter list is an anachronism in C++. */
@@ -3559,8 +3567,9 @@ an error if a default argument expression is encountered.
            is allowed. */
         if (C_dialect != C_dialect_pcc && !microsoft_bugs &&
             curr_id_is_type_name()) {
-          error(C_mode() ? ec_typedef_cannot_be_param_name :
-                           ec_type_cannot_be_param_name);
+          pos_error(C_mode() ? ec_typedef_cannot_be_param_name :
+                               ec_type_cannot_be_param_name,
+                    &error_position);
           /* Enter the parameter anyway, for best error recovery. */
         }  /* if */
         /* Add the identifier to the parameter id list. */
@@ -3907,7 +3916,7 @@ constant.
                                           (a_scope_kind)sck_func_prototype)) {
       has_vla_asterisk = TRUE;
     } else {
-      error(ec_vla_with_unspecified_bound_not_allowed);
+      pos_error(ec_vla_with_unspecified_bound_not_allowed, &error_position);
       err = TRUE;
     }  /* if */
     /* Pass over the asterisk. */
@@ -3930,7 +3939,7 @@ constant.
            only used in situations where the size does not matter.
            As a compatibility work-around, we therefore warn about the
            construct and treat the resulting array as having bound zero. */
-        warning(ec_vla_size_ignored);
+        pos_warning(ec_vla_size_ignored, &error_position);
         set_integer_constant(constant, (a_host_large_integer)0,
                              (an_integer_kind)ik_int);
         dim_expr = NULL;
@@ -3949,7 +3958,7 @@ constant.
         case ck_upc_mythread:
           /* MYTHREAD (and multiples thereof) is not a valid array
              dimension. */
-          error(ec_expr_not_constant);
+          pos_error(ec_expr_not_constant, &error_position);
           err = TRUE;
           break;
         case ck_upc_threads:
@@ -3957,7 +3966,7 @@ constant.
              flag and fall through to the integer case. */
           upc_threads_dimension = TRUE;
           if (!threads_dimension_allowed) {
-            error(ec_expr_not_constant);
+            pos_error(ec_expr_not_constant, &error_position);
             err = TRUE;
             break;
           }  /* if */
@@ -3968,7 +3977,7 @@ constant.
           if (sign_of_integer_constant(constant) > 0) {
             num_of_elements =
                         unsigned_value_of_integer_constant(constant, &err);
-            if (err) error(ec_array_size_too_large);
+            if (err) pos_error(ec_array_size_too_large, &error_position);
           } else if (((microsoft_mode && in_class_definition()) || gnu_mode) &&
                      sign_of_integer_constant(constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
@@ -3984,7 +3993,7 @@ constant.
                more general. */
             num_of_elements = 0;
           } else {
-            error(ec_array_size_must_be_positive);
+            pos_error(ec_array_size_must_be_positive, &error_position);
             err = TRUE;
           }  /* if */
           break;
@@ -4260,7 +4269,7 @@ convention scanned on this call.
         if (cppcli_enabled) {
           new_call_conv = (a_calling_convention)cc_clrcall;
         } else {
-          error(ec_clrcall_requires_cppcli);
+          pos_error(ec_clrcall_requires_cppcli, &error_position);
           goto skip_token;
         }  /* if */
         break;
@@ -4270,10 +4279,10 @@ convention scanned on this call.
       /* A calling convention was specified. */
       if (*call_conv != new_call_conv) {
         /* The new calling convention does not agree with the old one. */
-        error(ec_conflicting_calling_conventions);
+        pos_error(ec_conflicting_calling_conventions, &error_position);
       } else {
         /* The new and old calling conventions are the same. */
-        warning(ec_dupl_calling_convention);
+        pos_warning(ec_dupl_calling_convention, &error_position);
       }  /* if */
     }  /* if */
     *call_conv = new_call_conv;
@@ -4351,10 +4360,10 @@ diagnostic at the given position.
             /* For __thiscall or __clrcall, an error should be issued.  The
                other cases only elicit a remark (issued below). */
             if (calling_convention == (a_calling_convention)cc_thiscall) {
-              error(ec_vararg_thiscall);
+              pos_error(ec_vararg_thiscall, &error_position);
             } else if (calling_convention ==
                                            (a_calling_convention)cc_clrcall) {
-              error(ec_vararg_clrcall);
+              pos_error(ec_vararg_clrcall, &error_position);
             } else {
               discard = TRUE;
             }  /* if */
@@ -4513,20 +4522,20 @@ Additional position information is recorded in *decl_pos_block.
       if (near_and_far_enabled()) {
         if ((new_qualifiers & TQ_NEAR) && (ptr_mods->qualifiers & TQ_FAR )) {
           /* Incompatible near and far specifications. */
-          error(ec_mem_attrib_incompatible);
+          pos_error(ec_mem_attrib_incompatible, &error_position);
           new_qualifiers &= ~TQ_NEAR;
           duplicates &= ~TQ_NEAR;
         }  /* if */
         if ((new_qualifiers & TQ_FAR ) && (ptr_mods->qualifiers & TQ_NEAR)) {
           /* Incompatible near and far specifications. */
-          error(ec_mem_attrib_incompatible);
+          pos_error(ec_mem_attrib_incompatible, &error_position);
           new_qualifiers &= ~TQ_FAR;
           duplicates &= ~TQ_FAR;
         }  /* if */
         /* Check for repetition of "near" or "far".  The Microsoft compiler
            gives only a warning for these cases, so we do too. */
         if (duplicates & (TQ_NEAR | TQ_FAR)) {
-          warning(ec_dupl_mem_attrib);
+          pos_warning(ec_dupl_mem_attrib, &error_position);
           duplicates &= ~(TQ_NEAR | TQ_FAR);
         }  /* if */
       }  /* if */
@@ -4535,7 +4544,7 @@ Additional position information is recorded in *decl_pos_block.
       if (duplicates != TQ_NONE) {
         /* The Microsoft compiler gives only a warning for duplicates, so
            we do too. */
-        warning(ec_dupl_type_qualifier);
+        pos_warning(ec_dupl_type_qualifier, &error_position);
       }  /* if */
       ptr_mods->qualifiers |= new_qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4554,7 +4563,7 @@ Additional position information is recorded in *decl_pos_block.
         /* __based. */
         if (ptr_mods->based_var != NULL) {
           /* __based appears more than once. */
-          error(ec_dupl_type_qualifier);
+          pos_error(ec_dupl_type_qualifier, &error_position);
         }  /* if */
         ptr_mods->based_pos = pos_curr_token;
         ptr_mods->based_var = scan_based_modifier();
@@ -4567,7 +4576,7 @@ Additional position information is recorded in *decl_pos_block.
       } else if (curr_token == tok_mutable) {
         /* The Microsoft compiler appears to accept and ignore "mutable"
            during declarator processing.  Issue a warning and continue. */
-        warning(ec_mutable_not_allowed);
+        pos_warning(ec_mutable_not_allowed, &error_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (decl_pos_block != NULL) {
           decl_pos_block->declarator_range.end = end_pos_curr_token;
@@ -4583,53 +4592,57 @@ Additional position information is recorded in *decl_pos_block.
           ptr_mods->microsoft_w64_pos = pos_curr_token;
         } else {
           /* The "__w64" token was not expected. */
-          error(ec_invalid_type_for_w64);
+          pos_error(ec_invalid_type_for_w64, &error_position);
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_ptr32) {
         if (!plain_ptr_seen && !ptr_to_member_seen) {
-          error(ec_microsoft_ptr_width_must_follow_star);
+          pos_error(ec_microsoft_ptr_width_must_follow_star, &error_position);
         } else if ((ptr_mods->modifiers & PM_PTR64) != 0) {
-          error(ec_microsoft_ptr_width_conflict);
+          pos_error(ec_microsoft_ptr_width_conflict, &error_position);
         } else if ((ptr_mods->modifiers & PM_PTR32) != 0) {
-          warning(ec_dupl_type_qualifier);
+          pos_warning(ec_dupl_type_qualifier, &error_position);
         } else {
           ptr_mods->modifiers |= PM_PTR32;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_ptr64) {
         if (!plain_ptr_seen && !ptr_to_member_seen) {
-          error(ec_microsoft_ptr_width_must_follow_star);
+          pos_error(ec_microsoft_ptr_width_must_follow_star, &error_position);
         } else if ((ptr_mods->modifiers & PM_PTR32) != 0) {
-          error(ec_microsoft_ptr_width_conflict);
+          pos_error(ec_microsoft_ptr_width_conflict, &error_position);
         } else if ((ptr_mods->modifiers & PM_PTR64) != 0) {
-          warning(ec_dupl_type_qualifier);
+          pos_warning(ec_dupl_type_qualifier, &error_position);
         } else {
           ptr_mods->modifiers |= PM_PTR64;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_sptr) {
         if (ptr_to_member_seen) {
-          error(ec_microsoft_ptr_signedness_on_ptr_to_member);
+          pos_error(ec_microsoft_ptr_signedness_on_ptr_to_member,
+                    &error_position);
         } else if (!plain_ptr_seen) {
-          error(ec_microsoft_ptr_signedness_must_follow_star);
+          pos_error(ec_microsoft_ptr_signedness_must_follow_star,
+                    &error_position);
         } else if ((ptr_mods->modifiers & PM_UPTR) != 0) {
-          error(ec_microsoft_ptr_signedness_conflict);
+          pos_error(ec_microsoft_ptr_signedness_conflict, &error_position);
         } else if ((ptr_mods->modifiers & PM_SPTR) != 0) {
-          warning(ec_dupl_type_qualifier);
+          pos_warning(ec_dupl_type_qualifier, &error_position);
         } else {
           ptr_mods->modifiers |= PM_SPTR;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_uptr) {
         if (ptr_to_member_seen) {
-          error(ec_microsoft_ptr_signedness_on_ptr_to_member);
+          pos_error(ec_microsoft_ptr_signedness_on_ptr_to_member,
+                    &error_position);
         } else if (!plain_ptr_seen) {
-          error(ec_microsoft_ptr_signedness_must_follow_star);
+          pos_error(ec_microsoft_ptr_signedness_must_follow_star,
+                    &error_position);
         } else if ((ptr_mods->modifiers & PM_SPTR) != 0) {
-          error(ec_microsoft_ptr_signedness_conflict);
+          pos_error(ec_microsoft_ptr_signedness_conflict, &error_position);
         } else if ((ptr_mods->modifiers & PM_UPTR) != 0) {
-          warning(ec_dupl_type_qualifier);
+          pos_warning(ec_dupl_type_qualifier, &error_position);
         } else {
           ptr_mods->modifiers |= PM_UPTR;
         }  /* if */
@@ -4989,7 +5002,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                     typedef void f() const;  typedef F *PF;
                  Qualified function types are only allowed to declare members,
                  pointer-to-members and synonym typedefs. */
-              error(ec_ptr_or_ref_to_qualified_function_type);
+              pos_error(ec_ptr_or_ref_to_qualified_function_type,
+                        &error_position);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -5002,7 +5016,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           } else {
             if (is_any_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
-              error(ec_pointer_to_reference);
+              pos_error(ec_pointer_to_reference, &error_position);
               err = TRUE;
             } else if (!check_cli_or_cx_type_pointed_to(temp_type,
                                                         /*is_ref=*/FALSE,
@@ -5035,12 +5049,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               state->unused_qualifiers = FALSE;
             } else {
               /* Type "reference to reference" is illegal. */
-              error(ec_reference_to_reference);
+              pos_error(ec_reference_to_reference, &error_position);
               err = TRUE;
             }  /* if */
           } else if (is_void_type(temp_type)) {
             /* Type "reference to void" is illegal. */
-            error(ec_reference_to_void);
+            pos_error(ec_reference_to_void, &error_position);
             err = TRUE;
           } else if (is_member_function_typedef) {
             /* A cfront member function typedef type can only be used in
@@ -5583,7 +5597,7 @@ declared entity is known to not be a function.
             /* We're emulating a Microsoft bug by ignoring the qualification
                on a friend function (possibly injecting it in the surrounding
                namespace scope).  This is likely unintended. */
-            warning(ec_friend_qualification_ignored);
+            pos_warning(ec_friend_qualification_ignored, &error_position);
           }  /* if */
         }  /* if */
         if (locator_for_curr_id.is_decltype_qualified) {
@@ -5918,25 +5932,25 @@ declared entity is known to not be a function.
         set_to_error_locator(*locator);
       } else if ((input_flags & DI_IS_FRIEND_DECL) &&
                  !locator_for_curr_id.is_qualified_name) {
-        error(error_name_must_be_qualified);
+        pos_error(error_name_must_be_qualified, &error_position);
         set_to_error_locator(*locator);
       } else if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
         /* "typedef ~X();" and "typedef !X();" are not acceptable. */
-        error(error_bad_decl);
+        pos_error(error_bad_decl, &error_position);
         set_to_error_locator(*locator);
       } else {
         a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
 
         if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
           /* Not inside a class; destructor or finalizer is not allowed. */
-          error(error_bad_decl);
+          pos_error(error_bad_decl, &error_position);
           set_to_error_locator(*locator);
         } else {
           sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
           if (!destructor_name_matches_class_name(sym)) {
             /* The name on the destructor or finalizer is not the name of the
                class. */
-            error(error_bad_decl);
+            pos_error(error_bad_decl, &error_position);
             set_to_error_locator(*locator);
           } else {
             *locator = locator_for_curr_id;
@@ -6098,7 +6112,7 @@ passed to r_declarator.)
         skip_typerefs(type)->variant.array.variant.number_of_elements != 0) {
       /* Shared data must be THREADS-dimensioned (except for parameters, but
          they decay to pointers). */
-      error(ec_shared_nonthreads_dim);
+      pos_error(ec_shared_nonthreads_dim, &error_position);
     }  /* if */
   }  /* if */
   /* Resolve any pure block or automatic block sizes. */
@@ -7254,7 +7268,7 @@ function_lparen:
                  qual_pos = (state->qualifiers == TQ_RESTRICT) ?
                                  &state->restrict_pos : &state->qualifiers_pos;
       if (specifiers_type == NULL || !is_any_reference_type(specifiers_type)) {
-        error(ec_reference_to_reference);
+        pos_error(ec_reference_to_reference, &error_position);
         derived_type = error_type();
       } else {
         a_boolean  tracking_ref = FALSE;
@@ -7343,7 +7357,7 @@ function_lparen:
       if (is_underlying_shared_qualified_type(complete_type) &&
           (input_flags & DI_NONSTATIC_MEMBER) != 0) {
         /* Shared types cannot be allocated inside structs or unions. */
-        error(ec_shared_inside_struct);
+        pos_error(ec_shared_inside_struct, &error_position);
         complete_type = bottom_derived_type = error_type();
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */

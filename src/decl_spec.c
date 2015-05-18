@@ -54,10 +54,10 @@ there is no error.
   /* Check for incompatibilities. */
   if (*qualifiers & new_qualifier) {
     /* The bit is already set -- this is a duplicate. */
-    warning(ec_dupl_mem_attrib);
+    pos_warning(ec_dupl_mem_attrib, &error_position);
   } else if ((*qualifiers & (TQ_NEAR | TQ_FAR)) != TQ_NONE) {
     /* The other bit has already been set -- error. */
-    error(ec_mem_attrib_incompatible);
+    pos_error(ec_mem_attrib_incompatible, &error_position);
     new_qualifier = TQ_NONE;
   }  /* if */
   *qualifiers |= new_qualifier;
@@ -155,7 +155,7 @@ string that is returned.
     check_assertion(total_errors != 0);
   } else {
     if (!convert_GUID_string_literal(&const_for_curr_token, &result)) {
-      error(ec_bad_uuid_string);
+      pos_error(ec_bad_uuid_string, &error_position);
     }  /* if */
     /* Bypass the string literal token. */
     (void)get_token();
@@ -1153,7 +1153,7 @@ caution when modifying this routine.
     }  /* if */
   } else {
     /* Identifier is missing. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     tag_err = TRUE;
   }  /* if */
   if (!C_mode() || !func_prototype_tags_enabled) {
@@ -1375,12 +1375,12 @@ caution when modifying this routine.
             if (next_token() == tok_semicolon && !is_ref_within_new_expr) {
               tag_sym = tag_sym->variant.template_info
                              ->variant.class_template.prototype_instantiation;
-              warning(ec_not_a_class_or_struct_name);
+              pos_warning(ec_not_a_class_or_struct_name, &error_position);
               /* Don't attempt to attach pragmas to the prototype
                  instantiation. */
               discard_curr_construct_pragmas();
             } else {
-              error(ec_not_a_class_or_struct_name);
+              pos_error(ec_not_a_class_or_struct_name, &error_position);
               err = TRUE;
             }  /* if */
           } else {
@@ -2120,9 +2120,9 @@ passed to the call to decl_specifiers.
 */
 {
   if (input_flags & DSI_IS_PARAMETER) {
-    error(ec_parameter_with_link_scope_specifier);
+    pos_error(ec_parameter_with_link_scope_specifier, &error_position);
   } else if (decl_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) {
-    error(ec_multiple_link_scope_specifiers);
+    pos_error(ec_multiple_link_scope_specifiers, &error_position);
   } else {
     switch (curr_token) {
       case tok_global_link_scope:
@@ -2206,7 +2206,7 @@ An error is issued if the "abstract" or "sealed" appear in a union definition.
     }  /* if */
     if (type_kind == (a_type_kind)tk_union && (is_sealed || is_abstract) &&
         !union_error_issued) {
-      error(ec_abstract_or_sealed_on_union);
+      pos_error(ec_abstract_or_sealed_on_union, &error_position);
       union_error_issued = TRUE;
     }  /* if */
     (void)get_token();
@@ -5237,10 +5237,10 @@ is updated to reflect relevant positions of this definition.
                                    &did_not_fold,
                                    &error_position);
               if (strict_ansi_mode) {
-                warning(ec_enum_value_out_of_int_range);
+                pos_warning(ec_enum_value_out_of_int_range, &error_position);
               }  /* if */
             } else {
-              error(ec_enum_value_out_of_int_range);
+              pos_error(ec_enum_value_out_of_int_range, &error_position);
               err = TRUE;
             }  /* if */
           }  /* if */
@@ -5285,7 +5285,7 @@ is updated to reflect relevant positions of this definition.
                                                    largest_enum_int_kind)) {
             /* The incremented value would be out of range (3.5.2.2,
                constraints). */
-            error(ec_enum_value_out_of_int_range);
+            pos_error(ec_enum_value_out_of_int_range, &error_position);
             err = TRUE;
           } else {
             /* If incrementing the current value requires a larger
@@ -6530,7 +6530,7 @@ position information when the context is a declaration.
          as std::X, the namespace pointer is cleared, and the locator is set
          to indicate a file scope reference. */
       if (!err) {
-        error(ec_qualified_name_required);
+        pos_error(ec_qualified_name_required, &error_position);
       }  /* if */
     } else {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
@@ -7377,7 +7377,7 @@ _Sat was specified.
                                   : strict_ansi_error_severity,
                          ec_bad_combination_of_type_specifiers);
             } else {
-              warning(ec_nonstandard_long_float);
+              pos_warning(ec_nonstandard_long_float, &error_position);
             }  /* if */
           } else {
             /* long double. */
@@ -7428,7 +7428,7 @@ _Sat was specified.
   if (bad_combination) {
     /* Bad combination of type specifiers.  Issue a diagnostic and set the
        type to an error type. */
-    error(ec_bad_combination_of_type_specifiers);
+    pos_error(ec_bad_combination_of_type_specifiers, &error_position);
     dps->specifiers_type = error_type();
   }  /* if */
   /* Return TRUE if no problems were encountered in combining type
@@ -7580,7 +7580,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
          */
       if (!err && new_upc_access != TQ_NONE && old_upc_access != TQ_NONE &&
           (new_upc_access != old_upc_access)) {
-        error(ec_dupl_type_qualifier);
+        pos_error(ec_dupl_type_qualifier, &error_position);
         err = TRUE;
       }  /* if */
       /* Disallow strict or relaxed without shared. */
@@ -7589,7 +7589,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
         if ((f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
                                                          TQ_UPC_SHARED) == 0) {
           /* Issue an error and remove the offending qualifiers. */
-          error(ec_nonshared_strict_relaxed);
+          pos_error(ec_nonshared_strict_relaxed, &error_position);
           qualifiers &= ~(TQ_UPC_STRICT | TQ_UPC_RELAXED);
           new_upc_access = TQ_NONE;
         }  /* if */
@@ -7599,7 +7599,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
            f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0 &&
           state->upc_block_size !=
                         f_get_upc_block_size(*type_ptr, /*top_level=*/FALSE)) {
-        error(ec_mismatched_shared_block_size);
+        pos_error(ec_mismatched_shared_block_size, &error_position);
         err = TRUE;
       }  /* if */
     }  /* if */
@@ -7849,7 +7849,7 @@ final position of the construct (whether or not a block size was specified).
       /* Usually one would write "shared [N] int ...", but "int shared [N] ..."
          is possible too.  In the latter case, the brackets are still treated
          as a block size; not an abstract array declarator. */
-      remark(ec_ambiguous_block_size_spec);
+      pos_remark(ec_ambiguous_block_size_spec, &error_position);
     }  /* if */
     /* Skip over the left bracket. */
     (void)get_token();
@@ -7871,7 +7871,7 @@ final position of the construct (whether or not a block size was specified).
           /* The block size must be greater than or equal to zero, with
              zero indicating an indefinite block size. */
           if (sign_of_integer_constant(constant) < 0) {
-            error(ec_shared_block_size_must_be_positive);
+            pos_error(ec_shared_block_size_must_be_positive, &error_position);
             *err = TRUE;
           } else {
             a_host_large_unsigned  const_value =
@@ -7888,7 +7888,7 @@ final position of the construct (whether or not a block size was specified).
           }  /* if */
           break;
         case ck_upc_threads:
-          error(ec_threads_constant_not_allowed);
+          pos_error(ec_threads_constant_not_allowed, &error_position);
           /*FALLTHROUGH*/
         case ck_error:
           *err = TRUE;
@@ -7909,7 +7909,7 @@ final position of the construct (whether or not a block size was specified).
     if (curr_token == tok_lbracket) {
       /* More than one block size found.  Scan them all
          to avoid misleading error messages. */
-      error(ec_multiple_block_sizes);
+      pos_error(ec_multiple_block_sizes, &error_position);
       *err = TRUE;
       while (curr_token == tok_lbracket) {
         a_constant_ptr  dummy_constant = local_constant();
@@ -7995,9 +7995,9 @@ handled in process_storage_class_specifier).
 */
 {
   if (input_flags & DSI_IS_PARAMETER) {
-    error(ec_cannot_use_thread_local_storage);
+    pos_error(ec_cannot_use_thread_local_storage, &error_position);
   } else if (decl_modifiers->flags & DM_THREAD) {
-    error(ec_multiple_thread_local_storage_specifiers);
+    pos_error(ec_multiple_thread_local_storage_specifiers, &error_position);
   } else {
     decl_modifiers->flags |= DM_THREAD;
   }  /* if */
@@ -8477,7 +8477,7 @@ which is processed after any other specifiers have also been consumed.
       *err = TRUE;
     } else if (*decl_specifiers_seen & DS_THREAD_LOCAL) {
       /* Duplicate "thread_local/_Thread_local" specifiers. */
-      error(ec_dupl_decl_specifier);
+      pos_error(ec_dupl_decl_specifier, &error_position);
     } else {
       /* Mark that we've seen "thread_local/_Thread_local" and register a
          callback routine to perform additional checks once the declaration
@@ -9198,8 +9198,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
     switch (curr_token) {
       case tok_auto:
         if (state->auto_type_specifier_seen) {
-          error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
-                                    ec_mult_storage_classes);
+          pos_error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
+                                        ec_mult_storage_classes,
+                                        &error_position);
         } else if (is_parameter && auto_type_allowed &&
                    process_generic_lambda_param_type(state)) {
           /* "auto" as a parameter type specifier in what is presumably a
@@ -9251,7 +9252,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         if (!C_mode() && next_token() == tok_string_literal) {
           /* This is a C++ linkage specification, which is an error in this
              context. */
-          error(ec_linkage_specifier_not_allowed);
+          pos_error(ec_linkage_specifier_not_allowed, &error_position);
           err = TRUE;
           /* Consume "extern".  We don't bother validating the string since an
              error has already been issued. */
@@ -9288,13 +9289,13 @@ storage_class_specifier:
            inconsistent with an explicit storage class declaration or
            "inline". */
         if (*storage_class == (a_storage_class)sc_asm) {
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
           err = TRUE;
         } else if (!(input_flags & DSI_ASM_ALLOWED) ||
                    (decl_specifiers_seen & (DS_INLINE | DS_STORAGE_CLASS))) {
           /* asm is not allowed if we've already seen a storage class or
              inline. */
-          error(ec_asm_not_allowed);
+          pos_error(ec_asm_not_allowed, &error_position);
           err = TRUE;
         } else {
           /* The asm specifier is represented as a storage class (even though
@@ -9401,7 +9402,7 @@ storage_class_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
           /* E.g., "int i, double const j;". */
-          warning(ec_type_qualifier_ignored);
+          pos_warning(ec_type_qualifier_ignored, &error_position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
@@ -9427,7 +9428,7 @@ storage_class_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
           /* E.g., "int i, double volatile j;". */
-          warning(ec_type_qualifier_ignored);
+          pos_warning(ec_type_qualifier_ignored, &error_position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
@@ -9506,7 +9507,7 @@ storage_class_specifier:
              is accepted with a warning, but if the block sizes are
              different, an error must be issued (no matter what mode). */
           if (es == es_warning && state->upc_block_size != saved_block_size) {
-            error(ec_mismatched_shared_block_size);
+            pos_error(ec_mismatched_shared_block_size, &error_position);
             err = TRUE;
           } else {
             diagnostic(es, ec_dupl_type_qualifier);
@@ -9521,7 +9522,7 @@ storage_class_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
           /* E.g., "int i, Ptr restrict j;". */
-          warning(ec_type_qualifier_ignored);
+          pos_warning(ec_type_qualifier_ignored, &error_position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
@@ -9557,10 +9558,10 @@ storage_class_specifier:
         /* Microsoft __unaligned type qualifier. */
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
           /* E.g., "int i, double __unaligned *j;". */
-          warning(ec_type_qualifier_ignored);
+          pos_warning(ec_type_qualifier_ignored, &error_position);
         } else if (qualifiers & TQ_UNALIGNED) {
           /* __unaligned may not appear more than once. */
-          warning(ec_dupl_type_qualifier);
+          pos_warning(ec_dupl_type_qualifier, &error_position);
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_UNALIGNED;
@@ -9578,10 +9579,10 @@ storage_class_specifier:
         }  /* if */
         if (qualifiers & TQ_NEAR) {
           /* near may not appear more than once. */
-          warning(ec_dupl_mem_attrib);
+          pos_warning(ec_dupl_mem_attrib, &error_position);
         } else if (qualifiers & TQ_FAR) {
           /* near and far are incompatible. */
-          error(ec_mem_attrib_incompatible);
+          pos_error(ec_mem_attrib_incompatible, &error_position);
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_NEAR;
@@ -9597,10 +9598,10 @@ storage_class_specifier:
         }  /* if */
         if (qualifiers & TQ_FAR) {
           /* far may not appear more than once. */
-          warning(ec_dupl_mem_attrib);
+          pos_warning(ec_dupl_mem_attrib, &error_position);
         } else if (qualifiers & TQ_NEAR) {
           /* near and far are incompatible. */
-          error(ec_mem_attrib_incompatible);
+          pos_error(ec_mem_attrib_incompatible, &error_position);
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_FAR;
@@ -9614,16 +9615,16 @@ storage_class_specifier:
 	   specification. */
 	if (is_parameter) {
 	  /* "friend" may not appear in a function parameter specification. */
-	  error(ec_bad_param_specifier);
+	  pos_error(ec_bad_param_specifier, &error_position);
 	  err = TRUE;
 	} else if (!is_member_decl) {
 	  /* In fact, it may only appear in a C++ class (or struct or union)
 	     declaration. */
-	  error(ec_bad_specifier_outside_class_decl);
+	  pos_error(ec_bad_specifier_outside_class_decl, &error_position);
 	  err = TRUE;
 	} else if (decl_specifiers_seen & DS_FRIEND) {
 	  /* Only one "friend" specifier at at time. */
-	  error(ec_dupl_decl_specifier);
+	  pos_error(ec_dupl_decl_specifier, &error_position);
 	  err = TRUE;
 	} else {
           decl_specifiers_seen |= DS_FRIEND;
@@ -9632,7 +9633,7 @@ storage_class_specifier:
             if ((decl_specifiers_seen & DS_STORAGE_CLASS) &&
                 !microsoft_mode &&
                 !(sun_mode && *storage_class == (a_storage_class)sc_static)) {
-              error(ec_storage_class_in_friend_decl);
+              pos_error(ec_storage_class_in_friend_decl, &error_position);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;
               decl_specifiers_seen &= ~(DS_STORAGE_CLASS);
@@ -9698,14 +9699,14 @@ storage_class_specifier:
       case tok_constexpr:
         if (is_parameter) {
           /* "constexpr" may not appear in a function parameter declaration. */
-          error(ec_bad_param_specifier);
+          pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
         } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
           pos_error(ec_constexpr_explicit_instantiation, &pos_curr_token);
         } else if (decl_specifiers_seen & DS_CONSTEXPR) {
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
         } else {
           decl_specifiers_seen |= DS_CONSTEXPR;
           *output_flags |= DSO_CONSTEXPR;
@@ -9719,7 +9720,7 @@ storage_class_specifier:
           pos_warning(ec_dupl_decl_specifier, &pos_curr_token);
         } else if (is_parameter) {
           /* "_Noreturn" may not appear in a function parameter declaration. */
-          error(ec_bad_param_specifier);
+          pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
         } else {
           add_element_position(epk_noreturn, &pos_curr_token,
@@ -9732,7 +9733,7 @@ storage_class_specifier:
       case tok_inline:
         if (is_parameter) {
           /* "inline" may not appear in a function parameter specification. */
-          error(ec_bad_param_specifier);
+          pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
         } else if (!(input_flags & DSI_INLINE_ALLOWED) ||
                    (C_dialect == C_dialect_cplusplus &&
@@ -9754,7 +9755,7 @@ storage_class_specifier:
           /* The keyword "inline" was seen as a qualifier.  This is only
              possible in Microsoft mode and that qualifier is ignored. */
           check_assertion(microsoft_mode);
-          warning(ec_inline_qualifier_ignored);
+          pos_warning(ec_inline_qualifier_ignored, &error_position);
         } else {
           decl_specifiers_seen |= DS_INLINE;
           *output_flags |= DSO_INLINE;
@@ -9766,15 +9767,15 @@ storage_class_specifier:
         if (is_parameter) {
           /* "explicit" may not appear in a function parameter
               specification. */
-          error(ec_bad_param_specifier);
+          pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
         } else if (!is_member_decl) {
           /* It's only allowed inside a class definition. */
-          error(ec_explicit_not_allowed);
+          pos_error(ec_explicit_not_allowed, &error_position);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_EXPLICIT) {
           /* Disallow duplicates. */
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
           err = TRUE;
         } else {
           decl_specifiers_seen |= DS_EXPLICIT;
@@ -9807,7 +9808,7 @@ storage_class_specifier:
 #endif /* FIXED_POINT_ALLOWED */
         /* A type specifier (3.5.2) that indicates a basic type. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (basic_type != bt_none) {
           /* Basic type has already been specified in some way. */
@@ -9828,7 +9829,7 @@ storage_class_specifier:
           /* Do not insert code here. */
           {
             bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
           }  /* if */
         } else {
           switch (curr_token) {
@@ -9865,12 +9866,12 @@ storage_class_specifier:
            represent a basic type and a size in combination.  In other words,
            an explicit size may not be specified in conjunction with either. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (basic_type != bt_none || size != size_none) {
           /* Basic type or size has already been specified in some way. */
           bad_combination_of_type_specifiers = TRUE;
-          error(ec_bad_combination_of_type_specifiers);
+          pos_error(ec_bad_combination_of_type_specifiers, &error_position);
         } else {
           if (curr_token == tok_int8) {
             /* __int8 is treated as a plain char. */
@@ -9896,12 +9897,12 @@ storage_class_specifier:
            combination.  In other words, an explicit size may not be specified
            in conjunction with it. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (basic_type != bt_none || size != size_none) {
           /* Basic type or size has already been specified in some way. */
           bad_combination_of_type_specifiers = TRUE;
-          error(ec_bad_combination_of_type_specifiers);
+          pos_error(ec_bad_combination_of_type_specifiers, &error_position);
         } else {
           /* Set both basic type and size. */
           basic_type = bt_int;
@@ -9915,7 +9916,7 @@ storage_class_specifier:
         /* A type specifier (3.5.2) that modifies the length of a basic
            type. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (size != size_none) {
           /* Size has already been specified in some way. */
@@ -9930,9 +9931,9 @@ storage_class_specifier:
 #else /* !LONG_LONG_ALLOWED */
             if (any_cfront_mode()) {
               /* Cfront warns about "long long" and treats it as "long". */
-              warning(ec_dupl_decl_specifier);
+              pos_warning(ec_dupl_decl_specifier, &error_position);
             } else {
-              error(ec_nonstd_long_long);
+              pos_error(ec_nonstd_long_long, &error_position);
             }  /* if */
 #endif /* LONG_LONG_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -9952,7 +9953,7 @@ storage_class_specifier:
           } else {
             /* Some other bad combination. */
             bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
           }  /* if */
         } else {
           /* First specification of size. */
@@ -9969,10 +9970,10 @@ storage_class_specifier:
         check_assertion(c99_mode || gnu_mode);
         if (complex_attr == cxa_complex) {
           /* E.g. "_Complex float _Complex". */
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
         } else if (complex_attr == cxa_imaginary) {
           /* E.g. "_Imaginary float _Complex". */
-          error(ec_bad_combination_of_type_specifiers);
+          pos_error(ec_bad_combination_of_type_specifiers, &error_position);
           bad_combination_of_type_specifiers = TRUE;
         } else {
           complex_attr = cxa_complex;
@@ -9982,10 +9983,10 @@ storage_class_specifier:
         check_assertion(c99_mode);
         if (complex_attr == cxa_imaginary) {
           /* E.g. "_Imaginary float _Imaginary". */
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
         } else if (complex_attr == cxa_complex) {
           /* E.g. "_Complex float _Imaginary". */
-          error(ec_bad_combination_of_type_specifiers);
+          pos_error(ec_bad_combination_of_type_specifiers, &error_position);
           bad_combination_of_type_specifiers = TRUE;
         } else {
           complex_attr = cxa_imaginary;
@@ -9996,7 +9997,7 @@ storage_class_specifier:
       case tok_sat:
         /* The _Sat specifier for fixed-point types. */
         if (saturating_fixed_point) {
-          error(ec_dupl_decl_specifier);
+          pos_error(ec_dupl_decl_specifier, &error_position);
         } else {
           saturating_fixed_point = TRUE;
         }  /* if */
@@ -10007,7 +10008,7 @@ storage_class_specifier:
         /* A type specifier (3.5.2) that modifies the signedness of a
            basic type. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (sign != sign_none) {
           /* Sign has already been specified in some way. */
@@ -10028,7 +10029,7 @@ storage_class_specifier:
           } else {
             /* Mixing signs. */
             bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
           }  /* if */
         } else {
           /* First specification of sign. */
@@ -10053,7 +10054,7 @@ storage_class_specifier:
 process_class_specifier:
         /* A struct or union specifier (3.5.2.1). */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
@@ -10097,7 +10098,7 @@ process_class_specifier:
             a_type_ptr dummy_type;
             /* Basic type has already been specified in some way. */
             bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
             /* Scan the specifier anyway, but throw it away. */
             (void)class_specifier(
                        state, input_flags, /*vacuous_decl_allowed=*/FALSE,
@@ -10116,7 +10117,7 @@ process_enum_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* An enumeration specifier (3.5.2.2). */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
@@ -10139,7 +10140,7 @@ process_enum_specifier:
             a_type_ptr dummy_type;
             /* Basic type has already been specified in some way. */
             bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
             /* Scan the specifier anyway, but throw it away. */
             enum_specifier(state, input_flags, /*vacuous_decl_allowed=*/FALSE,
                            /*is_enum_template_definition=*/FALSE,
@@ -10172,7 +10173,7 @@ process_enum_specifier:
            opposed to parsing a template instantiation when the values of
            the template parameters are known. */
         if (!type_specifier_allowed) {
-          error(ec_type_specifier_not_allowed);
+          pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
         } else if (sun_mode && use_implicit_typename()) {
           /* typename is ignored in Sun mode.  Simply discard the token
@@ -10381,7 +10382,7 @@ process_enum_specifier:
 #if NAMED_ADDRESS_SPACES_ALLOWED
           } else if (named_address_space != 0) {
             if (named_address_space_from_qualifier_set(qualifiers) != 0) {
-              error(ec_multiple_named_address_spaces);
+              pos_error(ec_multiple_named_address_spaces, &error_position);
             } else {
               record_qualifiers_pos();
               set_named_address_space_in_qualifier_set(qualifiers,
@@ -10541,7 +10542,7 @@ process_enum_specifier:
             mark_referenced(curr_token_type_symbol,
                             &locator_for_curr_id.source_position);
             if (!type_specifier_allowed) {
-              error(ec_type_specifier_not_allowed);
+              pos_error(ec_type_specifier_not_allowed, &error_position);
               err = TRUE;
             } else {
               /* Save the type. */
@@ -10583,7 +10584,7 @@ process_enum_specifier:
           /* This is an identifier in a "new" expression so it was
              probably intended to be a type name.  Issue an error and
              pretend that's what it is. */
-          error(ec_exp_type_specifier);
+          pos_error(ec_exp_type_specifier, &error_position);
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();
@@ -10800,7 +10801,7 @@ operator_or_conversion_name:
             *storage_class == (a_storage_class)sc_typedef) {
           /* Microsoft C++ compilers ignore access specifiers in ill-formed
              typedef declarations like "typedef int private I;". */
-          warning(ec_invalid_access_specifier);
+          pos_warning(ec_invalid_access_specifier, &error_position);
           break;
         } else {
           goto something_unexpected;
@@ -11033,7 +11034,7 @@ exit_loop:
           basic_type = bt_double;
           bad_complex_combination = FALSE;
         } else {
-          error(ec_missing_floating_point_type);
+          pos_error(ec_missing_floating_point_type, &error_position);
         }  /* if */
       } else {
         /* An invalid type was specified as the basic type for an
@@ -11073,7 +11074,7 @@ exit_loop:
          to a variably-modified type in the enclosing function.  We cannot
          accept this since it implies that the local class accesses local
          storage in the enclosing function scope: Issue an error. */
-      error(ec_nonlocal_vla_not_allowed);
+      pos_error(ec_nonlocal_vla_not_allowed, &error_position);
       *type_ptr = error_type();
       err = TRUE;
 #endif /* VLA_ALLOWED */
@@ -11115,7 +11116,7 @@ exit_loop:
        the shared qualifier. */
     if ((qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) != 0 &&
         (qualifiers & TQ_UPC_SHARED) == 0) {
-      error(ec_nonshared_strict_relaxed);
+      pos_error(ec_nonshared_strict_relaxed, &error_position);
       err = TRUE;
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */

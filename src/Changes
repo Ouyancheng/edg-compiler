@@ -1,5 +1,22 @@
 Version 4.11
 
+5/18/15  [EDGcpfe/14960]
+Elimination of "error", "warning", and "remark" functions
+
+The front end contains a function named "error".  The GNU library also
+contains a function with that name.  Linking with the GNU library could
+cause the incorrect version of the function to be used.  Because the use
+of these functions has been, in a sense, deprecated with EDG in favor of
+using the ones that require an explicit position to be provided, we
+have removed the uses of these functions, rather than renaming them.
+We are not aware of any similar issues with "warning" and "remark", but
+those were likewise eliminated because their very generic names could
+cause conflicts in the future.
+
+Code that contains uses of these functions, such as "error(ec_xxx);",
+should be changed to "pos_error(ec_xxx, &error_position);".
+
+
 5/15/15  [EDGcpfe/16139]
 Invalid ranking of builtin operator called with differing enumeration types
 

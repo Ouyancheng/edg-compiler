@@ -471,7 +471,7 @@ the #endif.
 {
   if (pp_if_stack_depth <= base_pp_if_stack_depth) {
     /* There was no #if corresponding to this #else. */
-    error(ec_missing_pp_if);
+    pos_error(ec_missing_pp_if, &error_position);
     flush_to_newline();
   } else if (pp_if_stack[pp_if_stack_depth].else_encountered) {
     /* An #else has been seen already, so this is a second #else.
@@ -479,7 +479,7 @@ the #endif.
        compiler, which didn't give an error. */
     if (C_dialect == C_dialect_pcc ||
         (microsoft_mode && microsoft_version < 1200)) {
-      warning(ec_pp_else_already_appeared);
+      pos_warning(ec_pp_else_already_appeared, &error_position);
     } else {
       diagnostic(es_discretionary_error, ec_pp_else_already_appeared);
     }  /* if */
@@ -513,11 +513,11 @@ evaluate the expression, and do the skip if appropriate.
 {
   if (pp_if_stack_depth <= base_pp_if_stack_depth) {
     /* There was no #if corresponding to this #elif. */
-    error(ec_missing_pp_if);
+    pos_error(ec_missing_pp_if, &error_position);
     flush_to_newline();
   } else if (pp_if_stack[pp_if_stack_depth].else_encountered) {
     /* #else has already appeared; #elif is not valid here. */
-    error(ec_pp_else_already_appeared);
+    pos_error(ec_pp_else_already_appeared, &error_position);
     flush_to_newline();
   } else {
     /* The #elif is valid, process it. */
@@ -548,7 +548,7 @@ Scan and process an #endif directive.
 {
   if (pp_if_stack_depth <= base_pp_if_stack_depth) {
     /* There was no #if corresponding to this #endif. */
-    error(ec_missing_pp_if);
+    pos_error(ec_missing_pp_if, &error_position);
     flush_to_newline();
   } else {
     /* The #endif is valid, process it. */
@@ -691,7 +691,7 @@ the newline of the preprocessing directive that is causing this skip.
         /* Unrecognized directive.  Issue a warning in strict mode, and then
            ignore it. */
         if (strict_ansi_mode) {
-          warning(ec_bad_pp_directive_keyword);
+          pos_warning(ec_bad_pp_directive_keyword, &error_position);
           some_error_in_curr_directive = TRUE;
         }  /* if */
         break;
@@ -860,7 +860,7 @@ FALSE, respectively).
        which is treated as undefined. */
     if ((!strict_ansi_mode || strict_ansi_error_severity != es_error) &&
         isdigit((unsigned char)*start_of_curr_token)) {
-      warning(ec_exp_identifier);
+      pos_warning(ec_exp_identifier, &error_position);
       condition = FALSE;
       flush_to_newline();
     } else {
@@ -985,7 +985,7 @@ Scan and process an #undef directive.
         /* The Microsoft compiler gives a warning for a case like this.
            The warning says the #undef is ignored, but it isn't.  In
            GNU mode, silently allow the undefinition. */
-        warning(ec_cannot_undef_predef_macro);
+        pos_warning(ec_cannot_undef_predef_macro, &error_position);
       }  /* if */
 #if RECORD_MACROS_IN_IL
       /* Make an IL entry for the #undef. */
@@ -1318,7 +1318,7 @@ pass_stdarg_references_to_generated_code.
        warning and treat this as a normal include. */
     if (processing_primary_source_file()) {
       is_include_next = FALSE;
-      warning(ec_include_next_in_primary_source_file);
+      pos_warning(ec_include_next_in_primary_source_file, &error_position);
     }  /* if */
   }  /* if */
   /* Scan a header name token. */
@@ -1819,7 +1819,7 @@ referenced.
                 "#using");
     } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
       /* #using must occur at file scope. */
-      error(ec_using_not_at_file_scope);
+      pos_error(ec_using_not_at_file_scope, &error_position);
     } else {
       import_metadata(name, as_friend, is_system_include, FALSE,
                       directive_start_pos);
@@ -1918,7 +1918,7 @@ and may have extra operands at the end).
        directive continues, because this isn't a syntax error; we haven't
        lost our place.  Below, the updating of the position information is
        suppressed. */
-    error(ec_bad_line_number);
+    pos_error(ec_bad_line_number, &error_position);
   }  /* if */
   /* After the line number, there may be a file name as a string literal. */
   /* Note that since in_pp_if_expression is FALSE, the constant will
@@ -2870,7 +2870,7 @@ is issued if anything follows the string.
     err = TRUE;
   } else if (curr_token != tok_string_literal ||
              !is_normal_character_kind(const_for_curr_token.character_kind)) {
-    error(ec_bad_ident_string);
+    pos_error(ec_bad_ident_string, &error_position);
     err = TRUE;
   } else {
     switch_to_file_scope_region(&region_to_switch_back_to);
@@ -2883,7 +2883,7 @@ is issued if anything follows the string.
        just a warning.  Display a warning and then flush to the end of the
        token cache, but don't set err, so that the pragma will be entered
        into the IL. */
-    warning(ec_extra_text_in_pp_directive);
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
     wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
   } else {
     wrapup_rescan_of_pragma_tokens(err);
@@ -3096,7 +3096,7 @@ the construct is not correctly formed.
                                locator_for_curr_id.symbol_header->identifier);
           if (evk == (an_ELF_visibility_kind)evk_unspecified) {
             /* An invalid visibility kind was specified. */
-            warning(ec_unrecognized_visibility);
+            pos_warning(ec_unrecognized_visibility, &error_position);
             warning_issued = TRUE;
           } else {
             ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
@@ -3105,14 +3105,14 @@ the construct is not correctly formed.
           push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
           (void)get_token();
           if (curr_token != tok_rparen) {
-            warning(ec_exp_rparen);
+            pos_warning(ec_exp_rparen, &error_position);
             warning_issued = TRUE;
           } else {
             (void)get_token();
           }  /* if */
         }  /* if */
       } else {
-        warning(ec_exp_lparen);
+        pos_warning(ec_exp_lparen, &error_position);
         warning_issued = TRUE;
       }  /* if */
     } else if (strcmp(str, "pop") == 0) {
@@ -3125,9 +3125,9 @@ the construct is not correctly formed.
   if (warning_issued) {
     /* Do not issue another warning. */
   } else if (!recognized) {
-    warning(ec_unrecognized_gcc_visibility_pragma);
+    pos_warning(ec_unrecognized_gcc_visibility_pragma, &error_position);
   } else if (curr_token != tok_end_of_source) {
-    warning(ec_extra_text_in_pp_directive);
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
   }  /* if */
 }  /* process_gnu_visibility_pragma */
 
@@ -3187,7 +3187,7 @@ Handle
   /* Skip the "system_header" identifier. */
   (void)get_token();
   if (curr_token != tok_end_of_source) {
-    warning(ec_extra_text_in_pp_directive);
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
   }  /* if */
 }  /* process_gnu_system_header_pragma */
 
@@ -3430,7 +3430,7 @@ kind indicates which of the above is being processed.
   /* Skip the identifier. */
   (void)get_token();
   if (curr_token != tok_end_of_source) {
-    warning(ec_extra_text_in_pp_directive);
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
   }  /* if */
 }  /* process_gnu_options_pragma */
 
@@ -3468,7 +3468,7 @@ Process a "#pragma GCC ..." construct.
     }  /* if */
   }  /* if */
   if (!recognized) {
-    warning(ec_unrecognized_gcc_pragma);
+    pos_warning(ec_unrecognized_gcc_pragma, &error_position);
   }  /* if */
   /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
      will already have been issued. */
@@ -3739,7 +3739,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
   if (curr_token == tok_lparen) {
     (void)get_token();
   } else {
-    warning(ec_exp_lparen);
+    pos_warning(ec_exp_lparen, &error_position);
     err = TRUE;
   }  /* if */
   add_stop_token(tok_rparen);
@@ -3750,7 +3750,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
      spurious errors and warnings.) */
   if (curr_token != tok_header_name) {
     if (!err) {
-      warning(ec_exp_string_literal);
+      pos_warning(ec_exp_string_literal, &error_position);
       err = TRUE;
     }  /* if */
   } else {
@@ -3761,7 +3761,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else if (!err) {
-    warning(ec_exp_rparen);
+    pos_warning(ec_exp_rparen, &error_position);
     err = TRUE;
   }  /* if */
   remove_stop_token(tok_rparen);
@@ -3788,7 +3788,7 @@ This is a Microsoft extension that terminates the effect of the preceding
 {
   begin_rescan_of_pragma_tokens(ppp);
   if (!in_microsoft_implementation_key_mapping_region) {
-    warning(ec_stop_map_region_ignored);
+    pos_warning(ec_stop_map_region_ignored, &error_position);
   } else {
     in_microsoft_implementation_key_mapping_region = FALSE;
   }  /* if */
@@ -3813,13 +3813,13 @@ executable file.
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token != tok_lparen) {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
     err = TRUE;
   } else {
     /* Skip over the "(". */
     (void)get_token();
     if (curr_token != tok_identifier) {
-      error(ec_exp_identifier);
+      pos_error(ec_exp_identifier, &error_position);
       err = TRUE;
     } else {
       a_const_char *str = locator_for_curr_id.symbol_header->identifier;
@@ -3850,7 +3850,7 @@ executable file.
           err = TRUE;
         } else if (!is_normal_character_kind(
                                         const_for_curr_token.character_kind)) {
-          error(ec_bad_pragma_comment_string);
+          pos_error(ec_bad_pragma_comment_string, &error_position);
           err = TRUE;
         } else {
           /* Create a constant for the IL entry. */
@@ -3862,11 +3862,11 @@ executable file.
           (void)get_token();
         }  /* if */
       } else {
-        error(ec_exp_string_literal);
+        pos_error(ec_exp_string_literal, &error_position);
         err = TRUE;
       }  /* if */
     } else if (curr_token != tok_rparen) {
-      error(ec_exp_comma);
+      pos_error(ec_exp_comma, &error_position);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -3875,7 +3875,7 @@ executable file.
       /* Skip over the ")". */
       (void)get_token();
     } else {
-      error(ec_exp_rparen);
+      pos_error(ec_exp_rparen, &error_position);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -4017,7 +4017,7 @@ Malformed constructs result in warnings, not errors.
 
 #define check_and_skip_token(tok, ec)                                        \
   if (curr_token != tok) {                                                   \
-    warning(ec);                                                             \
+    pos_warning(ec, &error_position);                                        \
     err = TRUE;                                                              \
     goto end_of_parse;                                                       \
   } else {                                                                   \
@@ -4032,7 +4032,7 @@ Malformed constructs result in warnings, not errors.
     off = TRUE;                                                              \
     (void)get_token();                                                       \
   } else {                                                                   \
-    warning(ec_exp_on_or_off);                                               \
+    pos_warning(ec_exp_on_or_off, &error_position);                          \
     err = TRUE;                                                              \
     goto end_of_parse;                                                       \
   }  /* if */
@@ -4041,7 +4041,7 @@ Malformed constructs result in warnings, not errors.
   begin_rescan_of_pragma_tokens(ppp);
   check_and_skip_token(tok_lparen, ec_exp_lparen);
   if (!curr_token_is_identifier_string("forScope")) {
-    warning(ec_invalid_pragma_conform_kind);
+    pos_warning(ec_invalid_pragma_conform_kind, &error_position);
     err = TRUE;
     goto end_of_parse;
   }  /* if */
@@ -4064,7 +4064,7 @@ Malformed constructs result in warnings, not errors.
         scan_on_or_off();
       }  /* if */
     } else {
-      warning(ec_exp_identifier);
+      pos_warning(ec_exp_identifier, &error_position);
       err = TRUE;
       goto end_of_parse;
     }  /* if */

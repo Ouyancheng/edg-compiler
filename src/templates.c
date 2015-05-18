@@ -12512,7 +12512,7 @@ instantiated.
   if (param->default_being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
-    error(ec_recursive_def_arg_instantiation);
+    pos_error(ec_recursive_def_arg_instantiation, &error_position);
     param->default_arg_expr = fs_error_node();
     tip->suppress_default_arg_instantiations = TRUE;
     goto done;
@@ -12527,7 +12527,7 @@ instantiated.
                                                   max_pending_instantiations) {
     /* There are too many total recursive default argument instantiations.
        Don't attempt another instantiation. */
-    error(ec_recursive_def_arg_instantiation);
+    pos_error(ec_recursive_def_arg_instantiation, &error_position);
     param->default_arg_expr = fs_error_node();
     goto done;
   }  /* if */
@@ -12567,7 +12567,7 @@ instantiated.
   if (daefp != NULL && daefp->param_type->default_being_instantiated) {
     /* This default argument instantiation of the prototype instantiation is
        still in progress.  Don't attempt another instantiation. */
-    error(ec_recursive_def_arg_instantiation);
+    pos_error(ec_recursive_def_arg_instantiation, &error_position);
     param->default_arg_expr = fs_error_node();
     goto done;
   }  /* if */
@@ -14879,7 +14879,7 @@ found_sym:
        dependent base class turns out to be a function type. */
     if (sym_from_prototype->kind == (a_symbol_kind)sk_static_data_member ||
         sym_from_prototype->kind == (a_symbol_kind)sk_field) {
-      error(ec_function_type_not_allowed);
+      pos_error(ec_function_type_not_allowed, &error_position);
       goto error_exit;
     }  /* if */
   }  /* if */
@@ -17149,7 +17149,7 @@ diagnostics can be inhibited by setting diagnose to FALSE.
         /* Known illegal tokens: issue an error message if requested and skip
            the token. */
         if (diagnose && !error_issued) {
-          error(ec_bad_class_template_decl);
+          pos_error(ec_bad_class_template_decl, &error_position);
         }  /* if */
         break;
       default:
@@ -17924,8 +17924,9 @@ declaration of a partial specialization declared outside of its class.
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
       curr_token == tok_register) {
-    error(curr_token == tok_typedef ?
-            ec_typedef_not_allowed : ec_bad_storage_class_on_template_decl);
+    pos_error(curr_token == tok_typedef ?
+                ec_typedef_not_allowed : ec_bad_storage_class_on_template_decl,
+              &error_position);
     (void)get_token();
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -18048,7 +18049,7 @@ declaration of a partial specialization declared outside of its class.
                                        GID_IS_CLASS_TEMPLATE_DECL)) {
 
     /* Not an identifier. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     set_to_error_locator(locator);
     /* Probably a missing class name -- use the current token as the next
        token for lookahead purposes. */
@@ -19760,7 +19761,7 @@ Scan the default argument of the nontype template parameter specified by tpp.
        variable, etc. */
     if (nontype_templ_arg_constant_involves_invalid_linkage(
                                                        default_arg_constant)) {
-      error(ec_nonexternal_entity_in_template_arg);
+      pos_error(ec_nonexternal_entity_in_template_arg, &error_position);
       set_error_constant(default_arg_constant);
     }  /* if */
   }  /* if */
@@ -20025,7 +20026,7 @@ depends on a another template parameter.
               &pos_curr_token);
   } else {
      if (curr_token == tok_struct) {
-       error(ec_struct_not_allowed);
+       pos_error(ec_struct_not_allowed, &error_position);
      } else if (curr_token == tok_typename && !typename_allowed &&
                 strict_ansi_mode) {
        pos_diagnostic(strict_ansi_discretionary_severity,
@@ -20194,7 +20195,7 @@ to represent the template parameters.
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
     if (curr_token == tok_gt || curr_token == tok_end_of_source) {
-      error(ec_missing_template_param);
+      pos_error(ec_missing_template_param, &error_position);
       break;
     }  /* if */
     ++template_param_list_pos;
@@ -20336,7 +20337,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
   }  /* if */
   if (type_involves_template_param) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
-      error(ec_recursive_inst_of_templ_default_arg);
+      pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
       constant_type = error_type();
     } else {
       a_decl_pos_block	decl_pos_block;
@@ -20382,7 +20383,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
         param_ptr->def_arg_has_not_been_scanned) {
       param_ptr->def_arg_has_not_been_scanned = FALSE;
       if (pending_nontype_param_instantiations == max_pending_instantiations) {
-        error(ec_recursive_inst_of_templ_default_arg);
+        pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
         *constant = alloc_error_constant();
       } else {
         a_template_cache_ptr		tcp;
@@ -20489,7 +20490,7 @@ template parameters that depend on other template parameters.
     ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
   }  /* if */
   if (pending_templ_templ_param_instantiations == max_pending_instantiations) {
-    error(ec_recursive_inst_of_templ_default_arg);
+    pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
     new_template = error_class_template()->
                                       variant.template_info->il_template_entry;
   } else {
@@ -20574,7 +20575,7 @@ existing type is simply used.
                        template_arg_list_is_dependent(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
     if (pending_type_param_instantiations == max_pending_instantiations) {
-      error(ec_recursive_inst_of_templ_default_arg);
+      pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
       tp = error_type();
     } else {
       a_template_cache_ptr	tcp;
@@ -22720,7 +22721,7 @@ information).  See the definition of a_tmpl_decl_state for details.
       } else if (is_template_param || decl_state->is_generic) {
         /* A template or generic parameter declaration with a missing template
            parameter list. */
-        error(ec_empty_template_param_list);
+        pos_error(ec_empty_template_param_list, &error_position);
         /* Bypass the ">". */
         (void)get_token();
       } else {
@@ -22729,7 +22730,7 @@ information).  See the definition of a_tmpl_decl_state for details.
            lists must be non-empty. */
         decl_state->is_specialization = TRUE;
         if (param_list_seen) {
-          error(ec_specialization_follows_param_list);
+          pos_error(ec_specialization_follows_param_list, &error_position);
           decl_state->decl_scope_err = TRUE;
         }  /* if */
         /* Bypass the ">". */
@@ -22739,7 +22740,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         }  /* if */
       }  /* if */
     } else {
-      error(ec_missing_template_param_list);
+      pos_error(ec_missing_template_param_list, &error_position);
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
@@ -22747,7 +22748,7 @@ information).  See the definition of a_tmpl_decl_state for details.
       decl_state->number_of_template_param_clauses > 1) {
     /* A template template parameter cannot have multiple template parameter
        clauses. */
-    error(ec_multiple_template_decls_not_allowed);
+    pos_error(ec_multiple_template_decls_not_allowed, &error_position);
     decl_state->decl_scope_err = TRUE;
   }  /* if */
 }  /* scan_template_param_clauses */
@@ -23394,7 +23395,7 @@ any non-empty template parameter lists that were scanned.
            except for member declarations done outside of the class.  We
            know this is not one of those, the identifier is not a qualified
            name. */
-        error(ec_multiple_template_decls_not_allowed);
+        pos_error(ec_multiple_template_decls_not_allowed, &error_position);
         decl_state->decl_scope_err = TRUE;
       }  /* if */
       if (decl_state->decl_scope_err) {
@@ -24917,7 +24918,8 @@ that follows.
             /* Just as it is an error when a normal function is defined for
                the function type to come from a typedef, so too is that an
                error when a function template is being defined. */
-            error(ec_function_type_must_come_from_declarator);
+            pos_error(ec_function_type_must_come_from_declarator,
+                      &error_position);
             /* No need to copy the type, since it will not actually be
                pointed to by the routine entry. */
           }  /* if */
@@ -26027,7 +26029,7 @@ instantiations of any template default arguments now.
     /* A declaration with more than one template parameter clause is only
        valid in a namespace scope definition of a member template or in
        a friend declaration. */
-    error(ec_multiple_template_decls_not_allowed);
+    pos_error(ec_multiple_template_decls_not_allowed, &error_position);
     decl_state->decl_scope_err = TRUE;
   }  /* if */
   /* Later template parameters should not be visible to earlier ones.
@@ -31081,7 +31083,7 @@ instantiation.
       sym_error(ec_not_instantiatable_entity, sym);
     } else {
       /* A NULL symbol was returned. */
-      error(ec_invalid_instantiation_argument);
+      pos_error(ec_invalid_instantiation_argument, &error_position);
     }  /* if */
     /* Bypass the end of statement token. */
     (void)get_token();
@@ -31153,7 +31155,7 @@ instantiation.
     }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
     if (sun_mode && (state.decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
-      error(ec_invalid_link_scope);
+      pos_error(ec_invalid_link_scope, &error_position);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
     goto final_check;
@@ -31523,7 +31525,7 @@ assumed if the return type is omitted.
     instantiation_directive(pragma_kind, /*is_pragma=*/TRUE, &start_pos);
   } else {
     /* Not an identifier or a declaration. */
-    error(ec_invalid_instantiation_argument);
+    pos_error(ec_invalid_instantiation_argument, &error_position);
     err = TRUE;
   }  /* if */
   discard_deferred_access_checks();
@@ -31680,7 +31682,7 @@ directive_start_pos points to the beginning of the directive or declaration
     if ((options & TDO_EXTERN) != 0) {
       /* An "extern" storage class is only permitted on an explicit
          instantiation directive. */
-      error(ec_bad_storage_class_on_template_decl);
+      pos_error(ec_bad_storage_class_on_template_decl, &error_position);
     } else if ((options & TDO_INLINE) != 0) {
       /* "inline" is only allowed on an explicit instantiation in GNU mode. */
       pos_error(ec_inline_not_allowed, directive_start_pos);

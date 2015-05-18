@@ -3007,9 +3007,9 @@ based (through array and pointer constructs only).
       /* A shared [*] array type cannot be the basis for a pointer type or
          for an array of unspecified length. */
       if (is_pointer_type(orig_type)) {
-        error(ec_bad_upc_shared_pointer_layout_qualifier);
+        pos_error(ec_bad_upc_shared_pointer_layout_qualifier, &error_position);
       } else if (is_array_type(orig_type) && is_incomplete_type(orig_type)) {
-        error(ec_bad_upc_shared_array_layout_qualifier);
+        pos_error(ec_bad_upc_shared_array_layout_qualifier, &error_position);
       }  /* if */
       if (is_array_type(tp)) {
         /* Handle special case of indeterminate array size that is
@@ -3985,7 +3985,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
        temp2 can be zero too if the element type is a GNU C zero-length
        array. */
     if (temp2 != 0 && temp > targ_size_t_max / temp2) {
-      if (!suppress_error) error(ec_array_size_too_large);
+      if (!suppress_error) pos_error(ec_array_size_too_large, &error_position);
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);
       okay = FALSE;
@@ -3994,7 +3994,9 @@ and a diagnostic is issued (unless suppress_error is TRUE).
                array_type->variant.array.is_threads_dimension &&
                is_underlying_threads_dimensioned_array_type(elem_type)) {
       /* There cannot be more than one THREADS dimension in an array */
-      if (!suppress_error) error(ec_duplicate_threads_dim);
+      if (!suppress_error) {
+        pos_error(ec_duplicate_threads_dim, &error_position);
+      }  /* if */
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);
       okay = FALSE;

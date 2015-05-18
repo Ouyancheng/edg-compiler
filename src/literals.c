@@ -380,7 +380,7 @@ pcc_kind_established:
          does. */
       /* Convert the character position into an error position. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-      warning(ec_integer_too_large);
+      pos_warning(ec_integer_too_large, &error_position);
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
@@ -403,7 +403,7 @@ pcc_kind_established:
         /* The constant doesn't fit in the integer kind. */
         /* Convert the character position into an error position. */
         conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-        warning(ec_integer_too_large);
+        pos_warning(ec_integer_too_large, &error_position);
         /* Mask off any bits past the end of the integer. */
         do_sign_extension = int_kind_is_signed[kind];
         get_integer_size_and_alignment(kind, &size, &alignment);
@@ -480,7 +480,8 @@ ll_check:
          like this; a warning counts as a "diagnostic" so it's a
          reasonable compromise until the C committee rules on it. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-      warning(ec_c99_constant_in_unsigned_long_long_range);
+      pos_warning(ec_c99_constant_in_unsigned_long_long_range,
+                  &error_position);
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
     }  /* if */
@@ -852,7 +853,7 @@ to a Latin-1 byte.
     state->translated_char[0] = (unsigned char)unicode_char;
     if (unicode_char > 0xff) {
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      warning(ec_character_not_latin_1);
+      pos_warning(ec_character_not_latin_1, &error_position);
     }  /* if */
   }  /* if */
   /* Set up for scanning the remaining translated characters and return the
@@ -1158,9 +1159,9 @@ get_another:
           conv_line_loc_to_source_pos(*state->next_token_char+2,
                                       &error_position);
           if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
-            warning(ec_bad_hex_digit);
+            pos_warning(ec_bad_hex_digit, &error_position);
           } else {
-            error(ec_bad_hex_digit);
+            pos_error(ec_bad_hex_digit, &error_position);
           }  /* if */
           targ_ch = (unsigned char)'x';
         } else {
@@ -1214,7 +1215,7 @@ other_chars:
        character. */
     if (unrecognized) {
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      warning(ec_unrecognized_char_escape);
+      pos_warning(ec_unrecognized_char_escape, &error_position);
       targ_ch = tch;
     }  /* if */
   }  /* if */
@@ -1264,7 +1265,7 @@ range_check:
     if (C_mode() && strict_ansi_mode && numeric_escape) {
       diagnostic(strict_ansi_error_severity, ec_bad_character_value);
     } else {
-      warning(ec_bad_character_value);
+      pos_warning(ec_bad_character_value, &error_position);
     }  /* if */
     /* Value is truncated by the normal return processing. */
   }  /* if */
@@ -1556,7 +1557,7 @@ the actual number of converted characters may be less than num_chars.  */
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-      warning(wcode);
+      pos_warning(wcode, &error_position);
     }  /* if */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;

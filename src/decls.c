@@ -2291,12 +2291,12 @@ is invalid.  Also promote the fields of the union type to the current scope.
       case sc_extern:
       case sc_unspecified:
         /* Disallowed (ARM 9.5). */
-        error(ec_anon_union_storage_class);
+        pos_error(ec_anon_union_storage_class, &error_position);
         storage_class = (a_storage_class)sc_static;
         break;
       default:
         /* Invalid for any variable at file scope. */
-        error(ec_bad_file_scope_storage_class);
+        pos_error(ec_bad_file_scope_storage_class, &error_position);
         storage_class = (a_storage_class)sc_static;
     }  /* switch */
   } else {
@@ -2304,7 +2304,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
     switch (storage_class) {
       case sc_extern:
         /* Error, then default to automatic. */
-        error(ec_anon_union_storage_class);
+        pos_error(ec_anon_union_storage_class, &error_position);
         /*FALLTHROUGH*/
       case sc_unspecified:
         /* Default to automatic. */
@@ -5138,7 +5138,7 @@ redeclaration).
     diagnostic(severity, ec_default_arg_already_defined);
   }  /* if */
   if (not_at_end_of_list_error) {
-    error(ec_default_arg_not_at_end);
+    pos_error(ec_default_arg_not_at_end, &error_position);
   }  /* if */
 }  /* check_default_arg_compatibility */
 
@@ -9786,7 +9786,7 @@ definition of a member function of a class template.
       /* Just as it is an error when a normal function is defined for the
          function type to come from a typedef, so too is that an error when
          a function template is being defined. */
-      error(ec_function_type_must_come_from_declarator);
+      pos_error(ec_function_type_must_come_from_declarator, &error_position);
       /* Copy the type entry, since the typedef type may not be shared. */
       type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
                                                    /*copy_default_args=*/TRUE);
@@ -12611,7 +12611,7 @@ return TRUE and set *kind to the corresponding name-linkage kind.
       *kind = local_kind;
     } else {
       /* Bad linkage kind. */
-      error(ec_bad_linkage_specifier);
+      pos_error(ec_bad_linkage_specifier, &error_position);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -12646,7 +12646,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
-    error(ec_linkage_specifier_not_allowed);
+    pos_error(ec_linkage_specifier_not_allowed, &error_position);
     err = TRUE;
   }  /* if */
   linkage_spec_range.start = dps->start_pos;
@@ -12733,7 +12733,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
   } else {
     if (curr_token == tok_end_of_source) {
       /* Missing declaration. */
-      error(ec_exp_declaration);
+      pos_error(ec_exp_declaration, &error_position);
       pop_name_linkage();
     } else {
       /* Just one declaration is governed by this linkage specifier.  If no
@@ -13185,7 +13185,7 @@ to NULL.
   check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
-    error(ec_asm_decl_not_allowed);
+    pos_error(ec_asm_decl_not_allowed, &error_position);
     discard_curr_construct_pragmas();
   } else {
     /* Issue diagnostics on pragmas that are trying to bind to an asm
@@ -13891,12 +13891,12 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Issue an error if this is not a simple identifier name. */
     if (locator.is_qualified_name) {
-      error(ec_qualified_name_not_allowed);
+      pos_error(ec_qualified_name_not_allowed, &error_position);
       set_to_error_locator(locator);
       err = TRUE;
     } else if (locator.is_operator_name || locator.is_conversion_name ||
                locator.is_udl_operator_name) {
-      error(ec_operator_name_not_allowed);
+      pos_error(ec_operator_name_not_allowed, &error_position);
       set_to_error_locator(locator);
       err = TRUE;
     }  /* if */
@@ -14043,7 +14043,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
           sym_error(ec_ambiguous_name, locator_for_curr_id.specific_symbol);
         } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
           /* Either nothing was found or what was found was not a namespace. */
-          error(ec_missing_namespace_name);
+          pos_error(ec_missing_namespace_name, &error_position);
         } else {
           if (ns_sym != NULL &&
               ns_sym->variant.namespace_info.ptr != NULL) {
@@ -14376,7 +14376,7 @@ created and activated for the current scope.
     if (err) {
       /* A diagnostic has already been issued. */
     } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
-      error(ec_missing_namespace_name);
+      pos_error(ec_missing_namespace_name, &error_position);
       err = TRUE;
     } else if (locator_for_curr_id.specific_symbol->kind ==
                      (a_symbol_kind)sk_namespace_projection &&
@@ -14679,7 +14679,7 @@ current scope.
       /* An unqualified name is not allowed here.  This is optionally
          permitted because the Sun 5.0 compiler accepts an unqualified
          name in a using-declaration. */
-      error(ec_namespace_qualified_name_required);
+      pos_error(ec_namespace_qualified_name_required, &error_position);
       err = TRUE;
     } else if (locator_for_curr_id.is_class_member &&
                !(microsoft_bugs && microsoft_version <= 1310 &&
@@ -14688,12 +14688,12 @@ current scope.
          in Microsoft bugs mode (with microsoft_version <= 1310) if it refers
          to a type.  The Microsoft compilers (through 7.1) permit such using-
          declarations. */
-      error(ec_class_qualified_name_not_allowed);
+      pos_error(ec_class_qualified_name_not_allowed, &error_position);
       err = TRUE;
     } else if (locator_for_curr_id.is_template_id) {
       /* A template-id (that is, template-name<template-args>) is not allowed
          here. */
-      error(ec_template_id_not_allowed);
+      pos_error(ec_template_id_not_allowed, &error_position);
       err = TRUE;
     } else if (sym->kind == (a_symbol_kind)sk_namespace) {
       pos_error(ec_namespace_name_not_allowed,
@@ -14719,7 +14719,7 @@ current scope.
            the same as the current namespace:
              namespace N { int i; using N::i; }
            Issue a warning and ignore the using-declaration. */
-        warning(ec_useless_using_declaration);
+        pos_warning(ec_useless_using_declaration, &error_position);
       } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
                  class_type == NULL) {
         /* Attempting a using declaration at file scope with name already
@@ -14731,7 +14731,7 @@ current scope.
         if (!ignore_std_namespace) {
           check_assertion(locator_for_curr_id.is_global_qualified_name ||
                           nonstandard_using_decl_allowed);
-          warning(ec_useless_using_declaration);
+          pos_warning(ec_useless_using_declaration, &error_position);
         }  /* if */
       } else {
         check_assertion(nsp != NULL ||
@@ -15512,7 +15512,7 @@ cases).
       /* The identifier was not found on the list.  Issue an error.  Leaving
          param_id set to NULL, ensures the declaration will be treated as a
          function-scope variable declaration for error-recovery purposes. */
-      error(ec_decl_should_be_of_param);
+      pos_error(ec_decl_should_be_of_param, &error_position);
     } else if (param_id->type != NULL) {
       /* Parameter has already been declared. */
       str_error(ec_id_already_declared, locator->symbol_header->identifier);
@@ -16356,7 +16356,8 @@ if one is present.
       is_pointer_type(type) && is_void_type(state->specifiers_type)) {
   /* A layout qualifier cannot be used to qualify the target type of a
      pointer to shared void. */
-    error(ec_bad_upc_shared_void_pointer_layout_qualifier);
+    pos_error(ec_bad_upc_shared_void_pointer_layout_qualifier,
+              &error_position);
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
 #if ASM_FUNCTION_ALLOWED
@@ -16438,7 +16439,7 @@ if one is present.
     /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
        section 17 (Anachronisms)). */
     has_initializer = TRUE;
-    warning(ec_old_fashioned_initializer);
+    pos_warning(ec_old_fashioned_initializer, &error_position);
 #endif /* C_ANACHRONISMS_ALLOWED */
   }  /* if */
   if (has_initializer) state->has_initializer = TRUE;
@@ -17138,14 +17139,14 @@ processing should proceed after the call.
                      (state->prefix_attributes != NULL) ? ec_exp_declaration
                                                         : ec_extra_semicolon);
         } else {
-          remark(ec_extra_semicolon);
+          pos_remark(ec_extra_semicolon, &error_position);
         }  /* if */
         cannot_bind_to_curr_construct();
       } else if (curr_token == tok_lbrace) {
         /* Special error recovery on encountering an open brace: it
            may be the start of a routine. */
         add_stop_token(tok_semicolon);
-        error(ec_exp_declaration);
+        pos_error(ec_exp_declaration, &error_position);
         flush_until_matching_token();
         remove_stop_token(tok_semicolon);
         if (curr_token == tok_rbrace) (void)get_token();
@@ -17291,7 +17292,7 @@ after the call.
     /* "typedef <something> void;" in pcc mode.  Usually "typedef int void;".
        Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
     set_err_pos_to_curr_token();
-    warning(ec_decl_of_void_ignored);
+    pos_warning(ec_decl_of_void_ignored, &error_position);
     cannot_bind_to_curr_construct();
     /* Advance past "void" to the semicolon. */
     (void)get_token();

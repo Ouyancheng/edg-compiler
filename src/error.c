@@ -5105,15 +5105,6 @@ Report the indicated remark at the indicated position.
 }  /* pos_remark */
 
 
-void remark(an_error_code error_code)
-/*
-Report the indicated remark at the position indicated by error_position.
-*/
-{
-  pos_st_remark(error_code, &error_position, (char *)NULL);
-}  /* remark */
-
-
 void pos_ty_remark(an_error_code     error_code,
                    a_source_position *error_pos,
                    a_type_ptr        type)
@@ -5241,15 +5232,6 @@ position indicated by error_position.
 }  /* pos_st2_warning */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-void warning(an_error_code error_code)
-/*
-Report the indicated warning at the position indicated by error_position.
-*/
-{
-  pos_st_warning(error_code, &error_position, (char *)NULL);
-}  /* warning */
-
 
 void pos_ty_warning(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -5433,15 +5415,6 @@ position indicated by error_position.
 }  /* str_error */
 
 
-void error(an_error_code error_code)
-/*
-Report the indicated error at the position indicated by error_position.
-*/
-{
-  pos_st_error(error_code, &error_position, (char *)NULL);
-}  /* error */
-
-
 void pos_ty_error(an_error_code     error_code,
                   a_source_position *error_pos,
                   a_type_ptr        type)
@@ -5610,7 +5583,7 @@ errors.
 */
 {
   /* Report the error. */
-  error(error_code);
+  pos_error(error_code, &error_position);
 
   /* Flush tokens until something in the stop token set turns up. */
   flush_tokens();

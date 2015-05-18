@@ -7657,7 +7657,7 @@ it, we skip tokens until the closing delimiter.
         /* Only issue this warning during the real compilation, not
            during the PCH prefix scan. */
         error_position = comment_start_pos;
-        error(ec_comment_unclosed_at_eof);
+        pos_error(ec_comment_unclosed_at_eof, &error_position);
       }  /* if */
       /* Consider the comment closed. */
       goto end_of_comment;
@@ -8328,7 +8328,7 @@ normal_comment:
                 /* Only issue this warning during the real compilation, not
                    during the PCH prefix scan. */
                 error_position = comment_start_pos;
-                error(ec_comment_unclosed_at_eof);
+                pos_error(ec_comment_unclosed_at_eof, &error_position);
               }  /* if */
               /* Consider the comment closed. */
               goto end_of_comment;
@@ -9326,7 +9326,7 @@ point to the character after the universal character name.
       if (issue_diagnostics) {
         /* Get the source position that corresponds to this character. */
         conv_line_loc_to_source_pos(pos-1, &error_position);
-        error(ec_malformed_universal_character);
+        pos_error(ec_malformed_universal_character, &error_position);
       }  /* if */
       /* Back up one character so that the invalid character will be
          treated as part of the token that follows. */
@@ -10853,7 +10853,7 @@ position of the __if_exists or __if_not_exists token.
     /* Bypass the identifier. */
     (void)get_token();
   } else {
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
   }  /* if */
   return result;
 }  /* scan_if_exists_identifier */
@@ -10916,7 +10916,7 @@ the cache.
   if (curr_token == tok_lparen) {
     (void)get_token();
   } else {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
   }  /* if */
   add_stop_token(tok_rparen);
   add_stop_token(tok_lbrace);
@@ -10929,7 +10929,7 @@ the cache.
   remove_stop_token(tok_lbrace);
   /* Scan the open brace. */
   if (curr_token != tok_lbrace) {
-    error(ec_exp_lbrace);
+    pos_error(ec_exp_lbrace, &error_position);
   } else {
     /* Bypass the open brace of the directive. */
     (void)get_token();
@@ -11108,7 +11108,7 @@ features such as __identifier.
        been issued. */
     cp = NULL;
   } else if (!is_normal_character_kind(cp->character_kind)) {
-    error(ec_wide_string_not_allowed);
+    pos_error(ec_wide_string_not_allowed, &error_position);
     cp = NULL;
   }  /* if */
   return cp;
@@ -11143,7 +11143,7 @@ is set to tok_error.
     (void)get_token();
     suppress_keyword_recognition = FALSE;
   } else {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
   }  /* if */
   add_stop_token(tok_rparen);
   add_stop_token(tok_semicolon);
@@ -11188,7 +11188,7 @@ is set to tok_error.
     /* Bypass the string literal. */
     (void)get_token();
   } else {
-    error(ec_exp_cpp_keyword);
+    pos_error(ec_exp_cpp_keyword, &error_position);
     err = TRUE;
   }  /* if */
   /* Scan the ")". */
@@ -12702,7 +12702,7 @@ return_end_of_source_token:
             *(curr_char_loc+3) != ':' && !C_mode()) {
           /* We have a construct like "%::I", which is invalid if we
              interpret "%:" as a digraph.  Issue a warning. */
-          warning(ec_probable_inadvertent_sharp_digraph);
+          pos_warning(ec_probable_inadvertent_sharp_digraph, &error_position);
         }  /* if */
         goto check_start_of_pp_directive;
       } else if (ch == '>' && digraphs_allowed()) {
@@ -12750,7 +12750,8 @@ return_end_of_source_token:
           } else if (!C_mode()) {
             /* In other C++ modes, issue a warning that the digraph may not
                have been intended. */
-            warning(ec_probable_inadvertent_lbracket_digraph);
+            pos_warning(ec_probable_inadvertent_lbracket_digraph,
+                        &error_position);
           }  /* if */
         }  /* if */
         if (is_digraph) {
@@ -14055,7 +14056,7 @@ to skip tokens for some purpose other than error recovery.
      a diagnostic to tell the user where the parsing recovered. */
   if (!suppress_warning &&
       pos_curr_token.seq - start_pos.seq > 2) {
-    warning(ec_end_of_flush);
+    pos_warning(ec_end_of_flush, &error_position);
   }  /* if */
   db_exit();
 }  /* flush_tokens_with_stop_tokens_and_warning_flag */
@@ -14624,7 +14625,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
     /* What follows the "~" or "!" is not an identifier or is something
        like X::~decltype(...).  ~decltype is only allowed as an unqualified
        name. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     /* Put back the current token and make a fake error identifier. */
     unget_token();
     curr_token = tok_identifier;
@@ -15106,7 +15107,7 @@ This routine is called only in C++ mode.
         if (!array_new_and_delete_enabled) {
           /* Issue an error if support for array new/delete is not enabled,
              but continue parsing as though it were. */
-          error(ec_no_array_new_and_delete_support);
+          pos_error(ec_no_array_new_and_delete_support, &error_position);
         }  /* if */
         /* Advance past the two tokens. */
         (void)get_token();
@@ -15122,7 +15123,7 @@ This routine is called only in C++ mode.
          included in the opname kind table as a convenience in expression
          processing only. */
       /* syntax_error is deliberately not called. */
-      error(ec_exp_operator);
+      pos_error(ec_exp_operator, &error_position);
       if (curr_token != tok_lparen && next_token() == tok_lparen) {
         /* Ignore the current token (whatever it might be -- e.g., '?') and
            make a fake identifier to represent the operator. */
@@ -15341,7 +15342,7 @@ done using the disambiguation routines.
     while (any_args) {
       if (curr_token == tok_gt) {
         if (arg_list != NULL) {
-          error(ec_expected_template_arg);
+          pos_error(ec_expected_template_arg, &error_position);
         }  /* if */
         abandon_potential_pack_expansion_context(pesep);
         break;
@@ -15555,7 +15556,7 @@ all arguments were explicit.
     if ((param_ptr == NULL || orig_param_ptr == NULL) && any_args) {
       too_many_args = TRUE;
       if (curr_token == tok_gt && arg_list != NULL) {
-        error(ec_expected_template_arg);
+        pos_error(ec_expected_template_arg, &error_position);
       }  /* if */
       break;
     }  /* if */
@@ -16071,7 +16072,7 @@ modes.
        close the outer template argument list.  (The outer angle bracket
        may also close a new-style cast.) */
     if (!right_shift_can_be_angle_brackets) {
-      error(ec_exp_gt_not_shift_right);
+      pos_error(ec_exp_gt_not_shift_right, &error_position);
       *any_errors = TRUE;
     }  /* if */
     replace_right_shift_by_two_closing_angle_brackets();
@@ -18095,7 +18096,7 @@ selection operator, in which case it points to the type of the left operand.
     is_qualified_name = TRUE;
     if (follows_template) {
       /* "p->template ::..." is not valid. */
-      error(ec_exp_identifier);
+      pos_error(ec_exp_identifier, &error_position);
       follows_template = FALSE;
     }  /* if */
     (void)get_token();
@@ -18188,7 +18189,7 @@ selection operator, in which case it points to the type of the left operand.
   } else if (dtor_or_finalizer_must_be_nonclass) {
     if (is_global_qualified_name && curr_token != tok_identifier) {
       /* Something of the form "::~int", which is not allowed. */
-      error(ec_exp_identifier);
+      pos_error(ec_exp_identifier, &error_position);
     } else {
       dtor_or_finalizer_class_type = type_keyword();
       if (dtor_or_finalizer_class_type != NULL) {
@@ -18200,7 +18201,7 @@ selection operator, in which case it points to the type of the left operand.
           if (strict_ansi_mode) {
             /* A vacuous destructor/finalizer reference is no longer permitted
                to use a type keyword, only a typedef name. */
-            error(ec_exp_identifier);
+            pos_error(ec_exp_identifier, &error_position);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -18230,7 +18231,7 @@ selection operator, in which case it points to the type of the left operand.
                                                       &next_tok_2);
     if (next_tok != tok_colon_colon) {
       /* The __super qualifier may only be used in a qualified name.*/
-      error(ec_unqualified_super);
+      pos_error(ec_unqualified_super, &error_position);
       set_to_error_locator(locator_for_curr_id);
       err = TRUE;
     }  /* if */
@@ -18268,12 +18269,12 @@ selection operator, in which case it points to the type of the left operand.
       curr_token = tok_identifier;
       if (is_global_qualified_name) {
         /* The __super keyword cannot appear after "::". */
-        error(ec_super_after_scope);
+        pos_error(ec_super_after_scope, &error_position);
         err = TRUE;
       } else if (get_super_class_type() == NULL) {
         /* The __super keyword can only be used within a class or class
            reactivation scope. */
-        error(ec_super_not_in_class);
+        pos_error(ec_super_not_in_class, &error_position);
         err = TRUE;
       }  /* if */
     } else if (cli_system_type_for_keyword != NULL) {
@@ -18406,7 +18407,7 @@ selection operator, in which case it points to the type of the left operand.
              "A." where "A" is a class name.  This is a use of a cfront
 	     anachronism where "." is used in a qualified name where "::"
              should be used.  Issue a warning. */
-          warning(ec_period_used_as_qualifier);
+          pos_warning(ec_period_used_as_qualifier, &error_position);
           separator_warning_issued = TRUE;
         } else {
           /* In cfront mode we have found a construct like "A." and A is not
@@ -18608,9 +18609,10 @@ selection operator, in which case it points to the type of the left operand.
             if (in_if_exists) {
               /* Silently ignore the error. */
             } else if (is_vacuous_dtor_or_finalizer) {
-              error(ec_id_must_be_class_or_type_name);
+              pos_error(ec_id_must_be_class_or_type_name, &error_position);
             } else {
-              error(ec_id_must_be_class_or_namespace_name);
+              pos_error(ec_id_must_be_class_or_namespace_name,
+                        &error_position);
             }  /* if */
             err = TRUE;
           }  /* if */
@@ -18718,7 +18720,7 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (curr_token == tok_super) {
           /* The __super keyword cannot appear after "::". */
-          error(ec_super_after_scope);
+          pos_error(ec_super_after_scope, &error_position);
           err = TRUE;
           /* From now on, treat this as an identifier. */
           curr_token = tok_identifier;
@@ -18920,7 +18922,7 @@ selection operator, in which case it points to the type of the left operand.
           if (next_tok == tok_period) {
             if (qualifier_sym == NULL) break;
             if (!separator_warning_issued) {
-              warning(ec_period_used_as_qualifier);
+              pos_warning(ec_period_used_as_qualifier, &error_position);
               separator_warning_issued = TRUE;
             }  /* if */
           }  /* if */
@@ -19235,7 +19237,7 @@ selection operator, in which case it points to the type of the left operand.
         curr_token = tok_identifier;
       } else {
         /* The token after the "~" is not an identifier or a type name. */
-        if (!in_if_exists) error(ec_exp_identifier);
+        if (!in_if_exists) pos_error(ec_exp_identifier, &error_position);
         err = TRUE;
       }  /* if */
       if (is_destructor_name) {
@@ -19381,7 +19383,7 @@ wrapup:
       unget_token();
       curr_token = tok_identifier;
       /* syntax_error is deliberately not called. */
-      if (!in_if_exists) error(ec_exp_identifier);
+      if (!in_if_exists) pos_error(ec_exp_identifier, &error_position);
       /* For the error cases, set the current locator to an error locator
          with specific_symbol pointing to a newly-created error
          symbol of kind sk_undefined. */

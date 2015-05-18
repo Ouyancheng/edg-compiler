@@ -408,7 +408,7 @@ curr_max_member_alignment.
   /* Check for a left parenthesis. */
   if ((microsoft_mode || gnu_mode) && curr_token != tok_lparen) {
     /* Microsoft and GNU issue a warning. */
-    warning(ec_exp_lparen);
+    pos_warning(ec_exp_lparen, &error_position);
   } else {
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
@@ -515,7 +515,7 @@ curr_max_member_alignment.
       /* Microsoft compilers accept optional ", <identifier>" and/or
          ", <integer-constant>" after the "show", but they have no effect. */
       if (curr_token != tok_rparen && curr_token != tok_end_of_source) {
-        warning(ec_pragma_pack_show_args_ignored);
+        pos_warning(ec_pragma_pack_show_args_ignored, &error_position);
         (void)required_token(tok_comma, ec_exp_comma);
         if (curr_token == tok_identifier) {
           (void)get_token();
@@ -948,7 +948,7 @@ containing byte, pad out the remaining bits in that byte.
                                  (a_targ_size_t)1,
                                  (an_unnormalized_bit_offset)0)) {
       if (!lob->any_overflow) {
-        error(struct_too_large_error());
+        pos_error(struct_too_large_error(), &error_position);
         lob->any_overflow = TRUE;
       }  /* if */
     }  /* if */
@@ -2641,7 +2641,7 @@ there's no overflow TRUE is returned.
       }  /* if */
     }  /* if */
     if (overflow && !lob->any_overflow) {
-      error(struct_too_large_error());
+      pos_error(struct_too_large_error(), &error_position);
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -2682,7 +2682,7 @@ allocated.
   if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
     /* Issue an error only if one has not yet been put out. */
     if (!lob->any_overflow) {
-      error(struct_too_large_error());
+      pos_error(struct_too_large_error(), &error_position);
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -2706,7 +2706,7 @@ allocated.
            subobject. */
         if (!lob->any_overflow) {
           /* Issue an error only if one has not yet been put out. */
-          error(struct_too_large_error());
+          pos_error(struct_too_large_error(), &error_position);
           lob->any_overflow = TRUE;
           break;
         }  /* if */
@@ -2732,7 +2732,7 @@ allocated.
     /* Not enough space remains available in the class for this subobject. */
     if (!lob->any_overflow) {
       /* Issue an error only if one has not yet been put out. */
-      error(struct_too_large_error());
+      pos_error(struct_too_large_error(), &error_position);
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -2799,7 +2799,7 @@ Allocate bcp (an empty base class).
            subobject. */
         if (!lob->any_overflow) {
           /* Issue an error only if one has not yet been put out. */
-          error(struct_too_large_error());
+          pos_error(struct_too_large_error(), &error_position);
           lob->any_overflow = TRUE;
           break;
         }  /* if */
@@ -4273,7 +4273,7 @@ Reserve space at the end of the class object for virtual base classes.
          boundary before allocating trailing virtual bases. */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
-        error(struct_too_large_error());
+        pos_error(struct_too_large_error(), &error_position);
         lob->any_overflow = TRUE;
       }  /* if */
     }  /* if */
@@ -4305,7 +4305,7 @@ Reserve space at the end of the class object for virtual base classes.
       if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
                         ctsp->alignment_without_virtual_base_classes)) {
         if (!lob->any_overflow) {
-          error(struct_too_large_error());
+          pos_error(struct_too_large_error(), &error_position);
           lob->any_overflow = TRUE;
         }  /* if */
       } else {
@@ -4938,7 +4938,7 @@ for handling virtual bases and functions.
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
     if (!lob.any_overflow) {
-      error(struct_too_large_error());
+      pos_error(struct_too_large_error(), &error_position);
       lob.any_overflow = TRUE;
     }  /* if */
   }  /* if */

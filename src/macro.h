@@ -184,7 +184,7 @@ extern void macro_cleanup(void);
   if (variadic_macros_allowed &&                                      \
       len == sizeof("__VA_ARGS__")-1 &&                               \
       strncmp(buf, "__VA_ARGS__", sizeof("__VA_ARGS__")-1) == 0) {    \
-    error(ec_VA_ARGS_not_allowed);                                    \
+    pos_error(ec_VA_ARGS_not_allowed, &error_position);               \
   }  /* if */
 
 #endif /* MACRO_H */

@@ -15404,7 +15404,7 @@ cast.  See lower_expr for typical invocation.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Do not insert code here. */
         {
-          warning(ec_assume_expression_discarded);
+          pos_warning(ec_assume_expression_discarded, &error_position);
         }
         /* Turn __assume(expr) into (void)0 if expr has side effects to
            avoid problems with destructible entities inside the expression. */

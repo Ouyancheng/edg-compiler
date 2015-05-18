@@ -2416,7 +2416,7 @@ member declaration (allowed in Microsoft mode only).
   /* The top type (function) must have come from a declarator, not from a
      typedef (see constraints section of 3.7.1, and associated footnote). */
   if (func_info->function_type_from_typedef) {
-    error(ec_function_type_must_come_from_declarator);
+    pos_error(ec_function_type_must_come_from_declarator, &error_position);
     /* Build a copy of the routine type that can be used below, to avoid
        further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */

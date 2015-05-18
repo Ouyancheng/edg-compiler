@@ -1156,7 +1156,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
         /* The string "memory" can appear in place of a register name.  */
         reg = (a_named_register)anr_memory;
       } else if (strcmp(name, "cc") == 0) {
-        warning(ec_cc_clobber_ignored);
+        pos_warning(ec_cc_clobber_ignored, &error_position);
         goto skip_item;
       } else {
         reg = name_to_register(name);

@@ -4432,7 +4432,7 @@ returned set to TRUE.
       /* An initializer for a variable declared with the "auto" type
          specifier.*/
       if (first_token == tok_lbrace && !list_init_enabled) {
-        error(ec_auto_brace_initialization_not_allowed);
+        pos_error(ec_auto_brace_initialization_not_allowed, &error_position);
         vp->type = vp_type = error_type();
         invalidate_type(dps);
         dps->auto_type_specifier_seen = FALSE;
@@ -5931,7 +5931,7 @@ underlying element type and the array type itself is returned through
                      disjoint_members_of_union(cip->variant.field, field)) {
             /* The union (or the anonymous union subobject) has already been
                initialized. */
-            error(ec_union_already_initialized);
+            pos_error(ec_union_already_initialized, &error_position);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -6102,7 +6102,8 @@ underlying element type and the array type itself is returned through
         if (indirect_nonvirtual_base_class_found) {
           /* Actually, a match was found, but it was not a direct or
              virtual base class. */
-          error(ec_indirect_nonvirtual_base_class_not_allowed);
+          pos_error(ec_indirect_nonvirtual_base_class_not_allowed,
+                    &error_position);
         } else if (delegating_constructors_enabled &&
                    same_entities(init_type, class_type)) {
           /* This looks like the mem-initializer for a delegating constructor,
@@ -6347,7 +6348,7 @@ cases, array_type is NULL).
         check_assertion(!cli_or_cx_enabled ||
                         !is_tracking_reference_type(init_type));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        error(ec_default_init_of_reference);
+        pos_error(ec_default_init_of_reference, &error_position);
         dip = make_error_constant_dynamic_init();
       } else {
         /* Using "()" with the mem-initializer means, perform value

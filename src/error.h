@@ -371,7 +371,6 @@ extern void pos_st_remark(an_error_code     error_code,
                           a_const_char      *error_string);
 extern void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos);
-extern void remark(an_error_code error_code);
 extern void pos_ty_remark(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_type     *type);
@@ -408,7 +407,6 @@ extern void pos_st2_warning(an_error_code     error_code,
                             a_const_char      *error_string1,
                             a_const_char      *error_string2);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type);
@@ -456,7 +454,6 @@ extern void pos_error(an_error_code     error_code,
                       a_source_position *error_pos);
 extern void str_error(an_error_code error_code,
                       a_const_char  *error_string);
-extern void error(an_error_code error_code);
 extern void pos_ty_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          struct a_type     *type);

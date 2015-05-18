@@ -2431,7 +2431,7 @@ beyond the operator has not yet been fetched.
         paren_followed_by_whitespace = (kind_of_white_space_skipped != 0);
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
-          error(ec_exp_identifier);
+          pos_error(ec_exp_identifier, &error_position);
           /* The token will be consumed by the expression routines in
              non-pp-token mode, so push it back in that mode as well. */
           if (curr_token == tok_newline) {
@@ -2454,9 +2454,9 @@ beyond the operator has not yet been fetched.
                  error on the missing right parenthesis at end of line, and
                  the corresponding Microsoft headers unfortunately use
                  this. */
-              remark(ec_exp_rparen);
+              pos_remark(ec_exp_rparen, &error_position);
             } else {
-              error(ec_exp_rparen);
+              pos_error(ec_exp_rparen, &error_position);
             }  /* if */
             /* The token will be consumed by the expression routines in
                non-pp-token mode, so push it back in that mode as well. */
@@ -2674,10 +2674,10 @@ Note that the value returned through *pragma_descr can be NULL.
   (void)get_token();
   *pragma_descr = NULL;
   if (curr_token != tok_lparen) {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
     err = TRUE;
   } else if (get_token() != tok_string_literal) {
-    error(ec_exp_string_literal);
+    pos_error(ec_exp_string_literal, &error_position);
     err = TRUE;
   } else {
     a_macro_arg_ptr	map;
@@ -2699,7 +2699,7 @@ Note that the value returned through *pragma_descr can be NULL.
     if (curr_token == tok_rparen) {
       found_end_of_operator = TRUE;
     } else {
-      error(ec_exp_rparen);
+      pos_error(ec_exp_rparen, &error_position);
       curr_char_loc = start_of_curr_token;
     }  /* if */
   }  /* if */
@@ -2779,7 +2779,7 @@ Note that the value returned through *pragma_descr can be NULL.
   /* Bypass the __pragma token. */
   (void)get_token();
   if (curr_token != tok_lparen) {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
   } else {
     /* Scan the tokens of the pragma and create the pragma entry. */
     process_microsoft_pragma_operator(&start_of_dir_position, pragma_descr);
@@ -2787,7 +2787,7 @@ Note that the value returned through *pragma_descr can be NULL.
     if (curr_token == tok_rparen) {
       found_end_of_operator = TRUE;
     } else {
-      error(ec_exp_rparen);
+      pos_error(ec_exp_rparen, &error_position);
       curr_char_loc = start_of_curr_token;
     }  /* if */
   }  /* if */
@@ -4341,13 +4341,13 @@ were __has_include.
 
   if (is_include_next && processing_primary_source_file()) {
     /* Issue a warning and treat this as __has_include. */
-    warning(ec_has_include_next_in_primary_source_file);
+    pos_warning(ec_has_include_next_in_primary_source_file, &error_position);
     is_include_next = FALSE;
   }  /* if */
   if (get_token() != tok_lparen) {
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
   } else if (!get_header_name()) {
-    error(ec_exp_file_name);
+    pos_error(ec_exp_file_name, &error_position);
   } else {
     /* The header name is now the current token.  Get the file name from
        the token. */
@@ -4365,11 +4365,12 @@ were __has_include.
       filename = extract_header_name(/*process_escapes=*/FALSE, &name_len);
     }  /* if */
     if (get_token() != tok_rparen) {
-      error(ec_exp_rparen);
+      pos_error(ec_exp_rparen, &error_position);
     } else {
       if (is_include_next && is_absolute_file_name(filename)) {
         /* An absolute file name in __has_include_next makes no sense. */
-        warning(ec_absolute_file_name_in_has_include_next);
+        pos_warning(ec_absolute_file_name_in_has_include_next,
+                    &error_position);
       }  /* if */
       file_found = header_can_be_found(filename, is_system_include,
                                        is_include_next);
@@ -4658,7 +4659,7 @@ end_scan_for_macro_modifs:;
                x(x(x(x(x(x(x(x(x(x(x(x  ... etc ... (1))))))))))))
           */
           if (++recursion_depth >= MAX_PCC_RECURSIVE_MACRO_DEPTH) {
-            error(ec_macro_recursion);
+            pos_error(ec_macro_recursion, &error_position);
             /* Set a flag for later special processing. */
             pcc_mode_macro_recursion = TRUE;
             break;
@@ -5175,7 +5176,7 @@ do_argument_again:
             }  /* if */
             /* Generate a remark on an invalid token. */
             if (curr_token == tok_error) {
-              remark(err_code_for_error_token);
+              pos_remark(err_code_for_error_token, &error_position);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
             if (comma_is_from_argument) {
@@ -5279,7 +5280,7 @@ do_argument_again:
           if (map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
             if (strict_ansi_mode && !c99_mode && !cpp11_mode) {
-              warning(ec_empty_macro_argument);
+              pos_warning(ec_empty_macro_argument, &error_position);
             }  /* if */
             /* Strangely, the Microsoft compiler ignores empty macro arguments.
                This has been verified with MSVC++ 4.2, 5.0. and 7.0.
@@ -7130,7 +7131,7 @@ Scan and process a #define directive.
   copy_source_position(pos_curr_token, start_pos);
   if (curr_token != tok_identifier) {
     /* Expected an identifier. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     some_error_in_curr_directive = TRUE;
   } else {
     /* Get the canonical spelling of the identifier. */
@@ -7215,7 +7216,7 @@ Scan and process a #define directive.
           } else if (!is_variadic_parameter &&
                      id_matches_macro_param_name(param_list, &param_ptr)) {
             /* Duplicate parameter name. */
-            error(ec_duplicate_macro_param_name);
+            pos_error(ec_duplicate_macro_param_name, &error_position);
             (void)get_token();
           } else {
             /* Remember the position of the identifier in case we need to
@@ -7278,7 +7279,7 @@ Scan and process a #define directive.
       /* Check for closing parenthesis.  required_token is not used because
          the get_token must be done in a special way, via mdefn_get_token. */
       if (curr_token != tok_rparen) {
-        error(ec_exp_rparen);
+        pos_error(ec_exp_rparen, &error_position);
       }  /* if */
       remove_stop_token(tok_rparen);
     }  /* if */
@@ -7383,7 +7384,7 @@ Scan and process a #define directive.
         need_end_of_token_marker = FALSE;
         if (next_avail_in_macro_buffer == buffer_start) {
           /* Output buffer is empty, so this is the first token.  Error. */
-          error(ec_paste_cannot_be_first);
+          pos_error(ec_paste_cannot_be_first, &error_position);
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
         } else {
@@ -7394,7 +7395,7 @@ Scan and process a #define directive.
              string. */
           if (mdefn_get_token(param_list, &param_num, &param_ptr,
                               &any_white_space_skipped) == tok_newline) {
-            error(ec_paste_cannot_be_last);
+            pos_error(ec_paste_cannot_be_last, &error_position);
           } else {
             /* Insert a "##" placeholder so that the IL accurately reflects
                the source. */
@@ -7501,7 +7502,7 @@ Scan and process a #define directive.
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
           if (param_num == 0) {
-            error(ec_exp_macro_param);
+            pos_error(ec_exp_macro_param, &error_position);
           } else {
             put_start_of_non_text_section(charize ? rt_charized_raw_argument
                                                   : rt_stringized_raw_argument,
@@ -7587,7 +7588,7 @@ Scan and process a #define directive.
              inside a string because of looking for parameter names; the
              things inside the string aren't expected to be legal tokens. */
           if (curr_token == tok_error && end_of_cpp_string == NULL) {
-            remark(err_code_for_error_token);
+            pos_remark(err_code_for_error_token, &error_position);
           }  /* if */
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
@@ -7931,7 +7932,7 @@ Return *err TRUE if there was some error.
     /* The directive ends with the predicate name, as in "#assert name". */
   } else if (curr_token != tok_lparen) {
     /* Error -- expected a left parenthesis. */
-    error(ec_exp_lparen);
+    pos_error(ec_exp_lparen, &error_position);
     *err = TRUE;
   } else {
     /* The opening parenthesis is present.  Scan the tokens until the
@@ -8042,7 +8043,7 @@ token-list.
   /* Get the predicate identifier. */
   if (get_token() != tok_identifier) {
     /* Error -- expected an identifier. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     err = TRUE;
   } else {
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
@@ -8094,7 +8095,7 @@ or
   /* Get the predicate identifier. */
   if (get_token() != tok_identifier) {
     /* Error -- expected an identifier. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     err = TRUE;
   } else {
     /* Find any predicate entry for the name.  Do not create one if one is
@@ -8212,7 +8213,7 @@ and processing should continue in sequence.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   if (get_token() != tok_identifier) {
     /* Error -- expected an identifier. */
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
     err = some_error_in_curr_directive = TRUE;
   } else {
     /* Look up the predicate name. */
@@ -8221,7 +8222,7 @@ and processing should continue in sequence.
     /* Scan the token list whether or not the predicate name is defined. */
     if (get_token() != tok_lparen) {
       /* Error -- expected a left parenthesis. */
-      error(ec_exp_lparen);
+      pos_error(ec_exp_lparen, &error_position);
       err = some_error_in_curr_directive = TRUE;
     } else {
       /* Scan the token sequence.  We don't actually build the token string;
@@ -8280,7 +8281,7 @@ try_match_again:
          because it would do an inappropriate flush on error.  Also, we
          don't want to advance to the next token after the ")". */
       if (curr_token != tok_rparen) {
-        error(ec_exp_rparen);
+        pos_error(ec_exp_rparen, &error_position);
         err = some_error_in_curr_directive = TRUE;
         matched_value = NULL;
       }  /* if */

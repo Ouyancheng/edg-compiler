@@ -2729,7 +2729,7 @@ set).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rp->never_inline && gnu_mode) {
-    warning(ec_inline_gnu_noinline_conflict);
+    pos_warning(ec_inline_gnu_noinline_conflict, &error_position);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   rp->is_inline = flag;

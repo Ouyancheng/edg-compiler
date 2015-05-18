@@ -8059,11 +8059,11 @@ process_alias_fixup_list.
       (void)get_token();
     } else {
       err = TRUE;
-      error(ec_exp_identifier);
+      pos_error(ec_exp_identifier, &error_position);
     }  /* if */
   } else {
     err = TRUE;
-    error(ec_exp_identifier);
+    pos_error(ec_exp_identifier, &error_position);
   }  /* if */
   wrapup_rescan_of_pragma_tokens(err);
   if (!err) {

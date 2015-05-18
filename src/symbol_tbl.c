@@ -14148,7 +14148,7 @@ is_pack_element is TRUE if the parameter is a pack element.
           (gcc_mode && !is_prototype_param_decl)) {
         ambiguous = TRUE;
       } else {
-        error(ec_dupl_param_name);
+        pos_error(ec_dupl_param_name, &error_position);
         set_to_error_locator(*locator);
       }  /* if */
     } /* if */
@@ -15496,19 +15496,19 @@ mode.
   if (curr_token == tok_lparen) {
     (void)get_token();
   } else {
-    warning(ec_exp_lparen);
+    pos_warning(ec_exp_lparen, &error_position);
     err = TRUE;
   }  /* if */
   add_stop_token(tok_rparen);
   /* Scan the string literal that specifies the identifier. */
   if (curr_token != tok_string_literal) {
     if (!err) {
-      warning(ec_exp_string_literal);
+      pos_warning(ec_exp_string_literal, &error_position);
       err = TRUE;
     }  /* if */
   } else if (*start_of_curr_token != '"') {
     /* A wide string is not allowed. */
-    warning(ec_wide_string_not_allowed);
+    pos_warning(ec_wide_string_not_allowed, &error_position);
     err = TRUE;
   } else {
     unsigned long num_chars = 0;
@@ -15550,7 +15550,7 @@ mode.
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else if (!err) {
-    warning(ec_exp_rparen);
+    pos_warning(ec_exp_rparen, &error_position);
     err = TRUE;
   }  /* if */
   remove_stop_token(tok_rparen);

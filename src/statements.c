@@ -3741,7 +3741,7 @@ See also 3.6.4.1.
   /* Scan the "then" statement.  If it is an empty statement not followed by
      an "else" clause, issue a remark. */
   if (curr_token == tok_semicolon && next_token() != tok_else) {
-    remark(ec_empty_then_statement);
+    pos_remark(ec_empty_then_statement, &error_position);
   }  /* if */
   add_stop_token(tok_else);
   dependent_statement();
@@ -3755,7 +3755,7 @@ See also 3.6.4.1.
     (void)get_token();
     /* Issue a remark if the "else" statement is an empty statement. */
     if (curr_token == tok_semicolon) {
-      remark(ec_empty_else_statement);
+      pos_remark(ec_empty_else_statement, &error_position);
     }  /* if */
     /* Getting the address of the struct_stmt_stack entry is done late
        because the stack might be reallocated while scanning the contained
@@ -3839,7 +3839,7 @@ See also 3.6.4.2.
   if (!is_error_node(sp->expr)) {
     /* Issue a remark if the selector is constant. */
     if (is_constant_node(skip_parens(sp->expr))) {
-      remark(ec_switch_selector_expr_is_constant);
+      pos_remark(ec_switch_selector_expr_is_constant, &error_position);
     }  /* if */
   }  /* if */
   /* Save the selector expression type for checking of the case label
@@ -4453,7 +4453,7 @@ The syntax is:
     sssep--;
   }  /* while */
   /* No structured statement matching the criteria was found. */
-  error(ec_leave_must_be_in_try);
+  pos_error(ec_leave_must_be_in_try, &error_position);
   sssep = NULL;
 found:
   /* Add a "goto" to the continue label for the __try. */
@@ -4831,7 +4831,7 @@ The affinity can be an expression or the keyword "continue".
     if (affinity_forall_loop != NULL && affinity_expr != NULL) {
       /* Ignore the affinity expression since we are inside another forall
          loop, and it will never be needed. */
-      remark(ec_nested_upc_forall);
+      pos_remark(ec_nested_upc_forall, &error_position);
       affinity_expr = NULL;
     }  /* if */
     if (affinity_expr != NULL) {
@@ -5607,11 +5607,11 @@ See also 3.6.6.2.
                                      /*find_loop=*/TRUE);
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
-    error(ec_continue_must_be_in_loop);
+    pos_error(ec_continue_must_be_in_loop, &error_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled && has_nested_finally_clause(sssep)) {
     /* A continue statement cannot be inside a C++/CLI finally clause. */
-    error(ec_continue_cannot_be_in_finally_block);
+    pos_error(ec_continue_cannot_be_in_finally_block, &error_position);
     sssep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -5705,7 +5705,7 @@ the break applies.
   if (upc_mode && curr_reachability.reachable_considering_hints &&
       sssep->statement != NULL &&
       sssep->statement->kind == (a_statement_kind)stmk_upc_forall) {
-    warning(ec_exit_forall);
+    pos_warning(ec_exit_forall, &error_position);
   }  /* if */
 }  /* check_for_leaving_upc_forall */
 
@@ -5743,11 +5743,11 @@ See also 3.6.6.3.
   cannot_bind_to_curr_construct();
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
-    error(ec_break_must_be_in_loop_or_switch);
+    pos_error(ec_break_must_be_in_loop_or_switch, &error_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled && has_nested_finally_clause(sssep)) {
     /* A break statement cannot be inside a C++/CLI finally clause. */
-    error(ec_break_cannot_be_in_finally_block);
+    pos_error(ec_break_cannot_be_in_finally_block, &error_position);
     sssep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -6047,7 +6047,7 @@ The syntax is:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                  special_kind_is(rout, sfk_destructor)) {
         /* Constructors and destructors may not return a value (ARM 6.6.3). */
-        error(ec_value_returned_in_constructor);
+        pos_error(ec_value_returned_in_constructor, &error_position);
         return_type = error_type();
       } else if (is_void_type(return_type) ||
                  is_template_param_type(return_type)) {
@@ -6067,12 +6067,12 @@ The syntax is:
               /* In GNU C mode a warning is issued only if the return
                  expression doesn't have void type (done in
                  scan_return_expression). */
-              warning(ec_value_returned_in_void_function);
+              pos_warning(ec_value_returned_in_void_function, &error_position);
             }  /* if */
             microsoft_C_mode_void_return = TRUE;
           } else {
             /* Other C modes.  An expression is not allowed. */
-            error(ec_value_returned_in_void_function);
+            pos_error(ec_value_returned_in_void_function, &error_position);
             return_type = error_type();
           }  /* if */
         } else {
@@ -6083,7 +6083,7 @@ The syntax is:
             /* cfront 3.0 does not allow an expression if the function has
                a void return type. */
             /* Neither does Microsoft C++ mode for MSVC++ 6.0 and earlier. */
-            error(ec_value_returned_in_void_function);
+            pos_error(ec_value_returned_in_void_function, &error_position);
             return_type = error_type();
           }  /* if */
         }  /* if */
@@ -6554,7 +6554,7 @@ GNU also allows the "case range" form:
     switch_type = sssep->type;
   } else {
     /* We are not inside a switch statement. */
-    error(ec_case_label_must_be_in_switch);
+    pos_error(ec_case_label_must_be_in_switch, &error_position);
     set_reachable(curr_reachability);
     switch_type = error_type();
   }  /* if */
@@ -6575,7 +6575,7 @@ GNU also allows the "case range" form:
         constant_ptr->kind == (a_constant_repr_kind)ck_integer &&
         range_end->kind == (a_constant_repr_kind)ck_integer &&
         cmp_integer_constants(constant_ptr, range_end) > 0) {
-      error(ec_invalid_case_range);
+      pos_error(ec_invalid_case_range, &error_position);
       range_end = NULL;
     }  /* if */
   }  /* if */
@@ -7028,7 +7028,7 @@ default_label_case:
         if (strict_ansi_mode) {
           diagnostic(strict_ansi_error_severity, ec_exp_statement);
         } else {
-          warning(ec_exp_statement);
+          pos_warning(ec_exp_statement, &error_position);
         }  /* if */
         /* Issue a diagnostic on trying to bind a pragma to the current
            statement. */
@@ -7099,7 +7099,7 @@ expr_statement:
         if (any_cfront_mode() && is_dependent_statement) {
           /* In cfront mode, a dependent statement is not allowed to be a
              declaration. */
-          error(ec_dependent_stmt_is_declaration);
+          pos_error(ec_dependent_stmt_is_declaration, &error_position);
         }  /* if */
         if (sssep->prefix_attributes != NULL) {
           /* Make previously scanned attributes available to declaration
@@ -7119,7 +7119,7 @@ expr_statement:
              lab: int j;
         */
         if (is_dependent_statement) {
-          error(ec_dependent_stmt_is_declaration);
+          pos_error(ec_dependent_stmt_is_declaration, &error_position);
         } else if (c99_mode) {
           /* A labeled declaration is not allowed in C99 mode (the syntax
              doesn't allow it), but we allow it in default mode. */
@@ -7128,7 +7128,7 @@ expr_statement:
                      ec_labeled_declaration);
         } else {
           /* A labeled declaration in pre-C99 C. */
-          error(ec_labeled_declaration);
+          pos_error(ec_labeled_declaration, &error_position);
         }  /* if */
         decl_statement(marked_as_gnu_extension,
                        /*p_okay_in_constexpr_body=*/NULL);
@@ -7407,7 +7407,7 @@ through *p_result_type.
           alloc_decl_after_stmt = TRUE;
         }  /* if */
         if (!alloc_decl_after_stmt && any_statements) {
-          error(ec_declaration_after_statements);
+          pos_error(ec_declaration_after_statements, &error_position);
           /* Special error-recovery trick: this tries to deal with mismatched
              braces, in the case where a "}" is missing and thus there appears
              to be an extra "{".  If we are at function level, and the next
