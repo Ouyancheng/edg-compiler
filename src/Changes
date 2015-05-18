@@ -1,5 +1,26 @@
 Version 4.11
 
+5/18/15  [EDGcpfe/15742]
+Spurious error on out-of-class-template member definition in Microsoft mode
+
+In Microsoft mode, the front end sometimes issues a spurious error on a
+complex return type of a member function definition appearing outside its
+parent class template definition.  For example:
+
+  int const K = 0xfff;
+  template<typename T> struct D {
+    template<int> struct N { typedef int Type; };
+    typename D::template N<K>::Type f();            // (d)
+  };
+  template<typename T> 
+  typename D<T>::template N<K>::Type D<T>::f() {    // (D)
+    return 3;
+  }
+
+Previously, in Microsoft mode, the front end failed to connect definition (D)
+with declaration (d), and that triggered a spurious error.  This is now fixed.
+
+
 5/18/15  [EDGcpfe/14960]
 Elimination of "error", "warning", and "remark" functions
 

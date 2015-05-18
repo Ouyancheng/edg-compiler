@@ -5199,44 +5199,38 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
                                            cssp_2->class_template)) {
           /* Both types are template classes, and they are based on the same
              class template, or equivalent nonreal templates. */
-          if ((type_1->variant.class_struct_union.is_nonreal_class &&
-               type_2->variant.class_struct_union.is_nonreal_class) ||
-              (is_cli_open_constructed_instance(type_1) &&
-               is_cli_open_constructed_instance(type_2)) ||
-              error_matches_anything) {
-            an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
-            a_symbol_ptr			templ_sym_1;
-            a_symbol_ptr			templ_sym_2;
-            a_template_symbol_supplement_ptr	tssp_1;
-            a_template_symbol_supplement_ptr	tssp_2;
-            templ_sym_1 = cssp_1->class_template;
-            templ_sym_2 = cssp_2->class_template;
-            templ_sym_1 = primary_template_of(templ_sym_1);
-            templ_sym_2 = primary_template_of(templ_sym_2);
-            tssp_1 = templ_sym_1->variant.template_info;
-            tssp_2 = templ_sym_2->variant.template_info;
-            /* If either template is variadic, pass the is_variadic flag. */
-            if (tssp_1->is_variadic || tssp_2->is_variadic) {
-              eta_options |= ETA_IS_VARIADIC;
-            }  /* if */
-            if (error_matches_anything) {
-              eta_options |= ETA_ERROR_MATCHES_ANYTHING;
-            }  /* if */
-            if (is_nonreal_template_symbol(cssp_1->class_template) ||
-                is_nonreal_template_symbol(cssp_2->class_template)) {
-              eta_options |= ETA_IS_NONREAL_MEMBER;
-            }  /* if */
-            if (exact_templ_arg_match_required) {
-              /* Template argument lists must match exactly, not just be
-                 equivalent. */
-              eta_options |= ETA_EXACT_MATCH_REQUIRED;
-            }  /* if */
-            if (equiv_template_arg_lists(
+          an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
+          a_symbol_ptr			templ_sym_1;
+          a_symbol_ptr			templ_sym_2;
+          a_template_symbol_supplement_ptr	tssp_1;
+          a_template_symbol_supplement_ptr	tssp_2;
+          templ_sym_1 = cssp_1->class_template;
+          templ_sym_2 = cssp_2->class_template;
+          templ_sym_1 = primary_template_of(templ_sym_1);
+          templ_sym_2 = primary_template_of(templ_sym_2);
+          tssp_1 = templ_sym_1->variant.template_info;
+          tssp_2 = templ_sym_2->variant.template_info;
+          /* If either template is variadic, pass the is_variadic flag. */
+          if (tssp_1->is_variadic || tssp_2->is_variadic) {
+            eta_options |= ETA_IS_VARIADIC;
+          }  /* if */
+          if (error_matches_anything) {
+            eta_options |= ETA_ERROR_MATCHES_ANYTHING;
+          }  /* if */
+          if (is_nonreal_template_symbol(cssp_1->class_template) ||
+              is_nonreal_template_symbol(cssp_2->class_template)) {
+            eta_options |= ETA_IS_NONREAL_MEMBER;
+          }  /* if */
+          if (exact_templ_arg_match_required) {
+            /* Template argument lists must match exactly, not just be
+               equivalent. */
+            eta_options |= ETA_EXACT_MATCH_REQUIRED;
+          }  /* if */
+          if (equiv_template_arg_lists(
                                  class_type_supp(type_1)->template_arg_list,
                                  class_type_supp(type_2)->template_arg_list,
                                  eta_options)) {
-              equiv = TRUE;
-            }  /* if */
+            equiv = TRUE;
           }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
