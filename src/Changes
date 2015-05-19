@@ -34,7 +34,7 @@ with the GNU library could have caused the incorrect version of the
 function to be used.  Because the use of this function has been, in a sense,
 deprecated within EDG (along with the similar "warning" and "remark"
 functions) in favor of the versions that require an explicit position to
-be provided, we have removed the uses of these functions, rather than
+be provided, we have removed these functions and their uses, rather than
 renaming them.  We are not aware of any similar issues with "warning" and
 "remark", but those were likewise eliminated because their very generic
 names could cause conflicts in the future.
