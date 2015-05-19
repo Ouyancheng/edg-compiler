@@ -6539,6 +6539,7 @@ GNU also allows the "case range" form:
   a_source_position             case_position, constant_position;
   a_boolean                     save_reachability =
                                                    curr_reachability.reachable;
+  int                           switch_depth;
 
   db_enter(4, "case_label");
 
@@ -6552,11 +6553,13 @@ GNU also allows the "case range" form:
     /* Assume the case is reachable if the switch is reachable. */
     merge_reachability(&sssep->start_reachable, &curr_reachability);
     switch_type = sssep->type;
+    switch_depth = sssep - struct_stmt_stack;
   } else {
     /* We are not inside a switch statement. */
     pos_error(ec_case_label_must_be_in_switch, &error_position);
     set_reachable(curr_reachability);
     switch_type = error_type();
+    switch_depth = 0;
   }  /* if */
   /* Ignore the initial "case". */
   check_assertion_str(curr_token == tok_case, "case_label: expected case");
@@ -6579,9 +6582,11 @@ GNU also allows the "case range" form:
       range_end = NULL;
     }  /* if */
   }  /* if */
-  if (sssep != NULL && constant_ptr != NULL) {
+  if (switch_depth != 0 && constant_ptr != NULL) {
     a_statement_ptr          sp;
     a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
+    /* Reload sssep because the statement stack may have been reallocated. */
+    sssep = &struct_stmt_stack[switch_depth];
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
                                    &case_position);
     sp->variant.switch_case.switch_statement = sssep->statement;

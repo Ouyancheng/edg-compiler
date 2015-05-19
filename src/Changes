@@ -1,5 +1,13 @@
 Version 4.11
 
+5/19/15  [EDGcpfe/16238]
+Abort while scanning switch case statement
+
+The front end sometimes aborted while scanning a switch case statement
+(function case_label in statements.c) in relatively complex cases.  This
+is now fixed.
+
+
 5/19/15  [EDGcpfe/16071]
 Microsoft compatibility: Elision of invalid copy constructor
 
