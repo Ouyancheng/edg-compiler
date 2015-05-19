@@ -38506,13 +38506,21 @@ memory region).  If param_type is NULL, the parameter type is not known.
   if (class_instantiation_sequence_number != inst_seq_on_entry) {
     result.caused_template_instantiation = TRUE;
   }  /* if */
-  if (microsoft_mode && param_type != NULL &&
-      scope_stack_top().in_prototype_instantiation &&
-      !is_reference_type(param_type)) {
+  if (!constexpr_enabled && microsoft_mode && param_type != NULL &&
+      scope_stack_top().in_prototype_instantiation) {
+    /* Microsoft compilers that do not accept the constexpr feature do accept
+       as template argument some expressions that couldn't be constant without
+       the constexpr feature.  Handle those cases as if the parameter type were
+       not known. */
     a_variable_ptr  var;
-    if (!is_constant_operand(&result) &&
-        !(operand_is_lvalue_for_variable(&result, &var) &&
-          is_potentially_constant_valued_variable(var))) {
+    a_type_ptr      tp = skip_typerefs(param_type);
+    if (tp->kind == (a_type_kind)tk_pointer ||
+        tp->kind == (a_type_kind)tk_ptr_to_member) {
+      /* This kind of nontype parameters does not take a traditional
+         constant value. */
+    } else if (!is_constant_operand(&result) &&
+               !(operand_is_lvalue_for_variable(&result, &var) &&
+                 is_potentially_constant_valued_variable(var))) {
       relaxed_ms_case = TRUE;
     }  /* if */
   }  /* if */
