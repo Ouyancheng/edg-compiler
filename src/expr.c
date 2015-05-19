@@ -2910,7 +2910,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
          copy.  Starting with version 19.00 (tested with an early "CTP2"
          preview version), it appears Microsoft compilers are now much closer
          to standard behavior. */
-      an_expr_node_ptr  temp_init_node;
       if (!cssp->has_user_provided_copy_constructor &&
           cssp->has_copy_constructor_for_const_object &&
           identical_types(opnd->type, class_type) &&
