@@ -2915,6 +2915,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
           identical_types(opnd->type, class_type) &&
           is_temp_init_usable_in_optimization(opnd, !fill_in_dtor,
                                               &temp_init_node, p_dip)) {
+        if (p_temp_init_node != NULL) *p_temp_init_node = temp_init_node;
         goto end_of_routine;
       }  /* if */
     }  /* if */
