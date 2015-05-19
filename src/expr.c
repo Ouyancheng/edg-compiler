@@ -39360,6 +39360,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   a_ctws_options_set            saved_rcblock_options = rcblock->options;
   an_operand                    local_bound_function_selector;
   a_saved_expr_rescan_context   saved_context;
+  a_type_ptr                    orig_expr_type = expr->type;
 
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
@@ -39705,6 +39706,24 @@ alternative callable from outside, see rescan_expr_with_substitution.
     rcblock->error_detected = TRUE;
   } else if (expr_stack->any_suppressed_error) {
     rcblock->error_detected = TRUE;
+  } else if (constexpr_enabled && !is_constant_operand(result) &&
+             curr_expr_kind_is(ek_integral_constant)) {
+    /* The rescanned expression appears in a constant-expression context.
+       Perform any needed constant processing.  The is_array_bound and is_enum
+       bound parameters below do not matter during rescanning since they only
+       affect diagnostics. */
+    a_constant_ptr  con = local_constant();
+    an_operand      orig_result;
+    copy_operand(result, &orig_result);
+    process_converted_constant_expression(result, orig_expr_type,
+                                          (a_builtin_type_kind_set)
+                                                     (BTK_INTEGRAL | BTK_ENUM),
+                                          /*is_array_bound=*/FALSE,
+                                          /*is_enum=*/FALSE,
+                                          con);
+    make_constant_operand(con, result);
+    restore_operand_details(result, &orig_result);
+    release_local_constant(&con);
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;
   if (stack_pop_needed) pop_expr_stack();

@@ -1,5 +1,29 @@
 Version 4.11
 
+5/19/15  [EDGcpfe/16178]
+Spurious failure on substituted array dimensions
+
+In modes that enable constexpr (e.g., C++11 mode) the front end did not
+correctly handle the substitution of template-dependent array dimensions
+during function template deduction.  This could lead to spurious errors.
+For example:
+
+  struct A {
+    typedef int B;
+    static int const D = 42;
+  };
+  template <typename T> void f(typename T::B[T::D]);
+  template <typename T> void g() {
+    int x;
+    f<T>(&x);
+  }
+  void h() { g<A>(); }
+
+Previously, the call f<T>(&x), substituted with T = A, triggered an error
+because the array dimension "[T::D]" was not considered constant.  This is
+now fixed.
+
+
 5/19/15  [EDGcpfe/16238]
 Abort while scanning switch case statement
 
