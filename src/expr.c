@@ -2872,41 +2872,55 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (unboxing_conv_should_be_tried && is_single_elem(arg_list) &&
-      is_expression_component(arg_list) &&
-      unboxing_conversion_possible(operand_of_arg_list_elem(arg_list)->type,
-                                   class_type,
-                                   (a_std_conv_descr *)NULL)) {
-    /* There's one argument, and its conversion to the class type is a
-       C++/CLI unboxing conversion.  Return the operand to the caller. */
-    *unboxing_conv = TRUE;
-    copy_operand(operand_of_arg_list_elem(arg_list), simple_result);
-    goto end_of_routine;
-  } else if (string_ctor_skip != NULL && is_single_elem(arg_list) &&
-             is_expression_component(arg_list) &&
-             (f_identical_types(operand_of_arg_list_elem(arg_list)->type,
-                                make_handle_to_system_string(),
-                                ITF_NO_FLAGS) ||
-              /*lint --e(820)*/
-              (literal_case = is_literal_convertible_to_cli_string(
-                                            operand_of_arg_list_elem(arg_list),
-                                            /*allow_complex=*/TRUE)))) {
-    /* There's one argument, of type System::String^, and we've
-       been asked to handle that specially.  Return the operand
-       to the caller.  This is used to handle a gcnew of a C++/CLI
-       String type.  If the argument is a String^, no gcnew is done;
-       the argument is simply returned to the caller.  Note that this
-       also applies to string literals that can be converted to
-       System::String (that was really the reason for this "optimization",
-       but MSVC didn't do enough of a check and let other non-literal
-       String cases by as well). */
-    *string_ctor_skip = TRUE;
-    copy_operand(operand_of_arg_list_elem(arg_list), simple_result);
-    if (literal_case) convert_operand_to_handle_to_cli_string(simple_result);
-    goto end_of_routine;
-  } else
+  if (microsoft_mode  && is_single_elem(arg_list) &&
+      is_expression_component(arg_list)) {
+    an_operand  *opnd = operand_of_arg_list_elem(arg_list);
+    if (unboxing_conv_should_be_tried &&
+        unboxing_conversion_possible(opnd->type, class_type,
+                                     (a_std_conv_descr *)NULL)) {
+      /* There's one argument, and its conversion to the class type is a
+         C++/CLI unboxing conversion.  Return the operand to the caller. */
+      *unboxing_conv = TRUE;
+      copy_operand(operand_of_arg_list_elem(arg_list), simple_result);
+      goto end_of_routine;
+    } else if (string_ctor_skip != NULL &&
+               (f_identical_types(opnd->type, make_handle_to_system_string(),
+                                  ITF_NO_FLAGS) ||
+                /*lint --e(820)*/
+                (literal_case = is_literal_convertible_to_cli_string(
+                                            opnd, /*allow_complex=*/TRUE)))) {
+      /* There's one argument, of type System::String^, and we've
+         been asked to handle that specially.  Return the operand
+         to the caller.  This is used to handle a gcnew of a C++/CLI
+         String type.  If the argument is a String^, no gcnew is done;
+         the argument is simply returned to the caller.  Note that this
+         also applies to string literals that can be converted to
+         System::String (that was really the reason for this "optimization",
+         but MSVC didn't do enough of a check and let other non-literal
+         String cases by as well). */
+      *string_ctor_skip = TRUE;
+      copy_operand(opnd, simple_result);
+      if (literal_case) convert_operand_to_handle_to_cli_string(simple_result);
+      goto end_of_routine;
+    } else if (elision_allowed && microsoft_bugs && microsoft_version < 1900) {
+      /* At least in some cases, elision is decided early on by Microsoft
+         compilers.  In particular, if the generation of the copy constructor
+         was suppressed (a Microsoft-only feature/bug), initialization from a
+         temporary still succeeds even if there is no other way to perform the
+         copy.  Starting with version 19.00 (tested with an early "CTP2"
+         preview version), it appears Microsoft compilers are now much closer
+         to standard behavior. */
+      an_expr_node_ptr  temp_init_node;
+      if (!cssp->has_user_provided_copy_constructor &&
+          cssp->has_copy_constructor_for_const_object &&
+          identical_types(opnd->type, class_type) &&
+          is_temp_init_usable_in_optimization(opnd, !fill_in_dtor,
+                                              &temp_init_node, p_dip)) {
+        goto end_of_routine;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
