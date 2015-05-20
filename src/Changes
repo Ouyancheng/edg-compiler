@@ -72,7 +72,7 @@ additional cases.  For example:
 
 Previously, the instantiation of the default constructor of A<C> triggered an
 error, because the copy constructor of C cannot be fully generated (because
-it requires call to the inaccessible copy constructor of B).  Now, the
+it requires a call to the inaccessible copy constructor of B).  Now, the
 copy constructor of C is elided early, which prevents the error.
 
 
