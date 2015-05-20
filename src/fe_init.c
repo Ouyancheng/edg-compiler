@@ -1170,7 +1170,7 @@ Install the keywords in the symbol table.
     }  /* if */
 #if COROUTINES_ALLOWED
     if (coroutines_enabled) {
-      enter_keyword((a_token_kind)tok_yield, "__yield");
+      enter_keyword((a_token_kind)tok_yield, "__yield_value");
       enter_keyword((a_token_kind)tok_await, "__await");
       if (coroutine_keywords_enabled) {
         enter_keyword((a_token_kind)tok_await, "await");
