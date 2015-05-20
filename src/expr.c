@@ -38507,8 +38507,6 @@ memory region).  If param_type is NULL, the parameter type is not known.
     result.caused_template_instantiation = TRUE;
   }  /* if */
   if (!constexpr_enabled && microsoft_mode && param_type != NULL &&
-      /* This kind of nontype parameter does not take a traditional
-         constant value. */
       scope_stack_top().in_prototype_instantiation) {
     /* Microsoft compilers that do not accept the constexpr feature do accept
        as template arguments some expressions that couldn't be constant without
