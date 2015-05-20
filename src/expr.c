@@ -38507,6 +38507,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
     result.caused_template_instantiation = TRUE;
   }  /* if */
   if (!constexpr_enabled && microsoft_mode && param_type != NULL &&
+      /* This kind of nontype parameters does not take a traditional
+         constant value. */
       scope_stack_top().in_prototype_instantiation) {
     /* Microsoft compilers that do not accept the constexpr feature do accept
        as template argument some expressions that couldn't be constant without
@@ -39719,8 +39721,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
              curr_expr_kind_is(ek_integral_constant)) {
     /* The rescanned expression appears in a constant-expression context.
        Perform any needed constant processing.  The is_array_bound and is_enum
-       bound parameters below do not matter during rescanning since they only
-       affect diagnostics. */
+       parameters below do not matter during rescanning since they only affect
+       diagnostics. */
     a_constant_ptr  con = local_constant();
     an_operand      orig_result;
     copy_operand(result, &orig_result);
