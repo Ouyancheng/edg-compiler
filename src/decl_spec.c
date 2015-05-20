@@ -8905,7 +8905,7 @@ dps->specifier_attributes list.
             is_auto_type(dps->specifiers_type)))) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
-        if (is_std_attribute(ap) &&
+        if (is_std_attribute(ap) && !ap->is_std_gcc_attribute &&
             !(c11_mode && ap->family == (a_byte_attribute_family)af_alignas)) {
           report_bad_attribute_target(gpp_mode ? es_warning : es_error, ap);
         }  /* if */
@@ -8928,7 +8928,7 @@ dps->specifier_attributes list.
           !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the specifier attributes list. */
         an_attribute_ptr  ap = *p_ap;
-        if (is_std_attribute(ap)) {
+        if (is_std_attribute(ap) && !ap->is_std_gcc_attribute) {
           report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;
