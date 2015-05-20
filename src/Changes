@@ -81,7 +81,7 @@ Microsoft mode dependent nontype template arguments
 
 The changes for EDGcpfe/15084 etc. (see the entry of 6/10/14) caused some
 nontype template arguments to be processed incorrectly in Microsoft modes.
-This resulted in template deduction to spuriously fail in various situations
+This caused template deduction to spuriously fail in various situations
 (typically leading to spurious errors).
 
 One such situation is a member function definition appearing outside its
