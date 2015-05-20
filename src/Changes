@@ -1,5 +1,23 @@
 Version 4.11
 
+5/19/15  [EDGcpfe/16234]
+Value of __cplusplus and std_version
+
+The front end in --clang mode incorrectly set the value of the __cplusplus
+predefined macro as if it were emulating the g++ compiler.  This is now
+fixed.  For example, with --clang --c++14 --gnu_version=40900:
+
+  long l = __cplusplus;  // Previously 201300L, now 201402L
+
+In addition, the value of the std_version global variable (but not the
+__cplusplus macro) corresponding to C++14 was originally set to 201400
+(before the Standard was officially approved) and was never updated to the
+final value of 201402.  This has also been corrected as part of this
+change.  Finally, g++ version 5.1 now sets the correct value of __cplusplus
+with -std=c++14, and the front end has been changed to do the same in
+--c++14 mode with gnu_version >= 50100.
+
+
 5/19/15  [EDGcpfe/16178]
 Spurious failure on substituted array dimensions
 

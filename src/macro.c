@@ -9421,11 +9421,14 @@ command line -D options.
       } else {
         val = cpp98_date;
       }  /* if */
-    } else if (gpp_mode) {
+    } else if (gpp_mode && !clang_mode) {
       if (gnu_version < 40700) {
         val = "1";
       } else if (cpp14_mode && gnu_version >= 40900) {
-        val = gnu_cpp14_date;
+        /* Version 4.9 of g++ was the first to accept -std=c++14 but set
+           the value of __cplusplus to 201300L.  Beginning with version
+           5.1, g++ uses the correct value. */
+        val = (gnu_version >= 50100) ? cpp14_date : gnu_cpp14_date;
       } else if (cpp11_mode) {
         val = cpp11_date;
       } else {

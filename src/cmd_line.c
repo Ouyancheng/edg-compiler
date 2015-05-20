@@ -4503,7 +4503,7 @@ command line switches.
     clang C++           gpp_mode && clang_mode           --clang
     C++03               std_version >= 199711            --c++03
     C++11               std_version >= 201103            --c++11
-    C++14               std_version >= 201400            --c++14
+    C++14               std_version >= 201402            --c++14
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -9531,7 +9531,7 @@ enable_microsoft_mode:
         break;
       case optk_cpp14_mode:
         /* Enable C++ features added as part of C++14. */
-        std_version = 201400;
+        std_version = 201402;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp11_mode:

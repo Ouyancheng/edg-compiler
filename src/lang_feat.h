@@ -2298,7 +2298,7 @@ by the C++11 standard or later C++ standards.
 Macro that is TRUE when the front end should accept language features defined
 by the C++14 standard or later C++ standards.
 */
-#define cpp14_mode (!C_mode() && std_version >= 201400)
+#define cpp14_mode (!C_mode() && std_version >= 201402)
 
 /*
 A macro synonymous with cpp11_mode to enhance compatibility with older versions
