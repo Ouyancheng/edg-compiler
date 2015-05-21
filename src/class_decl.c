@@ -24161,11 +24161,16 @@ signature that matches that of the delegate definition).
 }  /* create_cli_delegate_class_definition */
 
 
-void scan_and_record_cli_delegate_definition(a_decl_parse_state  *dps)
+void scan_and_record_cli_delegate_definition(a_decl_parse_state  *dps,
+                                             a_type_ptr          class_type)
 /*
 The caller has determined that the upcoming tokens look like a C++/CLI
 delegate definition (e.g., by calling check_for_cli_delegate_definition).
 Scan the definition and record it in the IL (as a special-purpose class type).
+
+This routine is sometimes called to load the definition of a delegate class
+whose declaration was already loaded: Class_type represents the corresponding
+(still incomplete) class type in such cases (otherwise, class_type is NULL).
 */
 {
   an_assembly_visibility       visibility;
@@ -24173,17 +24178,23 @@ Scan the definition and record it in the IL (as a special-purpose class type).
   a_symbol_locator             loc;
   a_symbol_ptr                 prev_decl = NULL;
   a_func_info_block            func_info;
-  a_type_ptr                   class_type;
   a_class_type_supplement_ptr  ctsp;
   a_scope_depth                decl_level = depth_scope_stack;
 
   visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
   scan_cli_delegate_definition(dps, &loc, &func_info);
-  /* If a delegate is generated from an assembly (metadata) file, it was
-     previously loaded as an incomplete ref class.  Only in this case is a
-     "redeclaration" allowed. */
-  prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
+  if (class_type != NULL) {
+    /* An imported delegate type. */
+    prev_decl = symbol_for(class_type);
+  } else {
+    /* A regular declaration of a delegate type: Look for a prior
+       declaration. */
+    prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
+  }  /* if */
   if (prev_decl != NULL) {
+    /* If a delegate is generated from an assembly (metadata) file, it was
+       previously loaded as an incomplete ref class.  Only in this case is a
+       "redeclaration" allowed. */
     class_type = type_symbol_type(prev_decl);
     if (class_is_from_metadata(class_type)) {
       /* The delegate was loaded from an assembly file. */
@@ -24236,13 +24247,13 @@ Scan the definition and record it in the IL (as a special-purpose class type).
 }  /* scan_and_record_cli_delegate_definition */
 
 
-void scan_cli_delegate_definition_from_assembly_import(void)
+void scan_cli_delegate_definition_from_assembly_import(a_type_ptr  class_type)
 /*
-Scan a delegate definition generated from assembly metadata.  (Delegates from
-assemblies are first loaded as incomplete ref class declarations that can
-later be completed via a call to this function.  The caller has already
-ensured that the token stream contains a delegate definition corresponding to
-the assembly file.)
+Scan a delegate definition generated from assembly metadata.  The type of the
+delegate is given by class type.  (Delegates from assemblies are first loaded
+as incomplete ref class declarations that can later be completed via a call to
+this function.  The caller has already ensured that the token stream contains
+a delegate definition corresponding to the assembly file.)
 */
 {
   a_decl_parse_state  dps;
@@ -24251,7 +24262,7 @@ the assembly file.)
   if (microsoft_attribute_tokens_next()) {
     dps.ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
   }  /* if */
-  scan_and_record_cli_delegate_definition(&dps);
+  scan_and_record_cli_delegate_definition(&dps, class_type);
 }  /* scan_cli_delegate_definition_from_assembly_import */
 
 
@@ -25957,7 +25968,7 @@ passed via template_decl.
                decl_specifiers below. */
           }  /* if */
         } else if (check_for_cli_delegate_definition()) {
-          scan_and_record_cli_delegate_definition(dps);
+          scan_and_record_cli_delegate_definition(dps, (a_type_ptr)NULL);
           cannot_bind_to_curr_construct();
           goto next_declaration;
         }  /* if */

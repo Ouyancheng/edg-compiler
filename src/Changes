@@ -1,5 +1,13 @@
 Version 4.11
 
+5/21/15  [EDGcpfe/15909]
+Abort while loading a class delegate member from an assembly
+
+The front end previously aborted with an internal error (in decl_spec.c,
+function update_membership_of_class) while attempting to load a class delegate
+member definition from an assembly.  This is now fixed.
+
+
 5/19/15  [EDGcpfe/16234]
 Value of __cplusplus and std_version
 

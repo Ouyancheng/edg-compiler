@@ -54,9 +54,12 @@ extern void create_cli_delegate_class_definition(
                                               a_decl_parse_state  *dps,
                                               a_func_info_block   *func_info);
 
-extern void scan_and_record_cli_delegate_definition(a_decl_parse_state  *dps);
+extern void scan_and_record_cli_delegate_definition(
+                                              a_decl_parse_state  *dps,
+                                              a_type_ptr          class_type);
 
-extern void scan_cli_delegate_definition_from_assembly_import(void);
+extern void scan_cli_delegate_definition_from_assembly_import(
+                                                      a_type_ptr  class_type);
 
 extern void complete_generic_constraint_type(a_type_ptr  proxy_class);
 

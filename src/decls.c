@@ -17085,7 +17085,7 @@ processing should proceed after the call.
                is_file_or_namespace_scope(&scope_stack_top()) &&
                check_for_cli_delegate_definition()) {
       /* Scan a C++/CLI delegate definition. */
-      scan_and_record_cli_delegate_definition(state);
+      scan_and_record_cli_delegate_definition(state, (a_type_ptr)NULL);
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
