@@ -11804,13 +11804,22 @@ particular, the "aligned" attribute) and are therefore applied to dps->type.
 Other attributes are invalid and are diagnosed.
 */
 {
-  an_attribute_ptr  gnu_list, ap;
+  an_attribute_ptr  gnu_list = NULL, ap;
 
   gnu_list = extract_gnu_attributes(&dps->id_attributes);
   *f_last_attribute_link(&gnu_list) =
                               extract_gnu_attributes(&dps->prefix_attributes);
   if (gnu_list != NULL) {
-    for (ap = gnu_list; ap != NULL; ap = ap->next) ap->assoc_info = (void*)dps;
+    for (ap = gnu_list; ap != NULL; ap = ap->next) {
+      ap->assoc_info = (void*)dps;
+      if (is_class_struct_union_type(dps->type) || is_enum_type(dps->type)) {
+        /* GCC issues a warning for attributes on class and enum types in this
+           context.  E.g., the expression "(int __attribute((aligned(8))))x" is
+           silently accepted, but "(E __attribute((aligned(8))))x", where E is
+           an enumeration type, elicits a warning. */
+        report_bad_attribute_target(es_warning, ap);
+      }  /* if */
+    }  /* for */
     /* Create a typeref to attach the attributes to (the attachment is done
        by the call to attach_attributes). */
     dps->type = make_typeref_with_attributes(dps->type, NULL);
