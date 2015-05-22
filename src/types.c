@@ -1811,6 +1811,7 @@ type.
   return is_scalar(tp) && !is_ptr_to_member(tp);
 }  /* is_simple_scalar_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_trivially_copyable_type(a_type_ptr tp)
 /*
@@ -1903,7 +1904,6 @@ Return TRUE if the given type is trivially copyable.
   return result;
 }  /* is_trivially_copyable_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_literal_type(a_type_ptr tp)
 /*
