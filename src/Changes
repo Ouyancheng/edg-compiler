@@ -1,5 +1,30 @@
 Version 4.11
 
+5/22/15  [EDGcpfe/16220]
+Unexpected function type diagnostic on use of template template parameter
+
+An "unexpected function type" diagnostic resulting from a template
+instantiation could occur when a template template parameter was used
+in a function template declaration an a similar use was previously
+used in a different template declaration.
+
+  template <class ...Types> class M {};
+  template <class ...Types> class N {};
+  template <template <class ...> class ...Types> class A {};
+
+  template <template <class ...> class ...Types>
+  class B : A<Types...>, M<Types<>...> { };
+
+  // Error goes away if this declaration is moved before the declaration of B
+  template <template <class ...> class ...Types>
+  void f(const A<Types...>&, const M<Types<>...>& = M<Types<>...>()) { }
+
+  int main() {
+    f(A<M>());
+    f(A<M, N>());
+  }
+
+
 5/21/15  [EDGcpfe/15909]
 Abort while loading a class delegate member from an assembly
 

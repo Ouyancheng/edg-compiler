@@ -835,6 +835,7 @@ requires cleanup.
            VLA can be deallocated (although as provided this routine can
            only perform the deallocation when VLA operations are lowered). */
         a_boolean		is_vla = (flags & RDF_VLA) != 0;
+check_assertion(dtor_ptr != NULL);
         if (dtor_ptr != NULL) {
           an_element_count	elements = ehasp->array_size;
           if (is_vla) {
@@ -882,6 +883,7 @@ requires cleanup.
     } else {
       /* A new allocation region.  Call the delete operator to free the
          space. */
+check_assertion(obj_addr != NULL);
       if (obj_addr != NULL) {
         if (flags & RDF_ARRAY) {
           /* The array flag indicates that this is the two operand form of
@@ -1150,6 +1152,7 @@ top of the throw stack.
   /* If this is a rethrow, get a pointer to the throw stack entry associated
      with the original throw. */
   primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
+check_assertion(!tsep->discard_entry);
   if (!tsep->discard_entry) {
     /* If this is the first time the routine has been called for this entry,
        set the discard flag and decrement the use count. */

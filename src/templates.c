@@ -7907,6 +7907,15 @@ exist.
   template_sym = template_argument_if_template_template_param(template_sym);
   tssp = template_sym->variant.template_info;
   is_alias_template = tssp->variant.class_template.is_alias_template;
+#if DEBUG
+  if (db_flag_is_set("ftc")) {
+    fprintf(f_debug, "find_template_class: begining search for arg list ");
+    db_template_arg_list(*new_list);
+    fprintf(f_debug, ", for template ");
+    db_symbol_name(template_sym);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
   eta_options = eta_options_for_template(tssp);

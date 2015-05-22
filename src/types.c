@@ -5079,11 +5079,14 @@ class types that are instances of the templates pointed to by sym_1 and sym_2.
 
 
 static a_boolean equiv_template_template_params(
-				         a_symbol_ptr	sym_1,
-					 a_symbol_ptr	sym_2)
+				a_symbol_ptr	sym_1,
+				a_symbol_ptr	sym_2,
+				a_boolean	exact_templ_match_required)
 /*
 Return TRUE if sym_1 and sym_2 are both template template parameters for
 equivalent templates, such as T in "T<int>" and "T<int>".
+exact_templ_match_required is TRUE if the values of the templates template
+parameters must match exactly (e.g., point to the same template entry).
 */
 {
   a_boolean	result = FALSE;
@@ -5092,9 +5095,11 @@ equivalent templates, such as T in "T<int>" and "T<int>".
       is_template_template_param_symbol(sym_2)) {
     /* They are both template template parameters.  Compare the
        underlying templates. */
+    an_equiv_templates_options_set	et_options = ET_NO_OPTIONS;
+    if (exact_templ_match_required) et_options |= ET_EXACT_MATCH_REQUIRED;
     if (equiv_templates_given_supplement(sym_1->variant.template_info,
                                          sym_2->variant.template_info,
-                                         ET_NO_OPTIONS, ETP_NO_OPTIONS)) {
+                                         et_options, ETP_NO_OPTIONS)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -5196,7 +5201,8 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
             equiv_nonreal_templates(type_1, cssp_1->class_template,
                                     type_2, cssp_2->class_template) ||
             equiv_template_template_params(cssp_1->class_template,
-                                           cssp_2->class_template)) {
+                                           cssp_2->class_template,
+                                           exact_templ_arg_match_required)) {
           /* Both types are template classes, and they are based on the same
              class template, or equivalent nonreal templates. */
           an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
