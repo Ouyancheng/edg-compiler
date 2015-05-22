@@ -6150,6 +6150,11 @@ extern a_boolean f_has_nontrivial_constructor(
 #define has_nontrivial_destructor(cssp)                               \
   ((cssp)->destructor != NULL && !(cssp)->has_trivial_destructor)
 
+#define has_deleted_or_nontrivial_destructor(cssp)                      \
+  ((cssp)->destructor != NULL &&                                        \
+   (!(cssp)->destructor->variant.routine.ptr->is_trivial_destructor ||  \
+    (cssp)->destructor->variant.routine.ptr->is_deleted))
+
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \
   is_special_function_symbol(sym,                                     \

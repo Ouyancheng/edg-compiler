@@ -8196,7 +8196,8 @@ diagnostic if the parameter type is an abstract class.
         a_class_symbol_supplement_ptr cssp =
                                        symbol_supplement_for_class(param_type);
         if (!cssp->construction_by_bitwise_copy_allowed ||
-            (!any_cfront_mode() && has_nontrivial_destructor(cssp))) {
+            (!any_cfront_mode() &&
+             has_deleted_or_nontrivial_destructor(cssp))) {
           /* The class has a "real" copy constructor, or it has a
              destructor, so a copy of an object of this class type must be
              made when it is passed as an argument. */
@@ -20931,7 +20932,7 @@ that the caller may record a fixup entry to revisit the transfer method later.
                                                                  )
 #if IA64_ABI
 #if ABI_COMPATIBILITY_VERSION >= 408
-               || has_nontrivial_destructor(cssp)
+               || has_deleted_or_nontrivial_destructor(cssp)
 #else /* ABI_COMPATIBILITY_VERSION < 408 */
                /* This test had failed to take into account defaulted
                   destructors and is replaced by the test above, but

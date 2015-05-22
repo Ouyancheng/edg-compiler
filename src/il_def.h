@@ -7678,11 +7678,6 @@ typedef struct a_class_type_supplement {
   a_bit_field	defined_in_parent_class:1;
 			/* TRUE for nested classes defined in their parent
 			   class. */
-  a_bit_field	trivially_copyable:1;
-			/* TRUE for "trivially copyable class types" (i.e., a
-			   class with no nontrivial copy/move constructors,
-			   no nontrivial copy/move assignment operators, and
-			   a trivial destructor. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

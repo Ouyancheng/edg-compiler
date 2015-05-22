@@ -1145,6 +1145,9 @@ typedef struct a_class_def_state {
   a_bit_field	base_destruction_required:1;
 			/* TRUE if the class has a base class requiring
 			   destruction. */
+  a_bit_field	trivial_deleted_subobject_destructor:1;
+			/* TRUE if the class has a base or member with a
+			   trivial deleted destructor. */
   a_bit_field	ms_parenthesized_member:1;
 			/* Some versions of the Microsoft compiler allow a
 			   member declaration to start with a left parenthesis.
@@ -1271,6 +1274,7 @@ class being defined.
   cdsp->default_ctor_is_nontrivial = FALSE;
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
+  cdsp->trivial_deleted_subobject_destructor = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
   cdsp->has_field_initializer = FALSE;
   cdsp->rule_out_trivial_copy_for_volatile_class_field = FALSE;
@@ -8668,6 +8672,9 @@ to FALSE before returning).
   }  /* if */
   if (has_nontrivial_destructor(bcp_cssp)) {
     class_state->base_destruction_required = TRUE;
+  } else if (bcp_cssp->destructor != NULL &&
+             bcp_cssp->destructor->variant.routine.ptr->is_deleted) {
+    class_state->trivial_deleted_subobject_destructor = TRUE;
   }  /* if */
   /* Indicate whether an operator new or operate delete is inherited into
      the current derived class. */
@@ -18193,6 +18200,9 @@ be entered.
         }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {
           class_state->member_destruction_required = TRUE;
+        } else if (member_cssp->destructor != NULL &&
+                   member_cssp->destructor->variant.routine.ptr->is_deleted) {
+          class_state->trivial_deleted_subobject_destructor = TRUE;
         }  /* if */
         /* The parent class cannot be copy-constructed or assigned by bitwise
            copying if the member type does not allow it.  (If the member
@@ -20065,11 +20075,11 @@ deleted, disable bitwise copying.
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   if (cssp->destructor != NULL && cssp->has_trivial_destructor) {
     a_routine_ptr  dtor = cssp->destructor->variant.routine.ptr;
-    if (dtor->compiler_generated || dtor->is_defaulted) {
+    if (dtor->compiler_generated || dtor->is_defaulted || dtor->is_deleted) {
       dtor->is_trivial_destructor = TRUE;
     }  /* if */
   }  /* if */
@@ -20710,6 +20720,9 @@ The routine body is not generated until it is known to be needed.
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
   init_generated_special_function_descr(&gsfd);
+  if (class_state->trivial_deleted_subobject_destructor) {
+    gsfd.suppress_dtor = TRUE;
+  }  /* if */
   if (unrestricted_unions_enabled) {
     /* Variant members with special member functions suppress the corresponding
        special member in the parent type by default. */
@@ -20967,7 +20980,8 @@ The routine body is not generated until it is known to be needed.
      cssp->destructor is NULL, but it could also be a defaulted destructor
      with no effect. */
   if (cssp->destructor == NULL ||
-      (cssp->destructor->variant.routine.ptr->is_defaulted &&
+      ((cssp->destructor->variant.routine.ptr->is_defaulted ||
+        cssp->destructor->variant.routine.ptr->is_deleted) &&
        !cssp->destructor->variant.routine.ptr->is_virtual &&
        !class_state->member_destruction_required &&
        !class_state->base_destruction_required)) {
@@ -21030,13 +21044,6 @@ The routine body is not generated until it is known to be needed.
   if (cssp->makes_copy_assignment_nontrivial ||
       cssp->has_user_provided_move_assign_operator) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
-  }  /* if */
-  if (cssp->assignment_by_bitwise_copy_allowed &&
-      cssp->construction_by_bitwise_copy_allowed &&
-      !class_state->rule_out_trivial_copy_for_volatile_class_field &&
-      !class_state->rule_out_trivial_assign_for_volatile_class_field &&
-      cssp->has_trivial_destructor) {
-    ctsp->trivially_copyable = TRUE;
   }  /* if */
   if (class_state->rule_out_bitwise_copy_for_deleted_ctor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;

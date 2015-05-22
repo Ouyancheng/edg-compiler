@@ -7733,6 +7733,7 @@ constant will be set as well.
     a_class_symbol_supplement_ptr
                               cssp = NULL;
     a_boolean                 is_const = is_const_qualified_type(type);
+    a_type_ptr                orig_type = type;
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
         kind == (a_builtin_operation_kind)bok_is_standard_layout ||
         kind == (a_builtin_operation_kind)bok_is_literal_type) {
@@ -7776,7 +7777,6 @@ constant will be set as well.
         case bok_is_pod:
         case bok_has_nothrow_constructor:
         case bok_has_trivial_constructor:
-        case bok_is_trivially_copyable:
           if (microsoft_mode && microsoft_version < 1800) {
             /* Early versions of MSVC returned FALSE for nonclass types. */
             result = FALSE;
@@ -7791,6 +7791,14 @@ constant will be set as well.
             result = FALSE;
           } else {
             result = TRUE;
+          }  /* if */
+          break;
+        case bok_is_trivially_copyable:
+          if (microsoft_mode && microsoft_version < 1800) {
+            /* Early versions of MSVC returned FALSE for nonclass types. */
+            result = FALSE;
+          } else {
+            result = is_trivially_copyable_type(orig_type);
           }  /* if */
           break;
         case bok_has_assign:
@@ -8025,7 +8033,7 @@ constant will be set as well.
         result = cssp->standard_layout;
         break;
       case bok_is_trivially_copyable:
-        result = is_trivially_copyable_type(type);
+        result = is_trivially_copyable_type(orig_type);
         break;
       case bok_is_literal_type:
         result = is_literal_type(type);

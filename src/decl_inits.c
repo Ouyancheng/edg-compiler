@@ -1140,7 +1140,7 @@ given position, unless is->no_diagnostics is TRUE.
     /* Determine if a constructor call will be involved. */
     if (exceptions_enabled && !is->initializer_must_be_constant) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-      if (has_nontrivial_destructor(cssp)) {
+      if (has_deleted_or_nontrivial_destructor(cssp)) {
         dtor_rp = get_init_destructor(tp, is, diag_pos);
       }  /* if */
     }  /* if */

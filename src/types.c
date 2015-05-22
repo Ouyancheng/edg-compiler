@@ -1818,15 +1818,87 @@ Return TRUE if the given type is trivially copyable.
 */
 {
   a_boolean  result;
-
-  tp = skip_array_types(tp);
-  tp = skip_typerefs(tp);
-  if (is_scalar(tp)) {
-    result = TRUE;
-  } else if (is_immediate_class_type(tp)) {
-    result = class_type_supp(tp)->trivially_copyable;
-  } else {
+  
+  if (is_volatile_qualified_type(tp)) {
     result = FALSE;
+  } else {
+    tp = skip_array_types(tp);
+    tp = skip_typerefs(tp);
+    if (is_scalar(tp)) {
+      result = TRUE;
+    } else if (is_immediate_class_type(tp)) {
+      /* A class type is trivially copyable if:
+          - it has no nontrivial move/copy constructors, and
+          - it has no nontrivial move/copy assignment operators, and
+          - it has a trivial destructor.
+      */
+      a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
+      if (!has_nontrivial_destructor(cssp) &&
+          !cssp->has_user_provided_copy_constructor &&
+          !cssp->has_user_provided_move_constructor &&
+          !cssp->has_user_provided_move_assign_operator &&
+          !tp->variant.class_struct_union.any_volatile_member) {
+        a_symbol_ptr  sym;
+        a_boolean     is_list;
+        result = TRUE;
+        /* Check for nontrivial copy/move constructors.  We already checked
+           that none are user-provided, so we can just check the compiler-
+           generated constructors. */
+        sym = cssp->constructor;
+        if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        } else {
+          is_list = FALSE;
+        }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          a_routine_ptr	rp;
+          check_assertion(symbol_is(sym, sk_member_function));
+          rp = sym->variant.routine.ptr;
+          if ((rp->compiler_generated || rp->is_defaulted || rp->is_deleted) &&
+              !rp->is_trivial_copy_function) {
+            a_param_type_ptr	ptp = function_type_params(rp->type);
+            if (ptp != NULL && ptp->next == NULL) {
+              /* A generated constructor with one parameter: This must be a
+                 copy constructor. */
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (result) {
+          /* Now check for assignment operators.  Unlike the copy/move
+             constructor, there is currently no quick way to eliminate the
+             case of a user-provided copy/move assignment operator. */
+          sym = cssp->assignment_operator;
+          if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
+            is_list = TRUE;
+            sym = sym->variant.overloaded_function.symbols;
+          } else {
+            is_list = FALSE;
+          }  /* if */
+          for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+            a_routine_ptr         rp;
+            a_boolean             is_move;
+            a_type_qualifier_set  tqs;
+            check_assertion(symbol_is(sym, sk_member_function));
+            rp = sym->variant.routine.ptr;
+            if (rp->is_trivial_copy_function) {
+              continue;
+            } else if (rp->compiler_generated ||
+                       routine_is_copy_or_move_assign_operator(
+                                                        rp, &tqs, &is_move)) {
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      } else {
+        result = FALSE;
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_trivially_copyable_type */

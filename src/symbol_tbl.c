@@ -10371,7 +10371,7 @@ and do not issue any diagnostics (including warnings).
         }  /* if */
       } else {
         /* Check that the destructor is accessible and mark it referenced. */
-        if (cssp->has_trivial_destructor) {
+        if (!has_deleted_or_nontrivial_destructor(cssp)) {
           /* A defaulted trivial destructor is not actually called. */
           evaluated = FALSE;
         }  /* if */
@@ -10384,7 +10384,7 @@ and do not issue any diagnostics (including warnings).
                                                  error_detected);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
-      if (cssp->has_trivial_destructor) {
+      if (!has_deleted_or_nontrivial_destructor(cssp)) {
         /* A trivial destructor (e.g., a defaulted destructor).  Treat it as
            an implicitly-declared destructor (i.e., return NULL). */
         dtor_routine = NULL;

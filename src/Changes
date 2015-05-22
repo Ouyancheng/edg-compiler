@@ -1,5 +1,22 @@
 Version 4.11
 
+5/22/15  [EDGcpfe/14729]
+__is_trivially_copyable  (IL CHANGE)
+
+The type traits helper __is_trivially_copyable has been revised to produce
+more correct results in somewhat unusual cases.  For example:
+
+  struct DD { ~DD() = delete; };
+  static_assert(__is_trivially_copyable(DD), "Unexpected");
+
+Previously, a deleted destructor made a class type not trivially copyable
+(i.e., the front end failed the static_assert above), but that doesn't match
+the C++ standard.  Now this test case is accepted.
+
+As part of this change, the class type supplement field "trivially_copyable"
+has been removed.
+
+
 5/22/15  [EDGcpfe/16220]
 Unexpected function type diagnostic on use of template template parameter
 
