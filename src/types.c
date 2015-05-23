@@ -5157,8 +5157,8 @@ static a_boolean equiv_template_template_params(
 /*
 Return TRUE if sym_1 and sym_2 are both template template parameters for
 equivalent templates, such as T in "T<int>" and "T<int>".
-exact_templ_match_required is TRUE if the values of the templates template
-parameters must match exactly (e.g., point to the same template entry).
+exact_templ_match_required is TRUE if the values of the template template
+parameters must match exactly (i.e., point to the same template entry).
 */
 {
   a_boolean	result = FALSE;
@@ -5197,7 +5197,7 @@ class template and have identical template arguments.
 If error_matches_anything is TRUE, consider an error type or constant in
 a template argument to match anything (that's appropriate for compatibility
 checking instead of equivalence checking).  exact_templ_arg_match_required
-is TRUE if the values of the templates arguments must match exactly (e.g.,
+is TRUE if the values of the templates arguments must match exactly (i.e.,
 point to the same type or constant).  FALSE if only equivalence is required.
 If contextual_generic_parameters parameters is TRUE, generic parameters are
 compared not purely based on their "coordinates", but on the generic context

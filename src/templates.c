@@ -7909,7 +7909,7 @@ exist.
   is_alias_template = tssp->variant.class_template.is_alias_template;
 #if DEBUG
   if (db_flag_is_set("ftc")) {
-    fprintf(f_debug, "find_template_class: begining search for arg list ");
+    fprintf(f_debug, "find_template_class: beginning search for arg list ");
     db_template_arg_list(*new_list);
     fprintf(f_debug, ", for template ");
     db_symbol_name(template_sym);
