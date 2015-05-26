@@ -34422,11 +34422,21 @@ functions (like await_resume) from.
   an_operand        ready_operand, ready_call;
   an_operand        suspend_operand;
   an_operand        resume_operand, resume_call;
-  a_type_ptr        utp = skip_typerefs(operand->type);
+  a_type_ptr        utp;
   a_symbol_locator  loc;
   a_boolean         temp_init_used, use_member_calls;
   an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_await);
 
+  /* "await <expr>" is implemented using three calls to functions await_ready,
+     await_suspend, and await_resume.  If <expr> produces a glvalue, that
+     glvalue is used as an argument in those calls.  If it produces a prvalue,
+     a temporary lvalue is initialized from that prvalue and the temporary is
+     used in the calls. */
+  if (is_a_prvalue(operand)) {
+    
+    temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
+  }  /* if */
+  utp = skip_typerefs(operand->type);
   clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   clone_operand(&resume_operand, &ready_operand, /*vars_can_change=*/TRUE,
