@@ -5577,7 +5577,9 @@ flag when is_declaration is TRUE.
       /* C++11 behavior: An error is issued because programs that get this
          diagnostic would fail at link time.  (Since Microsoft compilers
          accept such cases, only a warning is issued in Microsoft mode.) */
-      if (microsoft_mode) {
+      if (rp != NULL && !rp->called && !rp->address_taken && !rp->is_virtual) {
+        /* A function that is not really "used".  Not need for a diagnostic. */
+      } else if (microsoft_mode) {
         pos_sy_warning(ec_undefined_decl_using_local_type, error_pos, sym);
       } else {
         pos_sy_diagnostic(es_discretionary_error,

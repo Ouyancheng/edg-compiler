@@ -5662,7 +5662,7 @@ an unnamed namespace.
      The will_be_instantiated check is used so that a template that could
      be instantiated is considered defined. */
   if (decls_using_types_without_linkage_allowed &&
-      var_sym->referenced &&
+      var_sym->variant.variable.used &&
       (vp->storage_class == (a_storage_class)sc_extern &&
        (!vp->is_template_static_data_member ||
         vp->is_prototype_instantiation ||
