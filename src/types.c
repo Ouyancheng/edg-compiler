@@ -1854,6 +1854,7 @@ Return TRUE if the given type is trivially copyable.
         }  /* if */
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
           a_routine_ptr	rp;
+          if (symbol_is(sym, sk_function_template)) continue;
           check_assertion(symbol_is(sym, sk_member_function));
           rp = sym->variant.routine.ptr;
           if ((rp->compiler_generated || rp->is_defaulted || rp->is_deleted) &&
@@ -1882,6 +1883,7 @@ Return TRUE if the given type is trivially copyable.
             a_routine_ptr         rp;
             a_boolean             is_move;
             a_type_qualifier_set  tqs;
+            if (symbol_is(sym, sk_function_template)) continue;
             check_assertion(symbol_is(sym, sk_member_function));
             rp = sym->variant.routine.ptr;
             if (rp->is_trivial_copy_function) {
