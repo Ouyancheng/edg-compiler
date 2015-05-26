@@ -1,5 +1,18 @@
 Version 4.11
 
+5/23/15  [EDGcpfe/16073]
+Spurious warning on function object invocation in prototype instantiation
+
+The warning added for EDGcpfe/15754 (see entry of 12/4/14) is now only emitted
+for classes that are not instantiations of templates because the warning could
+be spurious otherwise.  For example:
+
+  template<class T> struct F { void operator()(); };
+  template<class T> void g(F<int> &f) {
+    f();  // Previously triggered a spurious warning in some modes.
+  }
+
+
 5/22/15  [EDGcpfe/14729]
 __is_trivially_copyable  (IL CHANGE)
 

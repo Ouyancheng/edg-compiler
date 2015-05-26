@@ -5028,7 +5028,8 @@ are expected to be NULL in that case.
       routine_type = NULL;
       prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
-      if (!class_type->variant.class_struct_union.is_nonreal_class) {
+      if (!class_type->variant.class_struct_union.is_nonreal_class &&
+          !class_type->variant.class_struct_union.is_template_class) {
         pos_ty_warning(ec_call_through_incomplete_class_type,
                        &call_position, class_type);
       }  /* if */
