@@ -5578,7 +5578,7 @@ flag when is_declaration is TRUE.
          diagnostic would fail at link time.  (Since Microsoft compilers
          accept such cases, only a warning is issued in Microsoft mode.) */
       if (rp != NULL && !rp->called && !rp->address_taken && !rp->is_virtual) {
-        /* A function that is not really "used".  Not need for a diagnostic. */
+        /* A function that is not really "used".  No need for a diagnostic. */
       } else if (microsoft_mode) {
         pos_sy_warning(ec_undefined_decl_using_local_type, error_pos, sym);
       } else {

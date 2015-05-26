@@ -1,14 +1,13 @@
 Version 4.11
 
-5/23/15  [EDGcpfe/16076]
-Definitions of template functions and static data members with local types
+5/23/15  [EDGcpfe/10607,EDGcpfe/14121,EDGcpfe/16076]
+Definitions of entities involving local types
 
-The front end issues a discretionary error if a template function or template
-static data member lacks a definition while being partially instantiated with
-a local type (because no other translation unit could provide the definition).
-However, this diagnostic was issued even when the partial instance was only
-used in an unevaluated context (where the definition is not required).  For
-example:
+The front end sometimes issues a discretionary error if a function or static
+data member lacks a definition while depending on a local type (because no
+other translation unit could provide the definition).  However, this
+diagnostic was issued even when the entity was only used in an unevaluated
+context (where the definition is not required).  For example:
 
   template<class T> struct S {
     static T m;
