@@ -30111,6 +30111,7 @@ simple_name:
           /* The simple name of the function. */
           if (has_name(rp)) {
             name_str = unmangled_name_of(&rp->source_corresp);
+            check_assertion(name_str != NULL);
           } else {
             name_str = "";
           }  /* if */
