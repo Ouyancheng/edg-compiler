@@ -30110,7 +30110,7 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
 simple_name:
           /* The simple name of the function. */
           if (has_name(rp)) {
-            name_str = unmangled_name_of(rp->source_corresp.name);
+            name_str = unmangled_name_of(&rp->source_corresp);
           } else {
             name_str = "";
           }  /* if */
