@@ -18,8 +18,8 @@ context (where the definition is not required).  For example:
     return S<L>::s;
   }
 
-Previously a discretionary was issued because S<L>::m has no definition.  Now
-that error is no longer emitted because S<T>::m is only referenced in an
+Previously a discretionary error was issued because S<L>::m has no definition.
+Now that error is no longer emitted because S<T>::m is only referenced in an
 unevaluated context.
 
 
