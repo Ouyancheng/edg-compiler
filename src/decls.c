@@ -5456,7 +5456,7 @@ as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
   if (symbol_is(sym, sk_variable)) {
     sym->variant.variable.ptr->used = TRUE;
   } else if (symbol_is(sym, sk_static_data_member)) {
-    sym->variant.static_data_member.variable = TRUE;
+    sym->variant.static_data_member.variable->used = TRUE;
   }  /* if */
 }  /* mark_symbol_to_suppress_warnings */
 
