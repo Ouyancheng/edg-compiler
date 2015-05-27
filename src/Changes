@@ -1,5 +1,15 @@
 Version 4.11
 
+5/27/15  [EDGcpfe/16253]
+Precompiled headers change __func__/__FUNCTION__
+
+The changes for EDGcpfe/10231 (see entry of 12/16/09) caused the front end to
+produce for __func__ (or __FUNCTION__, in Microsoft mode) the mangled name of
+the enclosing function if a prior declaration of that function was loaded from
+a precompiled header (otherwise, the normal "unmangled" name is produced).
+This is now fixed.
+
+
 5/23/15  [EDGcpfe/10607,EDGcpfe/14121,EDGcpfe/16076]
 Definitions of entities involving local types
 
