@@ -24176,7 +24176,7 @@ delegate definition (e.g., by calling check_for_cli_delegate_definition).
 Scan the definition and record it in the IL (as a special-purpose class type).
 
 This routine is sometimes called to load the definition of a delegate class
-whose declaration was already loaded: Class_type represents the corresponding
+whose declaration was already loaded: class_type represents the corresponding
 (still incomplete) class type in such cases (otherwise, class_type is NULL).
 */
 {
@@ -24257,7 +24257,7 @@ whose declaration was already loaded: Class_type represents the corresponding
 void scan_cli_delegate_definition_from_assembly_import(a_type_ptr  class_type)
 /*
 Scan a delegate definition generated from assembly metadata.  The type of the
-delegate is given by class type.  (Delegates from assemblies are first loaded
+delegate is given by class_type.  (Delegates from assemblies are first loaded
 as incomplete ref class declarations that can later be completed via a call to
 this function.  The caller has already ensured that the token stream contains
 a delegate definition corresponding to the assembly file.)
