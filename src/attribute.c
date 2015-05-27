@@ -4738,8 +4738,8 @@ attribute to it and return the entity.
     vp->cleanup_routine = sym->variant.routine.ptr;
     mark_routine_referenced(vp->cleanup_routine);
     vp->cleanup_routine->called = TRUE;
+    vp->used = TRUE;
     symbol_for(vp)->referenced = TRUE;
-    symbol_for(vp)->variant.variable.used = TRUE;
   }  /* if */
   return entity;
 }  /* apply_cleanup_attr */

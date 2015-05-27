@@ -2400,6 +2400,7 @@ Clear the fields of the given variable to default values.
 #if NAMED_REGISTERS_ALLOWED
   vp->has_named_register_storage_class = FALSE;
 #endif /* NAMED_REGISTERS_ALLOWED */
+  vp->used                        = FALSE;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->declared_using_type_without_linkage

@@ -5662,8 +5662,7 @@ an unnamed namespace.
      The will_be_instantiated check is used so that a template that could
      be instantiated is considered defined. */
   if (decls_using_types_without_linkage_allowed &&
-      (var_sym->variant.variable.used ||
-       (var_sym->referenced && is_any_reference_type(vp->type))) &&
+      (vp->used || (var_sym->referenced && is_any_reference_type(vp->type))) &&
       (vp->storage_class == (a_storage_class)sc_extern &&
        (!vp->is_template_static_data_member ||
         vp->is_prototype_instantiation ||
@@ -5824,8 +5823,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                                   es_remark);
             }  /* if */
           }  /* if */
-        } else if (var_ptr->param_value_has_been_changed &&
-                   !sym->variant.variable.used) {
+        } else if (var_ptr->param_value_has_been_changed && !var_ptr->used) {
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
       } else if (var_ptr->is_handler_param) {
@@ -5834,12 +5832,11 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           /* Unreferenced handler parameter. */
           report_unreferenced(sym, ec_declared_but_not_referenced,
                               es_remark);
-        } else if (var_ptr->param_value_has_been_changed &&
-                   !sym->variant.variable.used) {
+        } else if (var_ptr->param_value_has_been_changed && !var_ptr->used) {
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
       } else if ((!sym->referenced ||
-                  (sym->value_has_been_set && !sym->variant.variable.used))
+                  (sym->value_has_been_set && !var_ptr->used))
 #if GNU_EXTENSIONS_ALLOWED
                  && !var_ptr->has_gnu_unused_attribute
                  && !var_ptr->has_gnu_used_attribute
@@ -5949,9 +5946,6 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           if (sym->referenced) primary_sym->referenced = TRUE;
           if (sym->value_has_been_set) {
             primary_sym->value_has_been_set = TRUE;
-          } /* if */
-          if (sym->variant.variable.used) {
-            primary_sym->variant.variable.used = TRUE;
           } /* if */
         } /* if */
       }  /* if */

@@ -9648,6 +9648,11 @@ typedef struct a_variable {
 			   declared with an Embedded C (TR 18037) named
 			   register storage class. */
 #endif /* NAMED_REGISTERS_ALLOWED */
+  a_bit_field
+		used:1;
+			/* TRUE if the variable was directly used or had
+			   its address taken.  Volatile variables are always
+			   considered "used" in this way. */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */

@@ -2210,6 +2210,7 @@ IL entry in place of whatever is pointed to by the symbol.
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
         set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
+        sym_ptr->variant.static_data_member.variable->used = TRUE;
       }  /* if */
       scptr->referenced = TRUE;
     }  /* if */
@@ -2249,7 +2250,7 @@ IL entry in place of whatever is pointed to by the symbol.
     a_scope_stack_entry_ptr  ssep;
     a_variable_ptr           vp = sym_ptr->variant.variable.ptr;
     if (kind & (SRK_ALL_VARIABLE_USES | SRK_ERROR)) {
-      if (sym_ptr->variant.variable.used) {
+      if (vp->used) {
         /* This is not the first use. */
         if (vp->is_parameter || vp->is_handler_param) {
           /* Mark the parameter as multiply used (information that may be
@@ -2360,19 +2361,7 @@ check_label_decl_seq:
             pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
           }  /* if */
         }  /* if */
-        sym_ptr->variant.variable.used = TRUE;
-        if (scptr != NULL) {
-          /* The variable may point to a different symbol in cases like
-             this:
-               static int i = 1;
-               int f() { extern int i; return i; }
-             and it is necessary for the file-scope symbol to be marked
-             "used" too. */
-          a_symbol_ptr  other_sym = (a_symbol_ptr)scptr->assoc_info;
-          if (other_sym != sym_ptr && other_sym != NULL) {
-            other_sym->variant.variable.used = TRUE;
-          }  /* if */
-        }  /* if */
+        vp->used = TRUE;
       }  /* if */
     }  /* if */
     /* If this reference involves a modification or, by taking the variable's

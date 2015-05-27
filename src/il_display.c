@@ -2693,6 +2693,9 @@ Display the indicated variable.
     disp_boolean("asm_name_is_valid", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  if (ptr->used) {
+    disp_boolean("used", (a_boolean)ptr->used);
+  }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */

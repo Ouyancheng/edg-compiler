@@ -953,7 +953,6 @@ do_variable:
             put_string(buffer);
           }  /* if */
         } else {
-          if (sym->variant.variable.used) put_string("used");
 #if MAINTAIN_NEEDED_FLAGS
           if (var->source_corresp.needed) put_string("needed");
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -964,6 +963,7 @@ do_variable:
             if (var->param_used_more_than_once) put_string("multiply used");
           }  /* if */
         }  /* if */
+        if (var->used) put_string("used");
         if (var->is_anonymous_parent_object) {
           put_string("is anon parent object");
         }  /* if */
@@ -3784,7 +3784,6 @@ state.
       break;
     case sk_variable:
       sym_ptr->variant.variable.ptr = NULL;
-      sym_ptr->variant.variable.used = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       sym_ptr->variant.variable.declared_in_for_init = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

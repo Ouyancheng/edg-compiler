@@ -5452,9 +5452,11 @@ as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
 {
   /* Suppress declared-but-not-referenced warnings. */
   sym->referenced = TRUE;
-  if (sym->kind == (a_symbol_kind)sk_variable) {
-    /* Suppress set-but-not-used warnings. */
-    sym->variant.variable.used = TRUE;
+  /* Suppress set-but-not-used warnings. */
+  if (symbol_is(sym, sk_variable)) {
+    sym->variant.variable.ptr->used = TRUE;
+  } else if (symbol_is(sym, sk_static_data_member)) {
+    sym->variant.static_data_member.variable = TRUE;
   }  /* if */
 }  /* mark_symbol_to_suppress_warnings */
 
@@ -6906,16 +6908,6 @@ for use in generating cross-reference output describing this declaration.
         variable_ptr->source_corresp.referenced) {
       sym->referenced = TRUE;
     }  /* if */
-    /* Similarly, it should have its "used" flag set.  This is only needed
-       for file-scope static variables, in cases like this:
-         int f() { extern int i; return i; }
-         static int i = 0;
-       to avoid "set-but-never-used" diagnostics. */
-    source_corresp_ptr = &variable_ptr->source_corresp;
-    if (((a_symbol_ptr)source_corresp_ptr->assoc_info)->
-                                                  variant.variable.used) {
-      sym->variant.variable.used = TRUE;
-    }  /* if */
     /* Move the variable entry to the end of the variables list if this is
        its definition. */
     if (srk_flags & SRK_DEFINITION) {
@@ -6956,6 +6948,7 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
   /* Set the source correspondence, but leave it pointing at an outer-scope
      symbol if there is one. */
+  source_corresp_ptr = &variable_ptr->source_corresp;
   if (source_corresp_ptr->assoc_info == NULL) {
     /* There is no symbol pointed to from the variable or routine, so
        update it with the current symbol. */
@@ -7155,7 +7148,7 @@ for use in generating cross-reference output describing this declaration.
        IL referenced flag. */
     source_corresp_ptr->referenced = TRUE;
     sym->referenced = TRUE;
-    sym->variant.variable.used = TRUE;
+    variable_ptr->used = TRUE;
     sym->value_has_been_set = TRUE;
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are

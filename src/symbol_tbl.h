@@ -3423,10 +3423,6 @@ typedef struct a_symbol {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
-      a_bit_field
-		used:1;
-			/* TRUE if the variable was directly used or had
-			   its address taken. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		declared_in_for_init:1;
