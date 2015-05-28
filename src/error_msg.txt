@@ -2760,6 +2760,7 @@ ec_not_a_type_member;;"%t has no member %sq"
 ec_braced_list_for_implicit_return_type;;"a brace-enclosed list does not provide a return type"
 ec_await_not_allowed_outside_function_scope;;"an await expression must appear in a function scope"
 ec_await_not_allowed_in_catch_clause;;"an await expression is not allowed inside a catch clause"
+ec_coroutine_with_ellipsis_parameter;;"a coroutine cannot have an ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -983,7 +983,8 @@ constructor.
 static void wrap_up_coroutine(a_routine_ptr  rp)
 /*
 Handle any fixups for the given coroutine function, and, if needed, deduce its
-return type.
+return type.  Diagnose certain constraint violations if needed (e.g., a
+coroutine cannot have an ellipsis parameter).
 */
 {
   a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
@@ -1098,6 +1099,10 @@ return type.
     }  /* if */
   }  /* for */
   release_coroutine_fixups(cdp);
+  if (skip_typerefs(rp->type)->variant.routine.extra_info->has_ellipsis) {
+    pos_error(ec_coroutine_with_ellipsis_parameter,
+              &rp->source_corresp.decl_position);
+  }  /* if */
 }  /* wrap_up_coroutine */
 
 #endif /* COROUTINES_ALLOWED */
