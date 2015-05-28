@@ -40,10 +40,11 @@ expr.c -- Expression scanning routines.
 /* widen_string_literal is used by scan_microsoft_lprefix_operator. */
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-/* Needed for GNU statement expression, ({...}). */
+#if GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
+/* Needed for GNU statement expression, ({...}).  Also for check await
+   expressions. */
 #include "statements.h"
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
@@ -34499,6 +34500,9 @@ functions (like await_resume) from.
       cfp->tok_seq_number = tok_seq_number;
       cfp->await_uses_member_calls = use_member_calls;
       cdp->has_potentially_evaluated_await = TRUE;
+      if (in_catch_clause()) {
+        expr_pos_error(ec_await_not_allowed_in_catch_clause, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* add_await_to_operand */

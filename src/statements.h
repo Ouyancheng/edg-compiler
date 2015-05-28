@@ -526,6 +526,10 @@ extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
 extern a_boolean inside_statement_expression(void);
 
+#if COROUTINES_ALLOWED
+extern a_boolean in_catch_clause(void);
+#endif /* COROUTINES_ALLOWED */
+
 extern void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym);
 
 extern void statements_one_time_init(void);

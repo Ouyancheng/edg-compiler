@@ -6233,7 +6233,7 @@ The syntax is:
 
 #if COROUTINES_ALLOWED
 
-static a_boolean in_catch_clause(void)
+a_boolean in_catch_clause(void)
 /*
 Return TRUE if we are currently inside a catch clause.
 */

@@ -1230,6 +1230,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_special_class_template_not_found)*/
 /*lint -esym(769,ec_not_a_type_member)*/
 /*lint -esym(769,ec_await_not_allowed_outside_function_scope)*/
+/*lint -esym(769,ec_await_not_allowed_in_catch_clause)*/
 #endif /* !COROUTINES_ALLOWED */
 
 #endif /* ifndef LINT_H */
