@@ -8448,7 +8448,8 @@ member.
     promise_sym = look_up_name_string_in_class("promise_type", traits,
                                                IDL_NO_OPTIONS);
     if (promise_sym == NULL || !is_type_symbol(promise_sym)) {
-      pos_stty_error(ec_not_a_member, diag_pos, "promise_type", traits);
+      pos_stsy_error(ec_not_a_member, diag_pos, "promise_type",
+                     traits_inst_sym);
       promise_type = error_type();
     } else {
       promise_type = type_symbol_type(promise_sym);
