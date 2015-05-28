@@ -34435,7 +34435,6 @@ functions (like await_resume) from.
      a temporary lvalue is initialized from that prvalue and the temporary is
      used in the calls. */
   if (is_a_prvalue(operand)) {
-    
     temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
   }  /* if */
   utp = skip_typerefs(operand->type);
@@ -34486,16 +34485,21 @@ functions (like await_resume) from.
                                          make_node_from_operand(&resume_call);
   make_expression_operand(node, result);
   if (expr_stack->potentially_evaluated && !is_error_operand(result)) {
-    a_routine_ptr          curr_routine = current_routine_entry();
-    a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine);
-    a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
-    cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
-    cfp->entity.ptr = (char*)node;
-    cfp->operand = (void*)alloc_arg_list_elem_for_operand(&suspend_operand);
-    cfp->position = *pos;
-    cfp->tok_seq_number = tok_seq_number;
-    cfp->await_uses_member_calls = use_member_calls;
-    cdp->has_potentially_evaluated_await = TRUE;
+    if (innermost_function_scope == NULL) {
+      expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
+      conv_to_error_operand(operand);
+    } else {
+      a_routine_ptr          curr_routine = current_routine_entry();
+      a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine);
+      a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
+      cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
+      cfp->entity.ptr = (char*)node;
+      cfp->operand = (void*)alloc_arg_list_elem_for_operand(&suspend_operand);
+      cfp->position = *pos;
+      cfp->tok_seq_number = tok_seq_number;
+      cfp->await_uses_member_calls = use_member_calls;
+      cdp->has_potentially_evaluated_await = TRUE;
+    }  /* if */
   }  /* if */
 }  /* add_await_to_operand */
 

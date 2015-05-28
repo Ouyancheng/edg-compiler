@@ -2758,6 +2758,7 @@ ec_typename_needed;;"use the \"typename\" keyword to treat %n as a type in a dep
 ec_shufflevector_index_out_of_range;;"argument value must be less than the sum of the vector elements"
 ec_not_a_type_member;;"%t has no member %sq"
 ec_braced_list_for_implicit_return_type;;"a brace-enclosed list does not provide a return type"
+ec_await_not_allowed_outside_function_scope;;"await expressions are not allowed outside function scopes"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
