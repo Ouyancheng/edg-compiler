@@ -5799,10 +5799,14 @@ reaches the end of the main routine.  That behavior is also used in C89,
 in which such a return is undefined.
 */
 {
-  a_routine_ptr     rout;
+  a_routine_ptr     rout = current_routine_entry();
   a_type_ptr        rout_type, tp;
   a_boolean         issue_no_value_returned_diag = FALSE;
   an_error_severity no_returned_value_severity = es_none;
+#if COROUTINES_ALLOWED
+  a_coroutine_descr_ptr
+                    cdp = NULL;
+#endif /* COROUTINES_ALLOWED */
 
   *return_expr = NULL;
   /* Disable return value optimization in a function that contains a void
@@ -5811,8 +5815,9 @@ in which such a return is undefined.
     ssep->return_value_optimization_possible = FALSE;
     ssep->il_scope->variant.routine.return_value_variable = NULL;
   }
-  /* Get a pointer to the current routine entry. */
-  rout = current_routine_entry();
+#if COROUTINES_ALLOWED
+  if (rout->is_coroutine) cdp = get_coroutine_descr(rout);
+#endif /* COROUTINES_ALLOWED */
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -5821,6 +5826,9 @@ in which such a return is undefined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Constructors and destructors have no return value. */
+#if COROUTINES_ALLOWED
+  } else if (cdp != NULL && (cdp->has_yield || cdp->has_coroutine_return)) {
+#endif /* COROUTINES_ALLOWED */
   } else {
     /* Get the routine return type. */
     if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
@@ -6214,6 +6222,7 @@ The syntax is:
       cfp->entity.ptr = (char*)sp;
       cfp->position = return_pos;
       cfp->operand = (void*)alep;
+      cdp->has_coroutine_return = TRUE;
 #endif /* COROUTINES_ALLOWED */
     }  /* if */
   }  /* if */

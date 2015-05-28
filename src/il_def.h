@@ -16755,6 +16755,9 @@ typedef struct a_coroutine_descr {
   a_bit_field	has_potentially_evaluated_await:1;
 			/* TRUE if the coroutine includes a potentially-
 			   evaluated await expression. */
+  a_bit_field	has_coroutine_return:1;
+			/* TRUE if the coroutine includes a coroutine return
+			   statement. */
 } a_coroutine_descr;
 
 #endif /* COROUTINES_ALLOWED */

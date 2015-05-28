@@ -4669,6 +4669,9 @@ Display the indicated coroutine description.
   if (cdp->has_potentially_evaluated_await) {
     disp_boolean("has_potentially_evaluated_await", TRUE);
   }  /* if */
+  if (cdp->has_coroutine_return) {
+    disp_boolean("has_coroutine_return", TRUE);
+  }  /* if */
 }  /* disp_coroutine_descr */
 
 #endif /* COROUTINES_ALLOWED */
