@@ -37606,11 +37606,11 @@ This routine frees *alep.
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
 
+  check_assertion(curr_routine->is_coroutine || is_yield);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  check_assertion(curr_routine->is_coroutine || is_yield);
   /* Use the position of the given operand if one is given, and that of the
      current token otherwise. */
   pos = alep == NULL ? pos_curr_token : *init_component_pos(alep);
@@ -37623,6 +37623,7 @@ This routine frees *alep.
   make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
                                (a_ref_entry *)NULL);
   if (alep != NULL) {
+    curr_expr_ref_entries = operand_of_arg_list_elem(alep)->ref_entries_list;
     unbundle_init_component_expressions(alep);
   }  /* if */
   if (is_yield) {
