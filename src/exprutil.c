@@ -10905,7 +10905,7 @@ we rewrite it as an lvalue.
 */
 {
   an_expr_node_ptr expr = NULL;
-  a_boolean        is_function;
+  a_boolean        is_function = FALSE;
 
   if (is_a_prvalue(operand)) {
     if (is_constant_operand(operand)) {
