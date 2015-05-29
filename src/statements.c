@@ -5828,6 +5828,8 @@ in which such a return is undefined.
     /* Constructors and destructors have no return value. */
 #if COROUTINES_ALLOWED
   } else if (cdp != NULL && (cdp->has_yield || cdp->has_coroutine_return)) {
+    /* In coroutines, an actual (implicit) return statement cleans up the
+       coroutine activation and does not relate to the return type. */
 #endif /* COROUTINES_ALLOWED */
   } else {
     /* Get the routine return type. */
