@@ -41,7 +41,7 @@ expr.c -- Expression scanning routines.
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
-/* Needed for GNU statement expression, ({...}).  Also for check await
+/* Needed for GNU statement expression, ({...}).  Also for checking await
    expressions. */
 #include "statements.h"
 #endif /* GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
