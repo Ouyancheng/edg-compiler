@@ -14707,7 +14707,13 @@ constructors are handled separately.
         vtbl_var = NULL;
       }  /* if */
 #endif /* IA64_ABI */
-      if (vtbl_var != NULL) {
+      if (vtbl_var != NULL
+#if IA64_ABI
+          /* Suppress duplicate vptr setting when a base class shares a vptr
+             with the current class. */
+          && bcp != ctsp->virtual_function_info_base_class
+#endif /* IA64_ABI */
+                                                          ) {
         /* Set the virtual function table from the standard virtual function
            table for this base class. */
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);

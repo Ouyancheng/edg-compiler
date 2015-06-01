@@ -1,5 +1,20 @@
 Version 4.11
 
+6/1/15   [EDGcpfe/5907,EDGcpfe/7472]
+Eliminate redundant assignments to __vptr field in IA-64 configuration
+
+In cases where a class shares a virtual table with a base class, an assignment
+had been generated to initialize the same __vptr field two times (with the
+same value) the second assignment is now suppressed.  Only affects IA-64 ABI
+configurations that use lowering.  For example:
+
+  struct B {
+    virtual void f() {}
+  };
+  struct D : B { };
+  D d;
+
+
 5/27/15  [EDGcpfe/16253]
 Precompiled headers change __func__/__FUNCTION__
 
