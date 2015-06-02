@@ -16,16 +16,16 @@ errors.  For example:
     constexpr Y() {}
     constexpr Y(const X &p) : x(p) {}
   };
-  struct X {
+  struct Z {
     Y y;
-    constexpr X(Y p) : y(p) {}
+    constexpr Z(Y p) : y(p) {}
   };
 
 Previously, the generated copy constructor of Y was not considered "constexpr"
 even though it meets the requirements for that property.  As a result, an
-error was issued on the definition of the constexpr constructor for X.  That
+error was issued on the definition of the constexpr constructor for Z.  That
 is now fixed: The generated copy constructor of Y is constexpr, and the
-definition of the X constructor is accepted.
+definition of the Z constructor is accepted.
 
 
 6/2/15   [EDGcpfe/16218,EDGcpfe/16274]
