@@ -962,7 +962,9 @@ constructor.
          init is made (so that an unlowered version of the expression or
          dynamic init is preserved). */
       scope->is_constexpr_routine = TRUE;
-      if (scope->has_constexpr_return_expr) {
+      if (routine->compiler_generated || routine->is_defaulted) {
+        /* No need to save the return expression. */
+      } else if (scope->has_constexpr_return_expr) {
         scope->variant.routine.variant.constexpr_return_expr = copy_expr_tree(
                           scope->variant.routine.variant.constexpr_return_expr,
                           CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR |
@@ -3232,7 +3234,7 @@ empty statement block.
     if (rout_ptr->is_constexpr &&
         check_constexpr_routine_def_type(
                          rout_ptr, &rout_ptr->source_corresp.decl_position)) {
-      /* A default constructor satisfies the rules for a constexpr
+      /* A generated special member satisfies the rules for a constexpr
          constructor function body. */
       set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);
     }  /* if */

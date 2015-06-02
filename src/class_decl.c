@@ -18726,6 +18726,14 @@ typedef struct a_generated_special_function_descr {
 			/* Flags that are TRUE if the suppression of a
 			   corresponding member should result in an error.
 			   (Microsoft mode only.) */
+  a_boolean	copy_ctor_not_constexpr;
+  a_boolean	move_ctor_not_constexpr;
+  a_boolean	copy_assign_not_constexpr;
+  a_boolean	move_assign_not_constexpr;
+			/* Flags that are TRUE if the corresponding generated
+			   special member should not be constexpr (because it
+			   requires a call to a nonconstexpr subobject
+			   member). */
 } a_generated_special_function_descr;
 
 
@@ -18746,6 +18754,10 @@ Clear the fields of the given structure.
   descr->warn_about_suppressed_copy_ctor = FALSE;
   descr->warn_about_suppressed_copy_assign = FALSE;
   descr->warn_about_suppressed_dtor = FALSE;
+  descr->copy_ctor_not_constexpr = FALSE;
+  descr->move_ctor_not_constexpr = FALSE;
+  descr->copy_assign_not_constexpr = FALSE;
+  descr->move_assign_not_constexpr = FALSE;
 }  /* init_generated_special_function_descr */
 
 
@@ -18906,6 +18918,16 @@ variant field (i.e., a member of a union or anonymous union).
                            &class_type->source_corresp.decl_position,
                            class_type, type);
       }  /* if */
+    } else if (rout_sym != NULL) {
+      rout_sym = fundamental_symbol_of(rout_sym);
+      if (symbol_is(rout_sym, sk_member_function)) {
+        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+        if (!rp->is_constexpr) {
+          /* If this special member has to call a non-constexpr special
+             member, it is itself not constexpr. */
+          gsfd->copy_assign_not_constexpr = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check the move assignment operator. */
@@ -18928,10 +18950,17 @@ variant field (i.e., a member of a union or anonymous union).
       gsfd->suppress_move_assign = TRUE;
     } else if (rout_sym != NULL) {
       rout_sym = fundamental_symbol_of(rout_sym);
-      if (symbol_is(rout_sym, sk_member_function) &&
-          !rout_sym->variant.routine.ptr->is_trivial_copy_function) {
-        class_symbol_supp(symbol_for(class_type))
+      if (symbol_is(rout_sym, sk_member_function)) {
+        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+        if (!rp->is_trivial_copy_function) {
+          class_symbol_supp(symbol_for(class_type))
                                     ->makes_move_assignment_nontrivial = TRUE;
+        }  /* if */
+        if (!rp->is_constexpr) {
+          /* If this special member has to call a non-constexpr special
+             member, it is itself not constexpr. */
+          gsfd->move_assign_not_constexpr = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18971,6 +19000,16 @@ variant field (i.e., a member of a union or anonymous union).
                            &class_type->source_corresp.decl_position,
                            class_type, type);
       }  /* if */
+    } else if (rout_sym != NULL) {
+      rout_sym = fundamental_symbol_of(rout_sym);
+      if (symbol_is(rout_sym, sk_member_function)) {
+        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+        if (!rp->is_constexpr) {
+          /* If this special member has to call a non-constexpr special
+             member, it is itself not constexpr. */
+          gsfd->copy_ctor_not_constexpr = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check the move constructor. */
@@ -18993,10 +19032,17 @@ variant field (i.e., a member of a union or anonymous union).
       gsfd->suppress_move_ctor = TRUE;
     } else if (rout_sym != NULL) {
       rout_sym = fundamental_symbol_of(rout_sym);
-      if (symbol_is(rout_sym, sk_member_function) &&
-          !rout_sym->variant.routine.ptr->is_trivial_copy_function) {
-        class_symbol_supp(symbol_for(class_type))
+      if (symbol_is(rout_sym, sk_member_function)) {
+        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+        if (!rp->is_trivial_copy_function) {
+          class_symbol_supp(symbol_for(class_type))
                                   ->makes_move_construction_nontrivial = TRUE;
+        }  /* if */
+        if (!rp->is_constexpr) {
+          /* If this special member has to call a non-constexpr special
+             member, it is itself not constexpr. */
+          gsfd->move_ctor_not_constexpr = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -19115,6 +19161,14 @@ warnings or remarks may be issued.
         check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp,
                                                      fp->is_mutable,
                                                      variant_field);
+      }  /* if */
+      if (class_type->kind == (a_type_kind)tk_union ||
+          sym->variant.field.extra_info->is_variant_member) {
+        /* Constexpr copy functions cannot deal with variant members. */
+        gsfd->copy_ctor_not_constexpr = TRUE;
+        gsfd->move_ctor_not_constexpr = TRUE;
+        gsfd->copy_assign_not_constexpr = TRUE;
+        gsfd->move_assign_not_constexpr = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -19545,28 +19599,32 @@ for C++/CLI managed classes the type of the parameter is X cv%.
 }  /* make_copy_function_param */
 
 
-static void generate_copy_constructor(a_class_def_state_ptr  class_state,
-                                      a_boolean              suppressed,
-                                      a_type_qualifier_set   qualifiers)
+static void generate_copy_constructor(
+                              a_class_def_state_ptr               class_state,
+                              a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a copy constructor to the class definition described by
-class_state.  If suppressed is TRUE, define the construct "deleted" (or, in
-some Microsoft modes, record that the constructor body cannot be generated).
-qualifiers determine the cv-qualification of the constructor's parameter.
+class_state.  *gsfd describes various properties of generated special member
+functions (e.g., whether they're suppressed).
 */
 {
   a_type_ptr          class_type = class_state->class_type;
-  a_param_type_ptr    ptp = make_copy_function_param(class_type, qualifiers);
+  a_param_type_ptr    ptp;
   a_member_decl_info  decl_info;
   a_func_info_block   func_info;
 
+  ptp = make_copy_function_param(class_type, gsfd->copy_ctor_qualifiers);
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (suppressed) {
+  if (gsfd->suppress_copy_ctor) {
     mark_special_member_suppressed(decl_info.decl_state.sym);
+  }  /* if */
+  if (constexpr_enabled && !gsfd->copy_ctor_not_constexpr &&
+      !class_type->variant.class_struct_union.any_virtual_base_classes) {
+    decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
   }  /* if */
 }  /* generate_copy_constructor */
 
@@ -19581,10 +19639,13 @@ operator for the given class type X.  The type of the parameter is X&&.
 }  /* make_move_function_param */
 
 
-static void generate_move_constructor(a_class_def_state_ptr  class_state)
+static void generate_move_constructor(
+                              a_class_def_state_ptr               class_state,
+                              a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a move constructor to the class definition described by
-class_state.
+class_state.  *gsfd describes various properties of generated special member
+functions (e.g., whether they're suppressed).
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -19597,6 +19658,10 @@ class_state.
   decl_info.is_constructor = TRUE;
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
+  if (constexpr_enabled && !gsfd->move_ctor_not_constexpr &&
+      !class_type->variant.class_struct_union.any_virtual_base_classes) {
+    decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
+  }  /* if */
 }  /* generate_move_constructor */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19825,15 +19890,13 @@ record that fact in *gsfd.
 }  /* check_if_default_ctor_needed */
 
 static void generate_copy_assignment_operator(
-                                           a_class_def_state_ptr  class_state,
-                                           a_boolean              suppressed,
-                                           a_type_qualifier_set   qualifiers)
+                              a_class_def_state_ptr               class_state,
+                              a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a copy assignment operator to the class definition
-described by class_state.  If suppressed is TRUE, make that operator "deleted"
-(or, in some Microsoft modes, record that the body cannot be generated).
-The parameter of the assignment operator is of type X& (where X is the possibly
-qualified parent class type) and qualifiers describes the qualifiers in X.
+described by class_state.  *gsfd describes various properties of generated
+special member functions (e.g., whether they're suppressed).
+
 (In some modes, a second operator is declared to handle "far" objects.)
 */
 {
@@ -19844,11 +19907,16 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
   a_func_info_block   func_info;
 
   initialize_member_decl_info(&decl_info, pos);
-  ptp = make_copy_function_param(class_type, qualifiers);
+  ptp = make_copy_function_param(class_type, gsfd->copy_assign_qualifiers);
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (suppressed) {
+  if (gsfd->suppress_copy_assign) {
     mark_special_member_suppressed(decl_info.decl_state.sym);
+  }  /* if */
+  if (constexpr_enabled && !gsfd->copy_assign_not_constexpr &&
+      !class_symbol_supp(symbol_for(class_type))
+                                           ->known_not_to_be_a_literal_type) {
+    decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
@@ -19864,7 +19932,7 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
       clear_func_info(&func_info);
       generate_special_function(class_state, &decl_info, &func_info, ptp);
     }  /* if */
-    if (suppressed) {
+    if (gsfd->suppress_copy_assign) {
       mark_special_member_suppressed(decl_info.decl_state.sym);
     }  /* if */
   }  /* if */
@@ -19873,10 +19941,12 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
 
 
 static void generate_move_assignment_operator(
-                                           a_class_def_state_ptr  class_state)
+                              a_class_def_state_ptr               class_state,
+                              a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a move assignment operator to the class definition
-described by class_state.
+described by class_state.  *gsfd describes various properties of generated
+special member functions (e.g., whether they're suppressed).
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -19889,6 +19959,11 @@ described by class_state.
   ptp = make_move_function_param(class_type);
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
+  if (constexpr_enabled && !gsfd->move_assign_not_constexpr &&
+      !class_symbol_supp(symbol_for(class_type))
+                                           ->known_not_to_be_a_literal_type) {
+    decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
+  }  /* if */
 }  /* generate_move_assignment_operator */
 
 
@@ -20944,7 +21019,7 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (declare_move_ctor && !gsfd.suppress_move_ctor) {
-    generate_move_constructor(class_state);
+    generate_move_constructor(class_state, &gsfd);
   }  /* if */
   if (declare_copy_ctor) {
     if (microsoft_mode && microsoft_version < 1400 &&
@@ -20958,8 +21033,7 @@ The routine body is not generated until it is known to be needed.
          user-declared move constructor. */
       class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
     } else {
-      generate_copy_constructor(class_state, gsfd.suppress_copy_ctor,
-                                gsfd.copy_ctor_qualifiers);
+      generate_copy_constructor(class_state, &gsfd);
     }  /* if */
   }  /* if */
   if (declare_dtor) {
@@ -21007,13 +21081,12 @@ The routine body is not generated until it is known to be needed.
       class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
-      generate_copy_assignment_operator(class_state, gsfd.suppress_copy_assign,
-                                        gsfd.copy_assign_qualifiers);
+      generate_copy_assignment_operator(class_state, &gsfd);
     }  /* if */
   }  /* if */
   if (declare_move_asgn_op && !gsfd.suppress_move_assign) {
-      /* Add the implicit declaration of the move assignment operator. */
-      generate_move_assignment_operator(class_state);
+    /* Add the implicit declaration of the move assignment operator. */
+    generate_move_assignment_operator(class_state, &gsfd);
   }  /* if */
   mark_trivial_special_members(class_state, &gsfd);
   /* If there were user-provided copy constructors and/or user-provided copy
@@ -27992,7 +28065,15 @@ flag is set in the class symbol supplement of the given type.
             if (rp->is_constexpr &&
                 !special_kind_is(rp, sfk_constructor) &&
                 routine_type_is_nonstatic_member_function(rp->type)) {
-              if (is_destructor_symbol(member_sym)) {
+              if (rp->compiler_generated) {
+                /* A compiler-generated copy/move assignment operator.  At the
+                   time it was generated, we couldn't know completely know if
+                   the enclosing type is a literal type, and just assumed it
+                   would be.  Since that assumption turned out to be incorrect,
+                   silently clear the is_constexpr flag. */
+                rp->is_constexpr = FALSE;
+                continue;
+              } else if (is_destructor_symbol(member_sym)) {
                 /* Don't issue this diagnostic for destructors: A more
                    specialized error is issued elsewhere. */
                 expect_error();
@@ -30492,11 +30573,16 @@ For example:
        generate a lambda conversion function. */
     scan_lambda_body(lambda, &func_info);
   }  /* if */
-  generate_lambda_conversion_functions_if_needed(lambda, &class_state,
-                                                 &func_info);
-  generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
-  generate_copy_assignment_operator(&class_state, /*is_deleted=*/TRUE,
-                                    TQ_CONST);
+  { /* Generate conversion functions and special member functions. */
+    a_generated_special_function_descr  gsfd;
+    init_generated_special_function_descr(&gsfd);
+    generate_lambda_conversion_functions_if_needed(lambda, &class_state,
+                                                   &func_info);
+    generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
+    gsfd.copy_ctor_qualifiers = TQ_CONST;
+    gsfd.suppress_copy_assign = TRUE;
+    generate_copy_assignment_operator(&class_state, &gsfd);
+  }
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();

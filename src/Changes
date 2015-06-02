@@ -1,5 +1,33 @@
 Version 4.11
 
+6/2/15   [EDGcpfe/16261]
+Generated copy/move functions and constexpr
+
+The front end previously never marked generated copy/move constructors and
+copy/move assignment operators as constexpr.  That could result in spurious
+errors.  For example:
+
+  struct X {
+    constexpr X() {}
+    constexpr X(X const&) {}
+  };
+  struct Y {
+    X x;
+    constexpr Y() {}
+    constexpr Y(const X &p) : x(p) {}
+  };
+  struct X {
+    Y y;
+    constexpr X(Y p) : y(p) {}
+  };
+
+Previously, the generated copy constructor of Y was not considered "constexpr"
+even though it meets the requirements for that property.  As a result, an
+error was issued on the definition of the constexpr constructor for X.  That
+is now fixed: The generated copy constructor of Y is constexpr, and the
+definition of the X constructor is accepted.
+
+
 6/2/15   [EDGcpfe/16218,EDGcpfe/16274]
 Precompiled header files and COMPILE_MULTIPLE_SOURCE_FILES
 
