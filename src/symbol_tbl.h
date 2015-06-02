@@ -410,6 +410,7 @@ Clear a symbol locator.
    nonreal, non-prototype-instantiation template class. */
 #define locator_for_curr_id_is_member_of_nonreal_template_class()       \
   (locator_for_curr_id.is_class_member &&                               \
+   is_class_struct_union_type(locator_for_curr_id.parent.class_type) && \
    locator_for_curr_id.parent.class_type->                              \
                          variant.class_struct_union.is_nonreal_class && \
    locator_for_curr_id.parent.class_type->                              \
