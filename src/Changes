@@ -7,7 +7,7 @@ The front end issued a command-line error if an attempt was made to use
 precompiled headers in configurations with COMPILE_MULTIPLE_SOURCE_FILES
 set to TRUE.  This limitation is only necessary for configurations that
 have USE_FIXED_ADDRESS_FOR_MMAP set to FALSE.  The error is now only
-issued when such configurations.  If you had already made a change to
+issued in such configurations.  If you had already made a change to
 disable that command-line error, there was a problem with the maintenance
 of the memory allocation history information and reusable memory block
 information that could prevent precompiled headers from being used
