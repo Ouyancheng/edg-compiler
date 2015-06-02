@@ -1366,6 +1366,8 @@ end memory region.
     }  /* for */
     /* Free the front end memory region. */
     free_memory_region(NULL_region_number);
+    free_mapped_mem_blocks();
+    reusable_blocks_list = NULL;
   }  /* if */
 }  /* free_all_memory_regions */
 

@@ -10225,9 +10225,13 @@ enable_microsoft_mode:
     if (ofile_name != NULL || f_raw_listing != NULL || f_xref_info != NULL) {
       command_line_error(ec_cl_output_file_incompatible_with_multiple_inputs);
     }  /* if */
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+    /* The preallocation mechanism can't be used with multiple source file
+       compilation. */
     if (precompiled_header_processing_required) {
       command_line_error(ec_cl_pch_incompatible_with_multiple_inputs);
     }  /* if */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
       command_line_error(
