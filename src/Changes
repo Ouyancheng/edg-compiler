@@ -1,5 +1,20 @@
 Version 4.11
 
+6/2/15   [EDGcpfe/16272]
+__underlying_type and explicit enum base types
+
+When an enum type specifies an explicit base type that itself has an underlying
+integer type (e.g., bool), the type traits helper __underlying_type previously
+produced the underlying type of the base type instead of the base type itself.
+For example, with
+
+  enum E: bool { no, yes };
+
+the front end might have produced type char for "__underlying_type(E)" (if the
+underlying representation of bool is char).  Now, the explicit base type is
+produced instead.
+
+
 6/2/15   [EDGcpfe/16261]
 Generated copy/move functions and constexpr
 

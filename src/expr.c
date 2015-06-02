@@ -13247,19 +13247,21 @@ from outside of the expression-processing routines.
   } else {
     if (is_enum_type(type_arg)) {
       /* Extract the underlying integral type. */
+      an_integer_type_supplement_ptr  itsp;
       result = skip_typerefs(type_arg);
+      itsp = integer_type_supp(result);
+      if (result->variant.integer.has_explicit_enum_base) {
+        result = itsp->base_type;
 #if GNU_EXTENSIONS_ALLOWED
-      if (integer_type_supp(result)->underlying_type_should_use_unsigned) {
+      } else if (itsp->underlying_type_should_use_unsigned) {
         /* Usually, the underlying type of an enum type corresponds to the
            integer type the enum type promotes to.  In GCC that is not the
            case, and "int_kind" represents the integer kind promoted to.
            If appropriate, produce the unsigned counterpart here. */
         result = integer_type(
                       unsigned_int_kind_of[result->variant.integer.int_kind]);
-      } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         result = integer_type(result->variant.integer.int_kind);
       }  /* if */
     } else if (is_template_param_type(type_arg)) {
