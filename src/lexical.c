@@ -15690,15 +15690,14 @@ all arguments were explicit.
         /* Don't advance to the next parameter if this is a pack. */
         orig_param_ptr = orig_param_ptr->next;
       }  /* if */
-      if (is_template_dependent_context() &&
-          any_packs_referenced() && first_pack == NULL) {
-        first_pack = arg_ptr;
-      }  /* if */
       ++arg_number;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
       if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       any_args = advance_to_next_pack_element(pesep);
+      if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
+        first_pack = arg_ptr;
+      }  /* if */
     }  /* while */
   } while (loop_token(tok_comma));
   /* If we were processing arguments associated with a parameter pack,

@@ -1,5 +1,20 @@
 Version 4.11
 
+6/3/15   [EDGcpfe/16040]
+Default template arguments and template parameter packs
+
+A change in version 4.10 could cause incorrect processing of a variadic
+template that uses a template parameter pack as an argument to a template
+that has default template arguments.  Now fixed.
+
+  template<typename T, typename T2 = int > class A {};
+  template <typename... Args> void f(A<Args>&... a);
+  int main() {
+    A<int> a, b;
+    f(a, b);
+  }
+
+
 6/3/15   [EDGcpfe/14560,EDGcpfe/16225]
 Non-constant return in prototype instantiations of constexpr function
 
