@@ -37906,23 +37906,29 @@ handle_deduced_return_type:
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */
-    a_boolean use_icp = (icp != NULL && !return_by_cctor_case);
+    a_boolean          use_icp = (icp != NULL && !return_by_cctor_case);
+    an_error_severity  sev = es_none;
+    a_source_position  *pos = (use_icp ? init_component_pos(icp)
+                                       : &result.position);
     if (use_icp ? init_state.init_error : is_error_operand(&result)) {
       /* There was a previous error. */
     } else if (curr_routine->is_template_function &&
-               !curr_routine->is_prototype_instantiation &&
                !curr_routine->is_specialized) {
       /* For an instance of a template, if the instantiation is non-constant
          clear the constexpr flag and issue no error. */
       curr_routine->is_constexpr = FALSE;
+      if (curr_routine->is_prototype_instantiation) {
+        /* If this applies during the prototype instantiation, the program is
+           technically ill-formed.  However, no diagnostic is required and
+           other compilers do not diagnose it. */
+        sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+      }  /* if */
     } else {
-      a_source_position *pos = (use_icp ? init_component_pos(icp) :
-                                           &result.position);
-      expr_pos_diagnostic(seq_is_in_system_header(pos->seq) ?
-                            es_warning :
-                            es_discretionary_error,
-                          ec_constexpr_return_not_constant,
-                          pos);
+      sev = seq_is_in_system_header(pos->seq) ? es_warning :
+                                                es_discretionary_error;
+    }  /* if */
+    if (sev != es_none) {
+      expr_pos_diagnostic(sev, ec_constexpr_return_not_constant, pos);
     }  /* if */
   }  /* if */
   free_init_component_list(icp);
