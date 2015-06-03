@@ -19913,7 +19913,7 @@ special member functions (e.g., whether they're suppressed).
   if (gsfd->suppress_copy_assign) {
     mark_special_member_suppressed(decl_info.decl_state.sym);
   }  /* if */
-  if (constexpr_enabled && !gsfd->copy_assign_not_constexpr &&
+  if (relaxed_constexpr_enabled && !gsfd->copy_assign_not_constexpr &&
       !class_symbol_supp(symbol_for(class_type))
                                            ->known_not_to_be_a_literal_type) {
     decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
@@ -19959,7 +19959,7 @@ special member functions (e.g., whether they're suppressed).
   ptp = make_move_function_param(class_type);
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
-  if (constexpr_enabled && !gsfd->move_assign_not_constexpr &&
+  if (relaxed_constexpr_enabled && !gsfd->move_assign_not_constexpr &&
       !class_symbol_supp(symbol_for(class_type))
                                            ->known_not_to_be_a_literal_type) {
     decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
@@ -28067,12 +28067,11 @@ flag is set in the class symbol supplement of the given type.
                 routine_type_is_nonstatic_member_function(rp->type)) {
               if (rp->compiler_generated) {
                 /* A compiler-generated copy/move assignment operator.  At the
-                   time it was generated, we couldn't know completely know if
-                   the enclosing type is a literal type, and just assumed it
-                   would be.  Since that assumption turned out to be incorrect,
+                   time it was generated, we couldn't know completely if the
+                   enclosing type is a literal type and just assumed it would
+                   be.  Since that assumption turned out to be incorrect,
                    silently clear the is_constexpr flag. */
                 rp->is_constexpr = FALSE;
-                continue;
               } else if (is_destructor_symbol(member_sym)) {
                 /* Don't issue this diagnostic for destructors: A more
                    specialized error is issued elsewhere. */

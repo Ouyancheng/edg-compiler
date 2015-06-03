@@ -3234,8 +3234,8 @@ empty statement block.
     if (rout_ptr->is_constexpr &&
         check_constexpr_routine_def_type(
                          rout_ptr, &rout_ptr->source_corresp.decl_position)) {
-      /* A generated special member satisfies the rules for a constexpr
-         constructor function body. */
+      /* A generated special member satisfies the rules for the body of a
+         constexpr constructor or function. */
       set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);
     }  /* if */
     /* Terminate the function scope. */
