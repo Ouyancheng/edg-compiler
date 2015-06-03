@@ -1,6 +1,6 @@
 Version 4.11
 
-6/3/15   [EDGcpfe/16225]
+6/3/15   [EDGcpfe/14560,EDGcpfe/16225]
 Non-constant return in prototype instantiations of constexpr function
 
 A constexpr function template with a return statement that produces a non-
