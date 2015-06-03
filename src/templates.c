@@ -11563,6 +11563,7 @@ make_new_type:
             } else {
               prev_ptp->next = new_ptp;
             }  /* if */
+            if (first_element == NULL) first_element = new_ptp;
           }  /* if */
           if (ptp->is_parameter_pack) {
             /* Add this entry to the variadic param info list.  The
