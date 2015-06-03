@@ -30579,7 +30579,7 @@ For example:
     generate_lambda_conversion_functions_if_needed(lambda, &class_state,
                                                    &func_info);
     generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
-    gsfd.copy_ctor_qualifiers = TQ_CONST;
+    gsfd.copy_assign_qualifiers = TQ_CONST;
     gsfd.suppress_copy_assign = TRUE;
     generate_copy_assignment_operator(&class_state, &gsfd);
   }
