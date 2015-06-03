@@ -14400,6 +14400,27 @@ initialization code.
   }  /* for */
 }  /* add_virtual_base_init_code */
 
+#if IA64_ABI
+
+static a_boolean bcp_shares_vtbl_with_primary(a_base_class_ptr bcp,
+                                              a_base_class_ptr primary)
+/*
+Returns TRUE if bcp shares a virtual table with the base class "primary" or
+one of the base classes with which it shares a virtual table.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (; primary != NULL; primary = primary->primary_base_class) {
+    if (bcp == primary) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* bcp_shares_vtbl_with_primary */
+
+#endif /* IA64_ABI */
 
 static void add_usual_constructor_wrapper_code(
                                            a_scope_ptr        scope,
@@ -14709,11 +14730,12 @@ constructors are handled separately.
 #endif /* IA64_ABI */
       if (vtbl_var != NULL
 #if IA64_ABI
-          /* Suppress duplicate vptr setting when a base class shares a vptr
-             with the current class. */
-          && bcp != ctsp->virtual_function_info_base_class
+          /* Suppress vptr setting if this base class shares a vtable
+             with the current class (that was handled by the call to
+             insert_primary_vtbl_assignment above). */
+          && !(bcp_shares_vtbl_with_primary(bcp, ctsp->primary_base_class))
 #endif /* IA64_ABI */
-                                                          ) {
+                                                                           ) {
         /* Set the virtual function table from the standard virtual function
            table for this base class. */
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
