@@ -1,5 +1,21 @@
 Version 4.11
 
+6/4/15   [EDGcpfe/16210]
+Incorrect substitution of function templates with default template arguments
+
+If a function template with default template arguments was called using
+a partial explicit template argument list, a deduction failure or an
+internal error (in copy_template_param_con) could occur.  Now fixed.
+The example below resulted in a spurious deduction failure.
+
+  template <bool> struct A { typedef int X; };
+  template <class T, int i=1, typename A<(i==2)>::X=0>
+                                            constexpr bool f() { return true; }
+  template <class T1, typename A<(f<T1>())>::X=0>
+                                   constexpr bool g(const T1&) { return true; }
+  template <class T = decltype(g(4))> void h();
+
+
 6/4/15   [EDGcpfe/16203]
 Erroneous settings for __vptr fields in lowered code
 

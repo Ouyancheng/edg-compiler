@@ -10414,7 +10414,7 @@ associated parameter.
     }  /* if */
     if ((!any_more || tap == NULL) &&
         have_params && tpp != NULL && tpp->has_default_arg &&
-        template_sym != NULL) {
+        template_sym != NULL && is_class_template_symbol(template_sym)) {
       /* This is an empty pack expansion for a template parameter with a
          default argument, or a missing template argument (which can occur
          following a use of a pack as an argument to a non-pack).  Get the
