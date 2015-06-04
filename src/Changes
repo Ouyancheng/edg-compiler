@@ -19,9 +19,9 @@ that has default template arguments.  Now fixed.
 Non-constant return in prototype instantiations of constexpr function
 
 A constexpr function template with a return statement that produces a non-
-constant expression in all instantiation is invalid in C++11.  Although the
+constant expression in all instantiations is invalid in C++11.  Although the
 standard makes a diagnostic optional in such cases, the front end often does
-manage to identify such errors.  Other compilers do not however, and to
+manage to identify such errors.  Other compilers do not, however, and to
 improve compatibility with such compilers the severity of the front end's
 diagnostic has been lowered to a warning in such cases (except in strict
 mode).  For example:
