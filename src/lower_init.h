@@ -352,6 +352,13 @@ extern void make_null_thread_local_init_routine_for_variable(
 extern void create_mv_resolver(a_routine_ptr representative);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
+extern void initialize_vptrs_in_class(
+                                     a_type_ptr         class_type,
+                                     a_variable_ptr     this_param_var,
+                                     a_variable_ptr     construction_vtbls_var,
+                                     a_constant_ptr     aggr_con,
+                                     an_insert_location *insert_location);
+
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */
 

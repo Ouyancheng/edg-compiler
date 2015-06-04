@@ -1,5 +1,26 @@
 Version 4.11
 
+6/4/15   [EDGcpfe/16203]
+Erroneous settings for __vptr fields in lowered code
+
+As a result of the changes for EDGcpfe/8523, lowering became responsible
+for inserting constants in aggregates to properly initialize __vptr fields
+in certain constexpr constants.  Recent changes (EDGcpfe/16195) exposed
+errors in the way these __vptr fields were initialized (which had resulted
+in the fields being initialized to incorrect values).  The initialization
+has been rewritten to share the same algorithm as is used when generating
+executable code to initialize the fields.  For example (with --c++11):
+
+  struct B {
+    virtual void f() {}
+  };
+  struct D: B {
+    int x;
+    constexpr D(int): x(42) {}
+  };
+  D d{42};    // Had pointed to virtual table for B, not D.
+
+
 6/4/15   [EDGcpfe/16282]
 Spurious floating-point errors on certain constants
 

@@ -4113,7 +4113,7 @@ typedef struct a_constant {
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants are only visited one time.
 			   TRUE for ck_aggregate constants that have had
-			   a vptr field inserted. */
+			   an initializer for the __vptr field inserted. */
   a_bit_field	empty_base_classes_have_been_removed:1;
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants only have their empty
@@ -6847,7 +6847,7 @@ typedef struct a_base_class {
 			   functions but inherits some can have a primary
 			   base class (primary_base_class non-NULL) but
 			   that base class will have
-			   shares_virtual_function_info NULL. */
+			   shares_virtual_function_info set to FALSE. */
   a_bit_field	ignore_during_dependent_lookup:1;
 			/* TRUE if this base class should not be considered
 			   when looking up dependent names.  This is the case

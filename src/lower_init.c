@@ -141,6 +141,10 @@ static a_boolean tls_init_emitted;
                         /* TRUE if a __tls_init function has been emitted in
                            this translation unit. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+static void initialize_vptr(an_expr_node_ptr   vtbl_addr_node,
+                            an_expr_node_ptr   vptr_node,
+                            a_constant_ptr     aggr_con,
+                            an_insert_location *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -14216,6 +14220,7 @@ static
 void insert_primary_vtbl_assignment(a_type_ptr             class_type,
                                     a_variable_ptr         this_param_var,
                                     a_variable_ptr         ctor_vtbl_var,
+                                    a_constant_ptr         aggr_con,
                                     an_insert_location_ptr insert_location)
 /*
 If class_type has a virtual function table, set the vptr in the object pointed
@@ -14223,11 +14228,13 @@ to by this_param_var to that virtual function table.  If ctor_vtbl_var
 is non-NULL, the primary virtual function table can be found in the 
 location pointed to by the ctor_vtbl_var.  Otherwise, the primary 
 virtual function table used is the virtual function table for class_type.
-Insert the code at the location given by insert_location.
+If aggr_con is non-NULL, insert code to do the assignment at the location given
+by insert_location, otherwise, add an initializer to aggr_con to initialize
+the __vptr field.
 */
 {
   a_variable_ptr              primary_vtbl_var;
-  an_expr_node_ptr            vtbl_addr_node, vptr_node;
+  an_expr_node_ptr            vtbl_addr_node;
   a_class_type_supplement_ptr ctsp;
 
 #if IA64_ABI
@@ -14250,11 +14257,11 @@ Insert the code at the location given by insert_location.
   if (vtbl_addr_node != NULL) {
     /* Assign the primary virtual table address to the virtual table
        pointer in the current class. */
-    vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
-    (void)insert_assignment_statement(vptr_node,
-                                      (an_expr_operator_kind)eok_assign,
-                                      vtbl_addr_node,
-                                      insert_location);
+    initialize_vptr(vtbl_addr_node,
+                    aggr_con == NULL ?
+                                   make_class_lvalue_from_var(this_param_var) :
+                                   (an_expr_node_ptr)NULL,
+                    aggr_con, insert_location);
   }  /* if */
 }  /* insert_primary_vtbl_assignment */
 
@@ -14360,6 +14367,7 @@ initialization code.
      constructors can reference members of virtual base classes. */
   insert_primary_vtbl_assignment(class_type, this_param_var,
                                  construction_vtbls_var,
+                                 (a_constant_ptr)NULL,
                                  insert_location);
 #endif /* IA64_ABI */
   /* Initialize any virtual base classes on the ctor_init list. */
@@ -14394,6 +14402,7 @@ initialization code.
          proper location. */
       insert_primary_vtbl_assignment(class_type, this_param_var,
                                      construction_vtbls_var,
+                                     (a_constant_ptr)NULL,
                                      insert_location);
     }  /* if */
 #endif /* IA64_ABI */
@@ -14422,6 +14431,258 @@ one of the base classes with which it shares a virtual table.
 
 #endif /* IA64_ABI */
 
+static a_constant_ptr constant_for_base_class(a_constant_ptr   aggr_con,
+                                              a_base_class_ptr bcp)
+/*
+For the given aggregate constant, aggr_con, return the nested aggregate
+constant that corresponds to the base class specified by bcp (which is a
+base class of aggr_con->type).
+*/
+{
+  a_constant_ptr  cp;
+  a_field_ptr     field;
+  a_type_ptr      class_type = skip_typerefs(aggr_con->type);
+
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  cp = aggr_con->variant.aggregate.first_constant;
+  for (field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+       field != NULL && cp != NULL;
+       field = next_initializable_field(field->next)) {
+    if (bcp->offset == field->offset) {
+      /* This field is at the proper offset; return the corresponding
+         constant. */
+      break;
+    }  /* if */
+    cp = cp->next;
+  }  /* for */
+  check_assertion(cp != NULL);
+  return cp;
+}  /* constant_for_base_class */
+
+
+static void initialize_vptr(an_expr_node_ptr   vtbl_addr_node,
+                            an_expr_node_ptr   vptr_node,
+                            a_constant_ptr     aggr_con,
+                            an_insert_location *insert_location)
+/*
+Initialize the __vptr field to the value found in vptr_node.  The
+initialization can take the form of an assignment statement (when aggr_con is
+NULL), in which case an expression for the address of the virtual table pointer
+field is given by vtbl_addr_node and the executable code is inserted at
+*insert_location.  When aggr_con is non-NULL, find the appropriate __vptr
+field in the aggregate constant and add an initialization to the constant value
+given by vptr_node.
+*/
+{
+  if (aggr_con == NULL) {
+    check_assertion(insert_location != NULL);
+    /* Make and insert the assignment statement. */
+    vptr_node = make_vptr_field_lvalue(vptr_node);
+    (void)insert_assignment_statement(vptr_node,
+                                      (an_expr_operator_kind)eok_assign,
+                                      vtbl_addr_node,
+                                      insert_location);
+  } else {
+    /* Find the appropriate spot in the aggregate constant to insert the
+       initializer for the __vptr field.  Note that vptr_node is an
+       expression node that contains the proper value for the __vptr field
+       but that node is not linked into the IL (only the underlying constant
+       is used below). */
+    a_field_ptr                 field;
+    a_type_ptr                  class_type = skip_typerefs(aggr_con->type);
+    a_class_type_supplement_ptr ctsp;
+    a_constant_ptr              vptr_con = vtbl_addr_node->variant.constant;
+    a_constant_ptr              cp, prev_con = NULL;
+
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    aggr_con->vptr_has_been_lowered = TRUE;
+    check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+    if (ctsp->virtual_function_info_base_class != NULL) {
+      /* The __vptr is shared with a base class; find the constant in the
+         aggregate that matches that base class. */
+      cp = constant_for_base_class(aggr_con,
+                                   ctsp->virtual_function_info_base_class);
+      /* This base class is at the proper offset, however there may be
+         other base classes at the same offset; continue to search
+         deeper into the aggregate to find a constant whose type matches
+         that of the base class with which the vtable is shared. */
+      for (;;) {
+        cp->vptr_has_been_lowered = TRUE;
+        check_assertion(cp != NULL &&
+                        cp->kind == (a_constant_repr_kind)ck_aggregate);
+        if (identical_types(cp->type,
+                            ctsp->virtual_function_info_base_class->type)) {
+          /* Use this as the new aggregate constant below. */
+          aggr_con = cp;
+          class_type = skip_typerefs(aggr_con->type);
+          break;
+        } else {
+          cp = cp->variant.aggregate.first_constant;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* Search through the (original or base-class) constant to find the
+       offset that corresponds to the __vptr field; then add a new initializer
+       at that location. */
+    cp = aggr_con->variant.aggregate.first_constant;
+    for (field = next_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+         field != NULL;
+         field = next_initializable_field(field->next)) {
+      if (field->offset == ctsp->virtual_function_info_offset) {
+        /* We've found the __vptr field for this aggregate; insert a constant
+           into the aggregate at this spot. */
+        /* Allocate an unshared copy of the constant (in the memory region
+           that matches aggr_con). */
+        a_memory_region_number region_to_switch_back_to = NULL_region_number;
+        check_assertion(identical_types(field->type, pointer_to_vtbl_type()));
+        if (in_file_scope(aggr_con)) {
+          switch_to_file_scope_region(&region_to_switch_back_to);
+        }  /* if */
+        vptr_con = alloc_unshared_constant(vptr_con);
+#if MAINTAIN_NEEDED_FLAGS
+        /* Copy the needed flag setting from aggr_con. */
+        mark_as_needed_like((char *)vptr_con, iek_constant,
+                            &aggr_con->source_corresp,
+                            /*set_class_defn_needed=*/FALSE);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        switch_back_to_original_region(region_to_switch_back_to);
+        check_assertion(in_file_scope(vptr_con) == in_file_scope(aggr_con));
+        if (prev_con == NULL) {
+          vptr_con->next = aggr_con->variant.aggregate.first_constant;
+          aggr_con->variant.aggregate.first_constant = vptr_con;
+        } else {
+          vptr_con->next = prev_con->next;
+          prev_con->next = vptr_con;
+        }  /* if */
+        if (aggr_con->variant.aggregate.last_constant == prev_con) {
+          aggr_con->variant.aggregate.last_constant = vptr_con;
+        }  /* if */
+        break;
+      } else {
+        /* Advance to the next constant in the aggregate. */
+        check_assertion(cp != NULL);
+        prev_con = cp;
+        cp = cp->next;
+      }  /* if */
+    }  /* for */
+    check_assertion(field != NULL);
+  }  /* if */
+}  /* initialize_vptr */
+
+
+void initialize_vptrs_in_class(a_type_ptr         class_type,
+                               a_variable_ptr     this_param_var,
+                               a_variable_ptr     construction_vtbls_var,
+                               a_constant_ptr     aggr_con,
+                               an_insert_location *insert_location)
+/*
+Initialize __vptr pointers in the specified class_type, as necessary.  When
+aggr_con is NULL, this initialization takes the form of executable code (that
+appears in a constructor) and is inserted at *insert_location.  When aggr_con
+is non-NULL, the specified constant represents a constexpr initialization
+for a variable of type class_type, and the initialization takes the form
+of adding constants as necessary to aggr_con to initialize all __vptr fields.
+this_param_var points to the "this" variable for the constructor (when aggr_con
+is NULL and may be NULL when aggr_con is non-NULL).  construction_vtbls_var
+points to a variable for an array of construction vtables, if needed, and NULL
+otherwise (there cannot be any construction vtables in the case where aggr_con
+is non-NULL).
+*/
+{
+  an_expr_node_ptr   vtbl_addr_node, vptr_node;
+  a_variable_ptr     vtbl_var;
+  a_base_class_ptr   bcp;
+  a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+
+  /* If the current class has any virtual functions, generate code to
+     set the virtual function table pointer in the current class. */
+  insert_primary_vtbl_assignment(class_type, this_param_var,
+                                 construction_vtbls_var, aggr_con,
+                                 insert_location);
+  /* Set the virtual function table pointer in any base classes for which
+     that is required. */
+  /* Loop through the base classes of the current class. */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    /* Set the pointer if there is one. */
+    vtbl_addr_node = NULL;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    if (bcp->index_in_construction_vtbl_array != 0) {
+      /* Set the virtual function table pointer to an element from the
+         array of construction virtual function table pointers. */
+      vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
+                                        construction_vtbls_var,
+                                        /*var_is_array=*/FALSE,
+                                        bcp->index_in_construction_vtbl_array);
+      vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
+      vtbl_addr_node = rvalue_expr_for_lvalue(vtbl_addr_node);
+    } else
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
+#if !IA64_ABI
+      vtbl_var = bcp->virtual_function_table_var;
+#else /* IA64_ABI */
+      if (base_class_has_vtbl(bcp)) {
+        vtbl_var = ctsp->virtual_function_table_var;
+      } else {
+        vtbl_var = NULL;
+      }  /* if */
+#endif /* IA64_ABI */
+      if (vtbl_var != NULL
+#if IA64_ABI
+          /* Suppress vptr setting if this base class shares a vtable
+             with the current class (that was handled by the call to
+             insert_primary_vtbl_assignment above). */
+          && !bcp_shares_vtbl_with_primary(bcp, ctsp->primary_base_class)
+#endif /* IA64_ABI */
+                                                                         ) {
+        /* Set the virtual function table from the standard virtual function
+           table for this base class. */
+        vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
+      }  /* if */
+    }  /* if */
+    if (vtbl_addr_node != NULL) {
+      if (aggr_con == NULL) {
+        check_assertion(this_param_var != NULL);
+#if !IA64_ABI
+        if (bcp->is_virtual) {
+          /* For virtual base classes, access the class by using the implicit
+             parameter.  That works even when the current class is not a
+             complete object, and is a little better than the general code. */
+          a_variable_ptr vbase_param_var =
+                            implicit_virtual_base_parameter(class_type,
+                                                            bcp->type,
+                                                            this_param_var);
+          vptr_node =
+                     add_indirection_to_node(var_rvalue_expr(vbase_param_var));
+        } else 
+#endif /* !IA64_ABI */
+        /* Do not insert code here. */
+        {
+          /* Use the usual code.  Note that if the base class here is
+             non-virtual itself but is inside a virtual base class, the code
+             will use a pointer to get to the virtual base class and then
+             field selection(s) to get to the non-virtual base class within
+             that.  It would be possible to use the implicit parameter for the
+             virtual base class to do better, but this code works (the virtual
+             base class pointers are all set by this point). */
+        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
+                                                    /*complete_object=*/FALSE);
+        }  /* if */
+      } else {
+        /* Find the nested aggregate within aggr_con that corresponds to
+           the base class we're dealing with. */
+        aggr_con = constant_for_base_class(aggr_con, bcp);
+      }  /* if */
+      initialize_vptr(vtbl_addr_node, vptr_node, aggr_con, insert_location);
+    }  /* if */
+  }  /* for */
+}  /* initialize_vptrs_in_class */
+
+
 static void add_usual_constructor_wrapper_code(
                                            a_scope_ptr        scope,
                                            an_insert_location *insert_location)
@@ -14432,7 +14693,6 @@ constructor, but may instead be after an assignment to "this".  Delegating
 constructors are handled separately.
 */
 {
-  a_base_class_ptr       bcp;
   a_variable_ptr         this_param_var;
   a_type_ptr             class_type;
   a_class_type_supplement_ptr
@@ -14441,12 +14701,11 @@ constructors are handled separately.
 #if !IA64_ABI
   an_expr_node_ptr       vbptr_node;
   an_insert_location     else_insert_location;
+  a_base_class_ptr       bcp;
 #endif /* !IA64_ABI */
 #if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS || !IA64_ABI
   a_variable_ptr         vbase_param_var;
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS || !IA64_ABI */
-  an_expr_node_ptr       vtbl_addr_node, vptr_node;
-  a_variable_ptr         vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
   a_variable_ptr         construction_vtbls_var = NULL;
 
@@ -14695,84 +14954,9 @@ constructors are handled separately.
                     /*base_of_complete_object=*/FALSE,
                     construction_vtbls_var, insert_location);
   }  /* for */
-  /* If the current class has any virtual functions, generate code to
-     set the virtual function table pointer in the current class. */
-  insert_primary_vtbl_assignment(class_type, this_param_var,
-                                 construction_vtbls_var, insert_location);
-  /* Set the virtual function table pointer in any base classes for which
-     that is required. */
-  /* Loop through the base classes of the current class. */
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    /* Set the pointer if there is one. */
-    vtbl_addr_node = NULL;
-#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-    if (bcp->index_in_construction_vtbl_array != 0) {
-      /* Set the virtual function table pointer to an element from the
-         array of construction virtual function table pointers. */
-      vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
-                                        construction_vtbls_var,
-                                        /*var_is_array=*/FALSE,
-                                        bcp->index_in_construction_vtbl_array);
-      vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
-      vtbl_addr_node = rvalue_expr_for_lvalue(vtbl_addr_node);
-    } else
-#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-    /* Do not insert code here; this is the "else" of an "if". */
-    {
-#if !IA64_ABI
-      vtbl_var = bcp->virtual_function_table_var;
-#else /* IA64_ABI */
-      if (base_class_has_vtbl(bcp)) {
-        vtbl_var = ctsp->virtual_function_table_var;
-      } else {
-        vtbl_var = NULL;
-      }  /* if */
-#endif /* IA64_ABI */
-      if (vtbl_var != NULL
-#if IA64_ABI
-          /* Suppress vptr setting if this base class shares a vtable
-             with the current class (that was handled by the call to
-             insert_primary_vtbl_assignment above). */
-          && !bcp_shares_vtbl_with_primary(bcp, ctsp->primary_base_class)
-#endif /* IA64_ABI */
-                                                                         ) {
-        /* Set the virtual function table from the standard virtual function
-           table for this base class. */
-        vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
-      }  /* if */
-    }  /* if */
-    if (vtbl_addr_node != NULL) {
-#if !IA64_ABI
-      if (bcp->is_virtual) {
-        /* For virtual base classes, access the class by using the implicit
-           parameter.  That works even when the current class is not a
-           complete object, and is a little better than the general code. */
-        vbase_param_var = implicit_virtual_base_parameter(class_type,
-                                                          bcp->type,
-                                                          this_param_var);
-        vptr_node = add_indirection_to_node(var_rvalue_expr(vbase_param_var));
-      } else 
-#endif /* !IA64_ABI */
-      /* Do not insert code here. */
-      {
-        /* Use the usual code.  Note that if the base class here is
-           non-virtual itself but is inside a virtual base class, the code
-           will use a pointer to get to the virtual base class and then
-           field selection(s) to get to the non-virtual base class within
-           that.  It would be possible to use the implicit parameter for the
-           virtual base class to do better, but this code works (the virtual
-           base class pointers are all set by this point). */
-        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
-                                                    /*complete_object=*/FALSE);
-      }  /* if */
-      vptr_node = make_vptr_field_lvalue(vptr_node);
-      /* Make and insert the assignment statement. */
-      (void)insert_assignment_statement(vptr_node,
-                                        (an_expr_operator_kind)eok_assign,
-                                        vtbl_addr_node,
-                                        insert_location);
-    }  /* if */
-  }  /* for */
+  /* Add code to initialize __vptr fields for the class. */
+  initialize_vptrs_in_class(class_type, this_param_var, construction_vtbls_var,
+                            (a_constant_ptr)NULL, insert_location);
   /* Generate initialization for each data member that appears on the
      ctor_init list (there should be no delegation constructors on this
      list). */
@@ -16005,6 +16189,7 @@ destructor scope, and also lower the user code.
      set the virtual function table pointer in the current class. */
   insert_primary_vtbl_assignment(class_type, this_param_var,
                                  dtor_info.destruction_vtbls_var,
+                                 (a_constant_ptr)NULL,
                                  &insert_location);
   /* For each base class of this class that needs it, generate code to
      set the virtual function table pointer in the base class.  This gets

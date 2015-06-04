@@ -1348,6 +1348,8 @@ extern void lower_ifunc_expr(an_expr_node_ptr expr);
 extern void lower_gnu_statement_expression(an_expr_node_ptr expr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern an_expr_node_ptr make_class_lvalue_from_var(a_variable_ptr var);
+
 /*
 Macro that returns TRUE if the type specified by tp contains a function type
 with a parameter type that is passed via a copy constructor.  Such parameter
