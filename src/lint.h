@@ -231,11 +231,11 @@ Included from basic_hdrs.h in every compilation.
 #if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
 /*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
 #endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
-#if !(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && DO_IL_LOWERING)
+#if !(DO_IL_LOWERING && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE)
 /*lint -esym(714,alloc_unshared_constant_in_region)*/
 /*lint -esym(759,alloc_unshared_constant_in_region)*/
 /*lint -esym(765,alloc_unshared_constant_in_region)*/
-#endif /* !(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && DO_IL_LOWERING) */
+#endif /* !(DO_IL_LOWERING && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
 #if !DO_IL_LOWERING
 /*lint -esym(552,virtual_function_table_definition)*/
 /*lint -esym(759,alloc_unshared_constant_full)*/
