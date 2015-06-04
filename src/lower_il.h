@@ -939,8 +939,6 @@ extern an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
                                              an_expr_node_ptr *other_expr);
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-extern an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var);
-
 #if !IA64_ABI
 extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_variable_ptr   var,
