@@ -1,5 +1,22 @@
 Version 4.11
 
+6/4/15   [EDGcpfe/16209]
+Abort on SFINAE through alias templates
+
+The front end sometimes aborted with an internal error in get_expr_rescan_info
+("missing default rescan info", in exprutil.c) when rescanning an expression
+specified in an alias template (to check for SFINAE failures).  For example:
+
+  template <class T> constexpr bool f() { return true; }
+  template<bool b> struct B {};
+  template<typename T> using BA = B< f<T>() >;
+  template<typename U> B< f<BA<U>>() > g();
+  decltype(g<int>) *pf;  // The substitution of g<int> previously triggered
+                         // an internal error.
+
+This is now fixed.
+
+
 6/4/15   [EDGcpfe/16210]
 Incorrect substitution of function templates with default template arguments
 

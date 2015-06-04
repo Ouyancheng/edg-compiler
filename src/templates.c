@@ -22801,7 +22801,8 @@ can be diagnosed at template definition time.
   				        prototype_sym, template_sym,
   				        template_arg_list,
                                         /*push_lex_state=*/TRUE,
-                                        PS_PROTOTYPE_INSTANTIATION);
+                                        (PS_PROTOTYPE_INSTANTIATION |
+                                         PS_DEDUCTION_CONTEXT));
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
