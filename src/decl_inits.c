@@ -5321,6 +5321,15 @@ FALSE is returned) for non-class objects.
             expect_error();
             set_error_constant(cp);
           }  /* if */
+          if (static_lifetime) {
+            /* Since *cp describes the result of a call to the trivial (and
+               constexpr) default constructor, mark it as such and represent
+               the trivial construction using a dik_zero entry. */
+            a_dynamic_init_ptr  dip;
+            cp->is_result_of_constexpr_call = TRUE;
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+            add_temp_init_backing_expression(cp, dip);
+          }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));

@@ -1,5 +1,23 @@
 Version 4.11
 
+6/4/15   [EDGcpfe/16222]
+Abort in cp_gen_be.c on Microsoft-mode default constexpr initialization
+
+In Microsoft mode, a constexpr variable declaration can have no initializer
+even its type is a class type with a trivial default constructor.  For
+example:
+
+   struct A {};
+   struct B : A {};
+   constexpr B b;  // Missing initializer for the const variable b.
+                   // This is permitted in Microsoft mode, but previously
+                   // caused a failure in the C++-generating back end.
+
+However, the C++-generating back end previously aborted when trying to
+reconstruct this case (with an internal error in gen_initializer_constant;
+"ran out of fields").  That is now fixed.
+
+
 6/4/15   [EDGcpfe/16209]
 Abort on SFINAE through alias templates
 

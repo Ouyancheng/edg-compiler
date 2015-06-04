@@ -3249,7 +3249,10 @@ called when its lifetime terminates.
 enum a_dynamic_init_kind_tag {
   dik_none,		/* No dynamic initialization. */
   dik_zero,		/* Initialization to zero, defined to be the same
-			   as default initialization of a static object. */
+			   as default initialization of a static object.
+			   This is also used to represent trivial constructor
+			   invocations that have been folded to an aggregate
+			   constant (for the backing expression). */
   dik_constant,		/* Initial value of a simple object is a constant. */
   dik_expression,	/* Initial value of a simple object is an
 			   expression. */
