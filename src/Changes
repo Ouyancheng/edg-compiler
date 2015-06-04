@@ -115,7 +115,7 @@ Eliminate redundant assignments to __vptr field in IA-64 configuration
 
 In cases where a class shares a virtual table with a base class, an assignment
 had been generated to initialize the same __vptr field two times (with the
-same value) the second assignment is now suppressed.  Only affects IA-64 ABI
+same value).  The second assignment is now suppressed.  Only affects IA-64 ABI
 configurations that use lowering.  For example:
 
   struct B {

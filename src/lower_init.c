@@ -14733,9 +14733,9 @@ constructors are handled separately.
           /* Suppress vptr setting if this base class shares a vtable
              with the current class (that was handled by the call to
              insert_primary_vtbl_assignment above). */
-          && !(bcp_shares_vtbl_with_primary(bcp, ctsp->primary_base_class))
+          && !bcp_shares_vtbl_with_primary(bcp, ctsp->primary_base_class)
 #endif /* IA64_ABI */
-                                                                           ) {
+                                                                         ) {
         /* Set the virtual function table from the standard virtual function
            table for this base class. */
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
