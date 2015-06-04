@@ -277,7 +277,6 @@ Convert a string to a long double.
        "Infinity". */
     ptr = buf;
     if (*ptr == '-') ptr++;
-    if (*ptr == '.') ptr++;
     err = !isdigit((unsigned char)*ptr);
   }  /* if */
   /* Set errno to indicate an error. */
