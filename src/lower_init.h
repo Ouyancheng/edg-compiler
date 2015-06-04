@@ -323,11 +323,6 @@ extern void remove_unneeded_constructions_and_destructions(a_scope_ptr scope);
 
 extern a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope);
 
-extern void make_vtbl_address_constant(a_variable_ptr   var,
-                                       a_type_ptr       class_type,
-                                       a_base_class_ptr bcp,
-                                       a_constant       *addr_constant);
-
 #if LOWER_IFUNC
 extern void lower_ifunc_routine(a_routine_ptr routine);
 #endif /* LOWER_IFUNC */

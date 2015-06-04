@@ -2687,19 +2687,6 @@ specified by node.  The class object is not known to be a complete object
   return node;
 }  /* make_vptr_field_rvalue */
 
-
-an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var)
-/*
-Make an lvalue for the virtual table pointer of the object referred to
-by var (a pointer to a class).
-*/
-{
-  an_expr_node_ptr node = make_class_lvalue_from_var(var);
-
-  node = make_vptr_field_lvalue(node);
-  return node;
-}  /* make_vptr_field_lvalue_from_var */
-
 #if ABI_CHANGES_FOR_RTTI
 
 #if IA64_ABI

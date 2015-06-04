@@ -354,10 +354,10 @@ calling sequence.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- class_type and bcp are unused in that case. */
 #endif /* !IA64_ABI */
-void make_vtbl_address_constant(a_variable_ptr   var,
-                                a_type_ptr       class_type,
-                                a_base_class_ptr bcp,
-                                a_constant       *addr_constant)
+static void make_vtbl_address_constant(a_variable_ptr   var,
+                                       a_type_ptr       class_type,
+                                       a_base_class_ptr bcp,
+                                       a_constant       *addr_constant)
 /*
 Make an address constant for the address of a virtual function table variable
 (var) and return it in *addr_constant.  class_type is the type whose
@@ -14536,7 +14536,9 @@ given by vptr_node.
         /* Allocate an unshared copy of the constant (in the memory region
            that matches aggr_con). */
         a_memory_region_number region_to_switch_back_to = NULL_region_number;
-        check_assertion(identical_types(field->type, pointer_to_vtbl_type()));
+        check_assertion(f_identical_types(field->type,
+                                          pointer_to_vtbl_type(),
+                                          ITF_NO_FLAGS));
         if (in_file_scope(aggr_con)) {
           switch_to_file_scope_region(&region_to_switch_back_to);
         }  /* if */
@@ -14669,7 +14671,7 @@ is non-NULL).
              that.  It would be possible to use the implicit parameter for the
              virtual base class to do better, but this code works (the virtual
              base class pointers are all set by this point). */
-        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
+          vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
                                                     /*complete_object=*/FALSE);
         }  /* if */
       } else {
