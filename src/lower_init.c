@@ -14647,6 +14647,7 @@ is non-NULL).
       }  /* if */
     }  /* if */
     if (vtbl_addr_node != NULL) {
+      a_constant_ptr bcp_con = NULL;
       if (aggr_con == NULL) {
         check_assertion(this_param_var != NULL);
 #if !IA64_ABI
@@ -14677,9 +14678,9 @@ is non-NULL).
       } else {
         /* Find the nested aggregate within aggr_con that corresponds to
            the base class we're dealing with. */
-        aggr_con = constant_for_base_class(aggr_con, bcp);
+        bcp_con = constant_for_base_class(aggr_con, bcp);
       }  /* if */
-      initialize_vptr(vtbl_addr_node, vptr_node, aggr_con, insert_location);
+      initialize_vptr(vtbl_addr_node, vptr_node, bcp_con, insert_location);
     }  /* if */
   }  /* for */
 }  /* initialize_vptrs_in_class */
