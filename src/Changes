@@ -1,5 +1,14 @@
 Version 4.11
 
+6/4/15   [EDGcpfe/16282]
+Spurious floating-point errors on certain constants
+
+The front end relies on the underlying host's implementation of sscanf/sprintf
+to convert floating-point numbers from string to binary format.  In some
+implementations, sprintf does not emit a leading zero leading to spurious
+floating-point range errors.  A change has been made to handle such a case.
+
+
 6/3/15   [EDGcpfe/16040]
 Default template arguments and template parameter packs
 
