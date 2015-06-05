@@ -4271,15 +4271,15 @@ for information about the parameters.
   if (is_template) {
     /* For a function template, push the instantiation scope for the
        template arguments. */
-    a_symbol_ptr	instance_sym;
-    a_symbol_ptr	template_sym;
-    instance_sym = symbol_for(rp);
-    check_assertion(instance_sym != NULL &&
-                    (symbol_is(instance_sym, sk_routine) ||
-                     symbol_is(instance_sym, sk_member_function)));
-    template_sym = instance_sym->variant.routine.instance_ptr->template_sym;
+    a_symbol_ptr	rout_sym;
+    a_symbol_ptr	rout_template_sym;
+    rout_sym = symbol_for(rp);
+    check_assertion(rout_sym != NULL &&
+                    (symbol_is(rout_sym, sk_routine) ||
+                     symbol_is(rout_sym, sk_member_function)));
+    rout_template_sym = rout_sym->variant.routine.instance_ptr->template_sym;
     push_simple_instantiation_scope(decl_info, (a_type_ptr)NULL,
-                                    rp, instance_sym, template_sym,
+                                    rp, rout_sym, rout_template_sym,
                                     rp->template_arg_list, options);
   }  /* if */
   (void)push_scope_full(scope->kind, scope->number, (a_type_ptr)NULL,
