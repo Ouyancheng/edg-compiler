@@ -4083,6 +4083,15 @@ flags passed to the push scope routines.
 
 
 /* Forward declaration. */
+static void push_simple_instantiation_scope(
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_push_scope_options_set	options);
+
 static void reactivate_parent_context(
 			a_template_decl_info_ptr	decl_info,
 			a_scope_ptr			scope,
@@ -4234,12 +4243,15 @@ for information about the parameters.
 {
   a_routine_ptr	rp;
   a_scope_ptr	parent = NULL;
+  a_boolean	is_template = FALSE;
 
   /* If the parent scope is not a file or namespace scope, reactivate it
      first. */
   rp = scope_is(scope, sck_function) ? assoc_routine : NULL;
   if (rp != NULL) {
     parent = get_parent_scope_of(rp);
+    is_template = rp->is_template_function && !rp->is_specialized &&
+                  rp->template_arg_list != NULL;
   } else {
     parent = scope->parent;
   }  /* if */
@@ -4255,6 +4267,20 @@ for information about the parameters.
     reactivate_parent_context(decl_info, parent, (a_type_ptr)NULL,
                               instance_sym, assoc_type, assoc_routine,
                               options);
+  }  /* if */
+  if (is_template) {
+    /* For a function template, push the instantiation scope for the
+       template arguments. */
+    a_symbol_ptr	instance_sym;
+    a_symbol_ptr	template_sym;
+    instance_sym = symbol_for(rp);
+    check_assertion(instance_sym != NULL &&
+                    (symbol_is(instance_sym, sk_routine) ||
+                     symbol_is(instance_sym, sk_member_function)));
+    template_sym = instance_sym->variant.routine.instance_ptr->template_sym;
+    push_simple_instantiation_scope(decl_info, (a_type_ptr)NULL,
+                                    rp, instance_sym, template_sym,
+                                    rp->template_arg_list, options);
   }  /* if */
   (void)push_scope_full(scope->kind, scope->number, (a_type_ptr)NULL,
                         rp, (a_namespace_ptr)NULL,

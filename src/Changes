@@ -1,5 +1,21 @@
 Version 4.11
 
+6/5/15   [EDGcpfe/16202]
+Incorrect lookup in instantiation of generic lambda
+
+The instantiation of a generic lambda of a function template could fail to
+find the template arguments of the enclosing function template.  Now fixed.
+
+  template <class T> inline auto f(T t) { return t(); }
+  template <int I> inline void g() {
+    // "I" not found in instantiation from f
+    f([&](auto... args) { return I; });
+  }
+  int main() {
+    g<2>();
+  }
+
+
 6/5/15   [EDGcpfe/16285]
 NEW_CAN_BE_FOLDED_INTO_CTOR and constexpr constructors
 
