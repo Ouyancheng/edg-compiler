@@ -1057,6 +1057,14 @@ above, NULL is also returned in this case).
 #endif /* IA64_ABI */
   /* We're done with this mangling text buffer. */
   pop_mangling_text_buffer();
+#if DEBUG
+  if (db_flag_is_set("mangled_names")) {
+    if (scp != NULL) {
+      db_name(scp);
+    }  /* if */
+    fprintf(f_debug, " -> %s\n", buffer);
+  }  /* if */
+#endif /* DEBUG */
   return buffer;
 }  /* end_mangling_full */
 
