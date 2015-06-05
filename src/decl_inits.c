@@ -5325,10 +5325,13 @@ FALSE is returned) for non-class objects.
             /* Since *cp describes the result of a call to the trivial (and
                constexpr) default constructor, mark it as such and represent
                the trivial construction using a dik_zero entry. */
-            a_dynamic_init_ptr  dip;
+            a_dynamic_init_ptr      dip;
+            a_memory_region_number  region_to_switch_back_to;
             cp->is_result_of_constexpr_call = TRUE;
+            switch_to_file_scope_region(&region_to_switch_back_to);
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
             add_temp_init_backing_expression(cp, dip);
+            switch_back_to_original_region(region_to_switch_back_to);
           }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {

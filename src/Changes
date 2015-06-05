@@ -37,11 +37,12 @@ the LC_NUMERIC category to "C" using the setlocale library routine.
 
 
 6/4/15   [EDGcpfe/16222]
-Abort in cp_gen_be.c on Microsoft-mode default constexpr initialization
+C++-generating back end: Abort on Microsoft-mode default constexpr
+initialization
 
-In Microsoft mode, a constexpr variable declaration can have no initializer
-even its type is a class type with a trivial default constructor.  For
-example:
+In Microsoft mode, a constexpr variable declaration is permitted to have no
+initializer even if its type is a class type with a trivial default
+constructor.  For example:
 
    struct A {};
    struct B : A {};
