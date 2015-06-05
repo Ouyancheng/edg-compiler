@@ -1591,9 +1591,9 @@ from values on the expression stack.
 an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
                                                  a_param_type_ptr ptp)
 /*
-Interface to copy_default_arg_expr_list to be used when calling it from
-within the expression-processing routines.  Supplies the last two parameters
-from values on the expression stack.
+Interface to copy_default_arg_expr_list to be used when calling it from within
+the expression-processing routines.  Supplies the last three parameters from
+values on the expression stack.
 */
 {
   an_expr_node_ptr expr;

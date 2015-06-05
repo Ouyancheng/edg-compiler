@@ -1,5 +1,26 @@
 Version 4.11
 
+6/5/15   [EDGcpfe/16285]
+NEW_CAN_BE_FOLDED_INTO_CTOR and constexpr constructors
+
+The front end generated invalid IL when a new-expression invoked a constexpr
+constructor: The folded constructor call drops the allocation.  This, e.g.,
+triggered an internal error during lowering (in lower_new; see lower_init.c).
+For example:
+
+  struct L {
+    L() {}
+    constexpr L(L const&) {}
+  };
+  int main() {
+    L x;
+    L *p = new L(x);  // Previously triggered an internal error during
+  }                   // IL lowering.
+
+This is now fixed (by not folding constexpr calls in that particular
+context).
+
+
 6/5/15   [EDGcpfe/16282]
 Spurious floating-point range errors
 

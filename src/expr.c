@@ -3179,7 +3179,11 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
       } else {
-        /* Constructor call (possibly folded to constant if constexpr). */
+        /* Constructor call.  This may be folded in the case of constexpr
+           constructors.  Contexts that disallow elision happen to also be
+           contexts that disallow folding (e.g., in the case of a new
+           expression that relies on the constructor call to call the
+           allocation function). */
         a_constant_ptr folded_con;
         dip = alloc_expr_ctor_dynamic_init(routine,
                                            arg_expr_list,
@@ -3189,7 +3193,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                            value_init,
                                            /*sequenced_args=*/
                                              (init_list_ctor_arg_list != NULL),
-                                           /*fold_constexpr=*/TRUE,
+                                           /*fold_constexpr=*/elision_allowed,
                                            source_pos);
         if (is_error_dynamic_init(dip)) {
           /* Some error. */
@@ -18157,11 +18161,11 @@ expression, and return the result in *result (or an error indication in
           if (exceptions_enabled) {
             set_class_assoc_operator_delete_routine(unqual_base_new_type);
           }  /* if */
-          if (unqual_base_new_type->variant.class_struct_union.extra_info->
-                                   assoc_operator_new_routine == new_routine &&
+          if (class_type_supp(unqual_base_new_type)
+                                 ->assoc_operator_new_routine == new_routine &&
               (!exceptions_enabled ||
-               unqual_base_new_type->variant.class_struct_union.extra_info->
-                            assoc_operator_delete_routine == delete_routine)) {
+               class_type_supp(unqual_base_new_type)
+                          ->assoc_operator_delete_routine == delete_routine)) {
             new_routine = NULL;
           }  /* if */
         }  /* if */
