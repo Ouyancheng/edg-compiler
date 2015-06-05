@@ -1,5 +1,20 @@
 Version 4.11
 
+6/5/15   [EDGcpfe/16282]
+Spurious floating-point range errors
+
+The front end relies on host library routines (i.e., sscanf, sprintf, strtod)
+to do floating-point conversion from string to binary (and vice-versa).
+For proper operation of the front end, these routines must treat the "."
+character as the radix point.  Most implementations of these library
+routines allow different representations based on the "locale" that is
+in effect when they are called.  On all modern operating systems, the default
+locale in effect when a program starts is the "C" locale, but if user
+code modifies the locale, it can have an effect on these routines (e.g.,
+setting the radix point to ",").  A change has been made to explicitly set
+the LC_NUMERIC category to "C" using the setlocale library routine.
+
+
 6/4/15   [EDGcpfe/16222]
 Abort in cp_gen_be.c on Microsoft-mode default constexpr initialization
 

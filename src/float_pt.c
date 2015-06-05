@@ -244,7 +244,11 @@ Display a long double, for debugging purposes.
 
 static long double str_to_long_double(a_const_char * str)
 /*
-Convert a string to a long double.
+Convert a string to a long double.  Note that this routine uses host routines
+sscanf/sprintf to do the floating-point conversion and these library routines
+typically can be configured to use different "locales".  For their use in the
+front end, the LC_NUMERIC portion of the locale must specify that "." is the
+radix point (set in host_envir_early_init).
 */
 {
   long double	temp;

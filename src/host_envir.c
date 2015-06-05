@@ -5643,6 +5643,12 @@ This is done before command line processing.
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+  /* The floating-point routines require that "." be the radix point, so
+     ensure that LC_NUMERIC is set to "C" (all programs start off with this
+     as the default, but the locale may have been changed by user code). */
+  if (setlocale(LC_NUMERIC, "C") == NULL) {
+    unexpected_condition_str("could not set LC_NUMERIC locale");
+  }  /* if */
   /* Get the current directory name. */
   ptr = get_curr_dir_name();
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);

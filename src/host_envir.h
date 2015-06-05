@@ -2563,15 +2563,10 @@ extern int mbc_to_wide_char(a_const_char  *mb,
 #endif /* EDG_WIN32 */
 #endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
 
-#ifdef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
-/* One doesn't have to set a locale for Unicode support, but if one
-   is specified, we'll use it. */
 #include <locale.h>
-#endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
-#include <locale.h>
 #include <wctype.h>
 
 extern
