@@ -23,6 +23,7 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef lang_feat.h */
+#include <locale.h>
 
 /* Forward declaration of a_text_buffer_ptr. */
 typedef struct a_text_buffer *a_text_buffer_ptr;
@@ -2562,8 +2563,6 @@ extern int mbc_to_wide_char(a_const_char  *mb,
 #endif /* __sun */
 #endif /* EDG_WIN32 */
 #endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
-
-#include <locale.h>
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
