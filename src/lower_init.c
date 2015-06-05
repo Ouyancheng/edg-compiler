@@ -14593,7 +14593,7 @@ otherwise (there cannot be any construction vtables in the case where aggr_con
 is non-NULL).
 */
 {
-  an_expr_node_ptr   vtbl_addr_node, vptr_node;
+  an_expr_node_ptr   vtbl_addr_node, vptr_node = NULL;
   a_variable_ptr     vtbl_var;
   a_base_class_ptr   bcp;
   a_class_type_supplement_ptr
