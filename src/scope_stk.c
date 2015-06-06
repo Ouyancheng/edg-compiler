@@ -4090,7 +4090,7 @@ static void push_simple_instantiation_scope(
                             a_symbol_ptr		instance_sym,
                             a_symbol_ptr		template_sym,
                             a_template_arg_ptr		template_arg_list,
-			    a_push_scope_options_set	options);
+                            a_push_scope_options_set	options);
 
 static void reactivate_parent_context(
 			a_template_decl_info_ptr	decl_info,
@@ -4670,7 +4670,7 @@ static void push_simple_instantiation_scope(
                             a_symbol_ptr		instance_sym,
                             a_symbol_ptr		template_sym,
                             a_template_arg_ptr		template_arg_list,
-			    a_push_scope_options_set	options)
+                            a_push_scope_options_set	options)
 /*
 Push a template instantiation scope, but not all of the surrounding context
 scopes.
