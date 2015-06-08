@@ -258,31 +258,25 @@ bugs are emulated).
 #endif /* DEFAULT_GNU_ABI_VERSION < 30200 */
 
 /*
-Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the
-initial setting for targ_supports_x86_64 (which should be used in lieu of
-the macro value as its value is target-specific).
+Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the initial
+setting for targ_supports_x86_64 (which should be used in lieu of the macro
+value as its value is target-specific).
 */
 #ifndef TARG_SUPPORTS_X86_64
-#if defined(USE_X86_64)
-/* For backward compatibility, use the value of USE_X86_64. */
-#if USE_X86_64
+/* Default to 64-bit if the host compiler is 64-bit, but this is arbitrary. */
+#if defined(__x86_64) || defined(_WIN64)
 #define TARG_SUPPORTS_X86_64 TRUE
-#else /* !USE_X86_64 */
+#else /* !(defined(__x86_64) || defined(_WIN64)) */
 #define TARG_SUPPORTS_X86_64 FALSE
-#endif /* USE_X86_64 */
-#else  /* !defined(USE_X86_64) */
-/* Default to 64-bit if the host compiler is 64-bit. */
-#if defined(__x86_64)
-#define TARG_SUPPORTS_X86_64 TRUE
-#else /* !defined(__x86_64) */
-#define TARG_SUPPORTS_X86_64 FALSE
-#endif /* defined(__x86_64) */
-#endif /* defined(USE_X86_64) */
+#endif /* defined(__x86_64) || defined(_WIN64) */
 #endif /* defined(TARG_SUPPORTS_X86_64) */
 
-/* #undef the old macro to catch places that should now use the
-   targ_supports_x86_64 global variable. */
-#undef USE_X86_64
+#ifdef USE_X64_64
+/* USE_X64_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
+   use the targ_supports_x86_64 global variable to check at run-time. */
+ #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
+        variable
+#endif /* defined(USE_X86_64) */
 
 /*
 Flag that is TRUE if support for exported templates can be enabled.

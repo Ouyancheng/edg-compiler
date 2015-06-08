@@ -188,7 +188,7 @@ Don't specify a default configuration (this leaves the legacy configuration
 as the default and doesn't require a name change for $EDG_BASE/lib unless
 the --target option is used).
 */
-#undef DEFAULT_TARGET_CONFIGURATION
+#undef DEFAULT_TARGET_CONFIGURATION_NAME
 
 #if IA64_ABI
 
