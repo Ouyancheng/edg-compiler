@@ -21164,7 +21164,7 @@ marked as a cast; the caller must do that if that's necessary.  If ctor_called
 is non-NULL and a default constructor is called to perform the value-
 initialization, a pointer to it is returned in *ctor_called.  Some cases can
 cause errors, which are reported at the source position given by pos.
-If *is is non-NULL, is->partial_initializer is returned TRUE if a constant
+With a non-NULL is, is->partial_initializer is returned TRUE if a constant
 result only partially initializes the entity.
 
 If error_detected is non-NULL, no diagnostics are issued (for a non-NULL is,

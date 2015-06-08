@@ -6041,6 +6041,7 @@ diagnostics, if that changes the control flow.
       if (!cpp11_sfinae_enabled || 
           (cpp11_sfinae_ignore_access &&
            !(microsoft_mode && scope_stack_top().in_decltype_context &&
+             expr_stack->rcblock != NULL &&
              (expr_stack->rcblock->options & CTWS_RETURN_TYPE) != 0))) {
         check_access = FALSE;
       }  /* if */

@@ -1,5 +1,22 @@
 Version 4.11
 
+6/8/15   [EDGcpfe/16163,EDGcpfe/16196]
+Microsoft-mode abort on list initializer in function template return type
+
+In Microsoft C++ modes, the front end sometimes aborted (dereferencing a null
+pointer in expr_access_checking_should_be_done) during function template
+argument deduction when a function template includes a list initializer in its
+return type.  For example:
+
+  struct A { A(); };
+  template <class T> auto f() -> decltype(T(*new A[1]{}));
+  void g() {
+    f<A>();  // Previously triggered an abort.
+  }
+
+This is now fixed.
+
+
 6/5/15   [EDGcpfe/16202]
 Incorrect lookup in instantiation of generic lambda
 
