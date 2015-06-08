@@ -6564,7 +6564,7 @@ GNU also allows the "case range" form:
     /* Assume the case is reachable if the switch is reachable. */
     merge_reachability(&sssep->start_reachable, &curr_reachability);
     switch_type = sssep->type;
-    switch_depth = sssep - struct_stmt_stack;
+    switch_depth = (int)(sssep - struct_stmt_stack);
   } else {
     /* We are not inside a switch statement. */
     pos_error(ec_case_label_must_be_in_switch, &error_position);
