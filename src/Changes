@@ -883,6 +883,19 @@ global variables can make changes in target_map.h to add those global variables
 to the set of target-specific global variables (providing the variables
 meet certain criteria -- see the comments in target_map.h).
 
+From an ongoing maintenance point-of-view, new configuration macros are
+typically given default values and are thus somewhat invisible when upgrading
+to a new release.  That won't be the case for new target-specific configuration
+macros that are added henceforth; although the non-target-specific macro will
+continue to have a default value, no default values can be specified for
+target-specific versions (as the target-specific suffixes are unknown), so
+compilation errors will result.  This can be remedied either by manually adding
+values for any new target-specific configuration macros or by removing
+target-specific configuration, re-compiling, and re-generating the various
+target-specific configurations with --dump_legacy_as_target (as described
+above).  Any new target-specific configuration macros will be explicitly
+mentioned in the release documentation.
+
 
 4/21/15  [EDGcpfe/16133]
 C++-generating back end: default value of
