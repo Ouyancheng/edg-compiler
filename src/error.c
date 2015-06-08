@@ -364,7 +364,7 @@ static a_label_fill_in_entry label_fill_ins[] = {
 
 
 static a_label_fill_in_entry *get_label_fill_in_entry(a_const_char *label,
-                                                      size_t       length)
+                                                      sizeof_t      length)
 /*
 Return a pointer to the label fill-in entry that matches the specified
 label, with the specified length.  An assertion failure occurs if the
@@ -3352,15 +3352,15 @@ indent subsequent lines when the output wraps to more than one line.
 {
   a_const_char	*curr_char;
   a_const_char	*segment_start;
-  int		usable_line_length;
-  int		indent = first_indent;
-  int		length = prefix_buffer->size - 1;
+  sizeof_t	usable_line_length;
+  sizeof_t	indent = first_indent;
+  sizeof_t	length = prefix_buffer->size - 1;
 
   curr_char = prefix_buffer->buffer;
   segment_start = curr_char;
   for (;;) {
-    size_t	segment_length;
-    int		i;
+    sizeof_t	segment_length;
+    sizeof_t	i;
     /* Compute the number of characters that will fit on a line taking into
        account any indentation that is required. */
     usable_line_length = diagnostic_line_length - indent;
@@ -3476,7 +3476,7 @@ that might be required.
 {
   a_const_char		*curr_char;
   a_const_char		*msg_ptr;
-  size_t		length;
+  sizeof_t		length;
 #define MAX_OPTIONS 30
   char			options[MAX_OPTIONS];
 
