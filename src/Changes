@@ -785,7 +785,7 @@ used a pack expansion.  Now fixed.
 
 
 4/23/15  [EDGcpfe/15604,EDGcpfe/15397,EDGcpfe/15717,EDGcpfe/15851,
-          EDGcpfe/16160]
+          EDGcpfe/16160,EDGcpfe/16206]
 Allow run time target configuration
 
 To date, the target configuration of the front end has been specified entirely
@@ -846,9 +846,9 @@ standalone_utility_late_init must be called after il_read).
 Any local changes that make use of configuration macros that are now
 target-specific should use the associated global variables.
 
-For an example of using multiple target configurations, see the changes in
-defines.h.linux, which now provides both "linux_i686" and "linux_x86_64"
-target configurations.
+For examples of using multiple target configurations, see the changes in
+defines.h.linux or defines.h.win32, which provide "linux_i686" and
+"linux_x86_64" or "win32" and "win64" target configurations respectively.
 
 Two new header files, target_cfg.h and target_map.h, have been added to
 support these changes.  Customers that have additional target-specific
