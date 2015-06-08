@@ -166,6 +166,11 @@ typedef struct a_tmpl_decl_state {
 			/* If a particular nesting depth should be used for
 			   this declaration, friend_depth is set to that
 			   depth; otherwise it is set to zero. */
+  a_template_nesting_depth
+		specialization_levels;
+			/* If the number of template parameter clauses that
+			   do not have a template parameter list (i.e.,
+			   "template <>"). */
   a_token_kind	*final_token_ptr;
 			/* Pointer to a token kind indicating whether the
 			   final token of the declaration is expected to be

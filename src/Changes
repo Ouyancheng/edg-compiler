@@ -1,5 +1,32 @@
 Version 4.11
 
+6/8/15   [EDGcpfe/16264]
+Setting of is_specialized flag for member templates
+
+The is_specialized flag was incorrectly being set to TRUE for member
+templates of specialized member class templates when the member template
+was defined outside of the class definition (e.g., for A<int>::B<U>::f in
+the example below).  The incorrect setting was mostly benign, but could
+result in incorrect mangled names for the routine entries created for the
+prototype instantiations of such member templates when using the cfront name
+mangling mechanism.  These names don't appear in names in generated code,
+but might be used for some purposes in customer-written code.  Specifically,
+the "__S" encoding for specializations was incorrectly being applied to the
+"f" portion of the mangled name in the example below.
+
+  template <typename T> struct A {
+    template <typename U> struct B {
+      template <typename V> void f(V);
+   };
+  };
+  template<> template<typename U> struct A<int>::B {
+    template <typename V> void f(V);
+  };
+
+  template <>
+  template <typename U> template <typename V> void A<int>::B<U>::f(V) {}
+
+
 6/8/15   [EDGcpfe/16163,EDGcpfe/16196]
 Microsoft-mode abort on list initializer in function template return type
 

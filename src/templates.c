@@ -519,6 +519,7 @@ Initialize a template declaration state block.
   tdsp->last_token_sequence_number_of_params = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
+  tdsp->specialization_levels = 0;
   tdsp->final_token_ptr = NULL;
   tdsp->decl_info = NULL;
   tdsp->orig_decl_level = NO_SCOPE_DEPTH;
@@ -22739,6 +22740,8 @@ information).  See the definition of a_tmpl_decl_state for details.
            contained a template parameter list, all subsequent parameter
            lists must be non-empty. */
         decl_state->is_specialization = TRUE;
+        /* Count the number of "template < >" clauses. */
+        decl_state->specialization_levels++;
         if (param_list_seen) {
           pos_error(ec_specialization_follows_param_list, &error_position);
           decl_state->decl_scope_err = TRUE;
@@ -26061,6 +26064,15 @@ instantiations of any template default arguments now.
     } else if (!is_nonreal_instantiation_context()) {
       decl_state->nesting_depth = decl_state->friend_depth;
       update_nesting_depths = TRUE;
+    }  /* if */
+  }  /* if */
+  if (decl_state->is_specialization && decl_state->class_declared_in == NULL) {
+    /* Something with "template < >" clauses looks like a specialization,
+       but could be an out-of-class definition of a specialized member
+       class template.  This is only a specialization if there is only
+       on template parameter list (for the bottom template) present. */
+    if (decl_state->nesting_depth > (decl_state->specialization_levels + 1)) {
+      decl_state->is_specialization = FALSE;
     }  /* if */
   }  /* if */
   /* Update the nesting depths of the parameters, do any prototype
