@@ -165,9 +165,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_NONSTDC_NO_DEPRECATE
 
-/* By default, include the "other" target configuration. */
+/* By default, don't include the "other" target configuration. */
 #ifndef INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
-#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 1
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
 #endif /* defined(INCLUDE_ADDITIONAL_TARGET_CONFIGURATION) */
 
 #if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION

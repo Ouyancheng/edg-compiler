@@ -892,7 +892,9 @@ target-specific should use the associated global variables.
 
 For examples of using multiple target configurations, see the changes in
 defines.h.linux or defines.h.win32, which provide "linux_i686" and
-"linux_x86_64" or "win32" and "win64" target configurations respectively.
+"linux_x86_64" or "win32" and "win64" target configurations respectively
+(when INCLUDE_ADDITIONAL_TARGET_CONFIGURATION is TRUE -- it is FALSE by
+default).
 
 Two new header files, target_cfg.h and target_map.h, have been added to
 support these changes.  Customers that have additional target-specific

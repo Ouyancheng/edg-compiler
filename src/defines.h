@@ -82,6 +82,18 @@ of the host system.
 #endif /* UNION_AS_STRUCT */
 
 /*
+Enable target-specific configurations for all but demo versions (we don't
+deliver multiple libraries to support this).
+*/
+#ifndef INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
+#ifdef DEMO_VERSION
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
+#else /* !DEMO_VERSION */
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 1
+#endif /* DEMO_VERSION */
+#endif /* defined(INCLUDE_ADDITIONAL_TARGET_CONFIGURATION) */
+
+/*
 Set the test version flags to FALSE for demo versions.
 */
 #ifdef DEMO_VERSION
