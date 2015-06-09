@@ -9652,14 +9652,18 @@ command line -D options.
        Microsoft compiler that is being emulated. */
     enter_predef_num_macro(microsoft_version, "_MSC_VER");
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
-       "build number". */
-    { char  macro_val[100], *ptr = macro_val;
+       "build number", and _MSC_BUILD which is just the "build number". */
+    { char  macro_val[100], *ptr = macro_val, *build_ptr;
       ptr += unsigned_to_string_buf((a_host_large_unsigned)microsoft_version,
                                     ptr);
       check_assertion((ptr-macro_val) < 10);
+      build_ptr = ptr;
       (void)unsigned_to_string_buf(
                     (a_host_large_unsigned)microsoft_build_number, ptr);
       (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      (void)enter_predef_macro(build_ptr, "_MSC_BUILD",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }
@@ -9667,7 +9671,7 @@ command line -D options.
     (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
-    /* Define _WIN32. */
+    /* Define _WIN32 (even on _WIN64 configurations). */
     (void)enter_predef_macro("1", "_WIN32",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
@@ -9695,6 +9699,15 @@ command line -D options.
     if (cppcli_enabled) {
       /* Define _MANAGED when C++/CLI is enabled. */
       (void)enter_predef_macro("1", "_MANAGED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      /* Define _M_CEE when C++/CLI is enabled. */
+      (void)enter_predef_macro("1", "_M_CEE",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    if (!targ_has_signed_chars) {
+      (void)enter_predef_macro("1", "_CHAR_UNSIGNED",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */

@@ -1,5 +1,12 @@
 Version 4.11
 
+6/9/15   [EDGcpfe/16295]
+Microsoft compatibility: additional pre-defined macros
+
+The predefined macros _CHAR_UNSIGNED, _M_CEE, and _MSC_BUILD are now
+defined to appropriate values in Microsoft mode.
+
+
 6/8/15   [EDGcpfe/16264]
 Setting of is_specialized flag for member templates
 
