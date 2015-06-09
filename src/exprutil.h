@@ -1990,7 +1990,7 @@ extern void add_dtor_to_dynamic_init(a_dynamic_init_ptr dip,
                                      a_source_position  *position);
 
 #define record_dtor_in_dynamic_init(dtor, dip, evaluated)                    \
-  if (dtor != NULL) {                                                        \
+  if (/*lint --e(506)*/dtor != NULL) {                                       \
     (dip)->destructor = (dtor);                                              \
     if (evaluated) (dtor)->called = TRUE;                                    \
   }  /* if */
