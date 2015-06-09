@@ -9675,6 +9675,11 @@ command line -D options.
     (void)enter_predef_macro("1", "_WIN32",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (targ_supports_x86_64) {
+      (void)enter_predef_macro("1", "_WIN64",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     if (rtti_enabled) {
       /* Define _CPPRTTI when RTTI is enabled. */
       (void)enter_predef_macro(
@@ -9721,9 +9726,6 @@ command line -D options.
       enter_predef_num_macro(int_max_size * CHAR_BIT, /*lint !e647*/
                              "_INTEGRAL_MAX_BITS");
     }
-#ifdef _M_IX86
-    enter_predef_num_macro(_M_IX86, "_M_IX86");
-#endif /* ifdef _M_IX86 */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

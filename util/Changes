@@ -43,6 +43,13 @@ A change has also been made to make_predef_macro_table to pass command-line
 options other than --gcc and --g++ to gcc/g++.  This can be used to specify
 options like -m32, for example.
 
+A new tool, make_win_predef_macro_table.c, has been added that effectively
+does what make_predef_macro_table currently does, but for Microsoft Visual
+Studio rather than gcc.  That is, when compiled with a version of Microsoft
+Visual Studio, it outputs the necessary predefined_macros.txt file to
+generate the same predefined macros as Microsoft Visual Studio.  See
+make_win_predef_macro_table.c for more information.
+
 
 3/6/15   [EDGcpfe/16068]
 eccp script hadn't allowed Clang C mode
