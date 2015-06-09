@@ -21752,6 +21752,8 @@ errors should be suppressed (i.e., SFINAE mode).
         if (will_need_partial_aggregate_destructor) {
           /* Add the destructor for partial-aggregate exception cleanup. */
           dip->destructor = dtor;
+          record_dtor_in_dynamic_init(dtor, dip,
+                                      curr_expr_is_potentially_evaluated());
           record_partial_aggregate_cleanup_destruction(
                                                      dip,
                                                      curr_expr_is_evaluated());
@@ -21779,7 +21781,8 @@ errors should be suppressed (i.e., SFINAE mode).
                                (a_dynamic_init_kind)dik_constant);
     set_dynamic_init_constant(dip, aggr_constant);
     dip->is_braced_initializer = TRUE;
-    dip->destructor = dtor;
+    record_dtor_in_dynamic_init(dtor, dip,
+                                curr_expr_is_potentially_evaluated());
     dip->is_partially_initialized = is_partially_initialized;
     dip->is_array_for_initializer_list_object = TRUE;
     expr = alloc_temp_init_node(array_type, dip,
@@ -23101,10 +23104,12 @@ will be an lvalue instead of the usual prvalue.
       is->init_dip = dip;
       if (fill_in_dtor && dest_type_is_class) {
         /* Fill in the destructor if one is needed. */
-        dip->destructor = expr_select_destructor(dest_type,
-                                                 dest_type,
-                                                 start_position,
-                                                 /*honor_virtual=*/FALSE);
+        a_routine_ptr  dtor = expr_select_destructor(dest_type,
+                                                     dest_type,
+                                                     start_position,
+                                                     /*honor_virtual=*/FALSE);
+        record_dtor_in_dynamic_init(dtor, dip,
+                                    curr_expr_is_potentially_evaluated());
       }  /* if */
     }  /* if */
     /* Set init_error if appropriate. */

@@ -13047,7 +13047,7 @@ a normal try.
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
         }  /* if */
         dip->variable = handler->parameter;
-        dip->destructor = dtor;
+        record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
         record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;

@@ -3209,7 +3209,8 @@ the entire array.
      destroy elements if a throw is done part-way through the
      initialization (or destruction, for a delete) of the array. */
   if (exceptions_enabled && dtor_routine != NULL) {
-    element_dip->destructor = dtor_routine;
+    record_dtor_in_dynamic_init(dtor_routine, element_dip,
+                                curr_expr_is_potentially_evaluated());
     record_partial_aggregate_cleanup_destruction(element_dip,
                                                  curr_expr_is_evaluated());
   }  /* if */
@@ -14781,30 +14782,35 @@ entry is returned).
     }  /* if */
   }  /* if */
   dip->variant.constructor.args = args;
-  if (fold_constexpr && ctor_routine != NULL && ctor_routine->is_constexpr) {
-    a_constant_ptr folded_con = local_constant();
-    check_assertion(pos != NULL);
-    if (expr_fold_constexpr_ctor(dip, pos, folded_con)) {
-      /* The constructor is declared constexpr and the construction has
-         been folded to a constant. */
-      folded = TRUE;
-      if (dest_type != NULL) folded_con->type = dest_type;
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
-    } else {
-      release_local_constant(&folded_con);
+  if (ctor_routine != NULL) {
+    if (curr_expr_is_potentially_evaluated()) {
+      ctor_routine->called = TRUE;
     }  /* if */
-  }  /* if */
-  if (constexpr_enabled && ctor_routine != NULL && !folded) {
-    /* Construction was not folded to a constant.  In a constant expression,
-       that's an error.  Pre-C++11 cases should be detected earlier. */
-    check_assertion(pos != NULL);
-    if (call_did_not_fold_to_constant(ec_expr_not_constant,
-                                      ctor_routine,
-                                      (an_operand *)NULL,
-                                      pos)) {
-      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, alloc_error_constant());
+    if (fold_constexpr && ctor_routine->is_constexpr) {
+      a_constant_ptr folded_con = local_constant();
+      check_assertion(pos != NULL);
+      if (expr_fold_constexpr_ctor(dip, pos, folded_con)) {
+        /* The constructor is declared constexpr and the construction has
+           been folded to a constant. */
+        folded = TRUE;
+        if (dest_type != NULL) folded_con->type = dest_type;
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+        set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
+      } else {
+        release_local_constant(&folded_con);
+      }  /* if */
+    }  /* if */
+    if (constexpr_enabled && !folded) {
+      /* Construction was not folded to a constant.  In a constant expression,
+         that's an error.  Pre-C++11 cases should be detected earlier. */
+      check_assertion(pos != NULL);
+      if (call_did_not_fold_to_constant(ec_expr_not_constant,
+                                        ctor_routine,
+                                        (an_operand *)NULL,
+                                        pos)) {
+        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
+        set_dynamic_init_constant(dip, alloc_error_constant());
+      }  /* if */
     }  /* if */
   }  /* if */
   return dip;
@@ -14948,12 +14954,14 @@ initialization entry to an object lifetime list (for that, see
 set_temp_init_dynamic_init_lifetime, among others).
 */
 {
+  a_routine_ptr  dtor;
+
   check_assertion(is_class_struct_union_type(class_type));
   /* Note how this routine interacts with fix_up_dynamic_init_dtors. */
   if (!expr_stack->in_cctor_elision_initializer) {
-    dip->destructor = expr_select_destructor(class_type,
-                                             object_class_type, position,
-                                             /*honor_virtual=*/FALSE);
+    dtor = expr_select_destructor(class_type, object_class_type, position,
+                                  /*honor_virtual=*/FALSE);
+    record_dtor_in_dynamic_init(dtor, dip, expr_stack->potentially_evaluated);
   } else {
     /* In a cctor elision expression.  Put the destructor in the entry,
        but do not do the access checking etc. at this time.  Build a fixup
@@ -14967,10 +14975,13 @@ set_temp_init_dynamic_init_lifetime, among others).
                     same_entities(class_type, object_class_type));
     if (cssp != NULL && has_nontrivial_destructor(cssp)) {
       a_symbol_ptr dtor_sym = cssp->destructor;
-      dip->destructor = dtor_sym->variant.routine.ptr;
+      dtor = dtor_sym->variant.routine.ptr;
+      record_dtor_in_dynamic_init(dtor, dip,
+                                  expr_stack->potentially_evaluated);
       (void)alloc_dynamic_init_dtor_fixup(dip, position);
     }  /* if */
   }  /* if */
+  
 }  /* add_dtor_to_dynamic_init */
 
 

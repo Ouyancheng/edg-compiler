@@ -1,5 +1,15 @@
 Version 4.11
 
+6/9/15   [EDGcpfe/16255]
+The "called" flag for constructors and destructors
+
+Previously, the front end failed to mark constructors and destructors referred
+to from a_dynamic_init entries as "called".  This is now done (by setting the
+constructor's or destructor's "called" flag to TRUE), unless the associated
+construct is not "potentially evaluated" (e.g., if it appears in a sizeof
+operand).
+
+
 6/9/15   [EDGcpfe/16295]
 Microsoft compatibility: additional pre-defined macros
 

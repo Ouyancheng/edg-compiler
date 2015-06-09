@@ -1989,6 +1989,12 @@ extern void add_dtor_to_dynamic_init(a_dynamic_init_ptr dip,
                                      a_type_ptr         object_class_type,
                                      a_source_position  *position);
 
+#define record_dtor_in_dynamic_init(dtor, dip, evaluated)                    \
+  if (dtor != NULL) {                                                        \
+    (dip)->destructor = (dtor);                                              \
+    if (evaluated) (dtor)->called = TRUE;                                    \
+  }  /* if */
+
 extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
                                            a_dynamic_init_kind kind,
                                            a_type_ptr          type,

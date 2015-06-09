@@ -237,7 +237,8 @@ the dynamic init entry.
 
 
 static a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
-                                                  a_boolean     implied_source)
+                                                  a_boolean     implied_source,
+                                                  a_boolean     evaluated)
 /*
 Allocate a dik_constructor dynamic init entry that will call the
 constructor given by ctor_rp.  If the constructor has default arguments,
@@ -251,9 +252,12 @@ for the (copy) constructor call will be implicit.
   dip->variant.constructor.ptr = ctor_rp;
   dip->variant.constructor.is_copy_constructor_with_implied_source =
                                                                 implied_source;
-  /* A user defined default constructor may have default args that
-     should be incorporated into the constructor call. */
-  copy_ctor_default_args_to_dynamic_init(dip);
+  if (ctor_rp != NULL) {
+    if (evaluated) ctor_rp->called = TRUE;
+    /* A user defined default constructor may have default args that
+       should be incorporated into the constructor call. */
+    copy_ctor_default_args_to_dynamic_init(dip);
+  }  /* if */
   return dip;
 }  /* alloc_ctor_dynamic_init */
 
@@ -1155,7 +1159,8 @@ given position, unless is->no_diagnostics is TRUE.
         /* For a non-trivial constructor, create a dik_constructor dynamic init
            entry or, if a constant result is needed, a constant representing
            the folded constructor call. */
-        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE,
+                                      !is->not_potentially_evaluated);
         dip->variant.constructor.value_initialization = TRUE;
         if (is->initializer_must_be_constant) {
           result = get_default_constructed_constant(dip, tp, diag_pos);
@@ -1200,7 +1205,8 @@ given position, unless is->no_diagnostics is TRUE.
        This is for the case in which an exception is thrown by the
        constructor before the entire array has been initialized. */
     if (dtor_rp != NULL && !is->check_validity_only) {
-      dip->destructor = dtor_rp;
+      record_dtor_in_dynamic_init(dtor_rp, dip,
+                                  !is->not_potentially_evaluated);
       record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
     }  /* if */
     /* Now create the constant entry (if needed). */
@@ -3126,10 +3132,10 @@ particular situation.
     *init_con = NULL;
   } else {
     a_dynamic_init_ptr  dip;
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    dip->variant.constructor.ptr = ctor;
+    dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
+                                  !is->not_potentially_evaluated);
     if (dtor != NULL) {
-      dip->destructor = dtor;
+      record_dtor_in_dynamic_init(dtor, dip, !is->not_potentially_evaluated);
       record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
     }  /* if */
     *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -3324,9 +3330,10 @@ are TRUE.
     if (is->has_dynamic_init_component || is->force_dynamic_init) {
       is->init_dip = alloc_dynamic_init(dik);
       is->init_dip->variant.constant = is->init_con;
-      is->init_dip->destructor = dtor_rp;
       is->init_dip->is_braced_initializer = TRUE;
       is->init_dip->is_partially_initialized = is->partial_initializer;
+      record_dtor_in_dynamic_init(dtor_rp, is->init_dip,
+                                  !is->not_potentially_evaluated);
       is->init_con = NULL;
     }  /* if */
   }  /* if */
@@ -4510,7 +4517,9 @@ returned set to TRUE.
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
       if (cssp != NULL && init_dip != NULL) {
-        init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
+        a_routine_ptr  dtor = select_destructor(vp_type, vp_type, source_pos);
+        record_dtor_in_dynamic_init(
+                  dtor, init_dip, !dps->init_state.not_potentially_evaluated);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4668,7 +4677,8 @@ returned set to TRUE.
         init_con = NULL;
         /* If a destructor was found, add a pointer to it to the dynamic init
            entry. */
-        init_dip->destructor = dtor;
+        record_dtor_in_dynamic_init(
+                  dtor, init_dip, !dps->init_state.not_potentially_evaluated);
       }  /* if */
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
@@ -5344,7 +5354,8 @@ FALSE is returned) for non-class objects.
           /* Fold the default constructor call to obtain a constant
              initializer. */
           a_constant_ptr  cp;
-          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE);
+          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
+                                             /*evaluated=*/TRUE);
           cp = get_default_constructed_constant(init_dip, tp, err_pos);
           if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
@@ -5370,7 +5381,8 @@ FALSE is returned) for non-class objects.
         if (ctor != NULL) {
           a_constant  folded_con, *cp;
           /* Normal case -- there's a constructor to do the initialization. */
-          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE);
+          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
+                                             /*evaluated=*/TRUE);
           if (ctor->is_constexpr &&
               fold_constexpr_ctor(init_dip, /*record_backing_expr=*/TRUE,
                                   err_pos, &folded_con)) {
@@ -5414,15 +5426,16 @@ FALSE is returned) for non-class objects.
               /* Set up the representation to deal with the possibility of
                  an exception being thrown before the entire construction of
                  the array is complete. */
-              orig_init_dip->destructor = dtor;
+              record_dtor_in_dynamic_init(dtor, orig_init_dip,
+                                          /*evaluated=*/TRUE);
               record_partial_aggregate_cleanup_destruction(orig_init_dip,
                                                            /*evaluated=*/TRUE);
             }  /* if */
           }  /* if */
         } else if (is_nonreal_class) {
           /* Assume a dynamic initialization is needed. */
-          init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          init_dip->variant.constructor.ptr = ctor;
+          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
+                                             /*evaluated=*/TRUE);
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
@@ -5435,7 +5448,7 @@ FALSE is returned) for non-class objects.
           /* A constructor (or at least a destructor or a VLA) was found and a
              dynamic init entry (init_dip) was set to represent the
              initialization. */
-          init_dip->destructor = dtor;
+          record_dtor_in_dynamic_init(dtor, init_dip, /*evaluated=*/TRUE);
         }  /* if */
       }  /* if */
       if (init_dip != NULL) {
@@ -6651,7 +6664,7 @@ whole array.
       dip->destruction_is_for_partially_constructed_aggregate = TRUE;
       /* The dynamic init for the array as a whole should also indicate
          destruction. */
-      result->destructor = dip->destructor;
+      record_dtor_in_dynamic_init(dip->destructor, result, /*evaluated=*/TRUE);
       record_end_of_lifetime_destruction(result, /*static_lifetime=*/FALSE,
                                          /*block_lifetime=*/TRUE);
     }  /* if */
@@ -7533,7 +7546,8 @@ initialized.  These are addressed in the course of the processing.
         } else {
           /* A valid copy/move constructor does exist.  Generate the dynamic
              init entry. */
-          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE);
+          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE,
+                                        /*evaluated=*/TRUE);
         }  /* if */
       } else if (ctor_rout->is_inheriting_ctor &&
                  cip->kind != (a_constructor_init_kind)cik_field &&
@@ -7757,7 +7771,8 @@ initialized.  These are addressed in the course of the processing.
         } else {
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
-          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE);
+          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE,
+                                        /*evaluated=*/TRUE);
           if (ctor_rout->is_constexpr && !rp->is_constexpr) {
             /* Check that a constexpr constructor doesn't call a non-
                constexpr constructor.  For compiler-generated constructors
@@ -7794,7 +7809,9 @@ initialized.  These are addressed in the course of the processing.
         } else {
           /* Implicit initialization -- the destructor has not yet been
              looked up. */
-          dip->destructor = select_destructor(tp, object_class_type, &err_pos);
+          a_routine_ptr  dtor;
+          dtor = select_destructor(tp, object_class_type, &err_pos);
+          record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
         }  /* if */
         /* Record the need for a destruction in the context of the current
            lifetime if dip->destructor != NULL.   Note: when the field is an
@@ -8004,8 +8021,8 @@ though neither constructors nor initialization is involved here.)
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          dip->destructor = rp;
           dip->is_constructor_init = TRUE;
+          record_dtor_in_dynamic_init(rp, dip, /*is_evaluated=*/TRUE);
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */
@@ -8084,8 +8101,8 @@ though neither constructors nor initialization is involved here.)
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          dip->destructor = rp;
           dip->is_constructor_init = TRUE;
+          record_dtor_in_dynamic_init(rp, dip, /*is_evaluated=*/TRUE);
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */

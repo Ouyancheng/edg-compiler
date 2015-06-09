@@ -19355,7 +19355,8 @@ in *rcblock).
                                                        dtor_routine,
                                                        (a_targ_size_t)0);
           }  /* if */
-          dip->destructor = dtor_routine;
+          record_dtor_in_dynamic_init(dtor_routine, dip,
+                                      curr_expr_is_potentially_unevaluated());
           ndsp->dynamic_init = dip;
         }  /* if */
       }  /* if */
@@ -30738,7 +30739,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       if (dtor_routine != NULL) {
         /* Indicate a destructor to be called for cleanup if an exception is
            thrown part-way through the captures. */
-        dip->destructor = dtor_routine;
+        record_dtor_in_dynamic_init(dtor_routine, dip,
+                                    curr_expr_is_potentially_unevaluated());
         record_partial_aggregate_cleanup_destruction(dip,
                                                      curr_expr_is_evaluated());
       }  /* if */
