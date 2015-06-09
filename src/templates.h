@@ -168,7 +168,7 @@ typedef struct a_tmpl_decl_state {
 			   depth; otherwise it is set to zero. */
   a_template_nesting_depth
 		specialization_levels;
-			/* If the number of template parameter clauses that
+			/* The number of template parameter clauses that
 			   do not have a template parameter list (i.e.,
 			   "template <>"). */
   a_token_kind	*final_token_ptr;

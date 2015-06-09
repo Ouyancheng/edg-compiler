@@ -26070,7 +26070,7 @@ instantiations of any template default arguments now.
     /* Something with "template < >" clauses looks like a specialization,
        but could be an out-of-class definition of a specialized member
        class template.  This is only a specialization if there is only
-       on template parameter list (for the bottom template) present. */
+       one template parameter list (for the bottom template) present. */
     if (decl_state->nesting_depth > (decl_state->specialization_levels + 1)) {
       decl_state->is_specialization = FALSE;
     }  /* if */
