@@ -5816,7 +5816,7 @@ The attribute is being applied to "routine".  If an error is issued,
 */
 {
   a_const_char          *target_name;
-  int                   length;
+  size_t                length;
 
   for (; aap != NULL &&
          aap->kind == (an_attribute_arg_kind)aak_raw_token &&

@@ -178,7 +178,7 @@ its code number, or anr_invalid if there is no such register.
 In the latter case, issues an error.
 */
 {
-  unsigned int      md, mn = 0, mx = regmap_size;
+  unsigned int      md, mn = 0, mx = (unsigned int)regmap_size;
   int               comp;
   a_named_register  result = (a_named_register)anr_invalid;
   a_const_char      *name_to_search = name;

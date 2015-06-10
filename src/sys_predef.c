@@ -3249,7 +3249,7 @@ result to an allocated area.
 {
 #define STATIC_BUFFER_SIZE 256
   static char        buffer[STATIC_BUFFER_SIZE];
-  int                buff_idx = 0;
+  size_t             buff_idx = 0;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   size_t             i;
   a_boolean          is_first = TRUE, too_long;
