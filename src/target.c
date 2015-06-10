@@ -598,10 +598,6 @@ are diagnosed.
 #if IA64_ABI
   check_assertion(targ_optimize_empty_base_class_layout);
 #endif /* IA64_ABI */
-  if (targ_supports_x86_64 && targ_sizeof_long != 8) {
-    internal_error(
-                  "check_target_config: targ_supports_x86_64 requires 64-bit");
-  }  /* if */
 #if !LONG_LONG_ALLOWED
   if (targ_supports_x86_64) {
     internal_error(

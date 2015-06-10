@@ -68,23 +68,23 @@ is defined.
 */
 #ifndef TARG_SUPPORTS_X86_64
 #ifdef _WIN64
-#define TARG_SUPPORTS_X86_64 TRUE
+#define TARG_SUPPORTS_X86_64 1
 #else /* !_WIN64 */
-#define TARG_SUPPORTS_X86_64 FALSE
+#define TARG_SUPPORTS_X86_64 0
 #endif /* _WIN64 */
 #endif /* ifndef TARG_SUPPORTS_X86_64 */
 
-#ifdef TARG_SUPPORTS_X86_64
+#if TARG_SUPPORTS_X86_64
 #define TARG_SIZEOF_POINTER 8
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long_long)
 #define HOST_ALIGNMENT_REQUIRED 8
 #define HOST_POINTER_ALIGNMENT 8
 #define TARG_ALIGNOF_POINTER 8
-#else /* !defined(TARG_SUPPORTS_X86_64) */
+#else /* !TARG_SUPPORTS_X86_64 */
 #define TARG_SIZEOF_POINTER 4
 #define TARG_ALIGNOF_POINTER 4
-#endif /* ifdef TARG_SUPPORTS_X86_64 */
+#endif /* TARG_SUPPORTS_X86_64 */
 
 /*
 Definitions for Windows (WIN32)
@@ -181,8 +181,13 @@ set of target-specific configuration macros depends on the set of features that
 have been selected, and some of the values here may not be correct for your
 configuration(s).  These sets of target-specific configuration macros were
 created using the --dump_legacy_as_target command-line option; additional
-configurations can be created in the same manner.
+configurations can be created in the same manner.  Note that these target
+configurations are specific to the Cfront ABI (though IA-64 ABI-specific
+ones can be created with --dump_legacy_as_target).
 */
+#if defined(IA64_ABI) && IA64_ABI
+ #error Supplied target configurations cannot be used with IA64_ABI
+#endif /* defined(IA64_ABI) && IA64_ABI */
 
 #if TARG_SUPPORTS_X86_64
 #define LEGACY_TARGET_CONFIGURATION_NAME "win64"
@@ -206,6 +211,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_win32 4
 #define TARG_ALIGNOF_FLOAT_win32 4
 #define TARG_ALIGNOF_INT_win32 4
+#define TARG_ALIGNOF_INT128_win32 16
 #define TARG_ALIGNOF_LONG_win32 4
 #define TARG_ALIGNOF_LONG_DOUBLE_win32 8
 #define TARG_ALIGNOF_LONG_LONG_win32 8
@@ -242,6 +248,7 @@ the --target option is used).
 #define TARG_HAS_SIGNED_CHARS_win32 1
 #define TARG_HOST_STRING_CHAR_BIT_win32 8
 #define TARG_INT_FIELD_ALIGNMENT_win32 4
+#define TARG_INT128_FIELD_ALIGNMENT_win32 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_win32 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win32 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win32 ((an_integer_kind)ik_int)
@@ -249,6 +256,8 @@ the --target option is used).
 #define TARG_LDBL_MANT_DIG_win32 53
 #define TARG_LDBL_MAX_EXP_win32 1024
 #define TARG_LDBL_MIN_EXP_win32 (-1021)
+#define TARG_LIBGCC_CMP_RETURN_MODE_win32 ((a_type_mode_kind)tmk_SI)
+#define TARG_LIBGCC_SHIFT_COUNT_MODE_win32 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_win32 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_win32 8
 #define TARG_LONG_FIELD_ALIGNMENT_win32 4
@@ -264,6 +273,7 @@ the --target option is used).
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT_win32 1
 #define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE_win32 1
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED_win32 ( !1)
+#define TARG_POINTER_MODE_win32 ((a_type_mode_kind)tmk_SI)
 #define TARG_PTRDIFF_T_INT_KIND_win32 ((an_integer_kind)ik_int)
 #define TARG_REGION_NUMBER_INT_KIND_win32 ((an_integer_kind)ik_unsigned_short)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_win32 1
@@ -273,6 +283,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_win32 4
 #define TARG_SIZEOF_FLOAT_win32 4
 #define TARG_SIZEOF_INT_win32 4
+#define TARG_SIZEOF_INT128_win32 16
 #define TARG_SIZEOF_LONG_win32 4
 #define TARG_SIZEOF_LONG_DOUBLE_win32 8
 #define TARG_SIZEOF_LONG_LONG_win32 8
@@ -285,15 +296,18 @@ the --target option is used).
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_win32 4
 #define TARG_SIZE_T_INT_KIND_win32 ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_MAX_win32 ((a_targ_size_t)0xffffffff)
+#define TARG_SSIZE_T_INT_KIND_win32 ((an_integer_kind)ik_int)
 #define TARG_SUPPORTS_X86_64_win32 0
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_win32 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win32 1
+#define TARG_UNWIND_WORD_MODE_win32 ((a_type_mode_kind)tmk_SI)
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES_win32 1
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS_win32 1
 #define TARG_VAR_HANDLE_INT_KIND_win32 ((an_integer_kind)ik_unsigned_short)
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND_win32 ((an_integer_kind)ik_short)
 #define TARG_WCHAR_T_INT_KIND_win32 ((an_integer_kind)ik_unsigned_short)
 #define TARG_WINT_T_INT_KIND_win32 ((an_integer_kind)ik_unsigned_short)
+#define TARG_WORD_MODE_win32 ((a_type_mode_kind)tmk_SI)
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win32 1
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_win32 (-1)
 
@@ -306,6 +320,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_win64 4
 #define TARG_ALIGNOF_FLOAT_win64 4
 #define TARG_ALIGNOF_INT_win64 4
+#define TARG_ALIGNOF_INT128_win64 16
 #define TARG_ALIGNOF_LONG_win64 4
 #define TARG_ALIGNOF_LONG_DOUBLE_win64 8
 #define TARG_ALIGNOF_LONG_LONG_win64 8
@@ -342,6 +357,7 @@ the --target option is used).
 #define TARG_HAS_SIGNED_CHARS_win64 1
 #define TARG_HOST_STRING_CHAR_BIT_win64 8
 #define TARG_INT_FIELD_ALIGNMENT_win64 4
+#define TARG_INT128_FIELD_ALIGNMENT_win64 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_win64 0
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win64 ((an_integer_kind)ik_int)
@@ -349,6 +365,8 @@ the --target option is used).
 #define TARG_LDBL_MANT_DIG_win64 53
 #define TARG_LDBL_MAX_EXP_win64 1024
 #define TARG_LDBL_MIN_EXP_win64 (-1021)
+#define TARG_LIBGCC_CMP_RETURN_MODE_win64 ((a_type_mode_kind)tmk_SI)
+#define TARG_LIBGCC_SHIFT_COUNT_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_win64 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_win64 8
 #define TARG_LONG_FIELD_ALIGNMENT_win64 4
@@ -364,6 +382,7 @@ the --target option is used).
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT_win64 1
 #define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE_win64 1
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED_win64 ( !1)
+#define TARG_POINTER_MODE_win64 ((a_type_mode_kind)tmk_DI)
 #define TARG_PTRDIFF_T_INT_KIND_win64 ((an_integer_kind)ik_long_long)
 #define TARG_REGION_NUMBER_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_win64 1
@@ -373,6 +392,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_win64 4
 #define TARG_SIZEOF_FLOAT_win64 4
 #define TARG_SIZEOF_INT_win64 4
+#define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LONG_win64 4
 #define TARG_SIZEOF_LONG_DOUBLE_win64 8
 #define TARG_SIZEOF_LONG_LONG_win64 8
@@ -385,15 +405,18 @@ the --target option is used).
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO_win64 8
 #define TARG_SIZE_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_long_long)
 #define TARG_SIZE_T_MAX_win64 ((a_targ_size_t)0xffffffffUL)
-#define TARG_SUPPORTS_X86_64_win64 0
+#define TARG_SSIZE_T_INT_KIND_win64 ((an_integer_kind)ik_long_long)
+#define TARG_SUPPORTS_X86_64_win64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_win64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win64 1
+#define TARG_UNWIND_WORD_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES_win64 1
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS_win64 1
 #define TARG_VAR_HANDLE_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND_win64 ((an_integer_kind)ik_short)
 #define TARG_WCHAR_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
 #define TARG_WINT_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_WORD_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win64 1
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_win64 (-1)
 
