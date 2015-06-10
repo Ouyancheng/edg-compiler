@@ -14981,7 +14981,6 @@ set_temp_init_dynamic_init_lifetime, among others).
       (void)alloc_dynamic_init_dtor_fixup(dip, position);
     }  /* if */
   }  /* if */
-  
 }  /* add_dtor_to_dynamic_init */
 
 

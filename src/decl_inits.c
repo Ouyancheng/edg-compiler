@@ -243,7 +243,8 @@ static a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
 Allocate a dik_constructor dynamic init entry that will call the
 constructor given by ctor_rp.  If the constructor has default arguments,
 add the expressions for those.  If implied_source is TRUE, the source
-for the (copy) constructor call will be implicit.
+for the (copy) constructor call will be implicit.  If evaluated is TRUE,
+the constructor (if non-NULL) will be marked as called.
 */
 {
   a_dynamic_init_ptr dip;
@@ -254,7 +255,7 @@ for the (copy) constructor call will be implicit.
                                                                 implied_source;
   if (ctor_rp != NULL) {
     if (evaluated) ctor_rp->called = TRUE;
-    /* A user defined default constructor may have default args that
+    /* A user-defined default constructor may have default args that
        should be incorporated into the constructor call. */
     copy_ctor_default_args_to_dynamic_init(dip);
   }  /* if */
