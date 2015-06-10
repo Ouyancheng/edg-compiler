@@ -1,5 +1,26 @@
 Version 4.11
 
+6/10/15  [EDGcpfe/16236]
+Internal error in generic lambda instantiation
+
+An internal error could occur (in update_template_param_symbol) during
+the instantiation of a generic lambda declared in a member function
+template.  Now fixed.
+
+  template<int i> struct A {};
+  template <typename F> inline void g(F f) {
+    f(A<0>()); 
+  }
+  template <typename T> struct B {
+    template <int N> static void h(A<N>) {
+       g([] (auto i) { });
+    }
+  };
+  int main() {
+    B<int>::h(A<1>());
+  }
+
+
 6/9/15   [EDGcpfe/16255]
 The "called" flag for constructors and destructors
 

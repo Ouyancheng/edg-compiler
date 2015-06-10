@@ -4241,9 +4241,10 @@ Reactivate the local scope specified by scope.  See push_instantiation_context
 for information about the parameters.
 */
 {
-  a_routine_ptr	rp;
-  a_scope_ptr	parent = NULL;
-  a_boolean	is_template = FALSE;
+  a_routine_ptr			rp;
+  a_scope_ptr			parent = NULL;
+  a_boolean			is_template = FALSE;
+  a_template_decl_info_ptr	parent_tdip = decl_info;
 
   /* If the parent scope is not a file or namespace scope, reactivate it
      first. */
@@ -4252,6 +4253,9 @@ for information about the parameters.
     parent = get_parent_scope_of(rp);
     is_template = rp->is_template_function && !rp->is_specialized &&
                   rp->template_arg_list != NULL;
+    if (is_template) {
+      parent_tdip = decl_info->enclosing_template_decl;
+    }  /* if */
   } else {
     parent = scope->parent;
   }  /* if */
@@ -4259,12 +4263,12 @@ for information about the parameters.
     /* Nothing to to do. */
   } else if (scope_is(parent, sck_class_struct_union)) {
     /* For a class scope, get the class type to be reactivated. */
-    reactivate_parent_context(decl_info, parent, parent->variant.assoc_type,
+    reactivate_parent_context(parent_tdip, parent, parent->variant.assoc_type,
                               instance_sym, assoc_type, assoc_routine,
                               options);
   } else {
     /* Otherwise, reactivate the parent scope. */
-    reactivate_parent_context(decl_info, parent, (a_type_ptr)NULL,
+    reactivate_parent_context(parent_tdip, parent, (a_type_ptr)NULL,
                               instance_sym, assoc_type, assoc_routine,
                               options);
   }  /* if */
@@ -4307,12 +4311,14 @@ information about the parameters.
 */
 {
   a_scope_kind	kind = scope == NULL ? (a_scope_kind)sck_none : scope->kind;
-  /* If a class was specified, the scope will be the file scope, but we
-     want to ignore that and reactivate the class scope below. */
-  if (definition_class != NULL) {
+  a_boolean	is_generic_lambda = (options & PS_IS_GENERIC_LAMBDA) != 0;
+
+  /* If a class was specified and this is not a generic lambda, the scope
+     will be the file scope or a namespace scope.  Ignore the specified
+     scope and reactivate the class scope below. */
+  if (!is_generic_lambda && definition_class != NULL) {
     kind = (a_scope_kind)sck_class_struct_union;
-  } else if (is_local_scope_kind(kind) &&
-             (options & PS_IS_GENERIC_LAMBDA) == 0) {
+  } else if (is_local_scope_kind(kind) && !is_generic_lambda) {
     /* We are pushing a local scope for something that is not a generic
        lambda.  Don't actually push the scope.  This can happen in cases
        such as an inheriting constructor in a local class. */
