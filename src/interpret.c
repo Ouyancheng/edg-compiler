@@ -548,8 +548,8 @@ typedef struct an_interpreter_state {
   a_call_frame_ptr
 		curr_call_frame;
 			/* The currently active call. */
-  void
-		*diagnostic;
+  a_diagnostic_ptr
+		diagnostic;
 			/* A pointer to a representation of a pending
 			   diagnostic (presumably explaining why interpretation
 			   failed to produce a constant result). */
@@ -1719,6 +1719,54 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
       }
       break;
+    case stmk_while:
+      {
+        expr = stmt->expr;
+        /* The type of the test expression is known to be bool, which will
+           fit within the expr_bytes array. */
+        expr_value = expr_bytes;
+        tp = skip_typerefs(expr->type);
+        do {
+          /* Evaluate the test expression. */
+          if (cost_exceeded(ips)) {
+            result = FALSE;
+            /* FIXME: record a diagnostic. */
+          } else {
+            do_constexpr_full_expression(ips, expr, expr_value, result);
+            release_local_constant_from_address(expr, tp, expr_value);
+            ips->cost += 1;
+          }  /* if */
+          if (result) {
+            /* Evaluation of the test expression succeeded.  Get its value
+               to see if the dependent statement should be executed. */
+            get_int_val_from(expr_value, tp, bool_val, ovfl);
+            if (!ovfl && bool_val) {
+              /* Execute the dependent statement. */
+              result = do_constexpr_statement(ips,
+                                              stmt->variant.loop_statement);
+              if (result) {
+                /* Execution of the dependent statement succeeded.  Check for
+                   a pending branching statement. */
+                if (ips->curr_call_frame->return_active) {
+                  /* Break out of the loop (leave the flag active since we may
+                     have to break out of other constructs). */
+                  break;
+                } else if (ips->curr_call_frame->break_active) {
+                  /* Break out of the loop (which completes the execution of
+                     the break statement). */
+                  ips->curr_call_frame->break_active = FALSE;
+                  break;
+                } else if (ips->curr_call_frame->continue_active) {
+                  /* Continue, but clear the continue_active flag since we've
+                     reached the point of continuation. */
+                  ips->curr_call_frame->continue_active = FALSE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }   /* if */
+        } while (result && bool_val);
+      }
+      break;
     case stmk_goto:
       if (stmt->variant.label.ptr->break_label) {
         ips->curr_call_frame->break_active = TRUE;
@@ -1746,6 +1794,51 @@ successfully interpreted, FALSE otherwise.
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
         result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+      }
+      break;
+    case stmk_end_test_while:
+      {
+        expr = stmt->expr;
+        /* The type of the test expression is known to be bool, which will
+           fit within the expr_bytes array. */
+        expr_value = expr_bytes;
+        tp = skip_typerefs(expr->type);
+        do {
+          /* Execute the dependent statement. */
+          result = do_constexpr_statement(ips, stmt->variant.loop_statement);
+          if (result) {
+            /* Execution of the dependent statement succeeded.  Check for a
+                pending branching statement. */
+            if (ips->curr_call_frame->return_active) {
+              /* Break out of the loop (leave the flag active since we may
+                 have to break out of other constructs). */
+              break;
+            } else if (ips->curr_call_frame->break_active) {
+              /* Break out of the loop (which completes the execution of the
+                 break statement). */
+              ips->curr_call_frame->break_active = FALSE;
+              break;
+            } else if (ips->curr_call_frame->continue_active) {
+              /* Continue, but clear the continue_active flag since we've
+                 reached the point of continuation. */
+              ips->curr_call_frame->continue_active = FALSE;
+            }  /* if */
+          }  /* if */
+          /* Evaluate the test expression. */
+          if (cost_exceeded(ips)) {
+            result = FALSE;
+            /* FIXME: record a diagnostic. */
+          } else {
+            do_constexpr_full_expression(ips, expr, expr_value, result);
+            release_local_constant_from_address(expr, tp, expr_value);
+            ips->cost += 1;
+          }  /* if */
+          if (result) {
+            /* Evaluation of the test expression succeeded.  Get its value
+               to see if the dependent statement should be repeated. */
+            get_int_val_from(expr_value, tp, bool_val, ovfl);
+          }   /* if */
+        } while (result && bool_val);
       }
       break;
     case stmk_for:
@@ -1810,8 +1903,7 @@ successfully interpreted, FALSE otherwise.
             if (!ovfl && bool_val) {
               /* Execute the dependent statement. */
               result = do_constexpr_statement(
-                                             ips,
-                                             stmt->variant.for_loop.statement);
+                                       ips, stmt->variant.for_loop.statement);
               if (result) {
                 /* Execution of the dependent statement succeeded, so evaluate
                    the increment expression (if any) unless we hit a branching
@@ -2221,7 +2313,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else {
-                /* FIXME: NYI, other source types. */
+                unexpected_condition();  /* FIXME: NYI, other source types. */
               }  /* if */
               break;
             case eok_pre_incr:
