@@ -964,20 +964,26 @@ that is being generated.
                            sp->kind == (a_statement_kind)stmk_block));
           if (!var_has_static_or_thread_storage_duration(vp)) {
             severity = es_warning;
-            if (!C_mode() && !cfront_2_1_mode) {
-              a_boolean  has_nontrivial_dtor = FALSE;
-              tp = vp->type;
-              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-              tp = skip_typerefs(tp);
-              if (is_immediate_class_type(tp)) {
-                a_class_symbol_supplement_ptr  cssp =
-                                              symbol_supplement_for_class(tp);
-                has_nontrivial_dtor = has_nontrivial_destructor(cssp);
-              }  /* if */
-              if (has_nontrivial_dtor) {
+            if (!C_mode()) {
+              if (current_routine_entry()->is_constexpr) {
+                /* Uninitialized variables cannot be permitted in constexpr
+                   functions. */
                 severity = es_error;
-              } else if (strict_ansi_mode) {
-                severity = strict_ansi_error_severity;
+              } else if (!cfront_2_1_mode) {
+                a_boolean  has_nontrivial_dtor = FALSE;
+                tp = vp->type;
+                if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+                tp = skip_typerefs(tp);
+                if (is_immediate_class_type(tp)) {
+                  a_class_symbol_supplement_ptr  cssp =
+                                              symbol_supplement_for_class(tp);
+                  has_nontrivial_dtor = has_nontrivial_destructor(cssp);
+                }  /* if */
+                if (has_nontrivial_dtor) {
+                  severity = es_error;
+                } else if (strict_ansi_mode) {
+                  severity = strict_ansi_error_severity;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
