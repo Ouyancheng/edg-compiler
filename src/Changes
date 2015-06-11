@@ -1,5 +1,21 @@
 Version 4.11
 
+6/11/15  [EDGcpfe/16308]
+Spurious error on explicit instantiation of inline namespace member
+
+A spurious error could be issued if a member of an inline namespace was
+explicitly instantiated outside of the namespace containing the inline
+namespace.  Now fixed.
+
+  namespace N {
+   inline namespace Inner {
+     template <class T> void f(T&) {}
+   }
+   struct A {};
+  }
+  template void N::f(A&);
+
+
 6/10/15  [EDGcpfe/16236]
 Internal error in generic lambda instantiation
 

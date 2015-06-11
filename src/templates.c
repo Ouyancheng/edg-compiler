@@ -31250,8 +31250,9 @@ instantiation.
     } else if (symbol_is(sym, sk_namespace_projection)) {
       /* A namespace projection symbol is not allowed unless it names a
          symbol from an inline namespace. */
+      a_symbol_ptr	orig_sym = sym;
       sym = fundamental_symbol_of(sym);
-      if (!is_symbol_from_inline_namespace(sym)) {
+      if (!is_symbol_from_inline_namespace_of_parent(orig_sym, sym)) {
         sym_error(ec_bad_scope_for_explicit_instantiation, sym);
       }  /* if */
     }  /* if */
