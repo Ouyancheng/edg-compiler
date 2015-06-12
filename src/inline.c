@@ -1121,7 +1121,11 @@ expressions contained in the statement.
 {
   a_statement_ptr new_statement = alloc_statement(statement->kind);
 
-  copy_statement(statement, new_statement);
+  /* This does not use copy_statement, because we don't want to re-set the
+     any "back" pointers. */
+  *new_statement = *statement;
+  new_statement->next = NULL;
+  new_statement->parent = NULL;
   set_inline_statement_positions(new_statement, statement);
   new_statement->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1416,6 +1420,8 @@ This is useful in cases where iterative inlining can create huge routines.
               new_statement->expr = stmt_expr;
               new_statement->variant.if_stmt.then_statement = then_stmt;
               new_statement->variant.if_stmt.else_statement = else_stmt;
+              then_stmt->parent = new_statement;
+              if (else_stmt != NULL) else_stmt->parent = new_statement;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -1524,6 +1530,7 @@ This is useful in cases where iterative inlining can create huge routines.
         new_statement = copy_inlined_statement(statement, insert_location);
         new_statement->expr = stmt_expr;
         new_statement->variant.loop_statement = stmt;
+        stmt->parent = new_statement;
         break;
       case stmk_for:
         { a_statement_ptr  init_stmt;
@@ -1560,7 +1567,9 @@ This is useful in cases where iterative inlining can create huge routines.
           set_inline_statement_positions(new_statement, statement);
           new_statement->expr = stmt_expr;
           new_statement->variant.for_loop.statement = stmt;
+          stmt->parent = new_statement;
           new_statement->variant.for_loop.extra_info->initialization=init_stmt;
+          if (init_stmt != NULL) init_stmt->parent = new_statement;
           new_statement->variant.for_loop.extra_info->increment=increment_expr;
           insert_statement_full(new_statement, insert_location,
                                 /*perform_post_pass=*/FALSE);
@@ -1763,12 +1772,14 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
                the block statement containing the inlined code.  But keep
                the original statement source position. */
             { a_stmt_source_position saved_position;
+              a_statement_ptr        saved_parent = statement->parent;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               a_stmt_source_position saved_end_position;
               saved_end_position = statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               saved_position = statement->position;
               copy_statement(block_stmt, statement);
+              statement->parent = saved_parent;
               statement->position = saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               statement->end_position = saved_end_position;

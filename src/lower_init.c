@@ -833,6 +833,7 @@ moved out of the block.
       prev_stmt->next = NULL;
     }  /* if */
     stmt->next = insert_after_stmt->next;
+    stmt->parent = insert_after_stmt->parent;
     insert_after_stmt->next = stmt;
     return_moved = TRUE;
     /* Mark the block from which the return was removed (and any
@@ -861,7 +862,7 @@ generated, or NULL if no value needs to be returned.  This routine should only
 be used when adding boilerplate code to constructors or destructors.
 */
 {
-  a_statement_ptr if_stmt, block_stmt;
+  a_statement_ptr if_stmt, block_stmt, stmt;
 
   if_stmt = alloc_statement((a_statement_kind)stmk_if);
   if_stmt->expr = if_node;
@@ -875,9 +876,15 @@ be used when adding boilerplate code to constructors or destructors.
                                   scope->assoc_block->variant.block.statements;
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   scope->assoc_block->variant.block.statements = if_stmt;
+  if_stmt->parent = scope->assoc_block;
   /* See if there is a return statement at the end of the original list of
      statements.  If so, move it outside the "if". */
   (void)move_final_return_out_of_block(block_stmt, if_stmt);
+  /* Update the parent pointers for the remaining statements in the block. */
+  stmt = block_stmt->variant.block.statements;
+  for (; stmt != NULL; stmt = stmt->next) {
+    stmt->parent = block_stmt;
+  }  /* for */
   /* If there is no return statement at the end of the routine (because the
      end of the original routine was not reachable), add one (because the
      end of the new routine is reachable if the "if" is not taken). */

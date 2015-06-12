@@ -13118,6 +13118,7 @@ a normal try.
                                           /*explicit_return_type=*/FALSE,
                                           /*is_catch_clause=*/TRUE,
                                           /*is_statement_expr=*/FALSE);
+  handler->statement->parent = try_block_stmt;
   /* pop_scope is called from compound_statement processing. */
   db_exit();
 }  /* handler_declaration */

@@ -3605,6 +3605,7 @@ avoided if not necessary.
       if (kind == ilk_block_start) {
         /* Insert at the start of a block. */
         statement->next = insert_stmt->variant.block.statements;
+        statement->parent = insert_stmt;
         insert_stmt->variant.block.statements = statement;
         insert_location->kind = ilk_after_statement;
       } else {
@@ -3613,6 +3614,7 @@ avoided if not necessary.
         /* Normal case -- insert after insert_stmt. */
         statement->next = insert_stmt->next;
         insert_stmt->next = statement;
+        statement->parent = insert_stmt->parent;
       }  /* if */
     }  /* if */
     /* Set *insert_location for the next insertion (kind is always

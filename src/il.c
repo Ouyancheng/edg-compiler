@@ -21235,30 +21235,93 @@ Copy a statement entry from "from" to "to".
   to->has_associated_pragma = has_associated_pragma;
   /* Preserve the next pointer of the destination statement. */
   to->next = to_next;
-  /* If the statement is a label, bind the a_label to the copy. */
-  if (to->kind == (a_statement_kind)stmk_label) {
-    to->variant.label.ptr->exec_stmt = to;
-  } else if (to->kind == (a_statement_kind)stmk_block) {
-    /* If the statement is a block with an associated scope, change the
-       back-pointer from the scope to point to the copy. */
-    a_scope_ptr scope = to->variant.block.extra_info->assoc_scope;
-    if (scope != NULL) scope->assoc_block = to;
-  } else if (to->kind == (a_statement_kind)stmk_switch) {
-    /* If the statement is a switch statement, make sure all of the case
-       statements are modified to point to the new switch statement. */
-    a_switch_case_entry_ptr case_entry;
-    for (case_entry = to->variant.switch_stmt.extra_info->cases;
-         case_entry != NULL;
-         case_entry = case_entry->next) {
-      check_assertion(case_entry->stmt->variant.switch_case.switch_statement ==
-                                                                    from);
-      case_entry->stmt->variant.switch_case.switch_statement = to;
-    }  /* for */
-  } else if (to->kind == (a_statement_kind)stmk_switch_case) {
-    /* Modify the pointer in a switch case statement to point to the copy. */
-    check_assertion(to->variant.switch_case.extra_info->stmt == from);
-    to->variant.switch_case.extra_info->stmt = to;
-  }  /* if */
+  /* Patch up subordinate parent pointers and similar "back" pointers. */
+  switch (to->kind) {
+    case stmk_if:
+      /* Update the "then" and "else" (if present) branch parents. */
+      to->variant.if_stmt.then_statement->parent = to;
+      if (to->variant.if_stmt.else_statement != NULL) {
+        to->variant.if_stmt.else_statement->parent = to;
+      }  /* if */
+      break;
+    case stmk_while:
+    case stmk_end_test_while:
+      to->variant.loop_statement->parent = to;
+      break;
+    case stmk_label:
+      /* If the statement is a label, bind the a_label to the copy. */
+      to->variant.label.ptr->exec_stmt = to;
+      break;
+    case stmk_block:
+      /* If the statement is a block with an associated scope, change the
+         back-pointer from the scope to point to the copy. */
+      { a_scope_ptr      scope = to->variant.block.extra_info->assoc_scope;
+        a_statement_ptr  sp = to->variant.block.statements;
+        if (scope != NULL) scope->assoc_block = to;
+        for (; sp != NULL; sp = sp->next) {
+          sp->parent = to;
+        }  /* if */
+        /* To be neat: */
+       from->variant.block.statements = NULL;
+      }  /* if */
+      break;
+    case stmk_for:
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      to->variant.for_loop.statement->parent = to;
+      if (to->variant.for_loop.extra_info->initialization != NULL) {
+        to->variant.for_loop.extra_info->initialization->parent = to;
+      }  /* if */
+      break;
+    case stmk_range_based_for:
+      to->variant.range_based_for_loop.statement->parent = to;
+      break;
+    case stmk_switch:
+      /* If the statement is a switch statement, make sure all of the case
+         statements are modified to point to the new switch statement. */
+      { a_switch_case_entry_ptr case_entry;
+        for (case_entry = to->variant.switch_stmt.extra_info->cases;
+             case_entry != NULL;
+             case_entry = case_entry->next) {
+          check_assertion(
+              case_entry->stmt->variant.switch_case.switch_statement == from);
+          case_entry->stmt->variant.switch_case.switch_statement = to;
+        }  /* for */
+        to->variant.switch_stmt.body_statement->parent = to;
+      }
+      break;
+    case stmk_switch_case:
+      /* Modify the pointer in a switch case statement to point to the copy. */
+      check_assertion(to->variant.switch_case.extra_info->stmt == from);
+      to->variant.switch_case.extra_info->stmt = to;
+      break;
+    case stmk_try_block:
+      { a_try_supplement_ptr  tsp = to->variant.try_block;
+        a_handler_ptr         hp;
+        tsp->statement->parent = to;
+        for (hp = tsp->handlers; hp != NULL; hp = hp->next) {
+          hp->statement->parent = to;
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (tsp->finally_statement != NULL) {
+          tsp->finally_statement->parent = to;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      { a_microsoft_try_supplement_ptr  mtsp = to->variant.microsoft_try;
+        mtsp->guarded_statement->parent = to;
+        mtsp->cleanup_statement->parent = to;
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      /* Nothing to do. */
+      ;
+  }  /* switch */
 }  /* copy_statement */
 
 
@@ -21282,6 +21345,7 @@ statement that returns a value).  See change_block_into_statement_expression.
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = stmt_copy;
+  stmt_copy->parent = statement;
   clear_stmt_source_position(statement->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   clear_stmt_source_position(statement->end_position);

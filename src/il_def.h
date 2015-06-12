@@ -16782,6 +16782,13 @@ typedef struct a_statement {
                         /* Next statement in execution sequence in the
                            same statement sequence, or NULL if this is
                            the last statement in the sequence. */
+  a_statement_ptr
+                parent;
+                        /* The structured statement entry that this one is a
+			   direct subordinate of.  NULL for the top-level
+			   stmk_block or stmk_try_block entry of a function.
+			   Also NULL for for the compound statement of a GNU
+			   statement expression. */
   an_attribute_ptr
 		attributes;
 			/* Attributes applicable to this statement. */

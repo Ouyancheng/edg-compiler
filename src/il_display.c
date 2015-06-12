@@ -4826,6 +4826,7 @@ Display the indicated statement.
   disp_stmt_source_position("end_position", ptr->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("next", (char *)ptr->next, iek_statement);
+  disp_ptr("parent", (char *)ptr->parent, iek_statement);
   disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   if (ptr->has_associated_pragma) {
     disp_boolean("has_associated_pragma", TRUE);

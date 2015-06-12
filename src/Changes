@@ -1,5 +1,13 @@
 Version 4.11
 
+6/12/15  [EDGcpfe/16309]
+Parent pointers in statement entries
+
+The front end now records a pointer to a "parent" statement in most
+statement entries.  For example, the statements directly in a compound
+statement point back to that compound statement.
+
+
 6/12/15  [EDGcpfe/16231]
 IA-64 ABI: mangling of template aliases
 

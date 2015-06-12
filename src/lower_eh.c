@@ -5478,6 +5478,7 @@ be passed down.
     /* Add the label statement at the start of the try compound statement. */
     check_assertion(dependent_stmt->kind == (a_statement_kind)stmk_block);
     label_stmt->next = dependent_stmt->variant.block.statements;
+    label_stmt->parent = dependent_stmt;
     dependent_stmt->variant.block.statements = label_stmt;
     mark_stmk_inits_as_following_exec_statement(label_stmt->next);
   }

@@ -2806,7 +2806,7 @@ operator routine or do bitwise assignment.
   a_type_ptr                     class_type, tp, array_type;
   a_routine_ptr                  rout;
   a_routine_type_supplement_ptr  rtsp;
-  a_statement_ptr                sp;
+  a_statement_ptr                sp, top_block;
   a_statement                    head_of_statement_list;
   a_variable_ptr                 source_var;
   an_expr_node_ptr               source_expr, dest_expr;
@@ -2831,6 +2831,9 @@ operator routine or do bitwise assignment.
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
   err_pos = &class_type->source_corresp.decl_position;
+  /* Create the top-level block statement for the function. */
+  top_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = top_block;
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
       allocated statement entries will be hung.  That list will eventually be
@@ -2848,6 +2851,7 @@ operator routine or do bitwise assignment.
     source_expr = rvalue_expr_for_lvalue(source_expr);
     dest_expr = add_indirection_to_node(this_param_value_expr());
     sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+    sp->parent = top_block;
   } else {
     /* Memberwise copy is required.  That is, first do the appropriate
        operation on each direct base class (direct assignment or calling
@@ -2878,6 +2882,7 @@ operator routine or do bitwise assignment.
           /* Create the assignment statement.  The appropriate operator
              will be selected by the function. */
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+          sp->parent = top_block;
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
@@ -2896,6 +2901,7 @@ operator routine or do bitwise assignment.
           }  /* if */
           sp = sp->next = make_assignment_call(source_expr, dest_expr, rp,
                                                err_pos);
+          sp->parent = top_block;
         }  /* if */
       }  /* if */
       /* Advance to the next base class. */
@@ -2976,6 +2982,7 @@ operator routine or do bitwise assignment.
                 make_assignment_statement(temp_node,
                                           node_for_integer_constant(
                                                     0L, targ_size_t_int_kind));
+              sp->parent = top_block;
               /* Make "++tmp < num_elements". */
               temp_node = var_lvalue_expr(temp_var);
               temp_incr_node = make_operator_node(
@@ -2991,6 +2998,7 @@ operator routine or do bitwise assignment.
               /* Make the do-while statement. */
               sp = sp->next = alloc_statement(
                                         (a_statement_kind)stmk_end_test_while);
+              sp->parent = top_block;
               sp->expr = compare_node;
               /* Convert the source and destination expressions from
                  array lvalue to pointer-to-array-element.  Loop if the
@@ -3045,10 +3053,12 @@ operator routine or do bitwise assignment.
             if (array_type != NULL) {
               /* Array case; the call goes under the do-while. */
               sp->variant.loop_statement = call_stmt;
+              call_stmt->parent = sp;
             } else {
               /* Non-array case; the call goes at the end of the statement
                  sequence. */
               sp = sp->next = call_stmt;
+              call_stmt->parent = top_block;
             }  /* if */
           }  /* if */
         } else {
@@ -3062,12 +3072,13 @@ operator routine or do bitwise assignment.
                lvalue). */
             sp = sp->next =
                        make_array_assignment_statement(dest_expr, source_expr);
-        
+            sp->parent = top_block;
           } else {
             /* Not an array.  The appropriate IL operator will be selected
                by make_assignment_statement. */
             source_expr = rvalue_expr_for_lvalue(source_expr);
             sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+            sp->parent = top_block;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3076,14 +3087,13 @@ operator routine or do bitwise assignment.
   /* Make the return statement.  A pointer to the variable assigned to is
      the return value. */
   sp = sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp->parent = top_block;
   sp->expr = add_reference_to_to_node(
                   add_indirection_to_node(this_param_value_expr()));
   /* We now have a list of one or more statements hanging off the local
      variable head_of_statement_list.  The start of the list is pointed to
-     by the next field.  Create a block statement and attach the list to
-     it. */
-  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
-  scope->assoc_block->variant.block.statements = head_of_statement_list.next;
+     by the next field.  Attach the list to the top-level block. */
+  top_block->variant.block.statements = head_of_statement_list.next;
   db_exit();
   return;
 }  /* make_default_assignment_body */

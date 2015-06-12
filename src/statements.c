@@ -1567,7 +1567,6 @@ should be set to TRUE.
   a_statement_ptr               ssp;
   a_statement_ptr               *head_ptr = NULL;
   a_boolean                     statement_list_allowed;
-  a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     in_guarded_statement_of_microsoft_try = FALSE;
@@ -1586,7 +1585,8 @@ should be set to TRUE.
   if (sssep->extra_block != NULL) {
     /* An extra block statement has already been added under the primary
        statement.  The instruction should be added under this extra block. */
-    head_ptr = &sssep->extra_block->variant.block.statements;
+    ssp = sssep->extra_block;
+    head_ptr = &ssp->variant.block.statements;
     statement_list_allowed = TRUE;
   } else {
     ssp = sssep->statement;
@@ -1683,8 +1683,8 @@ should be set to TRUE.
          Also note that the top compound statement of a switch never has
          an associated scope at this point (the scope gets added at the
          closing brace), so it's acceptable, which is what we want. */
-      extra_block = *head_ptr;
-      temp_stmt = extra_block->variant.block.statements;
+      ssp = *head_ptr;
+      temp_stmt = ssp->variant.block.statements;
       if (temp_stmt != NULL) {
         while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
       }  /* if */
@@ -1693,19 +1693,19 @@ should be set to TRUE.
         /* The end of the block is reachable if the new statement is
            reachable.  This is important because continue labels are
            always reachable. */
-        extra_block->variant.block.extra_info->end_of_block_reachable = TRUE;
+        ssp->variant.block.extra_info->end_of_block_reachable = TRUE;
       }  /* if */
     } else {
       /* Create a new block to allow additional statements. */
-      extra_block = alloc_statement((a_statement_kind)stmk_block);
+      ssp = alloc_statement((a_statement_kind)stmk_block);
       /* This doesn't get added to the source sequence list; it's not
          in the source. */
-      extra_block->variant.block.extra_info->implicit_scope_not_allowed = TRUE;
-      extra_block->variant.block.statements = *head_ptr;
-      *head_ptr = extra_block;
+      ssp->variant.block.extra_info->implicit_scope_not_allowed = TRUE;
+      ssp->variant.block.statements = *head_ptr;
+      *head_ptr = ssp;
     }  /* if */
-    head_ptr = &extra_block->variant.block.statements;
-    sssep->extra_block = extra_block;
+    head_ptr = &ssp->variant.block.statements;
+    sssep->extra_block = ssp;
   }  /* if */
   /* Add the new statement to the end of the statement list for the
      current level of the structured statement stack.  Even unreachable
@@ -1725,8 +1725,14 @@ should be set to TRUE.
     }  /* if */
     sssep->last_dep_statement->next = sp;
   }  /* if */
+  /* Find the last statement in the inserted list, and update the parent
+     pointer for every element of that list. */
   temp_stmt = sp;
-  while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
+  while (temp_stmt->next != NULL) {
+    temp_stmt->parent = ssp;
+    temp_stmt = temp_stmt->next;
+  }  /* while */
+  temp_stmt->parent = ssp;
   sssep->last_dep_statement = temp_stmt;
   if (sssep->prefix_attributes != NULL &&
       sp->kind != (a_statement_kind)stmk_label) {
@@ -2320,10 +2326,12 @@ is FALSE.)
     /* Link the deallocation statement into the block. */
     block_stmt->variant.block.statements = dealloc_stmts;
     /* Find the end of the list of deallocation statements to link the copied
-       goto statement after it. */
+       goto statement after it.  Also update the parent pointers. */
     while (dealloc_stmts->next != NULL) {
+      dealloc_stmts->parent = block_stmt;
       dealloc_stmts = dealloc_stmts->next;
     }  /* while */
+    dealloc_stmts->parent = block_stmt;
     dealloc_stmts->next = copy_of_goto_stmt;
   }  /* if */
   db_exit();
@@ -4212,6 +4220,8 @@ declared with an explicit return type.
                            explicit_return_type,
                            /*is_catch_clause=*/FALSE,
                            /*is_statement_expr=*/FALSE);
+      
+      sp->variant.try_block->finally_statement->parent = sp;
       struct_stmt_stack[depth_stmt_stack].parsing_finally_clause = FALSE;
     } else if (!catch_exists) {
       /* Neither "catch" nor "finally" was specified. Use required_token to
@@ -5368,7 +5378,6 @@ diagnose the condition.
     goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
                                                       variant.label.lifetime;
     *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
-
   }  /* if */
 #if VLA_DEALLOCATIONS_IN_IL
   if (vla_enabled && vla_deallocations_in_il) {
