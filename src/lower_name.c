@@ -8724,6 +8724,10 @@ type is mangled in its place.
 #endif /* !IA64_ABI */
   /* Use the alias name (preceded by its length in the IA-64 ABI). */
 #if IA64_ABI
+#if ABI_COMPATIBILITY_VERSION >= 411
+  /* Allocate a substitution for the template alias. */
+  alloc_substitution((char *)type, iek_type, /*is_pack_expansion=*/TRUE, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 */
   add_number_to_mangled_name((unsigned long)strlen(name), mctl);
 #endif /* IA64_ABI */
   add_str_to_mangled_name(name, mctl);

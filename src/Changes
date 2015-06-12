@@ -1,5 +1,29 @@
 Version 4.11
 
+6/12/15  [EDGcpfe/16231]
+IA-64 ABI: mangling of template aliases
+
+The IA-64 ABI specifies no mangling for template aliases (as their use is
+transparent to mangling), nevertheless, a mangled name is produced by the
+front end for template aliases (mirroring that of a class template).  In
+such cases, in the IA-64 ABI, no substitution had been allocated for the
+template alias itself, possibly resulting in surprising demangled names.
+For example (with --c++11):
+
+  template <class T, class U> struct A {};
+  struct B {};
+  template <class T> using C = T;
+  template <class T> T f();
+  void g() {
+    f<C<A<B, B>>>();    // Alias was: _Z1CI1AI1BS0_EE (demangled: C<A<B, A>>)
+                        // Alias now: _Z1CI1AI1BS1_EE (demangled: C<A<B, B>>)
+  }
+
+This change is conditional on ABI_COMPATIBILITY_VERSION >= 411 (though mangled
+template alias names don't appear in external names, so there should be no
+ABI breakage with this change).
+
+
 6/12/15  [EDGcpfe/16314]
 Use of TRUE and FALSE macros before basics.h is included
 
