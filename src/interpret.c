@@ -1936,6 +1936,105 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
       }
       break;
+    case stmk_switch_case:
+      /* Nothing to do. */
+      break;
+    case stmk_switch:
+      { a_statement_ptr          substmt;
+        a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
+                                            ->sorted_cases;
+        a_boolean                is_signed;
+        expr = stmt->expr;
+        /* The type of the switch expression is known to be integral, which
+           will fit within the expr_bytes array. */
+        expr_value = expr_bytes;
+        tp = skip_typerefs(expr->type);
+        is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
+        do_constexpr_full_expression(ips, expr, expr_value, result);
+        release_local_constant_from_address(expr, tp, expr_value);
+        /* Search through the ordered list of case labels for the one selected
+           by the switch expression. */
+        for (; scep != NULL; scep = scep->next_on_sorted_list) {
+          a_byte  case_bytes[VALUE_BYTES_FOR_SCALAR];
+          int cmp;
+          result = copy_val_from_constant(scep->case_value, case_bytes);
+          cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
+                                   (an_integer_value*)case_bytes, is_signed);
+          if (cmp == 0) {
+            /* We found the case entry. */
+            break;
+          } else if (cmp < 0) {
+            /* There may be more entries, but they won't match. */
+            scep = NULL;
+            break;
+#if GNU_EXTENSIONS_ALLOWED
+          } else if (scep->range_end != NULL) {
+            result = copy_val_from_constant(scep->range_end, case_bytes);
+            cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
+                                     (an_integer_value*)case_bytes, is_signed);
+            if (cmp <= 0) {
+              /* We're in the range. */
+              break;
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }  /* for */
+        if (scep == NULL) {
+          /* No case found: Use the default (if any). */
+          scep = stmt->variant.switch_stmt.extra_info->default_case;
+          if (scep == NULL) {
+            /* No default. */
+            goto done_with_switch;
+          }  /* if */
+        }  /* if */
+        substmt = scep->stmt;
+        /* Continue execution at the labeled statement.  Note that we don't
+           have to activate intervening block scopes because they cannot
+           contain variable declarations (errors are issued for case labels
+           that enable branching past an initialized variable, and declaring
+           uninitialized variables is not allowed in constexpr function
+           definitions). */
+        for (;;) {
+          /* Move to the next statement.  The first time around, this means
+             moving past the selected switch-case statement. */
+          if (ips->curr_call_frame->break_active) {
+            /* Break out of the switch statements (which completes the
+               execution of the break statement). */
+            ips->curr_call_frame->break_active = FALSE;
+            break;
+          } else if (ips->curr_call_frame->return_active ||
+                     ips->curr_call_frame->break_active ||
+                     ips->curr_call_frame->continue_active) {
+            /* Other branching statements end the execution of the switch, but
+               they are not completed by the switch. */
+            break;
+          } else if (!result) {
+            /* Some interpretation error occurred. */
+            goto done_with_switch;
+          } else if (substmt->next != NULL) {
+            /* The statement just interpreted is followed by another one.
+               We'll interpret it next. */
+            substmt = substmt->next;
+          } else {
+            /* There are no more statements in this sequence.  Move up to the
+               parent sequence if appropriate. */
+            for (;;) {
+              substmt = substmt->parent;
+              if (substmt == stmt) {
+                /* We're flowing off the switch statement itself. */
+                goto done_with_switch;
+              } else if (substmt->next != NULL) {
+                substmt = substmt->next;
+                break;
+              }  /* if */
+              /* Continue up the parent chain. */
+            }  /* for */
+          }  /* if */
+          result = do_constexpr_statement(ips, substmt);
+        }  /* for */
+      }
+done_with_switch:
+      break;
     case stmk_init:
       { a_dynamic_init_ptr  dip = stmt->variant.dynamic_init;
         a_variable_ptr      vp = dip->variable;
