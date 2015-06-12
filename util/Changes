@@ -1,5 +1,12 @@
 Version 4.11
 
+6/12/15  [EDGcpfe/10878,EDGcpfe/16276]
+Increase limit on length of demangled names
+
+The edg_decode tool had limited the length of a demangled name to 15000 bytes;
+that limit has been lifted (a dynamically-allocated buffer is now used and
+reallocated in cases where the demangled name exceeds the original limit).
+
 
 5/6/15   [EDGcpfe/16147]
 Demangling of template argument packs

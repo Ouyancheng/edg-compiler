@@ -48,10 +48,14 @@ static int	ch;	/* Current input character. */
 
 #define MAX_ID_LENGTH 15000
 			/* Maximum size of an identifier. */
-static char   orig_id[MAX_ID_LENGTH];
+static char	orig_id[MAX_ID_LENGTH];
 			/* Identifier being processed currently, as read. */
-static char   demangled_id[MAX_ID_LENGTH];
-			/* Demangled form of the current identifier. */
+static char	*demangled_id;
+			/* Demangled form of the current identifier,
+			   dynamically allocated. */
+static sizeof_t	demangled_id_size = MAX_ID_LENGTH;
+			/* The size of demangled_id (initially the same size
+			   as the input buffer, but may change. */
 
 
 /*
@@ -138,9 +142,26 @@ is the one following the identifier.
     if (is_mangled_name) {
       a_boolean err, buffer_overflow_err;
       sizeof_t  required_buffer_size;
-      /* Demangle the identifier. */
-      decode_identifier(id, demangled_id, (sizeof_t)MAX_ID_LENGTH,
-                        &err, &buffer_overflow_err, &required_buffer_size);
+      do {
+        /* Demangle the identifier. */
+        decode_identifier(id, demangled_id, demangled_id_size,
+                          &err, &buffer_overflow_err, &required_buffer_size);
+        if (err && buffer_overflow_err) {
+          /* The demangled name doesn't fit in the output buffer; increase
+             the size and try again. */
+          if (required_buffer_size <= demangled_id_size) {
+            /* Buffers should only get larger. */
+            fprintf(stderr, "Request to allocate smaller buffer\n");
+            exit(RC_CATASTROPHE);
+          }  /* if */
+          demangled_id_size = required_buffer_size;
+          demangled_id = realloc(demangled_id, demangled_id_size);
+          if (demangled_id == NULL) {
+            perror(NULL);
+            exit(RC_CATASTROPHE);
+          }  /* if */
+        }  /* if */
+      } while (buffer_overflow_err);
       /* On an error, force output of the original form of the name. */
       if (err) is_mangled_name = FALSE;
     }  /* if */
@@ -171,6 +192,13 @@ edg_decode utility program -- demangles names for C++.
 #else /* !IA64_ABI */
 #define OPTION_LIST "u"
 #endif /* IA64_ABI */
+  /* Allocate the output buffer (initially the same size as the input buffer
+     but can grow). */
+  demangled_id = malloc(demangled_id_size);
+  if (demangled_id == NULL) {
+    perror(NULL);
+    return RC_CATASTROPHE;
+  }  /* if */
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'u':
