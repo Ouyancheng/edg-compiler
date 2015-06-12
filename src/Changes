@@ -1,5 +1,26 @@
 Version 4.11
 
+6/12/15  [EDGcpfe/16314]
+Use of TRUE and FALSE macros before basics.h is included
+
+Due to a chicken-and-egg problem between basics.h and defines.h, the use of
+the TRUE and FALSE macros may lead to unexpected behavior.  The TRUE and FALSE
+macros are defined by basics.h, but basics.h includes defines.h (before the
+macro definitions).  This leads to a sequence like this:
+
+  // Only in defines.h:
+  #define CONFIG_MACRO TRUE
+  #if CONFIG_MACRO
+    #error Never get here
+  #else
+    #error Always get here
+  #endif
+
+The uses of TRUE and FALSE in defines*.h have been replaced with 1 and 0
+respectively and a note added at the top of these routines.  The use of TRUE
+and FALSE after basics.h has been included is unchanged.
+
+
 6/11/15  [EDGcpfe/16308]
 Spurious error on explicit instantiation of inline namespace member
 

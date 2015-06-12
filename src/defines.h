@@ -14,6 +14,15 @@ defines.h -- Defines configuration parameters for a given version of the
 
 */
 
+/*
+A word of caution about using TRUE/FALSE values in this header file: The
+macros TRUE and FALSE are defined in basics.h, but their definition occurs
+only after defines.h is included.  A side-effect of this is that any #if
+test of a macro whose value is either TRUE or FALSE will result in the false
+branch being taken.  Consequently, it's best to use 1 or 0, for TRUE and
+FALSE in this header file.
+*/
+
 /* Avoid including these declarations more than once. */
 #ifndef DEFINES_H
 #define DEFINES_H 1
@@ -273,10 +282,10 @@ Flags to be set for any version that uses the C++ generating back end.
 #if defined(IA64_ABI) && IA64_ABI
 /* Use the <=4.0 virtual base class handling technique. */
 #ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS FALSE
+#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS 0
 #endif /* ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 #ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS TRUE
+#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS 1
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 #endif /* defined(IA64_ABI) && IA64_ABI */
 #else /* !defined(SOLARIS) */
@@ -401,7 +410,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
-#define DEFAULT_FRIEND_INJECTION TRUE
+#define DEFAULT_FRIEND_INJECTION 1
 #ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
 #undef COMPILE_MULTIPLE_SOURCE_FILES
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
@@ -413,7 +422,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #if !defined(UNICODE_SOURCE_SUPPORTED) || !UNICODE_SOURCE_SUPPORTED
 #define ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR 1
 #endif /* !defined(UNICODE_SOURCE_SUPPORTED) || !UNICODE_SOURCE_SUPPORTED */
-#define LOWER_DESIGNATED_INITIALIZERS TRUE
+#define LOWER_DESIGNATED_INITIALIZERS 1
 
 #ifndef OPTIMIZED_VERSION
 #ifndef EXPENSIVE_CHECKING
@@ -435,10 +444,10 @@ Flags to be set for any version that uses the C++ generating back end.
 #define _INCLUDE_AES_SOURCE 1
 
 /* >>> HP-UX Options determined with dettarg: */
-#define TARG_LITTLE_ENDIAN FALSE
+#define TARG_LITTLE_ENDIAN 0
 #define TARG_CHAR_BIT 8
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_HAS_SIGNED_CHARS 1
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
@@ -461,7 +470,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 4
-#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 /* --- End of options determined with dettarg. */
 
@@ -583,9 +592,9 @@ Flags to be set for any version that uses the C++ generating back end.
 
 /* Options for Windows/Cygwin version. */
 #define DEFAULT_INSTANTIATION_MODE tim_all
-#define UNICODE_SOURCE_SUPPORTED TRUE
-#define DEFAULT_CHECK_CONCATENATIONS TRUE
-#define ASM_FUNCTION_ALLOWED TRUE
+#define UNICODE_SOURCE_SUPPORTED 1
+#define DEFAULT_CHECK_CONCATENATIONS 1
+#define ASM_FUNCTION_ALLOWED 1
 #define FIXED_POINT_ALLOWED 1
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
@@ -656,11 +665,11 @@ Flags to be set for any version that uses the C++ generating back end.
 #define MACRO_INVOCATION_TREE_IN_IL 1
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 #ifndef DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS
-#define DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS TRUE
+#define DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS 1
 #endif /* DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS */
 /* Settings needed in order for bit-field allocation to match gcc. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
-#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
 
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 
@@ -679,10 +688,10 @@ Flags to be set for any version that uses the C++ generating back end.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
 
 /* Configuration definitions determined by dettarg.c: */
-#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_LITTLE_ENDIAN 1
 #define TARG_CHAR_BIT 8
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_HAS_SIGNED_CHARS 1
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
@@ -705,8 +714,8 @@ Flags to be set for any version that uses the C++ generating back end.
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
-#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
-#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE FALSE
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
+#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE 0
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 52
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
@@ -754,7 +763,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
-#define DEFAULT_FRIEND_INJECTION TRUE
+#define DEFAULT_FRIEND_INJECTION 1
 
 #ifdef OPTIMIZED_VERSION
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 0
@@ -793,7 +802,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define INSTANTIATE_EXTERN_INLINE 1
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 #ifndef INSTANTIATE_BEFORE_PCH_CREATION
-#define INSTANTIATE_BEFORE_PCH_CREATION TRUE
+#define INSTANTIATE_BEFORE_PCH_CREATION 1
 #endif /* ifndef INSTANTIATE_BEFORE_PCH_CREATION */
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
@@ -968,7 +977,7 @@ switches before this point.
 #define DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT 1
 #endif /* ifndef DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT */
 #ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES
-#define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES TRUE
+#define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES 1
 #endif /* ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES */
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 1
@@ -1085,7 +1094,7 @@ enable support for coroutine extensions.
 #ifndef COROUTINES_ALLOWED
 #if defined(DO_IL_LOWERING) && !DO_IL_LOWERING
 #if defined(MICROSOFT_EXTENSIONS_ALLOWED) && MICROSOFT_EXTENSIONS_ALLOWED
-#define COROUTINES_ALLOWED TRUE
+#define COROUTINES_ALLOWED 1
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) && ... */
 #endif /* defined(DO_IL_LOWERING) && !DO_IL_LOWERING */
 #endif /* COROUTINES_ALLOWED */

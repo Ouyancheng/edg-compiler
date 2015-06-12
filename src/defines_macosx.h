@@ -16,6 +16,15 @@ This version is for the Apple MacOS X operating system.
 
 */
 
+/*
+A word of caution about using TRUE/FALSE values in this header file: The
+macros TRUE and FALSE are defined in basics.h, but their definition occurs
+only after defines.h is included.  A side-effect of this is that any #if
+test of a macro whose value is either TRUE or FALSE will result in the false
+branch being taken.  Consequently, it's best to use 1 or 0, for TRUE and
+FALSE in this header file.
+*/
+
 /* Avoid including these declarations more than once. */
 #ifndef DEFINES_MACOS_H
 #define DEFINES_MACOS_H 1
@@ -47,7 +56,7 @@ This version is for the Apple MacOS X operating system.
 #define TARG_ALIGNOF_LONG_LONG 4
 #endif /* ifdef __x86_64__ */
 #ifdef __ppc__
-#define TARG_LITTLE_ENDIAN FALSE
+#define TARG_LITTLE_ENDIAN 0
 #define TARG_JMP_BUF_NUM_ELEMENTS 192
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 4
@@ -55,7 +64,7 @@ This version is for the Apple MacOS X operating system.
 #else /* ifndef __ppc__ */
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
-#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_LITTLE_ENDIAN 1
 #ifdef __x86_64__
 #define TARG_JMP_BUF_NUM_ELEMENTS 37
 #else /* ifndef __x86_64__ */
@@ -66,8 +75,8 @@ This version is for the Apple MacOS X operating system.
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_CHAR_BIT 8
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_HAS_SIGNED_CHARS 1
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
@@ -79,7 +88,7 @@ This version is for the Apple MacOS X operating system.
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #endif /* ifndef _lint */
-#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS

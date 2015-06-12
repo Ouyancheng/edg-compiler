@@ -15,6 +15,15 @@ defines.h -- Defines configuration parameters for a given version of the
 This is the version for Windows 95/98/NT/etc.
 */
 
+/*
+A word of caution about using TRUE/FALSE values in this header file: The
+macros TRUE and FALSE are defined in basics.h, but their definition occurs
+only after defines.h is included.  A side-effect of this is that any #if
+test of a macro whose value is either TRUE or FALSE will result in the false
+branch being taken.  Consequently, it's best to use 1 or 0, for TRUE and
+FALSE in this header file.
+*/
+
 /* Avoid including these declarations more than once. */
 #ifndef DEFINES_WIN32_H
 #define DEFINES_WIN32_H 1
@@ -40,10 +49,10 @@ This is the version for Windows 95/98/NT/etc.
 #define FRONT_END_C_FILES_COMPILED_AS_CPP 0
 
 /* Configuration definitions determined by dettarg.c: */
-#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_LITTLE_ENDIAN 1
 #define TARG_CHAR_BIT 8
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_HAS_SIGNED_CHARS 1
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
@@ -56,7 +65,7 @@ This is the version for Windows 95/98/NT/etc.
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 8
-#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 16
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
