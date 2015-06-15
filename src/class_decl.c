@@ -20966,7 +20966,8 @@ The routine body is not generated until it is known to be needed.
        do not generate special members that don't have a valid definition.
        Note that suppression may have to be checked even if no special member
        is declared so that "= default" definitions can be suppressed if
-       needed. */
+       needed.  The call to check_suppressed_special_functions also identifies
+       special members that cannot be constexpr if they are generated. */
     if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations) {
       gsfd.warn_about_suppressed_copy_ctor = declare_copy_ctor;
@@ -20975,6 +20976,21 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     check_suppressed_special_functions(class_type, &gsfd);
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
+  } else if (constexpr_enabled) {
+    /* Although no special members should be suppressed, we still need to know
+       whether generated special members should be constexpr.  Call
+       check_suppressed_special_functions to that effect, but clear the flags
+       that would suppress special members. */
+    check_suppressed_special_functions(class_type, &gsfd);
+    gsfd.suppress_default_ctor = FALSE;
+    gsfd.suppress_copy_ctor = FALSE;
+    gsfd.suppress_move_ctor = FALSE;
+    gsfd.suppress_copy_assign = FALSE;
+    gsfd.suppress_move_assign = FALSE;
+    gsfd.suppress_dtor = FALSE;
+    gsfd.warn_about_suppressed_copy_ctor = FALSE;
+    gsfd.warn_about_suppressed_copy_assign = FALSE;
+    gsfd.warn_about_suppressed_dtor = FALSE;
   }  /* if */
   if (!is_template_dependent_context()) {
     /* Check the type of "= default" special members. */
