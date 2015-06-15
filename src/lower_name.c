@@ -752,6 +752,7 @@ corresponding tk_template_param entry.
 static a_substitution_ptr
 		avail_substitutions;
 
+static char base_36_digits[37];
 
 static void alloc_substitution(char                         *entity,
                                an_il_entry_kind             kind,
@@ -814,6 +815,21 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
       sp->index = 0;
       mctl->first_substitution = mctl->last_substitution = sp;
     }  /* if */
+#if DEBUG && EXPENSIVE_CHECKING
+    if (db_flag_is_set("substitutions")) {
+      fprintf(f_debug, "alloc S%c: <%s> %s",
+                       (sp->index == 0 ? ' ' :
+                        sp->index < 36 ? base_36_digits[sp->index-1] : '?'),
+                       il_entry_kind_names[(int)sp->kind],
+                       sp->is_pack_expansion ? " [pack_expansion]" : "");
+      if (sp->kind == (an_il_entry_kind)iek_type) {
+        db_abbreviated_type((a_type_ptr)sp->entity);
+      } else if (sp->kind == (an_il_entry_kind)iek_template) {
+        db_template_name((a_template_ptr)sp->entity);
+      }  /* if */
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
   }  /* if */
 }  /* alloc_substitution */
 
@@ -1631,6 +1647,21 @@ whether a substitution is available; do not put it out.
     }  /* for */
   }  /* if */
 end_of_routine:;
+#if DEBUG && EXPENSIVE_CHECKING
+  if (result && db_flag_is_set("substitutions")) {
+    fprintf(f_debug, "using S%c: <%s> %s",
+                     (sp->index == 0 ? ' ' :
+                      sp->index < 36 ? base_36_digits[sp->index-1] : '?'),
+                     il_entry_kind_names[(int)sp->kind],
+                     sp->is_pack_expansion ? " [pack_expansion]" : "");
+    if (sp->kind == (an_il_entry_kind)iek_type) {
+      db_abbreviated_type((a_type_ptr)sp->entity);
+    } else if (sp->kind == (an_il_entry_kind)iek_template) {
+      db_template_name((a_template_ptr)sp->entity);
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
   return result;
 }  /* add_substitution_if_available_full */
 
