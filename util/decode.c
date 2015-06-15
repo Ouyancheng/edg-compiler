@@ -5104,6 +5104,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
   char               kind;
   a_cv_qualifier_set local_cv_quals;
   a_boolean          record_substitution = TRUE;
+  a_boolean          record_cv_qual_substitution = TRUE;
 
   /* Accumulate cv-qualifiers. */
   p = get_cv_qualifiers(p, &local_cv_quals);
@@ -5219,6 +5220,10 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
+    /* CV-qualifiers that are applied to function types are considered an
+       indivisible portion of the type and no substitution is made for the
+       unqualified type. */
+    record_cv_qual_substitution = FALSE;
   } else if (kind == 'A') {
     /* Array type,
          A <positive dimension number> _ <element type>
@@ -5264,7 +5269,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     record_substitutable_entity(unqualp, subk_type, 0L, parse_template_args,
                                 dctl);
   }  /* if */
-  if (qualp != unqualp) {
+  if (qualp != unqualp && record_cv_qual_substitution) {
     /* The type is cv-qualified, so record another potential substitution
        for the fully-qualified type. */
     record_substitutable_entity(qualp, subk_type, 0L, parse_template_args,
