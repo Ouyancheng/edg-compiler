@@ -16769,25 +16769,25 @@ typedef struct a_statement {
   /* Definition of an executable statement. */
   a_stmt_source_position
 		position;
-                        /* Source position from which this statement
-                           came.  0 if no direct correspondence. */
+			/* Source position from which this statement came.
+			   0 if no direct correspondence. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_stmt_source_position
 		end_position;
-                        /* Source position of the end of this statement.
-                           0 if no direct correspondence. */
+			/* Source position of the end of this statement.
+			   0 if no direct correspondence. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_statement_ptr
-                next;
-                        /* Next statement in execution sequence in the
-                           same statement sequence, or NULL if this is
-                           the last statement in the sequence. */
+		next;
+			/* Next statement in execution sequence in the same
+			   statement sequence, or NULL if this is the last
+			   statement in the sequence. */
   a_statement_ptr
-                parent;
-                        /* The structured statement entry that this one is a
+		parent;
+			/* The structured statement entry that this one is a
 			   direct subordinate of.  NULL for the top-level
 			   stmk_block or stmk_try_block entry of a function.
-			   Also NULL for for the compound statement of a GNU
+			   Also NULL for the compound statement of a GNU
 			   statement expression. */
   an_attribute_ptr
 		attributes;

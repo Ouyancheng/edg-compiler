@@ -1121,8 +1121,8 @@ expressions contained in the statement.
 {
   a_statement_ptr new_statement = alloc_statement(statement->kind);
 
-  /* This does not use copy_statement, because we don't want to re-set the
-     any "back" pointers. */
+  /* This does not use copy_statement, because we don't want to re-set any
+     "back" pointers. */
   *new_statement = *statement;
   new_statement->next = NULL;
   new_statement->parent = NULL;
