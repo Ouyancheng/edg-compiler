@@ -748,11 +748,12 @@ corresponding tk_template_param entry.
 }  /* canonical_substitution_entity */
 
 
+static char base_36_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 /* Pointer to a list of available (freed) substitutions. */
 static a_substitution_ptr
 		avail_substitutions;
 
-static char base_36_digits[37];
 
 static void alloc_substitution(char                         *entity,
                                an_il_entry_kind             kind,
@@ -1144,8 +1145,6 @@ encoding.  A negative value is prefixed by "n".
 }  /* add_signed_number_to_mangled_name */
 
 #endif /* DO_IL_LOWERING */
-
-static char base_36_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 static void add_base_36_number_to_mangled_name(a_substitution_index      value,
 					       a_mangling_control_block  *mctl)
