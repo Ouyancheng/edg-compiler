@@ -1232,7 +1232,7 @@ the catch parameter has been copied.
 }  /* __exception_caught */
 
 
-EXTERN_C int __throw(void)
+EXTERN_C void __throw(void)
 /*
 Process a throw.  This routine looks through the stack entries for
 a try block with a catch that matches the type of the object thrown.
@@ -1610,7 +1610,6 @@ a try block with a catch that matches the type of the object thrown.
     __curr_eh_stack_entry = __curr_eh_stack_entry->next;
     __call_terminate();
   }  /* if */
-  return 0;
 }  /* __throw */
 
 
