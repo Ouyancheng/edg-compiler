@@ -154,8 +154,15 @@ is the one following the identifier.
             fprintf(stderr, "Request to allocate smaller buffer\n");
             exit(RC_CATASTROPHE);
           }  /* if */
-          demangled_id_size = required_buffer_size;
-          demangled_id = realloc(demangled_id, demangled_id_size);
+          /* Double the size of the buffer (making sure that it's at least
+             large enough to handle the demangled name in question). */
+          demangled_id_size *= 2;
+          if (demangled_id_size < required_buffer_size) {
+            demangled_id_size = required_buffer_size;
+          }  /* if */
+          /* Re-allocate the buffer (no need to save its contents). */
+          free(demangled_id);
+          demangled_id = (char*)malloc(demangled_id_size);
           if (demangled_id == NULL) {
             perror(NULL);
             exit(RC_CATASTROPHE);
@@ -194,7 +201,7 @@ edg_decode utility program -- demangles names for C++.
 #endif /* IA64_ABI */
   /* Allocate the output buffer (initially the same size as the input buffer
      but can grow). */
-  demangled_id = malloc(demangled_id_size);
+  demangled_id = (char*)malloc(demangled_id_size);
   if (demangled_id == NULL) {
     perror(NULL);
     return RC_CATASTROPHE;
