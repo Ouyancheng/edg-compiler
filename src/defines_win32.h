@@ -20,7 +20,7 @@ A word of caution about using TRUE/FALSE values in this header file: The
 macros TRUE and FALSE are defined in basics.h, but their definition occurs
 only after defines.h is included.  A side-effect of this is that any #if
 test of a macro whose value is either TRUE or FALSE will result in the false
-branch being taken.  Consequently, it's best to use 1 or 0, for TRUE and
+branch being taken.  Consequently, it's best to use 1 or 0 instead of TRUE and
 FALSE in this header file.
 */
 
