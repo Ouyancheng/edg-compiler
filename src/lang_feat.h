@@ -2288,11 +2288,20 @@ EXTERN int32_t
 			   (e.g., it might be 2022 for an anticipated C++22
 			   mode) and mm is 00. */
 
+EXTERN a_boolean
+                implicit_microsoft_cpp11_mode;
+                        /* TRUE if in Microsoft emulation mode and
+                           microsoft_version >= 1900, in which case it is
+                           assumed that most C++11 features are enabled. */
+
 /*
 Macro that is TRUE when the front end should accept language features defined
-by the C++11 standard or later C++ standards.
+by the C++11 standard or later C++ standards.  Microsoft has implemented the
+majority of C++11 features, so this is also enabled when microsoft_version
+>= 1900 (features that are not enabled yet must be explicitly disabled).
 */
-#define cpp11_mode (!C_mode() && std_version >= 201103)
+#define cpp11_mode (!C_mode() && \
+                    (std_version >= 201103 || implicit_microsoft_cpp11_mode))
 
 /*
 Macro that is TRUE when the front end should accept language features defined

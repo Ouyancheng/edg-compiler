@@ -11315,7 +11315,7 @@ literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
      encoding-prefix and advance p to the next character. */
   if (uliterals_enabled && *loc == 'u') {
     ++loc;
-    if ((cpp11_mode || c11_mode) && *loc == '8') {
+    if (*loc == '8') {
       ++loc;
       kind = SCLK_UTF8_LITERAL;
     } else {

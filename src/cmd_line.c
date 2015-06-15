@@ -2068,6 +2068,14 @@ by a command line option.
     /* Early versions of Microsoft have trigraphs enabled by default. */
     trigraphs_allowed = microsoft_version < 1600;
   }  /* if */
+  /* Set global variables that are independent of C or C++ mode. */
+  if (microsoft_version >= 1900) {
+    alignof_enabled = TRUE;
+    binary_literals_allowed = TRUE;
+    digit_separators_enabled = TRUE;
+    long_long_is_standard = TRUE;
+    long_long_promotion_allowed = TRUE;
+  }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
     /* Allow nonconstant expressions in aggregate initializers for automatic
@@ -2094,9 +2102,6 @@ by a command line option.
       }  /* if */
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
       c99_bool_is_keyword = TRUE;
-    }  /* if */
-    if (microsoft_version >= 1900) {
-      alignof_enabled = TRUE;
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
@@ -2344,6 +2349,9 @@ by a command line option.
       alias_declarations_enabled = TRUE;
     }  /* if */
     if (microsoft_version >= 1900) {
+      /* Most C++11 features are accepted at this point, so set the default
+         to enable all C++11 features and handle exceptions explicitly. */
+      implicit_microsoft_cpp11_mode = TRUE;
       if (exceptions_enabled) {
         noexcept_enabled = TRUE;
         if (!option_kind_used[(int)optk_implicit_noexcept]) {
@@ -2354,7 +2362,6 @@ by a command line option.
       unrestricted_unions_enabled = TRUE;
       inheriting_constructors_enabled = TRUE;
       ref_qualifiers_enabled = rvalue_references_enabled;
-      alignof_enabled = TRUE;
       alignas_enabled = TRUE;
       inline_namespaces_enabled = TRUE;
       if (!option_kind_used[(int)optk_user_defined_literals]) {
@@ -2367,9 +2374,12 @@ by a command line option.
       if (!option_kind_used[(int)optk_thread_local_storage]) {
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
-      binary_literals_allowed = TRUE;
       std_attributes_enabled = TRUE;
       sized_deallocation_enabled = TRUE;
+      mixed_string_concat_enabled = TRUE;
+      this_in_trailing_return_types_enabled = TRUE;
+      std_override_modifiers_enabled = TRUE;
+      selection_from_prvalue_is_xvalue = TRUE;
 #if COROUTINES_ALLOWED
       coroutines_enabled = TRUE;
 #endif /* COROUTINES_ALLOWED */
@@ -10935,6 +10945,7 @@ variables declared in cmd_line.h.
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   microsoft_build_number = 99999;
+  implicit_microsoft_cpp11_mode = FALSE;
   std_version = 0;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   char16_t_and_char32_t_are_keywords = DEFAULT_ULITERALS_ENABLED;
