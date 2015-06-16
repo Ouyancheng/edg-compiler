@@ -1059,12 +1059,12 @@ typedef struct a_constexpr_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
-#if 0
 /* Not needed yet: eliminate to placate lint. */
   a_bit_field
 		in_array:1;
 			/* TRUE if this is a pointer to an array element
 			   stored in interpreter storage. */
+#if 0
   a_bit_field
 		is_function_address:1;
 			/* TRUE if this is the address of a function. */
@@ -1075,26 +1075,25 @@ typedef struct a_constexpr_address {
 			   run time, but not a pointer into interpreter
 			   storage (i.e., a pointer to a static-duration
 			   variable of some kind). */
-#if 0
-/* Not needed yet: eliminate to placate lint. */
   a_bit_field
 		cannot_dereference:1;
-			/* TRUE if this address cannot be dereferenced. */
+			/* TRUE if this address cannot be dereferenced.
+			   (I.e., a null pointer or a pointer one position
+			   past the end of an array.) */
   unsigned int
 		length: 24;
 			/* If in_array is TRUE, the number of
 			   elements in the array. */
-#endif /* 0 */  
   an_alloc_seq_number
 		alloc_seq_number;
 			/* The allocation sequence number of the storage
 			   pointed to. */
   union {
-#if 0    
     /* When in_array is TRUE: */
     a_byte
 		*base_address;
 			/* For an array element, the address of element #0. */
+#if 0    
     /* When is_function_address is TRUE: */
     a_routine_ptr
 		routine;
@@ -1523,7 +1522,26 @@ static a_boolean
 			   been initialized yet. */
 
 
-static a_boolean extract_value_from_constant(a_constant_ptr        con,
+/*
+Macro to set result_storage from the value of the specified constant.
+Duplicates some cases from extract_value_from_constant for performance
+reasons.
+*/
+#define copy_val_from_constant(ips, con, result_storage)                      \
+  (                                                                           \
+    ((con)->kind == (a_constant_repr_kind)ck_integer) ?                       \
+      (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
+       TRUE):                                                                 \
+    ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
+      ((*(an_internal_float_value *)(result_storage) =                        \
+                                  (con)->variant.float_value), TRUE) :        \
+    /* else */                                                                \
+      extract_value_from_constant(ips, con, result_storage)                   \
+  )  /* copy_val_from_constant */
+
+
+static a_boolean extract_value_from_constant(an_interpreter_state  *ips,
+                                             a_constant_ptr        con,
                                              a_byte                *value)
 /*
 Copy the value of con into the interpreter storage at value, converting
@@ -1551,29 +1569,45 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         clear_runtime_constant_address(value, addr_con);
       }
       break;
+    case ck_aggregate:
+      {
+        a_type_ptr  tp = skip_typerefs(con->type);
+        if (tp->kind == (a_type_kind)tk_array) {
+          a_targ_size_t   n_elems, k;
+          a_byte_count    elem_size;
+          a_constant_ptr  elem_con;
+          n_elems = tp->variant.array.variant.number_of_elements;
+          elem_size = value_bytes_for_type(
+                                         ips, tp->variant.array.element_type);
+          elem_con = con->variant.aggregate.first_constant;
+          for (k = 0; k<n_elems;) {
+            copy_val_from_constant(ips, elem_con, value);
+            elem_con = elem_con->next;
+            k += 1;
+            value += elem_size;
+            if (elem_con == NULL) {
+              if (k<n_elems) {
+                /* Not all elements are covered.  Zero the remainder. */
+                memzero(value, size_t_arg((n_elems-k)*elem_size));
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* for */
+        } else if (tp->kind == (a_type_kind)tk_struct ||
+                   tp->kind == (a_type_kind)tk_class) {
+          unexpected_condition();  /* FIXME: class/struct constants. */
+        } else if (tp->kind == (a_type_kind)tk_union) {
+          unexpected_condition();  /* FIXME: union constants? */
+        } else {
+          result = FALSE;
+        }  /* if */
+      }
+      break;
     default:
       unexpected_condition();  /* FIXME: handle more kinds of constants. */
   }  /* switch */
   return result;
 }  /* extract_value_from_constant */
-
-
-/*
-Macro to set result_storage from the value of the specified constant.
-Duplicates some cases from extract_value_from_constant for performance
-reasons.
-*/
-#define copy_val_from_constant(con, result_storage)                           \
-  (                                                                           \
-    ((con)->kind == (a_constant_repr_kind)ck_integer) ?                       \
-      (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
-       TRUE):                                                                 \
-    ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
-      ((*(an_internal_float_value *)(result_storage) =                        \
-                                  (con)->variant.float_value), TRUE) :        \
-    /* else */                                                                \
-      extract_value_from_constant(con, result_storage)                        \
-  )  /* copy_val_from_constant */
 
 
 /*
@@ -1957,7 +1991,8 @@ successfully interpreted, FALSE otherwise.
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
           a_byte  case_bytes[VALUE_BYTES_FOR_SCALAR];
           int cmp;
-          result = copy_val_from_constant(scep->case_value, case_bytes);
+          result = copy_val_from_constant(ips, scep->case_value,
+                                          (a_byte*)case_bytes);
           cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
                                    (an_integer_value*)case_bytes, is_signed);
           if (cmp == 0) {
@@ -1969,7 +2004,8 @@ successfully interpreted, FALSE otherwise.
             break;
 #if GNU_EXTENSIONS_ALLOWED
           } else if (scep->range_end != NULL) {
-            result = copy_val_from_constant(scep->range_end, case_bytes);
+            result = copy_val_from_constant(ips, scep->range_end,
+                                            (a_byte*)case_bytes);
             cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
                                      (an_integer_value*)case_bytes, is_signed);
             if (cmp <= 0) {
@@ -2044,7 +2080,7 @@ done_with_switch:
           /* Evaluate the initializer. */
           switch (dip->kind) {
             case dik_constant:
-              result = copy_val_from_constant(dip->variant.constant,
+              result = copy_val_from_constant(ips, dip->variant.constant,
                                               var_storage);
               break;
             case dik_expression:
@@ -2185,8 +2221,10 @@ done:
 }  /* do_constexpr_call */
 
 
-static a_boolean get_value_from_address_constant(a_constant_ptr addr_con,
-                                                 a_byte         *value)
+static a_boolean get_value_from_address_constant(
+                                               an_interpreter_state  *ips,
+                                               a_constant_ptr        addr_con,
+                                               a_byte                *value)
 /*
 If addr_con is the address of a constant, copy it into the interpreter
 storage at value and return TRUE.  Otherwise, return FALSE.
@@ -2199,7 +2237,7 @@ storage at value and return TRUE.  Otherwise, return FALSE.
                                 /*a_constexpr_evaluation_block=*/NULL,
                                 val_con)) {
     /* Copy the constant value. */
-    result = copy_val_from_constant(val_con, value);
+    result = copy_val_from_constant(ips, val_con, value);
   } else {
     result = FALSE;
   }  /* if */
@@ -2266,8 +2304,13 @@ nodes.
       *(a_constexpr_address *)result_storage = *(a_constexpr_address *)(opnd);\
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
-      if (((a_constexpr_address *)(opnd))->is_runtime_data_address) {         \
+      if (((a_constexpr_address *)(opnd))->cannot_dereference) {              \
+        /* This address cannot be dereferenced. */                            \
+        result = FALSE;                                                       \
+        /* FIXME: record a diagnostic. */                                     \
+      } else if (((a_constexpr_address *)(opnd))->is_runtime_data_address) {  \
         if (!get_value_from_address_constant(                                 \
+                   ips,                                                       \
                    ((a_constexpr_address *)(opnd))->variant.addr_con,         \
                    result_storage)) {                                         \
           /* Not a compile-time constant value. */                            \
@@ -2338,10 +2381,13 @@ type.  This includes checking the value of ovfl set by the operation.
         if (result && opnd2 != NULL &&
             !node_operator_is(expr, eok_land) &&
             !node_operator_is(expr, eok_lor) &&
-            !node_operator_is(expr, eok_question)) {
+            !node_operator_is(expr, eok_question) &&
+            !node_operator_is(expr, eok_comma)) {
           /* Evaluate the second operand.  For short-circuiting operators,
-             whether to evaluate the second operand will be decided below
-             in the specific code for each such operator. */
+             whether to evaluate the second operand will be decided below in
+             the specific code for each such operator.  The comma operator can
+             be handled similarly (although the evaluation is unconditional in
+             that case). */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
           if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
@@ -2368,6 +2414,17 @@ type.  This includes checking the value of ovfl set by the operation.
                  (glvalue or temporary), so just copy the operand. */
               *(a_constexpr_address *)result_storage =
                                            *(a_constexpr_address *)opnd1_value;
+              break;
+            case eok_array_to_pointer:
+              /* The actual address is unchanged, but record the array
+                 characteristics. */
+              *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address *)opnd1_value;
+              ((a_constexpr_address *)result_storage)->in_array = TRUE;
+              ((a_constexpr_address *)result_storage)->length =
+                          opnd1_type->variant.array.variant.number_of_elements;
+              ((a_constexpr_address *)result_storage)->variant.base_address =
+                              ((a_constexpr_address *)result_storage)->address;
               break;
             case eok_indirect:
             case eok_ref_indirect:
@@ -2511,6 +2568,136 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: Other type kinds NYI. */
               }  /* if */
               break;
+            case eok_subscript:
+              /* Pointer + integer or integer + pointer. */
+              { a_constexpr_address  result_addr;
+                a_type_ptr           elem_type;
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  result_addr = *(a_constexpr_address *)opnd1_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                } else {
+                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
+                                   ovfl);
+                  result_addr = *(a_constexpr_address *)opnd2_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                }  /* if */
+                if (ovfl) {
+                  result = FALSE;  /* FIXME: diagnostic */
+                } else {
+                  if (host_int_val == 0) {
+                    /* Leave the address unchanged. */
+                    set_result_val_from_operand_address(&result_addr);
+                  } else if (!result_addr.in_array) {
+                    result = FALSE;  /* FIXME: diagnostic */
+                  } else {
+                    a_byte_count  elem_size, pos;
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    pos = (result_addr.address -
+                                result_addr.variant.base_address) / elem_size;
+                    if (host_int_val > 0 ?
+                                      (result_addr.length-pos < host_int_val)
+                                    : (pos+host_int_val < 0)) {
+                      /* Out of bounds. */
+                      result = FALSE;  /* FIXME: diagnostic */
+                    } else {
+                      result_addr.address +=
+                            host_int_val*value_bytes_for_type(ips, elem_type);
+                      result_addr.cannot_dereference =
+                                   (pos + host_int_val == result_addr.length);
+                      set_result_val_from_operand_address(&result_addr);
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_padd:
+              /* Pointer + integer or integer + pointer. */
+              { a_constexpr_address  *result_addr;
+                a_type_ptr           elem_type;
+                result_addr = (a_constexpr_address*)result_storage;
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  *result_addr = *(a_constexpr_address *)opnd1_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                } else {
+                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
+                                   ovfl);
+                  *result_addr = *(a_constexpr_address *)opnd2_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                }  /* if */
+                if (ovfl) {
+                  result = FALSE;  /* FIXME: diagnostic */
+                } else {
+                  if (host_int_val == 0) {
+                    /* Leave the address unchanged. */
+                  } else if (!result_addr->in_array) {
+                    result = FALSE;  /* FIXME: diagnostic */
+                  } else {
+                    a_byte_count  elem_size, pos;
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    pos = (result_addr->address -
+                               result_addr->variant.base_address) / elem_size;
+                    if (host_int_val > 0 ?
+                                      (result_addr->length-pos < host_int_val)
+                                    : (pos+host_int_val < 0)) {
+                      /* Out of bounds. */
+                      result = FALSE;  /* FIXME: diagnostic */
+                    } else {
+                      result_addr->address +=
+                            host_int_val*value_bytes_for_type(ips, elem_type);
+                      result_addr->cannot_dereference =
+                                  (pos + host_int_val == result_addr->length);
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_psubtract:
+              /* Pointer - integer or integer - pointer. */
+              { a_constexpr_address  *result_addr;
+                a_type_ptr           elem_type;
+                result_addr = (a_constexpr_address*)result_storage;
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  *result_addr = *(a_constexpr_address *)opnd1_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                } else {
+                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
+                                   ovfl);
+                  *result_addr = *(a_constexpr_address *)opnd2_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                }  /* if */
+                if (ovfl) {
+                  result = FALSE;  /* FIXME: diagnostic */
+                } else {
+                  if (host_int_val == 0) {
+                    /* Leave the address unchanged. */
+                  } else if (!result_addr->in_array) {
+                    result = FALSE;  /* FIXME: diagnostic */
+                  } else {
+                    a_byte_count  elem_size, pos;
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    pos = (result_addr->address -
+                               result_addr->variant.base_address) / elem_size;
+                    if (host_int_val > 0 ?
+                                  (pos-host_int_val < 0)
+                                : (result_addr->length-pos < -host_int_val)) {
+                      /* Out of bounds. */
+                      result = FALSE;  /* FIXME: diagnostic */
+                    } else {
+                      result_addr->address -=
+                            host_int_val*value_bytes_for_type(ips, elem_type);
+                      result_addr->cannot_dereference =
+                                  (pos - host_int_val == result_addr->length);
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }
+              break;
             case eok_shiftl:
               /* Check for a valid value of opnd2, which must be non-negative
                  and less than the number of bits in opnd1. */
@@ -2536,6 +2723,52 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 /* FIXME: record a diagnostic for invalid opnd2. */
+              }  /* if */
+              break;
+            case eok_eq:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) == 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            case eok_ne:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) != 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
               }  /* if */
               break;
             case eok_lt:
@@ -2577,6 +2810,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 set_result_val_from_operand_address(opnd1_value);
               }  /* if */
               break;
+            case eok_comma:
+              result = do_constexpr_expression(ips, opnd2, result_storage);
+              break;
             case eok_call:
               result = do_constexpr_call(ips, expr, result_storage);
               break;
@@ -2587,7 +2823,8 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     case enk_constant:
-      result = copy_val_from_constant(expr->variant.constant, result_storage);
+      result = copy_val_from_constant(ips, expr->variant.constant,
+                                      result_storage);
       break;
     case enk_variable:
       {
@@ -2603,7 +2840,7 @@ type.  This includes checking the value of ovfl set by the operation.
           } else {
             con = var_constant_value(var);
             if (con != NULL) {
-              result = copy_val_from_constant(con, result_storage);
+              result = copy_val_from_constant(ips, con, result_storage);
             } else {
               /* FIXME: record a diagnostic. */
               result = FALSE;

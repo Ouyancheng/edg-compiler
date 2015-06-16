@@ -34834,6 +34834,16 @@ FALSE otherwise.
       /* Add the initializer to the iterator variable. */
       if (rbflp->iterator != NULL) {
         deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator, &operand);
+        /* Now that we are sure that we know the iterator variable type, check
+           any remaining constraints. */
+        if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+            innermost_function_scope->variant.routine.ptr->is_constexpr &&
+            !is_literal_type(rbflp->iterator->type)) {
+          pos_ty_error(ec_nonliteral_var_in_constexpr_function,
+                       &rbflp->iterator->source_corresp.decl_position,
+                       rbflp->iterator->type);
+          rbflp->iterator->type = error_type();
+        }  /* if */
         /* There may be an implicit conversion here, but
            prep_initializer_operand in set_variable_initializer will handle
            that. */

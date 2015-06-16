@@ -16844,7 +16844,8 @@ if one is present.
       }  /* if */
     }  /* if */
     if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
-        innermost_function_scope->variant.routine.ptr->is_constexpr) {
+        innermost_function_scope->variant.routine.ptr->is_constexpr &&
+        !state->range_based_for) {
       /* Variable in C++14-style constexpr function declarations must have
          automatic storage duration, a literal type, and be initialized. */
       if (var_has_static_or_thread_storage_duration(var_ptr)) {
