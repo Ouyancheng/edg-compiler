@@ -2595,20 +2595,21 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else if (!result_addr.in_array) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
-                    a_byte_count  elem_size, pos;
+                    a_byte_count  elem_size, pos, len;
                     elem_size = value_bytes_for_type(ips, elem_type);
+                    len = result_addr.length;
                     pos = (a_byte_count)(result_addr.address -
                                 result_addr.variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
-                                      (result_addr.length-pos < host_int_val)
-                                    : (pos+host_int_val < 0)) {
+                                        (len-pos < (a_byte_count)host_int_val)
+                                      : (pos < (a_byte_count)-host_int_val)) {
                       /* Out of bounds. */
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr.address +=
                             host_int_val*value_bytes_for_type(ips, elem_type);
                       result_addr.cannot_dereference =
-                                   (pos + host_int_val == result_addr.length);
+                                                    (pos+host_int_val == len);
                       set_result_val_from_operand_address(&result_addr);
                     }  /* if */
                   }  /* if */
@@ -2639,20 +2640,21 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else if (!result_addr->in_array) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
-                    a_byte_count  elem_size, pos;
+                    a_byte_count  elem_size, pos, len;
                     elem_size = value_bytes_for_type(ips, elem_type);
+                    len = result_addr->length;
                     pos = (a_byte_count)(result_addr->address -
                                result_addr->variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
-                                      (result_addr->length-pos < host_int_val)
-                                    : (pos+host_int_val < 0)) {
+                                        (len-pos < (a_byte_count)host_int_val)
+                                      : (pos < (a_byte_count)-host_int_val)) {
                       /* Out of bounds. */
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr->address +=
                             host_int_val*value_bytes_for_type(ips, elem_type);
                       result_addr->cannot_dereference =
-                                  (pos + host_int_val == result_addr->length);
+                                                    (pos+host_int_val == len);
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -2682,20 +2684,21 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else if (!result_addr->in_array) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
-                    a_byte_count  elem_size, pos;
+                    a_byte_count  elem_size, pos, len;
                     elem_size = value_bytes_for_type(ips, elem_type);
+                    len = result_addr->length;
                     pos = (a_byte_count)(result_addr->address -
                                result_addr->variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
-                                  (pos-host_int_val < 0)
-                                : (result_addr->length-pos < -host_int_val)) {
+                                  (pos < (a_byte_count)host_int_val)
+                                : (len-pos < (a_byte_count)-host_int_val)) {
                       /* Out of bounds. */
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr->address -=
                             host_int_val*value_bytes_for_type(ips, elem_type);
                       result_addr->cannot_dereference =
-                                  (pos - host_int_val == result_addr->length);
+                                                  (pos - host_int_val == len);
                     }  /* if */
                   }  /* if */
                 }  /* if */
