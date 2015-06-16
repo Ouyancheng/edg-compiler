@@ -2597,7 +2597,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos;
                     elem_size = value_bytes_for_type(ips, elem_type);
-                    pos = (result_addr.address -
+                    pos = (a_byte_count)(result_addr.address -
                                 result_addr.variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
                                       (result_addr.length-pos < host_int_val)
@@ -2641,7 +2641,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos;
                     elem_size = value_bytes_for_type(ips, elem_type);
-                    pos = (result_addr->address -
+                    pos = (a_byte_count)(result_addr->address -
                                result_addr->variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
                                       (result_addr->length-pos < host_int_val)
@@ -2684,7 +2684,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos;
                     elem_size = value_bytes_for_type(ips, elem_type);
-                    pos = (result_addr->address -
+                    pos = (a_byte_count)(result_addr->address -
                                result_addr->variant.base_address) / elem_size;
                     if (host_int_val > 0 ?
                                   (pos-host_int_val < 0)
