@@ -1581,7 +1581,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                          ips, tp->variant.array.element_type);
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
-            copy_val_from_constant(ips, elem_con, value);
+            if (!copy_val_from_constant(ips, elem_con, value)) {
+              result = FALSE;
+              break;
+            }  /* if */
             elem_con = elem_con->next;
             k += 1;
             value += elem_size;
