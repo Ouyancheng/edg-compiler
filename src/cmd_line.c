@@ -2039,6 +2039,23 @@ be given to the flag.
   *flag_var = value;
 }  /* set_flag_value */
 
+
+static a_boolean cpp_mode_specified(void)
+/*
+Returns TRUE if a C++ mode is explicitly specified.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (option_kind_used[(int)optk_cpp03_mode] ||
+      option_kind_used[(int)optk_cpp11_mode] ||
+      option_kind_used[(int)optk_cpp14_mode]) {
+    /* C++ mode was enabled by a command line option. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* cpp_mode_specified */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void set_microsoft_mode_flags(void)
@@ -2349,9 +2366,11 @@ by a command line option.
       alias_declarations_enabled = TRUE;
     }  /* if */
     if (microsoft_version >= 1900) {
-      /* Most C++11 features are accepted at this point, so set the default
-         to enable all C++11 features and handle exceptions explicitly. */
-      implicit_microsoft_cpp11_mode = TRUE;
+      if (!cpp_mode_specified()) {
+        /* Most C++11 features are accepted by MSVS 2015, so implicitly enable
+           all C++11 features and handle exceptions explicitly. */
+        implicit_microsoft_cpp11_mode = TRUE;
+      }  /* if */
       if (exceptions_enabled) {
         noexcept_enabled = TRUE;
         if (!option_kind_used[(int)optk_implicit_noexcept]) {
@@ -3505,9 +3524,7 @@ C++ mode is incompatible with other settings.  Issue a command-line error if
 the conflict is explicit.
 */
 {
-  if (option_kind_used[(int)optk_cpp03_mode] ||
-      option_kind_used[(int)optk_cpp11_mode] ||
-      option_kind_used[(int)optk_cpp14_mode]) {
+  if (cpp_mode_specified()) {
     /* C++ mode was enabled by a command line option. */
     command_line_error(ec_cl_incompatible_language_modes);
   }  /* if */
