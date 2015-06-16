@@ -5730,12 +5730,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
   (void)get_token();
-  /* In C++11 mode, scoped enums are declared with "enum class" or
-     "enum struct".  In a combination of Microsoft and C++11 modes, however,
-     we may already have seen a tok_enum_class or tok_enum_struct keyword
-     (with embedded space) and we should accept about "class" or "struct".
-     GCC 4.4 and later also accept the C++11 feature in non-C++11 mode with a
-     warning. */
+  /* In C++11, scoped enums are declared with "enum class" or "enum struct".
+     In a combination of Microsoft and C++11 modes, however, we may already
+     have seen a tok_enum_class or tok_enum_struct keyword (with embedded
+     space) and we should not accept another "class" or "struct".  GCC 4.4 and
+     later also accept the C++11 feature in non-C++11 mode with a warning. */
   if ((cpp11_mode || (gpp_mode && gnu_version >= 40400)) &&
       (curr_token == tok_class || curr_token == tok_struct) &&
       !is_scoped_enum) {

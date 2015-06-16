@@ -13641,16 +13641,12 @@ implicitly declared member functions.
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode &&
-        (!cpp11_mode ||
-         (decl_info->is_constructor &&
-          (decl_state->decl_modifiers.flags & DM_DLLIMPORT)))) {
-      /* Microsoft compilers that accept "constexpr" (currently, version 19.00)
-         ignore it on nonstatic member function declarations.  We only emulate
-         this if C++11 mode was not enabled.  Even so, we currently do ignore
-         it on dllimport constructors because a constexpr dllimport constructor
-         may be difficult to implement for a back end (because a virtual
-         function table entry may need to be folded). */
+    if (microsoft_mode && decl_info->is_constructor &&
+        (decl_state->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+      /* We currently ignore "constexpr" on dllimport constructors because a
+         constexpr dllimport constructor may be difficult to implement for a
+         back end (because a virtual function table entry may need to be
+         folded). */
       if (decl_state->constexpr_pos.seq != 0) {
         pos_warning(ec_constexpr_ignored_on_microsoft_nonstatic_member,
                     &decl_state->constexpr_pos);
@@ -19263,7 +19259,7 @@ of dllexported class types).
   if (microsoft_mode &&
       microsoft_version >= 1400 && microsoft_version < 1900 &&
       (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ?
-             cpp11_mode : !generate_move_operations)) {
+                                    cpp11_mode : !generate_move_operations)) {
     sym->variant.routine.ptr->definition_cannot_be_generated = TRUE;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -19809,8 +19805,7 @@ record that fact in *gsfd.
     /* A defaulted constructor may implicitly be deleted, which also means it
        isn't trivial. */
     check_suppressed_default_ctor(class_type, gsfd);
-    if ((cpp11_mode || (microsoft_mode && microsoft_version >= 1900)) &&
-        gsfd->suppress_default_ctor) {
+    if (cpp11_mode && gsfd->suppress_default_ctor) {
       default_ctor->variant.routine.ptr->is_deleted = TRUE;
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
@@ -19873,8 +19868,7 @@ record that fact in *gsfd.
     } else {
       /* A default constructor needs to be generated. */
       check_suppressed_default_ctor(class_type, gsfd);
-      if ((cpp11_mode || (microsoft_mode && microsoft_version >= 1900)) &&
-          gsfd->suppress_default_ctor) {
+      if (cpp11_mode && gsfd->suppress_default_ctor) {
         class_state->default_ctor_is_nontrivial = TRUE;
       }  /* if */
       result = TRUE;

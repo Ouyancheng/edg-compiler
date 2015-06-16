@@ -820,8 +820,7 @@ Install the keywords in the symbol table.
       enter_gnu_keyword((a_token_kind)tok_gnu_restrict, "__restrict");
     }  /* if */
   }  /* if */
-  if (c99_mode || gnu_mode || cpp11_mode ||
-      (microsoft_mode && microsoft_version >= 1900)) {
+  if (c99_mode || gnu_mode || cpp11_mode) {
     enter_keyword((a_token_kind)tok_func_name, "__func__");
   }  /* if */
   /* These gcc/g++ features are accepted in all modes.  __FUNCTION__
