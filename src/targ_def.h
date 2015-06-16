@@ -978,7 +978,7 @@ Integer types:
 /* Specify the size of the largest integer.  Note that this will constrain
    how targ_sizeof_long, targ_sizeof_long_long, and targ_sizeof_largest_integer
    are configured at runtime.   TARG_SIZEOF_LARGEST_INTEGER represents the
-   size of the largest integer in the "default" configuration;
+   size of the largest integer in the legacy configuration;
    MAX_SIZEOF_LARGEST_INTEGER represents the size of the largest target
    integer that can be accommodated across all target configurations (and
    therefore must be at least as large as every TARG_SIZEOF_LARGEST_INTEGER).
@@ -1044,7 +1044,12 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 #ifndef MAX_SIZEOF_LARGEST_INTEGER
+#if INT128_EXTENSIONS_ALLOWED && \
+    TARG_SIZEOF_INT128 > TARG_SIZEOF_LARGEST_INTEGER
+#define MAX_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_INT128
+#else /* !(INT128_EXTENSIONS_ALLOWED && TARG_SIZEOF_INT128 > TARG_SIZEOF...) */
 #define MAX_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LARGEST_INTEGER
+#endif /* INT128_EXTENSIONS_ALLOWED && TARG_SIZEOF_INT128 > TARG_SIZEOF... */
 #endif /* defined(MAX_SIZEOF_LARGEST_INTEGER) */
 #if TARG_SIZEOF_LARGEST_INTEGER > MAX_SIZEOF_LARGEST_INTEGER
  #error -- MAX_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LARGEST_INTEGER

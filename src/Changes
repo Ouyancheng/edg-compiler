@@ -992,6 +992,23 @@ global variables can make changes in target_map.h to add those global variables
 to the set of target-specific global variables (providing the variables
 meet certain criteria -- see the comments in target_map.h).
 
+Note that as a result of these changes, it is now inadvisable to use
+a target-specific global variable as the value for a target-specific
+configuration macro.  For example:
+
+  #define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ptrdiff_t_int_kind
+
+will no longer work, though
+
+  #define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_PTRDIFF_T_INT_KIND
+
+will work as expected.  This is due to a race condition when setting
+global variables (e.g., targ_ptrdiff_t_int_kind hasn't yet been assigned
+its value from TARG_PTRDIFF_T_INT_KIND before being assigned to
+targ_ia64_vtable_entry_int_kind).  When using non-EDG global variables,
+as values for target-specific configuration macros, ensure that values for
+these have been set before set_target_configuration is called.
+
 From an ongoing maintenance point-of-view, new configuration macros are
 typically given default values and are thus somewhat invisible when upgrading
 to a new release.  That won't be the case for new target-specific configuration
