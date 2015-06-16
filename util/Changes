@@ -3,17 +3,18 @@ Version 4.11
 6/15/15  [EDGcpfe/16275]
 IA-64 ABI: Incorrect demangled names for some pointer-to-member types
 
-The IA-64 ABI typically records substitutions for CV-qualified and unqualified
+The IA-64 ABI typically records substitutions for cv-qualified and unqualified
 versions of types that appear in a mangled name.  That rule does not apply
-to function types where any ref- or CV-qualification is treated as an
+to function types where any ref- or cv-qualification is treated as an
 indivisible part of the function type.  This had caused incorrect demangled
-names for some types that involved pointer-to-members and substitutions.
+names for some types that involved pointer-to-member types and substitutions.
 For example:
 
   struct A {};
   void f(void (A::*)() const, void (A::*)() const) {}
 
-Results in a mangled name of: _Z1fM1AKFvvES1_.  The demangled name had been:
+This results in a mangled name of: _Z1fM1AKFvvES1_.  The demangled name had
+been:
 
   f(void (A::*)() const, void () const)
 

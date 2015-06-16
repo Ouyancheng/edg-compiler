@@ -5220,7 +5220,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
-    /* CV-qualifiers that are applied to function types are considered an
+    /* Cv-qualifiers that are applied to function types are considered an
        indivisible portion of the type and no substitution is made for the
        unqualified type. */
     record_cv_qual_substitution = FALSE;
