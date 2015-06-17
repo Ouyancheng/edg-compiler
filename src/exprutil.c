@@ -14258,21 +14258,18 @@ be returned for a C mode const variable.
     get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = init->constant;
-  } else if (var->source_corresp.is_class_member &&
-             !var->is_member_constant &&
-             !cpp11_mode &&
-             (strict_ansi_mode ||
-              (var->is_template_static_data_member &&
-               !gpp_mode))) {
+  } else if (microsoft_bugs && var->source_corresp.is_class_member &&
+             !var->is_member_constant && var->is_template_static_data_member &&
+             !(cpp11_mode && !implicit_microsoft_cpp11_mode)) {
     /* The variable is a static data member but it's not initialized within
-       the class (it might be initialized outside the class).  This is not a
-       constant according to the C++03 standard, but C++11 changed that.  Many
-       C++03 compilers relax that for non-template static data members, and
-       g++ also allows template static data members. */
+       the class (it might be initialized outside the class).  Core issue 721
+       (which retro-actively applies to C++03) clarified that the use of such
+       a variable in a constant expression is permitted (if it meets the other
+       requirements), but Microsoft compilers still disallow it for template
+       static data member instantiations (as of MSVC 19.00.23008). */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
               is_potentially_constant_valued_variable(var)) {
-    if ((gpp_mode || cpp11_mode) &&
-        var->source_corresp.is_class_member &&
+    if (var->source_corresp.is_class_member &&
         var->is_template_static_data_member &&
         !var->is_member_constant &&
         !parent_class_of(var)->variant.class_struct_union.is_nonreal_class) {

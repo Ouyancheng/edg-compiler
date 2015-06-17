@@ -1,5 +1,16 @@
 Version 4.11
 
+6/17/15  [EDGcpfe/16315]
+Constant static data members
+
+After reconsidering the intent of the resolution of Core issue 721, the changes
+described in the entry of 6/20/13 for EDGcpfe/10300 have now been extended to
+all C++ modes, including strict C++03 mode.  One exception remains: In
+Microsoft bugs mode, a template static data member initialized outside its
+enclosing class is never permitted in a constant expression (this matches the
+behavior of the Microsoft compilers).
+
+
 6/17/15  [EDGcpfe/16248]
 Conversion of lvalue to rvalue when casting a volatile expression to void
 
