@@ -19729,16 +19729,8 @@ Lvalue-to-rvalue transformations are done on the operand if appropriate
 */
 {
   an_expr_node_ptr             node;
-  a_transformation_options_set options = TOPT_NO_OPTIONS;
 
-  if (!C_mode()) {
-    /* In C++, lvalue-to-rvalue transformations are not done on an expression
-       cast to void. */
-    options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
-  }  /* if */
-  do_operand_transformations(operand, options);
+  do_void_operand_transformations(operand, /*force_lvalue_to_rvalue=*/FALSE);
   /* For casts to void, we build an expression node that is a cast to void.
      This special cast to void is only used for the case handled here,
      i.e., for an explicit cast to void.  cast_operand is not used because

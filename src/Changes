@@ -1,5 +1,19 @@
 Version 4.11
 
+6/17/15  [EDGcpfe/16248]
+Conversion of lvalue to rvalue when casting a volatile expression to void
+
+In C++11 mode, the front end now converts to an rvalue (implying a "fetch"
+operation) a volatile lvalue cast to void.  For example:
+
+  volatile int x;
+  void g() {
+    (void)x;  // Fetches in C++11 (and C) mode, but not in C++03 mode.
+  }
+
+See also the Changes entry for EDGcpfe/11680, EDGcpfe/13645 of 3/8/13.
+
+
 6/17/15  [EDGcpfe/16316]
 Module id based on entity in a precompiled header file
 
