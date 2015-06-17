@@ -1005,7 +1005,7 @@ will no longer work, though
 will work as expected.  This is due to a race condition when setting
 global variables (e.g., targ_ptrdiff_t_int_kind hasn't yet been assigned
 its value from TARG_PTRDIFF_T_INT_KIND before being assigned to
-targ_ia64_vtable_entry_int_kind).  When using non-EDG global variables,
+targ_ia64_vtable_entry_int_kind).  When using non-EDG global variables
 as values for target-specific configuration macros, ensure that values for
 these have been set before set_target_configuration is called.
 
