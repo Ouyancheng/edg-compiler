@@ -1,5 +1,16 @@
 Version 4.11
 
+6/17/15  [EDGcpfe/16219,EDGcpfe/15130]
+Microsoft compatibility: additional features enabled in Microsoft mode
+
+As Microsoft Visual Studio continues to implement C++11 and C++14 features,
+these features are enabled in the front end when microsoft_version >= 1900.
+The latest batch of features to be enabled includes "long long" types,
+digit separators, C++11 attributes, as well as other smaller features.
+Binary literals and digit separators are also enabled in Microsoft C mode
+when microsoft_version >= 1900.
+
+
 6/12/15  [EDGcpfe/16309]
 Parent pointers in statement entries
 

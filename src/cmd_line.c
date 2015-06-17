@@ -2394,7 +2394,7 @@ by a command line option.
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
       std_attributes_enabled = TRUE;
-      sized_deallocation_enabled = TRUE;
+      sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
       mixed_string_concat_enabled = TRUE;
       this_in_trailing_return_types_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
