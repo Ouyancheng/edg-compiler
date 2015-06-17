@@ -26220,6 +26220,19 @@ IL lowering.
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if MODULE_ID_NEEDED
 
+static a_source_correspondence_ptr
+                module_id_scp;
+                        /* The entity which is being used as the basis for
+                           the translation unit's module id.  If the entity
+                           is defined in a PCH file, module_id_scp will
+                           still point to the entity after the PCH is restored
+                           (but the translation unit filename may be
+                           different). */
+static an_il_entry_kind
+                module_id_kind;
+                        /* The entity kind for module_id_scp above. */
+
+
 void use_variable_or_routine_for_module_id_if_needed(
                                               a_source_correspondence_ptr scp,
                                               an_il_entry_kind            kind)
@@ -26233,92 +26246,111 @@ be used, but there are exceptions.
 */
 {
   if (get_module_id() == NULL) {
-    a_const_char *name = NULL;
-    check_assertion(scp != NULL &&
-                    (kind == (an_il_entry_kind)iek_variable ||
-                     kind == (an_il_entry_kind)iek_routine));
-    if ((scp->parent_scope == il_header.primary_scope ||
-         (scp_is_class_or_namespace_member(scp) &&
-          !is_member_of_unnamed_namespace(scp))) &&
-        !seq_is_in_system_header(scp->decl_position.seq)) {
-      /* Only consider definitions in file/namespace/class scopes. */
-      if (kind == (an_il_entry_kind)iek_variable) {
-        a_variable_ptr variable = (a_variable_ptr)scp;
-        if (variable->storage_class != (a_storage_class)sc_unspecified ||
-            variable->init_kind == (an_init_kind)initk_none) {
-          /* Only consider variables that are defined.  Make sure that the
-             init_kind is not none -- this eliminates tentative definitions. */
-        } else if (variable->is_template_static_data_member) {
-          /* Don't use template static data members.  Some implementations
-             may generate these in multiple files. */
+    if (module_id_scp == NULL) {
+      /* Normal case. */
+      check_assertion(scp != NULL &&
+                      (kind == (an_il_entry_kind)iek_variable ||
+                       kind == (an_il_entry_kind)iek_routine));
+      if ((scp->parent_scope == il_header.primary_scope ||
+           (scp_is_class_or_namespace_member(scp) &&
+            !is_member_of_unnamed_namespace(scp))) &&
+          !seq_is_in_system_header(scp->decl_position.seq)) {
+        /* Only consider definitions in file/namespace/class scopes. */
+        if (kind == (an_il_entry_kind)iek_variable) {
+          a_variable_ptr variable = (a_variable_ptr)scp;
+          if (variable->storage_class != (a_storage_class)sc_unspecified ||
+              variable->init_kind == (an_init_kind)initk_none) {
+            /* Only consider variables that are defined.  Make sure that the
+               init_kind is not none -- this eliminates tentative definitions.
+               */
+          } else if (variable->is_template_static_data_member) {
+            /* Don't use template static data members.  Some implementations
+               may generate these in multiple files. */
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (variable->is_weak) {
-          /* Weak variable definitions may appear in multiple translation
-             units.  We therefore don't consider them for use in the
-             module id. */
+          } else if (variable->is_weak) {
+            /* Weak variable definitions may appear in multiple translation
+               units.  We therefore don't consider them for use in the
+               module id. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY) {
-          /* Variables defined as "selectany" may be defined in multiple
-             translation units.  Do not use them for the module id. */
+          } else if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY){
+            /* Variables defined as "selectany" may be defined in multiple
+               translation units.  Do not use them for the module id. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else {
-          /* If the variable is a namespace member, get its mangled name;
-             otherwise use unmangled name. */
-          if (scp_is_class_or_namespace_member(scp)) {
-            name = get_mangled_member_variable_name(variable);
           } else {
-            name = variable->source_corresp.name;
+            module_id_scp = scp;
+            module_id_kind = iek_variable;
           }  /* if */
-          check_assertion(name != NULL);
-        }  /* if */
-      } else if (kind == (an_il_entry_kind)iek_routine) {
-        a_routine_ptr  routine = (a_routine_ptr)scp;
-        if (routine->storage_class != (a_storage_class)sc_unspecified ||
-            routine->is_inline) {
-          /* Only external, non-inline routines may be used for a module id.
-             Note that this check also disqualifies routines that may be
-             externalized in the future (they have static linkage while
-             the declaration is being scanned). */
-        } else if (routine->is_template_function) {
-          /* Don't use template functions.  Some implementations
-             may generate these in multiple files. */
+        } else if (kind == (an_il_entry_kind)iek_routine) {
+          a_routine_ptr  routine = (a_routine_ptr)scp;
+          if (routine->storage_class != (a_storage_class)sc_unspecified ||
+              routine->is_inline) {
+            /* Only external, non-inline routines may be used for a module id.
+               Note that this check also disqualifies routines that may be
+               externalized in the future (they have static linkage while
+               the declaration is being scanned). */
+          } else if (routine->is_template_function) {
+            /* Don't use template functions.  Some implementations
+               may generate these in multiple files. */
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (routine->is_weak) {
-          /* Weak routine definitions may appear in multiple translation units.
-             We therefore don't consider them for use in the module id. */
+          } else if (routine->is_weak) {
+            /* Weak routine definitions may appear in multiple translation
+               units.  We therefore don't consider them for use in the module
+               id. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        } else if (is_or_contains_unnamed_namespace_type(routine->type)) {
-          /* Make sure its type does not involve an unnamed namespace
-             (otherwise its mangled name would involve the module id). */
-        } else if (routine_contains_an_individuated_entity(routine)) {
-          /* Make sure the routine is not an individuated entity nor
-             contains an individuated entity as part of its type.
-             (otherwise its mangled name would involve the module id). */
+          } else if (is_or_contains_unnamed_namespace_type(routine->type)) {
+            /* Make sure its type does not involve an unnamed namespace
+               (otherwise its mangled name would involve the module id). */
+          } else if (routine_contains_an_individuated_entity(routine)) {
+            /* Make sure the routine is not an individuated entity nor
+               contains an individuated entity as part of its type.
+               (otherwise its mangled name would involve the module id). */
 #if GNU_FUNCTION_MULTIVERSIONING
-        } else if (has_gnu_routine_supp(routine) &&
-                   (gnu_routine_supp(routine)->is_representative ||
-                    gnu_routine_supp(routine)->is_target_specific_version)) {
-          /* Skip GNU function multiversion routines (the mangling for these
-             can depend on their use, making them poor candidates for basing
-             a module id on). */
+          } else if (has_gnu_routine_supp(routine) &&
+                     (gnu_routine_supp(routine)->is_representative ||
+                      gnu_routine_supp(routine)->is_target_specific_version)) {
+            /* Skip GNU function multiversion routines (the mangling for these
+               can depend on their use, making them poor candidates for basing
+               a module id on). */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
-        } else {
-          /* This routine definition fits the bill.  Get the appropriate
-             name. */
-          if (C_mode()) {
-            name = routine->source_corresp.name;
           } else {
-            name = get_mangled_function_name(routine);
+            /* This routine definition fits the bill. */
+            module_id_scp = scp;
+            module_id_kind = iek_routine;
           }  /* if */
-          check_assertion(name != NULL);
         }  /* if */
       }  /* if */
-      if (name != NULL) {
-        /* We've found a suitable candidate; create the module id for the
-           translation unit. */
-        (void)make_module_id(name);
+    } else {
+      /* We've previously selected an entity to base the module id on, but
+         no module id exists yet.  This can happen when the module id entity
+         is defined in a precompiled header.  In that case, define the
+         module id now (based on the current translation unit's filename,
+         not that of the translation unit when the PCH was created). */
+      check_assertion(use_precompiled_header || automatic_pch_processing);
+    }  /* if */
+    if (module_id_scp != NULL) {
+      /* We've found a suitable candidate; create the module id for the
+         translation unit. */
+      a_const_char *name = NULL;
+      if (module_id_kind == iek_variable) {
+        /* If the variable is a namespace member, get its mangled name;
+           otherwise use unmangled name. */
+        if (scp_is_class_or_namespace_member(module_id_scp)) {
+          name = get_mangled_member_variable_name(
+                                                (a_variable_ptr)module_id_scp);
+        } else {
+          name = module_id_scp->name;
+        }  /* if */
+      } else {
+        check_assertion(module_id_kind == iek_routine);
+        if (C_mode()) {
+          name = module_id_scp->name;
+        } else {
+          name = get_mangled_function_name((a_routine_ptr)module_id_scp);
+        }  /* if */
       }  /* if */
+      check_assertion(name != NULL);
+      (void)make_module_id(name);
     }  /* if */
   }  /* if */
 }  /* use_variable_or_routine_for_module_id_if_needed */
@@ -26619,6 +26651,10 @@ in il_init.)
 #if COROUTINES_ALLOWED
       pch_saved_var_array_elem(avail_coroutine_fixups),
 #endif /* COROUTINES_ALLOWED */
+#if MODULE_ID_NEEDED
+      pch_saved_var_array_elem(module_id_scp),
+      pch_saved_var_array_elem(module_id_kind),
+#endif /* MODULE_ID_NEEDED */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -26686,6 +26722,10 @@ in il_init.)
   register_trans_unit_variable(scope_pointers_of_scheduled_routine_moves);
   register_trans_unit_variable(routine_move_placeholders);
   register_trans_unit_variable(n_scheduled_routine_moves);
+#if MODULE_ID_NEEDED
+  register_trans_unit_variable(module_id_scp);
+  register_trans_unit_variable(module_id_kind);
+#endif /* MODULE_ID_NEEDED */
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -26786,6 +26826,10 @@ need initialization for every (primary and secondary) translation unit.
   n_scheduled_routine_moves = 0;
   reset_seq_cache();
   il_alloc_trans_unit_init();
+#if MODULE_ID_NEEDED
+  module_id_scp = NULL;
+  module_id_kind = iek_none;
+#endif /* MODULE_ID_NEEDED */
 }  /* il_trans_unit_init */
 
 

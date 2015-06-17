@@ -1,5 +1,25 @@
 Version 4.11
 
+6/17/15  [EDGcpfe/16316]
+Module id based on entity in a precompiled header file
+
+Although uncommon, it is possible to have an externally-linked variable or
+function definition in a header file and that header file may be included in a
+precompiled header file.  In such cases the resulting module id (which is based
+upon the first externally-linked variable or function) and names derived from
+it, could differ depending on whether or not a precompiled header file was
+used.  Now fixed.  For example (with --pch):
+
+  A.h:
+  ----
+  int x = 5;    // Chosen as basis of module id in all cases now.
+
+  B.cpp:
+  ------
+  #include "A.h"
+  int y = 10;   // Had been chosen when using a previously created PCH.
+
+
 6/17/15  [EDGcpfe/16219,EDGcpfe/15130]
 Microsoft compatibility: additional features enabled in Microsoft mode
 

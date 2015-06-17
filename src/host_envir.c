@@ -2795,7 +2795,14 @@ Change any non-identifier characters in the indicated string to underscores.
 static a_const_char
 		*module_id;
 			/* A string used to qualify static names that are put
-			   out as external names to make them unique. */
+			   out as external names to make them unique.  Note
+			   that this variable is not saved/restored when
+			   precompiled header files are used; if the entity
+			   used to create the module id is defined in a
+			   PCH, a NULL value will cause the module id to be
+			   re-computed based upon the current translation
+			   unit's name (and not the translation unit name
+			   that was used when the PCH was created). */
 
 void set_module_id(a_const_char *new_module_id)
 /*
