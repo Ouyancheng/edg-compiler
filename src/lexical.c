@@ -18482,6 +18482,11 @@ selection operator, in which case it points to the type of the left operand.
                 (is_qualified_name && !is_global_qualified_name &&
                  (microsoft_bugs && microsoft_version <= 1500) &&
                  next_tok == tok_period)) &&
+#if GNU_EXTENSIONS_ALLOWED
+               !(gpp_mode && qualifier_sym == NULL && !err &&
+                 !(options & GID_IS_EXPR_CONTEXT) &&
+                 !qualifier_is_decltype && !qualifier_is_super) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor_or_finalizer ||
                 in_if_exists ||
@@ -18489,7 +18494,12 @@ selection operator, in which case it points to the type of the left operand.
       /* This is an identifier followed by the qualifier separator
          (usually something like "X::").  In Microsoft bugs mode, a "." can be
          used as the separator even if "::" was used earlier in the name.  Scan
-         the qualified name. */
+         the qualified name.  Note that in GNU C++ mode, we don't treat a
+         qualifier separator token following an invalid type as an actual
+         qualifier separator (in non-expression contexts).  For example:
+           typedef int I;
+           I ::x;  // Treated as "I (::x);" in GNU C++ mode.
+      */
       a_source_position type_position;
       type_position = start_position;
       /* This is a qualifier. */
