@@ -8551,6 +8551,10 @@ for use in generating cross-reference output describing this declaration.
         new_rp->assoc_scope = NULL_region_number;
         ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
         ensure_gnu_routine_supp(routine_ptr)->inline_partner = new_rp;
+        if (gnu_routine_supp(routine_ptr)->asm_name != NULL) {
+          gnu_routine_supp(new_rp)->asm_name =
+                                      gnu_routine_supp(routine_ptr)->asm_name;
+        }  /* if */
         routine_ptr = new_rp;
         routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;

@@ -1,5 +1,25 @@
 Version 4.11
 
+6/18/15  [EDGcpfe/16319]
+Abort in GNU mode on alias to replaced "for inlining only" function
+
+In GNU modes, a function definition may be provided "for inlining purposes
+only" and then displaced by a different declaration (see, e.g., the entry of
+2/4/13 for EDGcpfe/13606).  Previously, when the original declaration of the
+displaced function is given an "asm name", and that name is referred to by
+a GNU "alias" attribute after the declaration is displaced, the front end
+aborted while attempting to perform a string comparison operation on a null
+pointer in compare_for_asm_name_map (attribute.c).  For example:
+
+  extern int f() __asm__ ("X");;
+  extern __inline int f() { return 0; }  // "For inlining purposes only".
+  int f() { return 0; }                  // Displaces the previous definition.
+  extern int g() __attribute__((alias("X")));  // Previously triggered an
+                                               // abort.
+
+This is now fixed.
+
+
 6/18/15  [EDGcpfe/16329]
 Performance improvements with deeply nested decltype constructs
 
