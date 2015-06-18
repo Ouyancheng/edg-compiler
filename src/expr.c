@@ -16252,14 +16252,21 @@ the delete routine is ambiguous (an error will have been issued).
   } else {
     /* There is an appropriate operator delete. */
     a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
+    a_boolean    ambiguous;
 
     check_assertion(fund_delete_sym->kind == (a_symbol_kind)sk_routine ||
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
     if (placement_new &&
+        /* Is two-operand delete: */
         is_default_operator_delete(delete_routine, &is_sized_delete) &&
         is_sized_delete &&
+        /* Is not a "usual deallocation function" (because the routine is a
+           member of a class that has another delete as its default delete): */
+        !(delete_routine->source_corresp.is_class_member &&
+          find_default_operator_delete_sym(overload_delete_sym, base_new_type,
+                                           &ambiguous) != fund_delete_sym) &&
         !((gpp_mode && !clang_mode) ||
           (microsoft_mode && microsoft_version < 1900))) {
       /* Core issue 429: Give an error if a placement new operation results
