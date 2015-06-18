@@ -14263,7 +14263,7 @@ be returned for a C mode const variable.
              !(cpp11_mode && !implicit_microsoft_cpp11_mode)) {
     /* The variable is a static data member but it's not initialized within
        the class (it might be initialized outside the class).  Core issue 721
-       (which retro-actively applies to C++03) clarified that the use of such
+       (which retroactively applies to C++03) clarified that the use of such
        a variable in a constant expression is permitted (if it meets the other
        requirements), but Microsoft compilers still disallow it for template
        static data member instantiations (as of MSVC 19.00.23008). */
