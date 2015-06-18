@@ -26222,7 +26222,7 @@ IL lowering.
 
 static a_source_correspondence_ptr
                 module_id_scp;
-                        /* The entity which is being used as the basis for
+                        /* The entity that is being used as the basis for
                            the translation unit's module id.  If the entity
                            is defined in a PCH file, module_id_scp will
                            still point to the entity after the PCH is restored
@@ -26333,8 +26333,8 @@ be used, but there are exceptions.
          translation unit. */
       a_const_char *name = NULL;
       if (module_id_kind == iek_variable) {
-        /* If the variable is a namespace member, get its mangled name;
-           otherwise use unmangled name. */
+        /* If the variable is a class or namespace member, get its mangled
+           name; otherwise use its unmangled name. */
         if (scp_is_class_or_namespace_member(module_id_scp)) {
           name = get_mangled_member_variable_name(
                                                 (a_variable_ptr)module_id_scp);
