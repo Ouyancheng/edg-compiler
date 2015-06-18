@@ -13,8 +13,8 @@ of a name that follows.  In the simple example:
   typedef int I;
   I ::x;
 
-that means a different kind of error is issued because "I ::x;" is treated
-like a declaration "I (::x);".  Other nonstandard cases, like the following:
+that means a warning is issued instead of an error because "I ::x;" is treated
+like a declaration "I (::x);".  Similarly, the following:
 
   typedef int I;
   I g();
@@ -24,7 +24,7 @@ like a declaration "I (::x);".  Other nonstandard cases, like the following:
     I i;
   };
 
-are now accepted in GNU C++ mode.
+is now also accepted in GNU C++ mode.
 
 
 6/17/15  [EDGcpfe/16315]
