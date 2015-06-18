@@ -12063,7 +12063,7 @@ types, i.e., also for nonreal classes.
                type_ptr->variant.typeref.is_dependent_type_operator) {
       /* A dependent decltype or typeof. */
       *force_end_of_traversal = found = TRUE;
-    } else if (check_for_instantiation_dependence &&
+    } else if (find_all_dependent_types &&
                type_ptr->kind == (a_type_kind)tk_typeref &&
                typeref_is_type_operator(type_ptr)) {
       /* A nondependent decltype or typeof. */
@@ -12410,11 +12410,13 @@ attribute or using a Microsoft declspec specifier).  Also set
     *force_end_of_traversal = found = TRUE;
     check_use_of_deprecated_entity(&type_ptr->source_corresp, &error_position);
   } else if ((type_ptr->kind == (a_type_kind)tk_typeref &&
-              typeref_is_typedef(type_ptr)) ||
+              (typeref_is_typedef(type_ptr) ||
+               typeref_is_type_operator(type_ptr))) ||
              is_template_param_or_nonreal_class_type(type_ptr)) {
     /* Stop at typedefs, since those are declared using a distinct
        declaration.  Also stop at nonreal types since their deprecation status
-       isn't known. */
+       isn't known.  Also stop at type operators: Any deprecation issues for
+       those should be reported on the underlying expression instead. */
     *force_end_of_traversal = TRUE;
   }  /* if */
   return found;

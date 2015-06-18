@@ -1,5 +1,13 @@
 Version 4.11
 
+6/18/15  [EDGcpfe/16329]
+Performance improvements with deeply nested decltype constructs
+
+In some cases involving many template instantiations leading to deeply nested
+decltype representations, the front end performed exceptionally poorly when
+testing whether a type is dependent or deprecated.  This is now fixed.
+
+
 6/18/15  [EDGcpfe/16251]
 GNU C++ compatibility: Type names followed by '::'
 
