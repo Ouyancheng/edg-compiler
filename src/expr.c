@@ -695,8 +695,8 @@ static void process_void_operand(an_operand *operand)
 /*
 Examine the operand given by *operand, which has been scanned as a void
 expression, and issue a warning if the operand has no effect.
-Lvalue-to-rvalue transformations are done if appropriate (yes in C, no in
-C++).  Other transformations are done in all cases.
+Lvalue-to-rvalue transformations are done if appropriate.  Other
+transformations are done in all cases.
 */
 {
   a_boolean suppress_warning = FALSE;
