@@ -71,8 +71,8 @@ Ordinarily, if a user-declared type name T is followed by '::', T is assumed
 to be a name-qualifier and an error is issued if T doesn't designate a class
 type (or, in some modes, an enum type).  Now, in GNU C++ mode, however, if T
 is not a valid type for the purposes of name qualification and the context is
-not an expression context, the '::' is assumed not to be a global qualifier
-of a name that follows.  In the simple example:
+not an expression context, the '::' is assumed to be a global qualifier of a
+name that follows.  In the simple example:
 
   typedef int I;
   I ::x;
