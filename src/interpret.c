@@ -1992,10 +1992,10 @@ successfully interpreted, FALSE otherwise.
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
-          a_byte  case_bytes[VALUE_BYTES_FOR_SCALAR];
+          a_byte  case_buffer[VALUE_BYTES_FOR_SCALAR];
+          a_byte  *case_bytes = case_buffer;
           int cmp;
-          result = copy_val_from_constant(ips, scep->case_value,
-                                          (a_byte*)case_bytes);
+          result = copy_val_from_constant(ips, scep->case_value, case_bytes);
           cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
                                    (an_integer_value*)case_bytes, is_signed);
           if (cmp == 0) {
@@ -2007,8 +2007,7 @@ successfully interpreted, FALSE otherwise.
             break;
 #if GNU_EXTENSIONS_ALLOWED
           } else if (scep->range_end != NULL) {
-            result = copy_val_from_constant(ips, scep->range_end,
-                                            (a_byte*)case_bytes);
+            result = copy_val_from_constant(ips, scep->range_end, case_bytes);
             cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
                                      (an_integer_value*)case_bytes, is_signed);
             if (cmp <= 0) {
