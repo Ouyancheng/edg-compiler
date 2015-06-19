@@ -8035,8 +8035,8 @@ typedef struct a_typeref_type_supplement {
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
-			   the template from which they were generated;
-			   otherwise, this is NULL. */
+			   template from which they were generated; otherwise,
+			   this is NULL. */
   an_expr_node_ptr
 		expr;	/* The expression argument for a decltype or typeof
 			   construct (is_decltype or is_typeof is TRUE).  When
