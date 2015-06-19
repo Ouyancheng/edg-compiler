@@ -13379,18 +13379,23 @@ instantiations from the IL.
     instance_sym = tip->instance_sym;
     mip = master_instance_of(tip);
     if (mip->already_instantiated &&
-        (mip->instance_required_count == 0 ||
-         tip->explicit_do_not_instantiate) &&
         !mip->automatically_instantiated) {
-      if (symbol_is(instance_sym, sk_static_data_member)) {
-        /* The static data member has been instantiated but no instantiation
-           is needed. */
+      if (symbol_is(instance_sym, sk_static_data_member) &&
+          (mip->instance_required_count == 0 ||
+	   instantiation_mode != tim_used ||
+           tip->explicit_do_not_instantiate)) {
+        /* For static data members, remove the instantiation unless we are
+	   in something like tim_used.  This is needed to avoid multiple
+	   definition errors. */
         a_variable_ptr	vp = instance_sym->variant.static_data_member.variable;
         vp = (a_variable_ptr)canonical_il_entry_of(vp);
         if (vp->storage_class == (a_storage_class)sc_unspecified) {
           clear_variable_definition(vp);
 	}  /* if */
-      } else {
+      } else if (mip->instance_required_count == 0 ||
+                 tip->explicit_do_not_instantiate) {
+        /* For routines, only remove them if no instantiations were
+           required. */
         a_routine_ptr	rp;
         a_scope_ptr	rp_scope;
         /* A routine was instantiated but no instantiation is needed.  This
