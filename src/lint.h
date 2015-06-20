@@ -473,6 +473,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_mangled_name_too_long)*/
 /*lint -esym(759,vtbl_addr_from_construction_vtbls_array)*/
 /*lint -esym(765,vtbl_addr_from_construction_vtbls_array)*/
+/*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_win64)*/
+/*lint -esym(755,TARG_RUNTIME_ELEM_COUNT_INT_KIND_win64)*/
+/*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win64)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
@@ -495,6 +498,8 @@ extern int fileno(FILE *);
 /*lint -esym(759,make_vtbl_entry_type)*/
 /*lint -esym(765,make_vtbl_entry_type)*/
 /*lint -esym(756,uintptr_t)*/
+/*lint -esym(755,TARG_IA64_VTABLE_ENTRY_INT_KIND_win64)*/
+/*lint -esym(755,TARG_REUSE_TAIL_PADDING_win64)*/
 #endif /* IA64_ABI */
 #if !INSTANTIATE_EXTERN_INLINE || !IA64_ABI
 /*lint -esym(759,get_mangled_function_name_full)*/
@@ -1212,10 +1217,13 @@ extern int fileno(FILE *);
 #if !INT128_EXTENSIONS_ALLOWED
 /*lint -esym(755,TARG_ALIGNOF_INT128_linux_i686)*/
 /*lint -esym(755,TARG_ALIGNOF_INT128_linux_x86_64)*/
+/*lint -esym(755,TARG_ALIGNOF_INT128_win64)*/
 /*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_linux_i686)*/
 /*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_linux_x86_64)*/
+/*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_win64)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_linux_i686)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_linux_x86_64)*/
+/*lint -esym(755,TARG_SIZEOF_INT128_linux_win64)*/
 #endif /* !INT128_EXTENSIONS_ALLOWED */
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
