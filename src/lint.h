@@ -476,6 +476,7 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_win64)*/
 /*lint -esym(755,TARG_RUNTIME_ELEM_COUNT_INT_KIND_win64)*/
 /*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win64)*/
+/*lint -esym(755,TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win64)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
@@ -1223,7 +1224,7 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_win64)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_linux_i686)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_linux_x86_64)*/
-/*lint -esym(755,TARG_SIZEOF_INT128_linux_win64)*/
+/*lint -esym(755,TARG_SIZEOF_INT128_win64)*/
 #endif /* !INT128_EXTENSIONS_ALLOWED */
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
