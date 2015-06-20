@@ -1648,6 +1648,7 @@ whether a substitution is available; do not put it out.
 end_of_routine:;
 #if DEBUG && EXPENSIVE_CHECKING
   if (result && db_flag_is_set("substitutions")) {
+    check_assertion(sp != NULL);
     fprintf(f_debug, "using S%c: <%s> %s",
                      (sp->index == 0 ? ' ' :
                       sp->index < 36 ? base_36_digits[sp->index-1] : '?'),
