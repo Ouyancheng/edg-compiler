@@ -1490,7 +1490,7 @@ should be FALSE for non-type entities).  If test is TRUE, just determine
 whether a substitution is available; do not put it out.
 */
 {
-  a_substitution_ptr   sp;
+  a_substitution_ptr   sp = NULL;
   a_boolean            result = FALSE, secondary_tu;
   a_const_char         *str = NULL;
   a_type_kind          type_kind = (a_type_kind)tk_error;
