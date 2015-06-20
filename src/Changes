@@ -3,7 +3,7 @@ Version 4.11
 6/19/15  [EDGcpfe/16331]
 Multiply defined static data member when used as a constant
 
-A change in C++11 allowed the use of a certain static data members defined
+A change in C++11 allowed the use of certain static data members defined
 outside of their class to be used in constant expressions.  This could
 result in multiply defined symbols in certain configurations.  The C++11
 behavior was first present in version 4.8.  The changes for EDGcpfe/16315
