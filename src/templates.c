@@ -13404,8 +13404,10 @@ instantiations from the IL.
         check_assertion(symbol_is(instance_sym, sk_routine) ||
                         symbol_is(instance_sym, sk_member_function));
         rp = instance_sym->variant.routine.ptr;
-        rp_scope = scope_for_routine(rp);
-        clear_function_body(rp_scope);
+        if (rp->assoc_scope != NULL_region_number) {
+          rp_scope = scope_for_routine(rp);
+          clear_function_body(rp_scope);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */

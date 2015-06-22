@@ -514,13 +514,13 @@ processed here, code from any secondary translation units will have
 already been copied over.
 */
 {
+  /* Remove the definitions of any functions instantiated only to determine
+     their return types or static data members instantiated only to
+     determine their size. */
+  if (instantiation_mode != tim_all) {
+    remove_unneeded_instantiations();
+  }  /* if */
   if (is_primary_translation_unit) {
-    /* Remove the definitions of any functions instantiated only to determine
-       their return types or static data members instantiated only to
-       determine their size. */
-    if (instantiation_mode != tim_all) {
-      remove_unneeded_instantiations();
-    }  /* if */
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
