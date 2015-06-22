@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1231,6 +1231,6 @@ Given a type info impl. entry, display the name for debugging purposes.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
