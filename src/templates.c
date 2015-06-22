@@ -13379,7 +13379,8 @@ instantiations from the IL.
     instance_sym = tip->instance_sym;
     mip = master_instance_of(tip);
     if (mip->already_instantiated &&
-        !mip->automatically_instantiated) {
+        !mip->automatically_instantiated &&
+        !tip->explicit_instantiation) {
       if (symbol_is(instance_sym, sk_static_data_member) &&
           (mip->instance_required_count == 0 ||
            instantiation_mode != tim_used ||
