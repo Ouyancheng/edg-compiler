@@ -44,7 +44,7 @@ and protected by the ifndef there.
 /*
 Specify the version stamp of the IL being generated.
 */
-#define IL_VERSION_NUMBER "4.10"
+#define IL_VERSION_NUMBER "4.10.1"
 
 
 /* Pointers to the main tables in the intermediate language. */
