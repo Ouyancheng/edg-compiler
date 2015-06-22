@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -37,6 +37,6 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

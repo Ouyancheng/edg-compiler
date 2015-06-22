@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -9679,6 +9679,6 @@ Cleanup.  Free all memory and release the interfaces.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

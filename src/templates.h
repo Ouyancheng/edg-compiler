@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1127,6 +1127,6 @@ extern a_boolean compare_instantiation(a_void_ptr	entry,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

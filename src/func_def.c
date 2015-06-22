@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -3448,6 +3448,6 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
