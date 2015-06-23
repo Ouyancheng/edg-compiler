@@ -125,6 +125,14 @@ Definitions for Windows (WIN32)
 #define RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK 0
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK */
 
+#ifndef DEFAULT_USE_PREDEFINED_MACRO_FILE
+/*
+Assume that a predefined_macros.txt file should be used (to define target-
+specific macros such as _M_IX86 and _M_X64, etc. as appropriate for the
+target).
+*/
+#define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
+#endif /* defined(DEFAULT_USE_PREDEFINED_MACRO_FILE) */
 /*
 Use fixed address for mmap to work around issues with address space
 layout randomization (ASLR) on Windows Vista.

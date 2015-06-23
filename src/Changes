@@ -1178,7 +1178,9 @@ has been written to help identify these macros and automatically create a
 predefined_macros.txt file (similar to the way the make_predef_macro_table
 tool creates GNU-specific predefined macros).  In some cases, _M_IX86 had
 been defined by the front end, but that definition has been removed.  See
-make_win_predef_macro_table.c for more information.
+make_win_predef_macro_table.c for more information.  The configuration macro
+DEFAULT_USE_PREDEFINED_MACRO_FILE is now set by default when using
+defines.h.win32 to reflect this change.
 
 
 4/21/15  [EDGcpfe/16133]
