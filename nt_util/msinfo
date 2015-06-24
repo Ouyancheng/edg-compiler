@@ -56,6 +56,10 @@ Building the EDG C++ front end for a Windows Environment
   "Express" version of the Microsoft compiler is insufficient because it
   does not include the ATLMFC library.
 
+- A predefined_macros.txt file must be created in the lib directory.
+  This file can be created by compiling misc/make_win_predef_macro.c with
+  the Microsoft compiler, running the executable, and using the output
+  as the predefined_macros.txt file.
 
 
 Compiling Microsoft Code with the EDG front end
@@ -119,22 +123,24 @@ Compiling Microsoft Code with the EDG front end
 
 - The following predefined macros are set by the front end:
 
-	_WIN32 is set to 1
+	_WIN32 is set to 1.
 
-	_MSC_VER is set to match microsoft_version.  The default is
+	_WIN64 is set to 1 if a 64-bit configuration is being used.
+
+	_MSC_VER, _MSC_FULL_VER, and _MSC_BUILD are set to match
+	microsoft_version and microsoft_build_number.  The default is
 	1600 (for MSVC++ 10, i.e., Visual Studio 2010 compatibility).
 
-	__MSC_EXTENSIONS is set to 1
+	__MSC_EXTENSIONS is set to 1.
 
 	_INTEGRAL_MAX_BITS is set based on the configuration, but is
-	usually 64
-
-	_M_IX86 is set to the value set, if any, when the front end was
-	compiled.
+	usually 64.
 
 	_WCHAR_T_DEFINED is set to 1 (as is _NATIVE_WCHAR_T_DEFINED
 	for microsoft_version >= 1300) if wchar_t is enabled as a
 	keyword.
+
+	_CHAR_UNSIGNED is set to 1 if the char type is unsigned.
 
 	__BOOL_DEFINED is set to 1 if bool is enabled as a keyword.
 
@@ -142,6 +148,11 @@ Compiling Microsoft Code with the EDG front end
 
 	_NATIVE_NULLPTR_SUPPORTED is set to 1 for microsoft_version >=
 	1600 if nullptr is supported.
+
+	_RESUMABLE_FUNCTIONS_SUPPORTED is set 1 if couroutines are
+	enabled.
+
+	_MANAGED and _M_CEE are set to 1 in C++/CLI mode.
 
 - On non-Intel platforms, or when using other special features, there
   are other macros that may need to be set (e.g., _DLL, _MT; see the
