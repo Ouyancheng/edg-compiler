@@ -149,7 +149,7 @@ Compiling Microsoft Code with the EDG front end
 	_NATIVE_NULLPTR_SUPPORTED is set to 1 for microsoft_version >=
 	1600 if nullptr is supported.
 
-	_RESUMABLE_FUNCTIONS_SUPPORTED is set 1 if couroutines are
+	_RESUMABLE_FUNCTIONS_SUPPORTED is set 1 if coroutines are
 	enabled.
 
 	_MANAGED and _M_CEE are set to 1 in C++/CLI mode.
