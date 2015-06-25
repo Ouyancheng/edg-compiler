@@ -1,3 +1,31 @@
+Version 4.11
+
+6/24/15  [EDGcpfe/16339]
+Demangling of qualified pointer-to-member constants
+
+The demangled name of a pointer-to-member constant whose member is either
+cv-qualified or ref-qualified (or both) had failed to include an indication of
+either qualification.  This had been a problem in both the Cfront and IA-64
+ABIs and is now fixed.  For example (with --c++11):
+
+  struct A {
+    void f() const &&;
+  };
+  typedef void (A::* PMF)() const &&;
+  template<PMF P> struct B {
+    B();
+  };
+  int main() {
+    B<&A::f> b;
+  }
+
+Generates Cfront mangled name __ct__39B__tm__30_XCM1ACF_Ev_vLM0_L_2_n1_5f__1AFv
+and IA-64 ABI mangled name _ZN1BIXadL_ZNKO1A1fEvEEEC1Ev which now demangle
+to: "B<N1>::B<&A::f const&&>() [with N1=&A::f const&&]" and
+"B<(&A::f const &&)>::B()" respectively.
+
+
+-------------------------------------------------------------------------------
 Version 4.10.1, June 23, 2015
 
 6/15/15  [EDGcpfe/16275]

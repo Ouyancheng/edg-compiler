@@ -243,6 +243,15 @@ static a_const_char *demangle_name(
 static a_const_char *demangle_name_with_preceding_length(
                                               a_const_char               *ptr,
                                               a_decode_control_block_ptr dctl);
+static a_const_char *demangle_ref_qualifiers(
+                                         a_const_char               *p,
+                                         a_const_char               **ref_qual,
+                                         a_decode_control_block_ptr dctl);
+static a_const_char *demangle_type_qualifiers(
+                                     a_const_char               *ptr,
+                                     a_boolean                  trailing_space,
+                                     a_decode_control_block_ptr dctl);
+
 /*
 Interface to full_demangle_type_name for the simple case.
 */
@@ -945,7 +954,7 @@ and expressions (but not addresses or template parameters).  Return a pointer
 to the character position following what was demangled.
 */
 {
-  a_const_char  *p = ptr, *type = NULL, *index, *prev_end;
+  a_const_char  *p = ptr, *type = NULL, *index, *prev_end, *quals;
   unsigned long nchars;
   char          ch;
 
@@ -1040,13 +1049,27 @@ to the character position following what was demangled.
         write_id_ch('&', dctl);
         /* Start at type+2 to skip the "C" for const and the "M" for
            pointer-to-member. */
-        (void)demangle_type_name(type+2, dctl);
+        quals = demangle_type_name(type+2, dctl);
         write_id_str("::", dctl);
         /* Demangle the length and name. */
         p = demangle_identifier_with_preceding_length(
                                       p,
                                       /*suppress_parent_and_local_info=*/TRUE,
                                       dctl);
+        if (is_immediate_type_qualifier(quals, dctl)) {
+          /* Get any optional cv-qualifiers. */
+          write_id_ch(' ', dctl);
+          quals = demangle_type_qualifiers(quals, /*trailing_space=*/FALSE,
+                                           dctl);
+        }  /* if */
+        if (get_char(quals, dctl) == 'F') {
+          /* See if there are any ref-qualifiers. */
+          a_const_char *ref_qual;
+          (void)demangle_ref_qualifiers(quals+1, &ref_qual, dctl);
+          if (ref_qual != NULL) {
+            write_id_str(ref_qual, dctl);
+          }  /* if */
+        }  /* if */
       } else {
         /* Not a non-virtual function.  The encoding for the third component
            should be simply "0". */
@@ -1142,11 +1165,6 @@ to the character position following what was demangled.
 end_of_routine:
   return p;
 }  /* demangle_constant */
-
-static a_const_char *demangle_type_qualifiers(
-                                     a_const_char               *ptr,
-                                     a_boolean                  trailing_space,
-                                     a_decode_control_block_ptr dctl);
 
 static a_const_char *demangle_parameter_reference(
                                                a_const_char               *ptr,
@@ -2795,6 +2813,29 @@ were put out.
 }  /* demangle_type_qualifiers */
 
 
+static a_const_char *demangle_ref_qualifiers(
+                                         a_const_char               *p,
+                                         a_const_char               **ref_qual,
+                                         a_decode_control_block_ptr dctl)
+/*
+The character preceding *p is an "F", indicating a function type; see if
+there are any optional ref-qualifiers, and if so, set *ref_qual to a string
+suitable for output (set to NULL otherwise).  Returns a pointer to the
+character position following any optional ref-qualifiers.
+*/
+{
+  *ref_qual = NULL;
+  if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'R')) {
+    p += 2;
+    *ref_qual = "&";
+  } else if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'E')) {
+    p += 2;
+    *ref_qual = "&&";
+  }  /* if */
+  return p;
+}  /* demangle_ref_qualifiers */
+
+
 static a_const_char *demangle_type_specifier(a_const_char               *ptr,
                                              a_decode_control_block_ptr dctl)
 /*
@@ -3242,23 +3283,17 @@ use of parentheses around parts of the declarator.)
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
-    a_const_char *ref_qual = NULL;
+    a_const_char *ref_qual;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch(')', dctl);
+    p++;
     /* An optional ref-qualifier is indicated if the 'F' is followed by
        an underscore.  Emit the ref-qualifier at the end of the type. */
-    p++;
-    if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'R')) {
-      p += 2;
-      ref_qual = "&";
-    } else if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'E')) {
-      p += 2;
-      ref_qual = "&&";
-    }  /* if */
+    p = demangle_ref_qualifiers(p, &ref_qual, dctl);
     p = skip_extern_C_indication(p, dctl);
     /* Put out the parameter types. */
     p = demangle_function_parameters(p, dctl);
@@ -7747,19 +7782,19 @@ non-template functions).
     if (!include_func_params) dctl->suppress_id_output++;
     ptr = demangle_bare_function_type(ptr, func_block.no_return_type, 
                                       bft_option, dctl);
+    if (!include_func_params) dctl->suppress_id_output--;
     if (first_scan) dctl->suppress_id_output++;
-    if (include_func_params && func_block.cv_quals != 0) {
+    if (func_block.cv_quals != 0) {
       /* Put out cv-qualifiers for a member function. */
       write_id_ch(' ', dctl);
       output_cv_qualifiers(func_block.cv_quals,
                            /*trailing_space=*/FALSE, dctl);
     }  /* if */
-    if (include_func_params && func_block.ref_qual != REFQ_NONE) {
+    if (func_block.ref_qual != REFQ_NONE) {
       /* Put out ref-qualifier for a member function. */
       write_id_ch(' ', dctl);
       output_ref_qualifier(func_block.ref_qual, dctl);
     }  /* if */
-    if (!include_func_params) dctl->suppress_id_output--;
   }  /* if */
   if (func_block.ctor_dtor_kind != ' ') {
     /* Identify the kind of constructor or destructor if necessary. */
