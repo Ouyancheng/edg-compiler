@@ -3421,7 +3421,12 @@ an error if a default argument expression is encountered.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (is_constructor && parent_type != NULL) {
+        if (is_constructor && parent_type != NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            && !(cli_class_type_kind_is(parent_type, cctk_value) &&
+                 scanning_generated_code_from_metadata)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       ) {
           /* In case this is an ill-formed copy constructor, we need to do
              some additional error checking.  We're looking for cases like
                A::A(A);                // case 1
@@ -3434,7 +3439,13 @@ an error if a default argument expression is encountered.
              It's not actually possible to know whether a constructor is a
              (valid or invalid) copy constructor without looking past the
              first parameter.  That's part of what makes this check a little
-             complicated. */
+             complicated.
+             Note that this check doesn't apply to C++/CLI value classes read
+             from metadata.  There is no danger of unbounded recursion since
+             C++/CLI value types are always bit-copied rather than copied
+             through a copy constructor.  (This allowance could be made for
+             value classes not loaded from metadata, but the Microsoft compiler
+             does diagnose those.) */
           if (extra_info->param_type_list->next == NULL) {
             /* This is the first item on the list. */
             tp = skip_typerefs(param_state.type);
