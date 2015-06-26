@@ -1311,9 +1311,11 @@ Initialize the option information table.
                          "no_variadic_templates", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  /* C++14 is a successor of C++11, and hence also requires C++11 IL
+  /* C++14 and C++17 are successors of C++11, and hence also require C++11 IL
      extensions. */
   add_option_description(optk_cpp14_mode, "c++14", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp17_mode, "c++17", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
@@ -2049,7 +2051,8 @@ Returns TRUE if a C++ mode is explicitly specified.
 
   if (option_kind_used[(int)optk_cpp03_mode] ||
       option_kind_used[(int)optk_cpp11_mode] ||
-      option_kind_used[(int)optk_cpp14_mode]) {
+      option_kind_used[(int)optk_cpp14_mode] ||
+      option_kind_used[(int)optk_cpp17_mode]) {
     /* C++ mode was enabled by a command line option. */
     result = TRUE;
   }  /* if */
@@ -3122,6 +3125,7 @@ default mode (e.g., exception handling).
   std_override_modifiers_enabled = value;
   constexpr_implies_const = value;
   if (cpp14_mode) {
+    /* Features enabled in C++14 mode. */
     if (auto_type_specifier_enabled) {
       decltype_auto_enabled = TRUE;
     }  /* if */
@@ -3147,6 +3151,9 @@ default mode (e.g., exception handling).
       constexpr_implies_const = TRUE;
     } else {
       constexpr_implies_const = FALSE;
+    }  /* if */
+    if (cpp17_mode) {
+      /* Features enabled in C++17 mode. */
     }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -4531,6 +4538,7 @@ command line switches.
     C++03               std_version >= 199711            --c++03
     C++11               std_version >= 201103            --c++11
     C++14               std_version >= 201402            --c++14
+    C++17               std_version >= 201701 (?)        --c++17
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -9555,6 +9563,13 @@ enable_microsoft_mode:
       case optk_type_traits_helpers:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
+        break;
+      case optk_cpp17_mode:
+        /* Enable C++ features added as part of C++17.  The value used for
+           std_version below is just a placeholder until the official value
+           (and standard name) is known. */
+        std_version = 201701;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp14_mode:
         /* Enable C++ features added as part of C++14. */

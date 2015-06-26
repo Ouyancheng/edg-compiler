@@ -311,6 +311,7 @@ typedef enum /*an_option_kind*/ {
   optk_c11_mode,
   optk_digit_separators,
   optk_target,
+  optk_cpp17_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 

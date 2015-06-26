@@ -2304,16 +2304,22 @@ majority of C++11 features, so this is also enabled when microsoft_version
                     (std_version >= 201103 || implicit_microsoft_cpp11_mode))
 
 /*
+A macro synonymous with cpp11_mode to enhance compatibility with older versions
+of the front end.
+*/
+#define cpp0x_mode cpp11_mode
+
+/*
 Macro that is TRUE when the front end should accept language features defined
 by the C++14 standard or later C++ standards.
 */
 #define cpp14_mode (!C_mode() && std_version >= 201402)
 
 /*
-A macro synonymous with cpp11_mode to enhance compatibility with older versions
-of the front end.
+Macro that is TRUE when the front end should accept language features defined
+by the C++17 standard or later C++ standards.
 */
-#define cpp0x_mode cpp11_mode
+#define cpp17_mode (!C_mode() && std_version >= 201701)
 
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;
