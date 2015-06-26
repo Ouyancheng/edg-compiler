@@ -6225,6 +6225,47 @@ result, disambiguation is not necessary.
 }  /* must_be_function_declarator */
 
 
+static a_boolean type_is_derived_from_function_declarator(a_type_ptr  tp)
+/*
+tp is the derived type of a declarator.  Return TRUE if that type is
+constructed from a function declarator (e.g., a function type or an array of
+pointer to function type, without intervening typedef/decltype constructors).
+*/
+{
+  a_boolean  result = FALSE;
+
+  while (tp != NULL) {
+    switch (tp->kind) {
+      case tk_routine:
+        result = TRUE;
+        goto done;
+      case tk_pointer:
+        tp = tp->variant.pointer.type;
+        break;
+      case tk_ptr_to_member:
+        tp = tp->variant.ptr_to_member.type;
+        break;
+      case tk_array:
+        tp = tp->variant.array.element_type;
+        break;
+      case tk_typeref:
+        if (typeref_is_typedef(tp) || typeref_is_type_operator(tp)) {
+          /* The type from a typedef name or decltype-like construct isn't the
+             result of the current declarator. */
+          goto done;
+        } else {
+          tp = tp->variant.typeref.type;
+        }  /* if */
+        break;
+      default:
+        goto done;
+    }  /* switch */
+  }  /* for */
+done:
+  return result;
+}  /* type_is_derived_from_function_declarator */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
                      Microsoft mode, and p_left_qualifiers is used only when
@@ -6961,16 +7002,17 @@ function_lparen:
       /* Pass in a flag to indicate whether exception specifications are
          allowed.  They are allowed on a declaration of a function, a pointer
          or reference to function, or a pointer to member function.  The
-         declaration must be a top-level declaration or a parameter
-         declaration; it cannot be a typedef declaration.  That turns out to
-         correspond to places where real declarators are allowed.  GNU and
+         declaration must be a top-level declaration, a parameter declaration,
+         or a return type; it cannot be a typedef declaration.  That turns out
+         to correspond to places where real declarators are allowed.  GNU and
          Microsoft compilers also allow exception specifications in other
          places (e.g., types in casts) and we also allow it as an extension
          in other nonstrict modes. */
       disallow_exception_spec = TRUE;
       if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
           ((input_flags & DI_REAL_DECLARATOR_ALLOWED) || !strict_ansi_mode)) {
-        if (derived_type == NULL || is_function_type(derived_type)) {
+        if (derived_type == NULL ||
+            type_is_derived_from_function_declarator(derived_type)) {
           /* Top level function declaration, or return type of function
              type. */
           disallow_exception_spec = FALSE;

@@ -1,5 +1,19 @@
 Version 4.11
 
+6/26/15  [EDGcpfe/16307]
+Exception specifications on return types
+
+Exception specifications are permitted on the return types of function
+declarators (when the return type itself is, e.g., a pointer to function).
+However, the front end previously did not accept such an exception
+specification when the top-level declaration is that of a pointer-to-function
+instead of a function.  Now it does.  For example:
+
+  void (*f())() throw(int);      // Already accepted.
+  void (*(*pf)())() throw(int);  // Previously triggered a spurious warning
+                                 // or error.  Now silently accepted.
+
+
 6/26/15  [EDGcpfe/16270]
 C++17 compatibility: Add standard attributes to namespaces and enumerators
 
