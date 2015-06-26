@@ -1063,7 +1063,7 @@ to the character position following what was demangled.
                                            dctl);
         }  /* if */
         if (get_char(quals, dctl) == 'F') {
-          /* See if there are any ref-qualifiers. */
+          /* See if there is a ref-qualifier. */
           a_const_char *ref_qual;
           (void)demangle_ref_qualifiers(quals+1, &ref_qual, dctl);
           if (ref_qual != NULL) {
@@ -2819,9 +2819,9 @@ static a_const_char *demangle_ref_qualifiers(
                                          a_decode_control_block_ptr dctl)
 /*
 The character preceding *p is an "F", indicating a function type; see if
-there are any optional ref-qualifiers, and if so, set *ref_qual to a string
-suitable for output (set to NULL otherwise).  Returns a pointer to the
-character position following any optional ref-qualifiers.
+there is a ref-qualifier, and if so, set *ref_qual to a string suitable for
+output (set to NULL otherwise).  Returns a pointer to the character position
+following the optional ref-qualifier.
 */
 {
   *ref_qual = NULL;
