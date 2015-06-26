@@ -5124,6 +5124,7 @@ is updated to reflect relevant positions of this definition.
       a_boolean                    template_param = FALSE, err = FALSE;
       a_source_position            enum_con_pos, pos_comma;
       a_source_sequence_entry_ptr  enum_con_ssep = NULL;
+      an_attribute_ptr             enumerator_attributes = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       an_ms_attribute_ptr          ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5170,6 +5171,10 @@ is updated to reflect relevant positions of this definition.
         (void)get_token();
         /* Set the error position to the identifier position. */
         copy_source_position(locator.source_position, error_position);
+        if (namespace_and_enumerator_attributes_enabled) {
+          /* Scan any standard attributes. */
+          enumerator_attributes = scan_attributes(al_enumerator);
+        }  /* if */
       }  /* if */
       /* Note that the enumerator symbol is entered a little later, after
          the constant expression (if any) has been scanned.  (C standard,
@@ -5461,6 +5466,11 @@ is updated to reflect relevant positions of this definition.
                                    (an_ms_attribute_target)msat_field);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (enumerator_attributes != NULL) {
+        /* Attach any standard attributes to the enumerator. */
+        attach_attributes(enumerator_attributes, (char*)enum_con,
+                          iek_constant);
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       { a_decl_position_supplement_ptr  dpsp;
         dpsp = enum_con->source_corresp.decl_pos_info;

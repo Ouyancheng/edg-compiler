@@ -2369,13 +2369,17 @@ typedef enum an_attribute_location_tag {
 			   return type. */
   al_post_initializer,	/* The attribute follows a parenthesized initializer
 			   (allowed in some GNU C++ modes only). */
-  al_namespace,		/* The attribute appears on a namespace definition. */
+  al_namespace,		/* The attribute appears on a namespace definition
+			   (for standard attributes). */
+  al_gnu_namespace,	/* The attribute appears on a namespace definition
+			   (for GNU attributes). */
   al_label,		/* The attribute follows a label name in a label
 			   declaration. */
   al_explicit,		/* This value is never recorded in attribute entries,
 			   but it is passed into some routines to indicate
 			   that an operation should apply to all non-implicit
 			   attributes. */
+  al_enumerator,	/* The attribute follows an enumerator identifier. */
   al_id_equivalent_as_postfix,
 			/* This value is never recorded in attribute entries,
 			   but it is used by the C++-generating back end to

@@ -23090,7 +23090,7 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope
     ssep = previous_scope_of(ssep);
   }  /* while */
   sp = ensure_il_scope_exists(ssep);
-  check_assertion_str(sp != NULL, "add_to_attributes_list: NULL IL scope");
+  check_assertion_str(sp != NULL, "add_to_ms_attributes_list: NULL IL scope");
   pointers_block = assoc_pointers_block_of(ssep);
   if (sp->ms_attributes == NULL) {
     sp->ms_attributes = msap;

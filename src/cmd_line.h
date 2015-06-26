@@ -1309,6 +1309,11 @@ EXTERN a_boolean
 			/* TRUE if Microsoft __declspec attribute syntax is
 			   accepted (e.g., __declspec((dllexport))). */
 
+EXTERN a_boolean
+		namespace_and_enumerator_attributes_enabled;
+			/* TRUE if standard attributes are enabled on namespace
+			   and enumerator declarations (see N4266). */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 EXTERN a_calling_convention

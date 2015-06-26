@@ -408,6 +408,8 @@ typedef struct an_attr_appl_descr {
 			       "d"  : class definition
 			     "e"  : enum type (after "enum" or "enum class")
 			       "d"  : enum definition
+			     "E"  : enumerator constant
+			       (no property switches)
 			     "r"  : routines
 			       "m"  : class member
 			       "i"  : inline
@@ -584,7 +586,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_align, "", apply_align_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
-  { ak_deprecated, "t|p|c|e|r|v|d", apply_deprecated_attr },
+  { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
@@ -2744,6 +2746,22 @@ those constraints.
 }  /* check_simple_using_decl_constraints */
 
 
+/*ARGSUSED*/
+static void check_simple_constant_constraints(a_const_char      *constr,
+                                              an_attribute_ptr  ap,
+                                              a_constant_ptr    cp)
+/*
+constr encodes a simple target constraint for a constant.  Check that the
+attribute ap applied to the given constant matches those constraints.
+Only enumerator constants currently have attributes attached (that check
+is not enforced here because the enumeration type is not fully defined here,
+so is_enum_constant fails).
+*/
+{
+  check_assertion(constr[0] == 'E');
+}  /* check_simple_constant_constraints */
+
+
 static a_boolean check_target_entity_match(a_const_char      *constr,
                                            an_attribute_ptr  ap,
                                            a_const_char      *entity,
@@ -2867,6 +2885,15 @@ appropriate and set ap->kind to ak_unrecognized).
           match_found = TRUE;
         }  /* if */
         break;
+      case 'E':
+        if (entity_kind == iek_constant) {
+          if (!weak_mismatch) {
+            check_simple_constant_constraints(constr, ap,
+                                              (a_constant_ptr)entity);
+          }  /* if */
+          match_found = TRUE;
+        }  /* if */
+        break;
       default:
         unexpected_condition_str2(
            "invalid entity code for constraint configuration of attribute",
@@ -2922,6 +2949,7 @@ this is &scp.attributes.)
     case iek_variable:
     case iek_label:
     case iek_namespace:
+    case iek_constant:
       p_attributes = &((a_source_correspondence*)entity)->attributes;
       break;
     case iek_param_type:
@@ -4112,7 +4140,9 @@ The given entity must be a variable, routine, type, or field.  Apply the
 {
   check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
                   entity_kind == iek_field || entity_kind == iek_type ||
-                  entity_kind == iek_param_type);
+                  entity_kind == iek_param_type ||
+                  entity_kind == iek_namespace ||
+                  entity_kind == iek_constant);
   if (entity_kind == iek_type) {
     /* Only user-defined types can be deprecated. */
     a_type_ptr  tp = (a_type_ptr)entity;

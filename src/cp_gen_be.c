@@ -7191,6 +7191,9 @@ is the one associated with the definition of the enum.
       skip_embedded_declarations();
       /* Output the constant's name. */
       gen_unqualified_name(&enum_con->source_corresp, iek_constant);
+      /* Output any standard attributes. */
+      gen_attributes(enum_con->source_corresp.attributes,
+                     al_enumerator, /*primary_only=*/FALSE);
       /* Output the value if it's not the next value in sequence. */
       if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
         /* This is an integral constant. */
@@ -13956,12 +13959,15 @@ Generate code for a namespace definition or namespace alias declaration.
     write_space();
   }  /* if */
   write_tok_str("namespace");
+  /* Any standard attributes are emitted here. */
+  gen_attributes(attributes, al_namespace, sec_decl == NULL);
   if (has_name_before_mangling(nsp)) {
     write_space();
     /* Put out the name of the namespace. */
     gen_unqualified_name(&nsp->source_corresp, iek_namespace);
   }  /* if */
-  gen_attributes(attributes, al_namespace, sec_decl == NULL);
+  /* Any GNU attributes are emitted here. */
+  gen_attributes(attributes, al_gnu_namespace, sec_decl == NULL);
   if (nsp->is_namespace_alias) {
     /* A namespace alias declaration, e.g.,
          namespace alias_name = existing_name;
