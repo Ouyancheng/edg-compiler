@@ -2397,7 +2397,8 @@ by a command line option.
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
       std_attributes_enabled = TRUE;
-      namespace_and_enumerator_attributes_enabled = TRUE;
+      namespace_attributes_enabled = TRUE;
+      enumerator_attributes_enabled = TRUE;
       sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
       mixed_string_concat_enabled = TRUE;
       this_in_trailing_return_types_enabled = TRUE;
@@ -3155,7 +3156,8 @@ default mode (e.g., exception handling).
     }  /* if */
     if (cpp17_mode) {
       /* Features enabled in C++17 mode. */
-      namespace_and_enumerator_attributes_enabled = TRUE;
+      namespace_attributes_enabled = TRUE;
+      enumerator_attributes_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -10746,7 +10748,8 @@ variables declared in cmd_line.h.
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
   std_attributes_enabled = FALSE;
-  namespace_and_enumerator_attributes_enabled = FALSE;
+  namespace_attributes_enabled = FALSE;
+  enumerator_attributes_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
   gnu_attributes_enabled = FALSE;

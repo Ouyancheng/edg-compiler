@@ -5171,7 +5171,7 @@ is updated to reflect relevant positions of this definition.
         (void)get_token();
         /* Set the error position to the identifier position. */
         copy_source_position(locator.source_position, error_position);
-        if (namespace_and_enumerator_attributes_enabled) {
+        if (enumerator_attributes_enabled) {
           /* Scan any standard attributes. */
           enumerator_attributes = scan_attributes(al_enumerator);
         }  /* if */

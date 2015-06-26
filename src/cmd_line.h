@@ -1310,9 +1310,14 @@ EXTERN a_boolean
 			   accepted (e.g., __declspec((dllexport))). */
 
 EXTERN a_boolean
-		namespace_and_enumerator_attributes_enabled;
+		namespace_attributes_enabled;
 			/* TRUE if standard attributes are enabled on namespace
-			   and enumerator declarations (see N4266). */
+			   declarations (see N4266). */
+
+EXTERN a_boolean
+		enumerator_attributes_enabled;
+			/* TRUE if standard attributes are enabled on
+			   enumerator declarations (see N4266). */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED

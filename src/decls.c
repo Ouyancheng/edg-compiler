@@ -13876,7 +13876,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                           ec_namespaces_in_embedded_cplusplus);
   /* Bypass "namespace". */
   (void)get_token();
-  if (namespace_and_enumerator_attributes_enabled) {
+  if (namespace_attributes_enabled) {
     /* Scan any standard attributes. */
     attributes = scan_attributes(al_namespace);
   }  /* if */
