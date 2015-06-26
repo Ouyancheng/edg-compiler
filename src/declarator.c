@@ -3439,8 +3439,8 @@ an error if a default argument expression is encountered.
              It's not actually possible to know whether a constructor is a
              (valid or invalid) copy constructor without looking past the
              first parameter.  That's part of what makes this check a little
-             complicated.
-             Note that this check doesn't apply to C++/CLI value classes read
+             complicated. */
+          /* Note that this check doesn't apply to C++/CLI value classes read
              from metadata.  There is no danger of unbounded recursion since
              C++/CLI value types are always bit-copied rather than copied
              through a copy constructor.  (This allowance could be made for
