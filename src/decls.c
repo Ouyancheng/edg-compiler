@@ -13922,7 +13922,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   }  /* if */
   if (curr_token == tok_attribute && gnu_attributes_enabled &&
       (!gpp_mode || gnu_version >= 40200)) {
-    *last_attribute_link(&attributes) = scan_gnu_attribute_groups(
+    *f_last_attribute_link(&attributes) = scan_gnu_attribute_groups(
                                                              al_gnu_namespace);
   }  /* if */
   if (curr_token == tok_lbrace) {
