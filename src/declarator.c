@@ -1545,17 +1545,6 @@ actually declares a function, member function, or function template).
     pos_remark(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
   if (is_noexcept) {
-    if (!is_top_level_declarator) {
-      /* noexcept is currently ignored when it is not used for a function
-         declaration.  For example:
-            void (*p() noexcept)() noexcept;
-         The inner noexcept applies to the declarator for function p and is
-         therefore recorded.  However, the second noexcept-specifier applies
-         to the pointer-to-function return type and will be ignored.
-         Issue a warning here (while "noexcept" is the current token), and
-         clear esp below. */
-      pos_warning(ec_noexcept_not_on_function_declaration, &pos_curr_token);
-    }  /* if */
     if (next_token() != tok_lparen) {
       /* "noexcept" without arguments. */
       if (esp != NULL) {
@@ -1590,7 +1579,8 @@ actually declares a function, member function, or function template).
            case if we're in an ordinary friend function declaration (for a
            friend template, dps->in_class_scope is FALSE), nor for lambdas
            (which aren't "members" or any enclosing templates), nor for
-           members of local class types. */
+           members of local class types.  It's also not the case for pointers
+           to functions and the like. */
         cache_in_template = TRUE;
       }  /* if */
       scan_noexcept_arg(esp, cache_in_template);
@@ -1714,11 +1704,6 @@ finish_list:;
   /* Restore the stop token state. */
   pop_stop_token_stack();
 done:;
-  if (is_noexcept && !is_top_level_declarator) {
-    /* Ignore "noexcept" on function types that do not correspond to function
-       declarations (a warning was issued above). */
-    esp = NULL;
-  }  /* if */
   db_exit();
   return esp;
 }  /* scan_exception_specification */

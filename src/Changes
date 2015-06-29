@@ -1,5 +1,13 @@
 Version 4.11
 
+6/29/15  [EDGcpfe/16343]
+Noexcept on pointers to functions, etc.
+
+The front end previously ignored noexcept specifiers on pointers to functions
+and similar constructs; a warning was issued in such cases.  Now, the
+exception specification is recorded as expected.
+
+
 6/26/15  [EDGcpfe/16307]
 Exception specifications on return types
 

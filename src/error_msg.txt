@@ -2455,7 +2455,7 @@ ec_explicit_enum_base_nonstandard_in_current_mode;;"explicit enum base types are
 ec_unconvertible_con_expr;;"this constant expression has type %t1 instead of the required %t2 type"
 ec_new_of_initializer_list;;"a \"new\" of an std::initializer_list object is unlikely to work as expected because the underlying array will be destroyed at the end of the full expression"
 ec_predef_macro_file;INTERNAL;"In predefined macro file"
-ec_noexcept_not_on_function_declaration;;"\"noexcept\" is ignored on a function type that is not the type of a function declaration"
+REMOVED;ec_noexcept_not_on_function_declaration;;"\"noexcept\" is ignored on a function type that is not the type of a function declaration"
 ec_defined_always_false;;"\"defined\" is always false in a macro expansion in Microsoft mode"
 ec_init_list_element_type_not_complete_object;;"%t cannot be the element type of an initializer list because it is not a complete object type"
 ec_invalid_default_arg;;"mismatched delimiters in default argument expression"
