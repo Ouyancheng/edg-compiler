@@ -6390,6 +6390,9 @@ Binding an rvalue reference to an argument is better than binding an
 lvalue reference to that argument, except that binding a lvalue reference to
 a function lvalue is better than binding an rvalue reference to that function
 lvalue.
+
+This implements bullets (3.1.4) and (3.1.5) in 13.3.3.2/3 of the C++
+specification (as of N4140).
 */
 {
   int        cmp = 0;
@@ -6524,11 +6527,16 @@ apply that would make one better than the other, and return
                    is_qualification_conversion(param1_is_ref,
                                                &arg_match1->conversion.std)) {
           cmp = -1;
-        } else if (rvalue_references_enabled &&
+        } else if (rvalue_references_enabled && !(gpp_mode || clang_mode) &&
+                   param1_is_ref && param2_is_ref &&
                    (cmp = compare_reference_matches(arg_match1,
                                                     arg_match2)) != 0) {
-          /* Binding an rvalue reference to an argument is better than
-             binding an lvalue reference to that argument. */
+          /* Binding an rvalue reference to an argument is better than binding
+             an lvalue reference to that argument, except for the case of an
+             lvalue reference to a function.  The resolution of Core issue 1374
+             moved this check to occur before qualification the conversion
+             checks below, but GCC and Clang do not implement that new order
+             yet (checked for Clang 3.6 and GCC 5.1.0). */
         } else {
           /* Test for adding cv-qualifiers immediately below a reference. */
           a_boolean            both_refs_of_same_kind;
@@ -6663,6 +6671,14 @@ apply that would make one better than the other, and return
               }  /* if */
             }  /* if */
           }  /* if */
+        }  /* if */
+        if (cmp == 0 &&
+            rvalue_references_enabled && (gpp_mode || clang_mode) &&
+            param1_is_ref && param2_is_ref) {
+          /* The reference-kind/value category tiebreaker is normally applied
+             early (see above), but several compilers still implement the rule
+             as specified before the resolution of Core issue 1374. */
+          cmp = compare_reference_matches(arg_match1, arg_match2);
         }  /* if */
       }  /* if */
     }  /* if */

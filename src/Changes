@@ -1,5 +1,26 @@
 Version 4.11
 
+6/30/15  [EDGcpfe/16245,EDGcpfe/16288]
+GNU/Clang compatibility: Reference binding vs. qualification adjustment
+
+When looking for a tie break between equally-ranked conversion sequences,
+Core issue 1374 clarified that the tie-break rule that prefers binding an
+rvalue to an rvalue reference rather than to an lvalue reference (to const
+type) takes precedence over the tie-break rule that prefers the smallest
+number of const/volatile adjustments.  GCC and Clang do not yet implement
+that precedence, and the front end now reflects that in GNU and Clang modes.
+For example (from the Core issue 1374 write-up):
+
+    typedef int *      *      *const *const T1;
+    typedef int *const *const *const *const T2;
+    void foo(T1 &);       // (1)
+    void foo(T2 &&) { }   // (2)
+    int main() {
+       foo((int ****)0);  // Normally prefers (2), but now prefers
+       return 0;          // (1) in GNU and Clang modes.
+    }
+
+
 6/30/15  [EDGcpfe/16356]
 Standalone utility build issue on Windows
 
