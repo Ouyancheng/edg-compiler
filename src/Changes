@@ -1,5 +1,12 @@
 Version 4.11
 
+6/30/15  [EDGcpfe/16356]
+Standalone utility build issue on Windows
+
+4.10.1 introduced a build issue for standalone utility programs on Windows
+when USE_MMAP_FOR_MEMORY_REGIONS is TRUE.  There was an unresolved
+reference to free_mapped_mem_blocks.  Now fixed.
+
 6/29/15  [EDGcpfe/16343]
 Noexcept on pointers to functions, etc.
 
