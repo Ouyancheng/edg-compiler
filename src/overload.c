@@ -6391,8 +6391,8 @@ lvalue reference to that argument, except that binding a lvalue reference to
 a function lvalue is better than binding an rvalue reference to that function
 lvalue.
 
-This implements bullets (3.1.4) and (3.1.5) in 13.3.3.2/3 of the C++
-specification (as of N4140).
+This implements bullets (3.2.3) and (3.2.4) in 13.3.3.2/3 of the C++
+specification (as of N4431).
 */
 {
   int        cmp = 0;
@@ -6534,7 +6534,7 @@ apply that would make one better than the other, and return
           /* Binding an rvalue reference to an argument is better than binding
              an lvalue reference to that argument, except for the case of an
              lvalue reference to a function.  The resolution of Core issue 1374
-             moved this check to occur before qualification the conversion
+             moved this check to occur before the qualification conversion
              checks below, but GCC and Clang do not implement that new order
              yet (checked for Clang 3.6 and GCC 5.1.0). */
         } else {
