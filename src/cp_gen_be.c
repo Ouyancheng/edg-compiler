@@ -11769,22 +11769,23 @@ problems.
 }  /* parens_may_be_needed */
 
 
-static void check_for_unprotected_gt_operation(
+static void check_for_unprotected_gt_or_comma_operation(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-This routine is called via traverse_expr from has_unprotected_gt_operation
-in a top-down traversal of the expression associated with a constant.  It
-stops the traversal when it either finds an eok_gt or eok_shiftr (which can
-be treated as two ">"s in C++11) operation node (setting tblock->result to
-TRUE) or when it finds an operation node that would itself cause an eok_gt
-or eok_shiftr operation in one of its operands to be parenthesized at that
-level.
+This routine is called via traverse_expr from
+has_unprotected_gt_or_comma_operation in a top-down traversal of the
+expression associated with a constant.  It stops the traversal when it
+either finds an eok_gt, eok_shiftr (which can be treated as two ">"s in
+C++11), or eok_comma operation node (setting tblock->result to TRUE) or
+when it finds an operation node that would itself cause one of those
+operations in one of its operands to be parenthesized at that level.
 */
 {
   if (is_operation_node(expr)) {
     if (node_operator_is(expr, eok_gt) ||
         node_operator_is(expr, eok_shiftr) ||
+        node_operator_is(expr, eok_comma) ||
         (msvc_is_generated_code_target && node_operator_is(expr, eok_lt))) {
         /* Found an unprotected ">" or ">>" operator.  (Note: the Microsoft
            compiler sometimes reports spurious errors if a top-level "<"
@@ -11804,20 +11805,21 @@ level.
       tblock->suppress_subtree_walk = TRUE;
     }  /* if */
   }  /* if */
-}  /* check_for_unprotected_gt_operation */
+}  /* check_for_unprotected_gt_or_comma_operation */
 
 
-static a_boolean has_unprotected_gt_operation(a_constant_ptr con)
+static a_boolean has_unprotected_gt_or_comma_operation(a_constant_ptr con)
 /*
-Return TRUE if the code generated for con will have a ">" operator that is
-not enclosed in parentheses.  This is used to ensure that a template
-argument list will not be prematurely terminated by a ">" operator.
+Return TRUE if the code generated for con will have a ">" or "," operator
+that is not enclosed in parentheses.  This is used to ensure that a
+template argument list will not be prematurely terminated by a ">"
+operator or a template argument by a ",".
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_unprotected_gt_operation;
+  tblock.process_expr = check_for_unprotected_gt_or_comma_operation;
   tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   /* The scan must consider dependent expressions as well, in cases
@@ -11825,7 +11827,7 @@ argument list will not be prematurely terminated by a ">" operator.
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_constant(con, &tblock);
   return tblock.result;
-}  /* has_unprotected_gt_operation */
+}  /* has_unprotected_gt_or_comma_operation */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -13620,7 +13622,7 @@ source sequence entries recorded with this particular header.  */
       if (param->variant.nontype.default_arg_constant != NULL) {
         a_constant_ptr  dac = param->variant.nontype.default_arg_constant;
         write_tok_str(" = ");
-        gen_constant(dac, has_unprotected_gt_operation(dac));
+        gen_constant(dac, has_unprotected_gt_or_comma_operation(dac));
       }  /* if */  
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output. */
@@ -18209,7 +18211,8 @@ Initialize for the C++/C-generating back end.
   octl.output_name_reference = gen_name_from_name_reference;
   octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
-  octl.has_unprotected_gt_operation = has_unprotected_gt_operation;
+  octl.has_unprotected_gt_or_comma_operation =
+                                         has_unprotected_gt_or_comma_operation;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type

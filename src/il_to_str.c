@@ -86,7 +86,7 @@ Clear an output control block to default values.
   octl->output_name_reference     = NULL;
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
-  octl->has_unprotected_gt_operation = NULL;
+  octl->has_unprotected_gt_or_comma_operation = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -369,8 +369,8 @@ Output the indicated template argument in the way described by octl.
              a ">" operator from being interpreted as the end of the
              argument list. */
           need_parens = octl->gen_compilable_code &&
-                                 (octl->has_unprotected_gt_operation == NULL ||
-                                  octl->has_unprotected_gt_operation(con));
+                        (octl->has_unprotected_gt_or_comma_operation == NULL ||
+                         octl->has_unprotected_gt_or_comma_operation(con));
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */

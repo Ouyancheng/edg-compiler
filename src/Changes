@@ -1,5 +1,18 @@
 Version 4.11
 
+7/6/15   [EDGcpfe/16364]
+C++-generating back end: comma operators in non-type template arguments
+
+When generating a non-type template argument expression containing a comma
+operator, the C++-generating back end failed to enclose the expression in
+parentheses to prevent the comma from being interpreted as an argument
+delimiter.  This is now fixed.  For example:
+
+  template<typename> struct A { };
+  template <bool... P>
+  struct B : A<B<(P, true)...> > { };  // Previously generated as B<P,true...>
+
+
 6/30/15  [EDGcpfe/16245,EDGcpfe/16288]
 GNU/Clang compatibility: Reference binding vs. qualification adjustment
 

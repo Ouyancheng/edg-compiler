@@ -178,14 +178,12 @@ typedef struct an_il_to_str_output_control_block {
 			   pointer is non-NULL if additional tests are
 			   needed. */
   a_constant_test_function_ptr
-	has_unprotected_gt_operation;
-			/* Function that tests whether a ">" will appear
-			   outside parentheses in the text put out for a
-			   given constant.  This is used to test a non-type
-			   template argument to see if it needs to be
-			   enclosed in parentheses to prevent a ">" from
-			   incorrectly terminating the template argument
-			   list. */
+	has_unprotected_gt_or_comma_operation;
+			/* Function that tests whether a ">" or "," will
+			   appear outside parentheses in the text put out
+			   for a given constant.  This is used to test a
+			   non-type template argument to see if it needs to
+			   be enclosed in parentheses. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   a_func_prototype_stack_entry_ptr
 	func_prototype_stack;
