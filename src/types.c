@@ -3450,15 +3450,12 @@ class will be instantiated if necessary so that its base classes are known.
     }  /* if */
     /* Check that both classes are complete, i.e., that their definitions have
        been seen. */
-    if (derived_class->variant.class_struct_union.extra_info->
-                                                         assoc_scope != NULL &&
-        base_class->variant.class_struct_union.extra_info->
-                                                         assoc_scope != NULL) {
+    if (class_type_supp(derived_class)->assoc_scope != NULL &&
+        class_type_supp(base_class)->assoc_scope != NULL) {
       /* See if the base class appears on the base class list for the derived
          type.  The base class list contains all base classes, both direct
          and indirect. */
-      for (bcp = derived_class->variant.class_struct_union.extra_info->
-                                                                  base_classes;
+      for (bcp = base_classes_of(derived_class);
            bcp != NULL;
            bcp = bcp->next) {
         if (same_entities(bcp->type, base_class)) break;
@@ -5398,7 +5395,7 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
        are treated as compatible. */
     compat = TRUE;
   } else {
-    /* If c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
+    /* If c_and_cpp_function_types_are_distinct is FALSE, nlk_external and
        nlk_cplusplus_external are compatible. */
     if (c_and_cpp_function_types_are_distinct) {
       /* extern "C" and extern "C++" function pointers are incompatible, so
@@ -10787,6 +10784,227 @@ Resolve the issue by duplicating the default argument expressions if needed.
 }  /* disentangle_default_args */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+static a_type_ptr make_cv_combined_type(a_type_ptr  tp1,
+                                        a_type_ptr  tp2,
+                                        a_type_ptr  common_sub_type)
+/*
+Return the cv-combined type of tp1 and tp2.  The caller has determined that
+tp1 and tp2 are "similar" types.  This routine just recursively merges the
+cv-qualifiers.  common_sub_type is a component of tp1 that has an equivalent
+component in tp2 (so the recursion can end there).
+*/
+{
+  a_type_ptr            result;
+  a_type_qualifier_set  tqs1, tqs2;
+
+  tqs1 = get_type_qualifiers(tp1);
+  tqs2 = get_type_qualifiers(tp2);
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
+  if (tp1 == common_sub_type) {
+    result = common_sub_type;
+  } else {
+    result = alloc_type(tp1->kind);
+    copy_type(tp1, result);
+    switch (tp1->kind) {
+      case tk_pointer:
+        result->variant.pointer.type = make_cv_combined_type(
+                                                   tp1->variant.pointer.type,
+                                                   tp2->variant.pointer.type,
+                                                   common_sub_type);
+        break;
+      case tk_ptr_to_member:
+        result->variant.ptr_to_member.type = make_cv_combined_type(
+                                              tp1->variant.ptr_to_member.type,
+                                              tp2->variant.ptr_to_member.type,
+                                              common_sub_type);
+        break;
+      case tk_array:
+        result->variant.array.element_type = make_cv_combined_type(
+                                              tp1->variant.array.element_type,
+                                              tp2->variant.array.element_type,
+                                              common_sub_type);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  result = make_qualified_type(result, tqs1 | tqs2);
+  return result;
+}  /* make_cv_combined_type */
+
+
+a_type_ptr make_cv_combined_type_if_possible(a_type_ptr  tp1,
+                                             a_type_ptr  tp2)
+/*
+If tp1 and tp2 are similar types, single-level pointers to void or to related
+class types, or single-level pointers-to-members of related class types, return
+the corresponding cv-combined type (defined below).  Otherwise, return NULL.
+Note that for non-similar types the result can depend on the order of the tp1
+and tp2 arguments.
+
+The cv-combined type of two types T1 and T2 is a type T3 similar to T1 whose
+cv-qualification signature is determined as follows:
+  - for every j > 0, cv3,j is the union of cv1,j and cv2,j
+  - if the resulting cv3,j is different from cv1,j or cv2,j, then const is
+    added to every cv3,k for 0 < k < j
+(From N4431, paragraph 5/13.)
+*/
+{
+  a_type_ptr  stp1 = tp1, stp2 = tp2, ustp1, ustp2;
+  a_type_ptr  result = NULL;
+
+  /* First handle the single-level pointer and pointer-to-member cases. */
+  ustp1 = skip_typerefs(stp1);
+  ustp2 = skip_typerefs(stp2);
+  if (is_pointer_or_handle(ustp1) && is_pointer_or_handle(ustp2)) {
+    stp1 = ustp1->variant.pointer.type;
+    stp2 = ustp2->variant.pointer.type;
+    ustp1 = skip_typerefs(stp1);
+    ustp2 = skip_typerefs(stp2);
+    if (identical_types(ustp1, ustp2)) {
+      /* Combine the qualifiers. */
+      result = make_pointer_type(
+                        make_qualified_type(stp1, get_type_qualifiers(stp2)));
+    } else if (ustp1->kind == (a_type_kind)tk_void) {
+      /* Combine the qualifiers, keeping the non-void underlying type. */
+      result = make_pointer_type(
+                        make_qualified_type(stp2, get_type_qualifiers(stp1)));
+    } else if (ustp2->kind == (a_type_kind)tk_void) {
+      /* Combine the qualifiers, keeping the non-void underlying type. */
+      result = make_pointer_type(
+                        make_qualified_type(stp1, get_type_qualifiers(stp2)));
+    } else if (is_immediate_class_type(ustp1) &&
+               is_immediate_class_type(ustp2)) {
+      /* Check for related-class cases. */
+      if (find_base_class_of(ustp1, ustp2) != NULL) {
+        /* Return the pointer to the base class, adjusted with the qualifiers
+           on the derived class. */
+        result = make_pointer_type(
+                        make_qualified_type(stp2, get_type_qualifiers(stp1)));
+      } else if (find_base_class_of(ustp2, ustp1) != NULL) {
+        /* Return the pointer to the base class, adjusted with the qualifiers
+           on the derived class. */
+        result = make_pointer_type(
+                        make_qualified_type(stp1, get_type_qualifiers(stp2)));
+      }  /* if */
+    }  /* if */
+  } else if (ustp1->kind == (a_type_kind)tk_ptr_to_member &&
+             ustp2->kind == (a_type_kind)tk_ptr_to_member) {
+    a_type_ptr  ctp1 = ustp1->variant.ptr_to_member.class_of_which_a_member;
+    a_type_ptr  ctp2 = ustp2->variant.ptr_to_member.class_of_which_a_member;
+    a_type_ptr  uctp1 = skip_typerefs(ctp1), uctp2 = skip_typerefs(ctp2);
+    a_boolean   qualifiers_added;
+    stp1 = ustp1->variant.ptr_to_member.type;
+    stp2 = ustp2->variant.ptr_to_member.type;
+    if (is_immediate_class_type(uctp1) && is_immediate_class_type(uctp2) &&
+        member_types_correspond(skip_typerefs(stp1),
+                                skip_typerefs(stp2),
+                                /*source_is_function=*/FALSE,
+                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                &qualifiers_added)) {
+      /* Check for related-class cases. */
+      if (identical_types(ctp1, ctp2) ||
+          find_base_class_of(ctp1, ctp2) != NULL) {
+        stp1 = make_qualified_type(stp1, get_type_qualifiers(stp2));
+        result = ptr_to_member_type(stp1, ctp1);
+      } else if (find_base_class_of(ctp2, ctp1) != NULL) {
+        stp2 = make_qualified_type(stp2, get_type_qualifiers(stp1));
+        result = ptr_to_member_type(stp2, ctp2);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Not two pointers or not two pointer-to-members. */
+    goto done;
+  }  /* if */
+  if (result == NULL) {
+    /* Not one of the "special" single-level cases.  Handle normal, possibly
+       multi-level, cases. */
+    /* First check whether the types are similar, and record the outermost
+       component that can be shared in the resulting cv-combined type. */
+    a_type_ptr  common_sub_type = NULL;
+    stp1 = tp1;
+    stp2 = tp2;
+    for (;;) {
+      ustp1 = skip_typerefs(stp1);
+      ustp2 = skip_typerefs(stp2);
+      if (ustp1->kind != ustp2->kind) {
+        /* The types are definitely not similar. */
+        goto done;
+      } else {
+        /* Check if the remainder of the type is identical.  For routine types
+           a difference in linkage is permissible in some modes. */
+        if (ustp1->kind == (a_type_kind)tk_routine) {
+          if (types_are_compatible_for_impl_conversion(ustp1, ustp2)) {
+            common_sub_type = ustp1;
+            break;
+          }  /* if */
+        } else {
+          /* Not routines: Look for an exact match. */
+          if (identical_types(ustp1, ustp2)) {
+            common_sub_type = ustp1;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      switch (ustp1->kind) {
+        case tk_pointer:
+          check_assertion(!ustp1->variant.pointer.is_reference &&
+                          !ustp2->variant.pointer.is_reference);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (!same_cli_pointer_kinds(ustp1, ustp2)) {
+            goto done;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          stp1 = ustp1->variant.pointer.type;
+          stp2 = ustp2->variant.pointer.type;
+          break;
+        case tk_ptr_to_member:
+          if (!identical_types(
+                      ustp1->variant.ptr_to_member.class_of_which_a_member,
+                      ustp2->variant.ptr_to_member.class_of_which_a_member)) {
+            goto done;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (microsoft_mode &&
+                     ustp1->variant.ptr_to_member.modifiers !=
+                                     ustp2->variant.ptr_to_member.modifiers) {
+            /* A difference in __ptr32 or ptr64 modifiers makes pointer types
+               incompatible. */
+            goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
+          stp1 = ustp1->variant.ptr_to_member.type;
+          stp2 = ustp2->variant.ptr_to_member.type;
+          break;
+        case tk_array:
+          if (identical_array_type_level(ustp1, ustp2)) {
+            /* Compatible array components. */
+          } else if (vla_enabled &&
+                     (array_is_vla(ustp1) || array_is_vla(ustp2))) {
+            /* If a VLA is involved, we consider the array dimensions
+               compatible.  (Clang and current versions of GCC are a bit
+               stricter about this.) */
+          } else {
+            goto done;
+          }  /* if */
+          stp1 = ustp1->variant.array.element_type;
+          stp2 = ustp2->variant.array.element_type;
+          break;
+        default:
+          /* Since the identical_types test above failed, tp1 and tp2 are not
+             similar. */
+          goto done;
+      }  /* switch */
+    }  /* for */
+    check_assertion(common_sub_type != NULL);
+    /* Now build the combined type. */
+    result = make_cv_combined_type(tp1, tp2, common_sub_type);
+  }  /* if */
+done:
+  return result;
+}  /* make_cv_combined_type_if_possible */
+
 
 a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
                                              a_type_ptr type_2)

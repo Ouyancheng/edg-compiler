@@ -1649,6 +1649,7 @@ extern a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
                    a_source_position *operator_position,
+                   a_boolean         eq_rel_or_cond,
                    a_boolean         pointer_normalization_standard_in_C,
                    a_boolean         pointers_to_functions_standard_in_C,
                    a_boolean         pointers_to_incomplete_standard_in_C,
@@ -1750,6 +1751,11 @@ extern a_type_ptr boolean_result_type(void);
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
 extern a_boolean op_is_false_constant(an_operand *operand);
+
+#define op_is_null_pointer_constant(op)                                      \
+  (is_nullptr_type((op)->type) ||                                            \
+   (is_constant_operand(op) &&                                               \
+    is_null_pointer_constant(&(op)->variant.constant)))
 
 extern a_boolean op_is_null_pointer_value(an_operand *operand);
 

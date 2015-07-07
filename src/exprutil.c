@@ -10071,6 +10071,7 @@ a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
                    a_source_position *operator_position,
+                   a_boolean         eq_rel_or_cond,
                    a_boolean         pointer_normalization_standard_in_C,
                    a_boolean         pointers_to_functions_standard_in_C,
                    a_boolean         pointers_to_incomplete_standard_in_C,
@@ -10097,6 +10098,45 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_boolean        suppress_extensions;
   a_std_conv_descr std_conv;
 
+  if (eq_rel_or_cond && !C_mode()) {
+    if (op_is_null_pointer_constant(operand_1)
+        if_microsoft_extensions(
+             && (!cppcli_enabled || is_plain_pointer_type(operand_2_type)))) {
+      okay = TRUE;
+      if (op_is_null_pointer_constant(operand_2)) {
+        if (nullptr_enabled) {
+          okay = TRUE;
+          *operation_type = standard_nullptr_type();
+        }  /* if */
+      } else {
+        okay = TRUE;
+        *operation_type = operand_2_type;
+      }  /* if */
+    } else if (op_is_null_pointer_constant(operand_2)
+               if_microsoft_extensions(
+                                && (!cppcli_enabled ||
+                                    is_plain_pointer_type(operand_1_type)))) {
+      okay = TRUE;
+      *operation_type = operand_1_type;
+    } else {
+      *operation_type = make_cv_combined_type_if_possible(
+                                              operand_1_type, operand_2_type);
+      okay = *operation_type != NULL;
+    }  /* if */
+    if (microsoft_mode && !okay) {
+      /* In Microsoft mode, if no compatibility was found, try again using the
+         method below. */
+    } else {
+      if (!okay) {
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_incompatible_operands, operator_position,
+                        operand_1_type, operand_2_type);
+        }  /* if */
+        *operation_type = error_type();
+      }  /* if */
+      goto done;
+    }  /* if */
+  }  /* if */
   /* The loop here tries the conversions once without extensions
      allowed, and (if that fails) again with extensions allowed,
      so we won't pick a conversion direction that requires an
@@ -10498,11 +10538,13 @@ a_boolean check_ptr_to_member_operands_for_compatibility(
                                           a_source_position *operator_position,
                                           a_type_ptr        *operation_type)
 /*
-operand_1 and operand_2 are the operands of a pointer-to-member operation.
-Check to see that the operands are compatible or can be made compatible.
-Return the operation type in *operation_type.  (The operands are not cast
-to the operation type; the caller must do that.)  operator_position gives the
-operator position (for errors).  Return FALSE if there is an error.
+operand_1 and operand_2 are the operands of a pointer-to-member operation
+(==, !=, or ?:).  Check to see that the operands are compatible or can be made
+compatible.  Return the operation type in *operation_type.  (The operands are
+not cast to the operation type; the caller must do that.)  operator_position
+gives the operator position (for errors).
+
+Return FALSE if there is an error.
 */
 {
   a_boolean        okay = FALSE;
@@ -10510,6 +10552,45 @@ operator position (for errors).  Return FALSE if there is an error.
   a_type_ptr       operand_2_type = operand_2->type;
   a_std_conv_descr std_conv;
 
+  /* For equality operators, relational operators, and the ?: operator, the
+     compatibility rules were revised through the resolution of Core issue
+     1512 (the C++ committee's paper N3624).  The new rules apply to all C++
+     modes, except Cfront mode. */
+  if (!any_cfront_mode()) {
+    /* Start by checking the cases where an operand is a null pointer constant.
+       If they're both null pointer constants, the operation type is nullptr_t
+       if that type is supported; otherwise, we fall back on the rules prior
+       to N3624.  If exactly one operand is a null pointer constant, the type
+       of the other operand is the operation type. */
+    if (is_constant_operand(operand_1) &&
+        is_null_pointer_constant(&operand_1->variant.constant)) {
+      okay = TRUE;
+      if (is_constant_operand(operand_2) &&
+          is_null_pointer_constant(&operand_2->variant.constant)) {
+        if (nullptr_enabled) {
+          okay = TRUE;
+          *operation_type = standard_nullptr_type();
+        }  /* if */
+      } else {
+        okay = TRUE;
+        *operation_type = operand_2_type;
+      }  /* if */
+    } else if (is_constant_operand(operand_2) &&
+               is_null_pointer_constant(&operand_2->variant.constant)) {
+      okay = TRUE;
+      *operation_type = operand_1_type;
+    } else {
+      *operation_type = make_cv_combined_type_if_possible(
+                                              operand_1_type, operand_2_type);
+      okay = *operation_type != NULL;
+    }  /* if */
+    if (strict_ansi_mode || okay) {
+      goto decided;
+    } else {
+      /* For nonstrict modes, try the older method if the rules of N3624 did
+         not find a compatible operation type. */
+    }  /* if */
+  }  /* if */
   if (is_ptr_to_member_type(operand_1_type)) {
     a_boolean      operand_2_is_constant = is_constant_operand(operand_2);
     a_constant_ptr operand_2_constant    = &operand_2->variant.constant;
@@ -10562,6 +10643,7 @@ operator position (for errors).  Return FALSE if there is an error.
       okay = TRUE;
     }  /* if */
   }  /* if */
+decided:
   if (!okay) {
     /* The operands are not compatible. */
     if (expr_error_should_be_issued()) {

@@ -24006,6 +24006,7 @@ that case.
                compatible. */
             if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
+                          /*eq_rel_or_cond=*/FALSE,
                           /*pointer_normalization_standard_in_C=*/FALSE,
                           /*pointers_to_functions_standard_in_C=*/FALSE,
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -24026,6 +24027,7 @@ that case.
           }  /* if */
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
+                          /*eq_rel_or_cond=*/FALSE,
                           /*pointer_normalization_standard_in_C=*/FALSE,
                           /*pointers_to_functions_standard_in_C=*/FALSE,
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -24573,6 +24575,7 @@ that case.
            C++ mode, but issue warnings in strict ANSI mode. */
         (void)check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
+                           /*eq_rel_or_cond=*/TRUE,
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
@@ -24860,6 +24863,7 @@ that case.
            are specially handled (ANSI C 3.3.9).  Ditto in C++ (ARM 5.10). */
         (void)check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
+                           /*eq_rel_or_cond=*/TRUE,
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
@@ -25043,6 +25047,7 @@ is expected to be NULL in that case.
            handled (ARM 5.9). */
         (void)check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
+                           /*eq_rel_or_cond=*/FALSE,
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -26343,6 +26348,7 @@ that case.
            are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
         if (check_compatibility_of_pointer_operands(
                            &operand_2, &operand_3, &colon_position,
+                           /*eq_rel_or_cond=*/TRUE,
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,

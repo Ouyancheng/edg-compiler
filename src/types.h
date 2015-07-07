@@ -1222,6 +1222,9 @@ extern void disentangle_default_args(a_type_ptr  rtp1,
                                      a_type_ptr  rtp2);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+extern a_type_ptr make_cv_combined_type_if_possible(a_type_ptr  tp1,
+                                                    a_type_ptr  tp2);
+
 extern a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
                                                     a_type_ptr type_2);
 
