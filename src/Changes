@@ -37,15 +37,28 @@ delimiter.  This is now fixed.  For example:
 
 
 6/30/15  [EDGcpfe/16245,EDGcpfe/16288]
-GNU/Clang compatibility: Reference binding vs. qualification adjustment
+Reference binding vs. qualification adjustment
 
-When looking for a tie break between equally-ranked conversion sequences,
-Core issue 1374 clarified that the tie-break rule that prefers binding an
-rvalue to an rvalue reference rather than to an lvalue reference (to const
-type) takes precedence over the tie-break rule that prefers the smallest
-number of const/volatile adjustments.  GCC and Clang do not yet implement
-that precedence, and the front end now reflects that in GNU and Clang modes.
-For example (from the Core issue 1374 write-up):
+During overload, any conversions needed to bind a parameter to an argument
+may need to be compared.  The standard specifies a number of tie-breaking
+rules when comparing to conversions that are of the same general form.
+Among those rules, the following three rules should be applied in order:
+
+  (1) binding an rvalue reference to an rvalue argument is preferred over
+      binding an lvalue reference (to a const type) to that rvalue argument.
+  (2) if the conversions involve qualification conversions (i.e., adding
+      const/volatile under pointers and pointers-to-members) and one such
+      conversion is a subset of the other, the formed is preferred.
+  (3) when binding references that only differ in the const/volatile qualifiers
+      under those references, the less-qualified reference is preferred.
+
+The front end previously erroneously checked tie-breaking rule (3) before
+rule (2).  That is now fixed.
+
+In addition, GCC and Clang apply tie-breaking rule (1) after the two others
+(i.e., they do not yet implement the resolution of Core issue 1374).  The
+front end now emulates that behavior in corresponding modes.  For example
+(from the Core issue 1374 write-up):
 
     typedef int *      *      *const *const T1;
     typedef int *const *const *const *const T2;
