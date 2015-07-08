@@ -22744,12 +22744,16 @@ will be an lvalue instead of the usual prvalue.
       fill_in_dtor = FALSE;
     } else if (is_single_elem(list) &&
                (!is_any_reference_type(dest_type) ||
-                (singleton_expr_type != NULL &&
-                 are_reference_related(type_pointed_to(dest_type),
-                                       singleton_expr_type)))) {
+                ((singleton_expr_type != NULL &&
+                  are_reference_related(type_pointed_to(dest_type),
+                                        singleton_expr_type)) ||
+                 is_function_type(type_pointed_to(dest_type))))) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
-         reference-related to the element expression type. */
+         reference-related to the element expression type.  See 8.5.4/3 bullet
+         (3.7) in N4431.  Although the case of a brace-enclosed indefinite
+         function operand is not specified by the standard in this context,
+         we do consider it equivalent to the "reference-related" case. */
       if (is_braced_init_component(list)) {
         /* Multiple levels of braces on a scalar initialization.  Only one
            is allowed. */

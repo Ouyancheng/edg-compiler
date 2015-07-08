@@ -1,5 +1,19 @@
 Version 4.11
 
+7/8/15   [EDGcpfe/16291]
+Binding a reference to a function to a brace-enclosed overloaded function name
+
+The front end previously issued an error when a brace-enclosed name of an
+overloaded function is used to initialize a reference to a function.  For
+example:
+
+  bool f(bool);
+  char f(char);
+  bool (&rf)(bool) = { f };  // Previously an error; now okay.
+
+Cases like these are now accepted (and handled as if the braces were omitted).
+
+
 7/8/15   [EDGcpfe/16366]
 GNU C++ compatibility: default template argument in class template member
 
