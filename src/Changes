@@ -20,7 +20,12 @@ For example:
 
 Previously, this triggered a warning or (in strict mode) an error because the
 old standard rules did not consider p1 and p2 compatible in this context.
-Now that code is silently accepted.
+Now that code is silently accepted.  Another example:
+
+  void (*fp)();
+  bool b = fp == (void*)0;  // Previously an error; now okay.
+
+Any pointer type can now be compared with a pointer to void.
 
 
 7/6/15   [EDGcpfe/16364]
