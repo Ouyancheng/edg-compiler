@@ -18,7 +18,7 @@ For example:
     (void)(i1 ? p1 : p2);  // Now silently accepted in C++ modes.
   }
 
-previously, this triggered a warning or (in strict mode) an error because the
+Previously, this triggered a warning or (in strict mode) an error because the
 old standard rules did not consider p1 and p2 compatible in this context.
 Now that code is silently accepted.
 

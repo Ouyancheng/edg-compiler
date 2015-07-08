@@ -10915,7 +10915,7 @@ cv-qualification signature is determined as follows:
       }  /* if */
     }  /* if */
   } else {
-    /* Not two pointers or not two pointer-to-members. */
+    /* Not two pointers or not two pointers-to-members. */
     goto done;
   }  /* if */
   if (result == NULL) {
@@ -10942,7 +10942,7 @@ cv-qualification signature is determined as follows:
           }  /* if */
         } else {
           /* Not routines: Look for an exact match. */
-          if (identical_types(ustp1, ustp2)) {
+          if (types_are_compatible(ustp1, ustp2)) {
             common_sub_type = ustp1;
             break;
           }  /* if */
@@ -10969,7 +10969,7 @@ cv-qualification signature is determined as follows:
           } else if (microsoft_mode &&
                      ustp1->variant.ptr_to_member.modifiers !=
                                      ustp2->variant.ptr_to_member.modifiers) {
-            /* A difference in __ptr32 or ptr64 modifiers makes pointer types
+            /* A difference in __ptr32 or __ptr64 modifiers makes pointer types
                incompatible. */
             goto done;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

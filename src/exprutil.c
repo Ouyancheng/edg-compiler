@@ -10076,52 +10076,72 @@ a_boolean check_compatibility_of_pointer_operands(
                    a_boolean         pointers_to_functions_standard_in_C,
                    a_boolean         pointers_to_incomplete_standard_in_C,
                    a_boolean         mixed_object_and_incomplete_standard_in_C,
-                   a_type_ptr        *operation_type)
+                   a_type_ptr        *p_operation_type)
 /*
-operand_1 and operand_2 are the operands of a pointer operation.  Check
-to see that the operands are compatible or can be made compatible.
-One or the other of the operands, or both, must have a pointer type.
-Return the operation type in *operation_type.  (The operands are not cast
-to the operation type; the caller must do that.)  operator_position gives the
-operator position (for errors).  The other switches indicate the legality
-of certain constructs in ANSI C.  "Illegal" constructs are accepted
-anyway, but warnings are issued in strict ANSI C mode.  The switches are
-used only in strict ANSI mode.  Return FALSE if there is an error.
+operand_1 and operand_2 are the operands of a pointer operation (a comparison
+or conditional operation if eq_rel_or_cond is TRUE).  Check to see that the
+operands are compatible or can be made compatible.  One or the other of the
+operands, or both, must have a pointer type.  Return the operation type in
+*p_operation_type.  (The operands are not cast to the operation type; the
+caller must do that.)  operator_position gives the operator position (for
+errors).  The other switches indicate the legality of certain constructs in
+ANSI C.  "Illegal" constructs are accepted anyway, but warnings are issued in
+strict ANSI C mode.  The switches are used only in strict ANSI mode.  Return
+FALSE if there is an error.
 */
 {
   a_boolean        okay = FALSE;
   a_type_ptr       operand_1_type = operand_1->type;
   a_type_ptr       operand_2_type = operand_2->type;
-  a_type_ptr       local_operation_type = NULL;
+  a_type_ptr       operation_type = NULL;
   a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean        suppress_extensions;
   a_std_conv_descr std_conv;
 
   if (eq_rel_or_cond && !C_mode()) {
+    /* For equality operators, relational operators, and the ?: operator, the
+       compatibility rules were revised through the resolution of Core issue
+       1512 (the C++ committee's paper N3624).  The new rules apply to all C++
+       modes. */
     if (op_is_null_pointer_constant(operand_1)
         if_microsoft_extensions(
              && (!cppcli_enabled || is_plain_pointer_type(operand_2_type)))) {
-      okay = TRUE;
       if (op_is_null_pointer_constant(operand_2)) {
-        if (nullptr_enabled) {
+        /* Two null pointer constants.  We usually do not get here since null
+           pointer constants do not usually have pointer types.  In some GNU
+           modes, however, they do. */
+        check_assertion(!strict_ansi_mode);
+        if (operand_1_is_pointer) {
+          if (!operand_2_is_pointer) {
+            okay = TRUE;
+            operation_type = operand_1_type;
+          } else {
+            /* Two pointers: Fall back to the non-null-pointer-constant
+               rule. */
+            operation_type = make_cv_combined_type_if_possible(
+                                              operand_1_type, operand_2_type);
+            okay = operation_type != NULL;
+          }  /* if */
+        } else {
+          check_assertion(operand_2_is_pointer);
           okay = TRUE;
-          *operation_type = standard_nullptr_type();
+          operation_type = operand_2_type;
         }  /* if */
       } else {
         okay = TRUE;
-        *operation_type = operand_2_type;
+        operation_type = operand_2_type;
       }  /* if */
     } else if (op_is_null_pointer_constant(operand_2)
                if_microsoft_extensions(
                                 && (!cppcli_enabled ||
                                     is_plain_pointer_type(operand_1_type)))) {
       okay = TRUE;
-      *operation_type = operand_1_type;
+      operation_type = operand_1_type;
     } else {
-      *operation_type = make_cv_combined_type_if_possible(
+      operation_type = make_cv_combined_type_if_possible(
                                               operand_1_type, operand_2_type);
-      okay = *operation_type != NULL;
+      okay = operation_type != NULL;
     }  /* if */
     if (microsoft_mode && !okay) {
       /* In Microsoft mode, if no compatibility was found, try again using the
@@ -10132,7 +10152,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
           pos_ty2_error(ec_incompatible_operands, operator_position,
                         operand_1_type, operand_2_type);
         }  /* if */
-        *operation_type = error_type();
+        operation_type = error_type();
       }  /* if */
       goto done;
     }  /* if */
@@ -10183,7 +10203,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
-        local_operation_type = operand_1_type;
+        operation_type = operand_1_type;
         okay = TRUE;
         break;
       }  /* if */
@@ -10212,7 +10232,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                   suppress_extensions,
                                   ec_incompatible_operands,
                                   &std_conv)) {
-        local_operation_type = operand_2_type;
+        operation_type = operand_2_type;
         okay = TRUE;
         break;
       }  /* if */
@@ -10224,9 +10244,9 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       /* In C++, multilevel pointer types are compatible if they differ only
          in the various qualifications.  The composite type picks the unions
          of those qualifiers. */
-      *operation_type = multilevel_composite_pointer_type(operand_1_type,
-                                                          operand_2_type);
-      if (*operation_type != NULL) {
+      operation_type = multilevel_composite_pointer_type(operand_1_type,
+                                                         operand_2_type);
+      if (operation_type != NULL) {
         /* The types are compatible and we have computed the result-type.
            So we can proceed directly to the end of the function (the
            tests between here and there assume impl_pointer_conversion
@@ -10245,7 +10265,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         is_error_type(type_pointed_to(operand_2_type))))) {
     /* One or both of the operands is a pointer to error, so don't do any
        further checking. */
-    *operation_type = make_pointer_type(error_type());
+    operation_type = make_pointer_type(error_type());
     goto done;
   }  /* if */
   if (okay && operand_1_is_pointer && operand_2_is_pointer &&
@@ -10255,17 +10275,17 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
     a_type_ptr type_pointed_to_2 = type_pointed_to(operand_2_type);
     a_type_ptr operation_type_pointed_to;
-    if (same_entities(local_operation_type, operand_1_type)) {
+    if (same_entities(operation_type, operand_1_type)) {
       operation_type_pointed_to =
                       type_plus_qualifiers_from_second_type(type_pointed_to_1,
                                                             type_pointed_to_2);
     } else {
-      check_assertion(same_entities(local_operation_type, operand_2_type));
+      check_assertion(same_entities(operation_type, operand_2_type));
       operation_type_pointed_to =
                       type_plus_qualifiers_from_second_type(type_pointed_to_2,
                                                             type_pointed_to_1);
     }  /* if */
-    local_operation_type = make_pointer_type(operation_type_pointed_to);
+    operation_type = make_pointer_type(operation_type_pointed_to);
   }  /* if */
   if (okay) {
     a_boolean nonstd_case = FALSE;
@@ -10339,10 +10359,10 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       pos_ty2_error(ec_incompatible_operands, operator_position,
                     operand_1_type, operand_2_type);
     }  /* if */
-    local_operation_type = error_type();
+    operation_type = error_type();
   }  /* if */
-  *operation_type = local_operation_type;
 done:
+  *p_operation_type = operation_type;
   return okay;
 }  /* check_compatibility_of_pointer_operands */
 
@@ -10542,9 +10562,7 @@ operand_1 and operand_2 are the operands of a pointer-to-member operation
 (==, !=, or ?:).  Check to see that the operands are compatible or can be made
 compatible.  Return the operation type in *operation_type.  (The operands are
 not cast to the operation type; the caller must do that.)  operator_position
-gives the operator position (for errors).
-
-Return FALSE if there is an error.
+gives the operator position (for errors).  Return FALSE if there is an error.
 */
 {
   a_boolean        okay = FALSE;
@@ -10552,31 +10570,26 @@ Return FALSE if there is an error.
   a_type_ptr       operand_2_type = operand_2->type;
   a_std_conv_descr std_conv;
 
-  /* For equality operators, relational operators, and the ?: operator, the
-     compatibility rules were revised through the resolution of Core issue
-     1512 (the C++ committee's paper N3624).  The new rules apply to all C++
-     modes, except Cfront mode. */
+  /* For equality operators, relational operators, and the ?: operator (which
+     are the only operators handled by this routine), the compatibility rules
+     were revised through the resolution of Core issue 1512 (the C++
+     committee's paper N3624).  The new rules apply to all C++ modes, except
+     Cfront mode. */
   if (!any_cfront_mode()) {
     /* Start by checking the cases where an operand is a null pointer constant.
        If they're both null pointer constants, the operation type is nullptr_t
        if that type is supported; otherwise, we fall back on the rules prior
        to N3624.  If exactly one operand is a null pointer constant, the type
        of the other operand is the operation type. */
-    if (is_constant_operand(operand_1) &&
-        is_null_pointer_constant(&operand_1->variant.constant)) {
+    if (op_is_null_pointer_constant(operand_1)) {
       okay = TRUE;
-      if (is_constant_operand(operand_2) &&
-          is_null_pointer_constant(&operand_2->variant.constant)) {
-        if (nullptr_enabled) {
-          okay = TRUE;
-          *operation_type = standard_nullptr_type();
-        }  /* if */
+      if (op_is_null_pointer_constant(operand_2)) {
+        unexpected_condition();
       } else {
         okay = TRUE;
         *operation_type = operand_2_type;
       }  /* if */
-    } else if (is_constant_operand(operand_2) &&
-               is_null_pointer_constant(&operand_2->variant.constant)) {
+    } else if (op_is_null_pointer_constant(operand_2)) {
       okay = TRUE;
       *operation_type = operand_1_type;
     } else {
