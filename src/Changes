@@ -1,5 +1,22 @@
 Version 4.11
 
+7/8/15   [EDGcpfe/16366]
+GNU C++ compatibility: default template argument in class template member
+
+g++ allows the definition of a class template member outside of its class
+to provide a default template argument (which is ignored).  The front end
+now allows such usage (with a warning), and ignores the default argument.
+
+  template <typename T> struct A { };
+  template<typename T, typename U = A<T> > struct B {
+    struct C;
+  };
+  template<typename T, typename U = A<T> > struct B<T,U>::C { };
+  int main() {
+    B<int> b;
+  }
+
+
 7/7/15   [EDGcpfe/16310]
 Core issue 1512: Operations on pointers and pointers-to-members
 

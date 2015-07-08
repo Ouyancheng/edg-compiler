@@ -15652,6 +15652,14 @@ error_severity is the severity at which any diagnostics should be issued.
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
        parameter type supplement. */
+    an_error_severity	default_on_member_severity = error_severity;
+    /* Older g++ and Microsoft compilers allow a default argument on a
+       member of a class template. */
+    if (gpp_mode && !clang_mode && gnu_version < 50100) {
+      default_on_member_severity = es_warning;
+    } else if (microsoft_mode && microsoft_version <= 1200) {
+      default_on_member_severity = es_warning;
+    }  /* if */
     new_tpp = param_list;
     old_tpp = tssp->cache.decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
@@ -15687,19 +15695,17 @@ error_severity is the severity at which any diagnostics should be issued.
       a_boolean new_has_default;
       old_has_default = old_tpp->has_default_arg;
       new_has_default = new_tpp->has_default_arg;
-      if (old_has_default && new_has_default &&
-          !(microsoft_bugs && microsoft_version <= 1300)) {
+      if (new_has_default && !default_allowed) {
+        /* A default argument was specified on a member of a class template.
+           This is not permitted. */
+        pos_diagnostic(default_on_member_severity,
+                       ec_default_arg_on_member_decl,
+                       &new_tpp->param_symbol->decl_position);
+      } else if (old_has_default && new_has_default &&
+                 !(microsoft_bugs && microsoft_version <= 1300)) {
         /* This parameter already has a default argument.  The Microsoft
            compiler (prior to 7.1) permits this, and uses the new value. */
         pos_diagnostic(error_severity, ec_default_arg_already_defined,
-                       &new_tpp->param_symbol->decl_position);
-      } else if (new_has_default && !default_allowed) {
-        /* A default argument was specified on a member of a class template.
-           This is not permitted. */
-        pos_diagnostic(microsoft_mode &&
-                       microsoft_version <= 1200 ? es_warning
-                                                 : error_severity,
-                       ec_default_arg_on_member_decl,
                        &new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
         /* One or the other has a default argument, or we are in Microsoft
