@@ -1,5 +1,19 @@
 Version 4.11
 
+7/9/15   [EDGcpfe/16015]
+Spurious "too few arguments" on call of member of variadic class
+
+A spurious "too few arguments" diagnostic could be issued on a call of
+a member function of a variadic class template in which the member
+function had a parameter pack that used a variadic parameter pack of the
+enclosing class template.  Now fixed.
+
+  template <typename... Xs> struct A {
+    A() { f(); }
+    void f(Xs... xs){}
+  };
+
+
 7/9/15   [EDGcpfe/16281]
 Spurious error on friend template redeclaration with template default argument
 

@@ -12101,6 +12101,10 @@ list checking (e.g., for the presence of too few arguments).
            prototype instantiations to avoid triggering undesired errors.
            Just proceed with the assumption that the default argument would be
            fine. */
+      } else if (ptp->is_parameter_pack && is_template_dependent_context()) {
+        /* We are in a prototype instantiation context and the parameter is
+           a pack that could end up being empty in an actual instantiation.
+           An error will be issued in a real instantiation, if needed. */
       } else {
         /* No default arguments. */
         /* Error: too few actual arguments. */
