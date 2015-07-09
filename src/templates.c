@@ -15727,6 +15727,7 @@ error_severity is the severity at which any diagnostics should be issued.
           to_tpp = new_tpp;
         }  /* if */
         to_tpp->has_default_arg = TRUE;
+        to_tpp->def_arg_from_other_decl = TRUE;
         def_arg_involves_template_param =
                                     from_tpp->def_arg_involves_template_param;
         to_tpp->def_arg_involves_template_param =
@@ -21605,7 +21606,7 @@ first declaration of the template.
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
-    if (tpp->has_default_arg) {
+    if (tpp->has_default_arg && !tpp->def_arg_from_other_decl) {
       if (!function_template_default_args_allowed) {
         pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
                                                                    : es_error,

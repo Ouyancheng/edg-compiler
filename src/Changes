@@ -1,5 +1,20 @@
 Version 4.11
 
+7/9/15   [EDGcpfe/16281]
+Spurious error on friend template redeclaration with template default argument
+
+Version 4.10 introduced a problem that could result in a spurious error
+being issued on a friend function template declaration that redeclares
+a template where the other (non-friend) declaration included a default
+template argument.  Now fixed.
+
+  template <typename T> struct A {
+    template <typename U> friend void f(A<U>);
+  };
+  template <typename U = int> void f(A<U>) { }
+  A<int> a;
+
+
 7/8/15   [EDGcpfe/16291]
 Binding a reference to a function to a brace-enclosed overloaded function name
 

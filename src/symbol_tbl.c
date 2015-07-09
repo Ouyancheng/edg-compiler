@@ -14881,6 +14881,7 @@ and return a pointer to it.
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
   ptr->def_arg_has_not_been_scanned = FALSE;
+  ptr->def_arg_from_other_decl = FALSE;
   ptr->is_pack = FALSE;
   ptr->do_prototype_instantiation = FALSE;
   ptr->is_dependent = FALSE;

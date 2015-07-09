@@ -1959,6 +1959,10 @@ typedef struct a_template_param {
   a_bit_field	def_arg_has_not_been_scanned:1;
 			/* TRUE if the tokens that make up the default argument
 			   have not yet been scanned. */
+  a_bit_field	def_arg_from_other_decl:1;
+			/* TRUE if the default argument was specified in
+			   the parameter list of a different declaration of
+			   the template. */
   a_bit_field	is_pack:1;
 			/* TRUE if this is a template parameter pack. */
   a_bit_field	do_prototype_instantiation:1;
