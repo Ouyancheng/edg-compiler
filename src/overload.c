@@ -22752,8 +22752,9 @@ will be an lvalue instead of the usual prvalue.
                 ((singleton_expr_type != NULL &&
                   are_reference_related(type_pointed_to(dest_type),
                                         singleton_expr_type)) ||
-                 is_indefinite_function_operand(
-                                          operand_of_arg_list_elem(list))))) {
+                 (is_expression_component(list) &&
+                  is_indefinite_function_operand(
+                                         operand_of_arg_list_elem(list)))))) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
          reference-related to the element expression type.  See 8.5.4/3 bullet
