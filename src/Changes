@@ -1,5 +1,19 @@
 Version 4.11
 
+
+7/9/15   [EDGcpfe/16349]
+Abort on invalid "decltype(auto)" return type construct in C++14 mode
+
+In C++14 mode, the front end sometimes aborted in get_template_arg_by_list_pos
+(templates.c) after issuing an error on a malformed function declaration with
+"decltype(auto)" in its return type (and no trailing return type).  For
+example:
+
+  decltype(auto)* g(int x) { return x; }  // Previously triggered an abort.
+
+This is now fixed.
+
+
 7/9/15   [EDGcpfe/16358]
 Defaulted special members not always marked deleted when needed
 

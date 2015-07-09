@@ -1997,6 +1997,7 @@ a trailing return type.
           ret_kind == (a_type_kind)tk_ptr_to_member) {
         pos_error(ec_decltype_auto_return_must_be_standalone,
                   &state->auto_pos);
+        err = TRUE;
       }  /* if */
     }  /* if */
     /* Check whether a trailing return type is missing. */
@@ -2028,6 +2029,7 @@ a trailing return type.
     }  /* if */
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
+    state->has_deducible_return_type = FALSE;
   } else if (state->secondary_declarator) {
     /* Check that "auto" is not used both to announce a trailing return type
        and as a deducible type specifier. */
