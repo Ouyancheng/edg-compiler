@@ -91,16 +91,17 @@ delimiter.  This is now fixed.  For example:
 6/30/15  [EDGcpfe/16245,EDGcpfe/16288]
 Reference binding vs. qualification adjustment
 
-During overload, any conversions needed to bind a parameter to an argument
-may need to be compared.  The standard specifies a number of tie-breaking
-rules when comparing to conversions that are of the same general form.
-Among those rules, the following three rules should be applied in order:
+During overload resolution, any conversions needed to initialize a parameter
+with the corresponding argument may need to be compared.  The standard
+specifies a number of tie-breaking rules when comparing two conversions that
+are of the same general form.  Among those rules, the following three should
+be applied in order:
 
   (1) binding an rvalue reference to an rvalue argument is preferred over
       binding an lvalue reference (to a const type) to that rvalue argument.
   (2) if the conversions involve qualification conversions (i.e., adding
       const/volatile under pointers and pointers-to-members) and one such
-      conversion is a subset of the other, the formed is preferred.
+      conversion is a subset of the other, the former is preferred.
   (3) when binding references that only differ in the const/volatile qualifiers
       under those references, the less-qualified reference is preferred.
 
