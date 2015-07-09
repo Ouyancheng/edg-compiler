@@ -1,5 +1,17 @@
 Version 4.11
 
+7/9/15   [EDGcpfe/16301]
+Direct-initialization of a reference via an explicit user-defined conversion
+
+The front end previously incorrectly ignored explicit user-defined conversion
+functions when direct-initializing a reference.  For example:
+
+  struct S { explicit operator float&(); } s;
+  float &rf(s);  // Previously an error; now fixed.
+
+This is now fixed.
+
+
 7/9/15   [EDGcpfe/16015]
 Spurious "too few arguments" on call of member of variadic class
 

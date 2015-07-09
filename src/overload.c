@@ -2318,12 +2318,13 @@ is_potential_conv_function_source as the appropriate guard function.
     /* For lvalue references, we first try conversions that produce
        an lvalue.  If we find none, we will try all conversions, including
        those that produce rvalues. */
+    a_boolean  is_copy_init = !(conv_context & CCO_DIRECT_INITIALIZATION);
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
                                           /*need_lvalue_result=*/TRUE,
-                                          /*is_copy_initialization=*/TRUE,
-                                          /*orig_is_copy_initialization=*/TRUE,
+                                          is_copy_init,
+                                          is_copy_init,
                                           /*ref_binding_type=*/dest_type,
                                           /*is_direct_binding=*/TRUE,
                                           conv_context,
