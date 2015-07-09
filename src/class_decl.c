@@ -1184,6 +1184,9 @@ typedef struct a_class_def_state {
   a_bit_field	has_inheriting_constructors:1;
 			/* TRUE if a using-declaration introducing inheriting
 			   constructors has been encountered. */
+  a_bit_field	any_defaulted_special_members:1;
+			/* TRUE if a defaulted special member declaration has
+			   been seen. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1282,6 +1285,7 @@ class being defined.
   cdsp->rule_out_trivial_assign_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_assign_for_deleted_operator = FALSE;
   cdsp->has_inheriting_constructors = FALSE;
+  cdsp->any_defaulted_special_members = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -13908,6 +13912,9 @@ implicitly declared member functions.
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
                                       &locator->source_position);
+  if (rtn->is_defaulted) {
+    class_state->any_defaulted_special_members = TRUE;
+  }  /* if */
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_declared_constexpr = TRUE;
     rtn->is_constexpr = TRUE;
@@ -20952,7 +20959,8 @@ The routine body is not generated until it is known to be needed.
       !class_type->variant.class_struct_union.is_generic_constraint &&
       !is_immediate_managed_class_type(class_type) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
+      (declare_copy_asgn_op || declare_copy_ctor || declare_dtor ||
+       class_state->any_defaulted_special_members)) {
     /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
        some special members are either not declared (move constructors) or
        declared as deleted (copy constructors, destructors) if generating their
@@ -20969,7 +20977,9 @@ The routine body is not generated until it is known to be needed.
       gsfd.warn_about_suppressed_dtor = declare_dtor;
     }  /* if */
     check_suppressed_special_functions(class_type, &gsfd);
-    mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
+    if (class_state->any_defaulted_special_members) {
+      mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
+    }  /* if */
   } else if (constexpr_enabled) {
     /* Although no special members should be suppressed, we still need to know
        whether generated special members should be constexpr.  Call

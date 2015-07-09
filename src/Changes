@@ -1,5 +1,31 @@
 Version 4.11
 
+7/9/15   [EDGcpfe/16358]
+Defaulted special members not always marked deleted when needed
+
+A defaulted special member should be marked deleted under various circumstances
+(typically when its full generated would run into a problem).  However, the
+front end failed to do so if it didn't also have to generate the declaration
+of another special member.  That is now fixed.  For example:
+
+  struct N { N(N const&) = delete; };
+  struct S {
+    N n;
+    S();
+    S(S const&);
+    S(S&&) = default; // deleted because of n
+    ~S();
+    S& operator=(S const&);
+  } s = S();  // Previously an error, now okay.
+
+In this example, the move constructor was not marked as deleted and therefore
+not ignored for the purpose of initializing the variable s.  During the
+ensuing generation of the body of that move constructor, the front end issued
+a spurious error because that body requires the use of the (deleted) copy
+constructor of N.  Now the move constructor of S is no longer considered (the
+copy constructor is used instead).
+
+
 7/9/15   [EDGcpfe/16301]
 Direct-initialization of a reference via an explicit user-defined conversion
 
