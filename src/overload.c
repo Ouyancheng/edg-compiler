@@ -22747,13 +22747,14 @@ will be an lvalue instead of the usual prvalue.
                 ((singleton_expr_type != NULL &&
                   are_reference_related(type_pointed_to(dest_type),
                                         singleton_expr_type)) ||
-                 is_function_type(type_pointed_to(dest_type))))) {
+                 is_indefinite_function_operand(
+                                          operand_of_arg_list_elem(list))))) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
          reference-related to the element expression type.  See 8.5.4/3 bullet
-         (3.7) in N4431.  Although the case of a brace-enclosed indefinite
-         function operand is not specified by the standard in this context,
-         we do consider it equivalent to the "reference-related" case. */
+         (3.7) in N4431.  For the case of a brace-enclosed indefinite function
+         operand we don't yet know the type, but this is the only case that
+         can succeed (a type mismatch will be caught later if needed). */
       if (is_braced_init_component(list)) {
         /* Multiple levels of braces on a scalar initialization.  Only one
            is allowed. */
