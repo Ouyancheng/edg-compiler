@@ -18,9 +18,9 @@ This is now fixed.
 Defaulted special members not always marked deleted when needed
 
 A defaulted special member should be marked deleted under various circumstances
-(typically when its full generated would run into a problem).  However, the
-front end failed to do so if it didn't also have to generate the declaration
-of another special member.  That is now fixed.  For example:
+(typically when its generated definition would run into a problem).  However,
+the front end failed to do so if it didn't also have to generate the
+declaration of another special member.  That is now fixed.  For example:
 
   struct N { N(N const&) = delete; };
   struct S {
