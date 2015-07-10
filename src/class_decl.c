@@ -14512,8 +14512,9 @@ static a_boolean compatible_member_function_template_param_types(
 /*
 tp1 and tp2 are the (parameterized) types of member function templates with
 associated template parameter lists tpl1 and tpl2 (respectively).  Return TRUE
-if the parameter types of the members (excluding the implied "this" parameter)
-and their associated template parameter lists are compatible.
+if the parameter types of the members (excluding the class underlying the
+implied "this" parameter, but including its qualifiers and ref-qualifiers) and
+their associated template parameter lists are compatible.
 
 The nesting depth of the parameters is ignored for this compatibility checking.
 */
@@ -14553,6 +14554,16 @@ The nesting depth of the parameters is ignored for this compatibility checking.
                                       ETP_NO_OPTIONS, (a_source_position*)NULL,
                                       es_error) &&
            param_types_are_compatible(tp1, tp2, TCF_NO_FLAGS);
+  if (result) {
+    /* Check member function qualifiers and ref-qualifiers. */
+    a_routine_type_supplement_ptr  rtsp1, rtsp2;
+    rtsp1 = skip_typerefs(tp1)->variant.routine.extra_info;
+    rtsp2 = skip_typerefs(tp2)->variant.routine.extra_info;
+    if (rtsp1->qualifiers != rtsp2->qualifiers ||
+        rtsp1->ref_qualifiers != rtsp2->ref_qualifiers) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
   /* Restore the original depths if needed. */
   if (restore_tnd1) {
     for (tpp1 = tpl1; tpp1 != NULL; tpp1 = tpp1->next) {

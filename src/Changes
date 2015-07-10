@@ -1,5 +1,28 @@
 Version 4.11
 
+7/10/15  [EDGcpfe/16296]
+Member using-declaration for member function template sometimes ignored
+
+When a derived class overloads a member using-declaration that imports a
+member function template with a member function template that differs only in
+its qualifiers or ref-qualifiers, the front end previously erroneously dropped
+the member function template imported from the base class.  This could result
+in spurious errors.  For example:
+
+  struct B {
+    template<class T> void f(T) const {}
+  };
+  struct D: B {
+    using B::f;
+    D const *p;
+    template<class T> void f(T) {  // Caused the removal of B::f from the D::f
+                                   // overload set.
+      p->f(42);  // Previously a spurious error because only the non-const
+    }            // D::f was visible.  Now okay.
+  };
+
+This is now fixed.
+
 
 7/9/15   [EDGcpfe/16349]
 Abort on invalid "decltype(auto)" return type construct in C++14 mode
