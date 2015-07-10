@@ -32111,6 +32111,19 @@ bad_start_of_primary:
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
       check_for_pcc_compound_assignment_operators();
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gpp_mode || clang_mode) {
+      /* GCC and Clang treat the current instantiation as dependent in
+         expression contexts. */
+      a_type_ptr  tp = local_result.type;
+      if (tp != NULL) {
+        tp = skip_typerefs(tp);
+        if (is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.is_prototype_instantiation) {
+          local_result.type = type_of_unknown_templ_param_nontype;
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if the current token is an operator, and if so, whether it ends
        the current expression given its precedence and associativity. */
