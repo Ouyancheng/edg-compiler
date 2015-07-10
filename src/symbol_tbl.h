@@ -3207,8 +3207,9 @@ typedef struct a_symbol {
   a_bit_field	is_nonreal_nested_type:1;
 			/* TRUE if the symbol represents the nonreal version
 			   of a nested type of a class template.  This is the
-			   symbol pointed to by the corresp_nonreal_type
-			   field of the original nested type symbol. */
+			   symbol pointed to by the
+			   corresp_nonreal_or_nested_type field of the
+			   original nested type symbol. */
   a_bit_field	template_param_not_visible:1;
 			/* TRUE if this is a template parameter that should
 			   not be visible for name lookup purposes at this
