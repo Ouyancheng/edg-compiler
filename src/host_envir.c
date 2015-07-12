@@ -3202,37 +3202,56 @@ should be added.  incremental_size must be a multiple of the host
 page size.
 */
 {
-  a_void_ptr		addr = NULL;
-  sizeof_t		size;
-  DWORD			new_pos;
-  DWORD			bytes_written;
-  HANDLE		f_map;
+  a_void_ptr	addr = NULL;
+  LARGE_INTEGER	file_pos;
+  LARGE_INTEGER	large_file_offset;
+  DWORD		bytes_written;
+  HANDLE	f_map;
+#if DEBUG
+  const char*	failed_system_call = NULL;
+#endif /* DEBUG */
 #if USE_FIXED_ADDRESS_FOR_MMAP
-  a_void_ptr		map_address;
+  a_void_ptr	map_address = NULL;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
   db_enter(4, "map_file_region");
-  size = curr_size + incremental_size;
+  file_pos.QuadPart = file_offset + incremental_size;
   /* The file must be large enough to contain the mapped area. */
-  new_pos = SetFilePointer(f_mmap_file, (long)size, (PLONG)NULL, FILE_BEGIN);
-  if (new_pos != 0xffffffff) {
+  if (SetFilePointerEx(f_mmap_file, file_pos,
+                       (PLARGE_INTEGER)NULL, FILE_BEGIN)) {
     /* Write a character at the last allocated position. */
-    if (WriteFile(f_mmap_file, &new_pos, 1, &bytes_written,
+    if (WriteFile(f_mmap_file, &file_pos, 1, &bytes_written,
                   (LPOVERLAPPED)NULL)) {
       f_map = CreateFileMapping(f_mmap_file,
                                 (LPSECURITY_ATTRIBUTES)NULL,
                                 PAGE_READWRITE, (DWORD)0, (DWORD)0,
                                 (LPTSTR)NULL);
       if (f_map != INVALID_HANDLE_VALUE) {
+        large_file_offset.QuadPart = file_offset;
 #if USE_FIXED_ADDRESS_FOR_MMAP
         map_address = (a_void_ptr)(fixed_address_for_mmap + curr_size);
-        addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE, (DWORD)0,
-                               (DWORD)file_offset, incremental_size,
+        addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE,
+                               large_file_offset.HighPart,
+                               large_file_offset.LowPart, incremental_size,
                                map_address);
+#if DEBUG
+        if (addr == NULL) {
+          failed_system_call = "MapViewOfFileEx";
+        }  /* if */
+#endif /* DEBUG */
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-        addr = MapViewOfFile(f_map, FILE_MAP_WRITE, (DWORD)0,
-                             (DWORD)file_offset, incremental_size);
+        addr = MapViewOfFile(f_map, FILE_MAP_WRITE, large_file_offset.HighPart,
+                             large_file_offset.LowPart, incremental_size);
+#if DEBUG
+        if (addr == NULL) {
+          failed_system_call = "MapViewOfFile";
+        }  /* if */
+#endif /* DEBUG */
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+#if DEBUG
+      } else {
+        failed_system_call = "CreateFileMapping";
+#endif /* DEBUG */
       }  /* if */
 #if DEBUG
       if (db_flag_is_set("mmap") || debug_level >= 4) {
@@ -3244,8 +3263,30 @@ page size.
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       }  /* if */
 #endif /* DEBUG */
+#if DEBUG
+    } else {
+      failed_system_call = "WriteFile";
+#endif /* DEBUG */
     }  /* if */
+#if DEBUG
+  } else {
+    failed_system_call = "SetFilePointerEx";
+#endif /* DEBUG */
   }  /* if */
+#if DEBUG
+  if (failed_system_call != NULL && db_flag_is_set("mmap")) {
+    DWORD err_code = GetLastError();
+#if USE_FIXED_ADDRESS_FOR_MMAP
+    fprintf(f_error, "map_file_region(0x%Ix, 0x%Ix, 0x%Ix) at %p:",
+            curr_size, incremental_size, file_offset, map_address);
+#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
+    fprintf(f_error, "map_file_region(0x%Ix, 0x%Ix, 0x%Ix):",
+            curr_size, incremental_size, file_offset);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+    fprintf(f_error, " %s() failed with error code %d\n",
+            failed_system_call, err_code);
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return addr;
 }  /* map_file_region */
@@ -3542,11 +3583,21 @@ current file position.
 {
   sizeof_t	curr_pos;
 
+#if EDG_WIN32
+  /* A special version is needed for Windows because on 64-bit versions
+     of Windows "long" is 32 bits. */
+  curr_pos = (size_t)_ftelli64(file);
+  curr_pos = do_page_alignment(curr_pos);
+  if (_fseeki64(file, (size_t)curr_pos, SEEK_SET) != 0) {
+    unexpected_condition_str("seek_to_page_alignment: fseek error");
+  }  /* if */
+#else /* !EDG_WIN32 */
   curr_pos = (sizeof_t)ftell(file);
   curr_pos = do_page_alignment(curr_pos);
   if (fseek(file, (long)curr_pos, SEEK_SET) != 0) {
     unexpected_condition_str("seek_to_page_alignment: fseek error");
   }  /* if */
+#endif /* EDG_WIN32 */
   return curr_pos;
 }  /* seek_to_page_alignment */
 

@@ -1,5 +1,12 @@
 Version 4.11
 
+7/12/15  [EDGcpfe/16361]
+Creation of PCH file larger than 2 GB failed on 64-bit Windows
+
+When the front end is built on a 64-bit Windows platform, the precompiled
+header processing failed if a PCH file being created exceeded 2 GB.  Now
+fixed.
+
 7/10/15  [EDGcpfe/16312]
 GNU/Clang compatibility: Current instantiation treated as template-dependent
 
