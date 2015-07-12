@@ -9907,6 +9907,45 @@ the variable to which p points has a constant value, return that value.
 }  /* constant_value_addressed_by_node */
 
 
+static a_boolean constant_dot_static_object_expr(
+                                         an_expr_node_ptr expr,
+                                         a_constexpr_evaluation_block *ceblock)
+/*
+Return TRUE if expr can appear as or in the object expression of an
+eok_dot_static node.  This function is invoked for the top-level object
+expression and then recursively as needed for subexpressions of the object
+expression.  ceblock gives context information for the evaluation.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_variable_node(expr) || is_constant_node(expr)) {
+    /* A variable in the object expression need not have a constant
+       address or value, since it will not be used. */
+    result = TRUE;
+  } else if (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_dot_field) ||
+        node_operator_is(expr, eok_pm_field) ||
+        node_operator_is(expr, eok_dot_static)) {
+      /* Recursively check the object expression of the nested member
+         access. */
+      result =
+             constant_dot_static_object_expr(expr->variant.operation.operands,
+                                             ceblock);
+    } else {
+      /* Any other object expression must satisfy the requirements for
+         being a constant expression in its own right.  In particular,
+         a pointer expression must be constant, even though the value of
+         the pointer will not be used. */
+      a_constant_ptr con = local_constant();
+      result = fold_expr(expr, ceblock, con);
+      release_local_constant(&con);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* constant_dot_static_object_expr */
+
+
 static a_boolean fold_expr(an_expr_node_ptr             expr,
                            a_constexpr_evaluation_block *ceblock,
                            a_constant                   *result_con)
@@ -10126,6 +10165,21 @@ pm_field_selection:
             }  /* if */
           }  /* if */
           release_local_constant(&pm_constant);
+        }  /* if */
+        break;
+      case eok_dot_static:
+        if (constant_dot_static_object_expr(op1, ceblock)) {
+          /* The object expression satisfies the requirements for appearing
+             in a constant dot-static expression; the result is a constant
+             if the second operand is. */
+          folded = fold_expr(op2, ceblock, result_con);
+        }  /* if */
+        break;
+      case eok_points_to_static:
+        if (fold_expr(op1, ceblock, op1_constant)) {
+          /* The first operand is a constant; the result is a constant if
+             the second operand is. */
+          folded = fold_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       case eok_address_of:

@@ -1,5 +1,25 @@
 Version 4.11
 
+7/12/15  [EDGcpfe/16369]
+Member access expressions in constant expressions
+
+In contexts requiring a constant expression, the front end in C++11 mode
+incorrectly rejected member access expressions involving member enumerators
+and static data members when the object expression is not an address
+constant.  This is now fixed.  For example:
+
+  struct X {
+    enum Y { A };
+  };
+  void f(X::Y y) {
+    X x;
+    switch (y) {
+      case x.A:   // Previously incorrectly rejected
+        break;
+    }
+  }
+
+
 7/12/15  [EDGcpfe/16361]
 Creation of PCH file larger than 2 GB failed on 64-bit Windows
 
