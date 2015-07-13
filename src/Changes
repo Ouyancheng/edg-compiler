@@ -57,9 +57,9 @@ instantiated with real arguments.
 7/10/15  [EDGcpfe/16296]
 Member using-declaration for member function template sometimes ignored
 
-When a derived class overloads a member using-declaration that imports a
-member function template with a member function template that differs only in
-its qualifiers or ref-qualifiers, the front end previously erroneously dropped
+When a derived class overloads a member using-declaration that imports a member
+function template with a member function template that differs only in its
+qualifiers or its ref-qualifier, the front end previously erroneously dropped
 the member function template imported from the base class.  This could result
 in spurious errors.  For example:
 

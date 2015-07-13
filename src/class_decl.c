@@ -14512,9 +14512,9 @@ static a_boolean compatible_member_function_template_param_types(
 /*
 tp1 and tp2 are the (parameterized) types of member function templates with
 associated template parameter lists tpl1 and tpl2 (respectively).  Return TRUE
-if the parameter types of the members (excluding the class underlying the
-implied "this" parameter, but including its qualifiers and ref-qualifiers) and
-their associated template parameter lists are compatible.
+if the parameter types of the members (excluding the classes underlying the
+implied "this" parameter, but including their qualifiers and ref-qualifiers)
+and their associated template parameter lists are compatible.
 
 The nesting depth of the parameters is ignored for this compatibility checking.
 */
