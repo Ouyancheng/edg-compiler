@@ -22170,8 +22170,14 @@ declared).
     if (bcp->direct && identical_types(bcp->type, parent_class)) break;
   }  /* for */
   if (bcp == NULL) {
-    pos_error(ec_inheriting_ctor_not_from_direct_base,
-              &locator_for_curr_id.source_position);
+    /* Inheriting constructors can only be constructed from direct base class
+       constructors.  GCC appears to allow naming indirect base classes, but
+       not much can be done with the resulting classes; we approximate the GCC
+       behavior by issuing a warning and ignoring the using-declaration in all
+       other ways. */
+    pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
+                   ec_inheriting_ctor_not_from_direct_base,
+                   &locator_for_curr_id.source_position);
     discard_curr_construct_pragmas();
   } else {
     a_using_decl_ptr  udp = scope_stack_top().il_scope->using_decls;

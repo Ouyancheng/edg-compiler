@@ -1,5 +1,20 @@
 Version 4.11
 
+7/13/15  [EDGcpfe/16355]
+GNU compatibility: Inheriting constructors from indirect base classes
+
+GCC accepts using-declarations for inheriting constructors that name indirect
+base classes, but does not appear to create usable constructors from such
+constructs.  As an approximation, the front end now simply ignores these
+constructs with a warning.  For example:
+
+  struct B {};
+  struct C: B { using B::B; };  // Okay.
+  struct D: C { using B::B; };  // Normally an error, but now ignored in
+                                // GNU C++11 mode (with a warning).
+  D d;
+
+
 7/12/15  [EDGcpfe/16369]
 Member access expressions in constant expressions
 
