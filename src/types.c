@@ -10840,9 +10840,10 @@ a_type_ptr make_cv_combined_type_if_possible(a_type_ptr  tp1,
 /*
 If tp1 and tp2 are similar types, single-level pointers to void or to related
 class types, or single-level pointers-to-members of related class types, return
-the corresponding cv-combined type (defined below).  Otherwise, return NULL.
-Note that for non-similar types the result can depend on the order of the tp1
-and tp2 arguments.
+the corresponding cv-combined type (defined below).  Otherwise, if either type
+is an error type, return an error type.  In all other cases return NULL.  Note
+that for non-similar types the result can depend on the order of the tp1 and
+tp2 arguments.
 
 The cv-combined type of two types T1 and T2 is a type T3 similar to T1 whose
 cv-qualification signature is determined as follows:
@@ -10914,6 +10915,10 @@ cv-qualification signature is determined as follows:
         result = ptr_to_member_type(stp2, ctp2);
       }  /* if */
     }  /* if */
+  } else if (ustp1->kind == (a_type_kind)tk_error ||
+             ustp2->kind == (a_type_kind)tk_error) {
+    /* If either type is an error type, return an error type. */
+    result = error_type();
   } else {
     /* Not two pointers or not two pointers-to-members. */
     goto done;
