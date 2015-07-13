@@ -14559,8 +14559,9 @@ The nesting depth of the parameters is ignored for this compatibility checking.
     a_routine_type_supplement_ptr  rtsp1, rtsp2;
     rtsp1 = skip_typerefs(tp1)->variant.routine.extra_info;
     rtsp2 = skip_typerefs(tp2)->variant.routine.extra_info;
-    if (rtsp1->qualifiers != rtsp2->qualifiers ||
-        rtsp1->ref_qualifiers != rtsp2->ref_qualifiers) {
+    if (rtsp1->this_class != NULL && rtsp2->this_class != NULL &&
+        (rtsp1->qualifiers != rtsp2->qualifiers ||
+         rtsp1->ref_qualifiers != rtsp2->ref_qualifiers)) {
       result = FALSE;
     }  /* if */
   }  /* if */
