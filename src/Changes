@@ -31,10 +31,10 @@ fixed.
 GNU/Clang compatibility: Current instantiation treated as template-dependent
 
 While parsing class template members in their generic form, the enclosing class
-is called the "current instantiation" in the C++ standard.  The type of
+is called the "current instantiation" in the C++ standard.  The types of
 expressions referring to members of the current instantiation are not always
-considered "template dependent".  However, in Clang and GNU modes, they now do.
-For example:
+considered "template dependent".  Now, however, they are in Clang and GNU
+modes.  For example:
 
   template<typename> struct S {
     int N;
