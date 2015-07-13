@@ -158,7 +158,7 @@ template argument.  Now fixed.
   A<int> a;
 
 
-7/8/15   [EDGcpfe/16291]
+7/8/15   [EDGcpfe/16247,EDGcpfe/16291]
 Binding a reference to a function to a brace-enclosed overloaded function name
 
 The front end previously issued an error when a brace-enclosed name of an
