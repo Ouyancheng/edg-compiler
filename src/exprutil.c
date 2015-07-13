@@ -18790,7 +18790,7 @@ cases so we don't do it here.
 {
   an_expr_node_ptr  node;
   an_operand        orig_operand;
-  a_type_ptr        operand_type;
+  a_type_ptr        unqual_operand_type;
   a_boolean         constant_case = FALSE;
   a_constant_ptr    con_value;
   a_boolean         possibly_constant_with_constexpr = FALSE;
@@ -18798,14 +18798,14 @@ cases so we don't do it here.
   /* Ignore non-glvalues. */
   if (is_a_glvalue(operand)) {
     /* A glvalue becomes a prvalue. */
-    operand_type = operand->type;
+    unqual_operand_type = skip_typerefs(operand->type);
 #if CHECKING
     /* Array glvalues are not allowed. */
-    if (is_array_type(operand_type)) {
+    if (unqual_operand_type->kind == (a_type_kind)tk_array) {
       internal_error("conv_glvalue_to_prvalue: array glvalue");
     }  /* if */
 #endif /* CHECKING */
-    /* Save the operand's source position. */
+    /* Save the operand's type and source position*/
     orig_operand = *operand;
     /* Change simple "reference" references to "use" references. */
     /* Note that what we want to avoid here is changing "modified" references
@@ -18817,14 +18817,15 @@ cases so we don't do it here.
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_USE);
     /* Instantiate the type if it is a template. */
-    complete_type_is_needed(operand_type);
+    complete_type_is_needed(unqual_operand_type);
     if (is_error_operand(operand)) {
       /* Aside from the usual function, the normalization here makes sure the
          operand is not a glvalue anymore. */
       normalize_error_operand(operand);
-    } else if (is_incomplete_type(operand_type) &&
-               !is_managed_nullptr_type(operand_type) &&
-               (!C_mode() || !is_void_type(operand_type))) {
+    } else if (unqual_operand_type->incomplete &&
+               !is_managed_nullptr_type(unqual_operand_type) &&
+               (!C_mode() ||
+                unqual_operand_type->kind != (a_type_kind)tk_void)) {
       /* Converting a glvalue with incomplete type to a prvalue is an
          error in C++ ([conv.lval]), and undefined behavior in C (C99
          6.3.2.1).  We treat it as an error in C mode except when the
@@ -18926,6 +18927,16 @@ cases so we don't do it here.
       } else {
         /* Normal case: not constant-valued, not a constant expression. */
         make_expression_operand(node, operand);
+        if (operand->type != orig_operand.type &&
+            unqual_operand_type->kind == (a_type_kind)tk_template_param &&
+            unqual_operand_type->variant.template_param.kind ==
+                                  (a_template_param_type_kind)tptk_unknown)  {
+          /* Sometimes the operand type is forced to tk_unknown to ensure the
+             operand is treated as template dependent, even though the actual
+             type is known to the front end.  Restore the template
+             dependence. */
+          operand->type = orig_operand.type;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Restore the operand's source position. */
