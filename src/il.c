@@ -4219,11 +4219,14 @@ members), and does not enter those.
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case iek_base_class:
-        /* Dependent base classes in prototype instantiations can be
-           orphans. */
+        /* Dependent base classes in prototype instantiations can be orphans.
+           Also, placeholder base class entries for prototype instantiations of
+           mem-initializers can be orphans (bcp->derived_class is NULL for
+           those). */
         { a_base_class_ptr bcp = (a_base_class_ptr)entry_ptr;
           could_be_orphan = FALSE;
-          if (bcp->type->variant.class_struct_union.is_nonreal_class) {
+          if (bcp->type->variant.class_struct_union.is_nonreal_class ||
+              bcp->derived_class == NULL) {
             could_be_orphan = TRUE;
           }  /* if */
         }

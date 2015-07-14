@@ -1,5 +1,22 @@
 Version 4.11
 
+7/13/15  [EDGcpfe/16317]
+IL write-read difference abort on base class reference in template constructor
+
+Under some circumstances an IL file consumer (like the C++-generating back end)
+could abort with an "IL write-read difference" when attempting to load the IL
+for a class template constructor with mem-initializer that cannot be matched
+to a specific base during prototype instantiation.  For example:
+
+  template<typename> struct B {};
+  template<typename T> struct D: public B<T> {
+    D(): B<int>() {}  // The base class entry for B<int> in the prototype
+  };                  // instantiation previously triggered an IL write-read
+  D<int> m;           // error.
+
+This is now fixed.
+
+
 7/13/15  [EDGcpfe/16355]
 GNU compatibility: Inheriting constructors from indirect base classes
 
