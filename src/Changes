@@ -5,7 +5,7 @@ IL write-read difference abort on base class reference in template constructor
 
 Under some circumstances an IL file consumer (like the C++-generating back end)
 could abort with an "IL write-read difference" when attempting to load the IL
-for a class template constructor with mem-initializer that cannot be matched
+for a class template constructor with a mem-initializer that cannot be matched
 to a specific base during prototype instantiation.  For example:
 
   template<typename> struct B {};
