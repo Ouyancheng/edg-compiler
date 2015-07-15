@@ -4157,8 +4157,11 @@ deduction was successful: some cases are treated as "nondeduced contexts").
          type initializer_list<initializer_list<T>>.   However,
            auto x = {{ 1 }};
          is never valid. */
-      deduce_from_braced_init_list(elem, elem_type,
-                                   templ_params, template_arg_list);
+      if (!deduce_from_braced_init_list(elem, elem_type,
+                                        templ_params, template_arg_list)) {
+        deduction_okay = FALSE;
+        break;
+      }  /* if */
       continue;
     } else if (!is_expression_component(elem)) {
       /* Neither an expression nor a braced initializer list argument:
