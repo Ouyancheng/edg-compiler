@@ -1,5 +1,22 @@
 Version 4.11
 
+7/15/15  [EDGcpfe/16191]
+Explicit calls to conversion function templates
+
+The front end previously issued a spurious error when attempting to explicitly
+call a conversion function template from another template (the error was issued
+during the prototype instantiation of that other template).  For example:
+
+  struct S {
+    template<typename T> operator T();
+    template<typename T> T g(T) {
+      return operator T();  // Previously triggered a spurious error during
+    }                       // the prototype instantiation of S::g(T).
+  };
+
+That is now fixed.
+
+
 7/15/15  [EDGcpfe/16278]
 Deduction from braced initializer list arguments
 

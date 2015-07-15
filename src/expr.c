@@ -5206,6 +5206,23 @@ are expected to be NULL in that case.
       overloaded_function_case = TRUE;
       overloaded_function_symbol = operand->symbol;
       /* routine_type = NULL;  -- already set. */
+      /* Check for the case of an explicit call to a conversion function
+         template in a dependent context.  I.e., something like:
+           return operator T();
+         where T is a template parameter.  Such a case cannot be handled by
+         the normal deduction machinery and is therefore handled as an unknown
+         dependent function instead. */
+      if (operand->symbol->is_class_member &&
+          symbol_is(operand->symbol, sk_function_template) &&
+          is_template_dependent_context()) {
+        a_routine_ptr  rp = operand->symbol->variant.template_info
+                                           ->variant.function.routine;
+        if (special_kind_is(rp, sfk_conversion)) {
+          prep_generic_operand(operand);
+          unknown_dependent_function = TRUE;
+          overloaded_function_case = FALSE;
+        }  /* if */
+      }  /* if */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
                is_template_param_type(operand->type)) {
