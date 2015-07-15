@@ -8847,7 +8847,6 @@ list of a template function.  Returns TRUE if a match is found.
 }  /* matches_template_constant */
 
 
-static
 a_boolean matches_template_array_bound(a_targ_size_t        elements,
                                        a_constant_ptr       templ_constant,
                                        a_template_arg_ptr   *templ_arg_list,

@@ -568,6 +568,12 @@ a_boolean tentatively_matches_template_type(
                                a_template_param_ptr templ_param_list,
                                a_template_arg_ptr   templ_arg_list);
 
+extern
+a_boolean matches_template_array_bound(a_targ_size_t        elements,
+                                       a_constant_ptr       templ_constant,
+                                       a_template_arg_ptr   *templ_arg_list,
+                                       a_template_param_ptr templ_param_list);
+
 extern a_type_ptr substitute_template_arguments(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,

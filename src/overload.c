@@ -4099,37 +4099,70 @@ if so also return *elem_type set to the argument type X.
 
 static a_boolean deduce_from_braced_init_list(
                                       an_arg_list_elem_ptr alep,
-                                      a_type_ptr           elem_type,
+                                      a_type_ptr           dest_type,
                                       a_template_param_ptr templ_params,
                                       a_template_arg_ptr   *template_arg_list)
 /*
-alep is a brace-enclosed list.  Do template deduction on each element of
-the list, to produce a template argument list in *template_arg_list that
-will transform the dependent type elem_type into the type of the elements
-in the list.  So, for example, is elem_type is T, and the list is
-{1, 2, 3}, the argument list sought is one that sets T=int.  templ_params
-is the list of parameters for the template for which deduction is
-being done.  This routine is also used for deduction for "auto" with
-a braced-initializer, and elem_type in that case is the template
-parameter standing in for "auto"; when deduction is done, the variable's
-type will be std::initializer_list<template-arg-list>.
+alep is a brace-enclosed list used as an argument for a parameter of type
+dest_type or used as an initializer for an "auto" typed variable (in the latter
+case, dest_type is the "auto" type).  If applicable, deduce the appropriate
+template arguments (recorded in *template_arg_list and corresponding to the
+given template parameters) for the initialization of the parameter or
+variables.  So, for example, is dest_type is std::initializer_list<T>, and the
+list is {1, 2, 3}, the argument list sought is one that sets T=int.  Three
+cases can lead to actual deduction:
+  (1) an "auto" typed variable
+  (2) a std::initializer_list<T> parameter
+  (3) a reference to array parameter
+(see N4431 14.8.2.1/1 for (2) and (3)).
+
+Return TRUE if no deduction error occurred (this does not necessarily mean
+deduction was successful: some cases are treated as "nondeduced contexts").
 */
 {
-  a_boolean            deduction_okay = TRUE;
-  a_boolean            consider_nondeduced;
-  a_type_ptr           qc_param_type;
-  a_type_ptr           qc_arg_type;
-  an_arg_list_elem_ptr elem;
+  a_boolean              deduction_okay = TRUE, consider_nondeduced;
+  a_boolean              is_array = FALSE, is_auto = FALSE;
+  a_type_ptr             elem_type, qc_param_type, qc_arg_type;
+  an_arg_list_elem_ptr   elem;
+  a_targ_size_t          dim_count = 0;
 
+  if (is_auto_type(dest_type)) {
+    is_auto = TRUE;
+    elem_type = dest_type;
+  } else {
+    if (is_any_reference_type(dest_type)) {
+      dest_type = type_pointed_to(dest_type);
+    }  /* if */
+    if (is_array_type(dest_type)) {
+      is_array = TRUE;
+      dest_type = skip_typerefs(dest_type);
+      elem_type = dest_type->variant.array.element_type;
+    } else if (is_instance_of_std_initializer_list(dest_type, &elem_type)) {
+      /* Attempt to match { ... } to std::initializer_list<X> where X is
+         the type represented by elem_type. */
+    } else {
+      /* Not a deducible context. */
+      goto done;
+    }  /* if */
+  }  /* if */
   for (elem = alep->variant.braced.list;
        elem != NULL;
        elem = next_elem(elem)) {
     a_type_ptr elem_arg_type;
     a_type_ptr elem_param_type = elem_type;
     an_operand *elem_operand;
-    if (!is_expression_component(elem)) {
-      /* Deduction fails if the member is not an expression (e.g., it's a
-         braced-init-list). */
+    ++dim_count;
+    if (is_braced_init_component(elem) && !is_auto) {
+      /* Something like f({{ 1, 2 }, { 3, 4 }}) is possible with a parameter of
+         type initializer_list<initializer_list<T>>.   However,
+           auto x = {{ 1 }};
+         is never valid. */
+      deduce_from_braced_init_list(elem, elem_type,
+                                   templ_params, template_arg_list);
+      continue;
+    } else if (!is_expression_component(elem)) {
+      /* Neither an expression nor a braced initializer list argument:
+         Deduction fails. */
       deduction_okay = FALSE;
       break;
     }  /* if */
@@ -4153,6 +4186,16 @@ type will be std::initializer_list<template-arg-list>.
                                           templ_params);
     if (!deduction_okay) break;
   }  /* for */
+  if (is_array && dest_type->variant.array.is_template_dependent_size_array) {
+    /* Deduce the dimension of the array type if possible. */
+    a_constant_ptr  templ_constant;
+    templ_constant = dest_type->variant.array.variant.element_count_constant;
+    if (!matches_template_array_bound(dim_count, templ_constant,
+                                      template_arg_list, templ_params)) {
+      deduction_okay = FALSE;
+    }  /* if */
+  }  /* if */
+done:
   return deduction_okay;
 }  /* deduce_from_braced_init_list */
 
@@ -4230,28 +4273,15 @@ succeeds, FALSE if it fails.
     if (ptp != NULL) param_type = ptp->type;
     if (arg != NULL) {
       if (is_braced_init_component(arg)) {
-        /* A braced-init-list is a nondeduced context, except if the
-           parameter is an instance of std::initializer<T>, in which case
-           deduction for T is done against the members of the initializer
-           list. */
-        a_type_ptr eff_param_type = param_type;
-        a_type_ptr elem_type;
-        if (is_any_reference_type(param_type)) {
-          eff_param_type = type_pointed_to(param_type);
-        }  /* if */
-        if (!is_instance_of_std_initializer_list(eff_param_type,
-                                                 &elem_type)) {
-          /* Not std::initializer_list<T>, so consider a nondeduced context. */
+        /* Deduction from braced initializer lists is treated specially.
+           (See N4431 14.8.2.1/1.) */
+        if (deduce_from_braced_init_list(arg, param_type,
+                                         templ_params, template_arg_list)) {
+          goto next_iteration;
         } else {
-          /* std::initializer_list<T>, deduce with T as a parameter type
-             against each expression in the list. */
-          deduction_okay = deduce_from_braced_init_list(arg,
-                                                        elem_type,
-                                                        templ_params,
-                                                        template_arg_list);
-          if (!deduction_okay) goto end_of_routine;
+          deduction_okay = FALSE;
+          goto end_of_routine;
         }  /* if */
-        goto next_iteration;
       }  /* if */
       check_assertion(is_expression_component(arg));
       operand = operand_of_arg_list_elem(arg);
@@ -21593,8 +21623,8 @@ an evaluation of whether the initialization is valid, without issuing
 errors or building IL, and return *arg_match set to indicate how good
 a match the initialization is, in overload resolution terms (e.g., is
 it an exact match or a user-defined conversion, etc.)  If arg_match is
-NULL, expr_stack->suppress_diagnostics indicates whether whether
-errors should be suppressed (i.e., SFINAE mode).
+NULL, expr_stack->suppress_diagnostics indicates whether errors should
+be suppressed (i.e., SFINAE mode).
 */
 {
   a_routine_ptr      dtor = NULL, ctor;
