@@ -1,5 +1,19 @@
 Version 4.11
 
+7/16/15  [EDGcpfe/16377]
+Spurious error on template-dependent GNU asm output operands
+
+The front end previously issued a spurious error on certain template-dependent
+GNU asm output operands indicating they were not modifiable.  For example:
+
+  template <typename T> void g() {
+    typename T::X v;
+    asm ("" : "+m" (v.x));  // Previously triggered a spurious error during
+  };                        // prototype instantiation.
+
+This is now fixed.
+
+
 7/15/15  [EDGcpfe/16330]
 Friendship not recorded in source sequence entry in some cases with attributes
 

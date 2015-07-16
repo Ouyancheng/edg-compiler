@@ -9639,7 +9639,9 @@ address), in which case a conversion is not used.
     }  /* if */
     do_operand_transformations(&result, options);
   }  /* if */
-  if (output) {
+  if (output &&
+      !(is_template_dependent_context() &&
+        is_template_param_type(result.type))) {
     /* Logically, output operands must be modifiable lvalues.  However, various
        versions of the GNU C and C++ compilers accept different kinds of
        lvalues (and the outcome is sometimes dependent on the platform).
@@ -9647,7 +9649,11 @@ address), in which case a conversion is not used.
        versions of the GNU C (but not GNU C++) compiler also accept void
        lvalues.  Since some version-specific behavior appears to be platform
        dependent, we issue a warning for all values of gnu_version in cases
-       that are known to be accepted on at least one version. */
+       that are known to be accepted on at least one version.  (Lvalueness
+       cannot reliably be determined for some template-dependent constructs.
+       We therefore don't check the constraint in those cases until a real
+       instantiation.) */
+
     a_type_ptr         type = result.type;
     an_error_severity  sev = es_none;
     an_error_code      diag = ec_expr_not_a_modifiable_lvalue;
