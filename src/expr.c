@@ -5207,7 +5207,7 @@ are expected to be NULL in that case.
       overloaded_function_symbol = operand->symbol;
       /* routine_type = NULL;  -- already set. */
       /* Check for the case of an explicit call to a conversion function
-         template in a dependent context.  I.e., something like:
+         template in a dependent context, i.e., something like:
            return operator T();
          where T is a template parameter.  Such a case cannot be handled by
          the normal deduction machinery and is therefore handled as an unknown
