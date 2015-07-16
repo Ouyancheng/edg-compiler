@@ -4108,7 +4108,7 @@ dest_type or used as an initializer for an "auto" typed variable (in the latter
 case, dest_type is the "auto" type).  If applicable, deduce the appropriate
 template arguments (recorded in *template_arg_list and corresponding to the
 given template parameters) for the initialization of the parameter or
-variables.  So, for example, is dest_type is std::initializer_list<T>, and the
+variable.  So, for example, if dest_type is std::initializer_list<T>, and the
 list is {1, 2, 3}, the argument list sought is one that sets T=int.  Three
 cases can lead to actual deduction:
   (1) an "auto" typed variable
