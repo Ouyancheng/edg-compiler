@@ -4,10 +4,10 @@ Version 4.11
 Friendship not recorded in source sequence entry in some cases with attributes
 
 In configurations with RECORD_UNRECOGNIZED_ATTRIBUTES set to TRUE, an unknown
-attribute applied to a friend class declaration resulted in the secondary
-source sequence entry for that friend declaration to have its friend_decl flag
-remain FALSE.  That in turn case the C++-generating back end not to render
-correct code.  For example:
+attribute applied to a friend class declaration caused the secondary source
+sequence entry for that friend declaration to have its friend_decl flag remain
+FALSE.  That in turn caused the C++-generating back end not to render correct
+code.  For example:
 
   class C {
     friend __attribute((Unknown)) class X;
