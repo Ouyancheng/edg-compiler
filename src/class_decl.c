@@ -9769,10 +9769,14 @@ ordinary friend class declaration.
       /* Find the source sequence entry corresponding to this friend
          declaration (there is no such entry if the friendship is generated
          from a friend template declaration). */
-      a_source_sequence_entry_ptr  ssep =
-                   last_matching_source_sequence_entry((char *)declared_type);
+      a_source_sequence_entry_ptr
+          ssep = last_matching_source_sequence_entry(
+                           (char *)skip_typerefs_not_typedefs(declared_type));
       if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-        ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
+        a_src_seq_secondary_decl_ptr  sssdp;
+        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        sssdp->friend_decl = TRUE;
+        sssdp->declared_type = declared_type;
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

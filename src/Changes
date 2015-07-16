@@ -1,5 +1,24 @@
 Version 4.11
 
+7/15/15  [EDGcpfe/16330]
+Friendship not recorded in source sequence entry in some cases with attributes
+
+In configurations with RECORD_UNRECOGNIZED_ATTRIBUTES set to TRUE, an unknown
+attribute applied to a friend class declaration resulted in the secondary
+source sequence entry for that friend declaration to have its friend_decl flag
+remain FALSE.  That in turn case the C++-generating back end not to render
+correct code.  For example:
+
+  class C {
+    friend __attribute((Unknown)) class X;
+    int i;
+  };
+  
+Previously the friend declaration above was rendered as just "class X;".
+This is now fixed.  The attributes are now also rendered (albeit after the
+class specifier, which is an equivalent construct).
+
+
 7/15/15  [EDGcpfe/16191]
 Explicit calls to conversion function templates
 

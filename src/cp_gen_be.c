@@ -8375,7 +8375,11 @@ this one is such a continuation.
       template_decl = assoc_template->template_decl;
       type = assoc_template->prototype_instantiation.type;
     } else {
-      type = ss_entry_ptr(sec_decl, a_type_ptr);
+      if (sec_decl->declared_type != NULL) {
+        type = sec_decl->declared_type;
+      } else {
+        type = ss_entry_ptr(sec_decl, a_type_ptr);
+      }  /* if */
     }  /* if */
     friend_decl = sec_decl->friend_decl;
 #if GNU_EXTENSIONS_ALLOWED
