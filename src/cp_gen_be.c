@@ -8375,11 +8375,7 @@ this one is such a continuation.
       template_decl = assoc_template->template_decl;
       type = assoc_template->prototype_instantiation.type;
     } else {
-      if (sec_decl->declared_type != NULL) {
-        type = sec_decl->declared_type;
-      } else {
-        type = ss_entry_ptr(sec_decl, a_type_ptr);
-      }  /* if */
+      type = ss_entry_ptr(sec_decl, a_type_ptr);
     }  /* if */
     friend_decl = sec_decl->friend_decl;
 #if GNU_EXTENSIONS_ALLOWED
@@ -8606,6 +8602,14 @@ this one is such a continuation.
            not be visible until it is really declared and so will require an
            elaborated-type-specifier for the next reference. */
         type->has_been_declared = saved_has_been_declared;
+      }  /* if */
+      if (sec_decl != NULL && sec_decl->declared_type != NULL &&
+          sec_decl->declared_type->kind == (a_type_kind)tk_typeref &&
+          sec_decl->declared_type->variant.typeref.for_type_attributes) {
+        /* Some attributes on this declaration were recorded as type attributes
+           (e.g., "friend class X __attribute((XX));"). */
+        gen_attributes(sec_decl->declared_type->source_corresp.attributes,
+                       al_specifier, /*primary_only=*/FALSE);
       }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
