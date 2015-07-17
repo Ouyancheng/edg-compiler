@@ -1385,11 +1385,13 @@ static a_typedef_hash_entry
 
 static a_hash_value hash_type_ptr(a_type_ptr type)
 /*
-Hash function for a type pointer.  Returns the numeric value of the
-pointer, right-shifted six bits to account for the size of an a_type entry.
+Hash function for a type pointer.  Return the numeric value of the result
+of skip_typerefs applied to the pointer, right-shifted six bits to account
+for the size of an a_type entry.  (The result of skip_typerefs is used so
+that typedefs with identical types will hash into the same bucket.)
 */
 {
-  return (a_hash_value)(((unsigned long)type) >> 6);
+  return (a_hash_value)(((unsigned long)skip_typerefs(type)) >> 6);
 }  /* hash_typedef */
 
 
@@ -1434,8 +1436,26 @@ otherwise, return NULL.
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
     if (standalone_identical_types(entry->type->variant.typeref.type, type)) {
-      /* This typedef can be used in place of the specified type. */
-      result = entry->type;
+      /* The typedef matches.  Check whether it can be used. */
+      a_type_ptr parent_class = parent_class_or_null(entry->type);
+      if (parent_class != NULL &&
+          is_prototype_instantiation_type(parent_class)) {
+        /* The typedef is a member of a prototype instantiation, so it can
+           only be safely used within the scope of its class template. */
+        if (class_is_in_name_context_stack(
+                                  parent_class, /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE) ||
+            (curr_name_context != NULL &&
+             curr_name_context->class_type_for_access_not_naming ==
+                                                               parent_class)) {
+          /* The reference is within the scope of the parent class. */
+          result = entry->type;
+        }  /* if */
+      } else {
+        /* The typedef is not a member of a prototype instantiation, so it
+           can be used. */
+        result = entry->type;
+      }  /* if */
     }  /* if */
   }  /* for */
   return result;
@@ -3216,19 +3236,6 @@ for the meaning of need_closing_paren.
         substitute_typedef =
                           find_typedef_in(proto_inst_member_typedef_hash_table,
                                           template_param_type);
-        if (substitute_typedef != NULL) {
-          a_type_ptr parent_class = parent_class_or_null(substitute_typedef);
-          if (!(parent_class == NULL ||
-                class_is_in_name_context_stack(
-                                  parent_class, /*include_base_classes=*/TRUE,
-                                  /*ignore_field_selection_contexts=*/FALSE) ||
-                (curr_name_context != NULL &&
-                 curr_name_context->class_type_for_access_not_naming ==
-                                                              parent_class))) {
-            /* We cannot safely use a typedef from a different class here. */
-            substitute_typedef = NULL;
-          }  /* if */
-        }  /* if */
       }  /* if */
       if (substitute_typedef != NULL) {
         /* Use the typedef instead of the underlying type. */
@@ -3718,7 +3725,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     if (entry_kind == iek_type) {
       a_type_ptr     tp;
       a_template_ptr assoc_template = NULL;
-      replace_inaccessible_type_with_accessible_typedef(&scp);
+      if (!(options & GN_DECLARATION)) {
+        /* See if a reference to (but not a declaration of) an inaccessible
+           type can be replaced by a known accessible typedef. */
+        replace_inaccessible_type_with_accessible_typedef(&scp);
+      }  /* if */
       tp = (a_type_ptr)scp;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (tp->kind == (a_type_kind)tk_template_param &&

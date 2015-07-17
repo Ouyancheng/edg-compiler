@@ -1,5 +1,30 @@
 Version 4.11
 
+7/17/15  [EDGcpfe/16289]
+C++-generating back end: incorrect and missing typedef substitutions
+
+As noted in the entry for EDGcpfe/11015, the C++-generating back end
+attempts to substitute an accessible equivalent typedef when an inaccessible
+type specifier would otherwise be generated from the IL.  In some complex
+code examples, this processing could result in replacing the typedef name
+being declared in a typedef declaration with a type reference, resulting in
+incorrect and uncompilable code.  This is now fixed.
+
+In addition, the changes for EDGcpfe/16101 (included in version 4.10.1)
+introduced a bug that caused some necessary replacements no longer to be
+done.  This also is now fixed.  For example:
+
+  template<typename T> struct A { };
+  class B {
+    struct priv { };
+    A<priv> ap;
+    typedef priv PRIV;
+  public:
+    typedef PRIV PUB;
+  };
+  A<B::PUB> a;   // Generated as A<B::priv> in 4.10.1, now as A<B::PUB> again
+
+
 7/16/15  [EDGcpfe/16372]
 Assertion failure in lower_dynamic_init
 
