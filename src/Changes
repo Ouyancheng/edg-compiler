@@ -1,5 +1,23 @@
 Version 4.11
 
+7/16/15  [EDGcpfe/16372]
+Assertion failure in lower_dynamic_init
+
+In some configurations, an assertion failure (in lower_dynamic_init) had
+occurred when exceptions are disabled and an initializer list element with a
+destructor is used to initialize a non-aggregate class type.  For example (with
+--no_exceptions --c++11):
+
+  struct B {
+    B() {}
+    ~B() {}
+  };
+  struct A {
+    A(B b) : b_{b} {}
+    B b_;
+  };
+
+
 7/16/15  [EDGcpfe/16377]
 Spurious error on template-dependent GNU asm output operands
 

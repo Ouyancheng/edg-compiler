@@ -3695,8 +3695,8 @@ initializer, already copied and substituted.
           aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
         } else {
           /* Non-aggregate class type. */
-          convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
-                              is);
+          convert_initializer(icp, dtype, is_var_init,
+                              /*fill_in_dtor=*/exceptions_enabled, is);
         }  /* if */
       }  /* if */
       break;
