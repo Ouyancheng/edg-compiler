@@ -1522,6 +1522,12 @@ static a_boolean
 			   been initialized yet. */
 
 
+static a_boolean do_constexpr_dynamic_init(
+                                        an_interpreter_state  *ips,
+                                        a_dynamic_init_ptr    dip,
+                                        a_byte                *result_storage);
+
+
 /*
 Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
@@ -1569,6 +1575,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         clear_runtime_constant_address(value, addr_con);
       }
       break;
+    case ck_dynamic_init:
+      {
+        do_constexpr_dynamic_init(ips, con->variant.dynamic_init, value);
+      }
+      break;
     case ck_aggregate:
       {
         a_type_ptr  tp = skip_typerefs(con->type);
@@ -1598,7 +1609,30 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
-          unexpected_condition();  /* FIXME: class/struct constants. */
+          a_field_ptr     fp = tp->variant.class_struct_union.field_list;
+          a_constant_ptr  elem_con;
+          elem_con = con->variant.aggregate.first_constant;
+          for (;;) {
+            a_byte_count    offset;
+            fp = next_initializable_field(fp);
+            if (fp == NULL) {
+              /* All fields are initialized: We're done. */
+              break;
+            }  /* if */
+            get_mapped_byte_count(&persistent_map, fp, offset);
+            if (elem_con == NULL) {
+              /* No more initializers, but we have more fields.  Zero the
+                 remainder of the class value. */
+              a_byte_count  class_size = value_bytes_for_type(ips, tp);
+              memzero(value+offset, size_t_arg(class_size-offset));
+              break;
+            } else if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+              result = FALSE;
+              break;
+            }  /* if */
+            fp = fp->next;
+            elem_con = elem_con->next;
+          }  /* for */
         } else if (tp->kind == (a_type_kind)tk_union) {
           unexpected_condition();  /* FIXME: union constants? */
         } else {
@@ -1619,8 +1653,8 @@ Macro to interpret a full-expression.
 #define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
   {                                                                           \
     a_storage_stack_state  saved_stack_for_full_expr;                         \
-    save_storage_stack((ips), saved_stack_for_full_expr);                     \
-    (result_flag) = do_constexpr_expression((ips), (expr), (result_storage)); \
+    save_storage_stack(ips, saved_stack_for_full_expr);                       \
+    (result_flag) = do_constexpr_expression(ips, expr, result_storage);       \
     restore_storage_stack(ips, saved_stack_for_full_expr);                    \
   }
 
@@ -1628,6 +1662,41 @@ static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
                                        a_byte                *result_storage);
+
+
+static a_boolean do_constexpr_dynamic_init(
+                                        an_interpreter_state  *ips,
+                                        a_dynamic_init_ptr    dip,
+                                        a_byte                *result_storage)
+/*
+Evaluate the given dynamic initialization for the given storage.
+*/
+{
+  a_boolean  result;
+
+  switch (dip->kind) {
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+      result = copy_val_from_constant(ips, dip->variant.constant,
+                                      result_storage);
+      break;
+    case dik_expression:
+      result = do_constexpr_expression(ips, dip->variant.expression,
+                                       result_storage);
+      break;
+    case dik_class_result_via_ctor:
+    case dik_constructor:
+    case dik_bitwise_copy:
+      /* FIXME: NYI. */
+      unexpected_condition();
+      break;
+    case dik_zero:
+    case dik_none:
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* do_constexpr_dynamic_init */
 
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
@@ -2080,27 +2149,10 @@ done_with_switch:
         get_stack_bytes(ips, vp, var_storage);
         if (var_storage != NULL) {
           /* Evaluate the initializer. */
-          switch (dip->kind) {
-            case dik_constant:
-              result = copy_val_from_constant(ips, dip->variant.constant,
-                                              var_storage);
-              break;
-            case dik_expression:
-              do_constexpr_full_expression(ips, dip->variant.expression,
-                                           var_storage, result);
-              break;
-            case dik_class_result_via_ctor:
-            case dik_constructor:
-            case dik_nonconstant_aggregate:
-            case dik_bitwise_copy:
-              /* FIXME: NYI. */
-              unexpected_condition();
-              break;
-            case dik_zero:
-            case dik_none:
-            default:
-              unexpected_condition();
-          }  /* switch */
+          a_storage_stack_state  saved_stack_for_full_expr;
+          save_storage_stack((ips), saved_stack_for_full_expr);
+          do_constexpr_dynamic_init(ips, dip, var_storage);
+          restore_storage_stack(ips, saved_stack_for_full_expr);
         }  /* if */
       }
       break;
@@ -2703,6 +2755,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
+            case eok_dot_field:
+              { a_constexpr_address  result_addr;
+                a_byte_count         offset;
+                result_addr = *(a_constexpr_address*)opnd1_value;
+                get_mapped_byte_count(&persistent_map, opnd2->variant.field,
+                                      offset);
+                result_addr.address += offset;
+                set_result_val_from_operand_address(&result_addr);
+              }
+              break;
             case eok_shiftl:
               /* Check for a valid value of opnd2, which must be non-negative
                  and less than the number of bits in opnd1. */
@@ -2874,6 +2936,10 @@ type.  This includes checking the value of ovfl set by the operation.
           }  /* if */
         }  /* if */
       }
+      break;
+    case enk_field:
+      /* Nothing to do at this point.  Specific parent operators (like
+         eok_dot_field) know what to do with this kind of node. */
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */

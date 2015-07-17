@@ -7460,7 +7460,6 @@ keeps constexpr function bodies.
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
-  if (routine->is_constexpr) keep = TRUE;
   return keep;
 }  /* keep_function_body_for_possible_inlining */
 
@@ -8060,6 +8059,11 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        Here the member function A::f will have its definition popped from the
        scope stack before function g(int) is declared.  A::f should therefore
        not be lowered right away. */
+    delay_lowering = TRUE;
+  } else if (routine->is_constexpr && relaxed_constexpr_enabled) {
+    /* C++14-style constexpr functions are interpreted from the unlowered IL.
+       So lowering should be delayed until all interpreted evaluations are
+       known to have occurred. */
     delay_lowering = TRUE;
 #if NEED_NAME_MANGLING
   } else if (must_wait_for_discriminator(routine)) {
