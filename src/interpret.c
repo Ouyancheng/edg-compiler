@@ -1577,7 +1577,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       break;
     case ck_dynamic_init:
       {
-        do_constexpr_dynamic_init(ips, con->variant.dynamic_init, value);
+        result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
+                                           value);
       }
       break;
     case ck_aggregate:
@@ -2151,7 +2152,7 @@ done_with_switch:
           /* Evaluate the initializer. */
           a_storage_stack_state  saved_stack_for_full_expr;
           save_storage_stack((ips), saved_stack_for_full_expr);
-          do_constexpr_dynamic_init(ips, dip, var_storage);
+          result = do_constexpr_dynamic_init(ips, dip, var_storage);
           restore_storage_stack(ips, saved_stack_for_full_expr);
         }  /* if */
       }
