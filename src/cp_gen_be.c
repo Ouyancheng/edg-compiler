@@ -3256,6 +3256,15 @@ for the meaning of need_closing_paren.
         gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
                  need_closing_paren);
       }  /* if */
+    } else if (clang_is_generated_code_target &&
+               class_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+      /* Clang has a bug that sometimes reports a spurious error if the
+         name of the current instantiation is used with its template
+         parameters as arguments. */
+      gen_name(&class_type->source_corresp, iek_type,
+               options | GN_QUALIFIER | GN_NO_TEMPLATE_ARGS,
+               need_closing_paren);
     } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Do not insert code here. */

@@ -1,5 +1,29 @@
 Version 4.11
 
+7/18/15  [EDGcpfe/16277]
+C++-generating back end, clang compatibility: naming the current instantiation
+
+The clang C++ compiler has a bug that causes it to issue a spurious error
+in some contexts when the name of the current instantiation with its
+template parameters as arguments is used as a qualifier.  The
+C++-generating back end in configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE previously produced this form
+unconditionally.  This has now been addressed; when
+clang_is_generated_code_target is TRUE, the C++-generating back end will
+suppress the template argument list in a qualifier naming the current
+instantiation.  For example:
+
+  namespace N {
+    template <class T> class A {
+      template <class M> void foo() {
+        M a;
+        a.A::foo();   // Previously generated as a.N::A<T>::foo(), provoking
+                      // the clang bug
+      }
+    };
+  }
+
+
 7/17/15  [EDGcpfe/16289]
 C++-generating back end: incorrect and missing typedef substitutions
 
