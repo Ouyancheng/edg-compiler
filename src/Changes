@@ -3,9 +3,9 @@ Version 4.11
 7/18/15  [EDGcpfe/16277]
 C++-generating back end, clang compatibility: naming the current instantiation
 
-The clang C++ compiler has a bug that causes it to issue a spurious error
-in some contexts when the name of the current instantiation with its
-template parameters as arguments is used as a qualifier.  The
+The clang C++ compiler has a bug that sometimes causes it to issue a
+spurious error for a name qualifier consisting of the name of the class
+template being defined followed by its parameters as arguments.  The
 C++-generating back end in configurations with
 PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE previously produced this form
 unconditionally.  This has now been addressed; when
