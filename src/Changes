@@ -1,5 +1,27 @@
 Version 4.11
 
+7/20/15  [EDGcpfe/16351]
+Incorrect IL for folded constructor call that partially initializes a field
+
+In C++11 mode, the front end sometimes failed to record the flag
+"is_partially_initialized" in aggregate constants and dynamic initializer
+entries resulting from a folded constructor call.  This could cause code
+generators (like the C-generating back end) to fail to fully initialize the
+corresponding aggregate object.  For example:
+
+  struct S {
+    int ia[4];
+    constexpr S(int p) : ia{p} {}  // Partial initialization of S::ia.
+  };
+  void g() {
+    S x(42);  // Previously, the dynamic initializer entry for x did not have
+  }           // its "is_partially_initialized" flag set to TRUE.  The code
+              // emitted by the C-generating back end failed to fully
+              // initialize x as a consequence of this.
+
+This is now fixed.
+
+
 7/20/15  [EDGcpfe/16287]
 C++-generating back end: assertion failure with parenthesized initializer
 

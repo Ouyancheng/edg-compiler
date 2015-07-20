@@ -9274,6 +9274,8 @@ in *result_con and return TRUE; otherwise, return FALSE.
     new_aggr = result_con;
     clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
     new_aggr->type = aggr->type;
+    new_aggr->partial_aggr_value = aggr->partial_aggr_value;
+    new_aggr->is_partially_initialized = aggr->is_partially_initialized;
     folded = TRUE;
     push_aggr_init_constant(new_aggr, &aggr_init_con);
     /* Loop through the elements of the aggregate and copy each one.
