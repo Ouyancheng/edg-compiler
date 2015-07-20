@@ -1919,13 +1919,16 @@ Interpret the given range-based for-statement.
   a_range_based_for_loop_ptr
                          loop_info =
                                 stmt->variant.range_based_for_loop.extra_info;
-  a_variable_ptr         vp[4] = { loop_info->iterator, loop_info->range,
-                                   loop_info->begin, loop_info->end };
+  a_variable_ptr         vp[4];
   a_byte                 *var_storage[4];
   int                    k;
   a_dynamic_init_ptr     dip;
   save_storage_stack(ips, saved_stack);
   /* Acquire storage for the iteration variables. */
+  vp[0] = loop_info->iterator;
+  vp[1] = loop_info->range;
+  vp[2] = loop_info->begin;
+  vp[3] = loop_info->end;
   for (k = 0; k<4; ++k) {
     a_byte_count  n_bytes = value_bytes_for_type(ips, vp[k]->type);
     alloc_stack_bytes(ips, n_bytes, var_storage[k]);
