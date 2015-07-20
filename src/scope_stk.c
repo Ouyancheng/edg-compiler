@@ -7445,7 +7445,10 @@ keeps constexpr function bodies.
 {
   a_boolean keep = FALSE;
 
-  if (routine->is_inline) {
+  if (routine->is_constexpr) {
+    /* Unconditionally keep the bodies of constexpr functions. */
+    keep = TRUE;
+  } else if (routine->is_inline) {
 #if MINIMAL_INLINING
     if (inlining_enabled) {
       keep = TRUE;
