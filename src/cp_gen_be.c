@@ -16023,17 +16023,24 @@ and the output of the type name.
         if (is_var_init) {
           if (paren_form) {
             if (args == NULL || args->generated_default_arg) {
-              /* The only way to get this situation -- a parenthesized
-                 variable initializer that invokes the default constructor --
-                 is with a C++11-style empty braced-init-list, e.g.,
-                 something like "T x(T{})".  (Although this is technically an
-                 invocation of T's copy/move constructor with a
-                 value-initialized temporary, the copy/move is elided, so it
-                 is represented in the IL as directly initializing the
-                 variable.)  Put out this form as a special case, in order to
-                 avoid generating "T x()" (which declares a function, not a
-                 variable), and suppress the argument list. */
-              check_assertion(il_header.std_version >= 201103);
+              /* This situation -- a parenthesized variable initializer
+                 that invokes the default constructor -- is unusual, as
+                 something like "T x()" declares a function, not a
+                 variable.  It can occur in C++11 with an empty
+                 braced-init-list, e.g., "T x(T{})", or in C++03 with extra
+                 parentheses for disambiguation, e.g., "T x((T()))".
+                 (Although these are technically invocations of T's
+                 copy/move constructor with a value-initialized temporary,
+                 the copy/move is elided, so it is represented in the IL as
+                 directly initializing the variable.)  Put out this form as
+                 a special case, in order to avoid generating "T x()", and
+                 suppress the argument list. */
+              if (il_header.std_version < 201103) {
+                /* The C++03 form requires extra parentheses for
+                   disambiguation. */
+                write_tok_ch('(');
+                need_disambiguation_close_paren = TRUE;
+              }  /* if */
               if (ctor != NULL) {
                 /* If the class is known and named, put out "T{}" to avoid
                    possible ambiguities with other constructors.  Otherwise,
@@ -16043,8 +16050,15 @@ and the output of the type name.
                                         has_name_before_mangling(class_type)) {
                   gen_type_reference(class_type);
                 }  /* if */
+              } else {
+                /* The type name cannot be omitted in the C++03 form. */
+                check_assertion(il_header.std_version >= 201103);
               }  /* if */
-              write_tok_str("{}");
+              if (il_header.std_version >= 201103) {
+                write_tok_str("{}");
+              } else {
+                write_tok_str("()");
+              }  /* if */
               no_args = TRUE;
             } else if (args != NULL && args->next == NULL &&
                        !args->generated_default_arg &&
