@@ -1059,12 +1059,12 @@ typedef struct a_constexpr_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
-/* Not needed yet: eliminate to placate lint. */
   a_bit_field
 		in_array:1;
 			/* TRUE if this is a pointer to an array element
 			   stored in interpreter storage. */
 #if 0
+  /* FIXME -- Not needed yet: disabled to placate lint. */
   a_bit_field
 		is_function_address:1;
 			/* TRUE if this is the address of a function. */
@@ -1094,6 +1094,7 @@ typedef struct a_constexpr_address {
 		*base_address;
 			/* For an array element, the address of element #0. */
 #if 0    
+    /* FIXME -- Not needed yet: disabled to placate lint. */
     /* When is_function_address is TRUE: */
     a_routine_ptr
 		routine;
@@ -1125,7 +1126,7 @@ a_constexpr_address addr.
 #define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
 
 #if 0
-/* Not needed yet: eliminate to placate lint. */
+/* FIXME -- Not needed yet: disabled to placate lint. */
 /*
 Convenience macro to get a pointer to the float value addressed by the
 a_constexpr_address addr.
@@ -1142,7 +1143,7 @@ value at targ_addr.
   ((a_constexpr_address *)(addr))->address = (targ_addr);
 
 #if 0
-/* Not needed yet: eliminate so lint won't complain. */
+/* FIXME -- Not needed yet: disabled so lint won't complain. */
 /*
 Macro to initialize a constant address at addr referring to the array
 element at targ_addr, which is a member of the interpreter array of len
@@ -1673,7 +1674,7 @@ static a_boolean do_constexpr_dynamic_init(
 Evaluate the given dynamic initialization for the given storage.
 */
 {
-  a_boolean  result;
+  a_boolean  result = FALSE;
 
   switch (dip->kind) {
     case dik_constant:
@@ -1763,6 +1764,147 @@ Interpret the given block statement and its associated scope (if any).
   }  /* if */
   return result;
 }  /* do_constexpr_block_statement */
+
+
+static a_boolean do_constexpr_for_statement(an_interpreter_state  *ips,
+                                            a_statement_ptr       stmt)
+/*
+Interpret the given for-statement.
+*/
+{
+  a_boolean              result = TRUE, local_storage = FALSE;
+  a_storage_stack_state  saved_stack;
+  a_for_loop_ptr         loop_info = stmt->variant.for_loop.extra_info;
+  a_scope_ptr            init_scope = loop_info->for_init_scope;
+  a_statement_ptr        init = loop_info->initialization;
+
+  save_storage_stack(ips, saved_stack);
+  if (init_scope != NULL) {
+    /* Allocate storage for variables, and map the variables to that
+       storage. */
+    a_variable_ptr  vp = init_scope->nonstatic_variables;
+    if (vp != NULL) {
+      local_storage = TRUE;
+      do {
+        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
+        a_byte        *var_storage;
+        alloc_stack_bytes(ips, n_bytes, var_storage);
+        /* Associate with the variable its value storage. */
+        map_stack_bytes(ips, vp, var_storage);
+        /* Also associate with the variable (somewhat arbitrarily, with its
+           "storage_class" field) an allocation sequence number that may be
+           used to detect leaks. */
+        map_byte_count(&ips->map, &vp->storage_class,
+                       ips->curr_alloc_seq_number);
+        vp = vp->next;
+      } while (vp != NULL);
+    }  /* if */
+  }  /* if */
+  /* Run the initialization statement (if any). */
+  if (init != NULL && !do_constexpr_statement(ips, init)) {
+    result = FALSE;
+  } else {
+    an_expr_node_ptr  expr = stmt->expr, incr = loop_info->increment;
+    a_byte            expr_bytes[VALUE_BYTES_FOR_SCALAR];
+    a_byte            incr_bytes[VALUE_BYTES_FOR_SCALAR];
+    a_byte            *expr_value, *incr_value;
+    a_type_ptr        tp, incr_type;
+    a_byte_count      n_bytes;
+    a_boolean         ovfl;
+    a_host_large_integer
+                      bool_val;
+    if (expr != NULL) {
+      /* The type of the test expression is known to be bool, which will
+         fit within the expr_bytes array. */
+      expr_value = expr_bytes;
+      tp = skip_typerefs(expr->type);
+    } else {
+      /* Needed only to avoid spurious GNU compiler optimizer
+         warnings. */
+      expr_value = expr_bytes;
+      tp = NULL;
+    }  /* if */
+    incr = loop_info->increment;
+    if (incr != NULL) {
+      incr_type = skip_typerefs(incr->type);
+      n_bytes = value_bytes_for_type(ips, incr_type);
+      if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+          !incr->is_lvalue && !incr->is_xvalue) {
+        /* The result of the increment expression is larger than a scalar
+           type, so allocate space for it on the stack. */
+        alloc_stack_bytes(ips, n_bytes, incr_value);
+      } else {
+        incr_value = incr_bytes;
+      }  /* if */
+    } else {
+      /* Needed only to avoid spurious GNU compiler optimizer
+         warnings. */
+      incr_type = NULL;
+      incr_value = incr_bytes;
+    }  /* if */
+    do {
+      /* Evaluate the test expression. */
+      if (cost_exceeded(ips)) {
+        result = FALSE;
+        /* FIXME: record a diagnostic. */
+      } else if (expr != NULL) {
+        do_constexpr_full_expression(ips, expr, expr_value, result);
+        release_local_constant_from_address(expr, tp, expr_value);
+        ips->cost += 1;
+      }  /* if */
+      if (result) {
+        /* Evaluation of the test expression succeeded.  Get its value
+           to see if the dependent statement should be executed. */
+        if (expr != NULL) {
+          get_int_val_from(expr_value, tp, bool_val, ovfl);
+        } else {
+          bool_val = TRUE;
+          ovfl = FALSE;
+        }  /* if */
+        if (!ovfl && bool_val) {
+          /* Execute the dependent statement. */
+          result = do_constexpr_statement(
+                                       ips, stmt->variant.for_loop.statement);
+          if (result) {
+            /* Execution of the dependent statement succeeded, so evaluate
+               the increment expression (if any) unless we hit a branching
+               statement. */
+            if (ips->curr_call_frame->return_active) {
+              /* Break out of the loop (leave the flag active since we may
+                 have to break out of other constructs). */
+              break;
+            } else if (ips->curr_call_frame->break_active) {
+              /* Break out of the loop (which completes the execution of
+                 the break statement). */
+              ips->curr_call_frame->break_active = FALSE;
+              break;
+            } else if (ips->curr_call_frame->continue_active) {
+              /* Continue, but clear the continue_active flag since we've
+                 reached the point of continuation. */
+              ips->curr_call_frame->continue_active = FALSE;
+            }  /* if */
+            if (incr != NULL) {
+              do_constexpr_full_expression(ips, incr, incr_value, result);
+              release_local_constant_from_address(incr, incr_type,
+                                                  incr_value);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }   /* if */
+    } while (result && bool_val);
+  }  /* if */
+  /* Release and unmap the local storage if necessary. */
+  if (local_storage) {
+    a_variable_ptr  vp = init_scope->nonstatic_variables;
+    do {
+      unmap_stack_bytes(ips, vp);
+      unmap_ptr(&ips->map, &vp->storage_class);
+      vp = vp->next;
+    } while (vp != NULL);
+  }  /* if */
+  restore_storage_stack(ips, saved_stack);
+  return result;
+}  /* do_constexpr_for_statement */
 
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
@@ -1949,99 +2091,7 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_for:
-      {
-        a_byte           incr_bytes[VALUE_BYTES_FOR_SCALAR];
-        a_byte           *incr_value;
-        an_expr_node_ptr incr;
-        a_type_ptr       incr_type;
-        expr = stmt->expr;
-        if (expr != NULL) {
-          /* The type of the test expression is known to be bool, which will
-             fit within the expr_bytes array. */
-          expr_value = expr_bytes;
-          tp = skip_typerefs(expr->type);
-        } else {
-          /* Needed only to avoid spurious GNU compiler optimizer
-             warnings. */
-          expr_value = expr_bytes;
-          tp = NULL;
-        }  /* if */
-        incr = stmt->variant.for_loop.extra_info->increment;
-        if (incr != NULL) {
-          incr_type = skip_typerefs(incr->type);
-          n_bytes = value_bytes_for_type(ips, incr_type);
-          save_storage_stack(ips, saved_stack);
-          if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
-              !incr->is_lvalue && !incr->is_xvalue) {
-            /* The result of the increment expression is larger than a scalar
-               type, so allocate space for it on the stack. */
-            alloc_stack_bytes(ips, n_bytes, incr_value);
-          } else {
-            incr_value = incr_bytes;
-          }  /* if */
-        } else {
-          /* Needed only to avoid spurious GNU compiler optimizer
-             warnings. */
-          save_storage_stack(ips, saved_stack);
-          incr_type = NULL;
-          incr_value = incr_bytes;
-        }  /* if */
-        /* Initialization is handled by an stmk_init in the containing block
-           and not as part of the stmk_for processing. */
-        do {
-          /* Evaluate the test expression. */
-          if (cost_exceeded(ips)) {
-            result = FALSE;
-            /* FIXME: record a diagnostic. */
-          } else if (expr != NULL) {
-            do_constexpr_full_expression(ips, expr, expr_value, result);
-            release_local_constant_from_address(expr, tp, expr_value);
-            ips->cost += 1;
-          }  /* if */
-          if (result) {
-            /* Evaluation of the test expression succeeded.  Get its value
-               to see if the dependent statement should be executed. */
-            if (expr != NULL) {
-              get_int_val_from(expr_value, tp, bool_val, ovfl);
-            } else {
-              bool_val = TRUE;
-              ovfl = FALSE;
-            }  /* if */
-            if (!ovfl && bool_val) {
-              /* Execute the dependent statement. */
-              result = do_constexpr_statement(
-                                       ips, stmt->variant.for_loop.statement);
-              if (result) {
-                /* Execution of the dependent statement succeeded, so evaluate
-                   the increment expression (if any) unless we hit a branching
-                   statement. */
-                if (ips->curr_call_frame->return_active) {
-                  /* Break out of the loop (leave the flag active since we may
-                     have to break out of other constructs). */
-                  break;
-                } else if (ips->curr_call_frame->break_active) {
-                  /* Break out of the loop (which completes the execution of
-                     the break statement). */
-                  ips->curr_call_frame->break_active = FALSE;
-                  break;
-                } else if (ips->curr_call_frame->continue_active) {
-                  /* Continue, but clear the continue_active flag since we've
-                     reached the point of continuation. */
-                  ips->curr_call_frame->continue_active = FALSE;
-                }  /* if */
-                if (incr != NULL) {
-                  do_constexpr_full_expression(ips, incr, incr_value, result);
-                  release_local_constant_from_address(incr, incr_type,
-                                                      incr_value);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }   /* if */
-        } while (result && bool_val);
-        if (incr != NULL) {
-          restore_storage_stack(ips, saved_stack);
-        }  /* if */
-      }
+      result = do_constexpr_for_statement(ips, stmt);
       break;
     case stmk_switch_case:
       /* Nothing to do. */
