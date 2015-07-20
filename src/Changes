@@ -13,7 +13,11 @@ corresponding aggregate object.  For example:
     int ia[4];
     constexpr S(int p) : ia{p} {}  // Partial initialization of S::ia.
   };
+  struct N { N(); };
   void g() {
+    N n;      // (This declaration forces the C-generating back end to
+              // break down the initialization of x below into individual
+              // statements.)
     S x(42);  // Previously, the dynamic initializer entry for x did not have
   }           // its "is_partially_initialized" flag set to TRUE.  The code
               // emitted by the C-generating back end failed to fully
