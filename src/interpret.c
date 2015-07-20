@@ -1907,6 +1907,133 @@ Interpret the given for-statement.
 }  /* do_constexpr_for_statement */
 
 
+static a_boolean do_constexpr_range_based_for_statement(
+                                                   an_interpreter_state  *ips,
+                                                   a_statement_ptr       stmt)
+/*
+Interpret the given range-based for-statement.
+*/
+{
+  a_boolean              result = TRUE;
+  a_storage_stack_state  saved_stack;
+  a_range_based_for_loop_ptr
+                         loop_info =
+                                stmt->variant.range_based_for_loop.extra_info;
+  a_variable_ptr         vp[4] = { loop_info->iterator, loop_info->range,
+                                   loop_info->begin, loop_info->end };
+  a_byte                 *var_storage[4];
+  int                    k;
+  a_dynamic_init_ptr     dip;
+  save_storage_stack(ips, saved_stack);
+  /* Acquire storage for the iteration variables. */
+  for (k = 0; k<4; ++k) {
+    a_byte_count  n_bytes = value_bytes_for_type(ips, vp[k]->type);
+    alloc_stack_bytes(ips, n_bytes, var_storage[k]);
+    /* Associate with the variable its value storage. */
+    map_stack_bytes(ips, vp[k], var_storage[k]);
+    /* Also associate with the variable (somewhat arbitrarily, with its
+       "storage_class" field) an allocation sequence number that may be
+       used to detect leaks. */
+    map_byte_count(&ips->map, &vp[k]->storage_class,
+                   ips->curr_alloc_seq_number);
+  }  /* for */
+  /* Initialize the range and its delimiters: */
+  for (k = 1; k<4; ++k) {
+    dip = vp[k]->initializer.dynamic;
+    if (!do_constexpr_dynamic_init(ips, dip, var_storage[k])) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (result) {
+    an_expr_node_ptr  expr = loop_info->ne_call_expr,
+                      incr = loop_info->incr_call_expr;
+    a_byte            expr_bytes[VALUE_BYTES_FOR_SCALAR];
+    a_byte            incr_bytes[VALUE_BYTES_FOR_SCALAR];
+    a_byte            *expr_value = expr_bytes, *incr_value;
+    a_type_ptr        tp = skip_typerefs(expr->type),
+                      incr_type = skip_typerefs(incr->type);
+    a_byte_count      n_bytes;
+    a_boolean         ovfl;
+    a_host_large_integer
+                      bool_val;
+    n_bytes = value_bytes_for_type(ips, incr_type);
+    if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+        !incr->is_lvalue && !incr->is_xvalue) {
+      /* The result of the increment expression is larger than a scalar type,
+         so allocate space for it on the stack. */
+      alloc_stack_bytes(ips, n_bytes, incr_value);
+    } else {
+      incr_value = incr_bytes;
+    }  /* if */
+    dip = vp[0]->initializer.dynamic;
+    do {
+      /* Evaluate the test expression. */
+      if (cost_exceeded(ips)) {
+        result = FALSE;
+        /* FIXME: record a diagnostic. */
+      } else {
+        do_constexpr_full_expression(ips, expr, expr_value, result);
+        release_local_constant_from_address(expr, tp, expr_value);
+        ips->cost += 1;
+      }  /* if */
+      if (result) {
+        /* Evaluation of the test expression succeeded.  Get its value
+           to see if the dependent statement should be executed. */
+        if (expr != NULL) {
+          get_int_val_from(expr_value, tp, bool_val, ovfl);
+        } else {
+          bool_val = TRUE;
+          ovfl = FALSE;
+        }  /* if */
+        if (!ovfl && bool_val) {
+          /* Initialize the iterator variable: */
+          if (!do_constexpr_dynamic_init(ips, dip, var_storage[0])) {
+            result = FALSE;
+            break;
+          }  /* if */
+          /* Execute the dependent statement. */
+          result = do_constexpr_statement(
+                           ips, stmt->variant.range_based_for_loop.statement);
+          if (result) {
+            /* Execution of the dependent statement succeeded, so evaluate
+               the increment expression (if any) unless we hit a branching
+               statement. */
+            if (ips->curr_call_frame->return_active) {
+              /* Break out of the loop (leave the flag active since we may
+                 have to break out of other constructs). */
+              break;
+            } else if (ips->curr_call_frame->break_active) {
+              /* Break out of the loop (which completes the execution of
+                 the break statement). */
+              ips->curr_call_frame->break_active = FALSE;
+              break;
+            } else if (ips->curr_call_frame->continue_active) {
+              /* Continue, but clear the continue_active flag since we've
+                 reached the point of continuation. */
+              ips->curr_call_frame->continue_active = FALSE;
+            }  /* if */
+            if (incr != NULL) {
+              do_constexpr_full_expression(ips, incr, incr_value, result);
+              release_local_constant_from_address(incr, incr_type,
+                                                  incr_value);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }   /* if */
+    } while (result && bool_val);
+  }  /* if */
+  /* Release and unmap the local storage. */
+  for (k = 4; k--;) {
+    unmap_stack_bytes(ips, vp[k]);
+    unmap_ptr(&ips->map, &vp[k]->storage_class);
+  }  /* if */
+  restore_storage_stack(ips, saved_stack);
+  return result;
+}  /* do_constexpr_range_based_for_statement */
+
+
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt)
 /*
@@ -2093,6 +2220,9 @@ successfully interpreted, FALSE otherwise.
     case stmk_for:
       result = do_constexpr_for_statement(ips, stmt);
       break;
+    case stmk_range_based_for:
+      result = do_constexpr_range_based_for_statement(ips, stmt);
+      break;
     case stmk_switch_case:
       /* Nothing to do. */
       break;
@@ -2208,7 +2338,8 @@ done_with_switch:
       }
       break;
     case stmk_decl:
-      /* Nothing to do; variables are handled when the scope is opened. */
+      /* Nothing to do; variables are allocated when the scope is opened and
+         initialized through stmk_init statements. */
       break;
     case stmk_empty:
       /* Nothing to do. */
@@ -2604,8 +2735,25 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (tp->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* A pointer. */
+                a_constexpr_address  *ptr;
+                ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                if (!ptr->in_array || ptr->cannot_dereference) {
+                  /* Not a pointer to an array element in interpreter
+                     storage. */
+                  result = FALSE;
+                } else {
+                  a_type_ptr  elem_type;
+                  a_byte_count  elem_size;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_size = value_bytes_for_type(ips, elem_type);
+                  ptr->address += elem_size;
+                  if (ptr->address == 
+                          ptr->variant.base_address + ptr->length*elem_size) {
+                    /* We've reached "one past the end of the array". */
+                    ptr->cannot_dereference = TRUE;
+                  }  /* if */
+                }  /* if */
               } else {
                 /* Invalid type for prefix ++. */
                 unexpected_condition();
@@ -2883,8 +3031,23 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (ptr1->is_runtime_data_address ==
+                                               ptr2->is_runtime_data_address) {
+                  if (!ptr1->is_runtime_data_address) {
+                    if (ptr1->address != ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
