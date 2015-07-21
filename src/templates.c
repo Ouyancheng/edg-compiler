@@ -2098,6 +2098,7 @@ compare_function_templates.
   if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
                                          templ_param_list,
                                          is_partial_order_check)) {
+    /* Substitute the template arguments in the routine type. */
     new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list,

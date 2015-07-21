@@ -4581,6 +4581,21 @@ point of call, FALSE otherwise.
   }  /* if */
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
+  if (microsoft_mode && scope_stack_top().is_rescan &&
+      scope_is(&scope_stack_top(), sck_template_instantiation)) {
+    /* In Microsoft mode, SFINAE rescanning performs ordinary lookups of the
+       re-scanned expression in the instantiation context (see
+       symbol_for_template_param_unknown_entity_con_after_substitution).  That
+       can cause the rescanned function template to be found during its own
+       substitution, which in turn leads to unbounded recursion.  To avoid
+       that, we treat the template as invisible while it's being rescanned. */
+    a_symbol_ptr  templ_sym = scope_stack_top().template_sym;
+    check_assertion(templ_sym != NULL);
+    if (templ_sym == function_symbol) {
+      visible = FALSE;
+      goto end_of_function;
+    }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Note that here we must test the fundamental symbol. */
   if (microsoft_mode && microsoft_version >= 1310 &&

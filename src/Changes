@@ -1,5 +1,35 @@
 Version 4.11
 
+7/21/15  [EDGcpfe/15482]
+Unbounded recursion on some Microsoft-mode SFINAE cases
+
+Consider the following code:
+
+  template<typename T, typename U>
+  constexpr T max(T t, U u) {
+    return t > u ? t : u;
+  }
+  template<typename T, typename ...Ts>
+  constexpr auto max(T t, Ts ...ts) -> decltype(max(t, max(ts...))) {
+    return max(t, max(ts...));
+  }
+  template<int... N> struct S {
+    char x[max(N...)];
+  };
+  S<1, 2, 3> s;
+
+Previously, this code led to unbounded recursion in Microsoft C++ modes that
+support C++11-style SFINAE.  This was due to "max(t, max(ts...))" finding both
+the first "max" function template and the second "max" template during template
+argument deduction for the latter.  (In standard C++, only declarations
+preceding the substituted expression are visible in the substitution.)  Now,
+the function for which deduction is done is ignored in this context, thereby
+resolving the circular dependence.
+
+(Note that the example above is likely not working as intended.  For example,
+S<1, 2, 3, 4> will not successfully instantiate.)
+
+
 7/20/15  [EDGcpfe/16351]
 Incorrect IL for folded constructor call that partially initializes a field
 
