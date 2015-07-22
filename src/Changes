@@ -1,5 +1,19 @@
 Version 4.11
 
+7/22/15  [EDGcpfe/16374]
+Spurious warning on GNU __builtin_offset applied to class template instance
+
+The front end sometimes issued a spurious warning about a class template
+instance not being a POD type on GNU __builtin_offset operators applied to
+the class template instance.  For example:
+
+  template<typename> struct S { int x; };
+  int r = (int)__builtin_offsetof(S<int>, x);  // Previously triggered a
+                                               // spurious error.
+
+This is now fixed.
+
+
 7/22/15  [EDGcpfe/16379]
 Microsoft compatibility: Accept "inline" specifier in C mode
 

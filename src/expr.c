@@ -11321,6 +11321,8 @@ indication in *rcblock).
     type_name(&type);
   }  /* if */
   if (is_class_struct_union_type(type)) {
+    /* Instantiate the type if it is a template class. */
+    complete_type_is_needed(type);
     if (!C_mode() && !symbol_supplement_for_class(type)->is_POD) {
       expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */
