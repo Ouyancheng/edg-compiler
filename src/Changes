@@ -1,5 +1,23 @@
 Version 4.11
 
+7/22/15  [EDGcpfe/16143]
+Microsoft-mode copy-initialization of class types
+
+In cases where a class object is initialized through copy-initialization in a
+context that permits the elision of the copy constructor invocation, Microsoft
+compilers treat the initialization as a direct-initialization instead.  That,
+for example, allows the use of conversion functions that would not have been
+considered in the standard case.  The changes for EDGcpfe/15352 incorrectly
+disabled this behavior when microsoft_version >= 1900.  It has now been
+restored in all Microsoft bugs C++ modes.  For example:
+
+  struct A { operator int*(); };
+  struct B { B(int*); };
+  void g(A a) {
+    B b = a;  // Previously an error with microsoft_version >= 1900.
+  }           // Now accepted (i.e., treated as a direct initialization).
+
+
 7/22/15  [EDGcpfe/16371]
 Use of current instantiation in function declarator within a return type
 

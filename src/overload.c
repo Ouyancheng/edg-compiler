@@ -19558,27 +19558,31 @@ was done.
   if (elision_done != NULL) *elision_done = FALSE;
   *dip = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_bugs && microsoft_version < 1900) {
-    /* Microsoft VC++ treats copy-initialization as direct-initialization in
-       some cases.  All the cases that come through here are treated that way.
-       It also appears that, at least in some cases, elision is decided early
-       on.  In particular, if the generation of the copy constructor was
-       suppressed (a Microsoft-only feature/bug), copy-initialization from a
-       temporary still succeeds even if there is no other way to perform the
-       copy.  Finally, starting with version 19.00 (tested with an early "CTP2"
-       preview version), it appears Microsoft compilers are now much closer to
-       standard behavior. */
-    an_expr_node_ptr  temp_init_node;
-    a_type_ptr        utp = skip_typerefs(dest_type);
-    a_class_symbol_supplement_ptr
-                      cssp = class_symbol_supp(symbol_for(utp));
-    if (!cssp->has_user_provided_copy_constructor &&
-        cssp->has_copy_constructor_for_const_object &&
-        identical_types(source_operand->type, utp) &&
-        is_temp_init_usable_in_optimization(source_operand, !fill_in_dtor,
-                                            &temp_init_node, dip)) {
-      goto conversion_done;
+  if (microsoft_bugs) {
+    if (microsoft_version < 1900) {
+      /* It appears that, at least in some cases, elision is decided early on
+         in Microsoft compilers.  In particular, if the generation of the copy
+         constructor was suppressed (a Microsoft-only feature/bug),
+         copy-initialization from a temporary still succeeds even if there is
+         no other way to perform the copy.  Finally, starting with version
+         19.00 (tested with an early "CTP2" preview version), it appears
+         Microsoft compilers are now much closer to standard behavior in this
+         respect. */
+      an_expr_node_ptr  temp_init_node;
+      a_type_ptr        utp = skip_typerefs(dest_type);
+      a_class_symbol_supplement_ptr
+                        cssp = class_symbol_supp(symbol_for(utp));
+      if (!cssp->has_user_provided_copy_constructor &&
+          cssp->has_copy_constructor_for_const_object &&
+          identical_types(source_operand->type, utp) &&
+          is_temp_init_usable_in_optimization(source_operand, !fill_in_dtor,
+                                              &temp_init_node, dip)) {
+        goto conversion_done;
+      }  /* if */
     }  /* if */
+    /* Microsoft VC++ treats copy-initialization as direct-initialization in
+       some cases.  All the cases that come through here are treated that
+       way. */
     is_copy_initialization = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
