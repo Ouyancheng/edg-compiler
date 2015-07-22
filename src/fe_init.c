@@ -940,7 +940,8 @@ Install the keywords in the symbol table.
       (microsoft_mode && microsoft_version >= 1400)) {
     enter_type_traits_helpers();
   }  /* if */
-  if (gcc_mode && !c99_mode) {
+  if ((gcc_mode || (microsoft_mode && microsoft_version >= 1900)) &&
+      !c99_mode) {
     /* "inline" will already have been entered in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
   } else if (gpp_mode) {
