@@ -3258,7 +3258,11 @@ for the meaning of need_closing_paren.
       }  /* if */
     } else if (clang_is_generated_code_target &&
                class_type->
-                       variant.class_struct_union.is_prototype_instantiation) {
+                       variant.class_struct_union.is_prototype_instantiation &&
+               class_is_in_name_context_stack(
+                                   class_type,
+                                   /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
       /* Clang has a bug that sometimes reports a spurious error if the
          name of the current instantiation is used with its template
          parameters as arguments. */
