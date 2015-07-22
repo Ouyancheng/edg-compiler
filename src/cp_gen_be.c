@@ -3265,7 +3265,10 @@ for the meaning of need_closing_paren.
                                    /*ignore_field_selection_contexts=*/TRUE)) {
       /* Clang has a bug that sometimes reports a spurious error if the
          name of the current instantiation is used with its template
-         parameters as arguments. */
+         parameters as arguments.  The context check is needed to restrict
+         the suppression of template arguments to the class template
+         definition itself; the arguments are necessary when defining a
+         member of the template. */
       gen_name(&class_type->source_corresp, iek_type,
                options | GN_QUALIFIER | GN_NO_TEMPLATE_ARGS,
                need_closing_paren);
