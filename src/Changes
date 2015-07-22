@@ -1,5 +1,27 @@
 Version 4.11
 
+7/22/15  [EDGcpfe/16371]
+Use of current instantiation in function declarator within a return type
+
+Consider the following code:
+
+  template<typename T> struct S {
+    typedef int I;
+    template<typename U> S<U(I)> f();
+  };
+  template<typename T> template<typename U>
+    S<U(typename S<T>::I)> S<T>::f() {  // Previously triggered a spurious
+      return 42;                        // error.
+    }
+
+S<T> should be treated as the "current instantiation" in the definition of
+S<T>::g and S<T>::I can therefore be assumed not to be specialized to something
+other than what appeared in the definition of S<T>.  However, the front failed
+to determine that in cases like these where the name S<T>::I appears within a
+function parameter list.  That triggered a spurious declaration incompatibility
+error.  This is now fixed.
+
+
 7/22/15  [EDGcpfe/16374]
 Spurious warning on GNU __builtin_offset applied to class template instance
 

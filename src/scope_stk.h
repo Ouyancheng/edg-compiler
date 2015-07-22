@@ -1093,7 +1093,7 @@ typedef struct a_scope_stack_entry {
 			/* When defer_constraint_checks is TRUE, this contains
 			   a list of constraint checks to be performed at
 			   a later point in time. */
-a_type_list_entry_ptr
+  a_type_list_entry_ptr
 		types_using_pending_constraints;
 			/* If a C++/CLI generic declaration being processed
 			   from metadata makes uses of pending generic

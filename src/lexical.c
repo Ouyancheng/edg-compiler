@@ -16450,37 +16450,33 @@ a routine to lookup the appropriate instance (or generate one if needed).
        inside the instantiation of a different class. */
     a_boolean			prototype_allowed;
     a_boolean			is_templ_member_class_sym = FALSE;
-    a_symbol_ptr		tmc_sym;
     a_type_ptr			type;
-    a_scope_stack_entry_ptr	ssep;
     a_boolean			is_outermost_tmc = TRUE;
     int32_t			*p_min_template_arguments;
     a_boolean			instantiate_nonreal = FALSE;
-    ssep = &scope_stack[depth_scope_stack];
-    tmc_sym = ssep->templ_member_class_sym;
     /* Determine whether the template being used is either the class associated
        with a member that is being defined, or a template enclosing that
        class. */
-    if (tmc_sym != NULL) {
+    if (depth_template_declaration_scope != NO_SCOPE_DEPTH &&
+        scope_stack[depth_template_declaration_scope].templ_member_class_sym
+                                                                    != NULL) {
+      a_symbol_ptr  tmc_sym = scope_stack[depth_template_declaration_scope]
+                                                      .templ_member_class_sym;
       for (;;) {
         a_template_symbol_supplement_ptr	tmc_tssp;
         /* Get the symbol associated with the nearest enclosing class
            template. */
         type = type_symbol_type(tmc_sym);
         while (type->source_corresp.is_class_member &&
-               type->variant.class_struct_union.extra_info->
-                                                  template_arg_list == NULL) {
+               class_type_supp(type)->template_arg_list == NULL) {
           type = parent_class_of(type);
           is_outermost_tmc = FALSE;
         }  /* while */
         /* Exit the loop if the type has no template argument list. */
-        if (type->variant.class_struct_union.extra_info->
-                                               template_arg_list == NULL) {
+        if (class_type_supp(type)->template_arg_list == NULL) {
           break;
         }  /* if */
-        tmc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-        tmc_sym = tmc_sym->
-                         variant.class_struct_union.extra_info->class_template;
+        tmc_sym = class_symbol_supp(symbol_for(type))->class_template;
         tmc_tssp = tmc_sym->variant.template_info;
         /* If the template of which a member is being defined is a partial
            specialization, use the primary template instead for the purpose
@@ -16502,7 +16498,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
           break;
         }  /* if */
       }  /* for */
-    }
+    }  /* if */
     prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         is_templ_member_class_sym;
     /* Find or create the template class for these arguments.  In Microsoft
