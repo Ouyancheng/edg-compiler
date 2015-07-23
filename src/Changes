@@ -1,6 +1,6 @@
 Version 4.11
 
-7/23/15  [EDGcpfe/16385]
+7/23/15  [EDGcpfe/16375]
 GNU/Microsoft compatibility: Inheriting constructors via typedef names
 
 In GNU and Microsoft modes, the form
