@@ -7,9 +7,9 @@ In cases where a class object is initialized through copy-initialization in a
 context that permits the elision of the copy constructor invocation, Microsoft
 compilers treat the initialization as a direct-initialization instead.  That,
 for example, allows the use of conversion functions that would not have been
-considered in the standard case.  The changes for EDGcpfe/15352 incorrectly
-disabled this behavior when microsoft_version >= 1900.  It has now been
-restored in all Microsoft bugs C++ modes.  For example:
+considered in the standard case.  The changes for EDGcpfe/15352 (version 4.10)
+incorrectly disabled this behavior when microsoft_version >= 1900.  It has now
+been restored in all Microsoft bugs C++ modes.  For example:
 
   struct A { operator int*(); };
   struct B { B(int*); };
