@@ -33,7 +33,7 @@ Consider the following code:
     }
 
 S<T> should be treated as the "current instantiation" in the definition of
-S<T>::g and S<T>::I can therefore be assumed not to be specialized to something
+S<T>::f and S<T>::I can therefore be assumed not to be specialized to something
 other than what appeared in the definition of S<T>.  However, the front failed
 to determine that in cases like these where the name S<T>::I appears within a
 function parameter list.  That triggered a spurious declaration incompatibility
