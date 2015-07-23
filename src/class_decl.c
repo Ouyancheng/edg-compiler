@@ -16146,6 +16146,7 @@ specific information about the member declaration, respectively.
     if (cppcx_enabled && !is_value_class_type(class_type) &&
         class_state->property_or_event_descr == NULL &&
         class_state->access == (an_access_specifier)as_public &&
+        class_state->assembly_access == (an_access_specifier)as_public &&
         class_has_public_assembly_visibility(class_type) &&
         !is_nonpublic_nested_class(class_type)) {
       pos_error(ec_public_data_member_in_public_non_value_type,

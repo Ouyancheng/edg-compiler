@@ -1,5 +1,22 @@
 Version 4.11
 
+7/23/15  [EDGcpfe/16384]
+Microsoft compatibility: C++/CX internal static data members in ref classes
+
+The front end previously issued a spurious error about a static data member
+being public in a C++/CX ref class when the static data member was declared
+with "internal" access.  For example:
+
+  namespace NS {
+    public ref class A sealed {
+    internal:
+      static int x;  // Previously triggered a spurious error.
+    };
+  }
+
+This is now fixed.
+
+
 7/23/15  [EDGcpfe/16382]
 Spurious error on template-dependent expression in noexcept-specifier
 
