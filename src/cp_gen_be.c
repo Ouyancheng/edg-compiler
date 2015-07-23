@@ -16039,10 +16039,12 @@ and the output of the type name.
                  (Although these are technically invocations of T's
                  copy/move constructor with a value-initialized temporary,
                  the copy/move is elided, so it is represented in the IL as
-                 directly initializing the variable.)  Put out this form as
-                 a special case, in order to avoid generating "T x()", and
-                 suppress the argument list. */
-              if (il_header.std_version < 201103) {
+                 directly initializing the variable.)  Treat this
+                 specially, using the brace form if we're in C++11 mode, to
+                 avoid incorrectly generating "T x()". */
+              a_boolean use_braces = il_header.std_version >= 201103;
+              a_boolean wrote_type_name = FALSE;
+              if (!use_braces) {
                 /* The C++03 form requires extra parentheses for
                    disambiguation. */
                 write_tok_ch('(');
@@ -16051,19 +16053,19 @@ and the output of the type name.
               if (ctor != NULL) {
                 /* If the class is known and named, put out "T{}" to avoid
                    possible ambiguities with other constructors.  Otherwise,
-                   just put out "{}". */
+                   we can just put out "{}". */
                 a_type_ptr class_type = parent_class_or_null(ctor);
                 if (class_type != NULL &&
                                         has_name_before_mangling(class_type)) {
                   gen_type_reference(class_type);
+                  wrote_type_name = TRUE;
                 }  /* if */
-              } else {
-                /* The type name cannot be omitted in the C++03 form. */
-                check_assertion(il_header.std_version >= 201103);
               }  /* if */
-              if (il_header.std_version >= 201103) {
+              if (use_braces) {
                 write_tok_str("{}");
               } else {
+                /* The type name is required in the C++03 form. */
+                check_assertion(wrote_type_name);
                 write_tok_str("()");
               }  /* if */
               no_args = TRUE;
