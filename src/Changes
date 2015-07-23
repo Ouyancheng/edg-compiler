@@ -1,5 +1,21 @@
 Version 4.11
 
+7/23/15  [EDGcpfe/16382]
+Spurious error on template-dependent expression in noexcept-specifier
+
+The front end previously issued spurious errors on some template-dependent
+expressions in noexcept-specifiers, claiming those expressions are not
+constant.  For example:
+
+  template<typename> struct C {
+    constexpr operator bool() const { return true;}
+  };
+  template<typename T> void g() noexcept(C<T>()) {}
+                                  // Previously triggered a spurious error.
+
+This is now fixed.
+
+
 7/22/15  [EDGcpfe/16143]
 Microsoft-mode copy-initialization of class types
 
