@@ -1,5 +1,27 @@
 Version 4.11
 
+7/23/15  [EDGcpfe/16385]
+GNU/Microsoft compatibility: Inheriting constructors via typedef names
+
+In GNU and Microsoft modes, the form
+  using A::X;
+is now treated as an inheriting constructor declaration if A is a typedef for
+a template-dependent class type whose name is X.  (Ordinarily, for such
+template-dependent names, the requirement is that the names on both sides of
+the '::' token be the same.)  For example:
+
+  template<int> struct X;
+  template<> struct X<0> {};
+  template<int N> struct X: X<N-1> {
+    using A = X<N-1>;
+    using A::X;  // Now treated as an inheriting constructor declaration
+  };             // in GNU and Microsoft modes.
+
+Note that in this particular case other modes issue an error because the
+declaration "using A::X;" introduces a name that is identical to that of the
+surrounding class.
+
+
 7/23/15  [EDGcpfe/16384]
 Microsoft compatibility: C++/CX internal static data members in ref classes
 

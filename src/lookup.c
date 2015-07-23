@@ -4258,15 +4258,29 @@ static a_symbol_ptr check_for_inheriting_constructor_decl(
 				a_symbol_locator	*locator,
 				a_type_ptr		type)
 /*
-Check for an inheriting constructor declaration.  Such a declaration
-has the form "using X::X".  When X is a class type, the normal lookup
-rules find the constructor, but when X is a template parameter or
-typedef, we need to handle this construct specially.  If the name
-following the :: is the same as the type before the ::, this is considered
-to be a reference to an inheriting constructor.  Note that this routine
-is only called for using-declaration cases.  The identifier being looked
-up is described by locator.  The type of the qualifier is specified by
-type.
+Check for an inheriting constructor declaration.  Such a declaration normally
+has the form "using X::X".  When X is a class type, the normal lookup rules
+find the constructor, but when X is a template parameter or typedef, we need
+to handle this construct specially.  If the name following the :: is the same
+as the type before the ::, this is considered to be a reference to an
+inheriting constructor.  Note that this routine is only called for
+using-declaration cases.  The identifier being looked up is described by
+locator.  The type of the qualifier is specified by type.
+
+In GNU and Microsoft modes, the form
+  using A::X;
+is also treated as an inheriting constructor case if A is a typedef for a
+class type whose name is X.  For example:
+
+  template<int> struct X;
+  template<> struct X<0> {};
+  template<int N> struct X: X<N-1> {
+    using A = X<N-1>;
+    using A::X;  // Treated as an inheriting constructor declaration
+  };             // in GNU and Microsoft modes.
+
+(In this particular example, an error will be issued in other modes because of
+an attempt to declare a member of the same name as the parent class.)
 */
 {
   a_symbol_ptr	sym = NULL;
@@ -4276,9 +4290,12 @@ type.
     if (type_sym != NULL) {
       if (locator->name_qualifier != NULL &&
           locator->name_qualifier->name != NULL &&
-          strcmp(locator->name_qualifier->name,
-                 locator->symbol_header->identifier) == 0) {
-        type = skip_typerefs(type);
+          (strcmp(locator->symbol_header->identifier,
+                  locator->name_qualifier->name) == 0 ||
+           ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+            is_immediate_class_type(type) &&
+            strcmp(locator->symbol_header->identifier,
+                   type_sym->header->identifier) == 0))) {
         /* If the type is a class type with a constructor symbol, return that
            constructor.  Otherwise, return the type symbol.  Either way, set
            the is_inheriting_ctor flag. */
