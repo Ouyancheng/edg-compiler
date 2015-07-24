@@ -11282,7 +11282,7 @@ offsetof expression, and return the result in *result (or an error
 indication in *rcblock).
 */
 {
-  a_type_ptr          type;
+  a_type_ptr          type, utype;
   a_source_position   type_position, start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
@@ -11320,14 +11320,17 @@ indication in *rcblock).
     add_stop_token(tok_rparen);
     type_name(&type);
   }  /* if */
-  if (is_class_struct_union_type(type)) {
+  utype = skip_typerefs(type);
+  if (is_immediate_class_type(utype)) {
     /* Instantiate the type if it is a template class. */
-    complete_type_is_needed(type);
-    if (!C_mode() && !symbol_supplement_for_class(type)->is_POD) {
+    complete_type_is_needed(utype);
+    if (!C_mode() &&
+        !class_symbol_supp(symbol_for(utype))->is_POD &&
+        !utype->variant.class_struct_union.is_nonreal_class) {
       expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */
     valid_type = TRUE;
-  } else if (is_template_param_type(type)) {
+  } else if (utype->kind == (a_type_kind)tk_template_param) {
     valid_type = TRUE;
   } else {
     expr_pos_error(ec_exp_class_type, &type_position);
