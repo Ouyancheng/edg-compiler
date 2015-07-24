@@ -7480,6 +7480,7 @@ Display the IL for the file scope in human-readable form.
   disp_name("source_language");
   disp_source_language_name(il_header.source_language);
   (void)printf("\n");
+  disp_unsigned_long("std_version", il_header.std_version);
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
   disp_boolean("enum_type_is_integral",
