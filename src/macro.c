@@ -4608,6 +4608,8 @@ end_scan_for_macro_modifs:;
   if (delete_source_from_loc != NULL) {
     delete_source_from_loc_was_set_on_entry = TRUE;
   }  /* if */
+  /* Set the current token to a known state. */
+  curr_token = tok_error;
   /* Get a pointer to the macro definition structure. */
   mdp = macro_symbol->variant.macro_def;
   param_list = mdp->param_list;
@@ -5156,8 +5158,12 @@ do_argument_again:
                                           any_white_space_skipped,
                                           map->raw_text+map->raw_len);
             map->raw_len += token_text_len;
-            if (pcc_preprocessing_mode) {
-              /* Suppress end-of-token markers in pcc mode. */
+            if (pcc_preprocessing_mode ||
+                (microsoft_mode && curr_token == tok_rparen)) {
+              /* Suppress end-of-token markers in pcc mode.  Also, in
+                 Microsoft mode, suppress the token separator following a
+                 right parenthesis, to allow concatenation of the final
+                 token of a macro expansion with the following token. */
               need_end_of_token_marker = FALSE;
             } else if (microsoft_bugs &&
                        (start_of_curr_token[0] == '+' ||
@@ -5391,6 +5397,10 @@ scan_expanded_tokens:
              of the is_isolated_text flag; it's not actually the end of
              source. */
           while (curr_token != tok_end_of_source) {
+            a_boolean token_ends_macro_expansion = 
+                              (!within_curr_source_line(start_of_curr_token) &&
+                               end_of_curr_token[1] == LE_ESCAPE &&
+                               end_of_curr_token[2] == LE_END_OF_INSERTION);
             if (comma_ignored_inside_argument) {
               /* In Microsoft mode, top-level (i.e., not nested inside
                  parentheses) commas that originate in the expanded text of
@@ -5451,6 +5461,13 @@ scan_expanded_tokens:
               need_end_of_token_marker = TRUE;
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            if (microsoft_mode && token_ends_macro_expansion &&
+                !any_white_space_skipped) {
+              /* Suppress the token separator to allow concatenation of the
+                 final token of a macro expansion with the following
+                 token. */
+              need_end_of_token_marker = FALSE;
+            }  /* if */
           }  /* while */
           if (scanning_text_not_in_primary_source_line) {
             /* We finished the part of the raw argument that we
