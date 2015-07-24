@@ -9124,8 +9124,11 @@ in determining how to generate dynamic initializations).
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-  a_type_ptr         temp_type = expr->type;
+  a_type_ptr         temp_type = expr->variant.init.source_type;
 
+  if (temp_type == NULL) {
+    temp_type = expr->type;
+  }  /* if */
   if (dip->is_compound_literal) {
     /* In C mode and sometimes in C++ mode, a temp-init node represents
        a compound literal. */

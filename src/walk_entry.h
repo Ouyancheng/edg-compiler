@@ -1582,6 +1582,7 @@ do_set_proper_definition_needed_flag:
           case enk_temp_init:
             walk_ptr(ptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
+            walk_ptr(ptr->variant.init.source_type, a_type_ptr, iek_type);
             /* The type of the temporary requires a definition. */
             definition_needed_if_class(ptr->type);
             break;

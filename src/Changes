@@ -1,5 +1,21 @@
 Version 4.11
 
+7/24/15  [EDGcpfe/16368]
+C++-generating back end: Abort on braced cast to array of unspecified bound
+
+When attempting to render a functional-style cast with braced notation where
+the type cast to is a typedef for an array of unspecified bound, the C++-
+generating back end aborted with an internal error in function tag_kind
+("bad type kind").  For example:
+
+  void g() {
+    using A = double[];
+    A{1.0, 2.0};  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 7/23/15  [EDGcpfe/16375]
 GNU/Microsoft compatibility: Inheriting constructors via typedef names
 

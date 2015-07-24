@@ -23177,6 +23177,7 @@ previously-scanned braced initializer.
           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         dip->variant.constant->explicit_cast_applied = TRUE;
       }  /* if */
+      expr->variant.init.source_type = type_cast_to;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -15802,6 +15802,18 @@ typedef struct an_expr_node {
 		dynamic_init;
 			/* Dynamic initialization entry that does the
 			   initialization for the temporary. */
+      a_type_ptr
+		source_type;
+			/* In some cases where the type of a cast as it
+			   appeared in the source is not reflected in the
+			   type of this node, this represents the former.
+			   For example:
+			      using A = double[];
+			      (A{1, 2});
+			   Here the type of the initializer provides a
+			   dimension for the array type, causing the typedef
+			   representation to be dropped in the node type.
+			   NULL in most cases. */
     } init;
     /* When kind == enk_new_delete: */
     a_new_delete_supplement_ptr

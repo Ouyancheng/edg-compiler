@@ -3264,6 +3264,7 @@ fields to default values.
       break;
     case enk_temp_init:
       node->variant.init.dynamic_init = NULL;
+      node->variant.init.source_type = NULL;
       break;
     case enk_new_delete:
       /* Allocate the supplement for new/delete. */
