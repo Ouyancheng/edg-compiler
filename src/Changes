@@ -1,5 +1,20 @@
 Version 4.11
 
+7/25/15  [EDGcpfe/16391]
+Initial value for constexpr_implies_const
+
+The global variable constexpr_implies_const controls whether "const" is implied
+for "constexpr" non-static member functions (see the Changes entry for
+EDGcpfe/16092).  That variable had not been properly initialized, resulting in
+incorrect behavior when using Microsoft emulation mode.  The following example
+is now accepted with --microsoft_version=1900:
+
+  struct A {
+    constexpr int f() { return 1; }
+  };
+  int (A::*p)() const = &A::f;
+
+
 7/24/15  [EDGcpfe/15843]
 Microsoft compatibility: token concatenation across macro invocation boundary
 

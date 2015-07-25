@@ -11022,6 +11022,7 @@ variables declared in cmd_line.h.
   std_override_modifiers_enabled = FALSE;
   define_portable_feature_test_macros = TRUE;
   sized_deallocation_enabled = FALSE;
+  constexpr_implies_const = TRUE;
   mangle_had_been_implicitly_const = FALSE;
 #if COROUTINES_ALLOWED
   coroutines_enabled = FALSE;
