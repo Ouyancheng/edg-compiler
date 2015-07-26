@@ -1,5 +1,20 @@
 Version 4.11
 
+7/25/15  [EDGcpfe/16011]
+Clang compatibility: Predefined macros
+
+The make_predef_macro_table utility has been modified to accept a new
+--clang option.  The option takes a single argument: a pathname to a
+clang executable which will be invoked to determine the list of predefined
+macros that it defines (in both C and C++ modes).  The resulting
+predefined_macros.txt file is suitable for use with clang emulation mode.
+
+If using both GNU and clang emulation modes, make_predef_macro_table can
+be invoked twice, once to generate GNU predefined macros and a second time
+to generate clang predefined macros and the resulting files combined to create
+a predefined_macros.txt file that will support both emulation modes.
+
+
 6/26/15  [EDGcpfe/16348]
 Add --c++17 command-line option to eccp
 

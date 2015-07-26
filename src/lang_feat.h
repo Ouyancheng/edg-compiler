@@ -562,6 +562,15 @@ The string can contain one occurrence of "%m" (which will be expanded to
 #endif /* GCC_VERSION_STRING */
 
 /*
+The value of the __clang_version__ macro in clang mode.  Note that an extra set
+of quotes is needed as this is the actual macro replacement string to be used.
+The string has the same format as GCC_VERSION_STRING described above.
+*/
+#ifndef CLANG_VERSION_STRING
+#define CLANG_VERSION_STRING "\"%v \""
+#endif /* CLANG_VERSION_STRING */
+
+/*
 Flag that is TRUE if GNU builtin operators should be accepted in support of
 <stdarg.h> and <varargs.h>.  This flag applies to both GNU C and GNU C++
 modes.

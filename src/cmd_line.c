@@ -5052,6 +5052,16 @@ file.
 #else /* !defined(CHECKING) */
   comment_undefined_macro_name(CHECKING);
 #endif /* defined(CHECKING) */
+#if defined(CLANG_VERSION_STRING)
+#if !defined(_lint) && !(defined(_MSC_VER) && _MSC_VER < 1300)
+  /* Microsoft version 6.0 and some lint versions have a preprocessor bug
+     that creates an invalid result when the '#' operator is applied to the
+     default value of CLANG_VERSION_STRING. */
+  define_string_valued_macro(CLANG_VERSION_STRING);
+#endif /* ifndef _lint */
+#else /* !defined(CLANG_VERSION_STRING) */
+  comment_undefined_macro_name(CLANG_VERSION_STRING);
+#endif /* defined(CLANG_VERSION_STRING) */
 #if defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
   define_numeric_valued_macro(
                        CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);

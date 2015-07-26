@@ -1,5 +1,22 @@
 Version 4.11
 
+7/25/15  [EDGcpfe/16011]
+Clang compatibility: Predefined macros
+
+A change has been made to define the following macros in clang emulation mode:
+__clang__, __clang_major__, __clang_minor__, __clang_patchlevel__, and
+__clang_version__.  Note that clang also defines values for __GNUC__,
+__GNUC_MINOR__, __GNUC_PATCHLEVEL__, __GNUG__, and __VERSION__ but those are
+static (and based on a GNU version of 4.2.1) and aren't defined by the
+front end (they can be defined in a predefined_macros.txt file if so desired).
+
+See also a related change to make_predef_macro_table that provides a mechanism
+to capture other predefined macros from the clang compiler for use in a
+predefined_macros.txt file.  In conjunction with this change, the front end
+now accepts three new types of predefined macros in that file: "clang",
+"clang_c", and "clang_cpp".
+
+
 7/25/15  [EDGcpfe/16391]
 Initial value for constexpr_implies_const
 

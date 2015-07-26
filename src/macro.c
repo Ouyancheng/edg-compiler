@@ -8926,18 +8926,19 @@ Enter symbols for the predefined macros in C99 and later revisions.
 }  /* init_new_c_predefined_macros */
 
 
-static char* expanded_gnu_version_string(void)
+static char* expanded_version_string(unsigned long version,
+                                     a_const_char  *version_string_pattern)
 /*
-Allocate and return a buffer containing a copy of GCC_VERSION_STRING with "%m"
-expanded to "gcc" or "g++" (depending on the current mode) and "%v" expanded
-to the version of the GNU compiler being emulated.  The caller is responsible
-to deallocate the buffer using free_general.
+Allocate and return a buffer containing a copy of version_string_pattern with
+"%m" expanded to "gcc" or "g++" (depending on the current mode) and "%v"
+expanded to the specified version of the compiler being emulated.  The caller
+is responsible to deallocate the buffer using free_general.
 */
 {
-  unsigned long  major_num = (unsigned long)(gnu_version/10000);
-  unsigned long  minor_num = (unsigned long)((gnu_version%10000)/100);
-  unsigned long  patch_num = (unsigned long)(gnu_version%100);
-  a_const_char   *version_string_pattern = GCC_VERSION_STRING, *src;
+  unsigned long  major_num = (unsigned long)(version/10000);
+  unsigned long  minor_num = (unsigned long)((version%10000)/100);
+  unsigned long  patch_num = (unsigned long)(version%100);
+  a_const_char   *src;
   char           *version_string, *dst;
 #if CHECKING
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
@@ -8945,7 +8946,7 @@ to deallocate the buffer using free_general.
 
   check_assertion_str(gnu_mode &&
                       major_num < 100 && minor_num < 100 && patch_num < 100,
-                      "gnu_version too large");
+                      "version too large");
   version_string = (char*)alloc_general(
                              (sizeof_t)(strlen(version_string_pattern) + 50));
   src = version_string_pattern;
@@ -8955,7 +8956,7 @@ to deallocate the buffer using free_general.
       if (*(src+1) == 'm') {
 #if CHECKING
         check_assertion_str(!percent_m_seen,
-                            "too many %m in GCC_VERSION_STRING");
+                            "too many %m in version_string_pattern");
         percent_m_seen = TRUE;
 #endif /* CHECKING */
         ++src;
@@ -8964,7 +8965,7 @@ to deallocate the buffer using free_general.
       } else if (*(src+1) == 'v') {
 #if CHECKING
         check_assertion_str(!percent_v_seen,
-                            "too many %v in GCC_VERSION_STRING");
+                            "too many %v in version_string_pattern");
         percent_v_seen = TRUE;
 #endif /* CHECKING */
         ++src;
@@ -8984,30 +8985,28 @@ to deallocate the buffer using free_general.
   }  /* for */
   *dst = '\0';
   check_assertion_str(version_string[0] == '"' && dst[-1] == '"',
-                      "GCC_VERSION_STRING must be quote-delimited string");
+                      "version_string_pattern must be quote-delimited string");
   return version_string;
-}  /* expanded_gnu_version_string */
+}  /* expanded_version_string */
 
 
 static void init_gnu_predefined_macros(void)
 /*
-Enter symbols for the predefined macros of GNU C and C++.  (In clang mode,
-the version macros unconditionally represent version 4.2.1, regardless of
-the actual value of gnu_version, which can vary to select language feature
-support.)
+Enter symbols for the predefined macros of GNU/clang C and C++.
 */
 {
-  unsigned long  version = clang_mode ? 40201 : gnu_version;
+  unsigned long  version = clang_mode ? clang_version : gnu_version;
   unsigned long  major_num = (unsigned long)(version/10000),
                  minor_num = (unsigned long)((version%10000)/100),
                  patch_num = (unsigned long)(version%100);
 
   /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
-  enter_predef_num_macro(major_num, "__GNUC__");
   if (gpp_mode) {
     /* In GNU C++ mode (but not in GNU C mode), __GNUG__ is identical to
        __GNUC__. */
-    enter_predef_num_macro(major_num, "__GNUG__");
+    if (!clang_mode) {
+      enter_predef_num_macro(major_num, "__GNUG__");
+    }  /* if */
     if (rtti_enabled && gnu_version >= 40300) {
       /* g++ introduced the __GXX_RTTI macro in version 4.3.0. */
       (void)enter_predef_macro("1", "__GXX_RTTI",
@@ -9031,11 +9030,32 @@ support.)
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
   }  /* if */
-  enter_predef_num_macro(minor_num, "__GNUC_MINOR__");
-  enter_predef_num_macro(patch_num, "__GNUC_PATCHLEVEL__");
-  (void)enter_predef_macro(expanded_gnu_version_string(), "__VERSION__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  if (clang_mode) {
+    (void)enter_predef_macro("1", "__clang__",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    enter_predef_num_macro(major_num, "__clang_major__");
+    enter_predef_num_macro(minor_num, "__clang_minor__");
+    enter_predef_num_macro(patch_num, "__clang_patchlevel__");
+    (void)enter_predef_macro(expanded_version_string(version,
+                                                     CLANG_VERSION_STRING),
+                             "__clang_version__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Note that clang also defines values for __GNUC__, __GNUC_MINOR__,
+       __GNUC_PATCHLEVEL__, __GNUG__, and __VERSION__ but those are static (and
+       based on a GNU version of 4.2.1) and aren't defined here (they can be
+       defined in a predefined_macros.txt file if so desired). */
+  } else {
+    enter_predef_num_macro(major_num, "__GNUC__");
+    enter_predef_num_macro(minor_num, "__GNUC_MINOR__");
+    enter_predef_num_macro(patch_num, "__GNUC_PATCHLEVEL__");
+    (void)enter_predef_macro(expanded_version_string(version,
+                                                     GCC_VERSION_STRING),
+                             "__VERSION__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   if (gnu_version >= 40400) {
     (void)enter_predef_macro(int_kind_name(targ_char16_t_int_kind),
                              "__CHAR16_TYPE__",

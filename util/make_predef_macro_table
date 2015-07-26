@@ -9,20 +9,30 @@
 #                                                                             #
 ###############################################################################
 #
-# Usage: make_predef_macro_table [--gcc gcc_command] [--g++ g++_command] [opts]
+# Usage: make_predef_macro_table [--gcc gcc] [--g++ g++] [--clang clang] [opts]
 #
 # If no arguments are specified, the default "gcc" and "g++" are used
-# as the gcc and g++ command names.  Any options other than "--gcc" and "--g++"
-# are passed to gcc/g++.
+# as the gcc and g++ command names.  If --clang is specified, the specified
+# executable is used for both C and C++ compilations.  Any options other than
+# "--gcc", "--g++", and "--clang" are passed to gcc/g++/clang.
 #
 # The output is a file named "predefined_macros.txt" in the current directory.
 #
 # This script is used to create a file that is used by the EDG C++ front end
 # to specify the macros that should be predefined.  The script should be run
-# from the $EDG_BASE/lib directory.  The script invokes the gcc and g++
+# from the $EDG_BASE/lib directory.  The script invokes the GNU or clang
 # compilers and captures the macros that are predefined.  The list of
 # macro definitions produced by each of the compilers is translated into
 # the format described below.
+#
+# Note that this tool can be run for both GNU and clang compilers, and the
+# output combined in order to create a predefined_macros.txt file that will
+# work with both GNU and clang emulation modes.
+#
+# Note also that many of the macro values are target-specific, and as such
+# it may be necessary to create multiple predefined_macros.txt files, one
+# for each target, with various target-specific options passed to the
+# GNU or clang compilers (e.g., -m32, -m64, etc.).
 #
 # The format of the entries in the file is:
 # 
@@ -53,21 +63,23 @@
 
 
 #
-# Invoke the gcc/g++ compiler to get a list of the predefined macros
+# Invoke the specified compiler to get a list of the predefined macros.  The
+# compiler must support the -dM command-line option.
 #
 get_predefined_macros()
 {
   cmd=$1
   output=$2
   header=$3
+  file=$4
   echo $header >>info.tmp
-  echo "command: `which $cmd` $gnu_opts" >>info.tmp
+  echo "command: `which $cmd` $extra_opts" >>info.tmp
   echo  >>info.tmp
-  $cmd $gnu_opts -v 2>>info.tmp
+  $cmd $extra_opts -v 2>>info.tmp
   result=$?
   echo  >>info.tmp
   if [ $result -eq 0 ] ; then
-    $cmd $gnu_opts -E -dM tmp.c >$output
+    $cmd $extra_opts -E -dM $file >$output
   else
     echo "make_predef_macro_table: $cmd returned a non-zero status."
     echo "make_predef_macro_table: $header omitted."
@@ -103,14 +115,22 @@ make_entries()
 delete_unneeded_entries()
 {
   unneeded=""
+  if [ $common_tag = clang ] ; then
+    unneeded="$unneeded __clang__"
+    unneeded="$unneeded __clang_major__"
+    unneeded="$unneeded __clang_minor__"
+    unneeded="$unneeded __clang_patchlevel__"
+    unneeded="$unneeded __clang_version__"
+  else
+    unneeded="$unneeded __GNUC__"
+    unneeded="$unneeded __GNUC_MINOR__"
+    unneeded="$unneeded __GNUC_PATCHLEVEL__"
+    unneeded="$unneeded __GNUG__"
+    unneeded="$unneeded __VERSION__"
+  fi
   unneeded="$unneeded __cplusplus"
-  unneeded="$unneeded __GNUC_MINOR__"
-  unneeded="$unneeded __GNUC__"
-  unneeded="$unneeded __GNUG__"
-  unneeded="$unneeded __VERSION__"
   unneeded="$unneeded __STDC_HOSTED__"
   unneeded="$unneeded __STDC__"
-  unneeded="$unneeded __GNUC_PATCHLEVEL__"
   unneeded="$unneeded __GXX_RTTI"
   unneeded="$unneeded __GNUC_GNU_INLINE__"
   unneeded="$unneeded __GNUC_STDC_INLINE__"
@@ -124,13 +144,28 @@ delete_unneeded_entries()
   done
 }
 
+common_tag=gnu
+c_tag=gcc
+cpp_tag=gpp
 c_command=gcc
 cpp_command=g++
-gnu_opts=
+extra_opts=
 while [ -n "$1" ]
 do
   arg=$1
   case $arg in
+    --clang)
+      if [ $# -lt 2 ] ; then
+        echo "make_predef_macro_table: missing argument for --clang"
+        exit 1
+      fi
+      c_command=$2
+      cpp_command=$2
+      common_tag=clang
+      c_tag=clang_c
+      cpp_tag=clang_cpp
+      shift;shift;
+      ;;
     --gcc)
       if [ $# -lt 2 ] ; then
         echo "make_predef_macro_table: missing argument for --gcc"
@@ -148,8 +183,8 @@ do
       shift;shift;
       ;;
     *)
-      # Pass any unrecognized options to gcc/g++.
-      gnu_opts=$gnu_opts" $arg";
+      # Pass any unrecognized options to gcc/g++/clang.
+      extra_opts=$extra_opts" $arg";
       shift;
       ;;
   esac
@@ -173,6 +208,9 @@ mode,!mode,mode   cannot_redefine   macro_name   macro_value
     gnu:        gcc or g++ mode
     gcc:        gcc mode
     gpp:        g++ mode
+    clang:      clang C or C++ mode
+    clang_c:    clang C mode
+    clang_cpp:  clang C++ mode
     microsoft:  Microsoft mode
     strict:     strict C or C++ mode
     cpp:        any C++ mode
@@ -192,18 +230,19 @@ date >>info.tmp
 echo >>info.tmp
 
 echo "int main(){}" >tmp.c
+echo "int main(){}" >tmp.cpp
 
-get_predefined_macros $c_command c.tmp "C compiler information"
-get_predefined_macros $cpp_command cpp.tmp "C++ compiler information"
+get_predefined_macros $c_command c.tmp "C compiler information" tmp.c
+get_predefined_macros $cpp_command cpp.tmp "C++ compiler information" tmp.cpp
 
 reformat_info c.tmp
 reformat_info cpp.tmp
 
 sed -e "s/^/# /" info.tmp >>$output_file
 
-make_entries -23 gcc
-make_entries -13 gpp
-make_entries -12 gnu
+make_entries -23 $c_tag
+make_entries -13 $cpp_tag
+make_entries -12 $common_tag
 
 # The entries are created with the macro name bracketed in colons so
 # that the delete routine can delete certain entries without
@@ -214,6 +253,6 @@ delete_unneeded_entries
 # Remove the colons bracketing the macro names.
 sed -e "s/:/ /" -e "s/:/ /" output.tmp >>$output_file
 
-rm -f c.tmp cpp.tmp tmp.c info.tmp output.tmp
+rm -f c.tmp cpp.tmp tmp.c tmp.cpp info.tmp output.tmp
 
 
