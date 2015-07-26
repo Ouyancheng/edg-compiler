@@ -10442,9 +10442,12 @@ enable_microsoft_mode:
   }  /* if */
   /* Set the predefined macro mode values based on the command-line options
      used. */
-  set_predef_macro_mode(pmm_gnu, gnu_mode);
-  set_predef_macro_mode(pmm_gcc, gcc_mode);
-  set_predef_macro_mode(pmm_gpp, gpp_mode);
+  set_predef_macro_mode(pmm_gnu, gnu_mode && !clang_mode);
+  set_predef_macro_mode(pmm_gcc, gcc_mode && !clang_mode);
+  set_predef_macro_mode(pmm_gpp, gpp_mode && !clang_mode);
+  set_predef_macro_mode(pmm_clang, clang_mode);
+  set_predef_macro_mode(pmm_clang_c, clang_mode && C_mode());
+  set_predef_macro_mode(pmm_clang_cpp, clang_mode && !C_mode());
   set_predef_macro_mode(pmm_microsoft, microsoft_mode);
   set_predef_macro_mode(pmm_cpp, !C_mode());
   set_predef_macro_mode(pmm_strict, strict_ansi_mode);
