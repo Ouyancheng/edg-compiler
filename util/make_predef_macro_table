@@ -206,16 +206,17 @@ mode,!mode,mode   cannot_redefine   macro_name   macro_value
   used.  The macro is defined if any of the mode tests is TRUE.  The
   mode table can be customized, but the current set of supported modes is:
 
-    gnu:        gcc or g++ mode
-    gcc:        gcc mode
-    gpp:        g++ mode
-    clang:      clang C or C++ mode
-    clang_c:    clang C mode
-    clang_cpp:  clang C++ mode
-    microsoft:  Microsoft mode
-    strict:     strict C or C++ mode
-    cpp:        any C++ mode
-    all:        all modes
+    gnu:          gcc or g++ mode
+    gcc:          gcc mode
+    gpp:          g++ mode
+    clang:        clang C or C++ mode
+    clang_c:      clang C mode
+    clang_cpp:    clang C++ mode
+    gnu_or_clang: any GNU or clang mode
+    microsoft:    Microsoft mode
+    strict:       strict C or C++ mode
+    cpp:          any C++ mode
+    all:          all modes
 
 - cannot_redefine indicates whether the predefined macro may later be
   redefined.  The value must be "yes" or "no".

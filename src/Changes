@@ -14,8 +14,8 @@ and make_predef_macro_table will automatically retain those definitions).
 See also a related change to make_predef_macro_table that provides a mechanism
 to capture other predefined macros from the clang compiler for use in a
 predefined_macros.txt file.  In conjunction with this change, the front end
-now accepts three new types of predefined macros in that file: "clang",
-"clang_c", and "clang_cpp".
+now accepts four new types of predefined macros in that file: "clang",
+"clang_c", "clang_cpp", and "gnu_or_clang".
 
 
 7/25/15  [EDGcpfe/16391]

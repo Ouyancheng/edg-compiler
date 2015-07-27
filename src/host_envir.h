@@ -3682,6 +3682,7 @@ typedef enum a_predef_macro_mode {
   pmm_clang,		/* Any clang mode. */
   pmm_clang_c,		/* clang C mode. */
   pmm_clang_cpp,	/* clang C++ mode. */
+  pmm_gnu_or_clang,	/* Any GNU or clang mode. */
   pmm_microsoft,	/* Microsoft mode. */
   pmm_strict,		/* Strict mode. */
   pmm_cpp,		/* Compiling C++. */
@@ -3707,6 +3708,7 @@ EXTERN a_const_char
 /* pmm_clang */		"clang",
 /* pmm_clang_c */	"clang_c",
 /* pmm_clang_cpp */	"clang_cpp",
+/* pmm_gnu_or_clang */	"gnu_or_clang",
 /* pmm_microsoft */	"microsoft",
 /* pmm_strict */	"strict",
 /* pmm_cpp */		"cpp",
