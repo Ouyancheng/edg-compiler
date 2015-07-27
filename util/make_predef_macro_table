@@ -25,7 +25,7 @@
 # macro definitions produced by each of the compilers is translated into
 # the format described below.
 #
-# Note that this tool can be run for both GNU and clang compilers, and the
+# Note that this tool can be run for both GNU and clang compilers and the
 # output combined in order to create a predefined_macros.txt file that will
 # work with both GNU and clang emulation modes.
 #
@@ -130,6 +130,7 @@ delete_unneeded_entries()
   fi
   unneeded="$unneeded __cplusplus"
   unneeded="$unneeded __STDC_HOSTED__"
+  unneeded="$unneeded __STDC_VERSION__"
   unneeded="$unneeded __STDC__"
   unneeded="$unneeded __GXX_RTTI"
   unneeded="$unneeded __GNUC_GNU_INLINE__"
