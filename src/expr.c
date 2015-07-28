@@ -14400,6 +14400,15 @@ previously-scanned noexcept expression, and return the result in
                                rcblock);
   expr_stack->in_noexcept_operand_expression = TRUE;
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  if (microsoft_mode || clang_mode) {
+    /* N4431 15.4/15 has:
+         The set of potential exceptions of an expression e is empty if e is
+         a core constant expression (5.20). [...]
+       and core constant expressions can be the result of folded calls.
+       However, Clang and the Microsoft compilers do not appear to fold calls
+       prior to determine the "set of potential exceptions". */
+    expr_stack->suppress_constexpr_call_folding = TRUE;
+  }  /* if */
   if (rcblock == NULL) {
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);

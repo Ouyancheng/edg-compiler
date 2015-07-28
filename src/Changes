@@ -1,5 +1,16 @@
 Version 4.11
 
+7/28/15  [EDGcpfe/16392]
+Microsoft and Clang compatibility: noexcept and constexpr call folding
+
+In Microsoft and Clang C++11 modes, the front no longer folds calls to
+constexpr functions in the operand of the noexcept operator.  For example:
+
+  constexpr int A() { return 42; }
+  static_assert(!noexcept(A()), "Standard");  // Accepted in Microsoft and
+                                              // Clang modes.
+
+
 7/28/15  [EDGcpfe/16396,EDGcpfe/16398]
 Incorrect handling of sizeof... operator during template declaration
 
