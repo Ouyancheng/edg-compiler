@@ -2563,6 +2563,7 @@ nodes.
       } else if (!in_live_set(&ips->live_set,                                 \
                               ((a_constexpr_address *)(opnd))                 \
                                                       ->alloc_seq_number)) {  \
+        /* An attempt to access storage that has expired. */                  \
         result = FALSE;                                                       \
         /* FIXME: record a diagnostic. */                                     \
       } else {                                                                \
@@ -3079,20 +3080,30 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               break;
             case eok_assign:
-              if (((a_constexpr_address *)opnd1_value)->
-                                                     is_runtime_data_address) {
-                /* Cannot modify the value of an object whose lifetime began
-                   outside the current evaluation. */
-                /* FIXME: record a diagnostic. */
-                result = FALSE;
-              } else {
-                /* Copy the value of the right operand to the indicated
-                   address and return either the address or the value, as
-                   appropriate. */
-                (void)memcpy(value_bytes_at(opnd1_value), opnd2_value,
-                             size_t_arg(n_bytes));
-                set_result_val_from_operand_address(opnd1_value);
-              }  /* if */
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (dst->cannot_dereference) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (dst->is_runtime_data_address) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else {
+                  /* Copy the value of the right operand to the indicated
+                     address and return either the address or the value, as
+                     appropriate. */
+                  (void)memcpy(value_bytes_at(dst), opnd2_value,
+                               size_t_arg(n_bytes));
+                  *(a_constexpr_address *)result_storage = *dst;
+                }  /* if */
+              }
               break;
             case eok_comma:
               result = do_constexpr_expression(ips, opnd2, result_storage);
