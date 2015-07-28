@@ -10278,7 +10278,7 @@ indication in *rcblock).
              expansion occurring in a prototype instantiation context
              (for example a template declaration inside a real instantiation
              of a class). */
-          if (is_prototype_instantiation_context() &&
+          if (is_template_dependent_context() &&
               pesep != NULL && pesep->instantiation_descr == NULL) {
             /* Check that the identifier is a parameter pack name. */
             if (!symbol_is_pack(sym)) {
@@ -10346,11 +10346,12 @@ indication in *rcblock).
     /* Some previous error. */
     make_error_operand(result);
   } else if (rcblock == NULL && pedep != NULL &&
-             is_prototype_instantiation_context()) {
+             is_template_dependent_context()) {
     /* For the prototype instantiation, return an enk_sizeof_pack
        expression as a template constant.  When pedep is NULL, this is
        a nondependent expansion in a prototype instantiation context. */
-    an_expr_node_ptr expr =alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
+    an_expr_node_ptr expr;
+    expr = alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
     expr->type = integer_type(targ_size_t_int_kind);
     if (is_type_symbol(sym)) {
       expr->variant.sizeof_pack.is_type = TRUE;
@@ -10379,14 +10380,12 @@ indication in *rcblock).
       }  /* if */
       set_operand_position(&operand, &id_position, &id_end_position,
                            (a_source_position *)NULL);
-      expr->variant.sizeof_pack.variant.expr=make_node_from_operand(&operand);
+      expr->variant.sizeof_pack.variant.expr =
+                                             make_node_from_operand(&operand);
     }  /* if */
     make_expression_operand(expr, result);
-    /* pedep can be NULL when a sizeof... is scanned during disambiguation.
-       We're promised that we won't get back later and do a rescan on the
-       IL created here, so it should be okay not to have a recorded
-       pack expansion description. */
-    if (pedep != NULL) mark_operand_as_pack_expansion(result, pedep);
+    mark_operand_as_pack_expansion(result, pedep);
+    make_template_param_expr_constant_operand(result);
   } else {
     /* For a real instantiation or a rescan, return the constant size of
        the parameter pack. */

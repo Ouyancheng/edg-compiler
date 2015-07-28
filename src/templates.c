@@ -10374,7 +10374,7 @@ associated parameter.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Determine whether a generic type is acceptable as a substituted template
      argument. */
-  if (template_sym != NULL) {
+  if (cli_or_cx_enabled && template_sym != NULL) {
     a_template_symbol_supplement_ptr tssp;
     tssp = template_supplement_for_symbol(template_sym);
     if (tssp != NULL) {

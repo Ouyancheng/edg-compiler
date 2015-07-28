@@ -1,5 +1,26 @@
 Version 4.11
 
+7/28/15  [EDGcpfe/16396,EDGcpfe/16398]
+Incorrect handling of sizeof... operator during template declaration
+
+The front end sometimes did not correctly record a sizeof...(<pack>) operation
+while parsing a template, causing spurious errors when the template was later
+instantiated (or used in a different template).  For example:
+
+  typedef __EDG_SIZE_TYPE__ size_t;
+  template <typename T, T val> struct C {
+    static T const value = val;
+  };
+  template<typename... Ts> using A = C<size_t, sizeof...(Ts)>;
+  template<typename... Ts> int g(Ts... args) {
+    using X = A<Ts...>;
+    static_assert(X::value == 6, "Unexpected size");
+      // This assertion previously failed during prototype instantiation.
+  }
+
+This is now fixed.
+
+
 7/25/15  [EDGcpfe/16011]
 Clang compatibility: Predefined macros
 
