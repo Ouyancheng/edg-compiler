@@ -14406,7 +14406,7 @@ previously-scanned noexcept expression, and return the result in
          a core constant expression (5.20). [...]
        and core constant expressions can be the result of folded calls.
        However, Clang and the Microsoft compilers do not appear to fold calls
-       prior to determine the "set of potential exceptions". */
+       prior to determining the "set of potential exceptions". */
     expr_stack->suppress_constexpr_call_folding = TRUE;
   }  /* if */
   if (rcblock == NULL) {
