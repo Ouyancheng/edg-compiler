@@ -6424,9 +6424,9 @@ copy_done:
         revert_macro_invocation_record();
 #endif /* RECORD_MACRO_INVOCATIONS */
         free_macro_arg_entries(prev_end_of_macro_arg_list);
-#if FULLY_RESOLVED_MACRO_LOCATIONS
+#if FULLY_RESOLVED_MACRO_POSITIONS
         macro_text_map.num_entries = first_text_map_entry;
-#endif /* FULLY_RESOLVED_MACRO_LOCATIONS */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
         next_avail_in_macro_buffer = (char *)rescan_loc;
         /* Skip over the macro name. */
         curr_char_loc =
