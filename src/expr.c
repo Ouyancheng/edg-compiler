@@ -10224,6 +10224,7 @@ indication in *rcblock).
   a_pack_expansion_stack_entry_ptr
                              pesep;
   a_pack_expansion_descr_ptr pedep = NULL;
+  a_memory_region_number     region_to_switch_back_to = NULL_region_number;
 
   db_enter(4, "scan_sizeof_pack_operator");
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
@@ -10350,7 +10351,17 @@ indication in *rcblock).
     /* For the prototype instantiation, return an enk_sizeof_pack
        expression as a template constant.  When pedep is NULL, this is
        a nondependent expansion in a prototype instantiation context. */
-    an_expr_node_ptr expr;
+    an_expr_node_ptr       expr;
+    if (symbol_is(sym, sk_variable)) {
+      a_variable_ptr  vp = sym->variant.variable.ptr;
+      a_routine_ptr   rp = vp->source_corresp.enclosing_routine;
+      if (rp != NULL) {
+        a_scope_depth  depth = il_header.region_scope_entry[rp->assoc_scope]
+                                        ->depth_in_scope_stack;
+        check_assertion(depth != NO_SCOPE_DEPTH);
+        switch_to_scope_region(depth, &region_to_switch_back_to);
+      }  /* if */
+    }  /* if */
     expr = alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
     expr->type = integer_type(targ_size_t_int_kind);
     if (is_type_symbol(sym)) {
@@ -10385,7 +10396,14 @@ indication in *rcblock).
     }  /* if */
     make_expression_operand(expr, result);
     mark_operand_as_pack_expansion(result, pedep);
+    /* Wrap the enk_sizeof_pack expression in a template parameter constant
+       so we produce a constant result. */
     make_template_param_expr_constant_operand(result);
+    /* Clear the pack expansion indication on the resulting operand because
+       we've already handled the pack expansion at the sizeof... level.
+       We don't want the is_pack_expansion flag set on the enk_sizeof_pack
+       expression. */
+    result->pack_expansion_descr = NULL;
   } else {
     /* For a real instantiation or a rescan, return the constant size of
        the parameter pack. */
@@ -10400,17 +10418,8 @@ indication in *rcblock).
   record_operator_position_in_rescan_info(result, &start_position,
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           (a_source_position *)NULL);
-  if (is_prototype_instantiation_context()) {
-    /* Wrap the enk_sizeof_pack expression in a template parameter constant
-       so we produce a constant result.  This is done late so that the
-       correct position is already recorded in the operand so it gets
-       saved properly for any rescan. */
-    make_template_param_expr_constant_operand(result);
-    /* Clear the pack expansion indication on the resulting operand because
-       we've already handled the pack expansion at the sizeof... level.
-       We don't want the is_pack_expansion flag set on the enk_sizeof_pack
-       expression. */
-    result->pack_expansion_descr = NULL;
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   pop_expr_stack();
   db_exit();
