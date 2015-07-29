@@ -9188,6 +9188,12 @@ to "value".
 }  /* set_predef_macro_mode */
 
 
+static unsigned int last_mode_index = 0;
+                        /* Keep track of the index of the last predefined
+                           macro mode (since it's likely that the next
+                           predefined macro will have the same mode). */
+
+
 static a_boolean get_predef_macro_mode_value(char	*name)
 /*
 Return the value of the predefined macro mode associated with "name".
@@ -9197,16 +9203,23 @@ A catastrophic error is issued if the mode name is invalid.
   unsigned int		i;
   a_predef_macro_mode	mode = pmm_none;
 
-  /* Look for the specified name in the mode names table. */
-  for (i = (int)pmm_none + 1; i < (int)pmm_last; ++i) {
-    if (strcmp(name, predef_macro_mode_names[i]) == 0) {
-      mode = (a_predef_macro_mode)i;
-      break;
+  if (last_mode_index != 0 &&
+      strcmp(name, predef_macro_mode_names[last_mode_index]) == 0) {
+    /* The mode is the same as the last one. */
+    mode = (a_predef_macro_mode)last_mode_index;
+  } else {
+    /* Look for the specified name in the mode names table. */
+    for (i = (int)pmm_none + 1; i < (int)pmm_last; ++i) {
+      if (strcmp(name, predef_macro_mode_names[i]) == 0) {
+        mode = (a_predef_macro_mode)i;
+        last_mode_index = i;
+        break;
+      }  /* if */
+    }  /* for */
+    if (mode == pmm_none) {
+      /* No matching name was found. */
+      str_catastrophe(ec_bad_macro_mode_name, name);
     }  /* if */
-  }  /* for */
-  if (mode == pmm_none) {
-    /* No matching name was found. */
-    str_catastrophe(ec_bad_macro_mode_name, name);
   }  /* if */
   return predef_macro_mode_values[(int)mode];
 }  /* get_predef_macro_mode_value */
