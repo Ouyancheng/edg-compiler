@@ -4380,6 +4380,35 @@ were __has_include.
 }  /* scan_has_include */
 
 
+static a_boolean inserted_text_is_same(a_source_line_modif_ptr slmp,
+                                       a_const_char            *str,
+                                       sizeof_t                len)
+/*
+Return TRUE if the original inserted text of slmp (i.e., before further
+replacements indicated by ATTENTION_MARKER) matches the string designated
+by str and len.
+*/
+{
+  sizeof_t  inserted_text_len =
+                     (sizeof_t)(slmp->end_inserted_text - slmp->inserted_text);
+  a_boolean matches = (inserted_text_len == len);
+  a_const_char *p;
+
+  for (p = slmp->inserted_text; matches && p < slmp->end_inserted_text;
+       ++p, ++str) {
+    char ch = *p;
+    if (ch == ATTENTION_MARKER) {
+      /* The original text starting at this location has been replaced by
+         further macro expansion.  Compare against the original character
+         at this location. */
+      ch = nested_source_line_modif(p)->orig_char;
+    }  /* if */
+    matches = (ch == *str);
+  }  /* for */
+  return matches;
+}  /* inserted_text_is_same */
+
+
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -4420,6 +4449,7 @@ associated global variables will also have been set).
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
+  a_boolean       check_expansion_for_recursion = FALSE;
   a_boolean       pcc_mode_macro_recursion = FALSE;
   a_boolean       comma_ignored_inside_argument = microsoft_mode;
   a_source_position
@@ -4623,9 +4653,9 @@ end_scan_for_macro_modifs:;
   recursion_depth = 0;
   if (!within_curr_source_line(temp_ptr)) {
     /* This location is within a macro expansion. */
-    /* Find the source modification that contains this location, and
-       see if it's associated with the macro we are about to expand.  If
-       so, the macro name is inert and should be left alone. */
+    /* Find the source modification that contains this location, and see if
+       it's associated with the macro we are about to expand.  If so, the
+       macro name is inert in most cases and should be left alone. */
     slmp = assoc_source_line_modif(temp_ptr);
     if (top_microsoft_slmp != NULL)  {
       /* This invocation is nested in the expansion of another macro
@@ -4646,7 +4676,54 @@ end_scan_for_macro_modifs:;
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
         if (!pcc_preprocessing_mode) {
-          is_inert_macro = TRUE;
+          if (microsoft_mode) {
+            /* In some cases, the Microsoft preprocessor expands a macro
+               invocation appearing in the expansion of an earlier
+               invocation of the same macro.  For example:
+
+                 #define invoke(M, arg) M arg
+                 #define X(arg) invoke(Y, (arg))
+                 #define Z invoke(X, (0))
+
+               Here, the expansion of "invoke(X, (0))" contains an
+               invocation of "invoke" with a different macro.  The standard
+               rules would mark the second invocation of "invoke" as inert;
+               the Microsoft preprocessor expands it.  It does not expand
+               the second invocation if the invoked macro is the same,
+               which would result in unbounded recursion; if the example is
+               changed to
+
+                 #define X(arg) invoke(X, (arg))
+
+               the Microsoft preprocessor leaves the second invocation
+               unexpanded, apparently basing the decision on whether the
+               expanded text is identical to the previous expansion.  The
+               Microsoft preprocessor also does not expand the second
+               invocation if the first appeared directly in the source
+               code; that is, given
+
+                 #define Y(arg) arg
+                 invoke(X, (0));
+                 Z;
+
+               the direct invocation of "invoke" expands to "invoke(Y(0))"
+               while the invocation of "Z" yields "0". */
+            if (mdp->object_like) {
+              /* An object-like macro name appearing in its own expansion
+                 would always be an unbounded recursion. */
+              is_inert_macro = TRUE;
+            } else if (parent_source_line_modif(slmp) == NULL) {
+              /* The name is the same as that of the top-level macro
+                 invocation, so the macro is inert. */
+              is_inert_macro = TRUE;
+            } else {
+              /* We will need to check the expansion to see if the macro
+                 should be treated as inert. */
+              check_expansion_for_recursion = TRUE;
+            }  /* if */
+          } else {
+            is_inert_macro = TRUE;
+          }  /* if */
           break;
         } else {
           /* In pcc mode, arguments to macros are not macro-expanded before
@@ -4703,6 +4780,7 @@ end_scan_for_macro_modifs:;
     /* A macro name appearing within its own expansion.  Do not scan
        arguments, and do not expand the macro.  Replace it with an
        LE_INERT_MACRO escape sequence followed by the identifier string. */
+make_inert_macro:
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Macro is inert, left as identifier.\n");
@@ -6325,6 +6403,36 @@ copy_done:
         prev_sect_len = src_loc - src_loc_before_copy;
       }  /* if */
       src_loc_before_copy = src_loc;
+    }  /* for */
+  }  /* if */
+  if (check_expansion_for_recursion) {
+    /* This macro invocation appears in the expansion of an earlier
+       invocation of the same macro.  Normally that would mark the macro
+       as inert.  In the Microsoft preprocessor, however, the macro is
+       only treated as inert if the expansions are identical.  Find all
+       previous invocations of this macro that are still active and check
+       their text against the just-expanded text. */
+    for (slmp = invocation_slmp; slmp != NULL;
+         slmp = parent_source_line_modif(slmp)) {
+      if (slmp->assoc_macro == mdp &&
+          inserted_text_is_same(slmp, rescan_loc, repl_text_len)) {
+        /* We found an identical recursive invocation.  Reset the state
+           appropriately and treat the macro name as inert. */
+        is_inert_macro = TRUE;
+        macro_depth = saved_macro_depth;
+#if RECORD_MACRO_INVOCATIONS
+        revert_macro_invocation_record();
+#endif /* RECORD_MACRO_INVOCATIONS */
+        free_macro_arg_entries(prev_end_of_macro_arg_list);
+#if FULLY_RESOLVED_MACRO_LOCATIONS
+        macro_text_map.num_entries = first_text_map_entry;
+#endif /* FULLY_RESOLVED_MACRO_LOCATIONS */
+        next_avail_in_macro_buffer = (char *)rescan_loc;
+        /* Skip over the macro name. */
+        curr_char_loc =
+              delete_source_from_loc + macro_symbol->header->identifier_length;
+        goto make_inert_macro;
+      }  /* if */
     }  /* for */
   }  /* if */
   /* Add a source modification that puts the replacement text into the
