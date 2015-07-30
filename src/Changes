@@ -1,5 +1,26 @@
 Version 4.11
 
+7/30/15  [EDGcpfe/16400]
+Microsoft/Clang/GNU compatibility: constexpr and template instantiations
+
+In C++11 mode, the front end issues and error for an ordinary constexpr
+function that returns a call to a constexpr template function whose return
+expression can never be a constant expression.  For example:
+
+  bool n() { return 0; }  // Not constexpr
+  template<typename T>
+  constexpr bool t() {
+    return n();  // Never a constant expression, but not an error because
+  }              // t is a template.
+  constexpr bool c() {
+    return t<int>();  // Normally an error but now accepted in some modes.
+  }
+
+In Clang, GNU, and Microsoft modes, however, such invalid C++11 constexpr
+functions are now accepted (an error is issued if they are called in a constant
+expression context).
+
+
 7/30/15  [EDGcpfe/16401]
 Trivial copyability incorrectly determined in presence of deleted constructor
 

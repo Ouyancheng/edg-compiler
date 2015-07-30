@@ -5597,7 +5597,9 @@ issued.
 
   if (operand == NULL || !is_error_operand(operand)) {
     if (in_potential_constant_constexpr_context() &&
-        (routine == NULL || routine->is_constexpr
+        (routine == NULL || routine->is_constexpr ||
+         ((clang_mode || gpp_mode || microsoft_mode) &&
+          routine->is_template_function && !routine->is_specialized)
 #if GNU_EXTENSIONS_ALLOWED
          || (gnu_mode &&
              is_foldable_gnu_builtin_function(routine, (a_boolean*)NULL))
