@@ -20742,14 +20742,15 @@ before generating declarations for special members.
 }  /* set_move_assign_operator_flags */
 
 
-static void check_defaulted_member_types(
+static void check_defaulted_members(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd)
 /*
 Check that the parameter of any "= default" copy constructor or copy assignment
 operator of class_type are not const-qualified if a corresponding generated
-constructor would not be const-qualified.  *gsfd tracks properties of generated
-special members.
+constructor would not be const-qualified.  Also add the defaulted special
+member to the inline function list if needed.  *gsfd tracks properties of
+generated special members.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
@@ -20778,9 +20779,12 @@ special members.
           }  /* if */
         }  /* if */
       }  /* if */
+      if (instantiate_extern_inline && !rp->is_deleted) {
+        add_to_inline_function_list(rp);
+      }  /* if */
     }  /* if */
   }  /* for */
-}  /* check_defaulted_member_types */
+}  /* check_defaulted_members */
 
 
 static void check_special_member_functions(a_type_ptr            class_type,
@@ -21015,7 +21019,7 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   if (!is_template_dependent_context()) {
     /* Check the type of "= default" special members. */
-    check_defaulted_member_types(class_type, &gsfd);
+    check_defaulted_members(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
     if ((microsoft_mode && microsoft_version < 1900) &&
