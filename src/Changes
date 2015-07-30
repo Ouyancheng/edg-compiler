@@ -1,12 +1,13 @@
 Version 4.11
 
 7/30/15  [EDGcpfe/16394]
+Defaulted functions sometimes not emitted out-of-line
 
 In configurations with INSTANTIATE_EXTERN_INLINE set to TRUE the front end
 maintains a list of inline functions that must be potentially "instantiated".
 However, it failed to record defaulted special members on that list, which
-could lead to linker failures (in somewhat unusual circumstances).  That is
-now fixed.
+caused an out-of-line copy never to be emitted.  That in turn could lead to
+to linker failures (in somewhat unusual circumstances).  This is now fixed.
 
 
 7/28/15  [EDGcpfe/16200]
