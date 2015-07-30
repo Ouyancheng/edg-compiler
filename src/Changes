@@ -1,5 +1,20 @@
 Version 4.11
 
+7/30/15  [EDGcpfe/16401]
+Trivial copyability incorrectly determined in presence of deleted constructor
+
+The front end incorrectly treated a class with a deleted non-copy constructor
+as being "not trivially copyable" in some cases.  For example:
+
+  struct S {
+    S(int) = delete;
+  };
+  static_assert(__is_trivially_copyable(S), "Unexpected");
+      // Previously failed; now okay.
+
+This is now fixed.
+
+
 7/30/15  [EDGcpfe/16394]
 Defaulted functions sometimes not emitted out-of-line
 

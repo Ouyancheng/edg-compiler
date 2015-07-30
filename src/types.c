@@ -1853,19 +1853,25 @@ Return TRUE if the given type is trivially copyable.
           is_list = FALSE;
         }  /* if */
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-          a_routine_ptr	rp;
+          a_routine_ptr	    rp;
+          a_param_type_ptr  ptp;
+          a_boolean         one_param;
           if (symbol_is(sym, sk_function_template)) continue;
           check_assertion(symbol_is(sym, sk_member_function));
           rp = sym->variant.routine.ptr;
-          if ((rp->compiler_generated || rp->is_defaulted || rp->is_deleted) &&
-              !rp->is_trivial_copy_function) {
-            a_param_type_ptr	ptp = function_type_params(rp->type);
-            if (ptp != NULL && ptp->next == NULL) {
-              /* A generated constructor with one parameter: This must be a
-                 copy constructor. */
-              result = FALSE;
-              break;
-            }  /* if */
+          ptp = function_type_params(rp->type);
+          one_param = ptp != NULL && ptp->next == NULL;
+          /* A generated constructor with one parameter is always a copy
+             constructor.  For deleted constructors a more expensive check
+             is needed. */
+          if ((((rp->compiler_generated || rp->is_defaulted) && one_param) ||
+               (rp->is_deleted &&
+                is_copy_constructor(rp, tp, (a_type_qualifier_set*)NULL,
+                                    /*include_move_ctors=*/TRUE,
+                                    /*is_declarative_context=*/TRUE))) &&
+                !rp->is_trivial_copy_function) {
+            result = FALSE;
+            break;
           }  /* if */
         }  /* for */
         if (result) {
