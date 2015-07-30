@@ -21859,7 +21859,7 @@ C++11 also specifies that destructors declared without an explicit exception
 specification have an implicit exception specification equivalent to the one
 of the generated destructor if no destructor had been declared (as described
 in N3204), and that deallocation functions (i.e., operator delete and
-operator delete[]) have a "noexcept" specification (see N4305).  This
+operator delete[]) have a "noexcept" specification (see N3205).  This
 behavior is now implemented in strict C++11 mode or when the new command-line
 option --implicit_noexcept is specified.
 
