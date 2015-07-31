@@ -1,5 +1,19 @@
 Version 4.11
 
+
+7/30/15  [EDGcpfe/16363]
+Microsoft C compatibility: "Whole-struct" aggregate initialization
+
+In Microsoft C mode, the front end now permits the initialization of a whole
+struct subobject in an an aggregate initializer.  For example:
+
+  int main() {
+    struct S { int i; } s = { 1 }, as[] = { 1, s };
+  }     // Previously an error in Microsoft C mode; now okay.
+
+(Such constructs were already accepted in C99 modes and in GNU C modes.)
+
+
 7/30/15  [EDGcpfe/16402]
 Microsoft/Clang/GNU compatibility: Use of static array data member in template
 

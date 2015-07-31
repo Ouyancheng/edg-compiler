@@ -2827,7 +2827,8 @@ issued if no more specific position is available.
 
   class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
-  if (is_expression_component(icp) && (!C_mode() || c99_mode || gcc_mode) &&
+  if (is_expression_component(icp) &&
+      (!C_mode() || c99_mode || gcc_mode || microsoft_mode) &&
       try_whole_aggr_class_init(p_icp, class_type, is, init_con)) {
     /* Even though class type is an aggregate class, it is completely
        initialized by the expression represented by icp.  E.g.:
