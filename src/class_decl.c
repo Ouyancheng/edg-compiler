@@ -20746,11 +20746,11 @@ static void check_defaulted_members(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd)
 /*
-Check that the parameter of any "= default" copy constructor or copy assignment
-operator of class_type are not const-qualified if a corresponding generated
-constructor would not be const-qualified.  Also add the defaulted special
-member to the inline function list if needed.  *gsfd tracks properties of
-generated special members.
+Check that the parameters of any "= default" copy constructor or copy
+assignment operator of class_type are not const-qualified if the parameter of
+a corresponding generated member would not be const-qualified.  Also add the
+defaulted special member to the inline function list if needed.  *gsfd tracks
+properties of generated special members.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
