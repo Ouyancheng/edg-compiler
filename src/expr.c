@@ -11317,6 +11317,7 @@ indication in *rcblock).
     make_type_operand_rescan_type(rcblock, &type, &type_position);
     rescan_op2 = rcblock->argument_list->next;
   } else {
+    a_decl_parse_state  dps;
     /* Normal, non-rescan, processing. */
     start_position = pos_curr_token;
     /* Pass over the built-in offsetof token. */
@@ -11326,7 +11327,12 @@ indication in *rcblock).
     (void)required_token(tok_lparen, ec_exp_lparen);
     type_position = pos_curr_token;
     add_stop_token(tok_rparen);
-    type_name(&type);
+    init_decl_parse_state(&dps);
+    type_name_full(&dps);
+    if (!(gpp_mode && !clang_mode)) {
+      check_type_definition_in_type_name(&dps);
+    }  /* if */
+    type = dps.type;
   }  /* if */
   utype = skip_typerefs(type);
   if (is_immediate_class_type(utype)) {
