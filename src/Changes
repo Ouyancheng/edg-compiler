@@ -5,7 +5,7 @@ Version 4.11
 Microsoft C compatibility: "Whole-struct" aggregate initialization
 
 In Microsoft C mode, the front end now permits the initialization of a whole
-struct subobject in an an aggregate initializer.  For example:
+struct subobject in an aggregate initializer.  For example:
 
   int main() {
     struct S { int i; } s = { 1 }, as[] = { 1, s };
