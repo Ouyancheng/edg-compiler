@@ -21624,6 +21624,7 @@ if it's not valid).
       /* GNU C++ allows a limited form of lvalue cast on integral types. */
       gnu_lvalue_cast_case = TRUE;
     } else if (microsoft_bugs && !cast_to_reference &&
+               preserve_lvalues_with_same_type_casts &&
                is_an_lvalue(operand) &&
                identical_types_ignoring_qualifiers(operand->type,
                                                    type_cast_to) &&

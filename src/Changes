@@ -1,5 +1,25 @@
 Version 4.11
 
+7/31/15  [EDGcpfe/16367]
+Microsoft-mode abort on cast of data member to its const-qualified type
+
+The changes for EDGcpfe/11654 allow the front end to treat the cast of a data
+member access to the type of that data member but with modified type qualifiers
+(e.g., an added "const") as an lvalue (it normally should be an rvalue).  The
+changes for EDGcpfe/14628 introduced a global variable to control such
+"lvalue cast" behavior explicitly, but they failed to condition this particular
+case on that variable.  As a consequence, compiling such cases with
+"--microsoft_bugs --no_preserve_lvalues_with_same_type_casts" triggered an
+inconsistency that could lead to an internal error.  For example:
+
+  struct S {
+    S() : x() { static_cast<const int>(x); }
+    int x;
+  } s;
+
+This case previously aborted in function lvalue_cast ("lvalue cast in
+unexpected mode").  That is now fixed.
+
 
 7/30/15  [EDGcpfe/16363]
 Microsoft C compatibility: "Whole-struct" aggregate initialization
