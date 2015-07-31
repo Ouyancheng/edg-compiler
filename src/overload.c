@@ -8460,7 +8460,7 @@ an argument of a call in gpp mode even though the standard says it's not.
 {
   a_boolean result = FALSE;
 
-  /* Some of the cases we care about are 'this->x' and '*(this->x)', as well
+  /* Some of the cases we care about are "this->x" and "*(this->x)", as well
      as the call of a member function of the current class.  g++ sees those as
      dependent even if the type of x or the return type of the function is
      known.  A different case is the use of a variable of array type whose
