@@ -27468,9 +27468,12 @@ entity", not "I need a definition of this entity".
      called in the middle of a translation unit, so implicit inclusion cannot
      be done. */
   find_or_create_master_instance(tip);
-  if (!master_instance_of(tip)->already_instantiated &&
-      entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
-    instantiate_entity(tip);
+  if (!secondary_translation_unit_seen() ||
+      trans_unit_for_symbol(var_sym) == curr_translation_unit) {
+    if (!master_instance_of(tip)->already_instantiated &&
+        entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+      instantiate_entity(tip);
+    }  /* if */
   }  /* if */
 }  /* complete_template_static_data_member_type_is_needed */
 
