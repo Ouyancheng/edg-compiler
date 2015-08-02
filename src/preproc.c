@@ -1989,9 +1989,15 @@ and may have extra operands at the end).
      this entry is not for a file, but instead represents the remapping
      caused by the #line. */
   /* Note that full_name stays pointing to the actual input file name. */
-  if (cpp_output_form && strcmp(curr_ise->file_name, temp_file) == 0) {
-    /* This is just positioning within the same file, no need to pop and
-       push; just indicate the start of a new range of line numbers. */
+  if (cpp_output_form &&
+      curr_ise->assoc_il_file != curr_ise->assoc_actual_il_file &&
+      strcmp(curr_ise->file_name, temp_file) == 0) {
+    /* This directive is just positioning within the same mapped file, no
+       need to pop and push; just indicate the start of a new range of line
+       numbers.  A push is required, however, if the directive names the
+       physical source file; such a directive must introduce a child in
+       order to provide a mapping back to the physical line numbers.  This
+       requirement is enforced by the check for assoc_actual_il_file. */
     suppress_pop = TRUE;
     suppress_push = TRUE;
     record_resumption_of_source_file((a_source_file_ptr)NULL,

@@ -1,5 +1,20 @@
 Version 4.11
 
+8/2/15   [EDGcpfe/16404]
+Internal error with #line directive naming the physical file
+
+The changes for EDGcpfe/15925 (part of version 4.10.1) could cause an
+internal error "optimum_file_start_position: missing file index entry" to
+occur when a diagnostic is issued following a GNU-style #line directive
+that names the actual source file in which it appears.  This is now fixed.
+For example, with --g++ and assuming the file is named "test.cpp":
+
+  # 1 "test.cpp"
+  void foo(void) {
+    char *test = "test";  // "never referenced" warning caused internal error
+  }
+
+
 7/31/15  [EDGcpfe/16362]
 GNU C++ compatibility: Class definitions in __builtin_offsetof
 
