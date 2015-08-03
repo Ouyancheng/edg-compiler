@@ -2622,7 +2622,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
   } else if (pack_expr != NULL) {
-    if (pack_expr->kind == (an_expression_kind)enk_param_ref &&
+    if (pack_expr->kind == (an_expr_node_kind)enk_param_ref &&
         pack_expr->variant.param_ref.param_num != 0) {
       /* Function parameter. */
 #if !IA64_ABI
