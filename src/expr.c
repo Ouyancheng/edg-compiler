@@ -32940,9 +32940,7 @@ is considered a full-expression.
   if (template_dependent_case && is_expression_operand(&result)) {
     /* In template-dependent contexts we cannot always fold the result to a
        constant. */
-    a_constant_ptr con = local_constant();
-    make_template_param_expr_constant(result.variant.expression, con);
-    constant = move_local_constant_to_il(&con);
+    make_template_param_expr_constant(result.variant.expression, constant);
   } else {
     extract_constant_from_operand(&result, constant);
   }  /* if */
