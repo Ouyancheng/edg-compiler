@@ -2657,10 +2657,11 @@ specific position is available.
 */
 {
   a_boolean              okay, skip_designator = TRUE;
-  an_init_component_ptr  icp = *p_icp;
+  an_init_component_ptr  icp = *p_icp, next_icp;
   a_type_ptr             class_to_look_in = class_type;
   a_symbol_locator       loc;
   a_symbol_ptr           sym;
+  a_field_ptr            orig_field = *field;
 
   if (!C_mode()) {
     /* If we're in an anonymous union, look for the field in the enclosing
@@ -2712,8 +2713,8 @@ specific position is available.
                struct S { struct { int i; float f; }; };
                struct S s1 = {{ .i = 1 }};  // Accepted by GCC
                struct S s2 = { .i = 1 };    // Sometimes an error.
-             In modes where it is permitted, we must generate
-             anonymous designators to navigate the aggregate structure. */
+             In modes where it is permitted, we must generate anonymous
+             designators to navigate the aggregate structure. */
           if (!C_mode() || (gcc_mode && gnu_version < 40600)) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
@@ -2740,6 +2741,9 @@ specific position is available.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (skip_designator) {
+    next_icp = next_elem(icp);
+  }  /* if */
   if (!C_mode() && okay &&
       !class_type->variant.class_struct_union.is_nonreal_class &&
       !symbol_supplement_for_class(class_type)->is_POD) {
@@ -2747,10 +2751,26 @@ specific position is available.
        order of initialization and destruction.  For now, at least, we disallow
        such constructs.  (The error is only issued on the first designator if
        there is a sequence of consecutive designators.) */
-    pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+    if ((gpp_mode || clang_mode) && orig_field == *field && skip_designator &&
+        next_icp != NULL && !is_designator_component(next_icp)) {
+      /* GCC does permit a designator that has no effect (i.e., one that
+         designates the field that would be initialized even if the designator
+         were omitted).  Clang permits additional cases, but we do not
+         currently emulate those. */
+#if DO_IL_LOWERING
+      if (!suppress_il_lowering) {
+        /* If lowering is to be done, don't generate IL representing the
+           designator since it would have to be eliminated by lowering. */
+        icp = next_icp;
+        goto done;
+      }  /* if */
+#endif /* DO_IL_LOWERING */
+    } else {
+      pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+    }  /* if */
   }  /* if */
   if (skip_designator) {
-    icp = next_elem(icp);
+    icp = next_icp;
   }  /* if */
   if (okay) {
     /* Designators complicate the determination of whether an aggregate
@@ -2803,6 +2823,9 @@ specific position is available.
     icp = NULL;
     is->init_error = TRUE;
   }  /* if */
+#if DO_IL_LOWERING
+done:
+#endif /* DO_IL_LOWERING */
   *p_icp = icp;
 }  /* aggr_init_field_designator */
 
