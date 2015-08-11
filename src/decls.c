@@ -12301,7 +12301,6 @@ selection operation associated with this operator function reference.
   if (field_sel_type != NULL) {
     ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = field_sel_type;
-    ssep->qualified_conversion_operator = is_class_member && parent != NULL;
   }  /* if */
   /* Bypass the "operator" keyword. */
   (void)get_token();
@@ -12336,7 +12335,6 @@ selection operation associated with this operator function reference.
        the type did not involve an identifier. */
     ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = NULL;
-    ssep->qualified_conversion_operator = FALSE;
     complete_type = pointer_declarator(state.specifiers_type, &state,
                                        /*reference_allowed=*/TRUE,
                                        (a_call_conv_descr_ptr)NULL,
@@ -12391,7 +12389,6 @@ selection operation associated with this operator function reference.
        reset here. */
     ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = NULL;
-    ssep->qualified_conversion_operator = FALSE;
   }  /* if */
   db_exit();
   return is_conversion_operator;

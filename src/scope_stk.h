@@ -922,10 +922,6 @@ typedef struct a_scope_stack_entry {
 			   scope is entered and restored when the scope is
 			   left. */
 #endif /* FIXED_POINT_ALLOWED */
-  a_bit_field	qualified_conversion_operator:1;
-			/* TRUE when conversion_parent_type is set and the
-			   conversion type was specified using the form
-			   "A::operator B". */
   a_bit_field	initial_decl_of_namespace_std:1;
 			/* TRUE if this is the first explicit declaration of
 			   namespace std.  This flag is needed because the
