@@ -3772,7 +3772,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         } else if (is_class_definition ||
                    ((curr_token == tok_semicolon ||
                      curr_token == tok_removed_template_body) &&
-                    !is_ref_within_new_expr &&
+                    !is_ref_within_new_expr && !dps->is_type_name &&
                     !is_friend_decl && !is_explicit_instantiation)) {
           /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&

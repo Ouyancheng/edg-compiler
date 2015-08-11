@@ -1,5 +1,19 @@
 Version 4.11
 
+8/11/15  [EDGcpfe/16422]
+Spurious error on alias using an elaborated type specifier with template-id
+
+In C++11 mode, examples like the following:
+
+  template<typename> struct X;
+  struct S {
+    using A = struct X<int>;
+  };
+
+previously triggered a spurious error saying that a specialization cannot
+appear at that point.  This is now fixed.
+
+
 8/11/15  [EDGcpfe/12971]
 Microsoft compatibility: Flexible array members in unions (IL CHANGE)
 
