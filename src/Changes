@@ -1,5 +1,27 @@
 Version 4.11
 
+8/11/15  [EDGcpfe/15830]
+GNU compatibility: Type of address label difference
+
+In GNU modes, the front end accepts constructs to take the address of labels
+and to compute their "difference".  In some GNU modes (e.g., GNU C mode)
+address label differences are sometimes represented using a_constant entries
+(ck_label_difference).  Previously, such constants always had a type
+corresponding to ptrdiff_t, even when the label addresses had been explicitly
+cast to a different integral type.  For example:
+
+  void g(int x) {
+    if (x < ((unsigned long)&&L2 - (unsigned long)&&L1)) { }
+  L1:
+  L2:
+    ;
+  }
+
+Here the constant representing "(unsigned long)&&L2 - (unsigned long)&&L1"
+previously had a signed type (the underlying type of ptrdiff_t); now it has
+type unsigned long.
+
+
 8/11/15  [EDGcpfe/16426]
 Microsoft compatibility: U-literal support when microsoft_version >= 1900
 

@@ -5253,6 +5253,13 @@ error.  *err_pos is used as the position for any diagnostics issued.
            in GNU mode. */
         do_pdiff(constant_1, constant_2, result, did_not_fold,
                  &err_code, &err_severity);
+        if (!*did_not_fold &&
+            result->kind == (a_constant_repr_kind)ck_label_difference) {
+          /* do_pdiff produces a result of ptrdiff_t type, but in cases like
+             this the type cast to should be preserved (taking into account
+             the usual arithmetic promotions). */
+          result->type = result_type;
+        }  /* if */
       } else if (gnu_mode &&
                  op == (an_expr_operator_kind)eok_and &&
                  is_zero_constant(constant_2)) {
