@@ -17671,6 +17671,7 @@ C++/CLI typeid of the form X::typeid.
   a_symbol_ptr	class_fund_sym = NULL;
   a_symbol_ptr	sym = NULL;
   a_boolean	do_class_lookup;
+  a_boolean	get_normal_sym;
 
   /* Do the lookup if a type was provided that is a class type that is
      either complete or in the process of being defined.  Also do the
@@ -17693,10 +17694,11 @@ C++/CLI typeid of the form X::typeid.
     class_sym = class_fund_sym == NULL ? NULL
                                        : locator_for_curr_id.specific_symbol;
   }  /* if */
+  get_normal_sym = class_sym == NULL || class_sym->is_nonreal_member;
   /* In C++11 mode, the normal lookup is not done in most cases if the class
      lookup produced a result.  It is also done if the class lookup
-     found a nonreal member as that should be ignored in some cases. */
-  if (!cpp11_mode || class_sym == NULL || class_sym->is_nonreal_member) {
+     found a nonreal symbol that might be ignored. */
+  if (!cpp11_mode || get_normal_sym) {
     /* Only get normal_sym from the locator if a fundamental symbol was
        returned by the lookup.  The specific symbol in the locator could
        be non-NULL in error cases. */ 
@@ -17707,9 +17709,16 @@ C++/CLI typeid of the form X::typeid.
   }  /* if */
   if (cpp11_mode) {
     /* In C++11 mode, use the class symbol unless it is a nonreal member and
-       a normal symbol exists. */
-    if ((class_sym == NULL || class_sym->is_nonreal_member) &&
-        normal_sym != NULL) {
+       a normal symbol exists.  If it is a nonreal member where a template
+       is possible, and the normal symbol is not a template, the class
+       symbol is used. */
+    a_boolean	ignore_class_sym = FALSE;
+    if (class_sym == NULL ||
+        (get_normal_sym && normal_sym != NULL &&
+         (!might_be_template || is_template_symbol(normal_fund_sym)))) {
+      ignore_class_sym = TRUE;
+    }  /* if */
+    if (ignore_class_sym) {
       sym = normal_fund_sym;
     } else {
       sym = class_fund_sym;
