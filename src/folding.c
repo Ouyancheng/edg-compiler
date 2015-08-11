@@ -5244,6 +5244,7 @@ error.  *err_pos is used as the position for any diagnostics issued.
 #endif /* CHECKING */
         do_padd(constant_1, op, constant_2, result, did_not_fold,
                 &err_code, &err_severity);
+#if GNU_EXTENSIONS_ALLOWED
       } else if ((gcc_mode ||
                   (gpp_mode && gnu_version < 40000)) &&
                  op == (an_expr_operator_kind)eok_subtract &&
@@ -5265,6 +5266,7 @@ error.  *err_pos is used as the position for any diagnostics issued.
                  is_zero_constant(constant_2)) {
         /* gcc allows (int)"abc" & 0 as an integral constant. */
         do_and(constant_2 /* sic */, constant_2, result);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         *did_not_fold = TRUE;
       }  /* if */
