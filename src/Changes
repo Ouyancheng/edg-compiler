@@ -1,5 +1,11 @@
 Version 4.11
 
+8/11/15  [EDGcpfe/16426]
+Microsoft compatibility: U-literal support when microsoft_version >= 1900
+
+U-literal support (including char16_t and char32_t keywords) is now enabled
+when microsoft_version >= 1900.
+
 
 8/10/15  [EDGcpfe/16406]
 GNU/Clang compatibility: Trivial designators into non-POD class types

@@ -2389,6 +2389,9 @@ by a command line option.
       if (!option_kind_used[(int)optk_user_defined_literals]) {
         user_defined_literals_enabled = TRUE;
       }  /* if */
+      if (!option_kind_used[(int)optk_uliterals]) {
+        uliterals_enabled = TRUE;
+      }  /* if */
       deduced_return_types_enabled = TRUE;
       if (auto_type_specifier_enabled) {
         decltype_auto_enabled = TRUE;
