@@ -9020,7 +9020,9 @@ typedef struct a_type {
 			   field is an incomplete array type or a class type
 			   that has this flag set.  In Microsoft mode, this
 			   can be TRUE for a union if any field (not just the
-			   last one) has this property. */
+			   last one) has this property.  Also, in Microsoft
+			   mode, a TRUE value for a union will not propagate
+			   to enclosing class types. */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
       		is_transparent:1;

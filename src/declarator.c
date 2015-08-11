@@ -969,12 +969,17 @@ the specifiers and declarator that formed the new type.
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a flexible array member is usually
-               not allowed to be an array element type.  An exception is made
-               GNU modes. */
-            if (is_class_struct_union_type(temp_type) &&
-                temp_type->variant.class_struct_union.
-                                contains_flexible_array_member) {
-              if (gnu_mode) {
+               not allowed to be an array element type.  The are exceptions in
+               GNU and Microsoft modes. */
+            if (is_immediate_class_type(temp_type) &&
+                temp_type->variant.class_struct_union
+                                  .contains_flexible_array_member) {
+              if (microsoft_mode && temp_type->kind == (a_type_kind)tk_union) {
+                /* In Microsoft mode, a union with a flexible array member is
+                   not treated as a type that might be used to access storage
+                   outside the type's extent (presumably because the storage
+                   could instead come from other union members). */
+              } else if (gnu_mode) {
                 pos_warning(ec_nonstandard_array_with_flexible_array_element,
                             &error_position);
               } else {

@@ -17472,8 +17472,9 @@ declarations.
 {
   a_decl_parse_state  *decl_state = &decl_info->decl_state;
   a_type_ptr          field_type = decl_state->type;
+  a_type_ptr          ufield_type = skip_typerefs(field_type);
   a_type_ptr          class_type = class_state->class_type;
-  a_boolean           err = is_error_type(field_type);
+  a_boolean           err = is_error_type(ufield_type);
 
   /* First check whether there was a preceding field of incomplete array type
      for which an error should now be issued. */
@@ -17522,15 +17523,15 @@ declarations.
     }  /* if */
   }  /* if */
   /* The type specified must be complete. */
-  complete_type_is_needed(field_type);
-  if (C_mode() && is_function_type(field_type) &&
+  complete_type_is_needed(ufield_type);
+  if (C_mode() && is_function_type(ufield_type) &&
       decl_state->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
     pos_error(ec_field_cannot_involve_vla_type, &locator->source_position);
     err = TRUE;
-  } else if (is_incomplete_type(field_type)) {
+  } else if (is_incomplete_type(ufield_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member. */
     a_boolean   incomplete_okay = FALSE;
@@ -17542,8 +17543,8 @@ declarations.
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
-      if (is_array_type(field_type) &&
-          !is_incomplete_type(underlying_array_element_type(field_type))) {
+      if (is_array_type(ufield_type) &&
+          !is_incomplete_type(underlying_array_element_type(ufield_type))) {
         if (is_union_type(class_type)) {
           /* Incomplete member in a union; not usually allowed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -17632,9 +17633,10 @@ declarations.
       }  /* if */
     }  /* if */
   } else if (flexible_array_members_allowed &&
-             is_class_struct_union_type(field_type) &&
-             skip_typerefs(field_type)->
-               variant.class_struct_union.contains_flexible_array_member) {
+             is_immediate_class_type(ufield_type) &&
+             ufield_type->variant.class_struct_union
+                                 .contains_flexible_array_member &&
+             !(microsoft_mode && ufield_type->kind == (a_type_kind)tk_union)) {
     /* The member is a struct whose final member is an incomplete array or
        else the member is a union that contains such a struct. */
     if (class_type->kind == (a_type_kind)tk_union) {
