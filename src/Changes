@@ -1,19 +1,22 @@
 Version 4.11
 
 8/11/15  [EDGcpfe/16419]
-Abort on use of captured dependent-type const variable in lambda
+Abort or invalid IL on use of captured dependent-type const variable in lambda
 
-In modes that perform prototype instantiations, the front end sometimes aborted
-(in ptr_remap_function, "address not in any mem block") after processing a
-lambda in a template containing a reference to a variable (to be captured)
-with a const type.  For example, with "--c++11 --parse_templates":
+In modes that perform prototype instantiations, the front end sometimes
+incorrectly handled a lambda in a template containing a reference to a variable
+(to be captured) with a const type.  In configurations ALTERNATE_IL_FILE_FORMAT
+and IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE this led to an abort (in
+ptr_remap_function, "address not in any mem block"); in other configurations
+invalid IL was produced for the prototype instantiation.  For example, with
+"--c++11 --parse_templates":
 
   template<typename T> struct S {
     void f() {
       auto const p = new S<T>;
       [=]{ p->m; };  // Previously triggered an abort in some modes.
     }
-  }
+  };
 
 This is now fixed.
 

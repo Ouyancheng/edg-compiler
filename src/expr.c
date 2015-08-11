@@ -28485,10 +28485,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
            remember the nonlocal reference to help back-end aliasing
            analysis. */
         var->referenced_non_locally = TRUE;
-      } else if ((curr_expr_kind_is_const() || 
-                  (rvalue_only != NULL &&
-                   !(scope_stack_top().in_prototype_instantiation &&
-                     lambda_capture != NULL && in_lambda_body())) ||
+      } else if ((curr_expr_kind_is_const() || rvalue_only != NULL ||
                   expr_stack->is_vla_dimension_expression) &&
                  var->constant_valued) {
         /* Allow references to constant-valued variables in constant
