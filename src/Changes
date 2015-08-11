@@ -1,5 +1,23 @@
 Version 4.11
 
+8/11/15  [EDGcpfe/16419]
+Abort on use of captured dependent-type const variable in lambda
+
+In modes that perform prototype instantiations, the front end sometimes aborted
+(in ptr_remap_function, "address not in any mem block") after processing a
+lambda in a template containing a reference to a variable (to be captured)
+with a const type.  For example, with "--c++11 --parse_templates":
+
+  template<typename T> struct S {
+    void f() {
+      auto const p = new S<T>;
+      [=]{ p->m; };  // Previously triggered an abort in some modes.
+    }
+  }
+
+This is now fixed.
+
+
 8/11/15  [EDGcpfe/16421]
 Internal error on init-capture following capture of "this"
 
