@@ -2657,7 +2657,7 @@ specific position is available.
 */
 {
   a_boolean              okay, skip_designator = TRUE;
-  an_init_component_ptr  icp = *p_icp, next_icp;
+  an_init_component_ptr  icp = *p_icp, next_icp = NULL;
   a_type_ptr             class_to_look_in = class_type;
   a_symbol_locator       loc;
   a_symbol_ptr           sym;
