@@ -17438,30 +17438,6 @@ done:;
 }  /* apply_bit_field_size */
 
 
-static a_boolean last_field_is_flexible(a_type_ptr  class_type)
-/*
-Return TRUE if the last field (if any) of the given class type (possibly a
-typedef) has an incomplete array type, or has a class type that has the flag
-contains_flexible_array_member set to TRUE.
-*/
-{
-  a_type_ptr  tp = skip_typerefs(class_type);
-  a_field_ptr fp = tp->variant.class_struct_union.field_list;
-  a_boolean   result = FALSE;
-
-  if (fp != NULL) {
-    a_type_ptr  field_type;
-    while (fp->next != NULL) fp = fp->next;
-    field_type = skip_typerefs(fp->type);
-    result = is_incomplete_array_type(field_type) ||
-             (is_immediate_class_type(field_type) &&
-              field_type
-                 ->variant.class_struct_union.contains_flexible_array_member);
-  }  /* if */
-  return result;
-}  /* last_field_is_flexible */
-
-
 static void check_field_type(a_symbol_locator        *locator,
                              a_class_def_state_ptr   class_state,
                              a_member_decl_info_ptr  decl_info,
