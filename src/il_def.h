@@ -9018,7 +9018,7 @@ typedef struct a_type {
 		contains_flexible_array_member:1;
 			/* TRUE if this is a class or struct type and the last
 			   field is an incomplete array type or a class type
-			   that has this flag set.  In Microsoft, this can
+			   that has this flag set.  In Microsoft mode, this can
 			   also be TRUE for union types. */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
