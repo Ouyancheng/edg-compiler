@@ -17503,7 +17503,9 @@ declarations.
     err = TRUE;
   } else if (is_incomplete_type(ufield_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
-       an array of unknown size is sometimes allowed as the last member. */
+       an array of unknown size is sometimes allowed as the last member
+       (or, in some modes, even a member other than the last if the enclosing
+       class type is a union). */
     a_boolean   incomplete_okay = FALSE;
     /* The last member may be an incomplete array in C99 mode, as an
        extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
