@@ -17714,6 +17714,8 @@ C++/CLI typeid of the form X::typeid.
        symbol is used. */
     a_boolean	ignore_class_sym = FALSE;
     if (class_sym == NULL ||
+        (normal_sym != NULL && class_sym->is_nonreal_member &&
+         (!might_be_template || !is_template_symbol(class_fund_sym))) ||
         (get_normal_sym && normal_sym != NULL &&
          (!might_be_template || is_template_symbol(normal_fund_sym)))) {
       ignore_class_sym = TRUE;
