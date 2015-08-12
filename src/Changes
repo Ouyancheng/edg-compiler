@@ -1,6 +1,6 @@
 Version 4.11
 
-8/12/15  [EDGcpfe/16412,EDGcpfe/16425]
+8/12/15  [EDGcpfe/16425]
 GCC and Clang compatibility: "this" and template dependent calls
 
 The expression "this" in a class template is always type-dependent, but
