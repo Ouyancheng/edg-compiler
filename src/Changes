@@ -1,6 +1,42 @@
 Version 4.11
 
 8/12/15  [EDGcpfe/16425]
+GCC and Clang compatibility: "this" and template dependent calls
+
+The expression "this" in a class template is always type-dependent, but
+expressions involving "this" are not necessarily type-dependent.  Consider
+the following example:
+
+  struct S {} *gp;
+  template<typename = void> class C {
+    S *mp;
+  public:
+    void f1(int n) { g(mp, n*s()); }  // Accepted by GCC and Clang.
+    void f2(int n) { g(gp, n*s()); }  // Accepted by GCC and Clang.
+    void f3(int n) { g(mp, n*42); }   // Accepted by Clang.
+    void f4(int n) { g(gp, n*42); }   // Not accepted by Clang or GCC.
+    int s() const;
+  };
+  void g(S*, int);
+  int main() {
+    C<> c;
+    c.f1(1);
+    c.f2(2);
+    c.f3(3);
+    c.f4(4);
+  }
+
+According to the standard, every call to g (in f1, f2, f3, and f4) is
+nondependent, and therefore ill-formed because no g is declared at the point
+of the call.  However, in Clang and GCC modes, some of these calls are now
+treated as template-dependent (and therefore accepted).  Specifically, in
+GCC and Clang mode, a call to "f" equivalent to a call to "this->f" is now
+treated as type-dependent in a template-dependent context, and in Clang mode
+accessing a member m of an enclosing class template is also considered to be
+a type-dependent expression.
+
+
+8/12/15  [EDGcpfe/16425]
 List initializers and user-defined conversions
 
 Previously, the C++ standard required ignoring user-defined conversions in some

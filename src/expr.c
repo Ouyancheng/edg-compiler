@@ -4887,6 +4887,7 @@ are expected to be NULL in that case.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         gnu_sync_function_case = FALSE;
   a_boolean         result_operand_is_call;
+  a_boolean         implicit_this_selector = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -5109,6 +5110,7 @@ are expected to be NULL in that case.
         a_source_position saved_end_position;
         saved_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        implicit_this_selector = TRUE;
         /* Make an operand for the function bound to the "this" pointer. */
         make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
@@ -5225,11 +5227,15 @@ are expected to be NULL in that case.
       }  /* if */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
-               is_template_param_type(operand->type)) {
-      /* A call of a dependent expression in a prototype instantiation.
-         Note that we test only for a top-level parameter type here, which
-         might be a class.  More testing for other dependent cases
-         is done below. */
+               (is_template_param_type(operand->type) ||
+                ((gpp_mode || clang_mode) && implicit_this_selector))) {
+      /* A call of a dependent expression in a prototype instantiation.  Note
+         that we test only for a top-level parameter type here, which might be
+         a class.  If a call "f()" is implicitly treated as "this->f()" in a
+         template-dependent context, Clang and GCC consider is template-
+         dependent too (if "this" is explicit, "this->f" will already be a
+         ck_template_param constant in those modes).   More testing for other
+         dependent cases is done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
@@ -5513,7 +5519,13 @@ are expected to be NULL in that case.
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
-    if (!is_error_operand(result) && function_call_node != NULL) {
+    if (is_error_operand(result)) {
+      /* Nothing more to do. */
+    } else if ((gpp_mode || clang_mode) && implicit_this_selector &&
+               unknown_dependent_function) {
+      /* Ensure that the result of the call will be treated as dependent. */
+      result->type = type_of_unknown_templ_param_nontype;
+    } else if (function_call_node != NULL) {
       if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
           expr_fold_constexpr_call(function_call_node, &call_position,
                                    result)) {
@@ -5725,7 +5737,6 @@ accepts the case where the first operand is a C++/CLI handle.
   a_type_ptr            result_type;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
-  a_type_qualifier_set  qualifiers;
   a_boolean             result_is_a_glvalue = FALSE;
   a_boolean             result_is_an_xvalue = FALSE;
     
@@ -5780,39 +5791,46 @@ accepts the case where the first operand is a C++/CLI handle.
       }  /* if */
     }  /* if */
     /* Determine the result type. */
-    qualifiers = get_type_qualifiers(class_struct_union_type);
-    if (cfront_2_1_mode) {
-      /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
-      result_type = field->type;
-      if (qualifiers != TQ_NONE) {
-        a_type_ptr unqual_class_type;
-        a_boolean  operand_1_was_rvalue = (is_an_rvalue(operand_1) &&
-                                           !is_arrow_operator);
-        /* Drop the type qualifiers on the left operand to generate correct
-           IL. */
-        /* Adjust the type by turning the operand into a pointer (if
-           necessary) and casting. */
-        conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-        /* Note that we cannot simply use the unqualified version of
-           class_struct_union_type here because it might be a derived class. */
-        unqual_class_type = type_pointed_to(operand_1->type);
-        unqual_class_type = make_unqualified_type(unqual_class_type);
-        cast_operand(make_pointer_type(unqual_class_type),
-                     operand_1,
-                     /*is_implicit_cast=*/TRUE);
-        if (operand_1_was_rvalue) {
-          /* For the class rvalue case, produce an rvalue again. */
-          conv_object_pointer_to_lvalue(operand_1);
-          conv_glvalue_to_prvalue(operand_1);
-          is_arrow_operator = FALSE;
-        }  /* if */
-        qualifiers = TQ_NONE;
-      }  /* if */
+    if (clang_mode &&
+        class_struct_union_type->kind == (a_type_kind)tk_template_param) {
+      result_type = type_of_unknown_templ_param_nontype;
     } else {
-      /* The result type is set to the type of the field with the union of the
-         qualifiers of the field and the qualifiers of the class, struct,
-         or union.  const is ignored if the field was declared mutable. */
-      result_type = make_field_selection_type(field, qualifiers);
+      a_type_qualifier_set  qualifiers;
+      qualifiers = get_type_qualifiers(class_struct_union_type);
+      if (cfront_2_1_mode) {
+        /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
+        result_type = field->type;
+        if (qualifiers != TQ_NONE) {
+          a_type_ptr unqual_class_type;
+          a_boolean  operand_1_was_rvalue = (is_an_rvalue(operand_1) &&
+                                             !is_arrow_operator);
+          /* Drop the type qualifiers on the left operand to generate correct
+             IL. */
+          /* Adjust the type by turning the operand into a pointer (if
+             necessary) and casting. */
+          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+          /* Note that we cannot simply use the unqualified version of
+             class_struct_union_type here because it might be a derived
+             class. */
+          unqual_class_type = type_pointed_to(operand_1->type);
+          unqual_class_type = make_unqualified_type(unqual_class_type);
+          cast_operand(make_pointer_type(unqual_class_type),
+                       operand_1,
+                       /*is_implicit_cast=*/TRUE);
+          if (operand_1_was_rvalue) {
+            /* For the class rvalue case, produce an rvalue again. */
+            conv_object_pointer_to_lvalue(operand_1);
+            conv_glvalue_to_prvalue(operand_1);
+            is_arrow_operator = FALSE;
+          }  /* if */
+          qualifiers = TQ_NONE;
+        }  /* if */
+      } else {
+        /* The result type is set to the type of the field with the union of
+           the qualifiers of the field and the qualifiers of the class, struct,
+           or union.  const is ignored if the field was declared mutable. */
+        result_type = make_field_selection_type(field, qualifiers);
+      }  /* if */
     }  /* if */
     selection_type = result_type;
     if (!result_is_a_glvalue) result_type = prvalue_type(result_type);

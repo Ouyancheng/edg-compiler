@@ -10468,6 +10468,14 @@ that case, and this_type is used for the type.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  if ((gpp_mode || clang_mode) && is_template_dependent_context()) {
+    /* "this" in template-dependent contexts is type-dependent.  However,
+       "this->x" or "this->f()" is not necessarily dependent.  See N4431
+       14.6.2.2 paragraphs 1 and 2.  Clang and GCC do not appear to follow
+       the exceptions suggested by paragraph 1; forcing an unknown type here
+       allows us to ignore these exceptions later on. */
+    result->type = make_pointer_type(type_of_unknown_templ_param_nontype);
+  }  /* if */
 }  /* make_this_variable_operand */
 
 
