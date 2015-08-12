@@ -1,5 +1,26 @@
 Version 4.11
 
+8/12/15  [EDGcpfe/16425]
+List initializers and user-defined conversions
+
+Previously, the C++ standard required ignoring user-defined conversions in some
+cases where a non-aggregate class is initialized with a single brace enclosed
+element.  The front end no longer implements that rule because it has been
+eliminated by the changes for the standards committee's resolution of Core
+issue 1467.  For example:
+
+  struct A {
+    A() = default;
+    A(A const&) {}
+  };
+  struct B {
+    operator A() const { return A(); }
+  };
+  void g(B b) {
+    A a{ b };  // Previously an error because the user-defined conversion
+  }             // was ignored.  Now accepted.
+
+
 8/11/15  [EDGcpfe/16419]
 Abort or invalid IL on use of captured dependent-type const variable in lambda
 
