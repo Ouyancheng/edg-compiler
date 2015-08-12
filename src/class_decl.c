@@ -17501,28 +17501,17 @@ declarations.
        such members are also allowed, but they are not constrained to be the
        last field.) */
     if (!is_union_type(class_type) &&
-        class_type->variant.class_struct_union.
-                              contains_flexible_array_member) {
+        class_type->variant.class_struct_union
+                           .contains_flexible_array_member) {
       a_field_ptr  prev_field = class_state->end_of_field_list;
       check_assertion(prev_field != NULL &&
                       is_class_struct_union_type(prev_field->type) &&
                       skip_typerefs(prev_field->type)->
                                         variant.class_struct_union.
                                         contains_flexible_array_member);
-      if (microsoft_bugs && is_union_type(prev_field->type) &&
-          !last_field_is_flexible(prev_field->type)) {
-        /* Microsoft compilers allow flexible array members anywhere in unions,
-           and if the last field of a union does not contain a flexible array,
-           a field of that union type may be followed by another field.
-           For example:
-             union X { float f[]; int i; };  // f is not the last field.
-             struct Y { X x; int y; };  // Accepted in Microsoft bugs mode.
-           We emulate this in Microsoft bugs mode. */
-      } else {
-        pos_error(ec_flexible_array_member_not_allowed,
-                  &prev_field->source_corresp.decl_position);
-        prev_field->type = error_type();
-      }  /* if */
+      pos_error(ec_flexible_array_member_not_allowed,
+                &prev_field->source_corresp.decl_position);
+      prev_field->type = error_type();
       class_type->variant.class_struct_union.contains_flexible_array_member =
                                                                         FALSE;
     }  /* if */
@@ -17640,8 +17629,7 @@ declarations.
   } else if (flexible_array_members_allowed &&
              is_immediate_class_type(ufield_type) &&
              ufield_type->variant.class_struct_union
-                                 .contains_flexible_array_member &&
-             !(microsoft_mode && ufield_type->kind == (a_type_kind)tk_union)) {
+                                 .contains_flexible_array_member) {
     /* The member is a struct whose final member is an incomplete array or
        else the member is a union that contains such a struct. */
     if (class_type->kind == (a_type_kind)tk_union) {
@@ -17666,6 +17654,19 @@ declarations.
                 &locator->source_position);
       err = TRUE;
     }  /* if */
+  } else if (microsoft_mode && class_type->kind == (a_type_kind)tk_union) {
+    /* Microsoft doesn't treat a union with a flexible array member that is not
+       the last member as having a flexible array member at all.  For example:
+         union X1 { float f[]; int x; };
+         struct Y1 { union X1 x; int y; };
+       is accepted, but
+         union X2 { int x; float f[]; };
+         struct Y2 { union X2 x; int y; };
+       is not.  Reset the contains_flexible_array_member flags since the
+       current ("last") member is not a flexible array member. */
+    class_type->variant.class_struct_union
+                       .contains_flexible_array_member = FALSE;
+    
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && !err) {

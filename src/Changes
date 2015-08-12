@@ -60,7 +60,7 @@ Ordinarily, a flexible array member in a class type prevents that class type
 from being used for a field that is not the last field of a class or struct
 type, or as the underlying element type of an array.  However, those
 restrictions are now lifted in Microsoft mode if the class type is a union
-type.  For example:
+type and the flexible member is not the last member of the union.  For example:
 
   union U {
     char c[];
@@ -68,9 +68,8 @@ type.  For example:
   };
   U x[2];  // Now accepted in Microsoft mode.
 
-As a part of this change, the flag contains_flexible_array_member for union
-types is no longer propagated to enclosing class types in Microsoft modes.
-This is a small IL CHANGE.
+As a part of this change, the flag contains_flexible_array_member is no longer
+set to TRUE for such union types.  This is a small IL CHANGE.
 
 
 8/11/15  [EDGcpfe/15830]
