@@ -5232,8 +5232,8 @@ are expected to be NULL in that case.
       /* A call of a dependent expression in a prototype instantiation.  Note
          that we test only for a top-level parameter type here, which might be
          a class.  If a call "f()" is implicitly treated as "this->f()" in a
-         template-dependent context, Clang and GCC consider is template-
-         dependent too (if "this" is explicit, "this->f" will already be a
+         template-dependent context, Clang and GCC consider it template-
+         dependent, too (if "this" is explicit, "this->f" will already be a
          ck_template_param constant in those modes).   More testing for other
          dependent cases is done below. */
       routine_type = NULL;
