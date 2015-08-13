@@ -5238,6 +5238,12 @@ are expected to be NULL in that case.
          dependent cases is done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
+      if ((gpp_mode || clang_mode) && implicit_this_selector) {
+        /* Make the call target opaque. */
+        make_template_param_expr_constant_operand(operand);
+        operand->type = type_of_unknown_templ_param_nontype;
+        operand->variant.constant.type = type_of_unknown_templ_param_nontype;
+      }  /* if */
       unknown_dependent_function = TRUE;
     } else {
       /* Normal function, or call using pointer-to-member-function. */
