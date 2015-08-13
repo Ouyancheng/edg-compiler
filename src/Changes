@@ -1,5 +1,12 @@
 Version 4.11
 
+8/13/15  [EDGcpfe/16429]
+Variadic macros inadvertently disabled in C++11 strict mode
+
+The combination of --c++11 and --strict (or -A) command-line options had
+inadvertently disabled the variadic macro feature.  Now fixed.
+
+
 8/12/15  [EDGcpfe/16412,EDGcpfe/16428]
 GCC and Clang compatibility: "this" and template dependent calls
 

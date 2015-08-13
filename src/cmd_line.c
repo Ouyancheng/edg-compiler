@@ -3616,7 +3616,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        occurs. */
     check_concatenations = TRUE;
   }  /* if */
-  if (!c99_mode) {
+  if (C_mode() && !c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
     flexible_array_members_allowed = FALSE;
