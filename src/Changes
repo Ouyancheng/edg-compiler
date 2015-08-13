@@ -61,7 +61,7 @@ issue 1467.  For example:
   };
   void g(B b) {
     A a{ b };  // Previously an error because the user-defined conversion
-  }             // was ignored.  Now accepted.
+  }            // was ignored.  Now accepted.
 
 
 8/11/15  [EDGcpfe/16419]
