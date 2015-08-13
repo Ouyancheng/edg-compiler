@@ -5525,13 +5525,7 @@ are expected to be NULL in that case.
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
-    if (is_error_operand(result)) {
-      /* Nothing more to do. */
-    } else if ((gpp_mode || clang_mode) && implicit_this_selector &&
-               unknown_dependent_function) {
-      /* Ensure that the result of the call will be treated as dependent. */
-      result->type = type_of_unknown_templ_param_nontype;
-    } else if (function_call_node != NULL) {
+    if (!is_error_operand(result) && function_call_node != NULL) {
       if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
           expr_fold_constexpr_call(function_call_node, &call_position,
                                    result)) {
