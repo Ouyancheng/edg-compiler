@@ -6139,7 +6139,7 @@ processed.
 {
   wrap_up_diagnostic(dp);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  diag_message does not return in this case. */
+  /* Avoid gcc warning.  wrap_up_diagnostic does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* end_command_line_error */
