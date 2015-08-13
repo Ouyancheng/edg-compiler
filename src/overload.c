@@ -5792,6 +5792,29 @@ retry2:
       eff_arg_list = init_list_ctor_arg_list;
       /* [over.best.ics]p4 says no UDCs are allowed in this case. */
       eff_allow_udc_on_arguments = FALSE;
+    } else if ((gpp_mode || clang_mode) && init_list_ctor_arg_list != NULL &&
+               is_single_elem(arg_list) &&
+               is_braced_init_component(arg_list)) {
+      /* [over.best.ics]p4 says that no user-defined conversions are allowed
+         on the single member of an initializer list on the first argument
+         of (roughly) a copy or move constructor. */
+      if (is_special_function_symbol(function_symbol, sfk_constructor)) {
+        a_type_ptr routine_type =
+                             function_or_template_symbol_type(function_symbol);
+        a_param_type_ptr ptp =
+                     routine_type->variant.routine.extra_info->param_type_list;
+        if (ptp != NULL) {
+          a_type_ptr ctor_class_type = sym_parent_class(function_symbol);
+          a_type_ptr param_type = ptp->type;
+          if (is_any_reference_type(param_type)) {
+            param_type = type_pointed_to(param_type);
+          }  /* if */
+          param_type = skip_typerefs(param_type);
+          if (identical_types(ctor_class_type, param_type)) {
+            eff_allow_udc_on_arguments = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
@@ -22526,8 +22549,7 @@ will be an lvalue instead of the usual prvalue.
                !(singleton_expr_type != NULL &&
                  dest_type_is_class &&
                  could_be_dependent_class_type(singleton_expr_type))) {
-      /* Aggregate cases go back to the initialization code in decl_inits.c.
-         (N4431 8.5.4/3 bullet (3.3).) */
+      /* Aggregate cases go back to the initialization code in decl_inits.c. */
       if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
         arg_match_err = TRUE;
       } else {
@@ -22634,7 +22656,7 @@ will be an lvalue instead of the usual prvalue.
                                               /*user_provided_only=*/FALSE,
                                               /*nontrivial_only=*/FALSE)) {
       /* A class with a default constructor, initialized by "{}" -- do
-         value initialization.  (N4431, 8.5.4/3 bullet (3.4).)*/
+         value initialization. */
       a_boolean initializer_list_case =
                           (dest_type_is_class &&
                            is_instance_of_std_initializer_list(dest_type,
@@ -22677,8 +22699,7 @@ will be an lvalue instead of the usual prvalue.
     } else if (dest_type_is_class &&
                is_instance_of_std_initializer_list(dest_type, &element_type)) {
       /* dest_type is an instance of std::initializer_list<X>, so build
-         an initializer_list object from the braced-init-list.  (N4431 8.5.4/3
-         bullet (3.5).)*/
+         an initializer_list object from the braced-init-list. */
       a_conv_context_set iconv_context = conv_context &
                              (CCO_STATIC_LIFETIME | CCO_INITIALIZING_VARIABLE |
                               CCO_NEW_INITIALIZER | CCO_INITIALIZING_FIELD);
