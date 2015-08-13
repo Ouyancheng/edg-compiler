@@ -17421,7 +17421,8 @@ static a_symbol_ptr select_dual_lookup_symbol(
 					a_symbol_ptr	normal_sym,
 					a_symbol_ptr	class_fund_sym,
 					a_symbol_ptr	class_sym,
-					a_boolean	might_be_template)
+					a_boolean	might_be_template,
+					a_boolean	prefer_class_member)
 /*
 normal_fund_sym and class_fund_sym are the results of a normal and
 class-qualified ID lookup, respectively.  normal_sym and class_sym are
@@ -17431,10 +17432,10 @@ the name being looked up is followed by a "<".  Reconcile the two
 symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
 Set the specific symbol to the associated nonfundamental symbol.
-field_sel_type is the class type of the left operand of a field selection,
-or NULL if the lookup is not in the context of a field selection.
-
-This is not used in C++11 and newer modes.
+If prefer_class_member is TRUE, the class member is preferred over
+the normal lookup symbol.  field_sel_type is the class type of the left
+operand of a field selection, or NULL if the lookup is not in the context of
+a field selection.
 */
 {
   a_symbol_ptr	result_sym;
@@ -17569,8 +17570,15 @@ This is not used in C++11 and newer modes.
         specific_symbol = class_sym;
       }  /* if */
     } else {
-      /* The symbols are not equivalent.  Issue a diagnostic. */
-      an_error_severity	severity = strict_ansi_discretionary_severity;
+      /* The symbols are not equivalent.  Issue a diagnostic.
+         When the name is followed by a "::" (when might_be_template
+         is FALSE) the normal lookup symbol is used to duplicate the behavior
+         that existed before the dual lookup was implemented.  When the name
+         is followed by a "<" (might_be_template is TRUE), or if
+         prefer_class_member is TRUE, the class symbol is preferred.
+         This is also done for compatibility to prevent something like
+         "p->f < 1" from breaking when a global template "f" is declared. */
+      an_error_severity	severity = strict_ansi_error_severity;
       a_symbol_ptr	sym_to_use;
       a_symbol_ptr	diag_sym_to_use;
       a_symbol_ptr	sym_to_ignore;
@@ -17582,10 +17590,18 @@ This is not used in C++11 and newer modes.
       } else {
         diag_class_sym = class_fund_sym;
       }  /* if */
-      sym_to_use = class_fund_sym;
-      diag_sym_to_use = diag_class_sym;
-      specific_symbol = class_sym;
-      sym_to_ignore = normal_fund_sym;
+      if (might_be_template || prefer_class_member) {
+        sym_to_use = class_fund_sym;
+        diag_sym_to_use = diag_class_sym;
+        specific_symbol = class_sym;
+        sym_to_ignore = normal_fund_sym;
+        if (might_be_template && !strict_ansi_mode) severity = es_warning;
+      } else {
+        sym_to_use = normal_fund_sym;
+        diag_sym_to_use = sym_to_use;
+        specific_symbol = normal_sym;
+        sym_to_ignore = diag_class_sym;
+      }  /* if */
       pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
                          &error_position, diag_sym_to_use, sym_to_ignore);
       result_sym = sym_to_use;
@@ -17648,6 +17664,7 @@ static a_symbol_ptr look_up_qualifier_start(
                   a_boolean                *is_vacuous_dtor_or_finalizer,
                   a_boolean                might_be_template,
                   a_boolean                in_if_exists,
+                  a_boolean                prefer_class_member,
                   a_boolean                is_cli_typeid)
 /*
 This routine does the "dual lookup" that is done in contexts such as
@@ -17661,17 +17678,17 @@ current context.  *is_vacuous_dtor_or_finalizer is set to TRUE if a symbol
 that can only be a vacuous destructor/finalizer is returned.  class_type is
 the class type of the left operand of the field selection.  in_if_exists is
 TRUE when scanning the identifier of a Microsoft __if_exists or
-__if_not_exists directive.  is_cli_typeid is TRUE if we are scanning a
-C++/CLI typeid of the form X::typeid.
+__if_not_exists directive.  If prefer_class_member is TRUE, the class member
+is preferred over the normal lookup symbol.  is_cli_typeid is TRUE if
+we are scanning a C++/CLI typeid of the form X::typeid.
 */
 {
-  a_symbol_ptr	normal_sym = NULL;
-  a_symbol_ptr	class_sym = NULL;
-  a_symbol_ptr	normal_fund_sym = NULL;
-  a_symbol_ptr	class_fund_sym = NULL;
+  a_symbol_ptr	normal_sym;
+  a_symbol_ptr	class_sym;
+  a_symbol_ptr	normal_fund_sym;
+  a_symbol_ptr	class_fund_sym;
   a_symbol_ptr	sym = NULL;
   a_boolean	do_class_lookup;
-  a_boolean	get_normal_sym;
 
   /* Do the lookup if a type was provided that is a class type that is
      either complete or in the process of being defined.  Also do the
@@ -17681,6 +17698,12 @@ C++/CLI typeid of the form X::typeid.
      (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL ||
       (class_type->variant.class_struct_union.is_nonreal_class &&
        !class_type->variant.class_struct_union.is_prototype_instantiation));
+  /* Only get normal_sym from the locator if a fundamental symbol was
+     returned by the lookup.  The specific symbol in the locator could
+     be non-NULL in error cases. */ 
+  normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
+  normal_sym = normal_fund_sym == NULL ? NULL
+                                       : locator_for_curr_id.specific_symbol;
   if (do_class_lookup) {
     clear_specific_symbol(locator_for_curr_id);
     /* These lookups are speculative -- don't create projection symbols for
@@ -17693,44 +17716,11 @@ C++/CLI typeid of the form X::typeid.
                                                class_type, lookup_kind);
     class_sym = class_fund_sym == NULL ? NULL
                                        : locator_for_curr_id.specific_symbol;
-  }  /* if */
-  get_normal_sym = class_sym == NULL || class_sym->is_nonreal_member;
-  /* In C++11 mode, the normal lookup is not done in most cases if the class
-     lookup produced a result.  It is also done if the class lookup
-     found a nonreal symbol that might be ignored. */
-  if (!cpp11_mode || get_normal_sym) {
-    /* Only get normal_sym from the locator if a fundamental symbol was
-       returned by the lookup.  The specific symbol in the locator could
-       be non-NULL in error cases. */ 
-    clear_specific_symbol(locator_for_curr_id);
-    normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
-    normal_sym = normal_fund_sym == NULL ? NULL
-                                       : locator_for_curr_id.specific_symbol;
-  }  /* if */
-  if (cpp11_mode) {
-    /* In C++11 mode, use the class symbol unless it is a nonreal member and
-       a normal symbol exists.  If it is a nonreal member where a template
-       is possible, and the normal symbol is not a template, the class
-       symbol is used. */
-    a_boolean	ignore_class_sym = FALSE;
-    if (class_sym == NULL ||
-        (normal_sym != NULL && class_sym->is_nonreal_member &&
-         (!might_be_template || !is_template_symbol(class_fund_sym))) ||
-        (get_normal_sym && normal_sym != NULL &&
-         (!might_be_template || is_template_symbol(normal_fund_sym)))) {
-      ignore_class_sym = TRUE;
-    }  /* if */
-    if (ignore_class_sym) {
-      sym = normal_fund_sym;
-    } else {
-      sym = class_fund_sym;
-    }  /* if */
-  } else {
-    /* In pre-C++11 modes, do the dual lookup processing (eliminated in C++11
-       by core issue 1111). */
     sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym, 
                                     class_fund_sym, class_sym,
-                                    might_be_template);
+                                    might_be_template, prefer_class_member);
+  } else {
+    sym = normal_fund_sym;
   }  /* if */
   if (sym != NULL && might_be_vacuous_dtor_or_finalizer) {
     /* If the lookup above returned something that is only valid as a vacuous
@@ -17763,7 +17753,7 @@ C++/CLI typeid of the form X::typeid.
       class_sym = locator_for_curr_id.specific_symbol;
       sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym,
                                       class_fund_sym, class_sym,
-                                      might_be_template);
+                                      might_be_template, prefer_class_member);
     } else {
       sym = normal_fund_sym;
     }  /* if */
@@ -18043,6 +18033,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_is_decltype = FALSE;
   a_boolean			is_decltype_qualified = FALSE;
   a_type_ptr			decltype_type = NULL;
+  a_boolean			qualified_conversion_operator = FALSE;
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
   a_symbol_ptr			qualifier_template_sym = NULL;
@@ -18084,6 +18075,7 @@ selection operator, in which case it points to the type of the left operand.
        set when scanning a type conversion operator. */
     a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
     field_sel_type = ssep->conversion_parent_type;
+    qualified_conversion_operator = ssep->qualified_conversion_operator;
     ssep->conversion_parent_type = NULL;
     is_conversion_type = field_sel_type != NULL;
   }  /* if */
@@ -18365,6 +18357,7 @@ selection operator, in which case it points to the type of the left operand.
 				   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
                                    in_if_exists,
+                                   qualified_conversion_operator,
                                    is_cli_typeid);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible

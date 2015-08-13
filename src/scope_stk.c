@@ -2871,6 +2871,7 @@ the scope being pushed.
   ssep->last_pack_expansion_used = NULL;
   ssep->packs_referenced         = NULL;
   ssep->pack_expansion_stack     = NULL;
+  ssep->qualified_conversion_operator = FALSE;
   ssep->conversion_parent_type   = NULL;
   ssep->initial_decl_of_namespace_std = FALSE;
   ssep->fp_contract_state        = curr_fp_contract_state;
