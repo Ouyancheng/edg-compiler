@@ -10500,8 +10500,8 @@ that case, and this_type is used for the type.
        the exceptions suggested by paragraph 1; forcing an unknown type here
        allows us to ignore these exceptions later on.  (For GCC mode we need
        to preserve the qualifiers, however.) */
-    a_type_qualifier_set  tqs = get_type_qualifiers(
-                                               type_pointed_to(result->type));
+    a_type_ptr            tp = type_pointed_to(result->type);
+    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
     result->type = make_pointer_type(
                       make_qualified_type(type_of_unknown_templ_param_nontype,
                                           tqs));
