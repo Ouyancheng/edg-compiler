@@ -5795,9 +5795,11 @@ retry2:
     } else if ((gpp_mode || clang_mode) && init_list_ctor_arg_list != NULL &&
                is_single_elem(arg_list) &&
                is_braced_init_component(arg_list)) {
-      /* [over.best.ics]p4 says that no user-defined conversions are allowed
-         on the single member of an initializer list on the first argument
-         of (roughly) a copy or move constructor. */
+      /* Prior to the resolution of core issue 1467, [over.best.ics]p4 said
+         that no user-defined conversions were allowed on the single member of
+         an initializer list on the first argument of (roughly) a copy or move
+         constructor.  GCC and Clang appear to implement this aspect of the
+         resolution only if the single member is not a braced initializer. */
       if (is_special_function_symbol(function_symbol, sfk_constructor)) {
         a_type_ptr routine_type =
                              function_or_template_symbol_type(function_symbol);
