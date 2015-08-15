@@ -1,5 +1,14 @@
 Version 4.11
 
+8/15/15  [EDGcpfe/16429]
+Tweak to code for lambdas with calling conventions
+
+The type a_calling_convention is normally one byte large.  Some code for
+lambdas inadvertently relied on this, making it more difficult to change that
+size if needed (as some of our customers do).  That code has been changed to
+be insensitive to sizeof(a_calling_convention).
+
+
 8/13/15  [EDGcpfe/16429]
 Variadic macros inadvertently disabled in C++11 strict mode
 
