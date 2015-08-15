@@ -15998,7 +15998,12 @@ error cases.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
-      a_type_ptr this_type = implicit_this_param_type_of(function_type);
+      a_type_ptr this_type;
+      if (unknown_dependent_function) {
+        this_type = NULL;
+      } else {
+        this_type = implicit_this_param_type_of(function_type);
+      }  /* if */
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
       if (unknown_dependent_function ||
