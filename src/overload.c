@@ -10498,8 +10498,13 @@ that case, and this_type is used for the type.
        "this->x" or "this->f()" is not necessarily dependent.  See N4431
        14.6.2.2 paragraphs 1 and 2.  Clang and GCC do not appear to follow
        the exceptions suggested by paragraph 1; forcing an unknown type here
-       allows us to ignore these exceptions later on. */
-    result->type = make_pointer_type(type_of_unknown_templ_param_nontype);
+       allows us to ignore these exceptions later on.  (For GCC mode we need
+       to preserve the qualifiers, however.) */
+    a_type_qualifier_set  tqs = get_type_qualifiers(
+                                               type_pointed_to(result->type));
+    result->type = make_pointer_type(
+                      make_qualified_type(type_of_unknown_templ_param_nontype,
+                                          tqs));
   }  /* if */
 }  /* make_this_variable_operand */
 
