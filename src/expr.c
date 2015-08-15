@@ -8516,6 +8516,7 @@ any use of the temporary.  The overall result is placed in *result.
        type). */
     op = which_binary_operator(is_increment ? tok_plus : tok_minus,
                                result_type);
+    //do_operand_transformations(operand, TOPT_NO_OPTIONS);
     change_binary_operand_types(result_type, operand, &one_operand, op);
     /* Generate the IL for the operation. */
     do_binary_operation(op, operand, &one_operand, result_type, result,

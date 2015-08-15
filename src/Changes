@@ -1,5 +1,24 @@
 Version 4.11
 
+8/15/15  [EDGcpfe/16407]
+Abort on increment/decrement of volatile property
+
+In Microsoft mode, an increment or decrement operation applied to a property
+could result in an internal error (in cast_operand_full, "operand is not a
+prvalue") if the "get" accessor of the property produces a volatile lvalue.
+For example:
+
+  struct A {
+    volatile long m;
+    __declspec(property(get=p_get, put=p_put)) volatile long p;
+    volatile long& p_get() { return m; }
+    volatile long& p_put(volatile long const &x) { m = x; return m; };
+    void f() { p++; }  // Previously triggered an internal error.
+  };
+
+This is now fixed.
+
+
 8/15/15  [EDGcpfe/16429]
 Tweak to code for lambdas with calling conventions
 
