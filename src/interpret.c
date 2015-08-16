@@ -2825,50 +2825,39 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: Other type kinds NYI. */
               }  /* if */
               break;
-            case eok_subscript:
-              /* Pointer + integer or integer + pointer. */
-              { a_constexpr_address  result_addr;
-                a_type_ptr           elem_type;
-                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
-                                   ovfl);
-                  result_addr = *(a_constexpr_address *)opnd1_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
-                } else {
-                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
-                                   ovfl);
-                  result_addr = *(a_constexpr_address *)opnd2_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
-                }  /* if */
+            case eok_divide:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                divide_integer_values((an_integer_value*)result_storage,
+                                      (an_integer_value*)opnd2_value,
+                                      is_signed, &ovfl);
                 if (ovfl) {
-                  result = FALSE;  /* FIXME: diagnostic */
-                } else {
-                  if (host_int_val == 0) {
-                    /* Leave the address unchanged. */
-                    set_result_val_from_operand_address(&result_addr);
-                  } else if (!result_addr.in_array) {
-                    result = FALSE;  /* FIXME: diagnostic */
-                  } else {
-                    a_byte_count  elem_size, pos, len;
-                    elem_size = value_bytes_for_type(ips, elem_type);
-                    len = result_addr.length;
-                    pos = (a_byte_count)(result_addr.address -
-                                result_addr.variant.base_address) / elem_size;
-                    if (host_int_val > 0 ?
-                                        (len-pos < (a_byte_count)host_int_val)
-                                      : (pos < (a_byte_count)-host_int_val)) {
-                      /* Out of bounds. */
-                      result = FALSE;  /* FIXME: diagnostic */
-                    } else {
-                      result_addr.address +=
-                            host_int_val*value_bytes_for_type(ips, elem_type);
-                      result_addr.cannot_dereference =
-                                                    (pos+host_int_val == len);
-                      set_result_val_from_operand_address(&result_addr);
-                    }  /* if */
-                  }  /* if */
+                  /* FIXME: record a diagnostic. */
                 }  /* if */
-              }
+              } else {
+                /* FIXME: Other type kinds NYI. */
+              }  /* if */
+              break;
+            case eok_remainder:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                remainder_integer_values((an_integer_value*)result_storage,
+                                         (an_integer_value*)opnd2_value,
+                                         is_signed, &ovfl);
+                if (ovfl) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                /* FIXME: Other type kinds NYI. */
+              }  /* if */
               break;
             case eok_padd:
               /* Pointer + integer or integer + pointer. */
@@ -2958,16 +2947,6 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
-            case eok_dot_field:
-              { a_constexpr_address  result_addr;
-                a_byte_count         offset;
-                result_addr = *(a_constexpr_address*)opnd1_value;
-                get_mapped_byte_count(&persistent_map, opnd2->variant.field,
-                                      offset);
-                result_addr.address += offset;
-                set_result_val_from_operand_address(&result_addr);
-              }
-              break;
             case eok_shiftl:
               /* Check for a valid value of opnd2, which must be non-negative
                  and less than the number of bits in opnd1. */
@@ -2993,6 +2972,61 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 /* FIXME: record a diagnostic for invalid opnd2. */
+              }  /* if */
+              break;
+            case eok_shiftr:
+              /* Check for a valid value of opnd2, which must be non-negative
+                 and less than the number of bits in opnd1. */
+              int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                result = FALSE;
+              } else if (host_int_val < 0 ||
+                         host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                result = FALSE;
+              }  /* if */
+              if (result) {
+                shift_right_integer_value((an_integer_value *)opnd1_value,
+                                          (int)host_int_val, is_signed,
+                                          targ_right_shift_is_arithmetic);
+                check_int_range(opnd1_value, opnd1_type, result, ovfl);
+                if (result) {
+                  *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                } else {
+                  /* FIXME: record a diagnostic for invalid result. */
+                }  /* if */
+              } else {
+                /* FIXME: record a diagnostic for invalid opnd2. */
+              }  /* if */
+              break;
+            case eok_and:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                and_integer_values((an_integer_value*)result_storage,
+                                   (an_integer_value*)opnd2_value);
+              }  /* if */
+              break;
+            case eok_or:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                or_integer_values((an_integer_value*)result_storage,
+                                  (an_integer_value*)opnd2_value);
+              }  /* if */
+              break;
+            case eok_xor:
+              if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                xor_integer_values((an_integer_value*)result_storage,
+                                   (an_integer_value*)opnd2_value);
               }  /* if */
               break;
             case eok_eq:
@@ -3079,6 +3113,75 @@ type.  This includes checking the value of ovfl set by the operation.
                 unexpected_condition();
               }  /* if */
               break;
+            case eok_gt:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) > 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            case eok_le:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) <= 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            case eok_ge:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) >= 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* FIXME: handle pointer value. */
+                result = FALSE;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
             case eok_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (dst->cannot_dereference) {
@@ -3107,6 +3210,61 @@ type.  This includes checking the value of ovfl set by the operation.
               break;
             case eok_comma:
               result = do_constexpr_expression(ips, opnd2, result_storage);
+              break;
+            case eok_subscript:
+              /* Pointer + integer or integer + pointer. */
+              { a_constexpr_address  result_addr;
+                a_type_ptr           elem_type;
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  result_addr = *(a_constexpr_address *)opnd1_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                } else {
+                  get_int_val_from(opnd1_value, opnd1_type, host_int_val,
+                                   ovfl);
+                  result_addr = *(a_constexpr_address *)opnd2_value;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                }  /* if */
+                if (ovfl) {
+                  result = FALSE;  /* FIXME: diagnostic */
+                } else {
+                  if (host_int_val == 0) {
+                    /* Leave the address unchanged. */
+                    set_result_val_from_operand_address(&result_addr);
+                  } else if (!result_addr.in_array) {
+                    result = FALSE;  /* FIXME: diagnostic */
+                  } else {
+                    a_byte_count  elem_size, pos, len;
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    len = result_addr.length;
+                    pos = (a_byte_count)(result_addr.address -
+                                result_addr.variant.base_address) / elem_size;
+                    if (host_int_val > 0 ?
+                                        (len-pos < (a_byte_count)host_int_val)
+                                      : (pos < (a_byte_count)-host_int_val)) {
+                      /* Out of bounds. */
+                      result = FALSE;  /* FIXME: diagnostic */
+                    } else {
+                      result_addr.address +=
+                            host_int_val*value_bytes_for_type(ips, elem_type);
+                      result_addr.cannot_dereference =
+                                                    (pos+host_int_val == len);
+                      set_result_val_from_operand_address(&result_addr);
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_dot_field:
+              { a_constexpr_address  result_addr;
+                a_byte_count         offset;
+                result_addr = *(a_constexpr_address*)opnd1_value;
+                get_mapped_byte_count(&persistent_map, opnd2->variant.field,
+                                      offset);
+                result_addr.address += offset;
+                set_result_val_from_operand_address(&result_addr);
+              }
               break;
             case eok_call:
               result = do_constexpr_call(ips, expr, result_storage);
