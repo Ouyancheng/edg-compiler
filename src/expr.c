@@ -5243,6 +5243,7 @@ are expected to be NULL in that case.
         make_template_param_expr_constant_operand(operand);
         operand->type = type_of_unknown_templ_param_nontype;
         operand->variant.constant.type = type_of_unknown_templ_param_nontype;
+        operand->bound_function = FALSE;
       }  /* if */
       unknown_dependent_function = TRUE;
     } else {
