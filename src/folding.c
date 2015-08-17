@@ -10042,14 +10042,22 @@ ceblock gives context information for the evaluation.
       case eok_question:
         /* "?" operator. */
         op1_folded = fold_expr(op1, ceblock, op1_constant);
-        if (op1_folded &&
-            constant_bool_value_known_at_compile_time(op1_constant)) {
-          if (is_false_constant(op1_constant)) {
-            /* First operand is false, so result is op3. */
-            folded = fold_expr(op2->next, ceblock, result_con);
-          } else {
-            /* First operand is true, so result is op2. */
-            folded = fold_expr(op2, ceblock, result_con);
+        if (op1_folded) {
+          if (constant_bool_value_known_at_compile_time(op1_constant)) {
+            if (is_false_constant(op1_constant)) {
+              /* First operand is false, so result is op3. */
+              folded = fold_expr(op2->next, ceblock, result_con);
+            } else {
+              /* First operand is true, so result is op2. */
+              folded = fold_expr(op2, ceblock, result_con);
+            }  /* if */
+          } else if (op1_constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+            /* First operand is a dependent expression.  We don't know if
+               this will be a constant expression or not when instantiated,
+               so record it as a dependent constant. */
+            make_template_param_expr_constant(expr, result_con);
+            folded = TRUE;
           }  /* if */
         }  /* if */
         break;
