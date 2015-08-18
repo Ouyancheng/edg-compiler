@@ -2000,7 +2000,7 @@ Interpret the given block statement and its associated scope (if any).
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
     do {
-      if (skip_typerefs(vp->type)->kind == tk_pointer) {
+      if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
         a_byte          *var_bytes;
         get_stack_bytes(ips, vp, var_bytes);
         release_variant_path_if_needed(var_bytes);
