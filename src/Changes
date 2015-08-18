@@ -1,5 +1,23 @@
 Version 4.11
 
+8/18/15  [EDGcpfe/16280]
+C++-generating back end: call to static member function template from another
+member function template
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL and
+gcc_or_clang_is_generated_code_target are both TRUE, the C++-generating
+back end incorrectly used the "template" keyword prefix when putting out a
+call to a static member function template from another member function
+template of the same class.  This is now fixed.  For example, with --g++:
+
+  struct A {
+    template <typename> void m_fn1() {
+      m_fn2<1>();   // Previously generated as "template m_fn2"
+    }
+    template <unsigned> static A m_fn2();
+  };
+
+
 8/17/15  [EDGcpfe/16350]
 Dependent constexpr conditional expression
 

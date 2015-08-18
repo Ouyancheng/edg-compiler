@@ -4346,14 +4346,17 @@ successfully emitted.
       if (entry_kind == iek_routine) {
         /* Do routine names specially because we have an indication of
            whether to include template arguments. */
+        a_type_ptr rout_type = skip_typerefs(((a_routine_ptr)scp)->type);
         if (gcc_or_clang_is_generated_code_target && scp->is_class_member &&
-            nrp->is_template_id && nrp->from_prototype_instantiation) {
+            nrp->is_template_id && nrp->from_prototype_instantiation &&
+            rout_type->variant.routine.extra_info->this_class != NULL) {
           /* In some circumstances, g++ requires the "template" keyword in
-             references to template-ids that are not actually dependent and
-             does not complain when the keyword is used unnecessarily, so
-             we put it out unconditionally here.  (The cases that are
-             actually dependent are handled as ck_template_param constants
-             and do not come here.) */
+             references to template-ids naming non-static member functions
+             even when the reference is not actually dependent.  Since it
+             does not complain when the keyword is used unnecessarily, we
+             put it out unconditionally here.  (The cases that are actually
+             dependent are handled as ck_template_param constants and do
+             not come here.) */
           write_tok_str("template ");
         }  /* if */
         gen_bare_name(scp, entry_kind);
