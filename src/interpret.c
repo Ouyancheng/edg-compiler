@@ -1307,6 +1307,7 @@ is responsible for ensuring that there are such entries.
 }  /* release_variant_path */
 
 
+/*ARGSUSED*/  /* ips is not currently used.  FIXME */
 static a_boolean check_variant_path(an_interpreter_state  *ips,
                                     a_constexpr_address   *addr,
                                     a_boolean             release)
@@ -1326,6 +1327,7 @@ completed.
 
   do {
     if (*(a_field_ptr*)vpep->base_address != vpep->active_field) {
+      /* FIXME: record diagnostic */
       result = FALSE;
       break;
     }  /* if */
