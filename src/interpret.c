@@ -1105,7 +1105,6 @@ static a_variant_path_entry_ptr
 		free_variant_path_entries;
 
 
-#define CA_NO_FLAGS ((unsigned int)0x0)
 #define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
 #define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
 #define CA_VARIANT_PATH ((unsigned int)0x4)
