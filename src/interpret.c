@@ -1051,6 +1051,67 @@ If an older mapping exists for iptr, that mapping becomes active again.
 
 
 /*
+Structure describing a variant path in a subobject.
+
+An address of a subobject of a union can be formed even if that subobject is
+not currently active in the union.  Only at the point of dereference must the
+requirement that the subobject is active be enforced.  To achieve this, address
+manipulations in unions maintain a "variant path" that can be checked at the
+point of dereference.  The first entry on the path describes the base address
+of an array: The entry can be ignored if the address does not have the
+CA_ARRAY_ELEMENT flag set.  Every element after that represents a selected
+variant (from outer selection to inner selection).  For example:
+
+  struct S {
+    int i;
+    union U {
+      struct X {
+        union V {
+          int i;
+          char y[3];
+        } v;
+      } x;
+    } u[4];
+  } s;
+
+The a_constexpr_address entry representing &s.u[2].x.v.y[1] with have both the
+CA_VARIANT_PATH and CA_ARRAY_ELEMENT flags set (the latter flag is for the y[1]
+part; not the u[2] part since the address is not of the s.u[2] element
+specifically).  The address entry will point to a list of three variant path
+entries.  The first entry will record the base address of s.u[2].x.v.y.  The
+second will point to the address of the s.u[2] subobject and to the IL entry
+for its x field.  The third entry will point to the address of the s.u[2].x.v
+subobject and to the IL entry for its y field.  Dereferencing the address will
+check that the two unions' active fields correspond to those recorded in the
+path (if they don't, interpretation fails).
+*/
+typedef struct a_variant_path_entry *a_variant_path_entry_ptr;
+typedef struct a_variant_path_entry {
+  a_variant_path_entry_ptr
+		next;
+			/* Next entry on this path (or NULL if there is
+			   none. */
+  a_field_ptr	active_field;
+			/* The first assumed active for this variable path,
+			   or NULL if this entry represents the base address
+			   of an indexed array. */
+  a_byte	*base_address;
+			/* The address of the variant (i.e., union) subobject
+			   in interpreter storage, or, if active_field is NULL,
+			   the base address of the indexed array. */
+} a_variant_path_entry;
+
+static a_variant_path_entry_ptr
+		free_variant_path_entries;
+
+
+#define CA_NO_FLAGS ((unsigned int)0x0)
+#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
+#define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
+#define CA_VARIANT_PATH ((unsigned int)0x4)
+#define CA_ARRAY_ELEMENT ((unsigned int)0x8)
+
+/*
 Structure describing the representation of an address in the interpreter.
 */
 typedef struct a_constexpr_address {
@@ -1059,37 +1120,21 @@ typedef struct a_constexpr_address {
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
-  a_bit_field
-		in_array:1;
-			/* TRUE if this is a pointer to an array element
-			   stored in interpreter storage. */
-#if 0
-  /* FIXME -- Not needed yet: disabled to placate lint. */
-  a_bit_field
-		is_function_address:1;
-			/* TRUE if this is the address of a function. */
-#endif /* 0 */
-  a_bit_field
-		is_runtime_data_address:1;
-			/* TRUE if this is a data pointer that is constant at
-			   run time, but not a pointer into interpreter
-			   storage (i.e., a pointer to a static-duration
-			   variable of some kind). */
-  a_bit_field
-		cannot_dereference:1;
-			/* TRUE if this address cannot be dereferenced.
-			   (I.e., a null pointer or a pointer one position
-			   past the end of an array.) */
+  unsigned int	flags:8;
+			/* Flags describing properties of this address.
+			   See the CA_... macros above. */
   unsigned int
 		length: 24;
 			/* If in_array is TRUE, the number of
 			   elements in the array. */
+#define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
 			/* The allocation sequence number of the storage
 			   pointed to. */
   union {
-    /* When in_array is TRUE: */
+    /* When (flags & CA_ARRAY_ELEMENT) != 0 and
+            (flags & CA_VARIANT_PATH) == 0: */
     a_byte
 		*base_address;
 			/* For an array element, the address of element #0. */
@@ -1099,8 +1144,8 @@ typedef struct a_constexpr_address {
     a_routine_ptr
 		routine;
     			/* For addresses of functions. */
-#endif /* 0 */    
-    /* When is_runtime_data_address is TRUE: */
+#endif /* 0 */
+    /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
     a_constant_ptr
 		addr_con;
 			/* For constant addresses of run-time objects.  This
@@ -1108,9 +1153,32 @@ typedef struct a_constexpr_address {
 			   local_constant() and must be released when the
 			   lvalue_to_rvalue conversion is applied or when
 			   the expression is discarded. */
+    
+    /* When (flags & CA_VARIANT_PATH) != 0: */
+    a_variant_path_entry_ptr
+		variant_path;
+			/* For addresses into variant subobjects, the recorded
+			   path of the subobject.  The path is checked against
+			   active fields at the point of dereference. */
   } variant;
 } a_constexpr_address;
 
+
+#define is_runtime_data_address(cap)                                         \
+  ((((a_constexpr_address*)(cap))->flags & CA_RUNTIME_DATA_ADDRESS) != 0)
+
+#define cannot_dereference(cap)                                              \
+  ((((a_constexpr_address*)(cap))->flags & CA_CANNOT_DEREFERENCE) != 0)
+
+#define is_variant_path(cap)                                                 \
+  ((((a_constexpr_address*)(cap))->flags & CA_VARIANT_PATH) != 0)
+
+#define is_array_element(cap)                                                \
+  ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
+
+#define get_base_address(cap)                                                \
+  (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
+                        : (cap)->variant.base_address)
 
 /*
 Convenience macro to get a pointer to the value addressed by the
@@ -1171,10 +1239,102 @@ denoted by the IL a_routine entry rout.
 Macro to initialize a constant address at addr referring to the
 (non-interpreter) constant address described by the ck_address constant con.
 */
-#define clear_runtime_constant_address(addr, con)                  \
-  memzero((char *)(addr), sizeof(a_constexpr_address));            \
-  ((a_constexpr_address *)(addr))->is_runtime_data_address = TRUE; \
+#define clear_runtime_constant_address(addr, con)                   \
+  memzero((char *)(addr), sizeof(a_constexpr_address));             \
+  ((a_constexpr_address *)(addr))->flags = CA_RUNTIME_DATA_ADDRESS; \
   ((a_constexpr_address *)(addr))->variant.addr_con = (con);
+
+
+static a_boolean add_to_variant_path(a_constexpr_address  *addr,
+                                     a_field_ptr          union_field)
+/*
+The given field of a union object or subobject pointed to by addr is being
+selected.  Add that field to the variant path associated with addr (and, if
+this is the first field added to the path, also add a prefix field for
+array element selections).
+*/
+{
+  a_variant_path_entry_ptr  *p_path_ptr;
+
+  if (addr->flags & CA_VARIANT_PATH) {
+    /* This entry already has a variant path: Find its end. */
+    p_path_ptr = &addr->variant.variant_path->next;
+    while (*p_path_ptr) {
+      p_path_ptr = &(*p_path_ptr)->next;
+    }  /* while */
+  } else {
+    /* No entries yet: Create a first entry to record an array base address if
+       needed. */
+    if (free_variant_path_entries != NULL) {
+      addr->variant.variant_path = free_variant_path_entries;
+      free_variant_path_entries = free_variant_path_entries->next;
+    } else {
+      addr->variant.variant_path = alloc_fe_of_type(a_variant_path_entry);
+    }  /* if */
+    p_path_ptr = &addr->variant.variant_path->next;
+    addr->flags |= CA_VARIANT_PATH;
+  }  /* if */
+  /* Add the new entry. */
+  if (free_variant_path_entries != NULL) {
+    *p_path_ptr = free_variant_path_entries;
+    free_variant_path_entries = free_variant_path_entries->next;
+  } else {
+    *p_path_ptr = alloc_fe_of_type(a_variant_path_entry);
+  }  /* if */
+  (*p_path_ptr)->active_field = union_field;
+  (*p_path_ptr)->base_address = addr->address;
+  return TRUE;
+}  /* add_to_variant_path */
+
+
+static void release_variant_path(a_constexpr_address  *addr)
+/*
+Release the variant path entries associated with the given address.  The caller
+is responsible for ensuring that there are such entries.
+*/
+{
+  a_variant_path_entry_ptr  entries, vpep;
+
+  entries = addr->variant.variant_path;
+  vpep = entries->next;
+  while (vpep->next != NULL) {
+    vpep = vpep->next;
+  }  /* while */
+  vpep->next = free_variant_path_entries;
+  free_variant_path_entries = entries;
+  addr->flags &= ~CA_VARIANT_PATH;
+  addr->variant.base_address = entries->base_address;
+}  /* release_variant_path */
+
+
+static a_boolean check_variant_path(an_interpreter_state  *ips,
+                                    a_constexpr_address   *addr,
+                                    a_boolean             release)
+/*
+The given address entry has its CA_VARIANT_PATH flag set.  Check that it points
+to an object whose active variant subobjects match the recorded variant path
+and return TRUE if that's the case.  Otherwise, return FALSE and record an
+appropriate diagnostic.
+
+If release is TRUE, release the variant path structures when the check is
+completed.
+*/
+{
+  a_boolean  result = TRUE;
+  a_variant_path_entry_ptr
+             vpep = addr->variant.variant_path->next;
+
+  do {
+    if (*(a_field_ptr*)vpep->base_address != vpep->active_field) {
+      result = FALSE;
+      break;
+    }  /* if */
+  } while (vpep != NULL);
+  if (release) {
+    release_variant_path(addr);
+  }  /* if */
+  return result;
+}  /* check_variant_path */
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -1495,15 +1655,18 @@ expression (i.e., an a_constexpr_address value).  expr is the expression
 corresponding to the interpreter storage at value and tp is the type of
 expr after applying skip_typerefs.
 */
-#define release_local_constant_from_address(expr, tp, value)                  \
+#define release_address_structures(expr, tp, value)                           \
 {                                                                             \
   if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
-       (tp)->kind == (a_type_kind)tk_pointer) &&                              \
-      ((a_constexpr_address *)(value))->is_runtime_data_address) {            \
-    release_local_constant(&((a_constexpr_address *)(value))->                \
-                                                           variant.addr_con); \
+       (tp)->kind == (a_type_kind)tk_pointer)) {                              \
+    a_constexpr_address  *addr = (a_constexpr_address *)(value);              \
+    if (is_runtime_data_address(addr)) {                                      \
+      release_local_constant(&addr->variant.addr_con);                        \
+    } else if (is_variant_path(addr)) {                                       \
+      release_variant_path(addr);                                             \
+    }  /* if */                                                               \
   }  /* if */                                                                 \
-}  /* release_local_constant_from_address */
+}  /* release_address_structures */
 
 
 /*
@@ -1636,7 +1799,31 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             elem_con = elem_con->next;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_union) {
-          unexpected_condition();  /* FIXME: union constants? */
+          /* Initialize the first field (unless another field is
+             designated). */
+          a_field_ptr     fp;
+          a_constant_ptr  elem_con;
+          a_byte_count    offset;
+          elem_con = con->variant.aggregate.first_constant;
+          if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+            fp = elem_con->variant.designator.field;
+            elem_con = elem_con->next;
+          } else {
+            fp = tp->variant.class_struct_union.field_list;
+            fp = next_initializable_field(fp);
+          }  /* if */
+          if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
+            /* Unions should have only one actual initializer constant
+               (possibly following a designator). */
+            unexpected_condition();
+          }  /* if */
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+            result = FALSE;
+          } else {
+            /* Record the active field. */
+            *(a_field_ptr*)value = fp;
+          }  /* if */
         } else {
           result = FALSE;
         }  /* if */
@@ -1849,7 +2036,7 @@ Interpret the given for-statement.
         /* FIXME: record a diagnostic. */
       } else if (expr != NULL) {
         do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_local_constant_from_address(expr, tp, expr_value);
+        release_address_structures(expr, tp, expr_value);
         ips->cost += 1;
       }  /* if */
       if (result) {
@@ -1885,7 +2072,7 @@ Interpret the given for-statement.
             }  /* if */
             if (incr != NULL) {
               do_constexpr_full_expression(ips, incr, incr_value, result);
-              release_local_constant_from_address(incr, incr_type,
+              release_address_structures(incr, incr_type,
                                                   incr_value);
             }  /* if */
           }  /* if */
@@ -1977,7 +2164,7 @@ Interpret the given range-based for-statement.
         /* FIXME: record a diagnostic. */
       } else {
         do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_local_constant_from_address(expr, tp, expr_value);
+        release_address_structures(expr, tp, expr_value);
         ips->cost += 1;
       }  /* if */
       if (result) {
@@ -2018,7 +2205,7 @@ Interpret the given range-based for-statement.
             }  /* if */
             if (incr != NULL) {
               do_constexpr_full_expression(ips, incr, incr_value, result);
-              release_local_constant_from_address(incr, incr_type,
+              release_address_structures(incr, incr_type,
                                                   incr_value);
             }  /* if */
           }  /* if */
@@ -2070,7 +2257,7 @@ successfully interpreted, FALSE otherwise.
           expr_value = expr_bytes;
         }  /* if */
         result = do_constexpr_expression(ips, expr, expr_value);
-        release_local_constant_from_address(expr, tp, expr_value);
+        release_address_structures(expr, tp, expr_value);
         restore_storage_stack(ips, saved_stack);
       }
       break;
@@ -2082,7 +2269,7 @@ successfully interpreted, FALSE otherwise.
         expr_value = expr_bytes;
         tp = skip_typerefs(expr->type);
         do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_local_constant_from_address(expr, tp, expr_value);
+        release_address_structures(expr, tp, expr_value);
         if (result) {
           /* Evaluation of the test expression succeeded.  Get its value to
              see which dependent statement should be executed. */
@@ -2112,7 +2299,7 @@ successfully interpreted, FALSE otherwise.
             /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
-            release_local_constant_from_address(expr, tp, expr_value);
+            release_address_structures(expr, tp, expr_value);
             ips->cost += 1;
           }  /* if */
           if (result) {
@@ -2209,7 +2396,7 @@ successfully interpreted, FALSE otherwise.
             /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
-            release_local_constant_from_address(expr, tp, expr_value);
+            release_address_structures(expr, tp, expr_value);
             ips->cost += 1;
           }  /* if */
           if (result) {
@@ -2241,7 +2428,7 @@ successfully interpreted, FALSE otherwise.
         tp = skip_typerefs(expr->type);
         is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
         do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_local_constant_from_address(expr, tp, expr_value);
+        release_address_structures(expr, tp, expr_value);
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
@@ -2543,11 +2730,11 @@ nodes.
       *(a_constexpr_address *)result_storage = *(a_constexpr_address *)(opnd);\
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
-      if (((a_constexpr_address *)(opnd))->cannot_dereference) {              \
+      if (cannot_dereference(opnd)) {                                         \
         /* This address cannot be dereferenced. */                            \
         result = FALSE;                                                       \
         /* FIXME: record a diagnostic. */                                     \
-      } else if (((a_constexpr_address *)(opnd))->is_runtime_data_address) {  \
+      } else if (is_runtime_data_address(opnd)) {                             \
         if (!get_value_from_address_constant(                                 \
                    ips,                                                       \
                    ((a_constexpr_address *)(opnd))->variant.addr_con,         \
@@ -2566,6 +2753,11 @@ nodes.
         /* An attempt to access storage that has expired. */                  \
         result = FALSE;                                                       \
         /* FIXME: record a diagnostic. */                                     \
+      } else if (is_variant_path(opnd) &&                                     \
+                 !check_variant_path(ips, (a_constexpr_address *)opnd,        \
+                                     /*release=*/TRUE)) {                     \
+        /* An attempt to dereference an inactive variant path. */             \
+        result = FALSE;                                                       \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
@@ -2658,13 +2850,26 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_array_to_pointer:
               /* The actual address is unchanged, but record the array
                  characteristics. */
-              *(a_constexpr_address *)result_storage =
-                                           *(a_constexpr_address *)opnd1_value;
-              ((a_constexpr_address *)result_storage)->in_array = TRUE;
-              ((a_constexpr_address *)result_storage)->length =
-                          opnd1_type->variant.array.variant.number_of_elements;
-              ((a_constexpr_address *)result_storage)->variant.base_address =
-                              ((a_constexpr_address *)result_storage)->address;
+              { a_constexpr_address  *result_addr =
+                                         (a_constexpr_address*)result_storage;
+                a_targ_size_t        length;
+                *result_addr = *(a_constexpr_address *)opnd1_value;
+                result_addr->flags |= CA_ARRAY_ELEMENT;
+                /* Check the array length fits in interpreter limits. */
+                length = opnd1_type->variant.array.variant.number_of_elements;
+                if (length <= MAX_ARRAY_LENGTH) {
+                  result_addr->length = length;
+                  if (is_variant_path(result_addr)) {
+                    result_addr->variant.variant_path->base_address =
+                                                         result_addr->address;
+                  } else {
+                    result_addr->variant.base_address = result_addr->address;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                  /* FIXME: record diagnostic. */
+                }  /* if */
+              }
               break;
             case eok_indirect:
             case eok_ref_indirect:
@@ -2713,8 +2918,7 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               break;
             case eok_pre_incr:
-              if (((a_constexpr_address *)opnd1_value)->
-                                                     is_runtime_data_address) {
+              if (is_runtime_data_address(opnd1_value)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
                 /* FIXME: record a diagnostic. */
@@ -2742,20 +2946,21 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* A pointer. */
                 a_constexpr_address  *ptr;
                 ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
-                if (!ptr->in_array || ptr->cannot_dereference) {
+                if (!is_array_element(ptr) || cannot_dereference(ptr)) {
                   /* Not a pointer to an array element in interpreter
                      storage. */
                   result = FALSE;
                 } else {
-                  a_type_ptr  elem_type;
+                  a_type_ptr    elem_type;
                   a_byte_count  elem_size;
+                  a_byte        *base_address;
                   elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
                   elem_size = value_bytes_for_type(ips, elem_type);
                   ptr->address += elem_size;
-                  if (ptr->address == 
-                          ptr->variant.base_address + ptr->length*elem_size) {
+                  base_address = get_base_address(ptr);
+                  if (ptr->address == base_address + ptr->length*elem_size) {
                     /* We've reached "one past the end of the array". */
-                    ptr->cannot_dereference = TRUE;
+                    ptr->flags |= CA_CANNOT_DEREFERENCE;
                   }  /* if */
                 }  /* if */
               } else {
@@ -2880,14 +3085,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   if (host_int_val == 0) {
                     /* Leave the address unchanged. */
-                  } else if (!result_addr->in_array) {
+                  } else if (!is_array_element(result_addr)) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
                     a_byte_count  elem_size, pos, len;
+                    a_byte        *base_address;
                     elem_size = value_bytes_for_type(ips, elem_type);
                     len = result_addr->length;
-                    pos = (a_byte_count)(result_addr->address -
-                               result_addr->variant.base_address) / elem_size;
+                    base_address = get_base_address(result_addr);
+                    pos = (a_byte_count)(result_addr->address - base_address)
+                                        / elem_size;
                     if (host_int_val > 0 ?
                                         (len-pos < (a_byte_count)host_int_val)
                                       : (pos < (a_byte_count)-host_int_val)) {
@@ -2896,8 +3103,11 @@ type.  This includes checking the value of ovfl set by the operation.
                     } else {
                       result_addr->address +=
                             host_int_val*value_bytes_for_type(ips, elem_type);
-                      result_addr->cannot_dereference =
-                                                    (pos+host_int_val == len);
+                      if (pos+host_int_val == len) {
+                        result_addr->flags |= CA_CANNOT_DEREFERENCE;
+                      } else {
+                        result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -2924,14 +3134,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   if (host_int_val == 0) {
                     /* Leave the address unchanged. */
-                  } else if (!result_addr->in_array) {
+                  } else if (!is_array_element(result_addr)) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
                     a_byte_count  elem_size, pos, len;
+                    a_byte        *base_address;
                     elem_size = value_bytes_for_type(ips, elem_type);
                     len = result_addr->length;
-                    pos = (a_byte_count)(result_addr->address -
-                               result_addr->variant.base_address) / elem_size;
+                    base_address = get_base_address(result_addr);
+                    pos = (a_byte_count)(result_addr->address - base_address)
+                                        / elem_size;
                     if (host_int_val > 0 ?
                                   (pos < (a_byte_count)host_int_val)
                                 : (len-pos < (a_byte_count)-host_int_val)) {
@@ -2940,8 +3152,11 @@ type.  This includes checking the value of ovfl set by the operation.
                     } else {
                       result_addr->address -=
                             host_int_val*value_bytes_for_type(ips, elem_type);
-                      result_addr->cannot_dereference =
-                                                  (pos - host_int_val == len);
+                      if (pos - host_int_val == len) {
+                        result_addr->flags |= CA_CANNOT_DEREFERENCE;
+                      } else {
+                        result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -3046,8 +3261,23 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address == ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3072,9 +3302,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
                 a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
-                if (ptr1->is_runtime_data_address ==
-                                               ptr2->is_runtime_data_address) {
-                  if (!ptr1->is_runtime_data_address) {
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
                     if (ptr1->address != ptr2->address) {
                       *(an_integer_value *)result_storage = one_int;
                     } else {
@@ -3107,8 +3337,23 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address < ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3130,8 +3375,23 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address > ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3153,8 +3413,23 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address <= ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3176,19 +3451,34 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: handle floating point value. */
                 result = FALSE;
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                /* FIXME: handle pointer value. */
-                result = FALSE;
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(ptr1) ==
+                                               is_runtime_data_address(ptr2)) {
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address >= ptr2->address) {
+                      *(an_integer_value *)result_storage = one_int;
+                    } else {
+                      *(an_integer_value *)result_storage = zero_int;
+                    }  /* if */
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                } else {
+                  result = FALSE;
+                }  /* if */
               } else {
                 unexpected_condition();
               }  /* if */
               break;
             case eok_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
-                if (dst->cannot_dereference) {
+                if (cannot_dereference(dst)) {
                   /* E.g., storing one position past the end of an array. */
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
-                } else if (dst->is_runtime_data_address) {
+                } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
@@ -3198,6 +3488,10 @@ type.  This includes checking the value of ovfl set by the operation.
                   /* Attempting to store into expired storage. */
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/FALSE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
                 } else {
                   /* Copy the value of the right operand to the indicated
                      address and return either the address or the value, as
@@ -3215,6 +3509,8 @@ type.  This includes checking the value of ovfl set by the operation.
               /* Pointer + integer or integer + pointer. */
               { a_constexpr_address  result_addr;
                 a_type_ptr           elem_type;
+                /* Place the pointer in result_addr and the integer in
+                   host_int_val. */
                 if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                   get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                    ovfl);
@@ -3226,20 +3522,23 @@ type.  This includes checking the value of ovfl set by the operation.
                   result_addr = *(a_constexpr_address *)opnd2_value;
                   elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
                 }  /* if */
+                /* Carefully add the two, if appropriate. */
                 if (ovfl) {
                   result = FALSE;  /* FIXME: diagnostic */
                 } else {
                   if (host_int_val == 0) {
                     /* Leave the address unchanged. */
                     set_result_val_from_operand_address(&result_addr);
-                  } else if (!result_addr.in_array) {
+                  } else if (!is_array_element(&result_addr)) {
                     result = FALSE;  /* FIXME: diagnostic */
                   } else {
                     a_byte_count  elem_size, pos, len;
+                    a_byte        *base_address;
                     elem_size = value_bytes_for_type(ips, elem_type);
                     len = result_addr.length;
-                    pos = (a_byte_count)(result_addr.address -
-                                result_addr.variant.base_address) / elem_size;
+                    base_address = get_base_address(&result_addr);
+                    pos = (a_byte_count)(result_addr.address - base_address)
+                                        / elem_size;
                     if (host_int_val > 0 ?
                                         (len-pos < (a_byte_count)host_int_val)
                                       : (pos < (a_byte_count)-host_int_val)) {
@@ -3248,8 +3547,11 @@ type.  This includes checking the value of ovfl set by the operation.
                     } else {
                       result_addr.address +=
                             host_int_val*value_bytes_for_type(ips, elem_type);
-                      result_addr.cannot_dereference =
-                                                    (pos+host_int_val == len);
+                      if (pos+host_int_val == len) {
+                        result_addr.flags |= CA_CANNOT_DEREFERENCE;
+                      } else {
+                        result_addr.flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
                       set_result_val_from_operand_address(&result_addr);
                     }  /* if */
                   }  /* if */
@@ -3257,13 +3559,22 @@ type.  This includes checking the value of ovfl set by the operation.
               }
               break;
             case eok_dot_field:
+            case eok_points_to_field:
               { a_constexpr_address  result_addr;
+                a_field_ptr          field = opnd2->variant.field;
                 a_byte_count         offset;
                 result_addr = *(a_constexpr_address*)opnd1_value;
-                get_mapped_byte_count(&persistent_map, opnd2->variant.field,
-                                      offset);
-                result_addr.address += offset;
-                set_result_val_from_operand_address(&result_addr);
+                if (opnd1_type->kind == (a_type_kind)tk_union &&
+                    !is_runtime_data_address(&result_addr) &&
+                    !add_to_variant_path(&result_addr, field)) {
+                  /* FIXME: out-of-resources diagnostic, maybe? */
+                  result = FALSE;
+                } else {
+                  get_mapped_byte_count(&persistent_map, field, offset);
+                  result_addr.address += offset;
+                  result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                  set_result_val_from_operand_address(&result_addr);
+                }  /* if */
               }
               break;
             case eok_call:
@@ -3410,7 +3721,7 @@ return FALSE.
     /* A constexpr function can return an address constant; if it returns
        an interpreter address, the invocation is non-constant. */
     a_constexpr_address *cap = (a_constexpr_address *)result_storage;
-    if (cap->is_runtime_data_address) {
+    if (is_runtime_data_address(cap)) {
       /* Copy the address constant to result_con and release the local
          constant. */
       copy_constant(cap->variant.addr_con, result_con);
@@ -3419,6 +3730,9 @@ return FALSE.
       /* The address designates an interpreter value, which will be a
          dangling pointer or reference and thus cannot be constant. */
       result = FALSE;
+      if (is_variant_path(cap)) {
+        release_variant_path(cap);
+      }  /* if */
     }  /* if */
   }  /* if */
   release_interpreter_state(&ips);
@@ -3448,6 +3762,7 @@ One-time initialization for interpret.c static variables.
       pch_saved_var_array_elem(free_stack_blocks),
       pch_saved_var_array_elem(free_map_tables),
       pch_saved_var_array_elem(free_live_set_tables),
+      pch_saved_var_array_elem(free_variant_path_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
