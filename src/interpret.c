@@ -1104,6 +1104,26 @@ typedef struct a_variant_path_entry {
 static a_variant_path_entry_ptr
 		free_variant_path_entries;
 
+static unsigned long
+		n_variant_path_entries;
+
+static a_variant_path_entry_ptr alloc_variant_path_entry(void)
+/*
+Return new variant path entry.
+*/
+{
+  a_variant_path_entry_ptr vpep;
+
+  if (free_variant_path_entries != NULL) {
+    vpep = free_variant_path_entries;
+    free_variant_path_entries = free_variant_path_entries->next;
+  } else {
+    vpep = alloc_fe_of_type(a_variant_path_entry);
+    n_variant_path_entries += 1;
+  }  /* if */
+  return vpep;
+}  /* alloc_variant_path_entry */
+
 
 #define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
 #define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
@@ -1264,26 +1284,38 @@ array element selections).
   } else {
     /* No entries yet: Create a first entry to record an array base address if
        needed. */
-    if (free_variant_path_entries != NULL) {
-      addr->variant.variant_path = free_variant_path_entries;
-      free_variant_path_entries = free_variant_path_entries->next;
-    } else {
-      addr->variant.variant_path = alloc_fe_of_type(a_variant_path_entry);
-    }  /* if */
+    addr->variant.variant_path = alloc_variant_path_entry();
     p_path_ptr = &addr->variant.variant_path->next;
     addr->flags |= CA_VARIANT_PATH;
   }  /* if */
   /* Add the new entry. */
-  if (free_variant_path_entries != NULL) {
-    *p_path_ptr = free_variant_path_entries;
-    free_variant_path_entries = free_variant_path_entries->next;
-  } else {
-    *p_path_ptr = alloc_fe_of_type(a_variant_path_entry);
-  }  /* if */
+  *p_path_ptr = alloc_variant_path_entry();
+  (*p_path_ptr)->next = NULL;
   (*p_path_ptr)->active_field = union_field;
   (*p_path_ptr)->base_address = addr->address;
   return TRUE;
 }  /* add_to_variant_path */
+
+
+static void copy_variant_path(a_constexpr_address  *addr)
+/*
+Replace the variant path pointed to by addr by a copy of that same path.
+(This is used to avoid sharing paths in cases where one will be cleaned up
+soon but the other must persist.  E.g., this happens after copying a variable
+(whose variant path must persist) to temporary expression storage.
+*/
+{
+  a_variant_path_entry_ptr  vpep, *p_vpep;
+
+  p_vpep = &addr->variant.variant_path;
+  vpep = *p_vpep;
+  do {
+    *p_vpep = alloc_variant_path_entry();
+    **p_vpep = *vpep;
+    p_vpep = &(*p_vpep)->next;
+    vpep = vpep->next;
+  } while (vpep != NULL);
+}  /* copy_variant_path */
 
 
 static void release_variant_path(a_constexpr_address  *addr)
@@ -1330,6 +1362,7 @@ completed.
       result = FALSE;
       break;
     }  /* if */
+    vpep = vpep->next;
   } while (vpep != NULL);
   if (release) {
     release_variant_path(addr);
@@ -1650,6 +1683,13 @@ expose an_interpreter_state in outside this source file).
 #endif /* DEBUG */
 
 
+#define release_variant_path_if_needed(value)                                 \
+{                                                                             \
+  if (is_variant_path((a_constexpr_address*)(value))) {                       \
+    release_variant_path((a_constexpr_address*)(value));                      \
+  }  /* if */                                                                 \
+}  /* release_variant_path_if_needed */
+
 /*
 Macro to release a local constant captured by a glvalue or pointer
 expression (i.e., an a_constexpr_address value).  expr is the expression
@@ -1663,11 +1703,27 @@ expr after applying skip_typerefs.
     a_constexpr_address  *addr = (a_constexpr_address *)(value);              \
     if (is_runtime_data_address(addr)) {                                      \
       release_local_constant(&addr->variant.addr_con);                        \
-    } else if (is_variant_path(addr)) {                                       \
-      release_variant_path(addr);                                             \
+    } else {                                                                  \
+      release_variant_path_if_needed(addr);                                   \
     }  /* if */                                                               \
   }  /* if */                                                                 \
 }  /* release_address_structures */
+
+
+/*
+For an interpreter value that is known to be an address, copy the associated
+structures (e.g., any variant path) so that they won't be shared with the
+address they were shallowly copied from.
+*/
+#define copy_address_structures(value)                                        \
+{                                                                             \
+  a_constexpr_address  *addr = (a_constexpr_address *)(value);                \
+  if (is_runtime_data_address(addr)) {                                        \
+    /*FIXME*/;                                                                \
+  } else if (is_variant_path(addr)) {                                         \
+    copy_variant_path(addr);                                                  \
+  }  /* if */                                                                 \
+}  /* copy_address_structures */
 
 
 /*
@@ -1944,6 +2000,11 @@ Interpret the given block statement and its associated scope (if any).
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
     do {
+      if (skip_typerefs(vp->type)->kind == tk_pointer) {
+        a_byte          *var_bytes;
+        get_stack_bytes(ips, vp, var_bytes);
+        release_variant_path_if_needed(var_bytes);
+      }  /* if */
       unmap_stack_bytes(ips, vp);
       unmap_ptr(&ips->map, &vp->storage_class);
       vp = vp->next;
@@ -2918,6 +2979,21 @@ type.  This includes checking the value of ovfl set by the operation.
                 unexpected_condition();  /* FIXME: NYI, other source types. */
               }  /* if */
               break;
+            case eok_not:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                a_host_large_integer  bool_val;
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
+                if (ovfl || bool_val) {
+                  *(an_integer_value *)result_storage = zero_int;
+                } else {
+                  *(an_integer_value *)result_storage = one_int;
+                }  /* if */
+              } else {
+                unexpected_condition();  /* FIXME: NYI, other source types. */
+              }  /* if */
+              break;
             case eok_pre_incr:
               if (is_runtime_data_address(opnd1_value)) {
                 /* Cannot modify the value of an object whose lifetime began
@@ -3279,6 +3355,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3317,6 +3395,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3355,6 +3435,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3393,6 +3475,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3431,6 +3515,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3469,6 +3555,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   result = FALSE;
                 }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
               } else {
                 unexpected_condition();
               }  /* if */
@@ -3490,15 +3578,20 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/FALSE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
                   /* Copy the value of the right operand to the indicated
                      address and return either the address or the value, as
                      appropriate. */
-                  (void)memcpy(value_bytes_at(dst), opnd2_value,
-                               size_t_arg(n_bytes));
+                  a_byte  *dst_storage = value_bytes_at(dst);
+                  (void)memcpy(dst_storage, opnd2_value, size_t_arg(n_bytes));
+                  if (tp->kind == (a_type_kind)tk_pointer) {
+                    /* Copying a pointer type.  Make sure its side structures,
+                       if any, are not shared. */
+                    copy_address_structures(dst_storage);
+                  }  /* if */
                   *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
@@ -3602,6 +3695,11 @@ type.  This includes checking the value of ovfl set by the operation.
           if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
             (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+            if (tp->kind == (a_type_kind)tk_pointer) {
+              /* Copying a pointer type.  Make sure its side structures, if
+                 any, are not shared. */
+              copy_address_structures(result_storage);
+            }  /* if */
           } else {
             con = var_constant_value(var);
             if (con != NULL) {
@@ -3737,6 +3835,15 @@ return FALSE.
     }  /* if */
   }  /* if */
   release_interpreter_state(&ips);
+#if CHECKING
+  /* Check that all variant path entries have been freed. */
+  { unsigned long             n_freed = 0;
+    a_variant_path_entry_ptr  vpep = free_variant_path_entries;
+    for (; vpep != NULL; vpep = vpep->next) ++n_freed;
+    check_assertion_str(n_freed == n_variant_path_entries,
+                        "Not all variant path entries freed");
+  }
+#endif /* CHECKING */
   return result;
 }  /* interpret_constexpr_call */
 
@@ -3764,6 +3871,7 @@ One-time initialization for interpret.c static variables.
       pch_saved_var_array_elem(free_map_tables),
       pch_saved_var_array_elem(free_live_set_tables),
       pch_saved_var_array_elem(free_variant_path_entries),
+      pch_saved_var_array_elem(n_variant_path_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
