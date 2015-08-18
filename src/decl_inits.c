@@ -2351,6 +2351,7 @@ position for which diagnostics should be issued.
 {
   a_field_ptr           fp, last_dyn_field = NULL;
   an_aggr_init_con_elem aggr_init_con;
+  a_boolean             union_case = aggr_type->kind == (a_type_kind)tk_union;
 
   /* Register aggr_con as currently being initialized, in case a member
      initializer refers to a previously-initialized member.  That is
@@ -2366,6 +2367,14 @@ position for which diagnostics should be issued.
     if (fp->has_initializer) {
       /* The field initializer must be used to initialize this field. */
       last_dyn_field = fp;
+      if (union_case) {
+        /* Since this is a union and there are remaining elements to be
+           initialized, the initializer is just {}.  Core issue 1622 leans
+           toward treating that as value initialization, which in turn means
+           that the field initializer takes effect (we check elsewhere that
+           there is at most one such initializer). */
+        break;
+      }  /* if */
     } else if (implicit_init_involves_ref_init(ftp)) {
       /* An uninitialized reference will result in a diagnostic. */
       is->any_uninitialized_const_or_ref_member = TRUE;
@@ -2388,18 +2397,30 @@ position for which diagnostics should be issued.
   }  /* for */
   if (last_dyn_field != NULL) {
     a_field_ptr  end_fp = next_initializable_field(last_dyn_field->next);
-    if (is_union_type(aggr_type)) {
-      a_field_ptr  field2 = next_initializable_field(next_field->next);
-      if (field2 != NULL) {
-        /* A value-initialized union that has multiple fields, at least one of
-           which requires nontrivial initialization: Issue an error since it
-           isn't clear which should be the initialized field. */
-        if (!is->no_diagnostics) {
-          pos_error(ec_ambiguous_union_value_init, diag_pos);
+    if (union_case) {
+      if (last_dyn_field->has_initializer) {
+        next_field = last_dyn_field;
+        if (!is->check_validity_only &&
+            next_field != aggr_type->variant.class_struct_union.field_list) {
+          /* Add a designator to indicate the field to initialize. */
+          a_constant_ptr
+                des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+          des_con->variant.designator.field = next_field;
+          add_constant_to_aggregate(des_con, aggr_con);
         }  /* if */
-        is->init_error = TRUE;
-        /* For recovery purposes, just initialize the first field. */
-        end_fp = field2;
+      } else {
+        a_field_ptr  field2 = next_initializable_field(next_field->next);
+        if (field2 != NULL) {
+          /* A value-initialized union that has multiple fields, at least one
+             of which requires nontrivial initialization: Issue an error since
+             it isn't clear which should be the initialized field. */
+          if (!is->no_diagnostics) {
+            pos_error(ec_ambiguous_union_value_init, diag_pos);
+          }  /* if */
+          is->init_error = TRUE;
+          /* For recovery purposes, just initialize the first field. */
+          end_fp = field2;
+        }  /* if */
       }  /* if */
     }  /* if */
     for (fp = next_field;

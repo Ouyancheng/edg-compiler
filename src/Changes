@@ -1,5 +1,23 @@
 Version 4.11
 
+8/18/15  [EDGcpfe/16441]
+C++14 aggregate initialization of a union with a NSDMI
+
+In C++14 mode, a union with a nonstatic data member initializer (NSDMI) can be
+an aggregate.  When such a union is initialized with empty braces, the front
+end previously issued an error in cases like the following:
+
+  union U {
+    float f;
+    int i[2] = {1, 2};
+  } u{};  // Previously an error in C++14 mode; now accepted.
+
+The front end now accepts such cases, and the member with the NSDMI is the one
+initialized.  (Such cases are the object of the standardization committee's
+Core issue 1622, and the front end's new behavior aligns with our expectation
+of how that issue will be resolved.)
+
+
 8/18/15  [EDGcpfe/16280]
 C++-generating back end: call to static member function template from another
 member function template
