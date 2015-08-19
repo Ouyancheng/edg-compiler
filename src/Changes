@@ -1,5 +1,22 @@
 Version 4.11
 
+8/19/15  [EDGcpfe/16182]
+C-generating back end: Microsoft-mode trailing zero-width bit-field
+
+In C-generating back end configurations when msvc_is_generated_code_target
+is TRUE, if the last field in a class or structure is a zero-length
+bit-field, the front end could abort with a failed assertion (in
+dump_struct_union_definition).  This is now fixed.  For example, with
+--microsoft:
+
+  struct S {
+    int x;
+    int :0;
+    int y;
+    int :0;  // Previously caused an abort, now okay
+  } s;
+
+
 8/19/15  [EDGcpfe/16444]
 Microsoft compatibility: Binding an rvalue to a reference to volatile const
 

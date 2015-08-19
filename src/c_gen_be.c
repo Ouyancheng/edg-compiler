@@ -2982,13 +2982,17 @@ Return the byte offset following the end of the indicated field.
   if (!field->is_bit_field) {
     offset_after = field->offset + field_type->size;
   } else if (msvc_is_generated_code_target &&
-             field->declared_bit_size <= field->bit_size) {
+             field->declared_bit_size <= field->bit_size &&
+             !(field->bit_size == 0 && field->next == NULL)) {
     /* The Microsoft compiler treats bit-fields as being allocated within a
        container the size of the nominal type of the bit-field.  However,
        that does not affect a bit-field that is declared to be larger than
        the size of the declared type; in that case, because of the extra
        padding added following the container to fill out the declared width
-       of the bit-field, the normal calculation below applies. */
+       of the bit-field, the normal calculation below applies, unless the
+       bit-field is the last field and has a zero width.  In that case, the
+       bit-field is ignored and the normal calculation gives the correct
+       answer. */
     if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
       /* In a union, field tracking is irrelevant, since all fields begin
          at offset 0.  The offset is simply the size of the container, i.e.,
