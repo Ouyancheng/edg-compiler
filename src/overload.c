@@ -21014,11 +21014,12 @@ the conversion.
                                operand_was_temp_init) :
                               allow_anachronisms) {
         err_severity = es_warning;
-      } else if (ref_to_const_volatile &&
-                 (any_cfront_mode() || allow_anachronisms)) {
-        /* The reference to const volatile case gets only a warning in cfront
-           or anachronisms mode (it's a recent change to the language). */
-        err_severity = es_warning;
+      } else if (ref_to_const_volatile) {
+        if (any_cfront_mode() || allow_anachronisms) {
+          /* The reference to const volatile case gets only a warning in cfront
+             or anachronisms mode (it's a recent change to the language). */
+          err_severity = es_warning;
+        }  /* if */
       } else if (allow_nonconst_ref_anachronism) {
         /* Because this shows up in a lot of code, there's a separate
            anachronism to allow this. */
