@@ -2828,6 +2828,38 @@ for an out-of-class definition of a static data member).
 }  /* eliminate_variable_definition_source_sequence_entry */
 
 
+void turn_routine_primary_sse_into_secondary_sse(a_routine_ptr  rp)
+/*
+If the source sequence entry for the given routine is not a secondary entry,
+turn it into one.
+*/
+{
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  ssep = rp->source_corresp.source_sequence_entry;
+  if (ssep != NULL &&
+      ss_entry_kind(ssep) != (an_il_entry_kind)iek_src_seq_secondary_decl) {
+    check_assertion(ssep->entity.ptr == (char *)rp);
+    sssdp = alloc_src_seq_secondary_decl();
+    sssdp->entity = ssep->entity;
+    ssep->entity.ptr = (char *)sssdp;
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    sssdp->decl_position = rp->source_corresp.decl_position;
+    /* Move the declared type pointer from the routine into the
+       source-sequence entry, clearing the routine's pointer (since
+       rp no longer represents a definition). */
+    sssdp->declared_type = rp->declared_type;
+    rp->declared_type = NULL;
+    /* Do the same with the declared storage class. */
+    sssdp->declared_storage_class = rp->declared_storage_class;
+    rp->declared_storage_class = (a_storage_class)sc_unspecified;
+    sssdp->friend_decl = rp->defined_in_friend_decl;
+    rp->defined_in_friend_decl = FALSE;
+  }  /* if */
+}  /* turn_routine_primary_sse_into_secondary_sse */
+
+
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)
 /*
 Remove the source sequence entries that represent the body of the function
@@ -2836,7 +2868,6 @@ associated with the indicated sck_function scope.
 {
   a_routine_ptr                 rp;
   a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
 
   rp = sp->variant.routine.ptr;
   ssep = rp->source_corresp.source_sequence_entry;
@@ -2886,23 +2917,7 @@ associated with the indicated sck_function scope.
          may be thrown away later, since it is easier to do it at this
          point than later, when we decide whether the routine entry
          itself will be kept. */
-      check_assertion(ssep->entity.ptr == (char *)rp);
-      sssdp = alloc_src_seq_secondary_decl();
-      sssdp->entity = ssep->entity;
-      ssep->entity.ptr = (char *)sssdp;
-      ssep->entity.kind =
-                    (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-      sssdp->decl_position = rp->source_corresp.decl_position;
-      /* Move the declared type pointer from the routine into the
-         source-sequence entry, clearing the routine's pointer (since
-         rp no longer represents a definition). */
-      sssdp->declared_type = rp->declared_type;
-      rp->declared_type = NULL;
-      /* Do the same with the declared storage class. */
-      sssdp->declared_storage_class = rp->declared_storage_class;
-      rp->declared_storage_class = (a_storage_class)sc_unspecified;
-      sssdp->friend_decl = rp->defined_in_friend_decl;
-      rp->defined_in_friend_decl = FALSE;
+      turn_routine_primary_sse_into_secondary_sse(rp);
     }  /* if */
     if (
 #if !RECORD_MACROS_IN_IL

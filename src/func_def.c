@@ -1879,6 +1879,31 @@ member declaration (allowed in some Microsoft modes only).
       sym = NULL;
     }  /* if */
   }  /* if */
+  if (gpp_mode && gnu_version < 40700 && defaulted_special_members_enabled) {
+    /* Some versions of GCC accept an explicit out-of-class definition after a
+       special member has been defaulted in the class.  If that's the case,
+       discard the prior "definition". */
+    rp = sym->variant.routine.ptr;
+    if (rp->is_defaulted && rp->assoc_scope == NULL_region_number) {
+      a_name_reference_ptr  name_ref = rp->source_corresp.name_references;
+      pos_sy_warning(ec_function_redefinition, &locator->source_position, sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      turn_routine_primary_sse_into_secondary_sse(rp);
+      rp->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      while (!name_ref->used_in_primary_declarator) name_ref = name_ref->next;
+      name_ref->used_in_primary_declarator = FALSE;
+      sym->defined = FALSE;
+      rp->defined = FALSE;
+      rp->is_defaulted = FALSE;
+#if IA64_ABI
+      rp->inline_in_class_definition = FALSE;
+#endif /* IA64_ABI */
+      skip_typerefs(rp->type)
+         ->variant.routine.extra_info->exception_specification =
+                                                rtsp->exception_specification;
+    }  /* if */
+  }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {
     /* Error case. */
     a_routine_ptr        other_rp = NULL;

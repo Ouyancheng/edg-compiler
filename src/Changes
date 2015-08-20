@@ -1,5 +1,21 @@
 Version 4.11
 
+8/20/15  [EDGcpfe/16170]
+GNU C++ compatibility: Redefining defaulted special members
+
+In GNU C++11 modes with gnu_version < 40700, the front end now accepts (with a
+warning) an out-of-class definition of a special member that was defined with
+"= default" in its parent class definition (provided the member was not
+previously used).  The defaulted definition is discarded in such cases.  For
+example:
+
+  struct S { S() = default; };
+  S::S() {}  // Now accepted in some GCC modes.
+
+(GCC 4.4.x, 4.5.x, and 4.6.x behave slightly differently in this regard.  The
+front end emulates the most permissive behavior only.)
+
+
 8/20/15  [EDGcpfe/16446]
 constexpr reference to dependent value
 

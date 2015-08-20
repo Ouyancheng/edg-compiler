@@ -191,6 +191,8 @@ extern a_type_ptr type_from_src_seq_declaration(
 extern
 void eliminate_variable_definition_source_sequence_entry(a_variable_ptr  vp);
 
+extern void turn_routine_primary_sse_into_secondary_sse(a_routine_ptr  rp);
+
 extern void eliminate_function_body_source_sequence_entries(a_scope_ptr sp);
 
 #if MAINTAIN_NEEDED_FLAGS
