@@ -1627,7 +1627,7 @@ the string.
   unsigned int                  char_size = 0;
   a_character_kind              character_kind = (a_character_kind)ck_last;
   a_char_conversion_state       conv_state;
-  a_boolean                     raw_string_end_in_trigraph = FALSE;
+  sizeof_t                      raw_str_trigraph_delim_chars = 0;
   a_string_or_char_literal_kind prefix_kind =
                                              literal_encoding_prefix(lit_kind);
 
@@ -1715,7 +1715,7 @@ the string.
          preceding the terminating ')' of the raw string literal were both
          '?' characters, which was interpreted as a trigraph for ']'.  Set
          up the loop control accordingly. */
-      raw_string_end_in_trigraph = TRUE;
+      raw_str_trigraph_delim_chars = 1;
     }  /* if */
   }  /* if */
   /* Accumulate the characters.  Loop until we reach the indicated end of
@@ -1723,8 +1723,8 @@ the string.
      either because a multibyte character is in process, or because of the
      pathological ']' trigraph case mentioned above, or because a raw
      string literal ended with a line splice that must be expanded. */
-  while (temp_ptr < end_of_string_value + raw_string_end_in_trigraph ||
-         conv_state.remaining_char_count > raw_string_end_in_trigraph ||
+  while (temp_ptr < end_of_string_value + raw_str_trigraph_delim_chars ||
+         conv_state.remaining_char_count > raw_str_trigraph_delim_chars ||
          (conv_state.next_orig_line_modif != NULL &&
           conv_state.next_orig_line_modif->kind == olm_line_splice &&
           conv_state.next_orig_line_modif->line_loc == temp_ptr)) {
