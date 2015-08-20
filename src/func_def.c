@@ -1885,14 +1885,13 @@ member declaration (allowed in some Microsoft modes only).
        discard the prior "definition". */
     rp = sym->variant.routine.ptr;
     if (rp->is_defaulted && rp->assoc_scope == NULL_region_number) {
-      a_name_reference_ptr  name_ref = rp->source_corresp.name_references;
-      pos_sy_warning(ec_function_redefinition, &locator->source_position, sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_name_reference_ptr  name_ref = rp->source_corresp.name_references;
       turn_routine_primary_sse_into_secondary_sse(rp);
       rp->declared_type = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       while (!name_ref->used_in_primary_declarator) name_ref = name_ref->next;
       name_ref->used_in_primary_declarator = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym->defined = FALSE;
       rp->defined = FALSE;
       rp->is_defaulted = FALSE;
@@ -1902,6 +1901,7 @@ member declaration (allowed in some Microsoft modes only).
       skip_typerefs(rp->type)
          ->variant.routine.extra_info->exception_specification =
                                                 rtsp->exception_specification;
+      pos_sy_warning(ec_function_redefinition, &locator->source_position, sym);
     }  /* if */
   }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {
