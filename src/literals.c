@@ -1627,7 +1627,7 @@ the string.
   unsigned int                  char_size = 0;
   a_character_kind              character_kind = (a_character_kind)ck_last;
   a_char_conversion_state       conv_state;
-  sizeof_t                      raw_str_trigraph_delim_chars = 0;
+  int                           raw_str_trigraph_delim_chars = 0;
   a_string_or_char_literal_kind prefix_kind =
                                              literal_encoding_prefix(lit_kind);
 
