@@ -1889,8 +1889,12 @@ member declaration (allowed in some Microsoft modes only).
       a_name_reference_ptr  name_ref = rp->source_corresp.name_references;
       turn_routine_primary_sse_into_secondary_sse(rp);
       rp->declared_type = NULL;
-      while (!name_ref->used_in_primary_declarator) name_ref = name_ref->next;
-      name_ref->used_in_primary_declarator = FALSE;
+      for (; name_ref != NULL; name_ref = name_ref->next) {
+        if (!name_ref->used_in_primary_declarator) {
+          name_ref->used_in_primary_declarator = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym->defined = FALSE;
       rp->defined = FALSE;
