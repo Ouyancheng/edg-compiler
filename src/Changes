@@ -1,5 +1,22 @@
 Version 4.11
 
+8/20/15  [EDGcpfe/16446]
+constexpr reference to dependent value
+
+The front end previously incorrectly handled references bound to dependent
+values in constant contexts within template definitions, treating them as
+nonconstant.  This is now fixed.  For example:
+
+  template<typename T> constexpr const T& f(const T& a) {
+    return a;
+  }
+  template<int N> struct S {
+    static constexpr int x = N;
+    static constexpr int z = f(x);   // Previously elicited a spurious
+                                     // "must have a constant value" error
+  };
+
+
 8/20/15  [EDGcpfe/16294]
 Spurious error on "auto" static data member with braced initializer
 

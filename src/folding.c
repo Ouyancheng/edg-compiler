@@ -9908,10 +9908,16 @@ the variable to which p points has a constant value, return that value.
                                          CAO_NONE :
                                          CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                     (a_boolean *)NULL)) {
-    result_con = constant_value_at_address(
+    if (addr_con->kind == (a_constant_repr_kind)ck_template_param) {
+      /* A dependent address.  Create a template parameter constant. */
+      result_con = alloc_constant(ck_template_param);
+      make_template_param_expr_constant(expr, result_con);
+    } else {
+      result_con = constant_value_at_address(
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
                                           (a_constant_ptr)NULL);
+    }  /* if */
   }  /* if */
   release_local_constant(&addr_con);
   return result_con;
@@ -10025,11 +10031,18 @@ ceblock gives context information for the evaluation.
         /* Indirection through a pointer or reference.  If the operand
            folds to a constant that addresses a constant value, the
            expression can be folded. */
-        if (fold_expr(op1, ceblock, op1_constant) &&
-            constant_value_at_address(op1_constant,
-                                      (a_constexpr_evaluation_block *)NULL,
-                                      result_con) != NULL) {
-          folded = TRUE;
+        if (fold_expr(op1, ceblock, op1_constant)) {
+          if (op1_constant->kind == (a_constant_repr_kind)ck_template_param) {
+            /* A dependent address.  Make a template parameter constant for
+               the result of the indirection. */
+            make_template_param_expr_constant(expr, result_con);
+            folded = TRUE;
+          } else if (constant_value_at_address(
+                                          op1_constant,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          result_con) != NULL) {
+            folded = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case eok_array_to_pointer:
@@ -10564,14 +10577,22 @@ ceblock gives context information for the evaluation.
       case eok_question:
         /* If the first operand of a "?" has a known value, we can return
            the address of the second or third operand. */
-        if (fold_expr(op1, ceblock, op1_constant) &&
-            constant_bool_value_known_at_compile_time(op1_constant)) {
-          if (is_false_constant(op1_constant)) {
-            /* First operand is false, so result is op3. */
-            folded = fold_glvalue_expr(op2->next, ceblock, result_con);
-          } else {
-            /* First operand is true, so result is op2. */
-            folded = fold_glvalue_expr(op2, ceblock, result_con);
+        if (fold_expr(op1, ceblock, op1_constant)) {
+          if (constant_bool_value_known_at_compile_time(op1_constant)) {
+            if (is_false_constant(op1_constant)) {
+              /* First operand is false, so result is op3. */
+              folded = fold_glvalue_expr(op2->next, ceblock, result_con);
+            } else {
+              /* First operand is true, so result is op2. */
+              folded = fold_glvalue_expr(op2, ceblock, result_con);
+            }  /* if */
+          } else if (op1_constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+            /* First operand is a dependent expression.  We don't know if
+               this w3ill be a constant expression or not when instantiated,
+               so record it as a dependent constant. */
+            make_template_param_expr_constant(expr, result_con);
+            folded = TRUE;
           }  /* if */
         }  /* if */
         break;
