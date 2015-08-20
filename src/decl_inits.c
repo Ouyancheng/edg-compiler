@@ -4466,9 +4466,23 @@ returned set to TRUE.
     }  /* if */
   }  /* if */
   /* Save the current token kind: curr_token will change if we prescan the
-     initializer. */
-  first_token = curr_token;
-  pos_first_token = pos_curr_token;
+     initializer.  In the case of "auto" static data members, that will already
+     have happened. */
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    an_init_component_ptr  icp = dps->prescanned_initializer_cache.first_init;
+    if (parenthesized_initializer) {
+       first_token = tok_lparen;
+    } else if (is_braced_init_component(icp)) {
+      first_token = tok_lbrace;
+    } else {
+      /* Any expression token other than tok_lparen or tok_lbrace will do. */
+      first_token = tok_plus;
+    }  /* if */
+    pos_first_token = *init_component_pos(icp);
+  } else {
+    first_token = curr_token;
+    pos_first_token = pos_curr_token;
+  }  /* if */
   if (C_mode()) {
     /* In C mode, static lifetime variables require constant initializers.
        In addition, some C mode also require constant initializers for
