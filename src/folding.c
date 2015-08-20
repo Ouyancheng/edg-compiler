@@ -9910,7 +9910,7 @@ the variable to which p points has a constant value, return that value.
                                     (a_boolean *)NULL)) {
     if (addr_con->kind == (a_constant_repr_kind)ck_template_param) {
       /* A dependent address.  Create a template parameter constant. */
-      result_con = alloc_constant(ck_template_param);
+      result_con = alloc_constant((a_constant_repr_kind)ck_template_param);
       make_template_param_expr_constant(expr, result_con);
     } else {
       result_con = constant_value_at_address(
