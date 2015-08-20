@@ -1686,14 +1686,11 @@ of lambda expressions.
     }  /* if */
   }  /* if */
   pop_stop_token_stack();
-  if (instantiate_extern_inline && rout_ptr->is_inline
-#if GNU_FUNCTION_MULTIVERSIONING
-      && !rout_ptr->on_inline_function_list
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
-                                           ) {
+  if (instantiate_extern_inline && rout_ptr->is_inline &&
+      !rout_ptr->on_inline_function_list) {
     /* When inline functions are instantiated like templates, add the function
-       to the list of inline functions if it is inline.  In some multiversion
-       cases the function may already have been added to the list. */
+       to the list of inline functions if it is inline.  In some cases the
+       function may already have been added to the list. */
     add_to_inline_function_list(rout_ptr);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
