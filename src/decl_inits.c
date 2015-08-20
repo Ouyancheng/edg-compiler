@@ -1311,8 +1311,12 @@ Issue any diagnostics at the given position.
     }  /* if */
     if (!is->check_validity_only) {
       /* Copy the initializer and place the copy under a ck_dynamic_init
-         constant. */
-      dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+         constant.  Copying shouldn't be done for the init-capture case
+         because initializer already is in the right context in that case
+         (and duplicating it would lead to invalid IL). */
+      if (!fp->is_init_capture) {
+        dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+      }  /* if */
       elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       elem_con->variant.dynamic_init = dip;
       elem_con->type = fp->type;
