@@ -21015,9 +21015,13 @@ the conversion.
                               allow_anachronisms) {
         err_severity = es_warning;
       } else if (ref_to_const_volatile) {
-        if (any_cfront_mode() || allow_anachronisms) {
+        if (any_cfront_mode() || allow_anachronisms ||
+            (microsoft_mode && microsoft_version < 1700 &&
+             initializing_variable)) {
           /* The reference to const volatile case gets only a warning in cfront
-             or anachronisms mode (it's a recent change to the language). */
+             or anachronisms mode.  In Microsoft mode a warning is issued when
+             initializing a reference variable, but an error in other cases
+             (e.g., when initializing a parameter for a call). */
           err_severity = es_warning;
         }  /* if */
       } else if (allow_nonconst_ref_anachronism) {
