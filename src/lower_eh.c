@@ -1646,7 +1646,7 @@ typeinfo variable in a COMDAT group.
       dtor_sym = symbol_supplement_for_class(type)->destructor;
       if (dtor_sym != NULL) {
         dtor_routine = dtor_sym->variant.routine.ptr;
-        if (dtor_routine->assoc_scope == NULL_region_number &&
+        if (dtor_routine->function_def_number == NULL_function_def_number &&
             (dtor_routine->storage_class == (a_storage_class)sc_static ||
              dtor_routine->compiler_generated ||
              dtor_routine->pure_virtual ||
