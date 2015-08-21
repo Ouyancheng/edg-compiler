@@ -1290,9 +1290,6 @@ extern void externalize_source_correspondence(
 extern void make_statics_referenced_from_instantiations_external(void);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-extern void lower_top_level_scope(a_scope_ptr			scope,
-				  a_memory_region_number	region_number);
-
 extern void lower_file_scope(void);
 
 extern void lower_function_scope(a_routine_ptr	routine,

@@ -21078,8 +21078,8 @@ translation units (their statics are picked up after copying).
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-void lower_top_level_scope(a_scope_ptr			scope,
-			   a_memory_region_number	region_number)
+static void lower_top_level_scope(a_scope_ptr			scope,
+				  a_memory_region_number	region_number)
 /*
 Lower the intermediate language of a "top-level" scope, which is associated
 with the memory region specified by region_number.  A top-level scope is
