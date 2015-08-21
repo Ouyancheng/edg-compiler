@@ -2014,9 +2014,9 @@ extern void push_instantiation_scope_for_templ_param_rescan(
 
 extern void pop_template_instantiation_scope(void);
 
-extern void finish_function_processing_for_memory_region(
-                                           a_memory_region_number n,
-                                           a_boolean              only_inline);
+extern void finish_function_processing_for_function_def(
+                                            a_function_def_number n,
+                                            a_boolean             only_inline);
 
 /* End a name scope. */
 extern void pop_scope(void);
@@ -2250,6 +2250,9 @@ extern a_boolean should_delay_lowering_on_function(
                                            a_boolean     at_initial_scope_pop);
 
 #endif /* DO_IL_LOWERING */
+
+extern a_boolean should_delay_finishing_of_function_body(
+						a_routine_ptr	routine);
 
 extern a_scope_ptr get_innermost_function_scope(void);
 

@@ -4566,7 +4566,7 @@ variable.
       constant_type = make_unqualified_type(constant_type);
     }  /* if */
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
-    switch_il_region(routine->assoc_scope);
+    switch_il_region(mem_region_for_routine(routine));
     string_var = make_lowered_variable((char *)NULL,
                                        /*already_il_name=*/TRUE,
                                        constant_type,
@@ -6299,7 +6299,8 @@ mode; *optional will be set as usual.
                                                 (a_boolean *)NULL);
       if (routine != NULL) {
         *first_virtual = routine;
-        defined_here = (routine->assoc_scope != NULL_region_number);
+        defined_here = (routine->function_def_number !=
+                                                     NULL_function_def_number);
         /* If the routine is local because of the -tlocal instantiation
            mode, or because of --no_extern_inline in IA-64 mode and a
            function declared inline on an out-of-class definition, make
@@ -9955,7 +9956,8 @@ not include the function scope memory region, if any.
       overriding_function = routine->overriding_function_for_wrapper;
       if (overriding_function != NULL &&
           !overriding_function->suppress_inline_body &&
-          overriding_function->assoc_scope != NULL_region_number) {
+          overriding_function->function_def_number !=
+                                                    NULL_function_def_number) {
         /* Add a definition for an entry/wrapper to handle covariant
            return types or "this" adjustment, if the overriding routine is
            defined. */
@@ -19325,7 +19327,7 @@ by things that will be in the file scope.
        will have its own memory region, so anything from this function
        that it references must be in the file scope. */
     for (rout = scope->routines; rout != NULL; rout = rout->next) {
-      if (rout->assoc_scope != NULL_region_number) {
+      if (rout->function_def_number != NULL_function_def_number) {
         promotion_needed = TRUE;
         break;
       }  /* if */
@@ -21076,13 +21078,16 @@ translation units (their statics are picked up after copying).
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-void lower_il_memory_region(a_memory_region_number region_number)
+void lower_top_level_scope(a_scope_ptr			scope,
+			   a_memory_region_number	region_number)
 /*
-Rewrite the intermediate language in memory region region_number from
-C++ to C, so that a C back end can handle it without change.
+Lower the intermediate language of a "top-level" scope, which is associated
+with the memory region specified by region_number.  A top-level scope is
+the file scope or a function scope (including function scopes for lambdas
+and member functions of local classes).  Lowering translates IL from C++
+terms into to C ones, so that a C back end can handle it without change.
 */
 {
-  a_scope_ptr scope;
   a_context   context;
   /* Save/restore curr_object_lifetime in this routine. */
   an_object_lifetime_ptr
@@ -21106,13 +21111,16 @@ C++ to C, so that a C back end can handle it without change.
     if (region_number == file_scope_region_number) {
       /* The file scope. */
       lowering_file_scope = TRUE;
-      scope = il_header.primary_scope;
     } else {
       /* A function scope. */
       lowering_file_scope = FALSE;
-      scope = il_header.region_scope_entry[region_number];
     }  /* if */
 #if DEBUG
+    if (db_flag_is_set("lowering")) {
+      fprintf(f_debug, "Lowering top level scope: ");
+      db_scope(scope);
+      fprintf(f_debug, "\n");
+    }  /* if */
     if (debug_level >= 1 ||
         db_flag_is_set("dump_type_lists") ||
         db_flag_is_set("dump_lifetimes")) {
@@ -21199,7 +21207,29 @@ C++ to C, so that a C back end can handle it without change.
   /* Make sure no pending stmk_init statements remain. */
   check_assertion(pending_stmk_init_statements == NULL);
   db_exit();
-}  /* lower_il_memory_region */
+}  /* lower_top_level_scope */
+
+
+void lower_file_scope(void)
+/*
+Lower the file scope (everything that is not in a function memory region).
+*/
+{
+  lower_top_level_scope(il_header.primary_scope, file_scope_region_number);
+}  /* lower_file_scope */
+
+
+void lower_function_scope(a_routine_ptr	routine,
+			  a_scope_ptr	scope)
+/*
+Lower the function scope specified by routine and scope.
+*/
+{
+  a_memory_region_number	memory_region;
+
+  memory_region = mem_region_for_routine(routine);
+  lower_top_level_scope(scope, memory_region);
+}  /* lower_function_scope */
 
 
 static void visit_object_lifetime_tree(an_object_lifetime_ptr olp,

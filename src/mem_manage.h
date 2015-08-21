@@ -120,6 +120,9 @@ a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
 extern
 void ensure_mem_region_table_space(a_memory_region_number region_number);
 
+extern void ensure_function_def_table_space(
+                                    a_function_def_number function_def_number);
+
 /*
 Macro to allocate and return "size" bytes of storage that will last through
 execution of the front end.
@@ -189,6 +192,8 @@ extern void mem_manage_wrapup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+a_function_def_number new_function_def_number(void);
 
 extern void record_mapped_mem_block(a_void_ptr	addr,
 				    sizeof_t	size);

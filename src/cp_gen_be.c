@@ -11736,7 +11736,7 @@ Render code for the given expression node, which represents a lambda.
   } else {
     /* Render the lambda from the associated routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    a_memory_region_number  scope_region_number = rp->assoc_scope;
+    a_memory_region_number  scope_region_number = mem_region_for_routine(rp);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     a_scope_ptr             scope;
     a_function_state        state;
@@ -11750,7 +11750,9 @@ Render code for the given expression node, which represents a lambda.
     /* Read the information for the function from the IL file.  This must be
        read before the interface is generated in order to get the parameter
        names. */
-    read_memory_region(scope_region_number);
+    if (mem_region_table[scope_region_number] == NULL) {
+      read_memory_region(scope_region_number);
+    }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     /* Render the lambda body from the prototype instantiation. */
     scope = scope_for_routine(rp);
@@ -11771,8 +11773,11 @@ Render code for the given expression node, which represents a lambda.
     restore_function_state(&state);
     restore_source_sequence_scan_state(&saved_state);
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Now that we're done with the function, free its IL information. */
-    free_memory_region(scope_region_number);
+    /* Now that we're done with the function, free its IL information if it
+       is the top-level function of a memory region. */
+    if (rp->is_top_level_in_mem_region) {
+      free_memory_region(scope_region_number);
+    }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     /* Pop the name context for the closure class. */
     pop_name_context();
@@ -13867,7 +13872,8 @@ instantiation is available; see gen_template_from_prototype_instantiation).
   if (result && is_definition &&
       (tp->kind == (a_template_kind)templk_function ||
        tp->kind == (a_template_kind)templk_member_function) &&
-      tp->prototype_instantiation.routine->assoc_scope == NULL_region_number) {
+      tp->prototype_instantiation.routine->function_def_number ==
+                                                    NULL_function_def_number) {
     /* This is the definition of a function template or member function of
        a class template, but its prototype instantiation has no scope.  This
        indicates that the prototype instantiation was deferred and never
@@ -17252,7 +17258,7 @@ TRUE if the declaration following this one is such a continuation.
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
     if (is_specialization && !rout->is_specialized && rout->is_inline) {
-      if (rout->assoc_scope == NULL_region_number) {
+      if (rout->function_def_number == NULL_function_def_number) {
         /* A generated specialization for an inline function, for which
            there is no full instantiation.  Suppress this declaration because
            it will get an error if it's used (inline referenced but
@@ -17353,7 +17359,7 @@ handle_as_definition:
       is_specialization = !old_specializations_for_generated_instances;
       in_generated_instance = TRUE;
     }  /* if */
-    if (rout->assoc_scope == NULL_region_number &&
+    if (rout->function_def_number == NULL_function_def_number &&
         !rout->is_deleted && !rout->is_defaulted) {
       /* A member function of a template class might not be instantiated.
          Friend functions and Microsoft in-class specializations are
@@ -17435,11 +17441,13 @@ handle_as_definition:
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    scope_region_number = rout->assoc_scope;
+    scope_region_number = mem_region_for_routine(rout);
     /* Read the information for the function from the IL file.  This must be
        read before the interface is generated in order to get the parameter
        names. */
-    read_memory_region(scope_region_number);
+    if (mem_region_table[scope_region_number] == NULL) {
+      read_memory_region(scope_region_number);
+    }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = scope_for_routine(rout);
     if (in_generated_instance) {
@@ -17858,8 +17866,11 @@ handle_as_definition:
     /* Pop the name context for the function. */
     pop_name_context();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Now that we're done with the function, free its IL information. */
-    free_memory_region(scope_region_number);
+    /* Now that we're done with the function, free its IL information if it
+       is the top-level function of a memory region. */
+    if (rout->is_top_level_in_mem_region) {
+      free_memory_region(scope_region_number);
+    }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     restore_source_sequence_scan_state(&saved_state);
   }  /* if */

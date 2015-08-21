@@ -334,6 +334,13 @@ Macros that return TRUE if an IL entry represents a class or namespace member.
   (scp_is_class_or_namespace_member(&(ptr)->source_corresp))
 
 /*
+Return the memory region for a given routine entry, or NULL_region_number
+if the routine has no definition.
+*/
+#define mem_region_for_routine(rout)					\
+  ((rout)->memory_region)
+
+/*
 Macro that returns the parent type of a scoped enumerator. 
 */
 #if defined(_lint)
@@ -482,7 +489,8 @@ function defined in a friend declaration in a template will be
 considered defined even if the definition has not been fixed-up yet.
 */
 #define routine_has_been_defined(rout) \
-  ((rout)->defined || (rout)->assoc_scope != NULL_region_number ||	\
+  ((rout)->defined || \
+   (rout)->function_def_number != NULL_function_def_number ||	\
    (rout)->routine_fixup != NULL)
 
 
@@ -1304,9 +1312,11 @@ extern void switch_to_scope_region(
 extern void switch_back_to_original_region(
                               a_memory_region_number region_to_switch_back_to);
 
-extern a_scope_ptr new_il_region(a_scope_kind   kind,
-                                 a_scope_number scope_number,
-                                 a_routine_ptr  assoc_routine);
+extern a_scope_ptr new_file_scope(a_scope_number scope_number);
+
+extern a_scope_ptr new_function_scope(a_scope_number           scope_number,
+                                      a_routine_ptr            assoc_routine,
+                                      a_memory_region_number   memory_region);
 
 extern void copy_constant(a_constant *from,
                           a_constant *to);

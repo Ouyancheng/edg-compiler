@@ -43,6 +43,10 @@ static a_boolean
 			/* TRUE if writing the file-scope IL, FALSE if writing
 			   IL for a function scope. */
 
+static a_file_position
+		il_header_pos;
+			/* Position where the IL header was written. */
+
 #if ALTERNATE_IL_FILE_FORMAT
 static an_il_entry_number
 		entry_numbers_array[(int)iek_last],
@@ -379,6 +383,7 @@ Write the initial information to the IL file, if there is one.
 */
 {
   a_memory_region_number zero_region_number = 0;
+  a_function_def_number  zero_function_def_number = 0;
   a_file_position        zero_file_position = 0;
 
   /* Note that the file was opened already by open_il_file.  f_il_output
@@ -390,16 +395,21 @@ Write the initial information to the IL file, if there is one.
     (void)fprintf(f_il_output, IL_FILE_MAGIC_STRING, IL_VERSION_NUMBER);
     /* Write the null at the end of the magic string. */
     putc('\0', f_il_output);
-    /* Leave space for the number of regions, the offset to the file index,
-       the offset to the file-scope region, and the il_header struct.
-       These will be filled in when the information is known at the end of 
-       file (see finish_il_file and write_memory_region). */
+    /* Leave space for the number of regions, number of function definition
+       entries, the offset to the file index, the offset to the file-scope
+       region, and the il_header struct.  These will be filled in when the
+       information is known at the end of file (see finish_il_file and
+       write_memory_region). */
     (void)fwrite((char *)&zero_region_number, sizeof(zero_region_number), 1,
                  f_il_output);
-    (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
+    (void)fwrite((char *)&zero_function_def_number,
+                 sizeof(zero_function_def_number), 1,
                  f_il_output);
     (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
                  f_il_output);
+    (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
+                 f_il_output);
+    il_header_pos = ftell(f_il_output);
     (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
     /* Leave space for the orphaned_file_scope_il_entries array. */
     (void)fwrite((char *)orphaned_file_scope_il_entries,
@@ -510,6 +520,9 @@ Finish writing the IL file, if there is one.
     /* Write the number of regions. */
     (void)fwrite((char *)&highest_used_region_number,
                  sizeof(highest_used_region_number), 1, f_il_output);
+    /* Write the number of function definition entries. */
+    (void)fwrite((char *)&highest_used_function_def_number,
+                 sizeof(highest_used_function_def_number), 1, f_il_output);
     /* Write the file offset for the file index table. */
     (void)fwrite((char *)&index_pos, sizeof(index_pos), 1, f_il_output);
     /* Write the file offset for the file-scope memory region. */
@@ -887,6 +900,7 @@ Write the indicated memory region to the file f_il_output.
      /*  Recall that the beginning of the file looks like:
            magic string that identifies an IL file (already written properly)
            number of regions (written as 0)
+           number of function definition entries (written as 0)
            file offset to the file index table (written as 0)
            file offset to the start of the file scope region (written as 0)
            il_header (written as 0)
@@ -895,11 +909,7 @@ Write the indicated memory region to the file f_il_output.
       /* Save the current (end of file) position. */
       end_pos = ftell(f_il_output);
       /* Seek to where the il_header was written. */
-      if (fseek(f_il_output,
-                (long)(LEN_IL_FILE_MAGIC_STRING+
-                       sizeof(a_memory_region_number)+
-                       2*sizeof(a_file_position)),
-                SEEK_SET) != 0) {
+      if (fseek(f_il_output, (long)il_header_pos, SEEK_SET) != 0) {
         file_write_error(ec_intermediate_language_8, errno);
       }  /* if */
       /* Save il_header; it gets modified, written, then restored. */
@@ -954,6 +964,7 @@ This is done before command line processing.
 {
   f_il_output = NULL;
   il_file_name = NULL;
+  il_header_pos = 0;
 }  /* il_write_early_init */
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

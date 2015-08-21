@@ -2415,6 +2415,43 @@ done:;
 }  /* set_parent_scope_on_push */
 
 
+static a_memory_region_number get_enclosing_memory_region(
+						a_routine_ptr	assoc_routine)
+/*
+Determine if assoc_routine is a "top-level" routine.   If it is not,
+find the enclosing routine and return its memory region number.
+If it is top-level, return NULL_region_number.  A top-level routine is
+one that is at namespace scope or non-local class scope.
+*/
+{
+  a_memory_region_number	result = NULL_region_number;
+
+  if (assoc_routine->is_lambda_body &&
+      (!assoc_routine->is_prototype_instantiation ||
+       prototype_instantiations_in_il)) {
+    /* Get the memory region of the function enclosing the lambda, if any.
+       If there is no enclosing function, then the lambda is a top-level
+       routine. */
+    a_type_ptr	lambda_class;
+    a_scope_ptr	scope = NULL;
+    lambda_class = parent_class_of(assoc_routine);
+    scope = get_parent_scope_of(lambda_class);
+    while (!scope_is(scope, sck_function) &&
+           is_local_scope_kind(scope->kind)) {
+      scope = scope->parent;
+    }  /* while */
+    if (scope_is(scope, sck_function)) {
+      a_function_def_number	number;
+      number = scope->variant.routine.ptr->function_def_number;
+      check_assertion(number != NULL_function_def_number);
+      result = il_header.function_def_table[number].memory_region;
+    }  /* if */
+  }  /* if */
+  check_assertion(result != file_scope_region_number);
+  return result;
+}  /* get_enclosing_memory_region */
+
+
 /*
 Return TRUE if the scope stack entry kind given by kind, and with the
 specified push_scope options is for something that has an effect on
@@ -2566,16 +2603,22 @@ the scope being pushed.
       break;
     case sck_function:
       if ((options & PS_IS_REACTIVATION) == 0) {
-        /* If this is not a reactivation of the function scope, start a new
-           memory region for a function scope.  This ensures that the
-           intermediate language is divided into manageable pieces.  This
-           call also allocates the top-level scope entry for the region. */
+        /* If this is not a reactivation of the function scope, either
+           start a new memory region or, if their is an enclosing function,
+           use the region of that function.  This also allocates the
+           top-level scope entry for the function. */
+        a_memory_region_number	enclosing_region;
+        enclosing_region = get_enclosing_memory_region(assoc_routine);
         new_il_scope = TRUE;
-        sp = new_il_region(kind, ssep->number, assoc_routine);
+        sp = new_function_scope(ssep->number, assoc_routine, enclosing_region);
         sp->depth_in_scope_stack = depth_scope_stack;
       } else {
-        curr_il_region_number = assoc_routine->assoc_scope;
-        sp = il_header.region_scope_entry[curr_il_region_number];
+        a_function_def_number		number;
+        a_function_def_descr_ptr	fddp;
+        number = assoc_routine->function_def_number;
+        fddp = &il_header.function_def_table[number];
+        curr_il_region_number = fddp->memory_region;
+        sp = fddp->scope;
       }  /* if */
       ssep->il_memory_region = curr_il_region_number;
       break;
@@ -2930,7 +2973,7 @@ the scope being pushed.
   depth_of_initial_lookup_scope = depth_scope_stack;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
-     new_il_region call. */
+     new_function_scope call. */
   if (assoc_type != NULL && sp != NULL) sp->variant.assoc_type = assoc_type;
   /* Determine whether this is an instantiation scope for an alias template. */
   if (kind == (a_scope_kind)sck_template_instantiation &&
@@ -7571,10 +7614,10 @@ calls itself recursively, and on those calls sp will be a block scope.
         for (routine = class_scope->routines;
              routine != NULL;
              routine = routine->next) {
-          a_memory_region_number rn = routine->assoc_scope;
-          if (rn != NULL_region_number) {
-            finish_function_processing_for_memory_region(rn,
-                                                      /*only_inline=*/FALSE);
+          a_function_def_number fdn = routine->function_def_number;
+          if (fdn != NULL_function_def_number) {
+            finish_function_processing_for_function_def(fdn,
+                                                        /*only_inline=*/FALSE);
           }  /* if */
         }  /* for */
       }  /* if */
@@ -7596,19 +7639,21 @@ static void finish_function_body_processing(
                                 a_boolean   delayed);
 
 
-void finish_function_processing_for_memory_region(
-                                            a_memory_region_number n,
-                                            a_boolean              only_inline)
+void finish_function_processing_for_function_def(
+                                            a_function_def_number n,
+                                            a_boolean             only_inline)
 /*
-If memory region n contains a function body for which body processing has
+If function definition n is a function for which body processing has
 not been finished, finish it now.  If only_inline is TRUE, finish the
 processing only if the function is inline.
 */
 {
-  if (mem_region_table[n] == NULL) {
+  if (il_header.function_def_table[n].scope == NULL) {
+    /* The body of this function has been cleared. */
+  } else if (mem_region_table[mem_region_for_function_def(n)] == NULL) {
     /* This memory has already been freed. */
   } else {
-    a_scope_ptr sp = il_header.region_scope_entry[n];
+    a_scope_ptr sp = scope_for_function_def(n);
     if (sp->kind == (a_scope_kind)sck_function &&
         (!only_inline || sp->variant.routine.ptr->is_inline) &&
         !in_secondary_trans_unit(sp) &&
@@ -7622,7 +7667,7 @@ processing only if the function is inline.
                                       /*delayed=*/TRUE);
     }  /* if */
   }  /* if */
-}  /* finish_function_processing_for_memory_region */
+}  /* finish_function_processing_for_function_def */
 
 
 static void finish_function_body_processing(
@@ -7648,7 +7693,8 @@ the scope stack is no longer available.
 
   db_enter(1, "finish_function_body_processing");
 #if DEBUG
-  if (debug_level >= 1 || db_has_traced_name(routine, iek_routine)) {
+  if (db_flag_is_set("ffbp") || debug_level >= 1 ||
+      db_has_traced_name(routine, iek_routine)) {
     fprintf(f_debug, "Finishing function body processing for ");
     db_name_full(&routine->source_corresp, iek_routine);
     fprintf(f_debug, "\n");
@@ -7665,10 +7711,11 @@ the scope stack is no longer available.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
+        !routine->is_prototype_instantiation &&
         (delayed ||
          !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
       /* Do IL lowering (change the C++ IL into C IL). */
-      lower_il_memory_region(routine->assoc_scope);
+      lower_function_scope(routine, scope);
 #if MAINTAIN_NEEDED_FLAGS
       lowering_done = TRUE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -7740,10 +7787,10 @@ the scope stack is no longer available.
 #if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
 
 /*
-A list of memory regions (containing functions) that are waiting for a
-module id to be generated before they can be lowered.  The list is kept in
-the order in which the functions are originally processed (which is the
-order in which the functions are subsequently lowered).
+A list of function that are waiting for a module id to be generated before
+they can be lowered.  The list is kept in the order in which the functions
+are originally processed (which is the order in which the functions are
+subsequently lowered).
 */
 typedef struct a_delayed_lowering_list_entry
                                             *a_delayed_lowering_list_entry_ptr;
@@ -7752,10 +7799,8 @@ typedef struct a_delayed_lowering_list_entry {
                 next;   
                         /* Pointer to the next entry on the list (or NULL
                            if this is the last entry). */
-  a_memory_region_number
-                region_number;
-                        /* The memory region number of a function whose
-                           lowering has been delayed. */
+  a_routine_ptr	routine;
+                        /* The function whose lowering has been delayed. */
 } a_delayed_lowering_list_entry;
 
 static a_delayed_lowering_list_entry_ptr
@@ -7786,9 +7831,13 @@ in the same order in which they were originally encountered.
   for (; waiting_for_module_id_list_head != NULL;
          waiting_for_module_id_list_head =
                                        waiting_for_module_id_list_head->next) {
-    finish_function_processing_for_memory_region(
-                                waiting_for_module_id_list_head->region_number,
-                                /*only_inline=*/FALSE);
+    a_scope_ptr			scope;
+    a_routine_ptr		routine;
+    routine = waiting_for_module_id_list_head->routine;
+    scope = scope_for_routine(routine);
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    finish_function_processing_for_function_def(routine->function_def_number,
+                                                /*only_inline=*/FALSE);
   }  /* for */
   waiting_for_module_id_list_tail = NULL;
 }  /* lower_functions_waiting_for_module_id */
@@ -8107,7 +8156,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
 #if DEBUG
     num_delayed_lowering_list_entries_allocated++;
 #endif /* DEBUG */
-    entry->region_number = routine->assoc_scope;
+    entry->routine = routine;
     entry->next = NULL;
     if (waiting_for_module_id_list_head == NULL) {
       waiting_for_module_id_list_head = entry;
@@ -8138,7 +8187,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
 
 #endif /* DO_IL_LOWERING */
 
-static a_boolean should_delay_finishing_of_function_body(
+a_boolean should_delay_finishing_of_function_body(
 						a_routine_ptr	routine)
 /*
 Some routines must be kept in memory for later use.  Return TRUE if
@@ -8755,6 +8804,7 @@ being popped.
       if (parent_ssep->first_scope == NULL) {
         parent_ssep->first_scope = ssep->first_scope;
       } else {
+        ssep->first_scope->prev = parent_ssep->last_scope->prev;
         parent_ssep->last_scope->next = ssep->first_scope;
       }  /* if */
       parent_ssep->last_scope = ssep->last_scope;
@@ -8822,10 +8872,7 @@ being popped.
       etfp->variant.variable->type = etfp->type;
     }  /* if */
   }  /* for */
-  if (!old_region_still_needed) {
-    /* The old memory region is no longer needed. */
-    check_assertion(kind == (a_scope_kind)sck_function &&
-                    curr_routine != NULL);
+  if (kind == (a_scope_kind)sck_function && curr_routine != NULL) {
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine) ||
                             scope_stack[depth_scope_stack].discard_when_popped;

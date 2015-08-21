@@ -1368,6 +1368,7 @@ header information about the memory regions such as the mem_region_table.
 */
 {
   a_memory_region_number	mem_regions_used;
+  a_function_def_number		function_defs_used;
   db_enter(4, "write_memory_regions");
   /* Write a copy of the IL header. */
   pch_write_value(il_header);
@@ -1381,6 +1382,13 @@ header information about the memory regions such as the mem_region_table.
   fwrite_with_check(il_header.region_scope_entry,
                     sizeof(a_mem_block_header_ptr) * mem_regions_used,
                     f_pch_output);
+  function_defs_used = highest_used_function_def_number + 1;
+  pch_write_value(highest_used_function_def_number);
+  if (function_defs_used > 1) {
+    fwrite_with_check(il_header.function_def_table,
+                      sizeof(a_function_def_descr) * function_defs_used,
+                      f_pch_output);
+  }  /* if */
 #if DEBUG
   /* Write the allocated_in_region information. */
   fwrite_with_check(allocated_in_region,
@@ -1415,6 +1423,7 @@ header information about the memory regions such as the mem_region_table.
 */
 {
   a_memory_region_number	mem_regions_used;
+  a_function_def_number		function_defs_used;
 
   db_enter(4, "read_memory_regions");
   check_file_section_id(pfs_memory_regions);
@@ -1434,6 +1443,15 @@ header information about the memory regions such as the mem_region_table.
   fread_with_check(il_header.region_scope_entry,
                    sizeof(a_scope_ptr) * mem_regions_used,
                    f_pch_input);
+  pch_read_value(highest_used_function_def_number);
+  function_defs_used = highest_used_function_def_number + 1;
+  if (function_defs_used > 1) {
+    /* Allocate the IL header function definition table, if needed. */
+    ensure_function_def_table_space(highest_used_function_def_number);
+    fread_with_check(il_header.function_def_table,
+                      sizeof(a_function_def_descr) * function_defs_used,
+                      f_pch_input);
+  }  /* if */
 #if DEBUG
   /* Read the allocated_in_region information. */
   fread_with_check(allocated_in_region,

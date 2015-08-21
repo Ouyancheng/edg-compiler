@@ -3223,7 +3223,9 @@ Display the indicated routine.
   disp_source_corresp(&ptr->source_corresp, iek_routine);
   disp_ptr("next", (char *)ptr->next, iek_routine);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
+  disp_unsigned_long("function_def_number",
+                     (unsigned long)ptr->function_def_number);
+  disp_unsigned_long("memory_region", (unsigned long)ptr->memory_region);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3604,6 +3606,9 @@ Display the indicated routine.
     disp_boolean("is_coroutine", TRUE);
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
+  if (ptr->is_top_level_in_mem_region) {
+    disp_boolean("is_top_level_in_mem_region", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

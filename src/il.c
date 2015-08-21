@@ -522,7 +522,7 @@ information, such as its address and translation unit.
     } else if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)entry;
       show_defn_state = TRUE;
-      has_defn = (rout->assoc_scope != NULL_region_number);
+      has_defn = (rout->function_def_number != NULL_function_def_number);
     } else if (kind == iek_variable) {
       a_variable_ptr var = (a_variable_ptr)entry;
       show_defn_state = TRUE;
@@ -3145,37 +3145,76 @@ switch_to_file_scope_region was called.
 }  /* switch_back_to_original_region */
 
 
-a_scope_ptr new_il_region(a_scope_kind   kind,
-                          a_scope_number scope_number,
-                          a_routine_ptr  assoc_routine)
+a_scope_ptr new_file_scope(a_scope_number scope_number)
 /*
-Start a new IL memory region for the IL for the file scope or a function.
-kind indicates the kind of scope (file or function); scope_number gives
-the scope number; and if the scope is for a function, assoc_routine points to
-its routine entry.  Establish this new region as the current IL region.
+Start a new file scope IL memory region for file scope specified by
+scope_number.  Establish this new region as the current IL region.
 Allocate a scope entry in the new region and return a pointer to it.
 */
 {
   a_scope_ptr sp;
 
-  if (kind == (a_scope_kind)sck_file) {
-    /* The file scope memory region is created in initialization. */
-    switch_il_region(file_scope_region_number);
-  } else {
-#if CHECKING
-    if (kind != (a_scope_kind)sck_function) {
-      internal_error("new_il_region: bad scope kind");
-    }  /* if */
-#endif /* CHECKING */
-    /* Create a new region for a function scope. */
-    switch_il_region(new_memory_region());
-  }  /* if */
+  /* The file scope memory region is created in initialization. */
+  switch_il_region(file_scope_region_number);
   /* Allocate the IL scope entry. */
-  sp = alloc_scope(kind, scope_number, assoc_routine);
+  sp = alloc_scope((a_scope_kind)sck_file, scope_number, (a_routine_ptr)NULL);
   /* Remember the location of the primary scope entry. */
   il_header.region_scope_entry[curr_il_region_number] = sp;
   return sp;
-}  /* new_il_region */
+}  /* new_file_scope */
+
+
+a_scope_ptr new_function_scope(a_scope_number           scope_number,
+                               a_routine_ptr            assoc_routine,
+                               a_memory_region_number   memory_region)
+/*
+Start a new IL memory region for the function specified by assoc_routine
+and scope_number.  memory_region is the memory region number to be used
+for this routine, or NULL_region_number if a new memory region is to
+be created.  The current IL region is set to either memory_region or the
+newly created memory region.  Allocate a scope entry in the region and return
+a pointer to it.
+*/
+{
+  a_function_def_descr_ptr	fddp;
+  a_function_def_number		function_def_number;
+  a_scope_ptr			sp;
+
+  check_assertion(assoc_routine != NULL);
+  function_def_number = new_function_def_number();
+  fddp = &il_header.function_def_table[function_def_number];
+  if (memory_region == NULL_region_number) {
+    fddp->memory_region = new_memory_region();
+    assoc_routine->is_top_level_in_mem_region = TRUE;
+  } else {
+    check_assertion(assoc_routine->function_def_number !=
+                                                       NO_FUNCTION_DEF_NUMBER);
+    fddp->memory_region = memory_region;
+  }  /* if */
+  /* Switch to the function's memory region. */
+  switch_il_region(fddp->memory_region);
+  /* Allocate the IL scope entry. */
+  sp = alloc_scope((a_scope_kind)sck_function, scope_number, assoc_routine);
+  /* Remember the location of the primary scope entry. */
+  fddp->scope = sp;
+  assoc_routine->function_def_number = function_def_number;
+  assoc_routine->memory_region = fddp->memory_region;
+  /* Link this on the list of scopes in the region. */
+  if (il_header.region_scope_entry[curr_il_region_number] != NULL) {
+    il_header.region_scope_entry[curr_il_region_number]->prev = sp;
+  }  /* if */
+  sp->next = il_header.region_scope_entry[curr_il_region_number];
+  il_header.region_scope_entry[curr_il_region_number] = sp;
+#if DEBUG
+  if (db_flag_is_set("new_function_scope")) {
+    db_scope(sp);
+    fprintf(f_debug, ", region=%ld, function_def=%ld\n",
+            (long)assoc_routine->memory_region,
+            (long)assoc_routine->function_def_number);
+  }  /* if */
+#endif /* DEBUG */
+  return sp;
+}  /* new_function_scope */
 
 
 /* Forward declaration. */
@@ -4640,6 +4679,7 @@ to by ssep.
   if (ssep->first_scope == NULL) {
     ssep->first_scope = scope_ptr;
   } else {
+    scope_ptr->prev = ssep->last_scope->prev;
     ssep->last_scope->next = scope_ptr;
   }  /* if */
   ssep->last_scope = scope_ptr;
@@ -8584,8 +8624,9 @@ Return the function scope for the given (defined) routine.
 {
   a_scope_ptr scope;
 
-  check_assertion(rout != NULL && rout->assoc_scope != NULL_region_number);
-  scope = il_header.region_scope_entry[rout->assoc_scope];
+  check_assertion(rout != NULL &&
+                  rout->function_def_number != NULL_function_def_number);
+  scope = scope_for_function_def(rout->function_def_number);
   check_assertion_str(scope != NULL, "scope for routine is NULL");
   check_assertion(scope->kind == (a_scope_kind)sck_function);
   return scope;
@@ -11372,7 +11413,7 @@ The expression can then be recovered using find_local_expr_node.
   check_assertion(!in_file_scope(expr) && in_file_scope(referrer) &&
                   func_scope != NULL);
   check_assertion(func_scope->kind == (a_scope_kind)sck_function);
-  memory_region = func_scope->variant.routine.ptr->assoc_scope;
+  memory_region = mem_region_for_routine(func_scope->variant.routine.ptr);
   if (memory_region != curr_il_region_number) {
     region_to_switch_back_to = curr_il_region_number;
     switch_il_region(memory_region);
@@ -11536,7 +11577,7 @@ The scope can then be recovered using find_local_scope.
 
   check_assertion(!in_file_scope(scope) && in_file_scope(referrer));
   check_assertion(func_scope->kind == (a_scope_kind)sck_function);
-  memory_region = func_scope->variant.routine.ptr->assoc_scope;
+  memory_region = mem_region_for_routine(func_scope->variant.routine.ptr);
   if (memory_region != curr_il_region_number) {
     region_to_switch_back_to = curr_il_region_number;
     switch_il_region(memory_region);
@@ -11603,11 +11644,12 @@ memory).
 
   if (scp->parent_via_local_scope_ref) {
     check_assertion(result == NULL && scp->enclosing_routine != NULL);
-    if (scp->enclosing_routine->assoc_scope != NULL_region_number) {
+    if (scp->enclosing_routine->function_def_number !=
+                                                    NULL_function_def_number) {
       /* Not using scope_for_routine on purpose because the scope might
          not be there. */
-      a_scope_ptr  enclosing_fn_scope = il_header.region_scope_entry[
-                                         scp->enclosing_routine->assoc_scope];
+      a_scope_ptr  enclosing_fn_scope =
+                                     scope_for_routine(scp->enclosing_routine);
       result = find_local_scope_in_function_scope((char*)scp,
                                                   enclosing_fn_scope);
     }  /* if */
@@ -23293,7 +23335,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
 */
 {
   a_routine_ptr           rp = sp->variant.routine.ptr;
-  a_memory_region_number  n = rp->assoc_scope;
+  a_memory_region_number  n;
 
 #if DEBUG
   if (debug_level >= 3 || db_trace("dump_elim", rp, iek_routine)) {
@@ -23325,7 +23367,10 @@ eliminate_unneeded_scope_orphaned_list_entries).
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;
-  rp->assoc_scope = NULL_region_number;
+  il_header.function_def_table[rp->function_def_number].scope = NULL;
+  il_header.function_def_table[rp->function_def_number].memory_region =
+                                                            NULL_region_number;
+  rp->function_def_number = NULL_function_def_number;
   rp->is_delegating_ctor = FALSE;
   skip_typerefs(rp->type)->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
@@ -23343,8 +23388,24 @@ eliminate_unneeded_scope_orphaned_list_entries).
   /* Note that defined_outside_of_parent is not reset.  The main reason
      for this is the fact that the flag is needed for prototype instantiations
      whose bodies are discarded. */
-  /* Free the memory region. */
-  free_memory_region(n);
+  /* Unlink the scope from the memory region list. */
+  n = rp->memory_region;
+  if (n != NULL_region_number) {
+    if (sp->prev == NULL) {
+      il_header.region_scope_entry[n] = sp->next;
+    } else {
+      sp->prev->next = sp->next;
+    }  /* if */
+    if (sp->next != NULL) {
+      sp->next->prev = sp->prev;
+    }  /* if */
+    if (il_header.region_scope_entry[n] == NULL) {
+      /* If we removed the last function in the memory region, free the
+         region. */
+      free_memory_region(n);
+    }  /* if */
+  }  /* if */
+  rp->memory_region = NULL_region_number;
 }  /* clear_function_body */
 
 
@@ -23985,7 +24046,7 @@ keep_in_il because, for example, they appear on orphan lists.
     next_solhp = solhp->next;
     rp = solhp->assoc_routine;
     /* Look for a routine whose body has been eliminated. */
-    if (rp->assoc_scope != NULL_region_number) {
+    if (rp->function_def_number != NULL_function_def_number) {
       /* This one has not been eliminated. */
       prev_solhp = solhp;
     } else {

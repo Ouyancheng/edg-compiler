@@ -1649,8 +1649,8 @@ Return its argument expression if available, or NULL otherwise.
                                    (a_local_expr_node_ref_kind)lerk_typeof;
     a_scope_ptr scope;
     if (type->source_corresp.enclosing_routine != NULL &&
-        type->source_corresp.enclosing_routine->assoc_scope !=
-                                                          NULL_region_number) {
+        type->source_corresp.enclosing_routine->function_def_number !=
+                                                    NULL_function_def_number) {
       /* If the type is defined in a function or block scope, search in
          that routine's scope (if it has been defined). */
       scope = scope_for_routine(type->source_corresp.enclosing_routine);

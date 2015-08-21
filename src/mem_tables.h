@@ -52,6 +52,54 @@ EXTERN a_memory_region_number
 			   for export template). */
 
 /*
+Definition for a function number.  Functions are stored in function
+memory regions, but all function definitions within a top-level (i.e.,
+namespace scope or non-local class scope) function are stored in the
+same memory region.
+
+When IL is written to a file, it must be possible to get from a function to
+its associated scope.  This is done using the function number.  The
+function number is used as an index into an array that contains a pointer
+to the top-level function scope and gives the memory region number containing
+the function.
+*/
+typedef int a_function_def_number;
+#define MAX_FUNCTION_DEF_NUMBER ((a_function_def_number)INT_MAX)
+#define NULL_function_def_number  ((a_function_def_number)0)
+#define NO_FUNCTION_DEF_NUMBER ((a_function_def_number)-1)
+/*
+NO_FUNCTION_DEF_NUMBER is used to indicate the absence of a function
+definition number.
+*/
+
+typedef struct a_function_def_descr *a_function_def_descr_ptr;
+typedef struct a_function_def_descr {
+  struct a_scope
+		*scope;
+			/* Pointer to the top-level scope of the function.
+			   This will be in a function scope memory region. */
+  a_memory_region_number
+		memory_region;
+			/* The memory region number containing the function
+			   (and other functions that are or are inside a
+			   given top-level function).  Note that all functions
+			   have a top-level scope, but not all functions
+			   are top-level functions. */
+} a_function_def_descr;
+
+/*
+Return the memory region for a given function definition number.
+*/
+#define mem_region_for_function_def(n)					\
+  (il_header.function_def_table[n].memory_region)
+
+/*
+Return the scope for a given function definition number.
+*/
+#define scope_for_function_def(n)					\
+  (il_header.function_def_table[n].scope)
+
+/*
 Header for a block of memory.  One or more of these make up a memory
 region.
 */
@@ -371,6 +419,15 @@ EXTERN a_memory_region_number
 EXTERN a_memory_region_number
 		highest_used_region_number;
 			/* The highest memory region number used so far. */
+
+EXTERN a_memory_region_number
+		size_of_function_def_table;
+			/* Current size of IL header function_def_table
+			   (number of entries, not number of bytes). */
+EXTERN a_function_def_number
+		highest_used_function_def_number;
+			/* The highest function definition number used so
+			   far. */
 
 
 #endif /* ifndef MEM_TABLES_H */

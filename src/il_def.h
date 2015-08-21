@@ -13231,18 +13231,26 @@ typedef struct a_routine {
                            kind == tk_routine (or to a typeref that refers to
                            such a type), which gives the return type and
                            parameter information. */
+  a_function_def_number
+                function_def_number;
+                        /* If not NULL_function_def_number, this indicates the
+                           function definition descriptor that is used
+			   determine the memory region and scope containing
+			   local declarations and executable statements of the
+			   function.  This is non-NULL only if the routine
+			   has a body.  If this field is non-NULL and the
+			   "defined" flag is FALSE during front-end processing,
+			   it means that scanning the function body has begun
+			   but is not yet complete.  See also the note about
+			   discarded function bodies under the "defined"
+			   flag.  See also prototype_scope under
+			   a_routine_type_supplement. */
   a_memory_region_number
-                assoc_scope;
+                memory_region;
                         /* If not NULL_region_number, this indicates the
                            memory region containing local declarations and
                            executable statements.  This is non-NULL only if
-			   the routine has a body.  If this field is non-NULL
-			   and the "defined" flag is FALSE during front-end
-			   processing, it means that scanning the function
-			   body has begun but is not yet complete.  See
-			   also the note about discarded function bodies
-			   under the "defined" flag.  See also prototype_scope
-			   under a_routine_type_supplement. */
+			   the routine has a body. */
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily
@@ -13983,6 +13991,11 @@ typedef struct a_routine {
 			   the function's top-level compound statement (a
 			   stmk_coroutine entry). */
 #endif /* COROUTINES_ALLOWED */
+  a_bit_field	is_top_level_in_mem_region:1;
+			/* TRUE if this is the top-level function in a
+			   memory region.  The memory region can be
+			   freed when the processing of this routine is
+			   finished. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -18477,6 +18490,10 @@ typedef struct a_scope {
                         /* Pointer to next scope on the same level, which
                            must be in the same memory region. */
   a_scope_ptr
+		prev;
+			/* Pointer to the previous scope on the same
+			   level. */
+  a_scope_ptr
 		parent;
 			/* Pointer to the parent scope.  NULL when kind ==
 			   sck_file.  Also NULL if pointing to the parent
@@ -18852,8 +18869,13 @@ typedef struct an_il_header {
                            strange data structure because the pointers can
                            point down into other memory regions; obviously,
                            this table is handled specially by memory management
-                           and in writing and reading the IL.  We are counting
-                           on default initialization of this field to NULL. */
+                           and in writing and reading the IL. */
+  a_function_def_descr
+		*function_def_table;
+			/* Pointers to an array of entries describing top-level
+			   function definitions (functions defined at
+			   namespace scope or members of non-local classes).
+                           Entry [0] is not used. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   a_scope_orphaned_list_header_ptr
 		scope_orphaned_list_headers;

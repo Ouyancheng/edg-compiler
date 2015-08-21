@@ -3765,7 +3765,8 @@ bound case, FALSE for the "expr" field of the constant itself.
 
         check_assertion(function_scope != NULL &&
                         curr_il_region_number == file_scope_region_number);
-        switch_il_region(function_scope->variant.routine.ptr->assoc_scope);
+        switch_il_region(mem_region_for_routine(
+                                         function_scope->variant.routine.ptr));
         *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
         switch_il_region(file_scope_region_number);
       }  /* if */

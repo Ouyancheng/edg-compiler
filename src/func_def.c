@@ -1270,9 +1270,8 @@ of lambda expressions.
   if (rout_ptr->is_prototype_instantiation && !force_implicit_typename) {
     scope_stack_top().implicit_typename = FALSE;
   }  /* if */
-  /* Associate the scope to the routine entry and the routine entry to its
-     type entry. */
-  rout_ptr->assoc_scope = curr_il_region_number;
+  check_assertion(rout_ptr->function_def_number != NULL_function_def_number);
+  /* Associate the routine entry to its type entry. */
   rtsp->assoc_routine = rout_ptr;
   /* If return value optimization may be possible (i.e., if the routine
      returns a class value via a copy constructor) set the flag to TRUE.
@@ -1881,7 +1880,8 @@ member declaration (allowed in some Microsoft modes only).
        special member has been defaulted in the class.  If that's the case,
        discard the prior "definition". */
     rp = sym->variant.routine.ptr;
-    if (rp->is_defaulted && rp->assoc_scope == NULL_region_number) {
+    if (rp->is_defaulted && rp->function_def_number ==
+                                                    NULL_function_def_number) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_name_reference_ptr  name_ref = rp->source_corresp.name_references;
       turn_routine_primary_sse_into_secondary_sse(rp);
@@ -2381,7 +2381,6 @@ routine.
                         (a_type_ptr)NULL, conv_op);
   fn_scope->variant.routine.this_param_variable =
                              make_implicit_this_param_variable(conv_op->type); 
-  conv_op->assoc_scope = curr_il_region_number;
   conv_op->type->variant.routine.extra_info->assoc_routine = conv_op;
   static_entry_pt = get_lambda_static_entry_point(conv_op);
   return_stmt = alloc_statement((a_statement_kind)stmk_return);
@@ -3226,9 +3225,6 @@ empty statement block.
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rout_ptr);
-    /* Associate the scope to the routine entry and the routine entry to its
-       type entry. */
-    rout_ptr->assoc_scope = curr_il_region_number;
     /* If this is an "extern inline" function, change its storage class. */
     if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
       rout_ptr->storage_class = (a_storage_class)sc_unspecified;
@@ -3418,14 +3414,12 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
 */
 {
   a_coroutine_descr_ptr   cdp;
-  a_memory_region_number  mrn = rp->assoc_scope;
   a_scope_ptr             func_scope;
   a_statement_ptr         body_stmt;
   a_struct_stmt_stack_entry_ptr
                           root_sssep = &struct_stmt_stack[0];
 
-  check_assertion(mrn != NO_SCOPE_NUMBER);
-  func_scope = il_header.region_scope_entry[mrn];
+  func_scope = scope_for_routine(rp);
   check_assertion(func_scope != NULL);
   body_stmt = func_scope->assoc_block;
   if (body_stmt == NULL) {

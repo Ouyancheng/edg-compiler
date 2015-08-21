@@ -5351,7 +5351,7 @@ a copy of the previous type).
                right, the qualifiers will have to be copied into the new
                type by hand. */
             if (!preserve_rout_type ||
-                routine_ptr->assoc_scope != NULL_region_number) {
+                routine_ptr->function_def_number != NULL_function_def_number) {
               preserve_qualifiers_from_rout_type = TRUE;
             }  /* if */
           }  /* if */
@@ -8326,9 +8326,10 @@ for use in generating cross-reference output describing this declaration.
             || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                                                                     ) {
-          /* The previous declaration was a definition.  (We check assoc_scope
-             rather than the defined flag in the routine, because in pcc mode
-             it is possible to have a nested redeclaration -- e.g.,
+          /* The previous declaration was a definition.  (We check
+             function_def_number rather than the defined flag in the routine,
+             because in pcc mode it is possible to have a nested
+             redeclaration -- e.g.,
                int f() { int f(); ... };
              -- but the flag isn't set till the definition is complete.) */
           old_decl_has_body = TRUE;
@@ -8548,7 +8549,7 @@ for use in generating cross-reference output describing this declaration.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         new_rp->source_corresp.name_references = NULL;
         new_rp->defined = FALSE;
-        new_rp->assoc_scope = NULL_region_number;
+        new_rp->function_def_number = NULL_function_def_number;
         ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
         ensure_gnu_routine_supp(routine_ptr)->inline_partner = new_rp;
         if (gnu_routine_supp(routine_ptr)->asm_name != NULL) {
@@ -10734,9 +10735,11 @@ typedef, we must make sure to propagate that to its members.
       routine->source_corresp.name_linkage = name_linkage;
       if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
           name_linkage == (a_name_linkage_kind)nlk_external) {
-        routine->storage_class = (a_storage_class)
-                                  (routine->assoc_scope != NULL_region_number ?
-                                                   sc_unspecified : sc_extern);
+        routine->storage_class =
+                            (a_storage_class)(routine->function_def_number !=
+                                              NULL_function_def_number
+                                                              ? sc_unspecified
+                                                              : sc_extern);
       }  /* if */
     }  /* for */
     for (var = scope->variables; var != NULL; var = var->next) {

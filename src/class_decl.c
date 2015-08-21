@@ -30152,7 +30152,8 @@ NULL in such cases.
 
   check_assertion(lambda != NULL);
   if (lambda->lambda_routine != NULL) {
-    if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
+    if (lambda->lambda_routine->function_def_number !=
+                                                    NULL_function_def_number) {
 #if DO_IL_LOWERING
       if (is_primary_translation_unit && 
           should_delay_lowering_on_function(lambda->lambda_routine,
@@ -30163,14 +30164,16 @@ NULL in such cases.
       } else
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
-      {
+      if (!should_delay_finishing_of_function_body(lambda->lambda_routine)) {
         /* Lowering of the lambda body function was deferred because the
            closure class was not complete when the function was scanned.  Now
            that the closure class is complete, do the lowering of the lambda
            body (if needed).  In some cases involving prototype instantiations
-           the lambda body may have already been discarded. */
-        finish_function_processing_for_memory_region(
-                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+           the lambda body may have already been discarded.  In most cases
+           where the lambda is enclosed in another function, the finishing
+           is delayed until the enclosing function is finished. */
+        finish_function_processing_for_function_def(
+           lambda->lambda_routine->function_def_number, /*only_inline=*/FALSE);
       }  /* if */
     }  /* if */
   } else {
@@ -30737,7 +30740,7 @@ have been processed.
        was defined in the current translation unit. */
     rp->source_corresp.name_linkage =
                  (a_name_linkage_kind)nlk_cplusplus_external;
-    if (rp->assoc_scope == NULL_region_number) {
+    if (rp->function_def_number == NULL_function_def_number) {
       /* Not defined. */
       rp->storage_class = (a_storage_class)sc_extern;
     } else {

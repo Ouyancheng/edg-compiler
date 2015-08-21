@@ -10376,8 +10376,7 @@ indication in *rcblock).
       a_variable_ptr  vp = sym->variant.variable.ptr;
       a_routine_ptr   rp = vp->source_corresp.enclosing_routine;
       if (rp != NULL) {
-        a_scope_depth  depth = il_header.region_scope_entry[rp->assoc_scope]
-                                        ->depth_in_scope_stack;
+        a_scope_depth  depth = scope_for_routine(rp)->depth_in_scope_stack;
         check_assertion(depth != NO_SCOPE_DEPTH);
         switch_to_scope_region(depth, &region_to_switch_back_to);
       }  /* if */
@@ -28521,11 +28520,17 @@ indicates that the symbol is an anonymous union and cannot be captured.
            expressions.  The CWG has already indicated that such references
            in a lambda should not require a capture, so it's right that this
            code precedes the lambda processing below. */
-        if (rvalue_only != NULL) *rvalue_only = TRUE;
+        if (rvalue_only != NULL &&
+            !(!expr_stack->potentially_evaluated && in_lambda_body())) {
+          *rvalue_only = TRUE;
+        }  /* if */
       } else if (in_lambda_body()) {
-        /* This reference is in the body of a lambda, so it may be okay
-           if the variable has been captured. */
-        if (lambda_capture == NULL) {
+        /* This reference is in the body of a lambda, so it may be okay if the
+           variable has been captured or if this not a potentially-evaluated
+           context. */
+        if (!expr_stack->potentially_evaluated) {
+          /* The reference is acceptable. */
+        } else if (lambda_capture == NULL) {
           /* The variable is the parent for an anonymous union, so the
              reference is not allowed. */
           check_assertion(var->is_anonymous_parent_object);

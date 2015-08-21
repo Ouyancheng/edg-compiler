@@ -329,6 +329,7 @@ have already been remapped.
 */
 {
   a_scope_ptr      scope;
+  a_scope_ptr      next_scope;
   an_il_walk_state saved_state;
 
   db_enter(4, "walk_routine_scope_il");
@@ -353,7 +354,10 @@ have already been remapped.
                   !walking_secondary_trans_unit);
 
   /* Process the scope and its subtree. */
-  walk_entry_and_subtree((char *)scope, iek_scope);
+  for (; scope != NULL; scope = next_scope) {
+    next_scope = scope->next;
+    walk_entry_and_subtree((char *)scope, iek_scope);
+  }  /* for */
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
@@ -603,7 +607,8 @@ definition of the routine is needed, and not just the declaration.
     /* If the definition is present, walk it.  set_routine_defined and
        remark_routine_definition_needed take care of calling this again
        later when the routine is defined if it has no body now. */
-    if (rout->defined && rout->assoc_scope != NULL_region_number) {
+    if (rout->defined && rout->function_def_number !=
+                                                    NULL_function_def_number) {
       a_scope_ptr            saved_innermost_function_scope;
       a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
       a_scope_ptr            scope = scope_for_routine(rout);
@@ -619,7 +624,7 @@ definition of the routine is needed, and not just the declaration.
            This is necessary in case some
            a_per_instantiation_needed_flags_entry entries need to be
            allocated; we need to know what memory region to put them in. */
-        curr_il_region_number = rout->assoc_scope;
+        curr_il_region_number = mem_region_for_routine(rout);
         /* Set the innermost function scope.  This is needed for finding the
            variable associated with anonymous union types. */
         saved_innermost_function_scope = innermost_function_scope;
@@ -647,7 +652,7 @@ definition of the routine is needed, and not just the declaration.
                they're not on the scope stack. */
           } else {
             /* We may be able to dispose of the memory region now. */
-            check_for_done_with_memory_region(rout->assoc_scope);
+            check_for_done_with_memory_region(rout->memory_region);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1499,7 +1504,8 @@ declaration.
     /* If the definition is present, walk it.  set_routine_defined takes
        care of calling this again later when the routine is defined
        if it is not defined now. */
-    if (rout->defined && rout->assoc_scope != NULL_region_number) {
+    if (rout->defined && rout->function_def_number !=
+                                                    NULL_function_def_number) {
       a_scope_ptr scope = scope_for_routine(rout);
       /* Don't walk the body if it hasn't been lowered yet. */
       if (scope->function_body_processing_finished) {
@@ -2545,11 +2551,12 @@ in cases where the orphan lists have not been generated yet.
          solhp = solhp->next) {
       saved_innermost_function_scope = innermost_function_scope;
       check_assertion(solhp->assoc_routine != NULL);
-      if (solhp->assoc_routine->assoc_scope != NULL_region_number) {
+      if (solhp->assoc_routine->function_def_number !=
+                                                    NULL_function_def_number) {
         /* Not using scope_for_routine on purpose here because it's okay for
            the scope to be gone by now. */
-        innermost_function_scope =
-               il_header.region_scope_entry[solhp->assoc_routine->assoc_scope];
+        innermost_function_scope = scope_for_function_def(
+                                    solhp->assoc_routine->function_def_number);
       } else {
         innermost_function_scope = NULL;
       }  /* if */
@@ -2571,9 +2578,12 @@ in cases where the orphan lists have not been generated yet.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
-    if (routine->assoc_scope != NULL_region_number) {
-      a_scope_ptr func_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
+    /* The memory region is tested to ignore functions in freed memory
+       regions. */
+    if (routine->function_def_number != NULL_function_def_number &&
+        mem_region_table[routine->memory_region] != NULL) {
+      a_scope_ptr func_scope = scope_for_function_def(
+                                                 routine->function_def_number);
       /* Process a function's scope if its orphan lists have not yet
          been generated.  Note that we don't use scope_for_routine here
          because the scope might be gone by now. */

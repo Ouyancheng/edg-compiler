@@ -2735,7 +2735,8 @@ to it.  The entry is allocated in the file scope memory region.
   set_default_source_corresp(rp->source_corresp);
   rp->next                        = NULL;
   rp->type                        = NULL;
-  rp->assoc_scope                 = NULL_region_number;
+  rp->function_def_number         = NULL_function_def_number;
+  rp->memory_region               = NULL_region_number;
   rp->storage_class               = (a_storage_class)sc_unspecified;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_storage_class      = (a_storage_class)sc_unspecified;
@@ -2913,6 +2914,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if COROUTINES_ALLOWED
   rp->is_coroutine                = FALSE;
 #endif /* COROUTINES_ALLOWED */
+  rp->is_top_level_in_mem_region  = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4402,6 +4404,7 @@ points to the associated routine if the kind is sck_function.
   num_scopes_allocated++;
 #endif /* DEBUG */
   sp->next   = NULL;
+  sp->prev    = NULL;
   sp->parent = NULL;
   sp->number = number;
   sp->function_body_processing_finished = FALSE;

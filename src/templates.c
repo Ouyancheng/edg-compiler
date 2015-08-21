@@ -13404,7 +13404,7 @@ instantiations from the IL.
         check_assertion(symbol_is(instance_sym, sk_routine) ||
                         symbol_is(instance_sym, sk_member_function));
         rp = instance_sym->variant.routine.ptr;
-        if (rp->assoc_scope != NULL_region_number) {
+        if (rp->function_def_number != NULL_function_def_number) {
           rp_scope = scope_for_routine(rp);
           clear_function_body(rp_scope);
         }  /* if */
@@ -30000,7 +30000,7 @@ emitted in this translation unit.
   a_boolean	body_can_be_generated = FALSE;
 
   check_assertion(!C_mode());
-  if (rout_ptr->assoc_scope != NULL_region_number) {
+  if (rout_ptr->function_def_number != NULL_function_def_number) {
     /* The routine has a body. */
     body_can_be_generated = TRUE;
   } else if (rout_ptr->compiler_generated && !rout_ptr->is_deleted &&
@@ -30101,7 +30101,8 @@ the body should be emitted by the back end.
     if (rout_ptr->compiler_generated) {
       /* If this is a compiler generated routine, make sure it has a body. */
       force_definition_of_compiler_generated_routine(rout_ptr);
-      check_assertion(rout_ptr->assoc_scope != NULL_region_number);
+      check_assertion(rout_ptr->function_def_number !=
+                                                     NULL_function_def_number);
     }  /* if */
   }  /* if */
 #if IA64_ABI && DO_IL_LOWERING
@@ -30319,7 +30320,7 @@ a body (if needed) for extern inline functions.
        Note that if the address was taken but the routine turned out
        to be unneeded we clear the flag below when we check
        the definition_needed flag. */
-    if (rout_ptr->assoc_scope != NULL_region_number &&
+    if (rout_ptr->function_def_number != NULL_function_def_number &&
         !rout_ptr->definition_for_inlining_only &&
         (!rout_ptr->suppress_inline_body ||
          rout_ptr->address_taken

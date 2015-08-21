@@ -2614,8 +2614,6 @@ accordingly.
 {
   an_expr_node_ptr  callee_node, arg_nodes, routine_node, arg;
   a_routine_ptr     callee;
-  a_memory_region_number
-                    callee_region;
   a_boolean         result = TRUE;
 
   callee_node = call_node->variant.operation.operands;
@@ -2628,8 +2626,7 @@ accordingly.
     unexpected_condition();
   }  /* if */
   /* Retrieve the routine scope, or issue an error. */
-  callee_region = callee->assoc_scope;
-  if (callee_region == NULL_region_number) {
+  if (callee->function_def_number == NULL_function_def_number) {
     /* FIXME: error. */
     result = FALSE;
 #if /*FIXME*/0
@@ -2641,7 +2638,7 @@ accordingly.
     /* FIXME: record an error. */
     result = FALSE;
   } else {
-    a_scope_ptr     callee_scope = il_header.region_scope_entry[callee_region];
+    a_scope_ptr     callee_scope = scope_for_routine(callee);
     a_storage_stack_state
                     saved_stack;
     a_statement_ptr

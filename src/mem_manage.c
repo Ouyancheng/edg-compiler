@@ -819,6 +819,56 @@ Free any unallocated space remaining in the indicated memory block.
 }  /* trim_mem_block */
 
 
+void ensure_function_def_table_space(a_function_def_number function_def_number)
+/*
+Make sure that the memory region tables are large enough to hold
+the number of entries indicated by function_def_number.
+*/
+{
+  a_function_def_number old_size;
+
+  if (function_def_number >= size_of_function_def_table) {
+    /* function_def_table must be created or enlarged. */
+    /* Add enough entries to cover a pretty large compilation (each function
+       compiled uses one entry). */
+    old_size = size_of_function_def_table;
+    size_of_function_def_table = function_def_number + 2048;
+    il_header.function_def_table = (a_function_def_descr*)realloc_buffer(
+                          (char *)il_header.function_def_table,
+                          (sizeof_t)(old_size*sizeof(a_function_def_descr)),
+                          (sizeof_t)(size_of_function_def_table*
+                                              sizeof(a_function_def_descr)));
+    /* Depending on NULL represented as zero bits here. */
+    memzero((char *)&il_header.function_def_table[old_size],
+            size_t_arg((size_of_function_def_table-old_size)*
+                       sizeof(a_function_def_descr)));
+  }  /* if */
+}  /* ensure_function_def_table_space */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_function_def_number new_function_def_number(void)
+/*
+Assign a function definition number and make sure that the function definition
+table is large enough to hold the new entry.  Return the function definition
+number.  Each function definition has a definition number assigned to it.
+The number is used to get to access the function definition entry, which
+is needed to get to the memory region and scope of the function.
+*/
+{
+  a_function_def_number	result;
+
+  if (highest_used_function_def_number == MAX_FUNCTION_DEF_NUMBER) {
+    /* Too many function definitions. */
+    catastrophe(ec_program_too_large);
+  }  /* if */
+  result = ++highest_used_function_def_number;
+  ensure_function_def_table_space(result);
+  return result;
+}  /* new_function_def_number */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 void ensure_mem_region_table_space(a_memory_region_number region_number)
 /*
 Make sure that the memory region tables are large enough to hold
@@ -829,10 +879,10 @@ the number of entries indicated by region_number.
 
   if (region_number >= size_of_mem_region_table) {
     /* mem_region_table must be created or enlarged. */
-    /* Add enough entries to cover a pretty large compilation (each function
-       compiled uses one entry). */
+    /* Add enough entries to cover a pretty large compilation (each top-level
+       function compiled uses one entry). */
     old_size = size_of_mem_region_table;
-    size_of_mem_region_table = region_number + 500;
+    size_of_mem_region_table = region_number + 2048;
     mem_region_table = (a_mem_block_header_ptr *)realloc_buffer(
                           (char *)mem_region_table,
                           (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
@@ -1385,6 +1435,47 @@ any unused space.
   trim_mem_block(mem_region_table[region_number]);
 }  /* trim_memory_region */
 
+#if !STANDALONE_UTILITY_PROGRAM
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+
+static a_boolean memory_region_should_be_kept_for_routine(a_routine_ptr	rout,
+							  a_scope_ptr	scope)
+/*
+Return TRUE if the memory region containing rout should be kept in
+memory because of the properties of rout.  scope is the scope of routine
+(not the scope of the primary routine of the memory region).
+*/
+{
+  a_boolean	keep_memory = FALSE;
+
+  if (rout != NULL &&
+      keep_function_body_for_possible_inlining(rout)) {
+    /* Keep the region for an inline function so it can be used to
+       do inlining. */
+    keep_memory = TRUE;
+#if !STANDALONE_UTILITY_PROGRAM
+  } else if (rout != NULL &&
+             !scope->function_body_processing_finished) {
+    /* If we haven't finished processing the function body, don't write
+       it out.  In particular, if IL lowering has not been done yet,
+       do not write out the body. */
+    keep_memory = TRUE;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if MAINTAIN_NEEDED_FLAGS
+  } else if (rout != NULL &&
+             (!rout->keep_definition_in_il || !rout->definition_needed)) {
+    /* This memory region so far looks as if it's unneeded.  Hold on
+       to it for now.  If we make it to the end of the compilation with
+       the memory region still unneeded, we will have the option of
+       freeing it at that point. */
+    keep_memory = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
+  return keep_memory;
+}  /* memory_region_should_be_kept_for_routine */
+
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_for_done_with_memory_region(a_memory_region_number region_number)
 /*
@@ -1452,32 +1543,28 @@ memory or with an IL file.
        away before this routine is called. */
     keep_memory = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
-  } else if (rout != NULL &&
-             !scope->function_body_processing_finished) {
-    /* If we haven't finished processing the function body, don't write
-       it out.  In particular, if IL lowering has not been done yet,
-       do not write out the body. */
-    keep_memory = TRUE;
   } else if (scope->do_not_free_memory_region) {
     /* The memory region might be needed later (e.g., for a generic
        lambda instantiation).  Do not free it. */
     keep_memory = TRUE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  } else if (rout != NULL &&
-             keep_function_body_for_possible_inlining(rout)) {
-    /* Keep the region for an inline function so it can be used to
-       do inlining. */
-    keep_memory = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-  } else if (rout != NULL &&
-             (!rout->keep_definition_in_il || !rout->definition_needed)) {
-    /* This memory region so far looks as if it's unneeded.  Hold on
-       to it for now.  If we make it to the end of the compilation with
-       the memory region still unneeded, we will have the option of
-       freeing it at that point. */
-    keep_memory = TRUE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+#if !STANDALONE_UTILITY_PROGRAM
+  if (!keep_memory && rout != NULL) {
+    /* So far we don't need to keep the memory.  Go though the list of
+       function scopes to see if the memory region should be kept for
+       any of them. */
+    a_scope_ptr	sp;
+    for (sp = scope; sp != NULL; sp = sp->next) {
+      a_routine_ptr	rp = sp->variant.routine.ptr;
+      check_assertion(rp != NULL);
+      if (memory_region_should_be_kept_for_routine(rp, sp)) {
+        keep_memory = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
   if (rout != NULL && debug_level >= 2) {
     fprintf(f_debug, "check_for_done_with_memory_region: ");
@@ -1907,6 +1994,7 @@ Do one-time initialization of variables related to the mem_manage routines.
   index_for_il_file = NULL;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   il_header.region_scope_entry = NULL;
+  il_header.function_def_table = NULL;
 }  /* mem_manage_one_time_init */
 
 
@@ -1943,6 +2031,7 @@ This is done before command line processing.
   text_buffer_list = NULL;
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
+  size_of_function_def_table = 0;
 }  /* mem_manage_early_init */
 
 
@@ -1954,6 +2043,7 @@ must be initialized for each compilation.
 {
   highest_used_region_number = NULL_region_number;
   file_scope_region_number = FILE_SCOPE_REGION_NUMBER;
+  highest_used_function_def_number = NULL_function_def_number;
 #if DEBUG
   total_mem_used = 0;
   num_alignment_bytes_allocated = 0;

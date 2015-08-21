@@ -14443,7 +14443,7 @@ be returned for a C mode const variable.
       an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
       if (!in_file_scope(con_val) &&
           var->source_corresp.enclosing_routine != NULL &&
-          var->source_corresp.enclosing_routine->assoc_scope !=
+          mem_region_for_routine(var->source_corresp.enclosing_routine) !=
                                                        curr_il_region_number) {
         options |= CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER;
       }  /* if */

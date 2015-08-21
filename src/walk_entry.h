@@ -1300,7 +1300,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
            before some calls to walk the IL. */
-        if (ptr->assoc_scope != NULL_region_number) {
+        if (ptr->function_def_number != NULL_function_def_number) {
           /* This is a defined routine, so its return type must be complete. */
           a_type_ptr rout_type = ptr->type;
           rout_type = skip_typerefs(rout_type);
@@ -2509,6 +2509,7 @@ do_set_proper_definition_needed_flag:
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
+        remap_ptr(ptr->prev, a_scope_ptr, iek_scope);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->parent, a_scope_ptr, iek_scope);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */

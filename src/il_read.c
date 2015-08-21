@@ -809,6 +809,24 @@ necessary to make it directly accessible in memory.
   }  /* if */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
+  /* Rebuild the function definition entries for the functions in this
+     memory region. */
+  if (!reading_file_scope_il) {
+    a_scope_ptr	sp = il_header.region_scope_entry[region_number];
+    for (; sp != NULL; sp = sp->next) {
+      a_function_def_number	fdn;
+      a_routine_ptr		rp;
+      check_assertion(sp->kind == (a_scope_kind)sck_function);
+      rp = sp->variant.routine.ptr;
+      fdn = rp->function_def_number;
+      check_assertion(rp->memory_region == region_number);
+      if (fdn != NULL_function_def_number) {
+        il_header.function_def_table[fdn].scope = sp;
+        il_header.function_def_table[fdn].memory_region = region_number;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+
   db_exit();
 }  /* read_memory_region */
 
@@ -915,6 +933,8 @@ build the in-memory version.
                           magic_string[LEN_IL_FILE_MAGIC_STRING];
   a_memory_region_number  new_size_of_mem_region_table;
   a_scope_ptr             *old_il_header_region_scope_entry;
+  a_function_def_descr_ptr
+                          old_il_header_function_def_table;
 
   db_enter(1, "il_read");
 
@@ -953,6 +973,9 @@ build the in-memory version.
                    sizeof(highest_used_region_number));
   /* Quick check for bad IL file. */
   if (highest_used_region_number < 1) catastrophe(ec_bad_il_file);
+  /* Read the number of function definition entries. */
+  fread_with_check((char *)&highest_used_function_def_number,
+                   sizeof(highest_used_function_def_number));
   /* Read the file offset for the file index. */
   fread_with_check((char *)&index_pos, sizeof(index_pos));
   /* Read the position of the file scope memory region (and throw it away). */
@@ -961,8 +984,10 @@ build the in-memory version.
   /* Save the region_scope_entry pointer in case it points to allocated
      storage. */
   old_il_header_region_scope_entry = il_header.region_scope_entry;
+  old_il_header_function_def_table = il_header.function_def_table;
   fread_with_check((char *)&il_header, sizeof(il_header));
   il_header.region_scope_entry = old_il_header_region_scope_entry;
+  il_header.function_def_table = old_il_header_function_def_table;
   init_flags_and_types();
   /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
@@ -991,6 +1016,8 @@ build the in-memory version.
                                                      sizeof(a_file_position)));
     size_of_mem_region_table = new_size_of_mem_region_table;
   }  /* if */
+  /* Allocate the IL header function definition table, if needed. */
+  ensure_function_def_table_space(highest_used_function_def_number);
   /* Clear the index tables. */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)mem_region_table,
@@ -999,6 +1026,8 @@ build the in-memory version.
           size_t_arg(size_of_mem_region_table*sizeof(a_scope_ptr)));
   memzero((char *)index_for_il_file,
           size_t_arg(size_of_mem_region_table*sizeof(a_file_position)));
+  memzero((char *)il_header.function_def_table,
+          size_t_arg(size_of_function_def_table*sizeof(a_function_def_descr)));
   /* Read the file index. */
   if (fseek(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);

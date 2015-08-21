@@ -523,7 +523,7 @@ already been copied over.
   if (is_primary_translation_unit) {
 #if DO_IL_LOWERING
     /* Lower the file scope. */
-    lower_il_memory_region(file_scope_region_number);
+    lower_file_scope();
 #endif /* DO_IL_LOWERING */
   }  /* if */
 
@@ -643,11 +643,11 @@ been lowered (by lower_functions_waiting_for_module_id).
        calls to them. */
     a_boolean inline_pass = TRUE; 
     for (;;) {
-      a_memory_region_number n;
-      for (n = FILE_SCOPE_REGION_NUMBER + 1;
-           n <= highest_used_region_number;
+      a_function_def_number n;
+      for (n = 1;
+           n <= highest_used_function_def_number;
            n++) {
-        finish_function_processing_for_memory_region(n, inline_pass);
+        finish_function_processing_for_function_def(n, inline_pass);
       }  /* for */
       if (!inline_pass) break;
       inline_pass = FALSE;

@@ -623,7 +623,7 @@ it and remapping pointers.
   scope = scope_for_routine(routine);
   /* Note that the "copy" routines called here simply remap pointers
      when given an entry in a function scope memory region. */
-  walk_routine_scope_il(routine->assoc_scope,
+  walk_routine_scope_il(mem_region_for_routine(routine),
                         copy_entry,
                         copy_string_entry,
                         (a_remap_function_ptr)NULL,
@@ -673,7 +673,7 @@ to the primary translation unit IL.
   a_scope_orphaned_list_header_ptr solhp;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    if (routine->assoc_scope != NULL_region_number) {
+    if (routine->function_def_number != NULL_function_def_number) {
       /* Move the routine body to the primary IL. */
       /* Local types are handled by visiting the orphan lists later. */
       move_routine_body_to_primary(routine);
@@ -831,7 +831,7 @@ do any necessary processing, e.g., externalizing it if it is static.
     /* The definition should have been eliminated at pop_scope
        time (the definition will be put out when the file is compiled
        as a primary file) unless the routine is inline. */
-    check_assertion(routine->assoc_scope == NULL_region_number ||
+    check_assertion(routine->function_def_number == NULL_function_def_number ||
                     routine->is_inline);
 #if DO_IL_LOWERING
     if (il_lowering_needed() &&
@@ -840,7 +840,7 @@ do any necessary processing, e.g., externalizing it if it is static.
          external declaration and copied over. */
       externalize_source_correspondence(&routine->source_corresp,
                                         /*is_variable=*/FALSE);
-      if (routine->assoc_scope == NULL_region_number) {
+      if (routine->function_def_number == NULL_function_def_number) {
         routine->storage_class = (a_storage_class)sc_extern;
       } else {
         /* A static inline function becomes extern inline. */
@@ -884,7 +884,7 @@ The entry with the highest value should be the canonical entry.
       break;
     case iek_routine:
       { a_routine_ptr rout = (a_routine_ptr)ptr;
-        rank = (rout->assoc_scope != NULL_region_number);
+        rank = (rout->function_def_number != NULL_function_def_number);
         if (rout->is_specialized) rank += 2;
       }
       break;
@@ -1178,8 +1178,9 @@ not being eliminated.
                      can be not inline while the definition is inline.
                      For templates, the inline flag is not set until
                      the function is fully instantiated. */
-                  routine->assoc_scope == NULL_region_number ||
-                  corresp_routine->assoc_scope == NULL_region_number);
+                  routine->function_def_number == NULL_function_def_number ||
+                  corresp_routine->function_def_number ==
+                                                     NULL_function_def_number);
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     corresp_routine->inline_instance_required |=
@@ -1209,8 +1210,8 @@ not being eliminated.
   /* Note that suppress_inline_body is meaningful only when the routine
      has a body, and the interesting value -- the one that sticks --
      is FALSE. */
-  if (routine->assoc_scope != NULL_region_number &&
-      corresp_routine->assoc_scope != NULL_region_number) {
+  if (routine->function_def_number != NULL_function_def_number &&
+      corresp_routine->function_def_number != NULL_function_def_number) {
     corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
   }  /* if */
   /* Move any attributes that must be saved to the surviving entry. */
@@ -1576,7 +1577,7 @@ to the secondary translation unit.
       }
     }  /* if */
     if (!keep_body) {
-      if (routine->assoc_scope != NULL_region_number) {
+      if (routine->function_def_number != NULL_function_def_number) {
         /* Delete the body of this routine. */
         clear_body_for_routine(routine);
         *any_removed_function_bodies = TRUE;
@@ -2311,13 +2312,15 @@ unit set to the primary translation unit.
              Also do not move if a specialization declaration replaces
              an unspecialized routine (with or without a definition). */
           move_to_end = (!is_class_scope &&
-                         corresp_routine->assoc_scope != NULL_region_number);
+                         corresp_routine->function_def_number !=
+                                                     NULL_function_def_number);
           if (move_to_end) {
             remove_from_routines_list(primary_routine, NO_SCOPE_DEPTH);
             last_routine = pointers_block->last_routine;
             add_to_list = TRUE;
           }  /* if */
-          if (primary_routine->assoc_scope != NULL_region_number) {
+          if (primary_routine->function_def_number !=
+                                                    NULL_function_def_number) {
             /* Eliminate the body of the primary routine (this happens when
                the secondary has a specialization and the primary does not). */
             clear_body_for_routine(primary_routine);
@@ -2788,7 +2791,8 @@ The current translation unit is the primary translation unit.
   check_assertion(solh_list == NULL || in_secondary_trans_unit(solh_list));
   check_assertion(is_primary_translation_unit);
   for (solhp = solh_list; solhp != NULL; solhp = solhp->next) {
-    if (solhp->assoc_routine->assoc_scope == NULL_region_number) {
+    if (solhp->assoc_routine->function_def_number ==
+                                                    NULL_function_def_number) {
       /* The routine associated with this entry was deleted, so link the
          copy of this entry into the scope orphaned headers list in the
          primary IL. */

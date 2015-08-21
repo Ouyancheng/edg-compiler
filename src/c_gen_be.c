@@ -9448,12 +9448,14 @@ Set *region_number to the function memory region number.
 {
   a_scope_ptr scope;
 
-  *region_number = rout->assoc_scope;
+  *region_number = mem_region_for_routine(rout);
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Read the information for the function from the IL file.  This must be
      read before the interface is generated in order to get the parameter
      names. */
-  read_memory_region(*region_number);
+  if (mem_region_table[*region_number] == NULL) {
+    read_memory_region(*region_number);
+  }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   scope = scope_for_routine(rout);
   return scope;
@@ -9679,13 +9681,18 @@ by dump_routine_decl.
   octl.suppress_local_typedefs = TRUE;
   curr_scope = saved_curr_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Now that we're done with the function, free its IL information. */
-  free_memory_region(scope_region_number);
+  /* Now that we're done with the function, free its IL information if it
+     is the top-level function of a memory region. */
+  if (rout->is_top_level_in_mem_region) {
+    free_memory_region(scope_region_number);
+  }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   if (master_routine != NULL) {
     /* Finished a wrapper routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    free_memory_region(master_scope_region_number);
+    if (master_routine->is_top_level_in_mem_region) {
+      free_memory_region(master_scope_region_number);
+    }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     entry_routine_scope = NULL;
     master_routine_scope = NULL;
@@ -9867,7 +9874,8 @@ interface.  If dump_defn is TRUE, dump the interface and definition, but only
 if this routine has a body (dump nothing if it has no body).
 */
 {
-  a_boolean       has_defn = (rout->assoc_scope != NULL_region_number
+  a_boolean       has_defn = (rout->function_def_number !=
+                                                      NULL_function_def_number
 #if MAINTAIN_NEEDED_FLAGS
                               && rout->definition_needed
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -10286,7 +10294,8 @@ that have bodies.
          the definition when dump_defn is TRUE (since presumably the partner
          definition will already have been dumped at that time). */
       if (dump_defn) {
-        dump_routine_decl(routine, routine->assoc_scope != NULL_region_number);
+        dump_routine_decl(routine, routine->function_def_number !=
+                                                     NULL_function_def_number);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {

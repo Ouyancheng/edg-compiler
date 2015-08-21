@@ -921,15 +921,14 @@ routine later in order to ensure that the "defined" flag is set.
   a_type_ptr             rout_type;
 
   /* Make a new memory region and scope. */
-  scope = new_il_region((a_scope_kind)sck_function, take_next_scope_number(),
-                        rout_ptr);
+  scope = new_function_scope(take_next_scope_number(), rout_ptr,
+                             NULL_function_def_number);
   scope->parent = il_header.primary_scope;
   *il_region = curr_il_region_number;
-  /* Link the routine to the scope.  new_il_region did the link in the
+  /* Link the routine to the scope.  new_function_scope did the link in the
      other direction. */
   rout_type = skip_typerefs(rout_ptr->type);
   rout_type->variant.routine.extra_info->assoc_routine = rout_ptr;
-  rout_ptr->assoc_scope = curr_il_region_number;
   if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
     rout_ptr->storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
@@ -3654,7 +3653,7 @@ definition.
   a_boolean needed = FALSE;
 
   check_assertion(rout->compiler_generated &&
-                  rout->assoc_scope != NULL_region_number);
+                  rout->function_def_number != NULL_function_def_number);
   /* If the routine is external (but not extern inline), mark it as needed. */
   if (rout->storage_class == (a_storage_class)sc_unspecified &&
       !rout->is_inline) {
@@ -4197,7 +4196,7 @@ operator of a no-capture lambda.
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 
   /* Only define the new routine if we haven't already defined one. */
-  if (new_routine->assoc_scope == NULL_region_number) {
+  if (new_routine->function_def_number == NULL_function_def_number) {
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
     is_lambda_entry_point = new_routine->special_kind ==
@@ -4957,7 +4956,7 @@ routine will be the same as the one passed in.
       if (parent_class_of(routine)->
                          variant.class_struct_union.any_virtual_base_classes &&
           kind == (a_ctor_or_dtor_kind)cdk_complete &&
-          (routine->assoc_scope != NULL_region_number &&
+          (routine->function_def_number != NULL_function_def_number &&
            scope_for_routine(routine)->
                                   variant.routine.constructor_inits != NULL) &&
           (new_routine->special_kind ==
@@ -5019,7 +5018,7 @@ routine will be the same as the one passed in.
                                      /*do_lowering=*/FALSE);
     }  /* if */
     /* Define the routine if appropriate. */
-    if (routine->assoc_scope != NULL_region_number &&
+    if (routine->function_def_number != NULL_function_def_number &&
         define_now) {
       a_routine_ptr routine_to_call = routine;
       if (kind == (a_ctor_or_dtor_kind)cdk_deleting) {
@@ -17370,7 +17369,8 @@ need to be modified if changes are made here.
   overriding_return_type = lowered_return_type_of(overriding_function->type);
   overridden_return_type = lowered_return_type_of(overridden_function->type);
   /* The overriding function must have a definition in this compilation. */
-  check_assertion(overriding_function->assoc_scope != NULL_region_number &&
+  check_assertion(overriding_function->function_def_number !=
+                                                    NULL_function_def_number &&
                   !overriding_function->suppress_inline_body);
   /* Make an expression that is an enk_result_of_overriding_function cast
      to the right pointer type. */

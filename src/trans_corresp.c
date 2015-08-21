@@ -444,7 +444,7 @@ The given entity should have a source correspondence.
         if (!has_indeterminate_exception_spec(routine)) {
           rank += 4;
         }  /* if */
-        if (routine->assoc_scope != NULL_region_number) {
+        if (routine->function_def_number != NULL_function_def_number) {
           rank += 16;
 #if GNU_EXTENSIONS_ALLOWED
           if (!routine->is_weak) {
@@ -2644,7 +2644,7 @@ is_inline flag.
   /* rp1 is not inline whereas rp2 is. */
   if (rp1->is_template_function && !rp1->is_specialized &&
       !(rp1->is_prototype_instantiation && rp1->defined) &&
-      rp1->assoc_scope == NULL_region_number) {
+      rp1->function_def_number == NULL_function_def_number) {
     /* An uninstantiated template function may not have had its is_inline
        flag set yet. */
     result = TRUE;
