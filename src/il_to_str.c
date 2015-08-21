@@ -5713,8 +5713,21 @@ do_sizeof_cases:
                  case at this level).  Note that an unqualified destructor
                  invocation like p->~decltype(...) should still go through
                  form_type (hence the "has_name" test above). */
+              a_boolean  saved_suppress_template_args =
+                                                  octl->suppress_template_args;
+              if (is_immediate_class_type(dtor_type) &&
+                  dtor_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+                /* A destructor prototype instantiation can only appear in
+                   the prototype instantiation of its parent, so no
+                   template argument list is needed (and, if a template
+                   parameter is unnamed, couldn't be put out in any
+                   case). */
+                octl->suppress_template_args = TRUE;
+              }  /* if */
               form_unqualified_name(&dtor_type->source_corresp, iek_type,
                                     octl);
+              octl->suppress_template_args = saved_suppress_template_args;
             } else {
               form_type(dtor_type, octl);
             }  /* if */

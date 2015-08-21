@@ -9345,7 +9345,10 @@ indicated by opstr.
     a_const_char *dtor_name = unmangled_name_of(&con->source_corresp);
     if (class_name != NULL && dtor_name != NULL &&
         strcmp(class_name, dtor_name + 1) == 0 &&
-        !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
+        !class_is_in_name_context_stack(
+                                   operand_1_type,
+                                   /*include_base_classes=*/TRUE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
       /* If a member function of an instance of a class template explicitly
          calls the destructor of a different instance of the same class
          template, g++ requires that the destructor name have a template
