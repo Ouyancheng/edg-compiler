@@ -3813,7 +3813,7 @@ been scanned: builtin_func represents the reference to the builtin function
   db_exit();
 }  /* scan_va_copy_operator */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static void check_gnu_builtin_function_for_call(an_operand  *op,
                                                 a_boolean   *foldable,
@@ -3957,16 +3957,16 @@ of gcc and g++ return slightly different values for some expression types.
   return tck;
 }  /* gnu_type_class_for_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-#if !GNU_EXTENSIONS_ALLOWED
+#if !BUILTIN_FUNCTIONS_ENABLED
 /*ARGSUSED*/  /* <-- arguments not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+#endif /* !BUILTIN_FUNCTIONS_ENABLED */
 static a_boolean fold_gnu_call_if_possible(an_operand       *op,
                                            an_expr_node_ptr call)
 /*
 The given operand must represent a function call, and call is the
-function call node from that call.  Some GNU __builtin_xxx
+function call node from that call.  Some GNU-style __builtin_xxx
 functions require special compile-time checks and can sometimes be constant-
 folded.  This routine does so and returns TRUE if the call is folded (in which
 case *op is replaced by a constant operand).  A diagnostic may be issued if the
@@ -3978,8 +3978,8 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
   check_assertion(is_expression_operand(op));
   check_assertion(call != NULL &&
                   call->kind == (an_expr_node_kind)enk_operation);
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode &&
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (builtin_functions_enabled &&
       call->variant.operation.kind == (an_expr_operator_kind)eok_call) {
     an_expr_node_ptr args = call->variant.operation.operands;
     a_routine_ptr    routine = routine_from_function_expr(args);
@@ -4011,11 +4011,11 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
       release_local_constant(&result);
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   return folded;
 }  /* fold_gnu_call_if_possible */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
                                               a_boolean   is_evaluated,
@@ -4763,7 +4763,7 @@ done:
 }  /* adjust_gnu_sync_call */
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void report_this_param_mismatch(
                                a_routine_ptr         routine,
@@ -4869,12 +4869,12 @@ are expected to be NULL in that case.
   an_expr_node_ptr  castexp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         call_folded_to_constant = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   a_type_ptr        sync_result_type = NULL;
   int               sync_n_args = 0;
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
@@ -4970,12 +4970,13 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
-    /* Some GNU built-in functions may be treated as constant expressions.
-       Among these folded built-ins are some whose argument processing is
-       different from that done for function calls.  Such pseudo-calls are
-       fully handled by the call to scan_gnu_builtin_pseudo_call. */
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (builtin_functions_enabled && !curr_expr_kind_is(ek_pp)) {
+    /* Some GNU-style built-in functions may be treated as constant
+       expressions.  Among these folded built-ins are some whose argument
+       processing is different from that done for function calls.  Such
+       pseudo-calls are fully handled by the call to
+       scan_gnu_builtin_pseudo_call. */
     a_boolean  pseudo_call;
     check_gnu_builtin_function_for_call(operand, &call_may_be_folded,
                                         &pseudo_call);
@@ -4985,7 +4986,7 @@ are expected to be NULL in that case.
       goto done;
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   if (!call_may_be_folded && curr_expr_kind_is_const() &&
       (!constexpr_enabled || curr_expr_kind_is(ek_pp))) {
     /* Routine calls that cannot be folded should not appear in constant-
@@ -5317,7 +5318,7 @@ are expected to be NULL in that case.
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
     /* See if this is a call to a predeclared GNU __sync_... function.  If
        so, the concrete routine to call will not be known until after the
@@ -5328,7 +5329,7 @@ are expected to be NULL in that case.
       routine = NULL;
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
   if (orig_routine_type == NULL) {
     /* If this call is the result of optimizing a virtual function call to
@@ -5356,7 +5357,7 @@ are expected to be NULL in that case.
                       &closing_paren_position);
 
   error_position = call_position;
-#if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (gnu_sync_function_case) {
     /* Check and adjust the arguments for a call of a GNU __sync_... function.
        Also determine the concrete routine being called, based on the argument
@@ -5366,7 +5367,7 @@ are expected to be NULL in that case.
                                    &closing_paren_position, &argument_list);
     routine_type = routine->type;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
   if (overloaded_function_case) {
     an_operand        orig_operand;
@@ -5571,14 +5572,14 @@ are expected to be NULL in that case.
                       &closing_paren_position, &operator_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   if (!call_folded_to_constant)
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   {
     /* A function call rules out a constant expression. */
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (sync_result_type != NULL) {
     /* Cast the call result to the right type for certain GNU __sync_...
@@ -5587,7 +5588,7 @@ are expected to be NULL in that case.
   }  /* if */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 done:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   free_arg_list(arg_list);
   db_exit();
 }  /* scan_function_call */
@@ -29058,14 +29059,14 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
                !C_mode() && arg_dependent_lookup_enabled &&
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
                /* Argument-dependent lookup should never apply to calls of
-                  GNU built-in functions.  Since such functions may need to
-                  be constant-folded, we do not want to use an indefinite
+                  GNU-style built-in functions.  Since such functions may need
+                  to be constant-folded, we do not want to use an indefinite
                   routine operand to represent the call. */
-               !(gpp_mode &&
+               !(!C_mode() && builtin_functions_enabled &&
                  is_gnu_builtin_function(sym_ptr->variant.routine.ptr)) &&
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
                name_followed_by_left_paren) {
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
@@ -29234,12 +29235,12 @@ variable:
 normal_function:
           if (curr_expr_kind_is(ek_integral_constant) &&
               curr_expr_kind_is_traditional_const()
-#if GNU_EXTENSIONS_ALLOWED
-              && (!gnu_mode ||
+#if BUILTIN_FUNCTIONS_ENABLED
+              && (!builtin_functions_enabled ||
                   !is_foldable_gnu_builtin_function(
                                               sym_ptr->variant.routine.ptr,
                                               (a_boolean *)NULL))
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
                                                                  ) {
             /* Function identifiers are not allowed in integral constant
                expressions. */

@@ -4046,12 +4046,12 @@ issue_diagnostic:
   return okay;
 }  /* reconcile_external_symbol_types */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static a_boolean matching_builtin_function_name_exists(a_symbol_locator  *loc)
 /*
-If the name described by the given locator corresponds to the name of a GNU
-builtin function without the "__builtin_" prefix, return TRUE.
+If the name described by the given locator corresponds to the name of a GNU-
+style builtin function without the "__builtin_" prefix, return TRUE.
 */
 {
   a_boolean            result = FALSE;
@@ -4080,7 +4080,7 @@ builtin function without the "__builtin_" prefix, return TRUE.
   return result; 
 }  /* matching_builtin_function_name_exists */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
@@ -4181,8 +4181,8 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode && scp->assoc_info != NULL &&
+#if BUILTIN_FUNCTIONS_ENABLED
+    if (builtin_functions_enabled && gcc_mode && scp->assoc_info != NULL &&
         (gnu_version < 30400 ||
          (is_function && ext_sym_kind == ext_sym->kind &&
           (is_implicit_declaration ||
@@ -4208,7 +4208,7 @@ created; the caller must set it.
         incomp_severity = es_warning;
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     if (suppress_incompatible_error) {
       incomp_severity = es_none;
     }  /* if */
@@ -7411,16 +7411,14 @@ is_function_def is TRUE if the redeclaration is a definition.
         }  /* if */
       }  /* if */
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  } else if (rp->special_kind == (a_special_function_kind)sfk_none &&
-             rp->variant.builtin_function_kind !=
-                                          (a_builtin_function_kind)bfk_none) {
+#if BUILTIN_FUNCTIONS_ENABLED
+  } else if (is_gnu_builtin_function(rp)) {
     /* This is a redeclaration of a predeclared function.  Hide (but do not
        remove) the old declaration by setting linked_redecl_error to TRUE. */
     pos_sy_warning(ec_builtin_function_hidden, diag_pos, linked_sym);
     *linked_redecl_error = TRUE;
     compat = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   } else if (SVR4_C_mode &&
              incompatible_types_are_SVR4_compatible(new_type, rp->type)) {
     /* The routine types are incompatible, but in SVR4 mode this is
@@ -7547,18 +7545,16 @@ new declaration is a friend declaration.
        invisible, the resulting set is invisible too. */
     overload_set_is_invisible = TRUE;
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   if (homonym_symbol->kind == (a_symbol_kind)sk_routine) {
     a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
-    if (rp->special_kind == (a_special_function_kind)sfk_none &&
-        rp->variant.builtin_function_kind !=
-                                          (a_builtin_function_kind)bfk_none) {
+    if (is_gnu_builtin_function(rp)) {
       /* This declaration overloads a predeclared function: Issue a warning. */
       pos_sy_warning(ec_builtin_function_overloaded, &locator->source_position,
                      homonym_symbol);
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   sym = enter_overloaded_symbol(sym_kind, locator, /*is_constructor=*/FALSE,
                                 homonym_symbol, overload_set);
   /* Update the visibility of the new symbol and of the overload set it

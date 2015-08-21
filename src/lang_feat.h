@@ -691,6 +691,20 @@ recognized (and recorded in the IL).
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 /*
+Flag that is TRUE if GNU-style builtin functions are enabled.  Note that
+not all GNU-style builtin functions may be available in all modes, but setting
+this to TRUE enables the GNU-style builtin function mechanism.  See also the
+builtin_functions_enabled global variable.
+*/
+#ifndef BUILTIN_FUNCTIONS_ENABLED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#define BUILTIN_FUNCTIONS_ENABLED TRUE
+#else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
+#define BUILTIN_FUNCTIONS_ENABLED FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+/*
 Flag that is TRUE if built-in GNU __sync_... functions should be accepted in
 GNU modes.
 */
@@ -698,9 +712,10 @@ GNU modes.
 #define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED FALSE
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
-#if !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
- #error -- GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED requires GNU_EXTENSIONS_ALLOWED
-#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#if !BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+ #error -- GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED requires \
+           BUILTIN_FUNCTIONS_ENABLED
+#endif /* !BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 /*
 Flag that is TRUE if GNU vector types should be allowed. (This includes, e.g.,

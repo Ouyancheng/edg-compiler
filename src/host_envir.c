@@ -5602,6 +5602,28 @@ Cleanup as necessary.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+unsigned long strtoul_interface(a_const_char *str,
+                                a_boolean    *err)
+/*
+An interface to strtoul that converts str to a numeric value and returns it.
+*err is set to TRUE if the string cannot be converted (and to FALSE otherwise).
+*/
+{
+  unsigned long result;
+  char          *endptr;
+  *err = FALSE;
+  result = (a_host_large_unsigned)strtoull(str, &endptr, 0);
+  if ((result == 0 || result == ULONG_MAX) &&
+      (errno == EINVAL || errno == ERANGE)) {
+    *err = TRUE;
+  } else if (str != NULL && *str != '\0' &&
+             endptr != NULL && *endptr != '\0') {
+    *err = TRUE;
+  }  /* if */
+  return result;
+}  /* strtoul_interface */
+
+
 void host_envir_one_time_init(void)
 /*
 Do one-time initialization related to host specific processing.  This

@@ -5971,7 +5971,7 @@ end_arg_expansion:;
       /* The clang __has_builtin macro.  Has the value 1 if the named
          builtin function is available in the current execution of the
          front end and 0 otherwise. */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
       a_const_char *builtin_name = clang_feature_test_id(map, &arg_position);
       if (builtin_name != NULL &&
           (gnu_builtin_func_by_name(builtin_name) != NULL ||
@@ -5982,12 +5982,12 @@ end_arg_expansion:;
       } else {
         strcpy(repl_text, "0");
       }  /* if */
-#else /* !GNU_EXTENSIONS_ALLOWED */
-      /* There are no GNU builtin functions.  Just check the argument for
+#else /* !BUILTIN_FUNCTIONS_ENABLED */
+      /* There are no GNU-style builtin functions.  Just check the argument for
          correctness and give the value 0. */
       (void)clang_feature_test_id(map, &arg_position);
       strcpy(repl_text, "0");
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     } else {
       unexpected_condition_str(
                          "macro_invocation: unknown special predefined macro");

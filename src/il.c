@@ -4818,11 +4818,11 @@ fix them.
 }  /* fix_memory_region_problems_in_copied_constant */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
 /*
-Return TRUE if and only if the given routine represents a GNU built-in
+Return TRUE if and only if the given routine represents a GNU-style built-in
 function.
 */
 {
@@ -4831,7 +4831,7 @@ function.
                                             (a_builtin_function_kind)bfk_none;
 }  /* is_gnu_builtin_function */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,

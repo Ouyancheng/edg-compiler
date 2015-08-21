@@ -300,7 +300,7 @@ Display an internal floating-point value, for debugging purposes.
   unsigned int i;
 
   for (i = 0; i < sizeof(a_host_fp_value); ++i) {
-    fprintf(f_debug, "%2x ", ifv->bytes[i]);
+    fprintf(f_debug, "%02x ", ifv->bytes[i]);
   }  /* for */
   fprintf(f_debug, "\n");
 }  /* db_internal_float_value */
@@ -662,24 +662,19 @@ Fetch the value from float_value (of kind kind) and return it.
 }  /* fetch_host_fp_value */
 
 #if TARG_HAS_IEEE_FLOATING_POINT
-#ifndef __CENTERLINE__
-
-static float float_zero = 0.0;
-			/* Value used to compute a NaN.  This used by
-			   make_fp_nan.  This is a static variable in the
-			   hope that optimizers will permit the division
-			   by zero without giving a warning. */
-
-#endif /* ifndef __CENTERLINE__ */
 
 a_boolean make_fp_nan(an_internal_float_value *value,
                       a_float_kind             kind,
-                      a_boolean	               signaling)
+                      a_boolean	               signaling,
+                      an_fp_value_part         mantissa)
 /*
 Make a Not-a-Number value of the given floating-point kind in *value.
 Return FALSE if the operation did not succeed or if it is mode-dependent;
 return TRUE otherwise.  If signaling is TRUE, a signaling Nan is created,
-otherwise a quiet NaN is created.
+otherwise a quiet NaN is created.  When mantissa is non-zero, its value
+is used for the mantissa portion of the NaN.  Note that this routine
+limits the number of bits in the mantissa to 32 bits (or 23 bits for
+a float kind).
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
@@ -689,26 +684,58 @@ otherwise a quiet NaN is created.
     uint32_t u32;
   } u;
 
-#ifdef __CENTERLINE__
-  /* CodeCenter does not allow division by zero. */
-  u.u32 = 0x7fffffff;
-  nan_value = u.f;
-#else /* !defined(__CENTERLINE__) */
-  /* 0.0 / 0.0 produces a NaN. */
-  nan_value = float_zero / float_zero;
-#endif /* ifdef __CENTERLINE__ */
+  /* Generate a positive NaN bit pattern. */
   if (signaling) {
-    /* Add the signaling bit if a signaling NaN is desired. */
-    u.f = nan_value;
-    u.u32 |= 0x100000;
-    nan_value = u.f;
+    u.u32 = 0x7f800000;
+  } else {
+    u.u32 = 0x7fc00000;
   }  /* if */
+  nan_value = u.f;
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&nan_value, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
     /* Convert the NaN to the right type. */
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,
                    &err, &fp_mode_dependent);
+  }  /* if */
+  if (mantissa == 0 && signaling) {
+    /* A signaling NaN must have a non-zero mantissa.  GNU seems to set the
+       second highest-order mantissa bit in each case, but we just set the
+       lowest order bit (because the code below only handles the low-order
+       32 bits). */
+    mantissa = 1;
+  }  /* if */
+  if (mantissa != 0) {
+    /* Set the mantissa portion of the floating-point value to the value in
+       mantissa.  This code only sets the low-order 32-bits (or 23 in the case
+       of a float type). */
+    an_fp_value_part *part, val;
+    a_targ_size_t    size;
+    /* Pointer to the first word. */
+    part = (an_fp_value_part *)&value->bytes[0];
+    if (!host_little_endian) {
+      /* Use the last word. */
+      if (kind == (a_float_kind)fk_float) {
+        size = targ_sizeof_float;
+      } else if (kind == (a_float_kind)fk_double) {
+        size = targ_sizeof_double;
+      } else {
+        check_assertion(kind == (a_float_kind)fk_long_double);
+        size = targ_sizeof_long_double;
+      }  /* if */
+      part += size/4 - 1;
+    }  /* if */
+    /* Use memcpy to extract the 32-bit value we're interested, operate on it,
+       then replace it (to avoid alignment issues). */
+    (void)memcpy((char*)&val, (char*)part, sizeof(val));
+    if (kind == (a_float_kind)fk_float) {
+      /* Don't disturb non-mantissa bits. */
+      val = val | (mantissa & 0x7fffff);
+    } else {
+      /* Set the entire 32-bit piece of the mantissa. */
+      val = mantissa;
+    }  /* if */
+    (void)memcpy((char*)part, (char*)&val, sizeof(val));
   }  /* if */
   return !err && !fp_mode_dependent;
 }  /* make_fp_nan */
@@ -725,18 +752,12 @@ return TRUE otherwise.
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
   float infinity;
 
-#ifdef __CENTERLINE__
-  /* CodeCenter does not allow division by zero. */
   union {
     float f;
     uint32_t u32;
   } u;
   u.u32 = 0x7f800000;
   infinity = u.f;
-#else /* !defined(__CENTERLINE__) */
-  /* 1.0 / 0.0 produces positive Infinity. */
-  infinity = ((float)1.0) / float_zero;
-#endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
@@ -1333,7 +1354,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
        in denormalized form. */
     bits_needed = min_exp - *exponent;
     if ((bits_needed + bits + implicit_bits) <= mant_dig) {
-      /* We can denormalize the number without loosing precision.  Do
+      /* We can denormalize the number without losing precision.  Do
          the first shift and make the implicit first bit of the mantissa
          explicit. */
       if (implicit_bits != 0) {
