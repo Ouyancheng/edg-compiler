@@ -10589,7 +10589,7 @@ ceblock gives context information for the evaluation.
           } else if (op1_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
             /* First operand is a dependent expression.  We don't know if
-               this w3ill be a constant expression or not when instantiated,
+               this will be a constant expression or not when instantiated,
                so record it as a dependent constant. */
             make_template_param_expr_constant(expr, result_con);
             folded = TRUE;
