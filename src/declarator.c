@@ -89,52 +89,54 @@ standard-attribute syntax).
   attributes = scan_attributes(syn_loc);
   /* Reclassify attributes if necessary. */
   if (attributes != NULL) {
-    if (gnu_attributes_enabled || (microsoft_mode && dps->is_lambda)) {
-      /* Move any non-type-transforming GNU attributes to the
-         dps->id_declarator list, and change their syntactic location to
-         al_postfix or al_id_equivalent.  Similarly, treat an al_post_func
-         __declspec attribute on a lambda as al_id_equivalent. */
-      an_attribute_ptr  ap, *p_from = &attributes, *p_to;
-      p_to = last_attribute_link(&dps->id_attributes);
-      do {
-        ap = *p_from;
-        if (is_gcc_attribute(ap) && !is_type_transforming_attribute(ap)) {
-          *p_from = ap->next;
-          /* Non-nested postfix attributes are recorded as al_postfix.  Others
-             are recorded as al_id_equivalent. */
-          if (!dps->in_nested_declarator &&
-              (syn_loc == al_post_func || syn_loc == al_post_array)) {
-            ap->syntactic_location = (a_byte_attribute_location)al_postfix;
-          } else {
-            ap->syntactic_location =
-                                  (a_byte_attribute_location)al_id_equivalent;
-          }  /* if */
-          *p_to = ap;
-          p_to = &ap->next;
-        } else if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
-          /* The only kind of __declspec attributes allowed on declarators are
-             al_post_func attributes on lambdas. */
-          check_assertion(ap->syntactic_location ==
-                                     (a_byte_attribute_location)al_post_func);
-          ap->syntactic_location = (a_byte_attribute_location)al_id_equivalent;
-          *p_from = ap->next;
-          *p_to = ap;
-          p_to = &ap->next;
+    /* Move any non-type-transforming GNU attributes to the dps->id_declarator
+       list, and change their syntactic location to al_postfix or
+       al_id_equivalent.  Similarly, treat an al_post_func __declspec attribute
+       on a lambda as al_id_equivalent. */
+    an_attribute_ptr  ap, *p_from = &attributes, *p_to;
+    p_to = last_attribute_link(&dps->id_attributes);
+    do {
+      ap = *p_from;
+      if ((is_gcc_attribute(ap) ||
+           ((gnu_mode || microsoft_mode) &&
+            ap->family == (a_byte_attribute_family)af_alignas)) &&
+          !is_type_transforming_attribute(ap)) {
+        *p_from = ap->next;
+        /* Non-nested postfix attributes are recorded as al_postfix.  Others
+           are recorded as al_id_equivalent. */
+        if (!dps->in_nested_declarator &&
+            (syn_loc == al_post_func || syn_loc == al_post_array)) {
+          ap->syntactic_location = (a_byte_attribute_location)al_postfix;
         } else {
-          if (dps->in_nested_declarator &&
-              ap->syntactic_location ==
-                                      (a_byte_attribute_location)al_postfix) {
-            /* A non-GNU attribute after a nested declarator is not valid. */
-            if (!error_issued) {
-              pos_error(ec_invalid_attribute_location, &ap->position);
-              error_issued = TRUE;
-            }  /* if */
-            make_attr_unrecognized(ap);
-          }  /* if */
-          p_from = &ap->next;
+          ap->syntactic_location =
+                                (a_byte_attribute_location)al_id_equivalent;
         }  /* if */
-      } while (*p_from != NULL);
-    }  /*if */
+        *p_to = ap;
+        p_to = &ap->next;
+      } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
+                 dps->is_lambda) {
+        /* The only kind of __declspec attributes allowed on declarators are
+           al_post_func attributes on lambdas. */
+        check_assertion(ap->syntactic_location ==
+                                   (a_byte_attribute_location)al_post_func);
+        ap->syntactic_location = (a_byte_attribute_location)al_id_equivalent;
+        *p_from = ap->next;
+        *p_to = ap;
+        p_to = &ap->next;
+      } else {
+        if (dps->in_nested_declarator &&
+            ap->syntactic_location ==
+                                    (a_byte_attribute_location)al_postfix) {
+          /* A non-GNU attribute after a nested declarator is not valid. */
+          if (!error_issued) {
+            pos_error(ec_invalid_attribute_location, &ap->position);
+            error_issued = TRUE;
+          }  /* if */
+          make_attr_unrecognized(ap);
+        }  /* if */
+        p_from = &ap->next;
+      }  /* if */
+    } while (*p_from != NULL);
   }  /* if */
   if (attributes != NULL) {
     /* Microsoft __declspec attributes cannot appear in declarators (with an

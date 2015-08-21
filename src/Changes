@@ -1,5 +1,23 @@
 Version 4.11
 
+8/21/15  [EDGcpfe/16452]
+GNU, Microsoft compatibility: alignas
+
+A declaration like
+
+  double x[2] alignas(32);  // (1)
+
+is nonstandard, because in that position the alignas attribute appertains to
+the array type rather than the array variable declaration.  Correct
+alternatives are:
+
+  double y alignas(32) [2];  // (2)
+  alignas(32) double z[2];
+
+In Microsoft and GNU C++11 modes, however, the front now does accept the form
+on line (1) (silently treating as the form on line (2)).
+
+
 8/20/15  [EDGcpfe/16170]
 GNU C++ compatibility: Redefining defaulted special members
 
