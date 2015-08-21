@@ -5600,10 +5600,10 @@ issued.
         (routine == NULL || routine->is_constexpr ||
          ((clang_mode || gpp_mode || microsoft_mode) &&
           routine->is_template_function && !routine->is_specialized)
-#if BUILTIN_FUNCTIONS_ENABLED
-         || (builtin_functions_enabled &&
+#if GNU_EXTENSIONS_ALLOWED
+         || (gnu_mode &&
              is_foldable_gnu_builtin_function(routine, (a_boolean*)NULL))
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         )) {
       /* This is a reference inside a constexpr function to a routine that
          is or might be constexpr.  Do not set the flag indicating that
@@ -9640,8 +9640,7 @@ expands to this value.
     nan_constant = fs_constant((a_constant_repr_kind)ck_float);
     nan_constant->type = float_type((a_float_kind)fk_float);
     (void)make_fp_nan(&nan_constant->variant.float_value,
-                      (a_float_kind)fk_float, /*signaling=*/FALSE,
-                      (an_fp_value_part)0);
+                      (a_float_kind)fk_float, /*signaling=*/FALSE);
   }  /* if */
   make_constant_operand(nan_constant, result);
 }  /* make_nan_operand */

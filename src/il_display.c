@@ -3084,7 +3084,7 @@ Print the name of the C++ operator kind.
   (void)printf("%s", s);
 }  /* disp_opname_kind_name */
 
-#if BUILTIN_FUNCTIONS_ENABLED
+#if GNU_EXTENSIONS_ALLOWED
 
 static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
 /* Print the name of the builtin function kind. */
@@ -3103,7 +3103,7 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
   (void)printf("%s", s);
 }  /* disp_builtin_function_kind_name */
 
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_class_list(a_const_char           *name,
                             a_class_list_entry_ptr ptr)
@@ -3256,14 +3256,14 @@ Display the indicated routine.
              (char*)ptr->variant.property_or_event_descr,
              iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if BUILTIN_FUNCTIONS_ENABLED
+#if GNU_EXTENSIONS_ALLOWED
   } else if (special_kind_is(ptr, sfk_none) &&
              ptr->variant.builtin_function_kind != 
                                            (a_builtin_function_kind)bfk_none) {
     disp_name("builtin_function_kind");
     disp_builtin_function_kind_name(ptr->variant.builtin_function_kind);
     (void)printf("\n");
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);

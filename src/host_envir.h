@@ -3744,9 +3744,6 @@ extern void clear_portable_assembly_header(
                                     struct a_portable_assembly_header *header);
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
 
-extern unsigned long strtoul_interface(a_const_char *str,
-                                       a_boolean    *err);
-
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************

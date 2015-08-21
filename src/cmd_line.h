@@ -2120,13 +2120,6 @@ EXTERN a_boolean
 			   result in an lvalue (rather than a prvalue, as
 			   required by the standard). */
 
-#if BUILTIN_FUNCTIONS_ENABLED
-EXTERN a_boolean
-		builtin_functions_enabled;
-			/* TRUE if any GNU-style builtin functions are enabled
-			   in the current emulation mode. */
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

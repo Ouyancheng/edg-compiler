@@ -11579,12 +11579,12 @@ format string can be deduced, set appropriate fields in arg_block.
   }  /* if */
 }  /* obtain_format_string_from_arg */
 
-#if BUILTIN_FUNCTIONS_ENABLED
+#if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean ellipsis_arguments_do_not_promote(
                                                 an_arg_check_block *arg_block)
 /*
-Return TRUE if arg_block is associated with the call to a GNU-style built-in
+Return TRUE if arg_block is associated with the call to a GNU built-in
 function that requires ellipsis arguments not to be promoted.  An example
 is __builtin_isnormal: Promoting a float argument to double might turn a
 denormal floating-point value into a normal floating-point value.
@@ -11603,7 +11603,7 @@ implemented directly by the front end or the back end.)
   return result;
 }  /* ellipsis_arguments_do_not_promote */
 
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_type_ptr param_array_element_type_of(a_type_ptr param_type)
@@ -11749,17 +11749,17 @@ next parameter.
     check_arg_list_elem_is_expression(arg_list_elem);
     operand = operand_of_arg_list_elem(arg_list_elem);
     operand_set = TRUE;
-#if BUILTIN_FUNCTIONS_ENABLED
-    if (builtin_functions_enabled && arg_block->has_ellipsis &&
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && arg_block->has_ellipsis &&
         ellipsis_arguments_do_not_promote(arg_block)) {
-      /* Certain GNU-style built-in functions use ellipsis to indicate that any
+      /* Certain GNU built-in functions use ellipsis to indicate that any
          argument type is permitted (possibly with limitations imposed
          elsewhere in the front end), but the original argument must be
          preserved and hence promotions should not be applied. */
       /* But we do convert from glvalue to prvalue. */
       do_operand_transformations(operand, TOPT_NO_OPTIONS);
     } else
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
       arg_default_promote_operand(operand, arg_block->has_ellipsis);

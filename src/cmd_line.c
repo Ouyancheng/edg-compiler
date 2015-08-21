@@ -5015,11 +5015,6 @@ file.
 #else /* !defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
   comment_undefined_macro_name(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C);
 #endif /* defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
-#if defined(BUILTIN_FUNCTIONS_ENABLED)
-  define_string_valued_macro(BUILTIN_FUNCTIONS_ENABLED);
-#else /* !defined(BUILTIN_FUNCTIONS_ENABLED) */
-  comment_undefined_macro_name(BUILTIN_FUNCTIONS_ENABLED);
-#endif /* defined(BUILTIN_FUNCTIONS_ENABLED) */
 #if defined(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)
   define_string_valued_macro(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME);
 #else /* !defined(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME) */
@@ -11050,9 +11045,6 @@ variables declared in cmd_line.h.
   coroutines_enabled = FALSE;
   coroutine_keywords_enabled = FALSE;
 #endif /* COROUTINES_ALLOWED */
-#if BUILTIN_FUNCTIONS_ENABLED
-  builtin_functions_enabled = FALSE;
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* cmd_line_static_var_init */
 
 

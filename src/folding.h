@@ -306,7 +306,7 @@ extern void fold_builtin_operation_if_possible(
                                         a_source_position  *pos,
                                         a_boolean          *not_a_constant);
 
-#if BUILTIN_FUNCTIONS_ENABLED
+#if GNU_EXTENSIONS_ALLOWED
 extern a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
                                                   a_boolean     *pseudo_call);
 
@@ -316,7 +316,7 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   an_expr_node_ptr call_expr,
                                                   a_constant       *result_con,
                                                   an_error_code    *err_code);
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern
 a_boolean contains_dangling_pointer(a_constant_ptr   con,
