@@ -993,7 +993,7 @@ coroutine cannot have an ellipsis parameter).
   a_coroutine_fixup_ptr  cfp, fixups = cdp->fixups;
 
   check_assertion(rp->is_coroutine && fixups != NULL);
-  if (rp->has_deducible_return_type) {
+  if (rp->has_deducible_return_type && !rp->is_prototype_instantiation) {
     /* Deduce a coroutine return type.  This is done in two phases.  First we
        deduce a return type T based on the coroutine result operands.  Once
        that is done, we replace the return type by one of the following:
@@ -1090,8 +1090,13 @@ coroutine cannot have an ellipsis parameter).
       }  /* if */
     } else if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
       if (!cdp->eventual_value) {
-        pos_ty_error(ec_await_no_eventual_value, &cfp->position,
-                     cdp->promise->type);
+        if (rp->is_prototype_instantiation) {
+          /* The eventual_value flag is unreliable in prototype
+             instantiations. */
+        } else {
+          pos_ty_error(ec_await_no_eventual_value, &cfp->position,
+                       cdp->promise->type);
+        }  /* if */
       } else {
         /* Resolve the suspend_call. */
         determine_suspend_call_for_await((an_expr_node_ptr)cfp->entity.ptr,

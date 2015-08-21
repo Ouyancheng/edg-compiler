@@ -8446,7 +8446,7 @@ member.
   if (traits != NULL) {
     /* Retrieve the promise type from the traits instantiation. */
     promise_sym = look_up_name_string_in_class("promise_type", traits,
-                                               IDL_NO_OPTIONS);
+                                               IDL_TYPENAME_LOOKUP);
     if (promise_sym == NULL || !is_type_symbol(promise_sym)) {
       pos_stsy_error(ec_not_a_member, diag_pos, "promise_type",
                      traits_inst_sym);

@@ -1,5 +1,13 @@
 Version 4.11
 
+8/21/15  [EDGcpfe/16448]
+Prototype instantiation of coroutines
+
+The preliminary support for coroutines (see entry of 5/13/15 for EDGcpfe/15431)
+did not handle prototype instantiations of coroutine templates.  That is now
+fixed.
+
+
 8/21/15  [EDGcpfe/16452]
 GNU, Microsoft compatibility: alignas
 

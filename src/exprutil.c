@@ -20079,6 +20079,9 @@ Currently, the call must be to a nonstatic member function.
   a_type_ptr        class_type;
   a_symbol_ptr      member_sym;
   a_symbol_locator  loc;
+  a_boolean         nonreal_case = FALSE;
+  an_expr_node_ptr  arg_node_list;
+  an_operand        function_operand;
 
   class_type = skip_typerefs_not_dependent_decltypes(selector_operand->type);
   if (class_type->kind == (a_type_kind)tk_typeref) {
@@ -20094,11 +20097,23 @@ Currently, the call must be to a nonstatic member function.
     (void)find_symbol(member_name, (sizeof_t)strlen(member_name), &loc);
     member_sym = class_qualified_id_lookup(&loc, class_type, IDL_NO_OPTIONS);
     if (member_sym == NULL || !is_member_function_symbol(member_sym)) {
-      if (expr_error_should_be_issued()) {
-        pos_stty_error(ec_not_a_type_member, &selector_operand->position,
-                       member_name, selector_operand->type);
+      if (is_nontype_template_param_symbol(member_sym)) {
+        nonreal_case = TRUE;
+        arg_node_list = make_expr_list_from_argument_list(alep);
+        make_constant_operand(member_sym->variant.constant, &function_operand);
+        if (selector_operand != NULL) {
+          bind_member_function_operand_to_selector(
+                                          selector_operand,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          &function_operand);
+        }  /* if */
+      } else {
+        if (expr_error_should_be_issued()) {
+          pos_stty_error(ec_not_a_type_member, &selector_operand->position,
+                         member_name, selector_operand->type);
+        }  /* if */
+        member_sym = NULL;
       }  /* if */
-      member_sym = NULL;
     } else {
       /* Use a projection symbol if there is one. */
       member_sym = loc.specific_symbol;
@@ -20110,10 +20125,9 @@ Currently, the call must be to a nonstatic member function.
     member_sym = NULL;
   }  /* if */
   if (member_sym != NULL) {
-    an_operand        function_operand;
-    an_expr_node_ptr  arg_node_list;
     /* Do overload resolution to determine the function to call. */
-    if (!select_and_prepare_to_call_overloaded_function(
+    if (!nonreal_case &&
+        !select_and_prepare_to_call_overloaded_function(
                                        member_sym,
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
@@ -20160,6 +20174,11 @@ Currently, the call must be to a nonstatic member function.
                              /*uses_operator_syntax=*/FALSE,
                              &selector_operand->position, result,
                              &func_call_node);
+      if (nonreal_case && func_call_node != NULL &&
+          node_operator_is(func_call_node, eok_call)) {
+        func_call_node->variant.operation.kind =
+                                   (an_expr_operator_kind)eok_dot_member_call;
+      }  /* if */
     }  /* if */
   } else {
     make_error_operand(result);
