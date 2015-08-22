@@ -161,6 +161,7 @@ EXTERN_C int errno;
 EXTERN_C char *getenv(char *name);
 EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
+EXTERN_C unsigned long strtoul(const char *str, char **endptr, int base);
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
@@ -5600,6 +5601,28 @@ Cleanup as necessary.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
           (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+unsigned long strtoul_interface(a_const_char *str,
+                                a_boolean    *err)
+/*
+An interface to strtoul that converts str to a numeric value and returns it.
+*err is set to TRUE if the string cannot be converted (and to FALSE otherwise).
+*/
+{
+  unsigned long result;
+  char          *endptr;
+  *err = FALSE;
+  result = strtoul(str, &endptr, 0);
+  if ((result == 0 || result == ULONG_MAX) &&
+      (errno == EINVAL || errno == ERANGE)) {
+    *err = TRUE;
+  } else if (str != NULL && *str != '\0' &&
+             endptr != NULL && *endptr != '\0') {
+    *err = TRUE;
+  }  /* if */
+  return result;
+}  /* strtoul_interface */
 
 
 void host_envir_one_time_init(void)

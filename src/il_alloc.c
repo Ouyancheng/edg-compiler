@@ -2680,9 +2680,9 @@ value.  Also clear related variant fields to default values.
       rp->variant.opname_kind = (an_opname_kind)onk_none;
       break;
     case sfk_none:
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
       rp->variant.builtin_function_kind = (a_builtin_function_kind)bfk_none;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       break;
     case sfk_constructor:
     case sfk_destructor:

@@ -10298,10 +10298,12 @@ enum an_opname_kind_tag {
   ((op) == (an_opname_kind)onk_delete ||                            \
    (op) == (an_opname_kind)onk_array_delete)
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 /*
-An enumeration of the different builtin functions.
+An enumeration of the different builtin functions.  Note that although these
+builtin functions are primarily used for GNU emulation, a subset is used
+in Microsoft emulation (e.g., __builtin_huge_val and __builtin_nan*).
 */
 enum a_builtin_function_kind_tag {
   bfk_none,
@@ -13178,7 +13180,7 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 
 /*
@@ -13288,14 +13290,14 @@ typedef struct a_routine {
 			/* An enumerator indicating the kind of operator when
 			   the special function kind is sfk_operator; onk_none
 			   otherwise. */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
     /* When special_kind == sfk_none. */
     a_builtin_function_kind
                 builtin_function_kind;
-			/* An enumerator indicating the kind of
+			/* An enumerator indicating the kind of GNU-style
 			   builtin function; bfk_none for an ordinary
 			   function. */ 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if IA64_ABI && DO_IL_LOWERING
     /* When special_kind == sfk_constructor or sfk_destructor. */
     struct {

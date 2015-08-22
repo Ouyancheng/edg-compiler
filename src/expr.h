@@ -558,9 +558,11 @@ void process_simple_assignment(an_operand_ptr          operand_1,
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
                                              a_boolean input,
                                              a_boolean is_memory_operand);
-extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
-
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if BUILTIN_FUNCTIONS_ENABLED
+extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip);

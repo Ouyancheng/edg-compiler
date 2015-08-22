@@ -4566,18 +4566,24 @@ Output the given fixed-point value with the proper suffix.
 static void form_float_constant(
                            an_internal_float_value               *float_value,
                            a_float_kind                          fkind,
+                           an_expr_node_ptr                      expr,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output the given floating-point value with the proper suffix (or cast in
 K&R/pcc mode) determined by fkind.  Typically a decimal string is generated,
 but when generating compilable output, a hexadecimal string will be
-generated (in configurations that support that).
+generated (in configurations that support that).  When expr is non-NULL,
+it represents a backing expression for the floating-point constant value.
 */
 {
   a_const_char  *str, *suffix = "";
   char          buf[64];
   a_boolean pos_infinity, neg_infinity, not_a_number;
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+  a_routine_ptr rp;
+  an_expr_node_ptr arg;
+  a_constant_ptr string_con;
   a_const_char  *gnu_builtin_suffix = "";
   int           max_exp = targ_dbl_max_exp;
   unsigned long gnu_targ_version =
@@ -4590,16 +4596,17 @@ generated (in configurations that support that).
      the "large constant" form of HUGE_VAL, so we'll assume that. */
                                    29600;
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
 
   if (!octl->gen_pcc_code) {
     /* Determine the suffix. */
     if (fkind == (a_float_kind)fk_float) {
       suffix = "F";
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
       gnu_builtin_suffix = "f";
       max_exp = targ_flt_max_exp;
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
 #if BACK_END_IS_C_GEN_BE
@@ -4609,10 +4616,11 @@ generated (in configurations that support that).
       if (octl->c_generating_back_end) suffix = "";
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
       gnu_builtin_suffix = "l";
       max_exp = targ_ldbl_max_exp;
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     }  /* if */
     if (octl->part_of_ud_literal) {
       /* Suppress the suffix on the numeric part of a user-defined literal
@@ -4657,8 +4665,46 @@ generated (in configurations that support that).
     } else {
       dividend = "-1.0";
     }  /* if */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-    if (msvc_is_generated_code_target) {
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+    if (not_a_number && expr != NULL) {
+      /* Strip any compiler-generated casts from the backing expression before
+         testing it below. */
+      while (is_operation_node(expr) &&
+             expr->variant.operation.compiler_generated &&
+             is_cast_operation_node(expr)) {
+        expr = expr->variant.operation.operands;
+      }  /* while */
+    }  /* if */
+    if (not_a_number &&
+        (clang_is_generated_code_target ||
+         (msvc_is_generated_code_target &&
+          msvc_target_version_number >= 1900) ||
+         (gcc_is_generated_code_target &&
+          gnu_targ_version >= 30300)) &&
+        expr != NULL &&
+        is_operation_node(expr) &&
+        node_operator_is(expr, eok_call) &&
+        is_routine_node(expr->variant.operation.operands) &&
+        (rp = expr->variant.operation.operands->variant.routine.ptr,
+         arg = expr->variant.operation.operands->next,
+         is_gnu_builtin_function(rp) &&
+         is_constant_node(arg) &&
+         arg->variant.constant->kind == (a_constant_repr_kind)ck_address &&
+         (string_con = arg->variant.constant->variant.address.variant.constant,
+          string_con->kind == (a_constant_repr_kind)ck_string))) {
+      /* NaNs can have various bit patterns; to most accurately recreate
+         this particular NaN pattern, see if the NaN constant has a backing
+         expression that specified a builtin call.  If so, use that call
+         (and argument) to re-create it in the back end. */
+      check_assertion(strlen(builtin_function_kind_names[
+                                     (int)rp->variant.builtin_function_kind]) +
+                      string_con->variant.string.length + 7 < sizeof(buf));
+      (void)sprintf(buf, "(%s(\"%s\"))",
+                    builtin_function_kind_names[
+                                       (int)rp->variant.builtin_function_kind],
+                    string_con->variant.string.value);
+    } else if (msvc_is_generated_code_target) {
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
       (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
@@ -4678,7 +4724,7 @@ generated (in configurations that support that).
       (void)sprintf(buf, "(%s(__extension__ 0x1.0p%d%s))",
                     (neg_infinity) ? "-" : "", 2*max_exp-1, suffix);
     } else
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     {
       (void)sprintf(buf, "(%s%s/0.0%s)", dividend, suffix, suffix);
     }  /* if */
@@ -5438,6 +5484,7 @@ precedence confusion.  Do the output in the way described by octl.
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.float_value,
                           con_type->variant.float_kind,
+                          constant->expr,
                           octl);
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (kind == (a_constant_repr_kind)ck_imaginary) {
@@ -5463,11 +5510,13 @@ precedence confusion.  Do the output in the way described by octl.
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.complex_value->real,
                           con_type->variant.float_kind,
+                          (an_expr_node_ptr)NULL,
                           octl);
       octl->output_str(" + ", octl);
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.complex_value->imag,
                           con_type->variant.float_kind,
+                          (an_expr_node_ptr)NULL,
                           octl);
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       if (!octl->gen_compilable_code ||

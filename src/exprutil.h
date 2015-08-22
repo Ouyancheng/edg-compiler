@@ -145,7 +145,7 @@ typedef enum a_cast_source_form {
 } a_cast_source_form;
 
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 /*
 These values are returned by __builtin_classify_type.  Order matters;
@@ -181,7 +181,7 @@ typedef enum a_type_class_kind {
 */
 } a_type_class_kind;
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /*
 Information on a single reference to a symbol.  Used in cases where the kind

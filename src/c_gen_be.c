@@ -6042,13 +6042,13 @@ process_assignment:
                 internal_error("dump_expr: missing array to pointer decay");
               }  /* if */
               param = param->next;
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
             } else if (is_routine_node(operand_1) &&
                        is_gnu_builtin_function(
                                             operand_1->variant.routine.ptr)) {
-              /* Some GNU built-in functions (like __builtin_isnormal) have
-                 ellipsis arguments that do not undergo promotion. */ 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+              /* Some GNU-style built-in functions (like __builtin_isnormal)
+                 have ellipsis arguments that do not undergo promotion. */ 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
             } else {
               /* Unprototyped or ellipsis argument. */
               a_type_ptr arg_type = skip_typerefs(call_argument->type);
@@ -9965,21 +9965,20 @@ if this routine has a body (dump nothing if it has no body).
     /* Routines with names beginning "__builtin_" should not be declared
        or defined. */
 #endif /* SGIC */
-#if GNU_EXTENSIONS_ALLOWED
-  } else if (rout->special_kind == (a_special_function_kind)sfk_none &&
-             rout->variant.builtin_function_kind != 
-                                         (a_builtin_function_kind)bfk_none
-#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
+#if BUILTIN_FUNCTIONS_ENABLED
+  } else if (is_gnu_builtin_function(rout)
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
              /* When complex types are lowered, builtin functions using
                 complex types are incompatible with the lowered types and
                 thus must be declared as ordinary functions if they are
                 used. */
              && !(entity_needed_in_generated_code(rout) &&
                   rout->builtin_using_complex_type)
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
              ) {
-    /* GNU builtin functions should otherwise not be declared or defined. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* GNU-style builtin functions should otherwise not be declared or
+       defined. */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if ASM_FUNCTION_ALLOWED
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */

@@ -183,7 +183,7 @@ Enter some predefined macros for a MacOS X (Apple) system.
 
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_symbol_ptr enter_builtin_function(a_const_char  *name,
                                            a_type_ptr    rout_type)
@@ -214,8 +214,6 @@ the routine type is updated accordingly).  Return the symbol for the function.
   return sym;
 }  /* enter_builtin_function */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
 
 static a_routine_ptr f_make_gnu_builtin_function(
                                    a_builtin_function_kind  bfk,
@@ -228,11 +226,11 @@ static a_routine_ptr f_make_gnu_builtin_function(
 				   a_type_ptr               param6_type,
 				   a_boolean                is_varargs)
 /*
-Create the GNU builtin function (routine entry and symbol) indicated by bfk.
-The return_type (which must be non-NULL) and the parameter types (which may be
-NULL) indicate how to form the function signature.  If is_varargs is TRUE, the
-function takes a variable number of arguments.  A pointer to the routine entry
-is returned.
+Create the GNU-style builtin function (routine entry and symbol) indicated by
+bfk.  The return_type (which must be non-NULL) and the parameter types (which
+may be NULL) indicate how to form the function signature.  If is_varargs is
+TRUE, the function takes a variable number of arguments.  A pointer to the
+routine entry is returned.
 */
 {
   a_symbol_ptr                   sym;
@@ -371,7 +369,7 @@ The code is kept considerably more compact by using the following macros.
   enter_gnu_builtin_func2(concat(name,l), long_double, long_double,          \
                           long_double)
 #if C99_IL_EXTENSIONS_SUPPORTED
-#if LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+#if LOWER_COMPLEX && BACK_END_IS_C_GEN_BE && GNU_EXTENSIONS_ALLOWED
 /* The complex types passed as arguments and returned by these functions
    will be lowered to C structs.  If these functions are used, they must be
    declared in the generated C code as using those lowered types;
@@ -417,7 +415,7 @@ The code is kept considerably more compact by using the following macros.
   make_gnu_builtin_func2(concat(name,l), complex_long_double,                \
                          complex_long_double, complex_long_double)->         \
                                          builtin_using_complex_type = TRUE
-#else /* !(LOWER_COMPLEX && BACK_END_IS_C_GEN_BE) */
+#else /* !(LOWER_COMPLEX && BACK_END_IS_C_GEN_BE && GNU_EXTENSIONS_ALLOWED) */
 #define enter_gnu_builtin_complex_to_real_funcs(name)                        \
   enter_gnu_builtin_func1(name, double, complex_double);                     \
   enter_gnu_builtin_func1(concat(name,f), floating, complex_float);          \
@@ -434,7 +432,7 @@ The code is kept considerably more compact by using the following macros.
                           complex_float, complex_float, complex_float);      \
   enter_gnu_builtin_func2(concat(name,l), complex_long_double,               \
                           complex_long_double, complex_long_double)
-#endif /* LOWER_COMPLEX && BACK_END_IS_C_GEN_BE */
+#endif /* LOWER_COMPLEX && BACK_END_IS_C_GEN_BE && GNU_EXTENSIONS_ALLOWED */
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define enter_gnu_builtin_complex_to_real_funcs(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs1(name) /* Nothing */
@@ -1920,6 +1918,7 @@ of GNU.
 }  /* enter_builtin_ia32_vector_functions */
 
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
 
 static void enter_gnu_predeclared_functions(void)
 /*
@@ -2210,7 +2209,6 @@ Enter the standard predeclared functions for GCC.
                           const_void_star, size_t, size_t, file_star);
   enter_gnu_builtin_real_math_funcs1(_gamma);
   enter_gnu_builtin_func1(_gettext, char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs0(_huge_val);
   enter_gnu_builtin_real_math_funcs2(_hypot);
   enter_gnu_builtin_func1(_ilogb, int, double);
   enter_gnu_builtin_func1(_ilogbf, int, floating);
@@ -2303,12 +2301,6 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_modf, double, double, double_star);
   enter_gnu_builtin_func2(_modff, floating, floating, float_star);
   enter_gnu_builtin_func2(_modfl, long_double, long_double, long_double_star);
-  enter_gnu_builtin_func1(_nan, double, const_char_star);
-  enter_gnu_builtin_func1(_nanf, floating, const_char_star);
-  enter_gnu_builtin_func1(_nanl, long_double, const_char_star);
-  enter_gnu_builtin_func1(_nans, double, const_char_star);
-  enter_gnu_builtin_func1(_nansf, floating, const_char_star);
-  enter_gnu_builtin_func1(_nansl, long_double, const_char_star);
   enter_gnu_builtin_real_math_funcs1(_nearbyint);
   enter_gnu_builtin_real_math_funcs2(_nextafter);
   enter_gnu_builtin_vararg_func0(_next_arg, void_star);
@@ -2473,6 +2465,30 @@ Enter the standard predeclared functions for GCC.
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 }  /* enter_gnu_predeclared_functions */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+static void enter_shared_predeclared_functions(void)
+/*
+Enter GNU-style builtin functions that are used in both GNU and Microsoft
+modes.
+*/
+{
+  a_type_ptr floating_type = float_type((a_float_kind)fk_float);
+  a_type_ptr double_type = float_type((a_float_kind)fk_double);
+  a_type_ptr long_double_type = float_type((a_float_kind)fk_long_double);
+  a_type_ptr char_type = integer_type((an_integer_kind)ik_char);
+  a_type_ptr const_char_star_type =
+                  make_pointer_type(make_qualified_type(char_type, TQ_CONST));
+
+  enter_gnu_builtin_real_math_funcs0(_huge_val);
+  enter_gnu_builtin_func1(_nan, double, const_char_star);
+  enter_gnu_builtin_func1(_nanf, floating, const_char_star);
+  enter_gnu_builtin_func1(_nanl, long_double, const_char_star);
+  enter_gnu_builtin_func1(_nans, double, const_char_star);
+  enter_gnu_builtin_func1(_nansf, floating, const_char_star);
+  enter_gnu_builtin_func1(_nansl, long_double, const_char_star);
+}  /* enter_shared_predeclared_functions */
+
 #undef bfk_prefix
 #undef enter_gnu_builtin_func0
 #undef enter_gnu_builtin_vararg_func0
@@ -2491,7 +2507,7 @@ Enter the standard predeclared functions for GCC.
 #undef enter_gnu_builtin_complex_math_funcs2
 #undef enter_gnu_builtin_bit_count_funcs
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -2790,17 +2806,25 @@ Enter predeclared symbols as required by the implementation.
       enter_128bit_integer_typedefs();
     }  /* if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+#if BUILTIN_FUNCTIONS_ENABLED
     /* Enter the many functions predeclared by GNU compilers.  Note that this
        must happen after builtin_va_list_type is set above since some
        declarations may make use of that type. */
+    builtin_functions_enabled = TRUE;
     enter_gnu_predeclared_functions();
+    enter_shared_predeclared_functions();
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
   if (microsoft_mode) {
     enter_microsoft_predeclared_functions();
+    if (microsoft_version >= 1900) {
+      builtin_functions_enabled = TRUE;
+      enter_shared_predeclared_functions();
+    }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_upc_predefined_macros();

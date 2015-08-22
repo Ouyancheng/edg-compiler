@@ -8308,13 +8308,13 @@ constant is set as well.
   }  /* if */
 }  /* fold_builtin_operation_if_possible */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 
 a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
                                            a_boolean     *pseudo_call)
 /*
-Return TRUE if and only if the routine rp is a GNU built-in function and
-calls to that function might be valid constant-expressions.
+Return TRUE if and only if the routine rp is a GNU-style built-in function
+and calls to that function might be valid constant-expressions.
 *pseudo_call is set to TRUE if the arguments to the built-in function call
 are not treated like standard call arguments (e.g., if they behave like
 sizeof arguments); otherwise, *pseudo_call is set to FALSE.
@@ -8777,12 +8777,14 @@ the folding mechanism is used as a way to validate argument values.
   a_constant_ptr result = local_constant();
 
   *err_code = ec_no_error;
+#if GNU_EXTENSIONS_ALLOWED
   if (rp->implicit_alias) {
     /* A call to a user-defined routine that is implicitly assumed equivalent
        to a built-in function (recorded in
        rp->gnu_extra_info->aliased_routine). */
     rp = gnu_routine_supp(rp)->aliased_routine;
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_gnu_builtin_function(rp)) {
     a_type_ptr       result_type = f_skip_typerefs(return_type_of(rp->type));
     an_expr_node_ptr args2 = NULL;
@@ -8825,11 +8827,12 @@ the folding mechanism is used as a way to validate argument values.
       case bfk_nanf:
       case bfk_nan:
       case bfk_nanl:
-        /* A non-signaling (or "quiet") Not-a-Number value. */
+        /* A signaling or non-signaling (i.e., "quiet") Not-a-Number value. */
         { a_constant_ptr scon;
+          a_boolean      err = FALSE;
+          unsigned long  mantissa = 0;
           if (args != NULL && args2 == NULL &&
               expr_is_pointer_to_string_literal(args, &scon) &&
-              is_empty_string_literal(scon) &&
               is_floating_type(result_type)) {
             a_builtin_function_kind kind = rp->variant.builtin_function_kind;
             a_boolean               signaling = FALSE;
@@ -8840,9 +8843,16 @@ the folding mechanism is used as a way to validate argument values.
             }  /* if */
             clear_constant(result, (a_constant_repr_kind)ck_float);
             result->type = result_type;
-            folded = make_fp_nan(&result->variant.float_value,
-                                 result_type->variant.float_kind,
-                                 signaling);
+            if (!is_empty_string_literal(scon)) {
+              /* The string specifies the bits that should be used in the
+                 mantissa portion of the NaN. */
+              mantissa = strtoul_interface(scon->variant.string.value, &err);
+            }  /* if */
+            if (!err) {
+              folded = make_fp_nan(&result->variant.float_value,
+                                   result_type->variant.float_kind,
+                                   signaling, mantissa);
+            }  /* if */
           }  /* if */
         }
         break;
@@ -9092,10 +9102,24 @@ the folding mechanism is used as a way to validate argument values.
   }  /* if */
   if (folded) copy_constant(result, result_con);
   release_local_constant(&result);
+#if DEBUG
+  if (folded && db_flag_is_set("folded_builtin")) {
+    fprintf(f_debug, "folded builtin: ");
+    db_constant(result_con);
+    if (is_real_floating_type(result_con->type)) {
+      /* In addition to the representation printed above, also print out a
+         hexadecimal representation (for NaNs, infinities, etc.). */
+      fprintf(f_debug, " ");
+      db_internal_float_value(&result_con->variant.float_value);
+    } else {
+      fprintf(f_debug, "\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   return folded;
 }  /* fold_gnu_builtin_function_call_if_possible */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static a_boolean incr_constexpr_call_depth(
                                       a_constexpr_evaluation_block *ceblock,
@@ -10977,15 +11001,17 @@ usually be called instead.
     /* Don't know the called routine, so can't fold. */
   } else if (!routine->is_constexpr) {
     /* The routine is not constexpr, so can't fold. */
+#if BUILTIN_FUNCTIONS_ENABLED
+    if (builtin_functions_enabled && gnu_builtins_too) {
+      /* Check for a GNU-style builtin function that may be foldable. */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && gnu_builtins_too) {
-      /* Check for a GNU builtin function that may be foldable. */
       if (routine->implicit_alias) {
         /* A call to a user-defined routine that is implicitly assumed
            equivalent to a built-in function (recorded in
            routine->gnu_extra_info->aliased_routine). */
         routine = gnu_routine_supp(routine)->aliased_routine;
       }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (is_foldable_gnu_builtin_function(routine, (a_boolean *)NULL)) {
         /* Try to fold a call of a GNU builtin function. */
         an_error_code    err_code;
@@ -11013,7 +11039,7 @@ gnu_builtin_fail:;
         release_local_constant(&arg_con);
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   } else if (!constexpr_routine_has_definition(routine)) {
     /* The routine has no definition, so can't fold. */
   } else if (special_kind_is(routine, sfk_constructor)) {
