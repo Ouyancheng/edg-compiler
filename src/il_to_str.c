@@ -4563,6 +4563,10 @@ Output the given fixed-point value with the proper suffix.
 
 #endif /* FIXED_POINT_ALLOWED */
 
+#if !((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+      BUILTIN_FUNCTIONS_ENABLED)
+/*ARGSUSED*/ /* expr is not used in this case. */
+#endif /* !((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && ... */
 static void form_float_constant(
                            an_internal_float_value               *float_value,
                            a_float_kind                          fkind,

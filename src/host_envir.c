@@ -5602,6 +5602,7 @@ Cleanup as necessary.
           (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if BUILTIN_FUNCTIONS_ENABLED
 
 unsigned long strtoul_interface(a_const_char *str,
                                 a_boolean    *err)
@@ -5624,6 +5625,7 @@ An interface to strtoul that converts str to a numeric value and returns it.
   return result;
 }  /* strtoul_interface */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 void host_envir_one_time_init(void)
 /*
