@@ -392,6 +392,9 @@ typedef int a_gen_name_options_set;
 #define GN_PTR_TO_DATA_MEMBER 0x2000
 			/* The name is the qualifier in a pointer to data
 			   member type. */
+#define GN_ELAB_TYPE_SPECIFIER 0x4000
+			/* The name is part of an
+			   elaborated-type-specifier. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -3319,24 +3322,32 @@ namespace.  options gives a set of options for gen_name.  See gen_name for
 the meaning of need_closing_paren.
 */
 {
-  /* If the namespace at this level is unnamed, skip it and move up one
-     level. */
-  while (nsp != NULL && !has_name_before_mangling(nsp)) {
-    nsp = parent_namespace_or_null(nsp);
-  }  /* while */
-  if (nsp != NULL) {
-    /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
-             need_closing_paren);
-  } else if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
-    /* Parentheses are needed to avoid treating a preceding name as part
-       of the qualifier, e.g., A (::B) and not A ::B. */
-    write_ch('(');
-    *need_closing_paren = TRUE;
+  if (clang_is_generated_code_target && nsp->is_inline &&
+      (options & GN_DECLARATION) && (options & GN_ELAB_TYPE_SPECIFIER)) {
+    /* The clang compiler has a bug that issues a spurious error if a
+       qualified name appears in an elaborated-type-specifier used as a
+       type declaration, so we must be careful not to add a qualifier for
+       an inline namespace where one did not appear in the source. */
+  } else {
+    /* If the namespace at this level is unnamed, skip it and move up one
+       level. */
+    while (nsp != NULL && !has_name_before_mangling(nsp)) {
+      nsp = parent_namespace_or_null(nsp);
+    }  /* while */
+    if (nsp != NULL) {
+      /* Use recursion to handle multiple levels of nesting. */
+      gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
+               need_closing_paren);
+    } else if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
+      /* Parentheses are needed to avoid treating a preceding name as part
+         of the qualifier, e.g., A (::B) and not A ::B. */
+      write_ch('(');
+      *need_closing_paren = TRUE;
+    }  /* if */
+    /* Write either the scope operator following the namespace name or, if
+       the top-level namespace was unnamed, the global scope operator. */
+    write_tok_str("::");
   }  /* if */
-  /* Write either the scope operator following the namespace name or, if
-     the top-level namespace was unnamed, the global scope operator. */
-  write_tok_str("::");
 }  /* gen_namespace_qualifier */
 
 
@@ -4048,7 +4059,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            fixed this. */
       } else {
         gen_namespace_qualifier(nsp,
-                                options & GN_PARENS_IF_GLOBAL_QUALIFIER,
+                                options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
+                                           GN_DECLARATION |
+                                           GN_ELAB_TYPE_SPECIFIER),
                                 need_closing_paren);
       }  /* if */
     } else if (scp->qualification_needed || force_qualified_name ||
@@ -5635,6 +5648,7 @@ al_tag_name attributes (if any).
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     a_const_char *tag_kind_str = tag_keyword(type);
+    options |= GN_ELAB_TYPE_SPECIFIER;
     if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
         integer_type_is_scoped_enum(type)) {
       /* A declaration of a scoped enumeration type: Use "enum class" rather

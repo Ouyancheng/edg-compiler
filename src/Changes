@@ -1,5 +1,24 @@
 Version 4.11
 
+8/22/15  [EDGcpfe/16279]
+C++-generating back end, clang compatibility: elaborated-type-specifiers for
+members of inline namespaces
+
+The clang C++ compiler has a bug that results in spurious errors when a
+qualified name appears in an elaborated-type-specifier used as a type
+declaration ("forward declaration cannot have a nested name specifier").
+The C++-generating back end previously used a qualified name in such
+constructs when declaring a member of an inline namespace in a containing
+scope, even though the name was presumably unqualified in the original
+source.  This has now been addressed by suppressing the qualifier for an
+inline namespace in these constructs when clang_is_generated_code_target is
+TRUE.  For example, with --clang --c++11:
+
+  inline namespace N { template <class T> struct A; }
+  template <typename> class B;
+  template <typename T> struct A<B<T>>; // Previously generated as N::A<B<T>>
+
+
 8/22/15  [EDGcpfe/7422,EDGcpfe/11153,EDGcpfe/16433]
 Not-a-Number builtin processing
 
