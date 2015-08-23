@@ -1691,6 +1691,7 @@ of lambda expressions.
   }  /* if */
   pop_stop_token_stack();
   if (instantiate_extern_inline && rout_ptr->is_inline &&
+      !rout_ptr->is_prototype_instantiation &&
       !rout_ptr->on_inline_function_list) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline.  In some cases the
