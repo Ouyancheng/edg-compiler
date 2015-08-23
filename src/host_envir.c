@@ -5613,6 +5613,7 @@ An interface to strtoul that converts str to a numeric value and returns it.
 {
   unsigned long result;
   char          *endptr;
+
   *err = FALSE;
   result = strtoul(str, &endptr, 0);
   if ((result == 0 || result == ULONG_MAX) &&

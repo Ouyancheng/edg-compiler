@@ -4699,8 +4699,8 @@ it represents a backing expression for the floating-point constant value.
           string_con->kind == (a_constant_repr_kind)ck_string))) {
       /* NaNs can have various bit patterns; to most accurately recreate
          this particular NaN pattern, see if the NaN constant has a backing
-         expression that specified a builtin call.  If so, use that call
-         (and argument) to re-create it in the back end. */
+         expression that specifies a builtin call.  If so, use that call
+         (and argument) to recreate it in the back end. */
       check_assertion(strlen(builtin_function_kind_names[
                                      (int)rp->variant.builtin_function_kind]) +
                       string_con->variant.string.length + 7 < sizeof(buf));

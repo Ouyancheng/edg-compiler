@@ -22,7 +22,7 @@ TRUE.  For example, with --clang --c++11:
 8/22/15  [EDGcpfe/7422,EDGcpfe/11153,EDGcpfe/16433]
 Not-a-Number builtin processing
 
-A few changes have been made to the way GNU-style builtin macro processing
+A few changes have been made to the way GNU-style builtin function processing
 is handled.  The first change is that __builtin_huge_val, __builtin_huge_valf,
 __builtin_huge_vall, __builtin_nan, __builtin_nanf, __builtin_nanl,
 __builtin_nans, __builtin_nansf, and __builtin_nansl are now available in
@@ -40,7 +40,9 @@ represented in the resulting NaN).
 A change has also been made in C-generating and C++-generating back ends to
 more accurately reflect the exact NaN representation that was in the source
 (by using the backing expression, if available, to retrieve the original
-string used in the __builtin_nan* call).
+string used in the __builtin_nan* call).  Note that backing expressions are
+not available in configurations that do lowering and have
+RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE.
 
 Finally, the sign bit of a NaN constant is now zero, indicating a positive
 NaN which aligns better with some existing compilers (the previous value

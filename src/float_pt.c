@@ -725,7 +725,7 @@ a float kind).
       }  /* if */
       part += size/4 - 1;
     }  /* if */
-    /* Use memcpy to extract the 32-bit value we're interested, operate on it,
+    /* Use memcpy to extract the appropriate 32-bit value, operate on it,
        then replace it (to avoid alignment issues). */
     (void)memcpy((char*)&val, (char*)part, sizeof(val));
     if (kind == (a_float_kind)fk_float) {
