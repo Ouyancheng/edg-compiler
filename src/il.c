@@ -23970,27 +23970,26 @@ of the class.
 
 void eliminate_bodies_of_unneeded_functions(void)
 /*
-Go through all the memory regions looking for those associated with routines
-that are not needed.  Eliminate the body -- the IL scope entry and everything
-dependent on it.  The routine entry itself is dealt with later.
+Go through all the function definitions looking for those associated with
+routines that are not needed.  Eliminate the body -- the IL scope entry
+and everything dependent on it.  The routine entry itself is dealt with later.
 */
 {
-  a_memory_region_number  n;
+  a_function_def_number   n;
   a_scope_ptr             sp;
 
   db_enter(3, "eliminate_bodies_of_unneeded_functions");
   /* Loop through the memory regions.  Skip the front end and file scope
      memory regions. */
-  for (n = FILE_SCOPE_REGION_NUMBER + 1;
-       n <= highest_used_region_number;
-       ++n) {
-    if (mem_region_table[n] == NULL) {
+  for (n = 1; n <= highest_used_function_def_number; ++n) {
+    a_memory_region_number	mrn = mem_region_for_function_def(n);
+    if (mem_region_table[mrn] == NULL) {
       /* This memory has already been freed. */
     } else {
-      sp = il_header.region_scope_entry[n];
+      sp = scope_for_function_def(n);
       /* Skip memory regions that aren't in the current translation unit,
          and file scope memory regions for secondary translation units. */
-      if (sp->kind != (a_scope_kind)sck_file &&
+      if (sp != NULL &&
           ((curr_translation_unit == translation_units) ?
              !in_secondary_trans_unit(sp) :
              (trans_unit_for_scope[sp->number] == curr_translation_unit))) {
