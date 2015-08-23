@@ -149,7 +149,7 @@ This is now fixed.
 Abort in lowering on nested init-captures
 
 In C++14 mode (and other modes that support init-capture in lambdas) the front
-end sometimes abort with an internal error (in make_init_entity_node) when
+end sometimes aborted with an internal error (in make_init_entity_node) when
 lowering the (invalid) IL for an init-capture whose initializer contains a
 lambda with its own init-capture.  The problematic cases involved captured
 values requiring nontrivial destruction.  For example:
