@@ -1,5 +1,59 @@
 Version 4.11
 
+8/24/15  [EDGcpfe/16292,EDGcpfe/16359]
+Memory region issues with lambdas  (IL CHANGE)
+
+Because local-scope lambdas were placed in memory regions separate from their
+enclosing function, certain uses of entities from the enclosing function were
+either incorrectly disallowed (as in the case of the non-capturing use of
+"i" in the example below), or could result in invalid cross-region memory
+references.
+
+The front end now places lambdas and instantiations of generic lambdas in
+the same memory region as the enclosing function.  This may require changes
+to back ends, particularly if an IL file is being used.  Formerly, the
+region_scope_table was used to take a region number (typically assoc_scope
+in the routine entry) and get the actual scope entry pointers.  The
+assoc_scope field of a routine has been replaced with a field named
+memory_region, and a new field named function_def_number has been added.
+function_def_number is now used in place of assoc_scope as an index
+into a new IL header field named function_def_table.  The function_def_table
+entry contains the scope pointer and also the memory region number.
+The memory region number here is used to get the memory region number when
+you have only a function_def_number and not the associated routine pointer.
+
+When an IL file is being used, the former mechanism for handling a
+function was typically:
+
+  read_memory_region(n);
+  /* generate code *
+  free_memory_region(n);
+
+This will still work, but is less efficient than:
+
+  if (mem_region_table[n] != NULL) read_memory_region(n);
+  /* generate code *
+  if (routine->is_top_level_in_mem_region) free_memory_region(n);
+
+If you have a routine entry, and what to get its memory region or scope,
+mem_region_for_routine(rout) and (the existing) scope_for_routine(rout)
+should be used.   If you have a function definition number, the new macros
+mem_region_for_function_def(n) and scope_for_function_def(n) should be
+used.
+
+The region_scope_entry table still exists, but now points to a list of
+function scopes in the region, instead of to a single scope.
+
+This example resulted in a spurious "enclosing ... variable cannot be
+referenced" error.  Now fixed.
+
+  int main() {
+    int i = 1;
+    auto l = [](auto j) { decltype(i+j) k{}; return k; };
+    return l(1);
+  }
+
+
 8/22/15  [EDGcpfe/16279]
 C++-generating back end, clang compatibility: elaborated-type-specifiers for
 members of inline namespaces
