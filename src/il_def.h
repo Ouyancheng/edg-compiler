@@ -13236,23 +13236,22 @@ typedef struct a_routine {
   a_function_def_number
                 function_def_number;
                         /* If not NULL_function_def_number, this indicates the
-                           function definition descriptor that is used
-			   determine the memory region and scope containing
-			   local declarations and executable statements of the
-			   function.  This is non-NULL only if the routine
-			   has a body.  If this field is non-NULL and the
-			   "defined" flag is FALSE during front-end processing,
-			   it means that scanning the function body has begun
-			   but is not yet complete.  See also the note about
-			   discarded function bodies under the "defined"
-			   flag.  See also prototype_scope under
+                           function definition descriptor that is used to
+			   determine the scope containing local declarations
+			   and executable statements of the function.  This
+			   is non-NULL only if the routine has a body.  If
+			   this field is non-NULL and the "defined" flag is
+			   FALSE during front-end processing, it means that
+			   scanning the function body has begun but is not
+			   yet complete.  See also the note about discarded
+			   function bodies under the "defined" flag.  See
+			   also prototype_scope under
 			   a_routine_type_supplement. */
   a_memory_region_number
                 memory_region;
                         /* If not NULL_region_number, this indicates the
-                           memory region containing local declarations and
-                           executable statements.  This is non-NULL only if
-			   the routine has a body. */
+                           memory region containing the function definition.
+                           This is non-NULL only if the routine has a body. */
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily
@@ -18877,7 +18876,9 @@ typedef struct an_il_header {
 			/* Pointers to an array of entries describing top-level
 			   function definitions (functions defined at
 			   namespace scope or members of non-local classes).
-                           Entry [0] is not used. */
+                           Entry [0] is not used.  When an IL file is being
+			   used, the function definition entries are not
+			   available until the memory region has been read. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   a_scope_orphaned_list_header_ptr
 		scope_orphaned_list_headers;

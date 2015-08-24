@@ -821,7 +821,7 @@ Free any unallocated space remaining in the indicated memory block.
 
 void ensure_function_def_table_space(a_function_def_number function_def_number)
 /*
-Make sure that the memory region tables are large enough to hold
+Make sure that the function definition table is large enough to hold
 the number of entries indicated by function_def_number.
 */
 {
@@ -853,7 +853,9 @@ Assign a function definition number and make sure that the function definition
 table is large enough to hold the new entry.  Return the function definition
 number.  Each function definition has a definition number assigned to it.
 The number is used to get to access the function definition entry, which
-is needed to get to the memory region and scope of the function.
+is needed to get to the scope of the function, and also to get to the memory
+region if you only have a function definition number and not a routine
+pointer.
 */
 {
   a_function_def_number	result;

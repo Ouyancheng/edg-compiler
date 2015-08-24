@@ -58,10 +58,14 @@ namespace scope or non-local class scope) function are stored in the
 same memory region.
 
 When IL is written to a file, it must be possible to get from a function to
-its associated scope.  This is done using the function number.  The
+its associated scope.  This is done using the memory region and the
+function number.  The memory region (from the routine entry) is used to
+read the memory region.  The process of reading the IL populates the
+function definition table for the functions in the memory region. The
 function number is used as an index into an array that contains a pointer
-to the top-level function scope and gives the memory region number containing
-the function.
+to the top-level function scope.  The array also contains the memory region
+number so that the memory region can be determined based only on a function
+definition number (if a routine pointer is not available).
 */
 typedef int a_function_def_number;
 #define MAX_FUNCTION_DEF_NUMBER ((a_function_def_number)INT_MAX)
@@ -94,10 +98,12 @@ Return the memory region for a given function definition number.
   (il_header.function_def_table[n].memory_region)
 
 /*
-Return the scope for a given function definition number.
+Return the scope for a given function definition number.  If the memory
+region for the function has been freed, return NULL.
 */
 #define scope_for_function_def(n)					\
-  (il_header.function_def_table[n].scope)
+  (mem_region_table[mem_region_for_function_def(n)] != NULL ?		\
+            il_header.function_def_table[n].scope : (a_scope_ptr)NULL)
 
 /*
 Header for a block of memory.  One or more of these make up a memory

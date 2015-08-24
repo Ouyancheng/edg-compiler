@@ -3168,12 +3168,12 @@ a_scope_ptr new_function_scope(a_scope_number           scope_number,
                                a_routine_ptr            assoc_routine,
                                a_memory_region_number   memory_region)
 /*
-Start a new IL memory region for the function specified by assoc_routine
+Allocate a new function scope for the function specified by assoc_routine
 and scope_number.  memory_region is the memory region number to be used
 for this routine, or NULL_region_number if a new memory region is to
 be created.  The current IL region is set to either memory_region or the
-newly created memory region.  Allocate a scope entry in the region and return
-a pointer to it.
+newly created memory region.  The new scope is created in the appropriate
+memory region and a pointer to it is returned.
 */
 {
   a_function_def_descr_ptr	fddp;
@@ -3184,9 +3184,12 @@ a pointer to it.
   function_def_number = new_function_def_number();
   fddp = &il_header.function_def_table[function_def_number];
   if (memory_region == NULL_region_number) {
+    /* No previous memory region is being used.  Create a new one.  Mark
+       the scope as the primary entry for the memory region. */
     fddp->memory_region = new_memory_region();
     assoc_routine->is_top_level_in_mem_region = TRUE;
   } else {
+    /* Use the specified memory region. */
     check_assertion(assoc_routine->function_def_number !=
                                                        NO_FUNCTION_DEF_NUMBER);
     fddp->memory_region = memory_region;

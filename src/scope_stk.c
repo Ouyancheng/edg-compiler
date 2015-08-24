@@ -2604,7 +2604,7 @@ the scope being pushed.
     case sck_function:
       if ((options & PS_IS_REACTIVATION) == 0) {
         /* If this is not a reactivation of the function scope, either
-           start a new memory region or, if their is an enclosing function,
+           start a new memory region or, if there is an enclosing function,
            use the region of that function.  This also allocates the
            top-level scope entry for the function. */
         a_memory_region_number	enclosing_region;
