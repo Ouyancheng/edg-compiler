@@ -2340,7 +2340,7 @@ successfully interpreted, FALSE otherwise.
             /* Execute the "then" statement. */
             result = do_constexpr_statement(
                                    ips, stmt->variant.if_stmt.then_statement);
-          } else {
+          } else if (stmt->variant.if_stmt.else_statement != NULL) {
             result = do_constexpr_statement(
                                    ips, stmt->variant.if_stmt.else_statement);
           }  /* if */
@@ -2413,9 +2413,17 @@ successfully interpreted, FALSE otherwise.
         do_constexpr_full_expression(ips, stmt->expr,
                                      ips->curr_call_frame->result_storage,
                                      result);
-      } else {
+      } else if (stmt->variant.return_dynamic_init != NULL) {
         /* Handle return_dynamic_init case. FIXME */
         unexpected_condition();
+      } else {
+        /* Return without a value. */
+        a_type_ptr  fn_type = ips->curr_call_frame->routine->type;
+        fn_type = skip_typerefs(fn_type);
+        if (!is_void_type(fn_type->variant.routine.return_type)) {
+          /* FIXME: record interpretation error. */
+          result = FALSE;
+        }  /* if */
       }  /* if */
       ips->curr_call_frame->return_active = TRUE;
       break;
@@ -2942,17 +2950,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* The type kinds are the same, so the representation is
                    the same, and we can just copy the opnd1 value. */
                 if (tp->kind == (a_type_kind)tk_integer) {
-                  /* Integers: make sure the value fits in the target. */
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  ovfl = FALSE;
-                  check_int_range(opnd1_value, tp, result, ovfl);
-                  if (result) {
-                    *(an_integer_value *)result_storage =
+                  /* Integers: Somewhat surprisingly, narrowing conversions are
+                     valid here ("implementation-defined").  So we don't check
+                     that the result is in range. */
+                  *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
-                  } else {
-                    /* FIXME: record an overflow diagnostic. */
-                  }  /* if */
                 } else {
                   unexpected_condition(); /* FIXME: implement non-ints. */
                 }  /* if */
@@ -2976,6 +2978,57 @@ type.  This includes checking the value of ovfl set by the operation.
                 unexpected_condition();  /* FIXME: NYI, other source types. */
               }  /* if */
               break;
+            case eok_negate:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                negate_integer_value((an_integer_value *)result_storage,
+                                     &ovfl);
+                check_int_range((an_integer_value *)result_storage, tp, result,
+                                ovfl);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                unexpected_condition();  /* FIXME: NYI, other source types. */
+              }  /* if */
+              break;
+            case eok_unary_plus:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                ovfl = FALSE;
+                check_int_range((an_integer_value *)result_storage, tp, result,
+                                ovfl);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                unexpected_condition();  /* FIXME: NYI, other source types. */
+              }  /* if */
+              break;
+            case eok_complement:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                ovfl = FALSE;
+                complement_integer_value((an_integer_value *)result_storage);
+                check_int_range((an_integer_value *)result_storage, tp, result,
+                                ovfl);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else {
+                /* The complement operator only applies to integer types. */
+                unexpected_condition();
+              }  /* if */
+              break;
             case eok_not:
               if (opnd1_type->kind == (a_type_kind)tk_integer) {
                 a_host_large_integer  bool_val;
@@ -2989,6 +3042,129 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 unexpected_condition();  /* FIXME: NYI, other source types. */
+              }  /* if */
+              break;
+            case eok_post_incr:
+              if (is_runtime_data_address(opnd1_value)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                /* FIXME: record a diagnostic. */
+                result = FALSE;
+              } else {
+                /* Return a copy of the value stored at the operand address. */
+                set_result_val_from_operand_address(opnd1_value);
+                /* Now increment the original value. */
+                if (!result) {
+                  /* Something was wrong with the operand address. */
+                } else if (tp->kind == (a_type_kind)tk_integer) {
+                  /* An integral type. */
+                  if (tp->variant.integer.bool_type) {
+                    /* Incrementing a bool variable sets it to TRUE. */
+                    *(an_integer_value *)value_bytes_at(opnd1_value) = one_int;
+                  } else {
+                    /* An integer. */
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    add_integer_values(int_value_at(opnd1_value), &one_int,
+                                     is_signed, &ovfl);
+                    check_int_range(int_value_at(opnd1_value), tp, result,
+                                    ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_float) {
+                  /* FIXME: handle floating point value. */
+                  result = FALSE;
+                } else if (tp->kind == (a_type_kind)tk_pointer) {
+                  /* A pointer. */
+                  a_constexpr_address  *ptr;
+                  ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                  if (!is_array_element(ptr) || cannot_dereference(ptr)) {
+                    /* Not a pointer to an array element in interpreter
+                       storage. */
+                    /* FIXME: record a diagnostic. */
+                    result = FALSE;
+                  } else {
+                    a_type_ptr    elem_type;
+                    a_byte_count  elem_size;
+                    a_byte        *base_address;
+                    elem_type =
+                              skip_typerefs(opnd1->type->variant.pointer.type);
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    ptr->address += elem_size;
+                    base_address = get_base_address(ptr);
+                    if (ptr->address == base_address + ptr->length*elem_size) {
+                      /* We've reached "one past the end of the array". */
+                      ptr->flags |= CA_CANNOT_DEREFERENCE;
+                    }    /* if */
+                  }  /* if */
+                } else {
+                  /* Invalid type for postfix ++. */
+                  unexpected_condition();
+                }  /* if */
+              }  /* if */
+              break;
+            case eok_post_decr:
+              if (is_runtime_data_address(opnd1_value)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                /* FIXME: record a diagnostic. */
+                result = FALSE;
+              } else {
+                /* Return a copy of the value stored at the operand address. */
+                set_result_val_from_operand_address(opnd1_value);
+                /* Now decrement the original value. */
+                if (!result) {
+                  /* Something was wrong with the operand address. */
+                } else if (tp->kind == (a_type_kind)tk_integer) {
+                  /* An integer. */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  subtract_mixed_signed_integer_values(
+                                          int_value_at(opnd1_value), is_signed,
+                                          &one_int, is_signed, &ovfl);
+                  check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_float) {
+                  /* FIXME: handle floating point value. */
+                  result = FALSE;
+                } else if (tp->kind == (a_type_kind)tk_pointer) {
+                  /* A pointer. */
+                  a_constexpr_address  *ptr;
+                  ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                  if (!is_array_element(ptr)) {
+                    /* Not a pointer to an array element in interpreter
+                       storage. */
+                    /* FIXME: record a diagnostic. */
+                    result = FALSE;
+                  } else {
+                    a_type_ptr    elem_type;
+                    a_byte_count  elem_size;
+                    a_byte        *base_address;
+                    elem_type =
+                              skip_typerefs(opnd1->type->variant.pointer.type);
+                    elem_size = value_bytes_for_type(ips, elem_type);
+                    base_address = get_base_address(ptr);
+                    if (ptr->address == base_address) {
+                      /* The pointer can point ahead of the array. */
+                      /* FIXME: record a diagnostic. */
+                      result = FALSE;
+                    } else {
+                      if (ptr->address == base_address+ptr->length*elem_size) {
+                        /* We were "one past the end of the array", but that
+                           will no longer be true. */
+                        ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
+                      ptr->address -= elem_size;
+                    }  /* if */
+                  }  /* if */
+                } else {
+                  /* Invalid type for prefix --. */
+                  unexpected_condition();
+                }  /* if */
               }  /* if */
               break;
             case eok_pre_incr:
@@ -3023,6 +3199,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!is_array_element(ptr) || cannot_dereference(ptr)) {
                   /* Not a pointer to an array element in interpreter
                      storage. */
+                  /* FIXME: record a diagnostic. */
                   result = FALSE;
                 } else {
                   a_type_ptr    elem_type;
@@ -3039,6 +3216,66 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 /* Invalid type for prefix ++. */
+                unexpected_condition();
+              }  /* if */
+              if (result) {
+                /* Return either the address or the value, as
+                   appropriate. */
+                set_result_val_from_operand_address(opnd1_value);
+              }  /* if */
+              break;
+            case eok_pre_decr:
+              if (is_runtime_data_address(opnd1_value)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                /* FIXME: record a diagnostic. */
+                result = FALSE;
+              } else if (tp->kind == (a_type_kind)tk_integer) {
+                /* An integral type. */
+                /* An integer. */
+                int_kind = tp->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                subtract_mixed_signed_integer_values(
+                                         int_value_at(opnd1_value), is_signed,
+                                         &one_int, is_signed, &ovfl);
+                check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
+                if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else if (tp->kind == (a_type_kind)tk_float) {
+                /* FIXME: handle floating point value. */
+                result = FALSE;
+              } else if (tp->kind == (a_type_kind)tk_pointer) {
+                /* A pointer. */
+                a_constexpr_address  *ptr;
+                ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                if (!is_array_element(ptr)) {
+                  /* Not a pointer to an array element in interpreter
+                     storage. */
+                  /* FIXME: record a diagnostic. */
+                  result = FALSE;
+                } else {
+                  a_type_ptr    elem_type;
+                  a_byte_count  elem_size;
+                  a_byte        *base_address;
+                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_size = value_bytes_for_type(ips, elem_type);
+                  base_address = get_base_address(ptr);
+                  if (ptr->address == base_address) {
+                    /* The pointer can point ahead of the array. */
+                    /* FIXME: record a diagnostic. */
+                    result = FALSE;
+                  } else {
+                    if (ptr->address == base_address + ptr->length*elem_size) {
+                      /* We were "one past the end of the array", but that will
+                         no longer be true. */
+                      ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    }  /* if */
+                    ptr->address -= elem_size;
+                  }  /* if */
+                }  /* if */
+              } else {
+                /* Invalid type for prefix --. */
                 unexpected_condition();
               }  /* if */
               if (result) {

@@ -5887,9 +5887,13 @@ in which such a return is undefined.
           }  /* if */
         }  /* if */
         release_local_constant(&zero);
-      } else if (rout->is_constexpr) {
-        /* A constexpr function must return a value (strictly speaking,
-           this is undefined behavior, but an error seems warranted). */
+      } else if (rout->is_constexpr && !relaxed_constexpr_enabled) {
+        /* A C++11 constexpr function must return a value (strictly speaking,
+           this is undefined behavior, but an error seems warranted).  With
+           C++14-style "relaxed" constexpr functions, we might return
+           conditionally (because the function doesn't consist solely of a
+           return statement) with the caller making sure the condition for
+           returning is always satisfied. */
         no_returned_value_severity = es_error;
       } else {
         /* Not "main". */
@@ -5944,6 +5948,7 @@ in which such a return is undefined.
                          ec_no_value_returned_in_non_void_function,
                        function_name_symbol);
         if (current_routine_entry()->is_constexpr &&
+            no_returned_value_severity == es_error &&
             !special_kind_is(current_routine_entry(), sfk_constructor)) {
           /* Can't be a constexpr function. */
           scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
