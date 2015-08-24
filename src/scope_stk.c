@@ -2425,16 +2425,21 @@ one that is at namespace scope or non-local class scope.
 */
 {
   a_memory_region_number	result = NULL_region_number;
+  a_type_ptr			lambda_class = NULL;
 
-  if (assoc_routine->is_lambda_body &&
+  if (assoc_routine->source_corresp.is_class_member) {
+    a_type_ptr	parent_class = parent_class_of(assoc_routine);
+    if (class_type_supp(parent_class)->is_lambda_closure_class) {
+      lambda_class = parent_class;
+    }  /* if */
+  }  /* if */
+  if (lambda_class != NULL &&
       (!assoc_routine->is_prototype_instantiation ||
        prototype_instantiations_in_il)) {
     /* Get the memory region of the function enclosing the lambda, if any.
        If there is no enclosing function, then the lambda is a top-level
        routine. */
-    a_type_ptr	lambda_class;
     a_scope_ptr	scope = NULL;
-    lambda_class = parent_class_of(assoc_routine);
     scope = get_parent_scope_of(lambda_class);
     while (!scope_is(scope, sck_function) &&
            is_local_scope_kind(scope->kind)) {

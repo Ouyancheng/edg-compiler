@@ -903,16 +903,20 @@ be used when adding boilerplate code to constructors or destructors.
 }  /* enclose_routine_in_if */
 
 
-static a_scope_ptr make_routine_definition(a_routine_ptr          rout_ptr,
-                                           a_boolean              make_return,
-                                           a_memory_region_number *il_region)
+static a_scope_ptr make_routine_definition(
+                                      a_routine_ptr          rout_ptr,
+                                      a_boolean              make_return,
+                                      a_memory_region_number il_region_to_use,
+                                      a_memory_region_number *il_region)
 /*
-Make a definition for the given routine, i.e., create a new memory region,
-scope, and top-level block.  Return the address of the scope created,
-and return the memory region number of the IL memory region in *il_region.
-If make_return is TRUE, a return statement will be put into the top-level
-block.  push/pop_generated_routine_context should be called on the created
-routine later in order to ensure that the "defined" flag is set.
+Make a definition for the given routine, i.e., create a new scope, and
+top-level block.  If il_region_to_use is not NULL_region_number, that
+region number is used.  Otherwise, a new memory region is created.  Return
+the address of the scope created, and return the memory region number of
+the IL memory region in *il_region.  If make_return is TRUE, a return
+statement will be put into the top-level block.  push_generated_routine_context
+and pop_generated_routine_context should be called on the created routine 
+in order to ensure that the "defined" flag is set.
 */
 {
   a_scope_ptr            scope;
@@ -922,7 +926,7 @@ routine later in order to ensure that the "defined" flag is set.
 
   /* Make a new memory region and scope. */
   scope = new_function_scope(take_next_scope_number(), rout_ptr,
-                             NULL_function_def_number);
+                             il_region_to_use);
   scope->parent = il_header.primary_scope;
   *il_region = curr_il_region_number;
   /* Link the routine to the scope.  new_function_scope did the link in the
@@ -4224,9 +4228,10 @@ operator of a no-capture lambda.
       first_actual_param_type = new_rtsp->param_type_list->next;
     }  /* if */
     /* Make a memory region, scope, and block for the routine definition. */
-    new_routine_scope = make_routine_definition(new_routine,
-                                                /*make_return=*/FALSE,
-                                                &new_routine_il_region);
+    new_routine_scope = make_routine_definition(
+                                            new_routine, /*make_return=*/FALSE,
+                                            mem_region_for_routine(routine),
+                                            &new_routine_il_region);
     set_block_start_insert_location(new_routine_scope->assoc_block,
                                     &insert_location);
     push_generated_routine_context(new_routine_scope, new_routine_il_region,
@@ -6299,7 +6304,8 @@ can easily access them.
   if (init_priority != 0) init_rout->init_priority = init_priority;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   /* Make a memory region, scope, and block for the routine definition. */
-  scope = make_routine_definition(init_rout, /*make_return=*/TRUE, il_region);
+  scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
+                                  NULL_region_number, il_region);
   /* Save the current state and push a new context for the generated
      routine. */
   push_generated_routine_context(scope, *il_region, grcontext);
@@ -7717,7 +7723,8 @@ of the array.
     (*last_param_type)->next = model_param_type;
   }  /* if */
   /* Build the definition of the routine.  */
-  scope = make_routine_definition(rp, /*make_return=*/TRUE, &il_region);
+  scope = make_routine_definition(rp, /*make_return=*/TRUE,
+                                  NULL_region_number, &il_region);
   push_generated_routine_context(scope, il_region, &context);
   /* Create the parameters (there may be one, two, or three). */
   scope->variant.routine.parameters = entity_var = 
@@ -13897,7 +13904,7 @@ ABI.
   rtsp->param_type_list->next = alloc_param_type(vtt_ptr_type);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
-                                  &region_number);
+                                  NULL_region_number, &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
   /* Make the first parameter, "this". */
   this_param_var = make_lowered_param_variable(this_param_type);
@@ -13957,7 +13964,7 @@ in define_default_version_of_routine (as an alternate entry point).
   rtsp->param_type_list->next = alloc_param_type(delegation_dtor_arg_type);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
-                                  &region_number);
+                                  NULL_region_number, &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
   /* Make the first parameter, "this". */
   this_param_var = make_lowered_param_variable(this_param_type);
@@ -16534,7 +16541,7 @@ This routine is not needed when all thread_locals variables have wrappers.
   routine = thread_local_init_routine_for_variable(var);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
-                                  &region_number);
+                                  NULL_region_number, &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
   /* Add the return statement at the end of the routine to the return memo
      list. */
@@ -16573,7 +16580,7 @@ __tls_init routine to satisfy those references.
   routine->is_tls_init_routine = TRUE;
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
-                                  &region_number);
+                                  NULL_region_number, &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
   /* Add the return statement at the end of the routine to the return memo
      list. */
@@ -16641,7 +16648,7 @@ has not yet been defined, it is created here.
     set_storage_class_for_thread_local_routines(var);
     /* Make a memory region, scope, and block for the routine definition. */
     scope = make_routine_definition(wrapper_routine, /*make_return=*/FALSE,
-                                    &region_number);
+                                    NULL_region_number, &region_number);
     push_generated_routine_context(scope, region_number, &grcontext);
     set_block_start_insert_location(scope->assoc_block, &insert_location);
     /* In cases where we know the variable has a dynamic initialization
@@ -17330,7 +17337,7 @@ need to be modified if changes are made here.
   check_assertion(visited_yet(routine_type));
   /* Make the basic definition (memory_region, scope, top-level block). */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
-                                  &region_number);
+                                  NULL_region_number, &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
   this_ptp = param_type_for_this(routine_type);
   /* Add parameter variables. */
@@ -17885,7 +17892,7 @@ Note: this is called when lowering C and C++.
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine,
                                   /*make_return=*/FALSE,
-                                  &il_region);
+                                  NULL_region_number, &il_region);
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   push_generated_routine_context(scope, il_region, &grcontext);
   /* Create the parameters for this function, and while doing that,
@@ -18177,7 +18184,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
                                      NULL);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(resolver_routine, /*make_return=*/TRUE,
-                                  &new_routine_il_region);
+                                  NULL_region_number, &new_routine_il_region);
   push_generated_routine_context(scope, new_routine_il_region, &grcontext);
   /* Create a temporary variable that is used to return the result. */
   temp_var = make_lowered_temporary(make_vptp_type());
