@@ -7766,6 +7766,7 @@ the scope stack is no longer available.
        in another translation unit, set the "needed" flag on the function. */
     is_needed = (delayed ||
                  !scope_stack[depth_scope_stack].in_prototype_instantiation) &&
+                 !routine->is_prototype_instantiation &&
                 (routine->source_corresp.needed ||
                  routine_needed_even_if_unreferenced(routine));
     if (is_needed) {
@@ -8144,6 +8145,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
   }  /* if */
 #if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   if (!delay_lowering &&
+      !routine->is_prototype_instantiation &&
       !scope_stack[depth_scope_stack].in_prototype_instantiation &&
       must_wait_for_module_id(routine)) {
     /* Delay lowering if a module id is not yet available and this routine
