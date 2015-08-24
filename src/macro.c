@@ -4795,7 +4795,7 @@ make_inert_macro:
     add_to_macro_arg_list(special_macro_arg);
     special_repl_text = TRUE;
     repl_text = special_macro_arg->raw_text;
-    len_of_curr_token = locator_for_curr_id.symbol_header->identifier_length;
+    len_of_curr_token = macro_symbol->header->identifier_length;
     repl_text_len = len_of_curr_token + LE_ESCAPE_LEN;
     repl_text_len_precomputed = TRUE;
     ensure_arg_raw_text_space(repl_text_len, special_macro_arg);
@@ -4803,7 +4803,7 @@ make_inert_macro:
     *text_loc++ = LE_ESCAPE;
     *text_loc++ = LE_INERT_MACRO;
     (void)memcpy(text_loc,
-                 locator_for_curr_id.symbol_header->identifier,
+                 macro_symbol->header->identifier,
                  size_t_arg(len_of_curr_token));
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* Map the inert macro name in the raw text back to its original source
