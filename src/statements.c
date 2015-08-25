@@ -5885,6 +5885,9 @@ in which such a return is undefined.
             /* In pre-C99 C, falling off the end of main merits a remark. */
             no_returned_value_severity = es_remark;
           }  /* if */
+        } else if (strict_ansi_mode && !C_mode()) {
+          /* An explicit "return;" elicits an error in strict C++ mode. */
+          no_returned_value_severity = strict_ansi_discretionary_severity;
         }  /* if */
         release_local_constant(&zero);
       } else if (rout->is_constexpr && !relaxed_constexpr_enabled) {
@@ -5895,64 +5898,60 @@ in which such a return is undefined.
            return statement) with the caller making sure the condition for
            returning is always satisfied. */
         no_returned_value_severity = es_error;
+      } else if (strict_ansi_mode && !C_mode() && !is_implicit_return) {
+          /* In strict C++ mode, the severity may be an error. */
+        no_returned_value_severity = strict_ansi_discretionary_severity;
+      } else if (c99_mode && !is_implicit_return) {
+        /* In C99 mode a non-void (non-main) function must return a value.
+           Just give a warning if we're also in Microsoft or GNU mode. */
+        no_returned_value_severity = (gcc_mode || microsoft_mode) ?
+                                                        es_warning : es_error;
       } else {
         /* Not "main". */
         /* See if the diagnostic level should be adjusted for other reasons. */
         if (C_mode()) {
-          /* C: Issue a remark instead of a warning if the declaration
-             of the function did not have an explicit type specifier (omitting
-             the specifier implies "int", but may have been intended to mean
-             "void" in old-style C). */
+          /* C: Issue a remark instead of a warning if the declaration of the
+             function did not have an explicit type specifier (omitting the
+             specifier implies "int", but may have been intended to mean "void"
+             in old-style C). */
           if (!struct_stmt_stack[0].rout_type_explicitly_specified) {
             no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Output diagnostic about no value returned from non-void function
-     if necessary. */
-  if (issue_no_value_returned_diag) {
-    if (strict_ansi_mode && !C_mode() && !is_implicit_return) {
-      /* In strict C++ mode, the severity may be an error. */
-      no_returned_value_severity = strict_ansi_discretionary_severity;
-    } else if (c99_mode && !microsoft_mode && !gcc_mode &&
-               !is_implicit_return) {
-      /* In C99 mode a non-void function must return a value.  Just
-         give a warning if we're also in Microsoft or GNU mode. */
-      no_returned_value_severity = es_error;
-    }  /* if */
-    if ((int)no_returned_value_severity <= (int)es_warning &&
-        is_implicit_return &&
-        !curr_reachability.reachable_considering_hints) {
-      /* Suppress a non-error diagnostic if this is an implicit return and the
-         user told us this code is not reachable. */
-    } else {
-      /* Get pointer to the symbol for the function name. */
-      a_symbol_ptr function_name_symbol =
-                                 (a_symbol_ptr)rout->source_corresp.assoc_info;
-      a_symbol_locator locator;
-#if CHECKING
-      if (function_name_symbol == NULL) {
-          internal_error("check_void_return_okay: unexpected NULL assoc_info");
-      }  /* if */
-#endif /* CHECKING */
-      if (function_name_symbol->is_error) {
-        make_locator_for_symbol(function_name_symbol, &locator);
-      }  /* if */
-      if (!(function_name_symbol->is_error &&
-            looks_like_ctor_or_dtor(&locator))) {
-        sym_diagnostic(no_returned_value_severity,
-                       is_implicit_return ?
-                         ec_implicit_return_from_non_void_function :
-                         ec_no_value_returned_in_non_void_function,
-                       function_name_symbol);
-        if (current_routine_entry()->is_constexpr &&
-            no_returned_value_severity == es_error &&
-            !special_kind_is(current_routine_entry(), sfk_constructor)) {
-          /* Can't be a constexpr function. */
-          scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
-                                                                          TRUE;
+      /* Output diagnostic about no value returned from non-void function
+         if necessary. */
+      if (issue_no_value_returned_diag) {
+        if ((int)no_returned_value_severity <= (int)es_warning &&
+            is_implicit_return &&
+            !curr_reachability.reachable_considering_hints) {
+          /* Suppress a non-error diagnostic if this is an implicit return and
+             the user told us this code is not reachable. */
+        } else {
+          /* Get pointer to the symbol for the function name. */
+          a_symbol_ptr     function_name_symbol = symbol_for(rout);
+          a_symbol_locator locator;
+          check_assertion_str(
+                        function_name_symbol != NULL,
+                        "check_void_return_okay: unexpected NULL assoc_info");
+          if (function_name_symbol->is_error) {
+            make_locator_for_symbol(function_name_symbol, &locator);
+          }  /* if */
+          if (!(function_name_symbol->is_error &&
+                looks_like_ctor_or_dtor(&locator))) {
+            sym_diagnostic(no_returned_value_severity,
+                           is_implicit_return ?
+                             ec_implicit_return_from_non_void_function :
+                             ec_no_value_returned_in_non_void_function,
+                           function_name_symbol);
+            if (current_routine_entry()->is_constexpr &&
+                no_returned_value_severity == es_error &&
+                !special_kind_is(current_routine_entry(), sfk_constructor)) {
+              /* Can't be a constexpr function. */
+              scope_stack[depth_innermost_function_scope]
+                                                  .constexpr_ruled_out = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
