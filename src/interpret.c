@@ -3301,6 +3301,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 /* FIXME: Other type kinds NYI. */
+                unexpected_condition();
               }  /* if */
               break;
             case eok_subtract:
@@ -3827,6 +3828,212 @@ type.  This includes checking the value of ovfl set by the operation.
                     copy_address_structures(dst_storage);
                   }  /* if */
                   *(a_constexpr_address *)result_storage = *dst;
+                }  /* if */
+              }
+              break;
+            case eok_add_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                  /* Add the value of the right operand to the value stored at
+                     the left operand and return the left operand (as an
+                     lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  add_integer_values(int_value_at(dst),
+                                     (an_integer_value*)opnd2_value,
+                                     is_signed, &ovfl);
+                  check_int_range(int_value_at(dst), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
+                } else {
+                  /* FIXME: Other type kinds NYI. */
+                  unexpected_condition();
+                }  /* if */
+              }
+              break;
+            case eok_subtract_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                  /* Subtract the value of the right operand from the value
+                     stored at the left operand and return the left operand (as
+                     an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  subtract_integer_values(int_value_at(dst),
+                                          (an_integer_value*)opnd2_value,
+                                          is_signed, &ovfl);
+                  check_int_range(int_value_at(dst), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
+                } else {
+                  /* FIXME: Other type kinds NYI. */
+                  unexpected_condition();
+                }  /* if */
+              }
+              break;
+            case eok_multiply_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                  /* Multiply the value stored in the left operand with the
+                     value of the right operand and leave the result in the
+                     left operand.  Return the left operand (as an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  multiply_integer_values(int_value_at(dst),
+                                          (an_integer_value*)opnd2_value,
+                                          is_signed, &ovfl);
+                  check_int_range(int_value_at(dst), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
+                } else {
+                  /* FIXME: Other type kinds NYI. */
+                  unexpected_condition();
+                }  /* if */
+              }
+              break;
+            case eok_divide_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                  /* Divide the value stored in the left operand with the
+                     value of the right operand and leave the result in the
+                     left operand.  Return the left operand (as an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  divide_integer_values(int_value_at(dst),
+                                        (an_integer_value*)opnd2_value,
+                                        is_signed, &ovfl);
+                  check_int_range(int_value_at(dst), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
+                } else {
+                  /* FIXME: Other type kinds NYI. */
+                  unexpected_condition();
+                }  /* if */
+              }
+              break;
+            case eok_remainder_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                  /* Compute the remainder of the value stored in the left
+                     operand when divided by the value of the right operand
+                     and store the result in the left operand.  Return the
+                     left operand (as an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  remainder_integer_values(int_value_at(dst),
+                                           (an_integer_value*)opnd2_value,
+                                           is_signed, &ovfl);
+                  check_int_range(int_value_at(dst), tp, result, ovfl);
+                  if (!result) {
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
+                } else {
+                  /* FIXME: Other type kinds NYI. */
+                  unexpected_condition();
                 }  /* if */
               }
               break;
