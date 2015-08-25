@@ -1449,12 +1449,21 @@ memory because of the properties of rout.  scope is the scope of routine
 */
 {
   a_boolean	keep_memory = FALSE;
+  a_type_ptr	closure_class;
 
   if (rout != NULL &&
       keep_function_body_for_possible_inlining(rout)) {
     /* Keep the region for an inline function so it can be used to
        do inlining. */
     keep_memory = TRUE;
+#if DO_IL_LOWERING
+  } else if (parent_is_lambda_closure(rout, &closure_class) &&
+             class_type_supp(closure_class)->has_lambda_conversion_function) {
+    /* The definition of the lambda entry point is done when the file scope
+       is lowered.  Keep the memory so that the region can be used for
+       that definition. */
+    keep_memory = TRUE;
+#endif /* DO_IL_LOWERING */
 #if !STANDALONE_UTILITY_PROGRAM
   } else if (rout != NULL &&
              !scope->function_body_processing_finished) {

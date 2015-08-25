@@ -2415,6 +2415,27 @@ done:;
 }  /* set_parent_scope_on_push */
 
 
+a_boolean parent_is_lambda_closure(a_routine_ptr	routine,
+				   a_type_ptr		*closure_class)
+/*
+Return TRUE if routine is a member of a closure class.  If it is,
+and *closure_class is not NULL, a pointer to the closure class is
+returned in that pointer (otherwise the pointer is returned as NULL).
+*/
+{
+  a_type_ptr	result_class = NULL;
+
+  if (routine->source_corresp.is_class_member) {
+    a_type_ptr	parent_class = parent_class_of(routine);
+    if (class_type_supp(parent_class)->is_lambda_closure_class) {
+      result_class = parent_class;
+    }  /* if */
+  }  /* if */
+  if (closure_class != NULL) *closure_class = result_class;
+  return result_class != NULL;
+}  /* parent_is_lambda_closure */
+
+
 static a_memory_region_number get_enclosing_memory_region(
 						a_routine_ptr	assoc_routine)
 /*
@@ -2425,14 +2446,10 @@ one that is at namespace scope or non-local class scope.
 */
 {
   a_memory_region_number	result = NULL_region_number;
-  a_type_ptr			lambda_class = NULL;
+  a_type_ptr			lambda_class;
 
-  if (assoc_routine->source_corresp.is_class_member) {
-    a_type_ptr	parent_class = parent_class_of(assoc_routine);
-    if (class_type_supp(parent_class)->is_lambda_closure_class) {
-      lambda_class = parent_class;
-    }  /* if */
-  }  /* if */
+  /* If the routine is a member of a closure class, get the class. */
+  (void)parent_is_lambda_closure(assoc_routine, &lambda_class);
   if (lambda_class != NULL &&
       (!assoc_routine->is_prototype_instantiation ||
        prototype_instantiations_in_il)) {

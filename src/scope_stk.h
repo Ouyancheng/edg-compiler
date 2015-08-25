@@ -1938,6 +1938,9 @@ extern void set_parent_routine_for_closure_types_in_default_args(
                                                        a_symbol_ptr  rout_sym);
 #endif /* NEED_NAME_MANGLING */
 
+extern a_boolean parent_is_lambda_closure(a_routine_ptr	routine,
+					  a_type_ptr	*closure_class);
+
 extern void check_c99_inline_definition(a_variable_ptr     var,
                                         a_source_position  *pos);
 

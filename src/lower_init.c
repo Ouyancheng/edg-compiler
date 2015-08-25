@@ -4204,11 +4204,8 @@ operator of a no-capture lambda.
     a_memory_region_number        mem_region_to_use = NULL_region_number;
     /* For a member of a closure class, use the memory region of the lambda
        operator. */
-    if (routine->source_corresp.is_class_member) {
-      a_type_ptr	parent_class = parent_class_of(routine);
-      if (class_type_supp(parent_class)->is_lambda_closure_class) {
-        mem_region_to_use = mem_region_for_routine(routine);
-      }  /* if */
+    if (parent_is_lambda_closure(routine, (a_type_ptr*)NULL)) {
+      mem_region_to_use = mem_region_for_routine(routine);
     }  /* if */
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
