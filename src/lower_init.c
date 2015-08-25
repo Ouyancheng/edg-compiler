@@ -4201,6 +4201,15 @@ operator of a no-capture lambda.
 
   /* Only define the new routine if we haven't already defined one. */
   if (new_routine->function_def_number == NULL_function_def_number) {
+    a_memory_region_number        mem_region_to_use = NULL_region_number;
+    /* For a member of a closure class, use the memory region of the lambda
+       operator. */
+    if (routine->source_corresp.is_class_member) {
+      a_type_ptr	parent_class = parent_class_of(routine);
+      if (class_type_supp(parent_class)->is_lambda_closure_class) {
+        mem_region_to_use = mem_region_for_routine(routine);
+      }  /* if */
+    }  /* if */
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
     is_lambda_entry_point = new_routine->special_kind ==
@@ -4230,7 +4239,7 @@ operator of a no-capture lambda.
     /* Make a memory region, scope, and block for the routine definition. */
     new_routine_scope = make_routine_definition(
                                             new_routine, /*make_return=*/FALSE,
-                                            mem_region_for_routine(routine),
+                                            mem_region_to_use,
                                             &new_routine_il_region);
     set_block_start_insert_location(new_routine_scope->assoc_block,
                                     &insert_location);
