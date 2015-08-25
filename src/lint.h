@@ -244,6 +244,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,clear_expr_node)*/
 /*lint -esym(759,implicit_cast)*/
 /*lint -esym(765,implicit_cast)*/
+/*lint -esym(759,parent_is_lambda_closure)*/
+/*lint -esym(765,parent_is_lambda_closure)*/
 /*lint -esym(759,find_disambiguator)*/
 /*lint -esym(765,find_disambiguator)*/
 /*lint -esym(759,find_local_static_variable_init)*/
