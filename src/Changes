@@ -1,5 +1,20 @@
 Version 4.11
 
+8/25/15  [EDGcpfe/16465]
+Clang compatibility: Core issue 429 only in C++11 mode
+
+The changes for core issue 429 (see Changes entry for EDGcpfe/7107), should
+only apply in C++11 emulation mode when emulating clang.  This example no
+longer gives an error with --clang:
+
+  typedef __EDG_SIZE_TYPE__ size_t;
+  struct X {
+    void *operator new(size_t, size_t);
+    void operator delete(void*, size_t);
+  };
+  X *x = new(2) X;
+
+
 8/24/15  [EDGcpfe/16292,EDGcpfe/16359]
 Memory region issues with lambdas  (IL CHANGE)
 

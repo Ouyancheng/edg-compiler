@@ -16342,12 +16342,12 @@ the delete routine is ambiguous (an error will have been issued).
                                            &delete_ambiguous) !=
                                                              fund_delete_sym &&
           !delete_ambiguous) &&
-        !((gpp_mode && !clang_mode) ||
+        !((gpp_mode && !(clang_mode && cpp11_mode)) ||
           (microsoft_mode && microsoft_version < 1900))) {
       /* Core issue 429: Give an error if a placement new operation results
          in the selection of a non-placement operator delete function (i.e.,
-         one whose second argument is size_t).  Clang and Microsoft implement
-         this; GNU does not. */
+         one whose second argument is size_t).  Clang (in C++11 mode) and
+         Microsoft implement this; GNU does not. */
       pos_sy_error(ec_placement_new_refers_to_non_placement_delete, position,
                    delete_sym);
       delete_routine = NULL;
