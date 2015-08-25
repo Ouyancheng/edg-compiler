@@ -1449,7 +1449,9 @@ memory because of the properties of rout.  scope is the scope of routine
 */
 {
   a_boolean	keep_memory = FALSE;
+#if DO_IL_LOWERING
   a_type_ptr	closure_class;
+#endif /* DO_IL_LOWERING */
 
   if (rout != NULL &&
       keep_function_body_for_possible_inlining(rout)) {
