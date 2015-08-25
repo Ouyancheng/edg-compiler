@@ -2441,11 +2441,11 @@ one that is at namespace scope or non-local class scope.
        routine. */
     a_scope_ptr	scope = NULL;
     scope = get_parent_scope_of(lambda_class);
-    while (!scope_is(scope, sck_function) &&
+    while (scope != NULL && !scope_is(scope, sck_function) &&
            is_local_scope_kind(scope->kind)) {
       scope = scope->parent;
     }  /* while */
-    if (scope_is(scope, sck_function)) {
+    if (scope != NULL && scope_is(scope, sck_function)) {
       a_function_def_number	number;
       number = scope->variant.routine.ptr->function_def_number;
       check_assertion(number != NULL_function_def_number);
