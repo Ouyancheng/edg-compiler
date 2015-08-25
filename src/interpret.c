@@ -3485,6 +3485,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else if (host_int_val < 0 ||
                          host_int_val >=
                             (a_host_large_integer)(tp->size * targ_char_bit)) {
+                /* FIXME: record a diagnostic for invalid result. */
                 result = FALSE;
               }  /* if */
               if (result) {
@@ -4034,6 +4035,193 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   /* FIXME: Other type kinds NYI. */
                   unexpected_condition();
+                }  /* if */
+              }
+              break;
+            case eok_shiftl_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else {
+                  /* Shift the bits stored in the first operand left by the
+                     number of bits indicated by the second operand.  Return
+                     the left operand (as an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  if (ovfl) {
+                    result = FALSE;
+                  } else if (host_int_val < 0 ||
+                             host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                    /* FIXME: record a diagnostic for invalid result. */
+                    result = FALSE;
+                  }  /* if */
+                  if (result) {
+                    shift_left_integer_value(int_value_at(dst),
+                                             (int)host_int_val, &ovfl);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_shiftr_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else {
+                  /* Shift the bits stored in the first operand left by the
+                     number of bits indicated by the second operand.  Return
+                     the left operand (as an lvalue). */
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  get_int_val_from(opnd2_value, opnd2_type, host_int_val,
+                                   ovfl);
+                  if (ovfl) {
+                    result = FALSE;
+                  } else if (host_int_val < 0 ||
+                             host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                    /* FIXME: record a diagnostic for invalid result. */
+                    result = FALSE;
+                  }  /* if */
+                  if (result) {
+                    shift_right_integer_value(int_value_at(dst),
+                                              (int)host_int_val, is_signed,
+                                              targ_right_shift_is_arithmetic);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_and_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else {
+                  /* Bitwise "and" the value stored in the left operand with
+                     the value of the right operand and leave the result in the
+                     left operand.  Return the left operand (as an lvalue). */
+                  and_integer_values(int_value_at(dst),
+                                     (an_integer_value*)opnd2_value);
+                  *(a_constexpr_address *)result_storage = *dst;
+                }  /* if */
+              }
+              break;
+            case eok_or_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else {
+                  /* Bitwise "or" the value stored in the left operand with
+                     the value of the right operand and leave the result in the
+                     left operand.  Return the left operand (as an lvalue). */
+                  or_integer_values(int_value_at(dst),
+                                    (an_integer_value*)opnd2_value);
+                  *(a_constexpr_address *)result_storage = *dst;
+                }  /* if */
+              }
+              break;
+            case eok_xor_assign:
+              { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+                if (cannot_dereference(dst)) {
+                  /* E.g., storing one position past the end of an array. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_runtime_data_address(dst)) {
+                  /* Cannot modify the value of an object whose lifetime began
+                     outside the current evaluation. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (!in_live_set(&ips->live_set,
+                                        dst->alloc_seq_number)) {
+                  /* Attempting to store into expired storage. */
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                } else if (is_variant_path(dst) &&
+                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                  /* Attempting to store into a non-active variant field. */
+                  result = FALSE;
+                } else {
+                  /* Bitwise "xor" the value stored in the left operand with
+                     the value of the right operand and leave the result in the
+                     left operand.  Return the left operand (as an lvalue). */
+                  xor_integer_values(int_value_at(dst),
+                                     (an_integer_value*)opnd2_value);
+                  *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
               break;
