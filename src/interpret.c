@@ -4225,6 +4225,104 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
+            case eok_land:
+              { a_boolean             logical_and_result;
+                a_host_large_integer  bool_val;
+                if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                  int_kind = opnd1_type->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
+                  logical_and_result = ovfl || bool_val;
+                } else {
+                  /* FIXME: NYI, other source types. */
+                  unexpected_condition();
+                }  /* if */
+                if (!logical_and_result) {
+                  /* Short-circuit the second operand evaluation. */
+                } else {
+                  /* Evaluate the second operand. */
+                  opnd2_type = skip_typerefs(opnd2->type);
+                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
+                  if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+                      !opnd2->is_lvalue && !opnd2->is_xvalue) {
+                    /* The value may be larger than a scalar type, so allocate
+                       space for it on the stack. */
+                    alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
+                  } else {
+                    opnd2_value = opnd2_bytes;
+                  }  /* if */
+                  result = do_constexpr_expression(ips, opnd2, opnd2_value);
+                  if (!result) {
+                    /* Interpretation of the second operand failed. */
+                  } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
+                    a_host_large_integer  bool_val;
+                    int_kind = opnd2_type->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
+                    logical_and_result = ovfl || bool_val;
+                  } else {
+                    /* FIXME: NYI, other source types. */
+                    unexpected_condition();
+                  }  /* if */
+                }  /* if */
+                if (result) {
+                  if (logical_and_result) {
+                    *(an_integer_value *)result_storage = one_int;
+                  } else {
+                    *(an_integer_value *)result_storage = zero_int;
+                  }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_lor:
+              { a_boolean             logical_or_result;
+                a_host_large_integer  bool_val;
+                if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                  int_kind = opnd1_type->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
+                  logical_or_result = ovfl || bool_val;
+                } else {
+                  /* FIXME: NYI, other source types. */
+                  unexpected_condition();
+                }  /* if */
+                if (logical_or_result) {
+                  /* Short-circuit the second operand evaluation. */
+                } else {
+                  /* Evaluate the second operand. */
+                  opnd2_type = skip_typerefs(opnd2->type);
+                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
+                  if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+                      !opnd2->is_lvalue && !opnd2->is_xvalue) {
+                    /* The value may be larger than a scalar type, so allocate
+                       space for it on the stack. */
+                    alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
+                  } else {
+                    opnd2_value = opnd2_bytes;
+                  }  /* if */
+                  result = do_constexpr_expression(ips, opnd2, opnd2_value);
+                  if (!result) {
+                    /* Interpretation of the second operand failed. */
+                  } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
+                    a_host_large_integer  bool_val;
+                    int_kind = opnd2_type->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
+                    logical_or_result = ovfl || bool_val;
+                  } else {
+                    /* FIXME: NYI, other source types. */
+                    unexpected_condition();
+                  }  /* if */
+                }  /* if */
+                if (result) {
+                  if (logical_or_result) {
+                    *(an_integer_value *)result_storage = one_int;
+                  } else {
+                    *(an_integer_value *)result_storage = zero_int;
+                  }  /* if */
+                }  /* if */
+              }
+              break;
             case eok_comma:
               result = do_constexpr_expression(ips, opnd2, result_storage);
               break;
