@@ -4255,7 +4255,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (!result) {
                     /* Interpretation of the second operand failed. */
                   } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
-                    a_host_large_integer  bool_val;
                     int_kind = opnd2_type->variant.integer.int_kind;
                     is_signed = int_kind_is_signed[int_kind];
                     get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
@@ -4304,7 +4303,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (!result) {
                     /* Interpretation of the second operand failed. */
                   } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
-                    a_host_large_integer  bool_val;
                     int_kind = opnd2_type->variant.integer.int_kind;
                     is_signed = int_kind_is_signed[int_kind];
                     get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
