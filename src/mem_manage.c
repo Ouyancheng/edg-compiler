@@ -852,10 +852,9 @@ a_function_def_number new_function_def_number(void)
 Assign a function definition number and make sure that the function definition
 table is large enough to hold the new entry.  Return the function definition
 number.  Each function definition has a definition number assigned to it.
-The number is used to get to access the function definition entry, which
-is needed to get to the scope of the function, and also to get to the memory
-region if you only have a function definition number and not a routine
-pointer.
+The number is used to access the function definition entry, which is needed
+to get to the scope of the function, and also to get to the memory region
+if you only have a function definition number and not a routine pointer.
 */
 {
   a_function_def_number	result;
@@ -1444,7 +1443,7 @@ static a_boolean memory_region_should_be_kept_for_routine(a_routine_ptr	rout,
 							  a_scope_ptr	scope)
 /*
 Return TRUE if the memory region containing rout should be kept in
-memory because of the properties of rout.  scope is the scope of routine
+memory because of the properties of rout.  scope is the scope of rout
 (not the scope of the primary routine of the memory region).
 */
 {
@@ -1466,14 +1465,12 @@ memory because of the properties of rout.  scope is the scope of routine
        that definition. */
     keep_memory = TRUE;
 #endif /* DO_IL_LOWERING */
-#if !STANDALONE_UTILITY_PROGRAM
   } else if (rout != NULL &&
              !scope->function_body_processing_finished) {
     /* If we haven't finished processing the function body, don't write
        it out.  In particular, if IL lowering has not been done yet,
        do not write out the body. */
     keep_memory = TRUE;
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if MAINTAIN_NEEDED_FLAGS
   } else if (rout != NULL &&
              (!rout->keep_definition_in_il || !rout->definition_needed)) {

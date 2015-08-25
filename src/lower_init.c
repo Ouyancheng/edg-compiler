@@ -909,7 +909,7 @@ static a_scope_ptr make_routine_definition(
                                       a_memory_region_number il_region_to_use,
                                       a_memory_region_number *il_region)
 /*
-Make a definition for the given routine, i.e., create a new scope, and
+Make a definition for the given routine, i.e., create a new scope and
 top-level block.  If il_region_to_use is not NULL_region_number, that
 region number is used.  Otherwise, a new memory region is created.  Return
 the address of the scope created, and return the memory region number of
@@ -4202,8 +4202,8 @@ operator of a no-capture lambda.
   /* Only define the new routine if we haven't already defined one. */
   if (new_routine->function_def_number == NULL_function_def_number) {
     a_memory_region_number        mem_region_to_use = NULL_region_number;
-    /* For a member of a closure class, use the memory region of the lambda
-       operator. */
+    /* For a member of a closure class, use the memory region of the
+       routine on which new_routine is based. */
     if (parent_is_lambda_closure(routine, (a_type_ptr*)NULL)) {
       mem_region_to_use = mem_region_for_routine(routine);
     }  /* if */

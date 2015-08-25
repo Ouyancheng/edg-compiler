@@ -21085,7 +21085,7 @@ Lower the intermediate language of a "top-level" scope, which is associated
 with the memory region specified by region_number.  A top-level scope is
 the file scope or a function scope (including function scopes for lambdas
 and member functions of local classes).  Lowering translates IL from C++
-terms into to C ones, so that a C back end can handle it without change.
+terms into C ones, so that a C back end can handle it without change.
 */
 {
   a_context   context;

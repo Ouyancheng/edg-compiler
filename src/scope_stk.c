@@ -7810,7 +7810,7 @@ the scope stack is no longer available.
 #if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
 
 /*
-A list of function that are waiting for a module id to be generated before
+A list of functions that are waiting for a module id to be generated before
 they can be lowered.  The list is kept in the order in which the functions
 are originally processed (which is the order in which the functions are
 subsequently lowered).

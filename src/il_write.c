@@ -395,7 +395,7 @@ Write the initial information to the IL file, if there is one.
     (void)fprintf(f_il_output, IL_FILE_MAGIC_STRING, IL_VERSION_NUMBER);
     /* Write the null at the end of the magic string. */
     putc('\0', f_il_output);
-    /* Leave space for the number of regions, number of function definition
+    /* Leave space for the number of regions, the number of function definition
        entries, the offset to the file index, the offset to the file-scope
        region, and the il_header struct.  These will be filled in when the
        information is known at the end of file (see finish_il_file and

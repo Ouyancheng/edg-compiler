@@ -13238,8 +13238,8 @@ typedef struct a_routine {
                            parameter information. */
   a_function_def_number
                 function_def_number;
-                        /* If not NULL_function_def_number, this indicates the
-                           function definition descriptor that is used to
+			/* If not NULL_function_def_number, this indicates the
+			   function definition descriptor that is used to
 			   determine the scope containing local declarations
 			   and executable statements of the function.  This
 			   is non-NULL only if the routine has a body.  If
@@ -18879,7 +18879,7 @@ typedef struct an_il_header {
 			/* Pointers to an array of entries describing top-level
 			   function definitions (functions defined at
 			   namespace scope or members of non-local classes).
-                           Entry [0] is not used.  When an IL file is being
+			   Entry [0] is not used.  When an IL file is being
 			   used, the function definition entries are not
 			   available until the memory region has been read. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
