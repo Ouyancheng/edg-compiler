@@ -5885,8 +5885,9 @@ in which such a return is undefined.
             /* In pre-C99 C, falling off the end of main merits a remark. */
             no_returned_value_severity = es_remark;
           }  /* if */
-        } else if (strict_ansi_mode && !C_mode()) {
-          /* An explicit "return;" elicits an error in strict C++ mode. */
+        } else if (strict_ansi_mode && (!C_mode() || c99_mode)) {
+          /* An explicit "return;" elicits an error in strict C++ and C99
+             modes. */
           no_returned_value_severity = strict_ansi_discretionary_severity;
         }  /* if */
         release_local_constant(&zero);
