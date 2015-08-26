@@ -85,7 +85,7 @@ typedef struct a_function_def_descr {
   a_memory_region_number
 		memory_region;
 			/* The memory region number containing the function,
-			   which includes the regions top-level function and
+			   which includes the region's top-level function and
 			   any other (lambda-related) functions inside the
 			   top-level function.  Note that all functions
 			   have a top-level scope, but not all functions
