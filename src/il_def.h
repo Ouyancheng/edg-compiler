@@ -18878,12 +18878,12 @@ typedef struct an_il_header {
 		*function_def_table;
 			/* Pointers to an array of entries describing top-level
 			   function definitions.  A top-level function is any
-			   function that is not a lambda defined in a function
-			   scope, or the instantiation of a generic lambda
-			   defined in a function scope.  Entry [0] is not
-			   used.  When an IL file is being used, the function
-			   definition entries are not available until the
-			   memory region has been read. */
+			   function that is neither a lambda defined in a
+			   function scope, nor the instantiation of a generic
+			   lambda defined in a function scope.  Entry [0] is
+			   not used.  When an IL file is being used, the
+			   function definition entries are not available until
+			   the memory region has been read. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   a_scope_orphaned_list_header_ptr
 		scope_orphaned_list_headers;
