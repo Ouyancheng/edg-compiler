@@ -19440,7 +19440,7 @@ routine issues an error accordingly when that happens.
   a_routine_type_supplement_ptr
               rtsp = rp->type->variant.routine.extra_info;
 
-  check_assertion(rp->compiler_generated &&
+  check_assertion((rp->compiler_generated || rp->is_defaulted) &&
                   has_indeterminate_exception_spec(rp));
   if (special_kind_is(rp, sfk_constructor) && rtsp->param_type_list == NULL) {
     /* In the case of a default constructor, we may have to scan all the field

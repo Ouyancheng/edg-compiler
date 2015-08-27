@@ -1,5 +1,24 @@
 Version 4.11
 
+8/27/15  [EDGcpfe/16475]
+Internal error on use of C++11 features in some C++03 modes
+
+In some GNU, Clang, and Microsoft modes that do not enable C++11 mode (but that
+do accept "defaulted" functions), the front end sometimes aborted with an
+internal error in resolve_indeterminate_exception_specification (class_decl.c).
+For example, the following caused an internal error when using the option
+--microsoft_version=1800:
+
+  struct S  {
+    S() = default;
+    constexpr S(S const&);
+  };
+  constexpr S::S(S const&) = default;  // Previously triggered an internal
+                                       // error in some modes.
+
+This is now fixed.
+
+
 8/25/15  [EDGcpfe/16465]
 Clang compatibility: Core issue 429 only in C++11 mode
 
