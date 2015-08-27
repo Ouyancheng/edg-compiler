@@ -7,7 +7,7 @@ The front end previously produced a "true" result for __is_convertible_to
 whenever the destination type is a (possibly qualified) "void" type.  Now,
 that is the case only if the source type is also a "void" type.  For example:
 
-  static_assert(!__is_convertible(int, void), "Unexpected!");
+  static_assert(!__is_convertible_to(int, void), "Unexpected!");
      // Previously the assertion failed; now it is accepted.
 
 
