@@ -41697,7 +41697,11 @@ a_boolean compute_is_convertible(a_type_ptr  src_type,
 /*
 Compute the "std::is_convertible" type relationship predicate of the C++11
 standard library.  See [meta.rel].  It determines whether "create<src_type>()" 
-is convertible to dst_type, with the "create" template declared as follows:
+is convertible to dst_type in the following:
+
+      dst_type test() { return create<src_type>(); }
+
+with the "create" template declared as follows:
       template<class T>
         typename add_rvalue_reference<T>::type create();
 Called from fold_is_convertible_to, which may have pre-adjusted the source and
@@ -41719,8 +41723,9 @@ destination types in Microsoft mode.
   complete_type_is_needed(src_type);
   complete_type_is_needed(dst_type);
   if (is_void_type(dst_type)) {
-    /* Any type can be converted to void. */
-    result = TRUE;
+    /* A return expression for a function return "void" must itself have a
+       "void" type. */
+    result = is_void_type(src_type);
   } else if (is_void_type(src_type) ||
              is_array_type(dst_type) ||
              is_function_type(dst_type)) {

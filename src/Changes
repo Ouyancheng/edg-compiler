@@ -1,5 +1,16 @@
 Version 4.11
 
+8/27/15  [EDGcpfe/16462]
+__is_convertible_to with a "void" destination type
+
+The front end previously produced a "true" result for __is_convertible_to
+whenever the destination type is a (possibly qualified) "void" type.  Now,
+that is the case only if the source type is also a "void" type.  For example:
+
+  static_assert(!__is_convertible(int, void), "Unexpected!");
+     // Previously the assertion failed; now it is accepted.
+
+
 8/27/15  [EDGcpfe/16459,EDGcpfe/16474]
 __is_constructible with array or reference types
 
