@@ -1,6 +1,6 @@
 Version 4.11
 
-8/27/15  [EDGcpfe/16474]
+8/27/15  [EDGcpfe/16459,EDGcpfe/16474]
 __is_constructible with array or reference types
 
 The front end did not always produce a correct result for the type traits
