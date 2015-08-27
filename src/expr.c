@@ -41792,11 +41792,19 @@ empty) list of type operands args, and returns TRUE if so.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   complete_type_is_needed(dst_type);
-  if (is_array_type(dst_type) ||
-      is_function_type(dst_type) ||
+  if (is_function_type(dst_type) ||
       is_incomplete_type(dst_type) ||
       is_abstract_class_type(dst_type)) {
     result = FALSE;
+  } else if (is_array_type(dst_type)) {
+    /* Arrays can sometimes be default constructed. */
+    if (args != NULL) {
+      result = FALSE;
+    } else {
+      /* Check that the underlying element type is default constructible. */
+      result = compute_is_constructible(
+                         kind, underlying_array_element_type(dst_type), args);
+    }  /* if */
   } else {
     /* Make a list of expressions of the required types. */
     an_arg_list_elem_ptr alep;
@@ -41825,16 +41833,35 @@ empty) list of type operands args, and returns TRUE if so.
     expr_stack->suppress_constexpr_call_folding = TRUE;
     saved_defer_access_checks = scope_stack_top().defer_access_checks;
     scope_stack_top().defer_access_checks = FALSE;
-    /* Model the initialization as a functional-notation cast, with
-       error suppressed. */
-    scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
-                                             (a_dynamic_init_ptr)NULL,
-                                             /*arg_list_supplied=*/TRUE,
-                                             arg_list,
-                                             dst_type,
-                                             &null_source_position,
-                                             &operand,
-                                             EOPT_NO_OPTIONS);
+    if (is_reference_type(dst_type)) {
+      if (arg_list != NULL && arg_list->next == NULL) {
+        an_init_state  init_state;
+        expr_clear_init_state(&init_state);
+        prep_list_initializer(arg_list, dst_type, /*is_direct_init=*/TRUE,
+                              /*check_narrowing=*/FALSE,  /* Ignored */
+                              /*warning_on_narrowing=*/FALSE,  /* Ditto */
+                              CCO_INITIALIZING_VARIABLE,
+                              /*fill_in_dtor=*/FALSE, /*force_temp=*/FALSE,
+                              /*make_lvalue_temp=*/FALSE, (an_operand *)NULL,
+                              &init_state, (an_arg_match_summary*)NULL);
+      } else {
+        /* A reference variable must be initialized with exactly one
+           element. */
+        result = FALSE;
+        goto have_result;
+      }  /* if */
+    } else {
+      /* Model the remaining initialization cases as a functional-notation
+         cast, with error suppressed. */
+      scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
+                                               (a_dynamic_init_ptr)NULL,
+                                               /*arg_list_supplied=*/TRUE,
+                                               arg_list,
+                                               dst_type,
+                                               &null_source_position,
+                                               &operand,
+                                               EOPT_NO_OPTIONS);
+    }  /* if */
     result = !expr_stack->any_suppressed_error;
     if (result && is_expression_operand(&operand)) {
       an_expr_node_ptr expr = operand.variant.expression;
