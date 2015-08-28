@@ -7051,8 +7051,8 @@ constant will be set as well.
            conversion to an lvalue reference to that array type. */
         type2 = make_reference_type(type2);
       } else if (is_void_type(type2) && microsoft_version < 1800) {
-        /* MSVC++ 12 disallows even void->void conversions (which
-           compute_is_convertible allows). */
+        /* MSVC++ prior to version 12 disallowed even void->void conversions
+           (which compute_is_convertible allows). */
         result = FALSE;
         goto result_known;
       }  /* if */       
