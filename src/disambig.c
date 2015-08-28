@@ -1396,6 +1396,11 @@ evidence to the contrary.
     /* Scan the decl specifiers. */
     if (record_auto_params) decl_spec_flags |= DFS_RECORD_AUTO_PARAMS;
     prescan_decl_specifiers(state, decl_spec_flags);
+    if (curr_token == tok_lbrace) {
+      /* A set of specifiers followed by a brace is a C++11-style functional-
+         notation cast. */
+      state->may_be_decl = FALSE;
+    }  /* if */
     if (terminate_disambiguation(state)) goto done;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (state->find_static_specifier_only) goto done;

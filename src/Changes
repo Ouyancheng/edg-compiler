@@ -1,5 +1,20 @@
 Version 4.11
 
+8/27/15  [EDGcpfe/16460]
+Wrong disambiguation with C++11-style functional-notation cast with braces
+
+In C++11 mode, the front end sometimes incorrectly disambiguated a
+parenthesized initializer containing a function-notation cast with braces.
+For example:
+
+  template<typename T> void g() {
+    T x(typename T::X{});
+  }
+
+The front end incorrectly parsed the declaration of x as the declaration of a
+function, which produced a spurious syntax error.  This is now fixed.
+
+
 8/27/15  [EDGcpfe/16462]
 __is_convertible_to with a "void" destination type
 
