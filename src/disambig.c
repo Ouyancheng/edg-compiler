@@ -1396,9 +1396,9 @@ evidence to the contrary.
     /* Scan the decl specifiers. */
     if (record_auto_params) decl_spec_flags |= DFS_RECORD_AUTO_PARAMS;
     prescan_decl_specifiers(state, decl_spec_flags);
-    if (curr_token == tok_lbrace) {
+    if (curr_token == tok_lbrace && (flags & DFS_POSSIBLE_ENUM_BASE) == 0) {
       /* A set of specifiers followed by a brace is a C++11-style functional-
-         notation cast. */
+         notation cast (with an exception for "enum : typename T::X { ..."). */
       state->may_be_decl = FALSE;
     }  /* if */
     if (terminate_disambiguation(state)) goto done;
