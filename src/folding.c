@@ -8019,7 +8019,7 @@ constant will be set as well.
       case bok_is_pod:
         /* Note that only class types are considered by Microsoft compilers. */
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->is_POD;
+        result = is_pod_class(type);
         break;
       case bok_is_polymorphic:
         /* C++/CLI value classes are not polymorphic even though they can

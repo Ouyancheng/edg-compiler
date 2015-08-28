@@ -218,8 +218,9 @@ extern a_boolean is_cli_open_constructed_type(a_type_ptr  tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_simple_scalar_type(a_type_ptr tp);
-extern a_boolean is_trivially_copyable_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
+extern a_boolean is_trivially_copyable_type(a_type_ptr tp);
+extern a_boolean is_pod_class(a_type_ptr  tp);
 extern a_boolean is_literal_type(a_type_ptr tp);
 extern a_boolean could_be_literal_type(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
