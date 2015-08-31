@@ -101,6 +101,18 @@ that persists across interpreter invocations (static variable persistent_map).
 This map, e.g., holds data layout information for associated with types and
 fields (the data layout for the interpreter is different from that for the
 target architecture).
+
+
+Object Layout
+-------------
+FIXME
+The non-address scalar data members of stored objects are the value
+representations used elsewhere in the front end (i.e., an_integer_value, etc.).
+Bit fields occupy a whole integer value, but every "store" to a bit field is
+appropriately trimmed.
+
+The storage for a union object starts with a pointer to an IL entry for a
+field.  That pointer reflects which field is the active field in the union.
 */
 
 typedef unsigned int a_byte_count;
@@ -1051,6 +1063,23 @@ If an older mapping exists for iptr, that mapping becomes active again.
 
 
 /*
+Useful constants.
+*/
+static an_integer_value
+		zero_int;
+static an_integer_value
+		one_int;
+static an_internal_float_value
+		zero_flt[(int)fk_last];
+static an_internal_float_value
+		one_flt[(int)fk_last];
+static a_boolean
+		useful_constants_initialized;
+			/* Flag indicating whether these constants have
+			   been initialized yet. */
+
+
+/*
 Structure describing a variant path in a subobject.
 
 An address of a subobject of a union can be formed even if that subobject is
@@ -1125,13 +1154,39 @@ Return new variant path entry.
 }  /* alloc_variant_path_entry */
 
 
+/*
+A set of flags to describe special kinds of interpreter addresses.
+*/
 #define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
+		/* This flag indicates that the address is that of a run-time
+		   entity (not a value known to the interpreter). */
 #define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
+		/* This flag indicates that the address cannot be dereferenced.
+		   entity (not a value known to the interpreter).  It is set
+		   in particular for pointers "on position past" the end of an
+		   array. */
 #define CA_VARIANT_PATH ((unsigned int)0x4)
+		/* This flag indicates that the formation of the address
+		   included the selection of at least one union field.  Such
+		   selections must be checked for validity when the address is
+		   dereferenced. */
 #define CA_ARRAY_ELEMENT ((unsigned int)0x8)
+		/* This flag indicates that the address is that of an array
+		   element.  Such an address is subject to pointer
+		   arithmetic (which requires bounds checking). */
+#define CA_BIT_FIELD ((unsigned int)0x10)
+		/* This flag indicates that the address is that of a bit field.
+		   (Pointers and references to bit fields are invalid.  This is
+		   therefore always for a bit field lvalue.) */
+#define CA_SIGNED_BIT_FIELD ((unsigned int)0x20)
+		/* This flag indicates that the address is that of a signed bit
+		   field.  This flag is never set if the CA_BIT_FLAG is not
+		   set. */
 
 /*
 Structure describing the representation of an address in the interpreter.
+(Addresses in the interpreter are used to represent pointers, references, and
+lvalues.)
 */
 typedef struct a_constexpr_address {
   a_byte
@@ -1144,8 +1199,10 @@ typedef struct a_constexpr_address {
 			   See the CA_... macros above. */
   unsigned int
 		length: 24;
-			/* If in_array is TRUE, the number of
-			   elements in the array. */
+			/* If the CA_ARRAY_ELEMENT flag is set, the number of
+			   elements in the array.  If the CA_BIT_FIELD flag is
+			   set, the number of bits in the bit field designated
+			   by this lvalue. */
 #define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
@@ -1195,6 +1252,9 @@ typedef struct a_constexpr_address {
 #define is_array_element(cap)                                                \
   ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
 
+#define is_bit_field(cap)                                                    \
+  ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
+
 #define get_base_address(cap)                                                \
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
@@ -1211,6 +1271,36 @@ Convenience macro to get a pointer to the integer value addressed by the
 a_constexpr_address addr.
 */
 #define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
+
+
+static void trim_bit_field(a_byte     *storage,
+                           unsigned   length,
+                           a_boolean  is_signed)
+/*
+The given storage is that for an integer value representing a bit field of the
+given length (the bit field is signed if is_signed is TRUE).  Trim the value
+representation to fit in the bit field length.
+*/
+{
+  if (is_signed) {
+    sign_extend_integer_value((an_integer_value*)storage, length);
+  } else {
+    a_boolean         ovflo;
+    an_integer_value  mask = one_int;
+    shift_left_integer_value(&mask, (int)length, &ovflo);
+    subtract_integer_values(&mask, &one_int, /*is_signed=*/FALSE, &ovflo);
+    and_integer_values((an_integer_value*)storage, &mask);
+  }  /* if */
+}  /* trim_bit_field */
+
+
+#define trim_bit_field_if_needed(addr)                                        \
+{                                                                             \
+  if ((addr)->flags & CA_BIT_FIELD) {                                         \
+    trim_bit_field((addr)->address, (addr)->length,                           \
+                   ((addr)->flags & CA_SIGNED_BIT_FIELD) != 0);               \
+  }  /* if */                                                                 \
+}
 
 #if 0
 /* FIXME -- Not needed yet: disabled to placate lint. */
@@ -1726,23 +1816,6 @@ address they were shallowly copied from.
 }  /* copy_address_structures */
 
 
-/*
-Useful constants.
-*/
-static an_integer_value
-		zero_int;
-static an_integer_value
-		one_int;
-static an_internal_float_value
-		zero_flt[(int)fk_last];
-static an_internal_float_value
-		one_flt[(int)fk_last];
-static a_boolean
-		useful_constants_initialized;
-			/* Flag indicating whether these constants have
-			   been initialized yet. */
-
-
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -1851,6 +1924,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             } else if (!copy_val_from_constant(ips, elem_con, value+offset)) {
               result = FALSE;
               break;
+            } else if (fp->is_bit_field) {
+              /* Fit the value in the bit field width. */
+              trim_bit_field(value+offset, fp->bit_size,
+                             fp->bit_field_is_signed);
             }  /* if */
             fp = fp->next;
             elem_con = elem_con->next;
@@ -1878,6 +1955,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           if (!copy_val_from_constant(ips, elem_con, value+offset)) {
             result = FALSE;
           } else {
+            if (fp->is_bit_field) {
+              /* Fit the value in the bit field width. */
+              trim_bit_field(value+offset, fp->bit_size,
+                             fp->bit_field_is_signed);
+            }  /* if */
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
           }  /* if */
@@ -3827,6 +3909,8 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* Copying a pointer type.  Make sure its side structures,
                        if any, are not shared. */
                     copy_address_structures(dst_storage);
+                  } else {
+                    trim_bit_field_if_needed(dst);
                   }  /* if */
                   *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
@@ -3862,6 +3946,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   add_integer_values(int_value_at(dst),
                                      (an_integer_value*)opnd2_value,
                                      is_signed, &ovfl);
+                  trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
@@ -3903,6 +3988,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   subtract_integer_values(int_value_at(dst),
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
+                  trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
@@ -3944,6 +4030,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   multiply_integer_values(int_value_at(dst),
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
+                  trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
@@ -3985,6 +4072,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   divide_integer_values(int_value_at(dst),
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
+                  trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
@@ -4027,6 +4115,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   remainder_integer_values(int_value_at(dst),
                                            (an_integer_value*)opnd2_value,
                                            is_signed, &ovfl);
+                  trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
@@ -4077,6 +4166,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (result) {
                     shift_left_integer_value(int_value_at(dst),
                                              (int)host_int_val, &ovfl);
+                    trim_bit_field_if_needed(dst);
                     check_int_range(int_value_at(dst), tp, result, ovfl);
                     if (!result) {
                       /* FIXME: record a diagnostic. */
@@ -4127,6 +4217,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                               (int)host_int_val, is_signed,
                                               targ_right_shift_is_arithmetic);
                     check_int_range(int_value_at(dst), tp, result, ovfl);
+                    trim_bit_field_if_needed(dst);
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
@@ -4396,6 +4487,15 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                  if (field->is_bit_field) {
+                    if (field->bit_field_is_signed) {
+                      result_addr.flags |= (CA_BIT_FIELD |
+                                            CA_SIGNED_BIT_FIELD);
+                    } else {
+                      result_addr.flags |= CA_BIT_FIELD;
+                    }  /* if */
+                    result_addr.length = field->bit_size;
+                  }  /* if */
                   set_result_val_from_operand_address(&result_addr);
                 }  /* if */
               }
