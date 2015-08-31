@@ -7965,7 +7965,8 @@ constant will be set as well.
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->is_POD || cssp->trivial_default_constructor != NULL;
+        result = cssp->is_cpp03_POD ||
+                 cssp->trivial_default_constructor != NULL;
         break;
       case bok_has_trivial_copy:
         check_assertion(cssp != NULL);  /* For Coverity. */

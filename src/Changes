@@ -17,9 +17,10 @@ constructors.  For example:
   static_assert(__is_pod(POD), "Unexpected!");
        // Now accepted in C++11 modes that support the __is_pod helper.
 
-Note that the is_POD flag in a_class_symbol_supplement is not affected by this
-change (it reflects the C++03 definition in all modes); this ensures that the
-ABI implementations are affected.
+The is_POD flag in a_class_symbol_supplement has been renamed to is_cpp03_POD.
+Except for the renaming, it is not affected by this change (it reflects the
+C++03 definition in all modes); this ensures that the ABI implementations are
+affected.
 
 
 8/27/15  [EDGcpfe/16460]

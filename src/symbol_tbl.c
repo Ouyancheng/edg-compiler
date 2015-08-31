@@ -766,8 +766,8 @@ and indentation is the indentation desired.
       {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym->variant.class_struct_union.extra_info;
-        if (cssp->is_POD) {
-          put_string("POD");
+        if (cssp->is_cpp03_POD) {
+          put_string("C++03 POD");
         } else if (cssp->is_class_aggregate) {
           put_string("aggregate");
         }  /* if */
@@ -3744,7 +3744,7 @@ state.
         /* The is_class_aggregate flag is initialized to TRUE when we are not
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
-        cssp->is_POD = FALSE;
+        cssp->is_cpp03_POD = FALSE;
         cssp->any_template_dependent_fields = FALSE;
         cssp->has_operator_new = FALSE;
         cssp->has_operator_array_new = FALSE;

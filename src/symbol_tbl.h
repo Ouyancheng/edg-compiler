@@ -893,7 +893,7 @@ typedef struct a_class_symbol_supplement {
 			   default constructor and an implicitly-declared
 			   trivial copy constructor. */
   a_symbol_ptr	trivial_default_constructor;
-			/* When constructor is NULL and is_POD is FALSE,
+			/* When constructor is NULL and is_cpp03_POD is FALSE,
 			   pointer to an sk_member_function symbol for the
 			   trivial default constructor; it is never actually
 			   called (that's why it's not in the constructor set
@@ -1189,10 +1189,10 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
 			   no virtual functions. */
-  a_bit_field	is_POD:1;
+  a_bit_field	is_cpp03_POD:1;
 			/* TRUE if the class is a "POD" (in the C++03 sense: an
-                           aggregate with further restrictions that make it
-                           look like a C struct or union).  Always FALSE in
+			   aggregate with further restrictions that make it
+			   look like a C struct or union).  Always FALSE in
 			   C mode. */
   a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared

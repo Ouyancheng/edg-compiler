@@ -3595,7 +3595,7 @@ been scanned: builtin_func represents the reference to the builtin function
     err = TRUE;
   } else if (!C_mode() &&
              is_class_struct_union_type(type) &&
-             !symbol_supplement_for_class(type)->is_POD) {
+             !symbol_supplement_for_class(type)->is_cpp03_POD) {
     /* A C++ class type must be a POD.  Note that this check is needed --
        if we don't check this we may try to take the address of a
        va_arg node to get the object address to call the copy
@@ -7193,7 +7193,7 @@ case).
                only with non-member calls.  (Checked in MSVC++ 7.1.) */ 
             if (op == (an_expr_operator_kind)eok_call) {
               if (symbol_supplement_for_class(orig_class_struct_union_type)->
-                                                                      is_POD) {
+                                                                is_cpp03_POD) {
                 revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_question) {
@@ -11361,7 +11361,7 @@ indication in *rcblock).
     /* Instantiate the type if it is a template class. */
     complete_type_is_needed(utype);
     if (!C_mode() &&
-        !class_symbol_supp(symbol_for(utype))->is_POD &&
+        !class_symbol_supp(symbol_for(utype))->is_cpp03_POD &&
         !utype->variant.class_struct_union.is_nonreal_class) {
       expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */
@@ -18308,7 +18308,7 @@ expression, and return the result in *result (or an error indication in
   if (!has_new_initializer) {
     /* No new-initializer is present. */
     if (is_class_struct_union_type(base_new_type) &&
-        (cssp == NULL || !cssp->is_POD || cssp->constructor != NULL)
+        (cssp == NULL || !cssp->is_cpp03_POD || cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
         && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18698,7 +18698,7 @@ handle_empty_parens_new_initializer:
             emulate_msvc_value_initialization_bugs &&
             (microsoft_version < 1310 ||
              (is_class_struct_union_type(base_new_type) &&
-             !symbol_supplement_for_class(base_new_type)->is_POD))) {
+             !symbol_supplement_for_class(base_new_type)->is_cpp03_POD))) {
           /* MSVC++ up to version 7.1 does not initialize non-POD classes
              without constructors. 6.0 and 7.0 did not initialize even
              POD classes and non-class objects. */

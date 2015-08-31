@@ -1087,7 +1087,7 @@ typedef struct a_class_def_state {
 			/* TRUE if a property of the class (e.g., the
 			   declaration of a virtual function) disqualifies it
 			   as an "aggregate". */
-  a_bit_field   POD_ruled_out:1;
+  a_bit_field   cpp03_POD_ruled_out:1;
 			/* TRUE if a property of the class disqualifies it as
 			   a "POD". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1259,7 +1259,7 @@ class being defined.
   cdsp->class_type = class_type;
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
-  cdsp->POD_ruled_out = FALSE;
+  cdsp->cpp03_POD_ruled_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_decl_valid_in_property_or_event_def = FALSE;
@@ -6565,7 +6565,7 @@ done:
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
-    class_state->POD_ruled_out = TRUE;
+    class_state->cpp03_POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled) {
       if (virtual_specified) {
@@ -8668,7 +8668,7 @@ to FALSE before returning).
     /* A class with base classes is neither an "aggregate" nor a POD.
        (C++/CLI value class types are the exception.) */
     class_state->class_aggregate_ruled_out = TRUE;
-    class_state->POD_ruled_out = TRUE;
+    class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
   /* The implied default constructor of the current class will be
      nontrivial if any of its base classes is virtual or has a nontrivial
@@ -13080,7 +13080,7 @@ set; otherwise, it is NULL.
             cssp->has_user_declared_default_constructor = TRUE;
             if (!rtn->is_defaulted && !rtn->is_deleted) {
               cssp->has_user_provided_default_constructor = TRUE;
-              class_state->POD_ruled_out = TRUE;
+              class_state->cpp03_POD_ruled_out = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -18261,7 +18261,9 @@ be entered.
         }  /* if */
         /* A POD may not have a field with a type that is a non-POD class
            (or array thereof). */
-        if (!member_cssp->is_POD) class_state->POD_ruled_out = TRUE;
+        if (!member_cssp->is_cpp03_POD) {
+          class_state->cpp03_POD_ruled_out = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* The field's type is an array of nonclass elements. */
@@ -18274,10 +18276,10 @@ be entered.
          initialized. */
       class_type->variant.class_struct_union.has_zero_init_component = TRUE;
     }  /* if */
-    if (C_dialect == C_dialect_cplusplus && !class_state->POD_ruled_out) {
+    if (!C_mode() && !class_state->cpp03_POD_ruled_out) {
       if (is_any_reference_type(member_type)) {
         /* A POD may not have a field with a reference type. */
-        class_state->POD_ruled_out = TRUE;
+        class_state->cpp03_POD_ruled_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18300,7 +18302,7 @@ be entered.
         /* No class with private or protected nonstatic data members
            is an aggregate (WP 8.5.1). */
         class_state->class_aggregate_ruled_out = TRUE;
-        class_state->POD_ruled_out = TRUE;
+        class_state->cpp03_POD_ruled_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18458,7 +18460,7 @@ information about the member declaration, respectively.
       }  /* if */
       /* Field initializers make the class a non-POD and, prior to C++14, a
          non-aggregate.  Also, it makes the default constructor nontrivial. */
-      class_state->POD_ruled_out = TRUE;
+      class_state->cpp03_POD_ruled_out = TRUE;
       if (!aggregate_classes_can_have_field_initializers) {
         class_state->class_aggregate_ruled_out = TRUE;
       }  /* if */
@@ -19850,7 +19852,7 @@ record that fact in *gsfd.
   /* Do not insert code here. */
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
-    if (!class_state->POD_ruled_out &&
+    if (!class_state->cpp03_POD_ruled_out &&
         cssp->construction_by_bitwise_copy_allowed &&
         !class_state->rule_out_trivial_copy_for_volatile_class_field &&
         !(deleted_functions_enabled && !gpp_mode &&
@@ -19888,7 +19890,7 @@ record that fact in *gsfd.
        cssp->constructor != NULL), but no user-declared default constructor
        (and hence no explicitly-defaulted default constructor).  So it cannot
        be a "trivial class" and therefore it cannot be POD. */ 
-    class_state->POD_ruled_out = TRUE;
+    class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
   return result;
 }  /* check_if_default_ctor_needed */
@@ -20840,9 +20842,9 @@ The routine body is not generated until it is known to be needed.
      may affects whether a trivial default constructor is actually generated
      (it wouldn't be generated for a POD). */
   if (cssp->has_user_provided_move_assign_operator) {
-    class_state->POD_ruled_out = TRUE;
+    class_state->cpp03_POD_ruled_out = TRUE;
   } else if (user_provided_copy_assignment_op) {
-    class_state->POD_ruled_out = TRUE;
+    class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
   if (generate_move_operations) {
     if (cssp->has_copy_constructor) {
@@ -24763,7 +24765,7 @@ and *class_state->pe_loc.
                                      (a_property_or_event_kind)pek_cli_event);
   }  /* if */
   class_state->class_aggregate_ruled_out = TRUE;
-  class_state->POD_ruled_out = TRUE;
+  class_state->cpp03_POD_ruled_out = TRUE;
   /* First scan leading static/virtual keywords, and skip over the "property"
      or "event" token. */
   while (curr_token == tok_static || curr_token == tok_virtual) {
@@ -26337,16 +26339,16 @@ passed via template_decl.
              defaulted or deleted inside its enclosing class is not considered
              "user-provided".) */
           class_state->class_aggregate_ruled_out = TRUE;
-          class_state->POD_ruled_out = TRUE;
+          class_state->cpp03_POD_ruled_out = TRUE;
         } else if (decl_info.is_destructor && !func_info.is_defaulted &&
                    !func_info.is_deleted) {
         /* A POD may not have a user-provided destructor, either. */
-          class_state->POD_ruled_out = TRUE;
+          class_state->cpp03_POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (decl_info.is_static_constructor) {
           /* A user-defined static constructor precludes a class from being an
              aggregate (at least, that is how Microsoft compilers behave). */
-          class_state->POD_ruled_out = TRUE;
+          class_state->cpp03_POD_ruled_out = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
@@ -28274,11 +28276,11 @@ wrap_up_class_definition.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
+    if (cssp->is_class_aggregate && !class_state->cpp03_POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
-         was called to set the is_POD flag -- the check for copy
+         was called to set the is_cpp03_POD flag -- the check for copy
          assignment operator was needed first. */
-      cssp->is_POD = TRUE;
+      cssp->is_cpp03_POD = TRUE;
     }  /* if */
     /* Set shares_virtual_function_info for a base class of class_type, if
        appropriate. */
@@ -29884,7 +29886,7 @@ initialize class_def_state.
   /* Lambdas are forced to be non-POD so that any default initialization will
      be done by attempting to call the default constructor (which will
      fail). */
-  class_state->POD_ruled_out = TRUE;
+  class_state->cpp03_POD_ruled_out = TRUE;
   /* Don't allow aggregate initialization of a closure object. */
   class_state->class_aggregate_ruled_out = TRUE;
   class_state->is_nonreal_instantiation =

@@ -23502,7 +23502,7 @@ to be acceptable (as far as overload resolution checks that), and
                                               source_operand->type) &&
           skip_typerefs(underlying_type)->alignment != 1 &&
           (!is_class_struct_union_type(underlying_type) ||
-           symbol_supplement_for_class(underlying_type)->is_POD)) {
+           symbol_supplement_for_class(underlying_type)->is_cpp03_POD)) {
         an_operand  orig_operand;
         orig_operand = *source_operand;
         temp_init_by_bitwise_copy_from_operand(source_operand, underlying_type,

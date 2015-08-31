@@ -1780,7 +1780,7 @@ available.
     etype = skip_typerefs(etype);
     if (is_immediate_class_type(etype) &&
         !etype->variant.class_struct_union.is_nonreal_class &&
-        !symbol_supplement_for_class(etype)->is_POD) {
+        !symbol_supplement_for_class(etype)->is_cpp03_POD) {
       /* Allowing designators in non-POD types would raise subtle questions
          about order of initialization and destruction.  For now, at least,
          we disallow such constructs.  (The error is only issued on the first
@@ -2771,7 +2771,7 @@ specific position is available.
   }  /* if */
   if (!C_mode() && okay &&
       !class_type->variant.class_struct_union.is_nonreal_class &&
-      !symbol_supplement_for_class(class_type)->is_POD) {
+      !symbol_supplement_for_class(class_type)->is_cpp03_POD) {
     /* Allowing designators in non-POD types would raise subtle questions about
        order of initialization and destruction.  For now, at least, we disallow
        such constructs.  (The error is only issued on the first designator if
@@ -5267,11 +5267,11 @@ FALSE is returned) for non-class objects.
        defined in the current translation unit (i.e., storage class other than
        "extern").  It is also done for constexpr variables of POD class types
        (only possible for essentially empty POD classes). */
-    /* We don't test just is_POD because we want to catch cases where there
-       is a user-declared defaulted constructor or destructor that's not
+    /* We don't test just is_cpp03_POD because we want to catch cases where
+       there is a user-declared defaulted constructor or destructor that's not
        accessible. */
     if (cssp != NULL &&
-        (!cssp->is_POD ||
+        (!cssp->is_cpp03_POD ||
          cssp->constructor != NULL || cssp->destructor != NULL ||
          (var->is_constexpr &&
           !tp->variant.class_struct_union.has_zero_init_component)) &&
@@ -7342,7 +7342,7 @@ initialized.  These are addressed in the course of the processing.
               /* When exception handling is enabled and there's a destructor,
                  we put out a constructor initializer entry anyway, just to
                  record the destructor. */
-            } else if (cssp->is_POD &&
+            } else if (cssp->is_cpp03_POD &&
                        tp->variant.class_struct_union.any_const_member) {
               /* A POD with const members -- if the mem-initializer is
                  omitted a diagnostic will have to be issued. */
@@ -7756,7 +7756,7 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         }  /* if */
         if (cssp != NULL) {
-          if (cssp->is_POD) {
+          if (cssp->is_cpp03_POD) {
             if (tp->variant.class_struct_union.any_const_member) {
               if (cip->kind == (a_constructor_init_kind)cik_field) {
                 pos_sy_error(ec_uninitialized_field_with_const_member,
@@ -8320,7 +8320,7 @@ declaration that has internal linkage because of the explicit presence of a
         is_class_struct_union_type(type)) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
       if (!cssp->any_nonstatic_data_members &&
-          (cssp->is_POD || any_cfront_mode() || microsoft_mode)) {
+          (cssp->is_cpp03_POD || any_cfront_mode() || microsoft_mode)) {
         /* Uninitialized const object that is an "empty" POD class (i.e.,
            one with no nonstatic data members).  The WP probably requires
            initialization of const objects even when they are empty.  Other

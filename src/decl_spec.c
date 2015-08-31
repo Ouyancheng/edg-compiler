@@ -4450,7 +4450,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (inside_statement_expression() && !C_mode() &&
-        !symbol_supplement_for_class(class_type)->is_POD) {
+        !symbol_supplement_for_class(class_type)->is_cpp03_POD) {
       /* Non-POD class definitions are not allowed inside statement
          expressions. */
       pos_error(ec_class_def_in_statement_expr, &decl_start_pos);

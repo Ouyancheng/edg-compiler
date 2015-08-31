@@ -778,7 +778,8 @@ only).
     ftp = skip_typerefs(ftp);
     if (is_immediate_class_type(ftp) &&
         !ftp->variant.class_struct_union.is_packed &&
-        symbol_for(ftp) != NULL && !symbol_supplement_for_class(ftp)->is_POD) {
+        symbol_for(ftp) != NULL &&
+        !symbol_supplement_for_class(ftp)->is_cpp03_POD) {
       a_targ_alignment  pragma_alignment = 0;
       an_attribute_ptr  psap = find_attribute(
                                        ak_pragma_pack_state,
@@ -2270,7 +2271,7 @@ bit field in a trailing bit field container of one of its bases.
 
   if (!C_mode() &&
       !(class_type->source_corresp.assoc_info != NULL &&
-        symbol_supplement_for_class(class_type)->is_POD)) {
+        symbol_supplement_for_class(class_type)->is_cpp03_POD)) {
     /* This is not a POD: The reuse of bit field containers does not apply
        to PODs. */
     a_base_class_ptr  bcp = base_classes_of(class_type);
@@ -2369,7 +2370,7 @@ base class ends with a bit field.
   if (bcp != NULL && bcp->is_virtual && bcp->offset_is_set &&
       bcp->offset + bcp->type->size >= *end_of_object &&
       !(bcp->type->source_corresp.assoc_info != NULL &&
-        symbol_supplement_for_class(bcp->type)->is_POD)) {
+        symbol_supplement_for_class(bcp->type)->is_cpp03_POD)) {
     a_targ_size_t  offset = bcp->offset;
     a_type_ptr     btp = bcp->type;
     /* The call to trailing_nonclass_field sets offset to the offset of the
@@ -2441,7 +2442,7 @@ otherwise, the last nonvirtual base should be considered.
     if (bcp->direct && bcp->is_virtual == virtual_base &&
         bcp->offset_is_set &&
         !(btp->source_corresp.assoc_info != NULL &&
-          symbol_supplement_for_class(btp)->is_POD)) {
+          symbol_supplement_for_class(btp)->is_cpp03_POD)) {
       /* This is the right kind of base.  Check if it is a base that covers
          the last byte allocated so far (assuming alignment). */
       an_unnormalized_bit_offset
@@ -4920,7 +4921,7 @@ for handling virtual bases and functions.
     pad_bit_field(&lob);
     /* If this class is a POD, tail-padding cannot be reused. */
     is_POD = (class_type->source_corresp.assoc_info != NULL &&
-              symbol_supplement_for_class(class_type)->is_POD);
+              symbol_supplement_for_class(class_type)->is_cpp03_POD);
     /* If the class has virtual base classes, the size and alignment without
        virtual base classes will already have been recorded; otherwise, record
        it now. */
