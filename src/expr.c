@@ -5231,17 +5231,19 @@ are expected to be NULL in that case.
     } else if (!C_mode() &&
                is_template_dependent_context() &&
                (is_template_param_type(operand->type) ||
-                ((gpp_mode || clang_mode) && implicit_this_selector))) {
+                ((gpp_mode || clang_mode || microsoft_mode) &&
+                 implicit_this_selector))) {
       /* A call of a dependent expression in a prototype instantiation.  Note
          that we test only for a top-level parameter type here, which might be
          a class.  If a call "f()" is implicitly treated as "this->f()" in a
-         template-dependent context, Clang and GCC consider it template-
+         template-dependent context, Clang, GCC, and MSVC consider it template-
          dependent, too (if "this" is explicit, "this->f" will already be a
-         ck_template_param constant in those modes).   More testing for other
+         ck_template_param constant in those modes).  More testing for other
          dependent cases is done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
-      if ((gpp_mode || clang_mode) && implicit_this_selector) {
+      if ((gpp_mode || clang_mode || microsoft_mode) &&
+          implicit_this_selector) {
         /* Make the call target opaque. */
         make_template_param_expr_constant_operand(operand);
         operand->type = type_of_unknown_templ_param_nontype;
@@ -5795,8 +5797,14 @@ accepts the case where the first operand is a C++/CLI handle.
       }  /* if */
     }  /* if */
     /* Determine the result type. */
-    if (clang_mode &&
+    if ((clang_mode || microsoft_mode) &&
         class_struct_union_type->kind == (a_type_kind)tk_template_param) {
+      /* Clang treats something like "this->x" in a template context as a
+         type-dependent construct.  MSVC does not parse templates in their
+         generic form, but if we do perform Microsoft-mode prototype
+         instantiations (e.g., for variadic templates) we get a better
+         emulation if we also treat field selections as dependent in that
+         context. */
       result_type = type_of_unknown_templ_param_nontype;
     } else {
       a_type_qualifier_set  qualifiers;

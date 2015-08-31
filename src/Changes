@@ -1,5 +1,26 @@
 Version 4.11
 
+8/31/15  [EDGcpfe/16487]
+Microsoft compatibility: Calls to member functions in class templates
+
+The changes for Clang compatibility made for EDGcpfe/16428 (see the entry of
+8/12/15 below) are now also enabled for Microsoft mode.  These changes apply
+primarily to the prototype instantiations of templates, which are usually not
+performed in Microsoft mode.  However, prototype instantiations are performed
+in Microsoft mode for variadic templates, and some source analysis applications
+enable prototype instantiations more broadly in Microsoft mode.  This change
+improves Microsoft compatibility under such circumstances.  For example:
+
+  void g(int, int);
+  template<typename ... Ts> struct S {
+    void g(int p) {
+      g(p, p);  // Previously an error during prototype instantiation
+    }           // because S<Ts...>::g is found rather than ::g(int, int).
+  };            // Now accepted during the prototype instantiation.
+                // (An error is still issued during a real instantiation.
+                // That matches the Microsoft compiler.)
+
+
 8/28/15  [EDGcpfe/16464]
 __is_pod
 
