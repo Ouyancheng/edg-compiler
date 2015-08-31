@@ -4235,6 +4235,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   logical_and_result = ovfl || bool_val;
                 } else {
                   /* FIXME: NYI, other source types. */
+                  logical_and_result = FALSE;
+                  result = FALSE;
                   unexpected_condition();
                 }  /* if */
                 if (!logical_and_result) {
@@ -4283,6 +4285,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   logical_or_result = ovfl || bool_val;
                 } else {
                   /* FIXME: NYI, other source types. */
+                  logical_and_result = TRUE;
+                  result = FALSE;
                   unexpected_condition();
                 }  /* if */
                 if (logical_or_result) {
