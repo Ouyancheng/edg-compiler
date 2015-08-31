@@ -1252,9 +1252,6 @@ typedef struct a_constexpr_address {
 #define is_array_element(cap)                                                \
   ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
 
-#define is_bit_field(cap)                                                    \
-  ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
-
 #define get_base_address(cap)                                                \
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
