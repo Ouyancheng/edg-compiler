@@ -1,5 +1,19 @@
 Version 4.11
 
+8/31/15  [EDGcpfe/16477]
+Microsoft C++/CLI compatibility: Floating-point literal representation
+
+A change has been made to the way floating-point literals are interpreted
+when they appear in assemblies.  In the example below, when an assembly
+with the following class is imported, X::f had been represented internally
+by the binary value "0x.0p-3f" and is now represented by "0x1.000000p-3":
+
+  public ref class X {
+    public:
+      literal float f = .125f;
+  };
+
+
 9/1/15   [EDGcpfe/16492]
 __is_constructible and access SFINAE
 
