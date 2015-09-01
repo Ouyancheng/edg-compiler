@@ -59,7 +59,10 @@ constructors.  For example:
 The is_POD flag in a_class_symbol_supplement has been renamed to is_cpp03_POD.
 Except for the renaming, it is not affected by this change (it reflects the
 C++03 definition in all modes); this ensures that the ABI implementations are
-unaffected.
+unaffected.  A new function is_pod_class is now available to test whether a
+class is a POD in the current language mode (i.e., in C++11 mode it tests for
+the C++11 definition of POD, and in other modes for the C++03 definition of
+POD).
 
 
 8/27/15  [EDGcpfe/16460]

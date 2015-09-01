@@ -1193,7 +1193,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if the class is a "POD" (in the C++03 sense: an
 			   aggregate with further restrictions that make it
 			   look like a C struct or union).  Always FALSE in
-			   C mode. */
+			   C mode.  Use the function is_pod_class to test
+			   whether a given class type is a POD in the current
+			   language mode. */
   a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */
