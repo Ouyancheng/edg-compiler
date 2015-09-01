@@ -17136,11 +17136,13 @@ error.  conv_context describes the context of the conversion.
                  candidate_functions->function_symbol != NULL &&
                  !have_access_to_symbol(
                                       candidate_functions->function_symbol) &&
-                 !expr_error_should_be_issued()) {
+                 expr_stack != NULL && expr_stack->suppress_diagnostics) {
         /* The needed conversion function/constructor is not accessible.
            If we are in a context where diagnostics should not be issued (e.g.,
            SFINAE), consider this a non-match.  Otherwise, we'll consider it a
-           match because it will lead to a more helpful diagnostic. */
+           match because it will lead to a more helpful diagnostic.  (Note that
+           since this is an access error check, we don't test
+           expr_error_should_be_issued.) */
       } else {
         /* Exactly one constructor or conversion function matches best. */
         okay = TRUE;
