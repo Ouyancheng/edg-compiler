@@ -8217,48 +8217,22 @@ Returns the source code for the value.
     case ELEMENT_TYPE_R4:
       { UINT      f = *reinterpret_cast<const UINT*>(&value_.float_value);
         bool      sign =         (f & 0x80000000U) != 0;
-        int       exponent = int((f & 0x7F800000U) >> 23);
-        ULONGLONG fraction =     (f & 0x007FFFFFU) << 1;
-        int       bias = 127;
+        int       exponent = int((f & 0x7F800000U) >> 23) - 127;
+        ULONGLONG fraction =      f & 0x007FFFFFU;
         if (sign) buffer << L'-';
-        if (exponent == 0) {
-          buffer << L"0x0.";
-          if (fraction == 0) bias = 0;
-          else bias--;
-        } else {
-          /* Note that exponent == 0xFF designates special values (+/-inf
-             and NaNs) which cannot be round-tripped through literal
-             representation.  __builtin_inff/__builtin_nanf could be used
-             instead. */
-          check_assertion(exponent < 0xFF);
-          buffer << L"0x1.";
-        }  /* if */
-        buffer << setw(6) << setfill(L'0') << hex << fraction;
-        buffer << 'p' << dec << (exponent - bias);
+        buffer << L"0x." << hex << fraction << L'p';
+        buffer << dec << exponent << L'f';
         break;
       } /* case ELEMENT_TYPE_R4 */
     case ELEMENT_TYPE_R8:
       { ULONGLONG d = *reinterpret_cast<const ULONGLONG*>(
                                                         &value_.double_value);
         bool      sign =         (d & 0x8000000000000000ULL) != 0;
-        int       exponent = int((d & 0x7FF0000000000000ULL) >> 52);
+        int       exponent = int((d & 0x7FF0000000000000ULL) >> 52) - 1023;
         ULONGLONG fraction =      d & 0x000FFFFFFFFFFFFFULL;
-        int       bias = 1023;
         if (sign) buffer << L'-';
-        if (exponent == 0) {
-          buffer << L"0x0.";
-          if (fraction == 0) bias = 0;
-          else bias--;
-        } else {
-          /* Note that exponent == 0x7FF designates special values (+/-inf
-             and NaNs) which cannot be round-tripped through literal
-             representation.  __builtin_inf/__builtin_nan could be used
-             instead. */
-          check_assertion(exponent < 0x7FF);
-          buffer << L"0x1.";
-        }  /* if */
-        buffer << setw(13) << setfill(L'0') << hex << fraction;
-        buffer << 'p' << dec << (exponent - bias);
+        buffer << L"0x." << hex << fraction << L"p";
+        buffer << dec << exponent;
         break;
       } /* case ELEMENT_TYPE_R8 */
     case ELEMENT_TYPE_STRING:
