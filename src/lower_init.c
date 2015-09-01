@@ -14455,7 +14455,9 @@ static a_constant_ptr constant_for_base_class(a_constant_ptr   aggr_con,
 /*
 For the given aggregate constant, aggr_con, return the nested aggregate
 constant that corresponds to the base class specified by bcp (which is a
-base class of aggr_con->type).
+base class of aggr_con->type).  Note that the vptr_has_been_lowered
+field is set to TRUE for any intermediary constants (i.e., constants that
+are traversed while searching for the matching constant).
 */
 {
   a_constant_ptr  cp;
@@ -14468,11 +14470,25 @@ base class of aggr_con->type).
                             class_type->variant.class_struct_union.field_list);
        field != NULL && cp != NULL;
        field = next_initializable_field(field->next)) {
-    if (bcp->offset == field->offset) {
+    a_targ_size_t b_offset = bcp->offset, f_offset = field->offset;
+    if (bcp->direct && b_offset == f_offset) {
       /* This field is at the proper offset; return the corresponding
          constant. */
       break;
+    } else if (!bcp->direct &&
+               b_offset >= f_offset &&
+               b_offset < f_offset + skip_typerefs(field->type)->size) {
+      /* The base class offset is within this field, but since it's not
+         a direct base class, we must recurse. */
+      a_type_ptr        ftp = skip_typerefs(field->type);
+      a_base_class_ptr  r_bcp;
+      check_assertion(is_immediate_class_type(ftp));
+      r_bcp = corresponding_base_class(bcp, ftp, (a_base_class_ptr)NULL);
+      cp->vptr_has_been_lowered = TRUE;
+      cp = constant_for_base_class(cp, r_bcp);
+      break;
     }  /* if */
+    check_assertion(f_offset < b_offset);
     cp = cp->next;
   }  /* for */
   check_assertion(cp != NULL);
@@ -14520,26 +14536,15 @@ given by vptr_node.
     if (ctsp->virtual_function_info_base_class != NULL) {
       /* The __vptr is shared with a base class; find the constant in the
          aggregate that matches that base class. */
-      cp = constant_for_base_class(aggr_con,
-                                   ctsp->virtual_function_info_base_class);
-      /* This base class is at the proper offset, however there may be
-         other base classes at the same offset; continue to search
-         deeper into the aggregate to find a constant whose type matches
-         that of the base class with which the vtable is shared. */
-      for (;;) {
-        cp->vptr_has_been_lowered = TRUE;
-        check_assertion(cp != NULL &&
-                        cp->kind == (a_constant_repr_kind)ck_aggregate);
-        if (identical_types(cp->type,
-                            ctsp->virtual_function_info_base_class->type)) {
-          /* Use this as the new aggregate constant below. */
-          aggr_con = cp;
-          class_type = skip_typerefs(aggr_con->type);
-          break;
-        } else {
-          cp = cp->variant.aggregate.first_constant;
-        }  /* if */
-      }  /* for */
+      aggr_con = constant_for_base_class(aggr_con,
+                                         ctsp->
+                                             virtual_function_info_base_class);
+      check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
+                      identical_types(aggr_con->type,
+                                      ctsp->virtual_function_info_base_class->
+                                                                        type));
+      aggr_con->vptr_has_been_lowered = TRUE;
+      class_type = skip_typerefs(aggr_con->type);
     }  /* if */
     /* Search through the (original or base-class) constant to find the
        offset that corresponds to the __vptr field; then add a new initializer

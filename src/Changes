@@ -1,5 +1,24 @@
 Version 4.11
 
+9/1/15   [EDGcpfe/16470]
+Assertion failure in constant_for_base_class
+
+Due to the changes for EDGcpfe/16203, the following example (with --c++11) had
+caused an assertion failure in constant_for_base_class.  Now fixed.
+
+  struct A {
+    virtual void f();
+  };
+  struct B {
+    virtual void f();
+  };
+  struct C: A, B {};
+  struct D: C {
+    virtual void f();
+  };
+  D d;
+
+
 8/31/15  [EDGcpfe/16487]
 Microsoft compatibility: Calls to member functions in class templates
 
