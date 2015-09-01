@@ -10039,6 +10039,14 @@ enable_microsoft_mode:
   restrict_enabled = restrict_keyword_enabled || gnu_restrict_keyword_enabled;
   /* Ensure options related to rvalue references are now consistent. */
   check_rvalue_ref_options();
+  if (relaxed_constexpr_enabled) {
+    if (!bool_is_keyword) {
+      if (option_kind_used[(int)optk_implicit_typename]) {
+        command_line_error(ec_cl_relaxed_constexpr_requires_bool);
+      }  /* if */
+      bool_is_keyword = TRUE;
+    }  /* if */
+  }  /* if */
   if (ignore_std_namespace) {
     /* In the g++ compatibility mode in which the std namespace is an alias
        for the global namespace, the va_list type should not be entered in

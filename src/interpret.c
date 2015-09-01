@@ -1270,6 +1270,21 @@ a_constexpr_address addr.
 #define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
 
 
+/*
+Convenience macro to cast an opaque pointer to a pointer to a floating-point
+value.
+*/
+#define fp_value(ptr) ((an_internal_float_value *)(ptr))
+
+
+/*
+Convenience macro to get a pointer to the floating-point value addressed by
+the a_constexpr_address addr.
+*/
+#define fp_value_at(addr) (fp_value(value_bytes_at(addr)))
+
+
+
 static void trim_bit_field(a_byte     *storage,
                            unsigned   length,
                            a_boolean  is_signed)
@@ -1299,14 +1314,6 @@ representation to fit in the bit field length.
   }  /* if */                                                                 \
 }
 
-#if 0
-/* FIXME -- Not needed yet: disabled to placate lint. */
-/*
-Convenience macro to get a pointer to the float value addressed by the
-a_constexpr_address addr.
-*/
-#define float_value_at(addr) ((an_internal_float_value *)value_bytes_at(addr))
-#endif /* 0 */
 
 /*
 Macro to initialize a constant address at addr referring to the interpreter
@@ -1830,8 +1837,7 @@ reasons.
       (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
        TRUE):                                                                 \
     ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
-      ((*(an_internal_float_value *)(result_storage) =                        \
-                                  (con)->variant.float_value), TRUE) :        \
+      ((*fp_value(result_storage) = (con)->variant.float_value), TRUE) :      \
     /* else */                                                                \
       extract_value_from_constant(ips, con, result_storage)                   \
   )  /* copy_val_from_constant */
@@ -1855,7 +1861,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       *(an_integer_value *)value = con->variant.integer_value;
       break;
     case ck_float:
-      *(an_internal_float_value *)value = con->variant.float_value;
+      *fp_value(value) = con->variant.float_value;
       break;
     case ck_address:
       {
@@ -2853,7 +2859,7 @@ of the prvalue result.
         a_type_ptr       opnd2_type;
         a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd2_value;
-        a_boolean        ovfl;
+        a_boolean        ovfl, err, depends_on_fp_mode, unord;
         a_byte_count     opnd_n_bytes;
 
         if (is_call_node(expr)) {
@@ -3070,6 +3076,14 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                fp_negate(opnd1_type->variant.float_kind,
+                          fp_value(opnd1_value), fp_value(result_storage),
+                          &err, &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
               } else {
                 unexpected_condition();  /* FIXME: NYI, other source types. */
               }  /* if */
@@ -3086,6 +3100,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                *fp_value(result_storage) = *fp_value(opnd1_value);
               } else {
                 unexpected_condition();  /* FIXME: NYI, other source types. */
               }  /* if */
@@ -3153,8 +3169,15 @@ type.  This includes checking the value of ovfl set by the operation.
                     }  /* if */
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_float) {
-                  /* FIXME: handle floating point value. */
-                  result = FALSE;
+                  /* A floating-point type. */
+                  fp_add(tp->variant.float_kind,
+                         fp_value_at(opnd1_value),
+                         &one_flt[(int)tp->variant.float_kind],
+                         fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
+                  if (err) {
+                    result = FALSE;
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
                   a_constexpr_address  *ptr;
@@ -3208,8 +3231,16 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* FIXME: record a diagnostic. */
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_float) {
-                  /* FIXME: handle floating point value. */
-                  result = FALSE;
+                  /* A floating-point type. */
+                  fp_subtract(tp->variant.float_kind,
+                              fp_value_at(opnd1_value),
+                              &one_flt[(int)tp->variant.float_kind],
+                              fp_value_at(opnd1_value), &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    result = FALSE;
+                    /* FIXME: record a diagnostic. */
+                  }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
                   a_constexpr_address  *ptr;
@@ -3269,8 +3300,15 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* A floating-point type. */
+                fp_add(tp->variant.float_kind,
+                       fp_value_at(opnd1_value),
+                       &one_flt[(int)tp->variant.float_kind],
+                       fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
@@ -3322,8 +3360,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   /* FIXME: record a diagnostic. */
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* A floating-point type. */
+                fp_subtract(tp->variant.float_kind,
+                            fp_value_at(opnd1_value),
+                            &one_flt[(int)tp->variant.float_kind],
+                            fp_value_at(opnd1_value), &err,
+                            &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
@@ -3378,6 +3424,15 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
+              } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                fp_add(tp->variant.float_kind,
+                       fp_value(opnd1_value), fp_value(opnd2_value),
+                       fp_value(result_storage), &err, &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
               } else {
                 /* FIXME: Other type kinds NYI. */
                 unexpected_condition();
@@ -3396,6 +3451,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 check_int_range((an_integer_value*)(opnd1_value), tp, result,
                                 ovfl);
                 if (!result) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                fp_subtract(tp->variant.float_kind,
+                            fp_value(opnd1_value), fp_value(opnd2_value),
+                            fp_value(result_storage), &err,
+                            &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
                   /* FIXME: record a diagnostic. */
                 }  /* if */
               } else {
@@ -3417,6 +3482,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
+              } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                fp_multiply(tp->variant.float_kind,
+                            fp_value(opnd1_value), fp_value(opnd2_value),
+                            fp_value(result_storage), &err,
+                            &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
               } else {
                 /* FIXME: Other type kinds NYI. */
               }  /* if */
@@ -3432,6 +3507,16 @@ type.  This includes checking the value of ovfl set by the operation.
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
                 if (ovfl) {
+                  /* FIXME: record a diagnostic. */
+                }  /* if */
+              } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                fp_divide(tp->variant.float_kind,
+                          fp_value(opnd1_value), fp_value(opnd2_value),
+                          fp_value(result_storage), &err,
+                          &depends_on_fp_mode);
+                if (err) {
+                  result = FALSE;
                   /* FIXME: record a diagnostic. */
                 }  /* if */
               } else {
@@ -3650,8 +3735,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) == 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3690,8 +3783,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) != 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3730,8 +3831,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) < 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3770,8 +3879,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) > 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3810,8 +3927,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) <= 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3850,8 +3975,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-                /* FIXME: handle floating point value. */
-                result = FALSE;
+                /* Floating-point operands. */
+                if (fp_compare(tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord) >= 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+                /* FIXME: handle NaNs (unord == TRUE)? */
               } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* Pointer operands. */
                 a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -3933,25 +4066,37 @@ type.  This includes checking the value of ovfl set by the operation.
                            !check_variant_path(ips, dst, /*release=*/TRUE)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
-                } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_integer) {
+                } else {
                   /* Add the value of the right operand to the value stored at
                      the left operand and return the left operand (as an
                      lvalue). */
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  add_integer_values(int_value_at(dst),
-                                     (an_integer_value*)opnd2_value,
-                                     is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
+                  if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    add_integer_values(int_value_at(dst),
+                                       (an_integer_value*)opnd2_value,
+                                       is_signed, &ovfl);
+                    trim_bit_field_if_needed(dst);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                    an_internal_float_value  *dst_val = fp_value_at(dst);
+                    fp_add(tp->variant.float_kind, dst_val,
+                           fp_value(opnd2_value), dst_val, &err,
+                           &depends_on_fp_mode);
+                    if (err) {
+                      result = FALSE;
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                  } else {
+                    /* FIXME: Other type kinds NYI. */
+                    unexpected_condition();
                   }  /* if */
-                  *(a_constexpr_address *)result_storage = *dst;
-                } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
                 }  /* if */
               }
               break;
@@ -3975,25 +4120,37 @@ type.  This includes checking the value of ovfl set by the operation.
                            !check_variant_path(ips, dst, /*release=*/TRUE)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
-                } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_integer) {
-                  /* Subtract the value of the right operand from the value
-                     stored at the left operand and return the left operand (as
-                     an lvalue). */
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  subtract_integer_values(int_value_at(dst),
-                                          (an_integer_value*)opnd2_value,
-                                          is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
-                  }  /* if */
-                  *(a_constexpr_address *)result_storage = *dst;
                 } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
+                  /* Subtract the value of the right operand from the value
+                     stored at the left operand and return the left operand
+                     (as an lvalue). */
+                  if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    subtract_integer_values(int_value_at(dst),
+                                            (an_integer_value*)opnd2_value,
+                                            is_signed, &ovfl);
+                    trim_bit_field_if_needed(dst);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                    an_internal_float_value  *dst_val = fp_value_at(dst);
+                    fp_subtract(tp->variant.float_kind, dst_val,
+                                fp_value(opnd2_value), dst_val, &err,
+                                &depends_on_fp_mode);
+                    if (err) {
+                      result = FALSE;
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                  } else {
+                    /* FIXME: Other type kinds NYI. */
+                    unexpected_condition();
+                  }  /* if */
                 }  /* if */
               }
               break;
@@ -4017,25 +4174,38 @@ type.  This includes checking the value of ovfl set by the operation.
                            !check_variant_path(ips, dst, /*release=*/TRUE)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
-                } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_integer) {
+                } else {
                   /* Multiply the value stored in the left operand with the
                      value of the right operand and leave the result in the
                      left operand.  Return the left operand (as an lvalue). */
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  multiply_integer_values(int_value_at(dst),
-                                          (an_integer_value*)opnd2_value,
-                                          is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
+                  if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    multiply_integer_values(int_value_at(dst),
+                                            (an_integer_value*)opnd2_value,
+                                            is_signed, &ovfl);
+                    trim_bit_field_if_needed(dst);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                    an_internal_float_value  *dst_val = fp_value_at(dst);
+                    fp_multiply(tp->variant.float_kind, dst_val,
+                                fp_value(opnd2_value), dst_val, &err,
+                                &depends_on_fp_mode);
+                    if (err) {
+                      result = FALSE;
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+
+                  } else {
+                    /* FIXME: Other type kinds NYI. */
+                    unexpected_condition();
                   }  /* if */
-                  *(a_constexpr_address *)result_storage = *dst;
-                } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
                 }  /* if */
               }
               break;
@@ -4059,25 +4229,37 @@ type.  This includes checking the value of ovfl set by the operation.
                            !check_variant_path(ips, dst, /*release=*/TRUE)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
-                } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_integer) {
+                } else {
                   /* Divide the value stored in the left operand with the
                      value of the right operand and leave the result in the
                      left operand.  Return the left operand (as an lvalue). */
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  divide_integer_values(int_value_at(dst),
-                                        (an_integer_value*)opnd2_value,
-                                        is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
+                  if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    divide_integer_values(int_value_at(dst),
+                                          (an_integer_value*)opnd2_value,
+                                          is_signed, &ovfl);
+                    trim_bit_field_if_needed(dst);
+                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    if (!result) {
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                    *(a_constexpr_address *)result_storage = *dst;
+                  } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float) {
+                    an_internal_float_value  *dst_val = fp_value_at(dst);
+                    fp_divide(tp->variant.float_kind, dst_val,
+                              fp_value(opnd2_value), dst_val, &err,
+                              &depends_on_fp_mode);
+                    if (err) {
+                      result = FALSE;
+                      /* FIXME: record a diagnostic. */
+                    }  /* if */
+                  } else {
+                    /* FIXME: Other type kinds NYI. */
+                    unexpected_condition();
                   }  /* if */
-                  *(a_constexpr_address *)result_storage = *dst;
-                } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
                 }  /* if */
               }
               break;
