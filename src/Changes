@@ -1,5 +1,23 @@
 Version 4.11
 
+9/1/15   [EDGcpfe/16490]
+GNU-mode assertion failure when binding a reference in a template
+
+In GNU C++ modes, the front end sometimes aborted with an internal error in
+wrap_up_constant_full_expression when handling a reference binding to a
+temporary with a nontrivial destructor during the prototype instantiation of
+a template (the problem only occurred when PROTOTYPE_INSTANTIATIONS_IN_IL is
+TRUE).  For example:
+
+  struct S { ~S(); };
+  template<typename> void g() {
+    auto &&r = S();  // Previously triggered an internal error in GNU mode
+  }                  // in some configurations.
+  template void g<void>();
+
+This is now fixed.
+  
+
 9/1/15   [EDGcpfe/16470]
 Assertion failure in constant_for_base_class
 

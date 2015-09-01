@@ -16999,7 +16999,8 @@ is an rvalue reference.
                      is_template_param_type(operand->type) ||
                      is_error_type(operand->type)));
     orig_operand = *operand;
-    if (is_constant_operand(operand)) {
+    if (is_constant_operand(operand) &&
+        !is_template_param_constant_operand(operand)) {
       /* With constexpr, a class value can be a constant, more precisely here
          the constant address of a temporary containing the class value. */
       a_constant_ptr con = &operand->variant.constant;
