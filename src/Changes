@@ -1,5 +1,15 @@
 Version 4.11
 
+9/2/15   [EDGcpfe/16449]
+Assertion failure in end_potential_pack_expansion_context
+
+A function template with multiple attribute arguments in an attribute list
+had caused an assertion failure in end_potential_pack_expansion_context.
+Now fixed.  For example (with --gnu_version=40800):
+
+  template <class T> void f() __attribute__((abi_tag("foo", "bar")));
+
+
 9/2/15   [EDGcpfe/16472]
 Issue with "constexpr" implying "const" on nonstatic member functions
 

@@ -1555,12 +1555,12 @@ ak_unrecognized.
 {
   an_attribute_arg_ptr  *p_aap = &ap->arguments;
   a_const_char          *saved_sig;
-  a_boolean             may_terminate;
+  a_boolean             may_terminate, first_time = TRUE;
 
   /* The outer loop traverses segments in *sig: */
   for (;;) {
     a_pack_expansion_stack_entry_ptr  pesep;
-    a_boolean                         more_pack_elements = FALSE;
+    a_boolean                         more_pack_elements = TRUE;
 next_pack_element:
     /* Skip a "?" indicating that the argument list may terminate at this
        point. */
@@ -1571,7 +1571,7 @@ next_pack_element:
     } else {
       may_terminate = FALSE;
     }  /* if */
-    if (!more_pack_elements &&
+    if ((first_time || !more_pack_elements) &&
         !begin_potential_pack_expansion_context(&pesep)) {
       /* An empty pack expansion.  Check if additional arguments follow. */
       if (!loop_token(tok_comma)) {
@@ -1580,6 +1580,7 @@ next_pack_element:
         continue;
       }  /* if */
     }  /* if */
+    first_time = FALSE;
     saved_sig = sig;
     /* Traverse the next sig segment while scanning a corresponding attribute
        argument.  This is wrapped in a loop to handle a '+' suffix. */
@@ -1637,12 +1638,15 @@ next_pack_element:
           check_attr_config(FALSE, ap,
                             "invalid attribute signature configuration");
       }  /* switch */
-      if (end_potential_pack_expansion_context(
+      if (more_pack_elements &&
+          end_potential_pack_expansion_context(
                                     pesep, /*is_declarator=*/FALSE) != NULL) {
         (*p_aap)->is_pack_expansion = TRUE;
       }  /* if */
       while (*p_aap != NULL) p_aap = &(*p_aap)->next;
-      more_pack_elements = advance_to_next_pack_element(pesep);
+      if (more_pack_elements) {
+        more_pack_elements = advance_to_next_pack_element(pesep);
+      }  /* if */
       if (*sig == '+' && (more_pack_elements || curr_token == tok_comma)) {
         /* Skip the comma if needed and get another argument of the same
            kind. */
