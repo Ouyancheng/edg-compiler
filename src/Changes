@@ -1,5 +1,20 @@
 Version 4.11
 
+9/2/15   [EDGcpfe/16472]
+Issue with "constexpr" implying "const" on nonstatic member functions
+
+The changes for EDGcpfe/16092 removed the implicit "const" declaration for
+"constexpr" nonstatic member functions in C++14 mode, but that change was
+incomplete, resulting in a spurious redeclaration error for cases like this:
+
+  struct A {
+    constexpr int f() const;
+    constexpr int f();
+  };
+
+Now fixed.
+
+
 9/1/15   [EDGcpfe/16477]
 Microsoft C++/CLI compatibility: Floating-point literal representation
 

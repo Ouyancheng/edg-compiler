@@ -9859,7 +9859,8 @@ When templates_only is TRUE, only function templates members are considered.
   /* new_may_be_implicitly_const indicates that the new declaration should be
      considered a const member if it matches a nonstatic member function
      declaration. */
-  new_may_be_implicitly_const = !(new_quals & TQ_CONST) &&
+  new_may_be_implicitly_const = constexpr_implies_const &&
+                                !(new_quals & TQ_CONST) &&
                                 (dps->dso_flags & DSO_CONSTEXPR) &&
                                 !is_constructor_symbol(sym) &&
                                 !is_destructor_symbol(sym);
@@ -13484,16 +13485,20 @@ ensures this routine will issue an error on this example.
   }  /* if */
 }  /* remove_routine_typedef_if_needed */
 
+
 static void adjust_constexpr_member_type_if_needed(a_decl_parse_state  *dps)
 /*
 dps describes a nonstatic member function declaration declared "constexpr" that
 is not a constructor declaration.  If dps->type does not represent a
 const-qualified member function type, replace dps->type by a copy of the
-routine type with added const qualification.
+routine type with added const qualification.  This transformation was required
+in C++11, but the standard changed again in C++14, removing an implicit
+"const" declaration for "constexpr" nonstatic member functions.
 */
 {
   a_type_ptr  rtp = skip_typerefs(dps->type);
 
+  check_assertion(constexpr_implies_const);
   if (rtp->kind == (a_type_kind)tk_routine) {
     a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
     if (routine_type_is_nonstatic_member_function(rtp) &&
@@ -13667,7 +13672,7 @@ implicitly declared member functions.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    if (!decl_info->is_constructor) {
+    if (!decl_info->is_constructor && constexpr_implies_const) {
       adjust_constexpr_member_type_if_needed(decl_state);
     }  /* if */
   }  /* if */
