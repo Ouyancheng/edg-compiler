@@ -1,6 +1,6 @@
 Version 4.11
 
-8/31/15  [EDGcpfe/16477]
+9/1/15   [EDGcpfe/16477]
 Microsoft C++/CLI compatibility: Floating-point literal representation
 
 A change has been made to the way floating-point literals are interpreted
