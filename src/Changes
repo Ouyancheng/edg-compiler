@@ -17,12 +17,12 @@ Now fixed.
 
 9/1/15   [EDGcpfe/16477]
 Microsoft C++/CLI compatibility: Incorrect floating-point literal
-representation in metadata
+representation when importing metadata
 
-The representation of floating-point literals in metadata was incorrect and
-has now been fixed.  In the example below, when an assembly with the following
-class is imported, X::f had been represented internally by the binary value
-"0x.0p-3f" and is now represented by "0x1.000000p-3":
+The representation of floating-point literals when imported from an assembly
+was incorrect and has now been fixed.  In the example below, when an assembly
+with the following class is imported, X::f had been represented internally by
+the binary value "0x.0p-3f" and is now represented by "0x1.000000p-3":
 
   public ref class X {
     public:
