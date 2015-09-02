@@ -64,7 +64,19 @@ TRUE).  For example:
   template void g<void>();
 
 This is now fixed.
-  
+
+As part of this change, the front end was also modified to be more lenient
+with certain constant-expression requirements during prototype instantiations.
+For example, the following template is now accepted in strict C++11 mode:
+
+  template<typename T> void f() {
+    T x = 0;
+    constexpr T &&r = T{ x+1 };  // Previously triggered an error because
+  }                              // x is not a constant.
+
+Actual instantiations still trigger an error, of course.  (This new behavior
+matches that of other C++11 compilers.)
+
 
 9/1/15   [EDGcpfe/16470]
 Assertion failure in constant_for_base_class

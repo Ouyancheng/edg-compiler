@@ -23048,6 +23048,13 @@ will be an lvalue instead of the usual prvalue.
       /* Already constant. */
     } else {
       force_operand_to_constant_if_possible(&operand);
+      if (is_expression_operand(&operand) &&
+          is_prototype_instantiation_context()) {
+        /* In prototype instantiation contexts, we allow nonconstant
+           expressions.  A diagnostic will most likely be issued if a real
+           instantiation is performed. */
+        make_template_param_expr_constant_operand(&operand);
+      }  /* if */
       constant = unshared_constant_from_operand(&operand);
     }  /* if */
     /* Disallow certain constants that don't actually have a constant
