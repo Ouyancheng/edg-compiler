@@ -354,6 +354,7 @@ static an_attr_descr known_attr_table[] = {
   { "t3", "(*)", "c+[edg]", ak_unrecognized },
   { "t4", "(ct)", "c+[edg]", ak_unrecognized },
   { "t5", "(sn?,n)", "c+[edg]", ak_unrecognized },
+  { "t6", "(?ci+)", "c+[edg]", ak_unrecognized },
   { "e1", "(*)", "c+[edg]", ak_edg_e1 },
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1555,37 +1556,26 @@ ak_unrecognized.
 {
   an_attribute_arg_ptr  *p_aap = &ap->arguments;
   a_const_char          *saved_sig;
-  a_boolean             may_terminate, first_time = TRUE;
+  a_boolean             may_terminate, requirements_met = FALSE;
 
-  /* The outer loop traverses segments in *sig: */
-  for (;;) {
+  /* Loop for each argument in the argument list. */
+  do {
     a_pack_expansion_stack_entry_ptr  pesep;
-    a_boolean                         more_pack_elements = TRUE;
-next_pack_element:
+    a_boolean                         any_more;
     /* Skip a "?" indicating that the argument list may terminate at this
        point. */
     if (*sig == '?') {
       may_terminate = TRUE;
       ++sig;
+      if (*sig == ',') ++sig;
       if (curr_token == tok_rparen) break;
     } else {
-      may_terminate = FALSE;
+      may_terminate = requirements_met;
     }  /* if */
-    if ((first_time || !more_pack_elements) &&
-        !begin_potential_pack_expansion_context(&pesep)) {
-      /* An empty pack expansion.  Check if additional arguments follow. */
-      if (!loop_token(tok_comma)) {
-        break;
-      } else {
-        continue;
-      }  /* if */
-    }  /* if */
-    first_time = FALSE;
+    requirements_met = FALSE;
     saved_sig = sig;
-    /* Traverse the next sig segment while scanning a corresponding attribute
-       argument.  This is wrapped in a loop to handle a '+' suffix. */
-    for (;;) {
-      sig = saved_sig;
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    while (any_more) {
       switch (*sig++) {
         case 'c':
           /* Scan a constant argument that is not a string literal.  Currently
@@ -1638,46 +1628,41 @@ next_pack_element:
           check_attr_config(FALSE, ap,
                             "invalid attribute signature configuration");
       }  /* switch */
-      if (more_pack_elements &&
-          end_potential_pack_expansion_context(
-                                    pesep, /*is_declarator=*/FALSE) != NULL) {
+      if (end_potential_pack_expansion_context(pesep,
+                                            /*is_declarator=*/FALSE) != NULL) {
         (*p_aap)->is_pack_expansion = TRUE;
       }  /* if */
       while (*p_aap != NULL) p_aap = &(*p_aap)->next;
-      if (more_pack_elements) {
-        more_pack_elements = advance_to_next_pack_element(pesep);
+      any_more = advance_to_next_pack_element(pesep);
+      if (*sig == '+') {
+        /* A repeated signature. */
+        if (curr_token == tok_rparen) {
+          /* If a right parenthesis is next, break out of this (otherwise
+             infinite) loop. */
+          ++sig;
+        } else {
+          /* Look for another argument with the same signature, but remember
+             that at least one argument with the proper signature has been
+             seen (in case there are no more, e.g., if a NULL parameter pack
+             follows). */
+          sig = saved_sig;
+          requirements_met = TRUE;
+        }  /* if */
       }  /* if */
-      if (*sig == '+' && (more_pack_elements || curr_token == tok_comma)) {
-        /* Skip the comma if needed and get another argument of the same
-           kind. */
-        if (!more_pack_elements) (void)get_token();
-      } else {
-        /* No more arguments to get. */
-        break;
-      }  /* if */
-    }  /* for */
-    if (*sig == '+') ++sig;
-    if (*sig != ')') {
-      /* Skip a "?" indicating that the argument list may terminate at this
-         point. */
       if (*sig == '?') {
-        may_terminate = TRUE;
+        /* Skip a "?" at the end of an argument (indicating that the argument
+           list may terminate at this point). */
         ++sig;
-        if (curr_token == tok_rparen) break;
+        may_terminate = TRUE;
       }  /* if */
-      check_attr_config(*sig == ',', ap,
-                        "invalid attribute signature configuration");
-      ++sig;
-    } else {
-      may_terminate = TRUE;
-      break;
-    }  /* if */
-    if (more_pack_elements) {
-      goto next_pack_element;
-    } else if (!loop_token(tok_comma)) {
-      break;
-    }  /* if */
-  }  /* for */
+      /* Go to next argument. */
+      if (*sig == ',') ++sig;
+    }  /* while */
+  } while (loop_token(tok_comma));
+  if (*sig == ')' && curr_token == tok_rparen) {
+    /* Signature expects a right parenthesis at this location. */
+    may_terminate = TRUE;
+  }  /* if */
   if (!may_terminate) {
     /* More arguments were expected. */
     pos_st_error(ec_missing_attribute_arguments, &pos_curr_token, ap->name);
