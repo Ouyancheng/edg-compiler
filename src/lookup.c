@@ -1463,7 +1463,10 @@ scope lookup.  options specifies the options being used for the lookup.
       rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
-      /* If rout_sym is not already in the lookup set, add it. */
+      /* If rout_sym is not already in the lookup set, add it (unless it is an
+         invisible symbol, presumably a routine only declared as a friend
+         declaration). */
+      if (rout_sym->is_invisible) continue;
       if (curr_sym_was_null ||
           !already_in_lookup_set(curr_sym, rout_sym, /*is_using_dir=*/TRUE,
                                  options)) {

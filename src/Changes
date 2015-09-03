@@ -1,5 +1,37 @@
 Version 4.11
 
+9/3/15   [EDGcpfe/16450]
+Friend declaration incorrectly found through using directive
+
+In modes where friend name injection is disabled (e.g., strict mode, recent
+GNU modes, etc.) the front end sometimes incorrectly found a function only
+declared in a friend declaration.  This could lead to spurious diagnostics or
+incorrect overload resolution.  For example:
+
+  namespace N {
+    struct B {};
+    struct D: B {};
+    void operator+(B&, int);   // (1)
+  }
+  struct S {
+    S(int);
+    friend void operator+(N::D&, S const&);  // (2)
+  };
+  class C {};
+  void operator+(N::B&, C const&);
+  using namespace N;
+  void g(D d) {
+    d+1;  // (3)
+  }
+
+In strict mode, the addition operator at line (3) should normally only find
+the declaration of operator+ at line (1), but the front end previously also
+found the (normally invisible) declaration at line (2) because of the presence
+of the using directive.  That in turn triggered a spurious ambiguity
+diagnostic.  That is now fixed (in modes with friend injection enabled, the
+example still leads to an ambiguity of course).
+
+
 9/3/15   [EDGcpfe/16174]
 Unevaluated references to local variables in generic lambdas
 

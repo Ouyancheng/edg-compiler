@@ -5662,8 +5662,8 @@ void add_friend_function_to_lookup_list_for_class(a_symbol_ptr  rout_sym,
                                                   a_type_ptr    class_type)
 /*
 rout_sym represents a non-class-member function that has been declared a
-friend of the specified class.  Enter it on a list that is used by
-in argument dependent lookup.  
+friend of the specified class.  Enter it on a list that is used by argument-
+dependent lookup.  
 */
 {
   a_class_symbol_supplement_ptr  cssp;

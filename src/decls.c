@@ -8889,11 +8889,11 @@ skip_overloading:;
 #if RECORD_HIDDEN_NAMES_IN_IL
     /* Block extern declarations have associated hidden name entries; so we
        must make sure there is an IL scope to attach those entries to. */
-      if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
-          scope_stack[effective_decl_level].il_scope == NULL &&
-          linkage != idl_none) {
-        (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
-      }  /* if */
+    if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
+        scope_stack[effective_decl_level].il_scope == NULL &&
+        linkage != idl_none) {
+      (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
+    }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     if (microsoft_mode && microsoft_specialization_redef) {
       /* Duplicate specialization definitions should not be kept in the symbol
