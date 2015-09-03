@@ -251,7 +251,7 @@ gives an error with --clang:
   X *x = new(2) X;
 
 
-8/24/15  [EDGcpfe/16292]
+8/24/15  [EDGcpfe/16292,EDGcpfe/16359]
 Memory region issues with lambdas  (IL CHANGE)
 
 Because local-scope lambdas were placed in memory regions separate from their
@@ -302,6 +302,19 @@ referenced" error.  Now fixed.
     int i = 1;
     auto l = [](auto j) { decltype(i+j) k{}; return k; };
     return l(1);
+  }
+
+In addition, if a lambda made use of a constexpr array from an enclosing
+function, the program could fail in a number of ways because of the memory
+region issue.  Once the memory region issue was resolved, such examples
+were still not handled properly.  A change has been made in lowering to
+make a copy of the constexpr array in the lambda body in such cases.
+
+  void f(int (*fp)(int), int i) { }
+  int main() {
+    constexpr int arr[] { 1,2,3,4,5,6 };
+    auto l =[](int i) { return arr[i]; };
+    f(l, 2);
   }
 
 
