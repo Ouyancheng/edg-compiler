@@ -15162,36 +15162,6 @@ cast.  See lower_expr for typical invocation.
           /* Note that the expression may no longer be an enk_variable
              after this lowering. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
-        } else if (var->storage_class == (a_storage_class)sc_auto &&
-                   var->source_corresp.enclosing_routine != NULL &&
-                   var->source_corresp.enclosing_routine !=
-                               innermost_function_scope->variant.routine.ptr) {
-          /* A variable with automatic storage duration that isn't local to the
-             current routine.  This can happen for constexpr arrays, e.g.,
-               void f() {
-                 constexpr int x[] { 42,43,44,45,46 };
-                 auto index =[](int i) { return x[i]; };
-               }
-             In this case, x is local to f, but referred to by the lambda's
-             operator() routine.  Replace the variable with a local static
-             temporary that is initialized with a copy of the original
-             variable's constant initializer. */
-          a_variable_ptr new_var;
-          a_constant_ptr new_con, old_con = initializer_constant(var);
-          check_assertion(is_array_type(var->type) && old_con != NULL);
-          /* Copy the constant into the current scope. */
-          new_con = copy_unshared_constant(old_con);
-          new_con->expr = NULL;
-          new_var = make_unnamed_local_static_variable(var->type,
-                                                   /*in_function_scope=*/TRUE);
-          /* To initialize a local static variable to an aggregate we use
-             a local-static-variable-init entry. */
-          (void)make_local_static_variable_init(new_var,
-                                                innermost_function_scope,
-                                                (an_init_kind)initk_static,
-                                                new_con,
-                                                (a_dynamic_init_ptr)NULL);
-          expr->variant.variable = new_var;
         }  /* if */
       }  /* if */
       break;
