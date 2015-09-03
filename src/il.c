@@ -3542,7 +3542,7 @@ by recording that the last sequence number contained therein is seq_number.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
-static void db_indent(int indent)
+void db_indent(int indent)
 /*
 Indent the current line by "indent" characters.
 */

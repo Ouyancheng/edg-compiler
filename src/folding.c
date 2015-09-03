@@ -25,6 +25,7 @@ folding.c -- Folding routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "folding.h"
+#include "interpret.h"
 #include "layout.h"
 #include "exprutil.h"
 #include "il_walk.h"
@@ -11447,8 +11448,12 @@ backing expression for the resulting constant.
 
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
-  clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
+  if (relaxed_constexpr_enabled) {
+    folded = interpret_constexpr_ctor(ctor_dip, result_con);
+  } else {
+    clear_constexpr_evaluation_block(&ceblock, pos);
+    folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
+  }  /* if */
   if (folded && record_backing_expr) {
     add_temp_init_backing_expression(result_con, ctor_dip);
   }  /* if */

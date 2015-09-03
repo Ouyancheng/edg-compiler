@@ -2392,6 +2392,8 @@ extern a_scope_ptr function_scope_for_local_type(a_type_ptr type);
 extern a_scope_ptr scope_for_routine(a_routine_ptr rout);
 
 #if DEBUG
+extern void db_indent(int indent);
+
 extern void db_template_arg_list(a_template_arg_ptr tap);
 
 extern void db_template_name(a_template_ptr  tp);

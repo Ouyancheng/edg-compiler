@@ -1646,6 +1646,7 @@ interpreter's limits.
   a_boolean         any_virtual_bases =
                       tp->variant.class_struct_union.any_virtual_base_classes;
 
+  /* FIXME: virtual bases only in error cases? => fail interpretation */
   if (tp->variant.class_struct_union
                  .any_virtual_functions_including_in_base_classes ||
       any_virtual_bases) {
@@ -1655,7 +1656,9 @@ interpreter's limits.
   }  /* if */
   /* Allocate each proper field and record the field offsets. */
   fp = tp->variant.class_struct_union.field_list;
-  for (; fp != NULL; fp = fp->next) {
+  for (fp = next_initializable_field(fp);
+       fp != NULL;
+       fp = next_initializable_field(fp->next)) {
     do_host_alignment(total_size);
     map_byte_count(&persistent_map, fp, total_size);
     total_size += value_bytes_for_type(ips, fp->type);
@@ -1756,6 +1759,68 @@ overflow.
   if (ovflo) (void)fprintf(f_debug, "overflow!\n");
   return val;
 }  /* db_int_val */
+
+
+void db_object(a_byte      *addr,
+               a_type_ptr  tp)
+/*
+Output the contents of the interpreted object of type tp stored at addr.
+*/
+{
+  static int indent = 0;
+  db_indent(indent);
+  tp = skip_typerefs(tp);
+  switch (tp->kind) {
+    case tk_integer:
+      { a_host_large_integer  val;
+        a_boolean             ovflo;
+        conv_integer_value_to_host_large_integer(
+                  (an_integer_value *)addr, /*is_signed=*/TRUE, &val, &ovflo);
+        (void)fprintf(f_debug, "%ld%s\n", (long)val,
+                      ovflo ? " (overflow!)" : "");
+      }
+      break;
+    case tk_struct:
+    case tk_class:
+      {
+        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        a_byte_count      offset;
+        (void)fprintf(f_debug, "{\n");
+        indent += 2;
+        /* Output the field values. */
+        for (fp = next_initializable_field(fp);
+             fp != NULL;
+             fp = next_initializable_field(fp->next)) {
+          db_indent(indent);
+          (void)fprintf(f_debug, "field ");
+          db_name(&fp->source_corresp);
+          (void)fprintf(f_debug, "= \n");
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          db_object(addr+offset, fp->type);
+        }  /* for */
+        /* Output the base class values. */
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct && !bcp->is_virtual) {
+            db_indent(indent);
+            (void)fprintf(f_debug, "base ");
+            db_type_name(bcp->type);
+            (void)fprintf(f_debug, "= \n");
+            get_mapped_byte_count(&persistent_map, bcp, offset);
+            db_object(addr+offset, bcp->type);
+          }  /* if */
+        }  /* for */
+        indent -= 2;
+        (void)fprintf(f_debug, "}\n");
+      }
+      break;
+    default:
+      (void)fprintf(f_debug, "db_object: unimplemented type:");
+      db_type_name(tp);
+      (void)fprintf(f_debug, "\n");
+      break;
+  }  /* switch */
+}  /* db_object */
 
 
 void db_call_stack(void  *ips)
@@ -1995,6 +2060,11 @@ static a_boolean do_constexpr_expression(
                                        a_byte                *result_storage);
 
 
+static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
+                                   a_dynamic_init_ptr    dip,
+                                   a_byte                *result_storage);
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -2015,8 +2085,10 @@ Evaluate the given dynamic initialization for the given storage.
       result = do_constexpr_expression(ips, dip->variant.expression,
                                        result_storage);
       break;
-    case dik_class_result_via_ctor:
     case dik_constructor:
+      result = do_constexpr_ctor(ips, dip, result_storage);
+      break;
+    case dik_class_result_via_ctor:
     case dik_bitwise_copy:
       /* FIXME: NYI. */
       unexpected_condition();
@@ -2705,12 +2777,11 @@ Return TRUE if no error occurred; otherwise, return FALSE and update *ips
 accordingly.
 */
 {
-  an_expr_node_ptr  callee_node, arg_nodes, routine_node, arg;
+  an_expr_node_ptr  callee_node, routine_node, arg;
   a_routine_ptr     callee;
   a_boolean         result = TRUE;
 
   callee_node = call_node->variant.operation.operands;
-  arg_nodes = callee_node->next;
   /* FIXME: eok_dot_static case may not be handled correctly by the following
      call. */
   callee = routine_and_node_from_function_expr(callee_node, &routine_node);
@@ -2737,7 +2808,7 @@ accordingly.
     a_statement_ptr
                     block_stmt = callee_scope->assoc_block;
     a_call_frame    frame;
-    a_variable_ptr  param = callee_scope->variant.routine.parameters;
+    a_variable_ptr  param = callee_scope->variant.routine.parameters, this_var;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -2748,10 +2819,25 @@ accordingly.
       /* FIXME: record an error. */
       goto done;
     }  /* if */
-    /* Set up arguments, including "this" if applicable. */
-    /* FIXME: handle "this". */
+    /* Set up arguments, starting with "this" if applicable. */
+    arg = callee_node->next;
     save_storage_stack(ips, saved_stack);
-    for (arg = arg_nodes; arg != NULL; arg = arg->next, param = param->next) {
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (this_var != NULL) {
+      a_type_ptr    tp = skip_typerefs(arg->type);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp); 
+      a_byte        *arg_bytes;
+      alloc_stack_bytes(ips, n_bytes, arg_bytes);
+      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        result = FALSE;
+        goto reclaim_arg_storage;
+      }  /* if */
+      map_stack_bytes(ips, this_var, arg_bytes);
+      map_byte_count(&ips->map, &this_var->storage_class,
+                     ips->curr_alloc_seq_number);
+      arg = arg->next;
+    }  /* if */
+    for (; arg != NULL; arg = arg->next, param = param->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp);
       a_byte        *arg_bytes;
@@ -2797,6 +2883,128 @@ reclaim_arg_storage:
 done:
   return result;
 }  /* do_constexpr_call */
+
+
+static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
+                                   a_dynamic_init_ptr    dip,
+                                   a_byte                *result_storage)
+/*
+Interpret the constructor call represented by the given dynamic initialization
+entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
+*ips accordingly.
+
+This is similar to do_constexpr_call, but the call has a different
+representation, and mem-initializers must be interpreter prior to interpreting
+the body of the (constructor) function proper.
+*/
+{
+  a_routine_ptr     callee = dip->variant.constructor.ptr;
+  a_boolean         result = TRUE;
+
+  /* Retrieve the routine scope, or issue an error. */
+  if (callee->function_def_number == NULL_function_def_number) {
+    /* FIXME: error. */
+    result = FALSE;
+#if /*FIXME*/0
+  } else if (ellipsis_case) {
+    /* error. */
+    result = FALSE;
+#endif /* 0 */
+  } else if (cost_exceeded(ips)) {
+    /* FIXME: record an error. */
+    result = FALSE;
+  } else {
+    a_scope_ptr       callee_scope = scope_for_routine(callee);
+    a_storage_stack_state
+                      saved_stack;
+    a_statement_ptr   block_stmt = callee_scope->assoc_block;
+    a_call_frame      frame;
+    an_expr_node_ptr  arg = dip->variant.constructor.args;
+    a_variable_ptr    param = callee_scope->variant.routine.parameters,
+                      this_var;
+    a_constructor_init_ptr
+                      ctor_init;
+    /* Don't attempt to interpret a non-constexpr function.  The flag
+       scope->is_constexpr_routine is set at the end of a constexpr function
+       definition, so this also prevents the interpretation of a function that
+       is not fully parsed (e.g., requested due to a recursive call in a
+       constexpr function). */
+    if (!callee_scope->is_constexpr_routine) {
+      result = FALSE;
+      /* FIXME: record an error. */
+      goto done;
+    }  /* if */
+    /* Set up arguments, starting with "this" if applicable. */
+    save_storage_stack(ips, saved_stack);
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (this_var != NULL) {
+      map_stack_bytes(ips, this_var, result_storage);
+      map_byte_count(&ips->map, &this_var->storage_class,
+                     ips->curr_alloc_seq_number);
+    } else {
+      /* A constructor should always have a "this" parameter. */
+      unexpected_condition();
+    }  /* if */
+    for (; arg != NULL; arg = arg->next, param = param->next) {
+      a_type_ptr    tp = skip_typerefs(arg->type);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp);
+      a_byte        *arg_bytes;
+      alloc_stack_bytes(ips, n_bytes, arg_bytes);
+      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        /* Undo the mappings so far. */
+        a_variable_ptr  up = callee_scope->variant.routine.parameters;
+        for (; up != param; up = up->next) {
+          unmap_stack_bytes(ips, up);
+          unmap_ptr(&ips->map, &up->storage_class);
+        }  /* for */
+        result = FALSE;
+        goto reclaim_arg_storage;
+      }  /* if */
+/* FIXME!  This mapping must be done after all the arguments have been
+   evaluated because other arguments might refer to the same parameters in
+   recursive calls. */
+      map_stack_bytes(ips, param, arg_bytes);
+      map_byte_count(&ips->map, &param->storage_class,
+                     ips->curr_alloc_seq_number);
+    }  /* for */
+    /* Set up the call frame. */
+    push_call_frame(ips, &frame, callee, result_storage);
+    /* Run the constructor initializers. */
+    ctor_init = callee_scope->variant.routine.constructor_inits;
+    for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+      a_byte_count  offset;
+      if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
+        a_field_ptr  fp = ctor_init->variant.field;
+        get_mapped_byte_count(&persistent_map, fp, offset);
+      } else {
+        a_base_class_ptr  bcp = ctor_init->variant.base_class;
+        get_mapped_byte_count(&persistent_map, bcp, offset);
+      }  /* if */
+      do_constexpr_dynamic_init(ips, ctor_init->initializer,
+                                result_storage+offset);
+    }  /* for */
+    /* Run the function's top-level block statement. */
+    if (block_stmt->kind != (a_statement_kind)stmk_block) {
+      check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
+      /* FIXME: should be an ordinary failure */
+      unexpected_condition();
+    } else {
+      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
+    }  /* if */
+    pop_call_frame(ips);
+    /* Release the storage and mappings of the parameters. */
+    param = callee_scope->variant.routine.parameters;
+    for (; param != NULL; param = param->next) {
+      unmap_stack_bytes(ips, param);
+      unmap_ptr(&ips->map, &param->storage_class);
+    }  /* for */
+reclaim_arg_storage:
+    restore_storage_stack(ips, saved_stack);
+    ips->cost += 1;
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_ctor */
 
 
 static a_boolean get_value_from_address_constant(
@@ -3045,6 +3253,25 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else {
                 unexpected_condition();  /* FIXME: implement conversions. */
+              }  /* if */
+              break;
+            case eok_base_class_cast:
+              if (tp->kind == (a_type_kind)tk_pointer) {
+                /* An address adjustment. */
+                a_constexpr_address  *result_addr =
+                                         (a_constexpr_address*)result_storage;
+                a_type_ptr           dtp, btp;
+                a_base_class_ptr     bcp;
+                a_byte_count         offset;
+                dtp = skip_typerefs(opnd1_type->variant.pointer.type);
+                btp = skip_typerefs(tp->variant.pointer.type);
+                bcp = find_direct_base_class_of(dtp, btp);
+                get_mapped_byte_count(&persistent_map, bcp, offset);
+                *result_addr = *(a_constexpr_address *)opnd1_value;
+                result_addr->address += offset;
+                result_addr->flags &= ~CA_ARRAY_ELEMENT;
+              } else {
+                /* FIXME: NYI, slicing. */
               }  /* if */
               break;
             case eok_bool_cast:
@@ -4787,18 +5014,115 @@ that are needed for the operation of the interpreter.
 }  /* initialize_interpreter_data */
 
 
-a_boolean interpret_constexpr_call(an_expr_node_ptr      call_expr,
-                                   a_constant_ptr        result_con)
+static a_boolean copy_interpreter_object_to_constant(a_byte          *object,
+                                                     a_type_ptr      type,
+                                                     a_constant_ptr  con)
+/*
+The storage pointed to by object holds a representation of a value of the given
+type produced by the interpreter.  Create in *result a constant representing
+that same value.  Return FALSE if this cannot be done (e.g., because the object
+represents an address of interpreter storage).
+*/
+{
+  a_boolean   result = TRUE;
+
+  con->type = type;
+  con->is_result_of_constexpr_call = TRUE;
+  type = skip_typerefs(type);
+  switch (type->kind) {
+    case tk_integer:
+      set_constant_kind(con, (a_constant_repr_kind)ck_integer);
+      con->variant.integer_value = *(an_integer_value *)object;
+      break;
+    case tk_float:
+      set_constant_kind(con, (a_constant_repr_kind)ck_float);
+      con->variant.float_value = *fp_value(object);
+      break;
+    case tk_pointer:
+      { a_constexpr_address *cap = (a_constexpr_address *)object;
+        if (is_runtime_data_address(cap)) {
+          /* Copy the address constant to result_con and release the local
+             constant. */
+          copy_constant(cap->variant.addr_con, con);
+          release_local_constant(&cap->variant.addr_con);
+        } else {
+          /* The address designates an interpreter value, which will be a
+             dangling pointer or reference and thus cannot be constant. */
+          result = FALSE;
+          if (is_variant_path(cap)) {
+            release_variant_path(cap);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case tk_struct:
+    case tk_class:
+      { a_base_class_ptr  bcp = base_classes_of(type);
+        a_field_ptr       fp = type->variant.class_struct_union.field_list;
+        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        /* Add direct base sub-object constants first. */
+        for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+          a_byte_count    offset;
+          a_constant_ptr  cp;
+          if (!bcp->direct || bcp->is_virtual) continue;
+          cp = alloc_constant((a_constant_repr_kind)ck_error);
+          get_mapped_byte_count(&persistent_map, bcp, offset);
+          if (!copy_interpreter_object_to_constant(
+                                              object+offset, bcp->type, cp)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          cp->constant_for_base_class_from_constexpr_folding = TRUE;
+          if (con->variant.aggregate.first_constant == NULL) {
+            con->variant.aggregate.first_constant = cp;
+          } else {
+            con->variant.aggregate.last_constant->next = cp;
+          }  /* if */
+          con->variant.aggregate.last_constant = cp;
+        }  /* for */
+        if (!result) break;
+        /* Now add the constants for initializable fields. */
+        fp = next_initializable_field(fp);
+        for (; fp != NULL; fp = next_initializable_field(fp->next)) {
+          a_byte_count    offset;
+          a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!copy_interpreter_object_to_constant(
+                                               object+offset, fp->type, cp)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          if (con->variant.aggregate.first_constant == NULL) {
+            con->variant.aggregate.first_constant = cp;
+          } else {
+            con->variant.aggregate.last_constant->next = cp;
+          }  /* if */
+          con->variant.aggregate.last_constant = cp;
+        }  /* for */
+      }
+      break;
+    case tk_union:
+      /* FIXME */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* copy_interpreter_object_to_constant */
+
+
+a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
+                                   a_constant_ptr    result_con)
 /*
 Attempt to interpret the call represented by call_expr.  Return TRUE if
-successful, and produce the resulting the value in result_con.  Otherwise,
+successful, and produce the resulting value in result_con.  Otherwise,
 return FALSE.
 */
 {
   a_boolean             result = FALSE;
   an_interpreter_state  ips;
-  a_byte                result_bytes[VALUE_BYTES_FOR_SCALAR];
   a_byte                *result_storage;
+  a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
   if (trans_unit_initialization_needed) {
@@ -4806,41 +5130,14 @@ return FALSE.
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
-  if (result_type->kind == (a_type_kind)tk_integer) {
-    clear_constant(result_con, (a_constant_repr_kind)ck_integer);
-    result_storage = (a_byte*)&result_con->variant.integer_value;
-  } else if (result_type->kind == (a_type_kind)tk_float) {
-    clear_constant(result_con, (a_constant_repr_kind)ck_float);
-    result_storage = (a_byte*)&result_con->variant.float_value;
-  } else if (result_type->kind == (a_type_kind)tk_pointer) {
-    /* A pointer or reference.  The result will be the an
-       a_constexpr_address, which will be further handled after
-       interpretation is finished. */
-    result_storage = result_bytes;
-  } else {
-    /* FIXME: Handle other type kinds */
-    result_storage = NULL;
-    unexpected_condition();
-  }  /* if */
+  n_bytes = value_bytes_for_type(&ips, result_type); 
+  alloc_stack_bytes(&ips, n_bytes, result_storage);
   result_con->type = result_type;
   result = do_constexpr_call(&ips, call_expr, result_storage);
-  if (result && result_type->kind == (a_type_kind)tk_pointer) {
-    /* A constexpr function can return an address constant; if it returns
-       an interpreter address, the invocation is non-constant. */
-    a_constexpr_address *cap = (a_constexpr_address *)result_storage;
-    if (is_runtime_data_address(cap)) {
-      /* Copy the address constant to result_con and release the local
-         constant. */
-      copy_constant(cap->variant.addr_con, result_con);
-      release_local_constant(&cap->variant.addr_con);
-    } else {
-      /* The address designates an interpreter value, which will be a
-         dangling pointer or reference and thus cannot be constant. */
-      result = FALSE;
-      if (is_variant_path(cap)) {
-        release_variant_path(cap);
-      }  /* if */
-    }  /* if */
+  if (result &&
+      !copy_interpreter_object_to_constant(
+                                   result_storage, result_type, result_con)) {
+    result = FALSE;
   }  /* if */
   release_interpreter_state(&ips);
 #if CHECKING
@@ -4854,6 +5151,59 @@ return FALSE.
 #endif /* CHECKING */
   return result;
 }  /* interpret_constexpr_call */
+
+
+a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
+                                   a_constant_ptr      result_con)
+/*
+Attempt to interpret the constructor call represented by dip.  Return TRUE if
+successful, and produce the resulting value in result_con.  Otherwise,
+return FALSE.
+*/
+{
+  a_boolean             result = FALSE;
+  a_routine_ptr         ctor;
+  an_interpreter_state  ips;
+  a_byte                *result_storage;
+  a_byte_count          n_bytes;
+  a_type_ptr            result_type;
+
+  if (is_error_dynamic_init(dip)) {
+    goto done;
+  } else {
+    ctor = dip->variant.constructor.ptr;
+    if (ctor == NULL || !ctor->is_constexpr) {
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips);
+  result_type = parent_class_of(ctor);
+  n_bytes = value_bytes_for_type(&ips, result_type); 
+  alloc_stack_bytes(&ips, n_bytes, result_storage);
+  /* FIXME check failure of value_bytes_for_type and alloc_stack_bytes. */
+  result = do_constexpr_ctor(&ips, dip, result_storage);
+  if (result &&
+      !copy_interpreter_object_to_constant(
+                                   result_storage, result_type, result_con)) {
+    result = FALSE;
+  }  /* if */
+  release_interpreter_state(&ips);
+#if CHECKING
+  /* Check that all variant path entries have been freed. */
+  { unsigned long             n_freed = 0;
+    a_variant_path_entry_ptr  vpep = free_variant_path_entries;
+    for (; vpep != NULL; vpep = vpep->next) ++n_freed;
+    check_assertion_str(n_freed == n_variant_path_entries,
+                        "Not all variant path entries freed");
+  }
+#endif /* CHECKING */
+done:
+  return result;
+}  /* interpret_constexpr_ctor */
 
 
 void interpret_trans_unit_init(void)

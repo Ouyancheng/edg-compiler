@@ -3546,12 +3546,10 @@ identical to base_class_type.  Return NULL if none is found.
 {
   a_base_class_ptr  bcp;
 
-  db_enter(4, "find_direct_base_class_of");
   bcp = base_classes_of(derived_class);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && same_entities(bcp->type, base_class_type)) break;
   }  /* for */
-  db_exit();
   return bcp;
 }  /* find_direct_base_class_of */
 
