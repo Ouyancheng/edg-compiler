@@ -1,5 +1,21 @@
 Version 4.11
 
+9/3/15   [EDGcpfe/16174]
+Unevaluated references to local variables in generic lambdas
+
+The front end sometimes issued a spurious warning or error when a generic
+lambda references a local variable without evaluating that variable.  For
+example, in strict C++14 mode:
+
+  void g(int i) {
+    [&](auto x) -> decltype(i) { return 0; };
+      // Previously, the reference to "i" elicited an error in
+      // strict C++14 mode.  Now this is silently accepted.
+  }
+
+This is now fixed.
+
+
 9/2/15   [EDGcpfe/16449]
 Assertion failure in end_potential_pack_expansion_context
 
