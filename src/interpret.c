@@ -2980,11 +2980,16 @@ the body of the (constructor) function proper.
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         get_mapped_byte_count(&persistent_map, bcp, offset);
       }  /* if */
-      do_constexpr_dynamic_init(ips, ctor_init->initializer,
-                                result_storage+offset);
+      if (!do_constexpr_dynamic_init(ips, ctor_init->initializer,
+                                     result_storage+offset)) {
+        result = FALSE;
+        break;
+      }  /* if */
     }  /* for */
     /* Run the function's top-level block statement. */
-    if (block_stmt->kind != (a_statement_kind)stmk_block) {
+    if (!result) {
+      /* Something went wrong.  Don't perform additional interpretation. */
+    } else if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
       /* FIXME: should be an ordinary failure */
       unexpected_condition();
