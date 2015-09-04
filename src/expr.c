@@ -28570,7 +28570,9 @@ indicates that the symbol is an anonymous union and cannot be captured.
                  !expr_stack->potentially_evaluated &&
                  (!expr_stack->is_type_operator_arg_expression ||
                   depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
-                  !is_vla_type(var->type)) {
+                  !(is_vla_type(var->type) ||
+                    (expr_stack->is_vla_dimension_expression &&
+                     !var->constant_valued))) {
         /* Allow references from lambda headers to nonstatic variables inside
            sizeof (and similar) expressions.  (Except VLA variables, since
            sizeof applied to such variables involves a run-time computation.)

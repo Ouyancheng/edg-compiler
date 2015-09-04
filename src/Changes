@@ -350,6 +350,19 @@ in such cases.
     f(l, 2);
   }
 
+As part of this change, the diagnosis of a local class containing a VLA type
+dimensioned with a variable from an enclosing function scope has been slightly
+improved.  For example:
+
+  int main() {
+    int n = 10;
+    struct S {
+      int x;
+      A() : x(sizeof(typeof(int[n]))) {}
+        // Previously a warning; now an error.
+    };
+  }
+
 
 8/22/15  [EDGcpfe/16279]
 C++-generating back end, clang compatibility: elaborated-type-specifiers for
