@@ -1659,7 +1659,7 @@ ak_unrecognized.
       if (*sig == ',') ++sig;
     }  /* while */
   } while (loop_token(tok_comma));
-  if (*sig == ')' && curr_token == tok_rparen) {
+  if (*sig == ')') {
     /* Signature expects a right parenthesis at this location. */
     may_terminate = TRUE;
   }  /* if */
