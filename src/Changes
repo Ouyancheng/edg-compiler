@@ -29,7 +29,7 @@ the declaration of operator+ at line (1), but the front end previously also
 found the (normally invisible) declaration at line (2) because of the presence
 of the using directive.  That in turn triggered a spurious ambiguity
 diagnostic.  That is now fixed (in modes with friend injection enabled, the
-example still leads to an ambiguity of course).
+example still leads to an ambiguity, of course).
 
 
 9/3/15   [EDGcpfe/16174]
