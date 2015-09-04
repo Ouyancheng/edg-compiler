@@ -18268,9 +18268,12 @@ typedef struct a_lambda_capture {
     a_variable_ptr
 		variable;
 			/* Pointer to the variable entry for the local variable
-			   or "this" pointer to be captured.  NULL for
-			   variables captured indirectly through an enclosing
-			   lambda's capture (except while in the front end). */
+			   or "this" pointer to be captured.  This is also
+			   set for variables captured indirectly through an
+			   enclosing lambda's capture, but in that case the
+			   field capture_info.source_closure_field (below) will
+			   indicate which field of the enclosing lambda should
+			   be used instead. */
     /* When is_init_capture is TRUE. */
     a_dynamic_init_ptr
 		initializer;
@@ -18282,9 +18285,7 @@ typedef struct a_lambda_capture {
 			/* If the variable being captured is reachable only
 			   because it's captured by an intervening lambda,
 			   this gives the field of the closure class that
-			   should be the source of the current capture.
-			   When this field is non-NULL, the "variable" field
-			   will be NULL (except within the front end). */
+			   should be the source of the current capture. */
     /* When is_init_capture is TRUE: */
     struct a_decl_parse_state
     		*init_capture_dps;

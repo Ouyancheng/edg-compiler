@@ -1,5 +1,31 @@
 Version 4.11
 
+9/4/15   [EDGcpfe/16417]
+Representation of indirect captures
+
+When an inner lambda nested in an outer lambda captures a variable from a scope
+enclosing the outer lambda, the outer lambda also captures that variable.  For
+example:
+
+  int g(int n) {
+    return [=]{  // Outer lambda captures n for inner lambda.
+             return [=]{ return n; };  // Inner lambda captures n indirectly.
+           }()();
+
+The inner lambda's a_lambda_capture entry therefore points to the field of the
+outer lambda holding the captured variable value (via its field
+capture_info.source_closure_field).  Previously, the inner capture entry could
+not safely point to the original variable entry because of memory region
+constraints.  When the IL was written out to a file, the variable pointer was
+therefore cleared (but that clearing didn't happen if the IL was not written
+to file).
+
+With the changes for EDGcpfe/16292,EDGcpfe/16359 (see entry of 8/24/15 below)
+the problematic memory region constraint has been lifted.  A change has now
+been made to keep a pointer to the original variable entry in such cases, and
+this independently of the front end configuration.
+
+
 9/3/15   [EDGcpfe/16450]
 Friend declaration incorrectly found through using directive
 

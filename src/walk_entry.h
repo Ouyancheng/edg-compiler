@@ -3561,15 +3561,7 @@ after_entry_from_class:
                    iek_dynamic_init);
           conditionally_clear_fe_pointer(ptr->capture_info.init_capture_dps);
         } else {
-          if (ptr->capture_info.source_closure_field != NULL) {
-            /* captured.variable is an indirectly captured variable; i.e., the
-               variable is not local to the current enclosing function, but to
-               a function enclosing that one.  So we can only keep that field
-               during front end processing. */
-            conditionally_clear_fe_pointer(ptr->captured.variable);
-          } else {
-            remap_ptr(ptr->captured.variable, a_variable_ptr, iek_variable);
-          }  /* if */
+          remap_ptr(ptr->captured.variable, a_variable_ptr, iek_variable);
           remap_ptr(ptr->capture_info.source_closure_field, a_field_ptr,
                     iek_field);
         }  /* if */
