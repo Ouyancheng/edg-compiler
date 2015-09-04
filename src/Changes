@@ -340,8 +340,8 @@ In addition, if a lambda made use of a constexpr array from an enclosing
 function, the program could fail in a number of ways because of the memory
 region issue.  In addition to the memory region issue, such examples
 were not handled properly in IL lowering.  A change has been made in
-lowering to make a copy of the constexpr array in the lambda body in such
-cases.
+lowering to make a copy of the constexpr array in the lambda call operator
+in such cases.
 
   void f(int (*fp)(int), int i) { }
   int main() {
