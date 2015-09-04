@@ -20807,6 +20807,7 @@ The routine body is not generated until it is known to be needed.
                                 gsfd;
 
   db_enter(3, "check_special_member_functions");
+  check_assertion(!template_dependent_context());
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
   init_generated_special_function_descr(&gsfd);
@@ -20968,7 +20969,6 @@ The routine body is not generated until it is known to be needed.
                  cssp->destructor == NULL;
   if ((generate_move_operations ||
        (microsoft_mode && microsoft_version < 1900)) &&
-      !is_template_dependent_context() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
       !is_immediate_managed_class_type(class_type) &&
@@ -21010,10 +21010,8 @@ The routine body is not generated until it is known to be needed.
     gsfd.warn_about_suppressed_copy_assign = FALSE;
     gsfd.warn_about_suppressed_dtor = FALSE;
   }  /* if */
-  if (!is_template_dependent_context()) {
-    /* Check the type of "= default" special members. */
-    check_defaulted_members(class_type, &gsfd);
-  }  /* if */
+  /* Check the type of "= default" special members. */
+  check_defaulted_members(class_type, &gsfd);
   if (declare_default_ctor) {
     if ((microsoft_mode && microsoft_version < 1900) &&
        !cpp11_mode && gsfd.suppress_default_ctor) {
