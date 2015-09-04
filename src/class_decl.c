@@ -20807,7 +20807,7 @@ The routine body is not generated until it is known to be needed.
                                 gsfd;
 
   db_enter(3, "check_special_member_functions");
-  check_assertion(!template_dependent_context());
+  check_assertion(!is_template_dependent_context());
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
   init_generated_special_function_descr(&gsfd);
