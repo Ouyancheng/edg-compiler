@@ -31376,6 +31376,7 @@ see expr.h).
        first case or a tok_identifier in the latter case. */
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
   }  /* if */
+repeat_switch:
   switch ((int)curr_token) {
     case tok_colon_colon:
       if (curr_expr_kind_is(ek_pp)) {
@@ -31453,7 +31454,7 @@ handle_identifier:
               if (symbol_is(key_sym, sk_keyword)) {
                 check_assertion(key_sym->is_invisible);
                 curr_token = (a_token_kind)key_sym->variant.keyword.token;
-                goto handle_unary_type_trait_helper;
+                goto repeat_switch;
               }  /* if */
             }  /* for */
           }  /* if */
@@ -31789,7 +31790,6 @@ handle_identifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
       /* Various single-type unary traits helpers. */
-handle_unary_type_trait_helper:
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
       break;
