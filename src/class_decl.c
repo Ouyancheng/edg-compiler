@@ -28258,7 +28258,8 @@ wrap_up_class_definition.
        with nonvirtual destructors. */
     check_base_class_destructors(class_state);
     if (!class_type->variant.class_struct_union.
-                                           is_ms_instantiated_nonreal_class) {
+                                           is_ms_instantiated_nonreal_class &&
+        !is_template_dependent_context()) {
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
       check_special_member_functions(class_type, class_state);
@@ -28322,7 +28323,7 @@ wrap_up_class_definition.
       {
         report_virtual_function_ambiguities(class_type);
       }  /* if */
-    } else {
+    } else if (!is_template_dependent_context()) {
       if (constexpr_enabled && !class_state->has_field_initializer) {
         /* If there are no virtual base classes, a generated default
            constructor may be constexpr.  If there are no pending fixups for
