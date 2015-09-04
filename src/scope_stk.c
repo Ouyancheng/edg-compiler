@@ -2441,8 +2441,9 @@ static a_memory_region_number get_enclosing_memory_region(
 /*
 Determine if assoc_routine is a "top-level" routine.   If it is not,
 find the enclosing routine and return its memory region number.
-If it is top-level, return NULL_region_number.  A top-level routine is
-one that is at namespace scope or non-local class scope.
+If it is top-level, return NULL_region_number.  A top-level function is any
+function that is neither a lambda defined in a function scope, nor the
+instantiation of a generic lambda defined in a function scope.
 */
 {
   a_memory_region_number	result = NULL_region_number;

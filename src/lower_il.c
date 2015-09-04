@@ -15170,7 +15170,7 @@ cast.  See lower_expr for typical invocation.
              current routine.  This can happen for constexpr arrays, e.g.,
                void f() {
                  constexpr int x[] { 42,43,44,45,46 };
-                 auto index =[](int i) { return x[i]; };
+                 auto index = [](int i) { return x[i]; };
                }
              In this case, x is local to f, but referred to by the lambda's
              operator() routine.  Replace the variable with a local static
