@@ -10093,8 +10093,10 @@ p_tp may equal &rp->type.
 */
 {
   /* Implicit exception specifications are generated only if
-     implicit_noexcept_enabled is TRUE. */
-  if (exceptions_enabled && implicit_noexcept_enabled) {
+     implicit_noexcept_enabled is TRUE.  (They're not generated at all for
+     prototype instantiations.) */
+  if (exceptions_enabled && implicit_noexcept_enabled &&
+      !rp->is_prototype_instantiation) {
     a_type_ptr  tp = *p_tp, old_tp;
     if (tp->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info,
