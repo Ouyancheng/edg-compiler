@@ -17356,7 +17356,7 @@ expression, and return the result in *result (or an error indication in
   a_dynamic_init_ptr
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
-  a_boolean         template_case = FALSE;
+  a_boolean         template_case = FALSE, dependent_new_type = FALSE;
   a_boolean         force_dependent = FALSE;
   a_boolean         new_type_involves_auto = FALSE;
   a_boolean         using_expr_cache = FALSE;
@@ -18165,6 +18165,7 @@ expression, and return the result in *result (or an error indication in
   if (is_template_dependent_context() &&
       is_template_dependent_type(new_type)) {
     template_case = TRUE;
+    dependent_new_type = TRUE;
   }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
@@ -18176,7 +18177,7 @@ expression, and return the result in *result (or an error indication in
          Platform::Array, however. */
       (cppcx_enabled || !cli_array_new) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      !template_case) {
+      !dependent_new_type) {
     cssp = symbol_supplement_for_class(base_new_type);
     ctor_sym = cssp->constructor;
   }  /* if */
