@@ -1657,6 +1657,10 @@ ak_unrecognized.
       }  /* if */
       /* Go to next argument. */
       if (*sig == ',') ++sig;
+      if (curr_token == tok_comma && *sig == ')') {
+        /* Something like attribute(0,).  Let the caller issue the error. */
+        goto done;
+      }  /* if */
     }  /* while */
   } while (loop_token(tok_comma));
   if (*sig == ')') {
@@ -1668,6 +1672,7 @@ ak_unrecognized.
     pos_st_error(ec_missing_attribute_arguments, &pos_curr_token, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
+done:;
 }  /* scan_attr_arg_list */
 
 
