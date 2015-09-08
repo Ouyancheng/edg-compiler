@@ -3,7 +3,7 @@ Version 4.11
 9/4/15   [EDGcpfe/16496]
 Abort on incomplete member type in Microsoft-mode class template
 
-In Microsoft mode, class templates can have member of incomplete type (the
+In Microsoft mode, class templates can have members of incomplete type (the
 type has to be complete when a real instantiation is done).  In modes with
 microsoft_version >= 1900, however, such class templates would trigger an
 internal error in select_overloaded_copy_constructor ("NULL constructor").
