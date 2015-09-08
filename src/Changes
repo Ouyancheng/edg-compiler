@@ -48,14 +48,13 @@ The inner lambda's a_lambda_capture entry therefore points to the field of the
 outer lambda holding the captured variable value (via its field
 capture_info.source_closure_field).  Previously, the inner capture entry could
 not safely point to the original variable entry because of memory region
-constraints.  When the IL was written out to a file, the variable pointer was
-therefore cleared (but that clearing didn't happen if the IL was not written
-to file).
+constraints.  When the IL was written out to a file, the variable pointer
+(the captured.variable field) was therefore cleared (but that clearing didn't
+happen if the IL was not written to a file).
 
-With the changes for EDGcpfe/16292,EDGcpfe/16359 (see entry of 8/24/15 below)
-the problematic memory region constraint has been lifted.  A change has now
-been made to keep a pointer to the original variable entry in such cases, and
-this independently of the front end configuration.
+With the changes for EDGcpfe/16292,EDGcpfe/16359 (see entry of 8/24/15) the
+problematic memory region constraint has been lifted.  A change has now been
+made not to clear the captured.variable field, regardless of the configuration.
 
 
 9/3/15   [EDGcpfe/16450]
