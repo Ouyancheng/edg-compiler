@@ -18162,17 +18162,21 @@ expression, and return the result in *result (or an error indication in
                           (has_braced_initializer ?
                              next_token() == tok_rbrace :
                              curr_token == tok_rparen)));
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(new_type)) {
+    template_case = TRUE;
+  }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
-  if (is_class_struct_union_type(base_new_type)
+  if (is_class_struct_union_type(base_new_type) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* For C++/CLI arrays, don't use the associated class constructors.
          In C++/CX mode, we do use the constructor symbols of
          Platform::Array, however. */
-      && (cppcx_enabled || !cli_array_new)
+      (cppcx_enabled || !cli_array_new) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                             ) {
+      !template_case) {
     cssp = symbol_supplement_for_class(base_new_type);
     ctor_sym = cssp->constructor;
   }  /* if */
@@ -18296,10 +18300,6 @@ expression, and return the result in *result (or an error indication in
        implied in the IL. */
     check_assertion(arg_expr_list != NULL);
     arg_expr_list = arg_expr_list->next;
-  }  /* if */
-  if (is_template_dependent_context() &&
-      is_template_dependent_type(new_type)) {
-    template_case = TRUE;
   }  /* if */
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
@@ -23416,7 +23416,7 @@ freed by this routine.
        arguments get this treatment). */
     force_dependent = TRUE;
   }  /* if */
-  if (ctor_case && !force_dependent) {
+  if (ctor_case && !force_dependent && !could_be_dependent) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
     a_constant_ptr    folded_con;
