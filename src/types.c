@@ -14114,7 +14114,7 @@ instantiated (for a template parameter "T", this includes types such as "T",
 {
   tp = skip_typerefs(tp);
   return is_template_param(tp) ||
-         (is_class_struct_union(tp) &&
+         (is_immediate_class_type(tp) &&
           tp->variant.class_struct_union.is_nonreal_class);
 }  /* could_be_dependent_class_type */
 

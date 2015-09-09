@@ -17944,7 +17944,7 @@ expression, and return the result in *result (or an error indication in
       effective_num_of_elements = 1;
       accumulate_array_size(unqual_new_type, &effective_num_of_elements);
     }  /* if */
-    while (is_array_type(base_new_type)) {
+    while (is_array_type(unqual_base_new_type)) {
       accumulate_array_size(base_new_type, &effective_num_of_elements);
       base_new_type = array_element_type(base_new_type);
     }  /* while */
@@ -18165,7 +18165,10 @@ expression, and return the result in *result (or an error indication in
   if (is_template_dependent_context() &&
       is_template_dependent_type(new_type)) {
     template_case = TRUE;
-    dependent_new_type = TRUE;
+    if (is_immediate_class_type(unqual_base_new_type) &&
+        unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
+      dependent_new_type = TRUE;
+    }  /* if */
   }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
