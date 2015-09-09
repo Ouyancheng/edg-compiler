@@ -16999,23 +16999,31 @@ is an rvalue reference.
                      is_template_param_type(operand->type) ||
                      is_error_type(operand->type)));
     orig_operand = *operand;
-    if (is_constant_operand(operand) &&
-        !is_template_param_constant_operand(operand)) {
-      /* With constexpr, a class value can be a constant, more precisely here
-         the constant address of a temporary containing the class value. */
+    if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       a_constant_ptr addr_con = local_constant();
-      check_assertion(constexpr_enabled || compound_literals_allowed);
-      set_temporary_address_constant(alloc_unshared_constant(con), addr_con);
+      if (!is_template_param_constant_operand(operand)) {
+        /* With constexpr, a class value can be a constant, more precisely here
+           the constant address of a temporary containing the class value. */
+        check_assertion(constexpr_enabled || compound_literals_allowed);
+        set_temporary_address_constant(alloc_unshared_constant(con), addr_con);
+      } else {
+        if (is_template_param_expression_constant_operand(operand)) {
+          expr = expr_node_from_operand(operand);
+          check_assertion(expr != NULL);
+        } else {
+          expr = alloc_node_for_constant(alloc_unshared_constant(con));
+        }  /* if */
+        expr = add_reference_to_to_node(expr);
+        make_template_param_expr_constant(expr, addr_con);
+      }  /* if */
       addr_con->type = make_reference_type(operand->type);
       make_constant_operand(addr_con, operand);
       release_local_constant(&addr_con);
     } else {
       if (is_expression_operand(operand)) {
         expr = make_node_from_operand(operand);
-      } else if (is_template_param_expression_constant_operand(operand)) {
-        expr = expr_node_from_operand(operand);
-        check_assertion(expr != NULL);
+      } else if (is_template_param_constant_operand(operand)) {
       } else {
         unexpected_condition();
       }  /* if */
