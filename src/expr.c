@@ -18316,7 +18316,7 @@ expression, and return the result in *result (or an error indication in
   init_val_node = NULL;
   if (!has_new_initializer) {
     /* No new-initializer is present. */
-    if (is_class_struct_union_type(base_new_type) &&
+    if (is_class_struct_union_type(base_new_type) && !dependent_new_type &&
         (cssp == NULL || !cssp->is_cpp03_POD || cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
         && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
