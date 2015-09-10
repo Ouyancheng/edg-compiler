@@ -447,7 +447,7 @@ A few changes have been made to the way GNU-style builtin function processing
 is handled.  The first change is that __builtin_huge_val, __builtin_huge_valf,
 __builtin_huge_vall, __builtin_nan, __builtin_nanf, __builtin_nanl,
 __builtin_nans, __builtin_nansf, and __builtin_nansl are now available in
-Microsoft emulation mode when microsoft_mode >= 1900.
+Microsoft emulation mode when microsoft_mode >= 1900 or in C++/CLI mode.
 
 To support this change, support for GNU-style builtin functions is now
 controlled by a new configuration macro, BUILTIN_FUNCTIONS_ENABLED, which
