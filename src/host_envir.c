@@ -5615,6 +5615,7 @@ An interface to strtoul that converts str to a numeric value and returns it.
   char          *endptr;
 
   *err = FALSE;
+  errno = 0;
   result = strtoul(str, &endptr, 0);
   if ((result == 0 || result == ULONG_MAX) &&
       (errno == EINVAL || errno == ERANGE)) {
