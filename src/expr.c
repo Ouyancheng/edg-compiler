@@ -18427,7 +18427,7 @@ expression, and return the result in *result (or an error indication in
       /* A non-class type or a POD class with no user-declared constructor.
          Check for error cases like const entities not being initialized
          (since there is no initializer). */
-      if (!err) {
+      if (!err && !dependent_new_type) {
         a_boolean  *p_err = NULL;
         if (expr_stack->suppress_diagnostics) {
           /* Don't issue diagnostics in SFINAE contexts. */
