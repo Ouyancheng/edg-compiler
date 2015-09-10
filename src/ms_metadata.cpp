@@ -8218,23 +8218,31 @@ Returns the source code for the value.
       { UINT      f = *reinterpret_cast<const UINT*>(&value_.float_value);
         bool      sign =         (f & 0x80000000U) != 0;
         int       exponent = int((f & 0x7F800000U) >> 23);
-        ULONGLONG fraction =     (f & 0x007FFFFFU) << 1;
+        ULONGLONG fraction =      f & 0x007FFFFFU;
         int       bias = 127;
+
         if (sign) buffer << L'-';
-        if (exponent == 0) {
-          buffer << L"0x0.";
-          if (fraction == 0) bias = 0;
-          else bias--;
+        if (exponent == 0xFF) {
+          const ULONGLONG quiet_bit = 0x00400000ULL;
+
+          if (fraction == 0) {
+            buffer << "__builtin_huge_valf()";
+          } else if (fraction & quiet_bit) {
+            buffer << "__builtin_nanf(\"" << (fraction & ~quiet_bit) << "\")";
+          } else {
+            buffer << "__builtin_nansf(\"" << fraction << "\")";
+          }  /* if */
         } else {
-          /* Note that exponent == 0xFF designates special values (+/-inf
-             and NaNs) which cannot be round-tripped through literal
-             representation.  __builtin_inff/__builtin_nanf could be used
-             instead. */
-          check_assertion(exponent < 0xFF);
-          buffer << L"0x1.";
+          if (exponent == 0) {
+            buffer << L"0x0.";
+            if (fraction == 0) bias = 0;
+            else bias--;
+          } else {
+            buffer << L"0x1.";
+          }  /* if */
+          buffer << setw(6) << setfill(L'0') << hex << (fraction << 1);
+          buffer << 'p' << dec << (exponent - bias);
         }  /* if */
-        buffer << setw(6) << setfill(L'0') << hex << fraction;
-        buffer << 'p' << dec << (exponent - bias);
         break;
       } /* case ELEMENT_TYPE_R4 */
     case ELEMENT_TYPE_R8:
@@ -8244,21 +8252,29 @@ Returns the source code for the value.
         int       exponent = int((d & 0x7FF0000000000000ULL) >> 52);
         ULONGLONG fraction =      d & 0x000FFFFFFFFFFFFFULL;
         int       bias = 1023;
+
         if (sign) buffer << L'-';
-        if (exponent == 0) {
-          buffer << L"0x0.";
-          if (fraction == 0) bias = 0;
-          else bias--;
+        if (exponent == 0x7FF) {
+          const ULONGLONG quiet_bit = 0x0008000000000000ULL;
+
+          if (fraction == 0) {
+            buffer << "__builtin_huge_val()";
+          } else if (fraction & quiet_bit) {
+            buffer << "__builtin_nan(\"" << (fraction & ~quiet_bit) << "\")";
+          } else {
+            buffer << "__builtin_nans(\"" << fraction << "\")";
+          }  /* if */
         } else {
-          /* Note that exponent == 0x7FF designates special values (+/-inf
-             and NaNs) which cannot be round-tripped through literal
-             representation.  __builtin_inf/__builtin_nan could be used
-             instead. */
-          check_assertion(exponent < 0x7FF);
-          buffer << L"0x1.";
+          if (exponent == 0) {
+            buffer << L"0x0.";
+            if (fraction == 0) bias = 0;
+            else bias--;
+          } else {
+            buffer << L"0x1.";
+          }  /* if */
+          buffer << setw(13) << setfill(L'0') << hex << fraction;
+          buffer << 'p' << dec << (exponent - bias);
         }  /* if */
-        buffer << setw(13) << setfill(L'0') << hex << fraction;
-        buffer << 'p' << dec << (exponent - bias);
         break;
       } /* case ELEMENT_TYPE_R8 */
     case ELEMENT_TYPE_STRING:
