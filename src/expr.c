@@ -17944,11 +17944,11 @@ expression, and return the result in *result (or an error indication in
       effective_num_of_elements = 1;
       accumulate_array_size(unqual_new_type, &effective_num_of_elements);
     }  /* if */
-    while (is_array_type(unqual_base_new_type)) {
-      accumulate_array_size(base_new_type, &effective_num_of_elements);
-      base_new_type = array_element_type(base_new_type);
+    while (unqual_base_new_type->kind == (a_type_kind)tk_array) {
+      accumulate_array_size(unqual_base_new_type, &effective_num_of_elements);
+      base_new_type = unqual_base_new_type->variant.array.element_type;
+      unqual_base_new_type = skip_typerefs(base_new_type);
     }  /* while */
-    unqual_base_new_type = skip_typerefs(base_new_type);
   }  /* if */
   /* If no error was encountered thus far, determine the correct overload
      for the "new" routine.  This is not performed for gcnew. */
