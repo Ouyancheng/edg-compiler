@@ -1898,8 +1898,8 @@ operator in the expression.
                           operator_position)                                  \
 {                                                                             \
   set_expr_base_position(expr, start_position, operator_position);            \
-  (expr)->expr_range.start = *start_pos;                                      \
-  (expr)->expr_range.end = *end_pos;                                          \
+  (expr)->expr_range.start = *start_position;                                 \
+  (expr)->expr_range.end = *end_position;                                     \
 }
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define set_expr_position(expr, start_position, end_position,                 \
