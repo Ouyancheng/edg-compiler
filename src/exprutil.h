@@ -1887,7 +1887,8 @@ operator in the expression.
 #define set_expr_base_position(expr, start_pos, operator_pos)                 \
 {                                                                             \
   if ((operator_pos) != NULL && is_operation_node(expr)) {                    \
-    (expr)->position = *operator_pos;                                         \
+    a_source_position  *pos = operator_pos;                                   \
+    (expr)->position = *pos;                                                  \
   } else {                                                                    \
     (expr)->position = *start_pos;                                            \
   }  /* if */                                                                 \
