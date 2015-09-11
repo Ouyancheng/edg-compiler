@@ -562,7 +562,6 @@ typedef struct an_expr_rescan_info_entry {
 		expression_kind;
 			/* Kind of expression we are in, e.g., template
 			   argument. */
-// FIXME?  Can now be gotten from saved_operand.variant.expression->position?
   a_source_position
 		operator_position;
 			/* Position of the expression operator, if there is
@@ -1886,7 +1885,7 @@ operator in the expression.
 */
 #define set_expr_base_position(expr, start_pos, operator_pos)                 \
 {                                                                             \
-  if ((operator_pos) != NULL && is_operation_node(expr)) {                    \
+  if (/*lint --e(506)*/(operator_pos) != NULL && is_operation_node(expr)) {   \
     a_source_position  *pos = operator_pos;                                   \
     (expr)->position = *pos;                                                  \
   } else {                                                                    \
