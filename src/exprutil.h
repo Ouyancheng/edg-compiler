@@ -1385,9 +1385,6 @@ extern a_source_position* init_component_pos(an_init_component_ptr icp);
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 a_source_position *init_component_end_pos(an_init_component_ptr icp);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define init_component_end_pos(icp) \
-  (&null_source_position)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 extern a_boolean is_error_component(an_init_component_ptr  icp);

@@ -951,6 +951,9 @@ the position in the underlying expression, if any (see set_operand_position).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* end_pos is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void f_set_operand_position(an_operand        *result,
                                    a_source_position *start_pos,
                                    a_source_position *end_pos,
