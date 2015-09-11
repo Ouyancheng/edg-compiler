@@ -4121,6 +4121,9 @@ Display the indicated expression node.
   if (ptr->element_of_cli_param_array_arg) {
     disp_boolean("element_of_cli_param_array_arg", TRUE);
   }  /* if */
+  if (ptr->is_cli_typeid) {
+    disp_boolean("is_cli_typeid", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (ptr->is_non_normalized_boolean_controlling_expr) {
@@ -4306,11 +4309,6 @@ Display the indicated expression node.
       (void)printf("enk_typeid\n");
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (ptr->variant.typeid_info.is_cli_typeid) {
-        disp_boolean("is_cli_typeid", TRUE);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_alignof:
       (void)printf("enk_alignof\n");
@@ -4432,13 +4430,8 @@ cleanup_state_common:
 #endif /* !GENERATE_EH_TABLES */
         case leck_internal_try:
           (void)printf("leck_internal_try\n");
-          disp_ptr("  try_expr",
-                   (char *)ptr->variant.lowered_eh.variant.
-                                                         internal_try.try_expr,
-                   iek_expr_node);
-          disp_ptr("  catch_expr",
-                   (char *)ptr->variant.lowered_eh.variant.
-                                                       internal_try.catch_expr,
+          disp_ptr("  try_and_catch_expr",
+                   (char *)ptr->variant.lowered_eh.variant.try_and_catch_expr,
                    iek_expr_node);
           break;
         default:
@@ -4510,8 +4503,8 @@ cleanup_state_common:
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("expr_range", &ptr->expr_range);
-  disp_source_position("operator_position", &ptr->operator_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  disp_source_position("position", &ptr->position);
   if (ptr->name_reference != NULL) {
     disp_name_reference(ptr->name_reference);
   }  /* if */

@@ -1,5 +1,30 @@
 Version 4.11
 
+9/11/15  [EDGcpfe/16510]
+Expression nodes and positions (IL CHANGE)
+
+Expression nodes (type an_expr_node) now include a "position" field in all
+configurations.  For nodes representing operators, it replaces the field
+"operator_position" (which was only defined when EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE), but for other kinds of nodes that correspond to a construct in the
+source code, it now records the starting position of that construct.
+
+A number of changes have been made to mitigate the potential growth in memory
+consumption:
+
+  (1) the variant field variant.typeid_info.is_cli_typeid is now recorded
+      as a nonvariant bit field is_cli_typeid;
+  (2) the variant field variant.lowered_eh.variant.internal_try (and its two
+      fields try_expr and catch_expr) have been replaced by a single pointer
+      variant.lowered_eh.variant.try_and_catch_expr, which points to a list
+      of two nodes (the two nodes that were previously recorded in separate
+      fields); and
+  (3) the fields "position" (formerly "operator_position") and "expr_range"
+      have been moved to follow the top-level flags.
+
+This is a significant IL CHANGE.
+
+
 9/4/15   [EDGcpfe/16496]
 Abort on incomplete member type in Microsoft-mode class template
 

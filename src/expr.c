@@ -950,7 +950,6 @@ the position in the underlying expression, if any (see set_operand_position).
   { error_position = (result)->position = *(start_pos); }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 static void f_set_operand_position(an_operand        *result,
                                    a_source_position *start_pos,
@@ -971,7 +970,6 @@ are set appropriately.
   set_operand_expr_position_if_expr(result, operator_pos);
 }  /* f_set_operand_position */
 
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
 Macro to record source positions in an_operand at the end of scanning
@@ -985,7 +983,7 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
   f_set_operand_position(result, start_pos, end_pos, operator_pos)
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define set_operand_position(result, start_pos, end_pos, operator_pos) \
-  set_base_operand_position(result, start_pos, end_pos)
+  f_set_operand_position(result, start_pos, NULL, operator_pos)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
@@ -4129,8 +4127,9 @@ call, and rcblock->argument_list to the previously-scanned argument list.
   a_builtin_function_kind  bfk;
   a_type_ptr               result_type;
   a_constant_ptr           result = local_constant();
+  a_source_position        lparen_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position        end_position, lparen_position;
+  a_source_position        end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand               dummy_bound_function_selector;
   a_boolean                regular_case = FALSE;
@@ -4140,9 +4139,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
   if (rcblock == NULL) {
     /* Pick up the "(" and add ")" as a stop token. */
     check_assertion(curr_token == tok_lparen);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     lparen_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     add_matching_stop_token(tok_rparen);
   }  /* if */
@@ -4351,8 +4348,8 @@ result_built:
   } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
-    lparen_position = rcblock->expr->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    lparen_position = rcblock->expr->position;
   }  /* if */
   set_operand_position(result_op, &operand->position, &end_position,
                        &lparen_position);
@@ -4884,9 +4881,7 @@ are expected to be NULL in that case.
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
   an_expr_node_ptr  function_call_node = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   an_expr_node_ptr  operand_node;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         gnu_sync_function_case = FALSE;
   a_boolean         result_operand_is_call;
   a_boolean         implicit_this_selector = FALSE;
@@ -5566,7 +5561,6 @@ are expected to be NULL in that case.
                                                    &closing_paren_position);
     }  /* if */
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_node = expr_node_from_operand(operand);
   if (function_call_node != NULL && function_call_node != operand_node) {
     /* Some additional operations (e.g., enk_temp_init, eok_ref_indirect)
@@ -5575,7 +5569,6 @@ are expected to be NULL in that case.
     set_expr_position(function_call_node, &start_position,
                       &closing_paren_position, &operator_position);
   }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if BUILTIN_FUNCTIONS_ENABLED
   if (!call_folded_to_constant)
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -9333,7 +9326,7 @@ error indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           /* Avoid changing the operator position in the expression when we
              set the operand position below. */
-          operator_position = expr->operator_position;
+          operator_position = expr->position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         } else if (is_an_lvalue(&operand)) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
@@ -14705,7 +14698,7 @@ enk_typeid entry should be created.
     typeid_node->variant.typeid_info.expr = typeid_expr;
     typeid_node->variant.typeid_info.type = typeid_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    typeid_node->variant.typeid_info.is_cli_typeid = is_cli_typeid;
+    typeid_node->is_cli_typeid = is_cli_typeid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     typeid_node->type = result_type;
     typeid_node->is_lvalue = TRUE;
@@ -27410,7 +27403,7 @@ operation_type_determined:
        of the rewritten simple operator. */
     an_expr_node_ptr op_expr = expr_node_from_operand(result);
     if (op_expr != NULL) {
-      op_expr->operator_position = operator_position;
+      op_expr->position = operator_position;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rewrite_property_reference(
@@ -37985,12 +37978,10 @@ handle_deduced_return_type:
         check_assertion(init_state.init_con != NULL);
         expression = alloc_node_for_allocated_constant(init_state.init_con);
       }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       set_expr_position(expression,
                         init_component_pos(icp),
                         init_component_end_pos(icp),
                         (a_source_position *)NULL);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       expression = wrap_up_full_expression(expression);
       if (is_void_type(required_type)) set_expr_result_not_used(expression);
       /* Use a dynamic init instead of an expression so we can record that the
@@ -39383,7 +39374,7 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     operator_token = tok_typeid;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (expr->variant.typeid_info.is_cli_typeid) {
+    if (expr->is_cli_typeid) {
       /* C++/CLI T::typeid operation. */
       operator_token = tok_cli_typeid;
     }  /* if */

@@ -17235,8 +17235,7 @@ name lookup options.
               /* typeid(...). */
               a_boolean is_cli_typeid = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              is_cli_typeid = cli_or_cx_enabled &&
-                              expr->variant.typeid_info.is_cli_typeid;
+              is_cli_typeid = cli_or_cx_enabled && expr->is_cli_typeid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               make_typeid_constant(new_type, is_cli_typeid, constant);
             } else if (con->variant.template_param.kind ==

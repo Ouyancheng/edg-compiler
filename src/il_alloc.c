@@ -3345,9 +3345,6 @@ fields to default values.
     case enk_typeid:
       node->variant.typeid_info.type = NULL;
       node->variant.typeid_info.expr = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      node->variant.typeid_info.is_cli_typeid = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_sizeof:
     case enk_alignof:
@@ -3445,6 +3442,7 @@ its kind to the indicated kind.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   node->is_safe_cast = FALSE;
   node->element_of_cli_param_array_arg = FALSE;
+  node->is_cli_typeid = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   node->is_non_normalized_boolean_controlling_expr = FALSE;
@@ -3456,9 +3454,9 @@ its kind to the indicated kind.
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
+  node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
-  node->operator_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   node->name_reference = NULL;
   node->rescan_info = NULL;
@@ -3544,8 +3542,7 @@ to kind, and set dependent variant fields to default values.
       break;
 #endif /* !GENERATE_EH_TABLES */
     case leck_internal_try:
-      node->variant.lowered_eh.variant.internal_try.try_expr = NULL;
-      node->variant.lowered_eh.variant.internal_try.catch_expr = NULL;
+      node->variant.lowered_eh.variant.try_and_catch_expr = NULL;
       break;
     default:
       unexpected_condition_str(

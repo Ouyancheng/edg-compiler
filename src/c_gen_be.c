@@ -6366,10 +6366,10 @@ sizeof_cases:
 #endif /* !GENERATE_EH_TABLES */
         case leck_internal_try:
           write_tok_str("internal_try(");
-          dump_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,
+          dump_expr(expr->variant.lowered_eh.variant.try_and_catch_expr,
                     /*need_parens=*/TRUE);
           write_tok_str(", ");
-          dump_expr(expr->variant.lowered_eh.variant.internal_try.catch_expr,
+          dump_expr(expr->variant.lowered_eh.variant.try_and_catch_expr->next,
                     /*need_parens=*/TRUE);
           write_tok_ch(')');
           break;

@@ -562,6 +562,7 @@ typedef struct an_expr_rescan_info_entry {
 		expression_kind;
 			/* Kind of expression we are in, e.g., template
 			   argument. */
+// FIXME?  Can now be gotten from saved_operand.variant.expression->position?
   a_source_position
 		operator_position;
 			/* Position of the expression operator, if there is
@@ -586,10 +587,12 @@ Copy the source position from an expression operand into an expression node.
 */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #define copy_operand_position_to_expr(operand, node) \
-  {(node)->expr_range.start = (operand)->position; \
-   (node)->expr_range.end   = (operand)->end_position;}
+  { (node)->expr_range.start = (operand)->position; \
+    (node)->expr_range.end = (operand)->end_position; \
+    (node)->position = (operand)->position; }
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define copy_operand_position_to_expr(operand, node) /* Nothing */
+#define copy_operand_position_to_expr(operand, node) \
+  ((node)->position = (operand)->position)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /*
 Copy the source position from one operand into another.
@@ -1383,6 +1386,9 @@ extern a_source_position* init_component_pos(an_init_component_ptr icp);
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 a_source_position *init_component_end_pos(an_init_component_ptr icp);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define init_component_end_pos(icp) \
+  (&null_source_position)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 extern a_boolean is_error_component(an_init_component_ptr  icp);
@@ -1873,15 +1879,38 @@ extern an_expr_node_ptr make_expr_reusable_copy(
                                   a_boolean        *temp_init_used,
                                   a_boolean        treat_as_potential_prvalue);
 
+/*
+Macro to set the "position" field in an expression node, given the start
+position of that expression and, if applicable, the position of the top-level
+operator in the expression.
+*/
+#define set_expr_base_position(expr, start_pos, operator_pos)                 \
+{                                                                             \
+  if ((operator_pos) != NULL && is_operation_node(expr)) {                    \
+    (expr)->position = *operator_pos;                                         \
+  } else {                                                                    \
+    (expr)->position = *start_pos;                                            \
+  }  /* if */                                                                 \
+}
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-extern void set_expr_position(an_expr_node_ptr  expr,
-                              a_source_position *start_position,
-                              a_source_position *end_position,
-                              a_source_position *operator_position);
+#define set_expr_position(expr, start_position, end_position,                 \
+                          operator_position)                                  \
+{                                                                             \
+  set_expr_base_position(expr, start_position, operator_position);            \
+  (expr)->expr_range.start = *start_pos;                                      \
+  (expr)->expr_range.end = *end_pos;                                          \
+}
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define set_expr_position(expr, start_position, end_position,                 \
+                          operator_position)                                  \
+{                                                                             \
+  set_expr_base_position(expr, start_position, operator_position);            \
+}
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 extern void set_operand_expr_position_if_expr(an_operand        *operand,
                                               a_source_position *operator_pos);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);

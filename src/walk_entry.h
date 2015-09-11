@@ -1621,7 +1621,7 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (!ptr->variant.typeid_info.is_cli_typeid)
+            if (!ptr->is_cli_typeid)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
             {
@@ -1725,12 +1725,8 @@ do_set_proper_definition_needed_flag:
                 break;
 #endif /* !GENERATE_EH_TABLES */
               case leck_internal_try:
-                walk_ptr(ptr->variant.lowered_eh.variant.
-                                                         internal_try.try_expr,
-                          an_expr_node_ptr, iek_expr_node);
-                walk_ptr(ptr->variant.lowered_eh.variant.
-                                                       internal_try.catch_expr,
-                          an_expr_node_ptr, iek_expr_node);
+                walk_list(ptr->variant.lowered_eh.variant.try_and_catch_expr,
+                           an_expr_node_ptr, iek_expr_node);
                 break;
               default:
                 unexpected_condition_str(

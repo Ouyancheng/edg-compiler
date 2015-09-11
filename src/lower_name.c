@@ -2452,7 +2452,7 @@ the original expression may have additional flags that might affect mangling
     case tpck_typeid:
 #if !IA64_ABI
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (orig_expr != NULL && orig_expr->variant.typeid_info.is_cli_typeid) {
+      if (orig_expr != NULL && orig_expr->is_cli_typeid) {
         /* C++/CLI T::typeid form. */
         add_str_to_mangled_name("ct", mctl);
       } else
@@ -2472,7 +2472,7 @@ the original expression may have additional flags that might affect mangling
 #if ABI_COMPATIBILITY_VERSION >= 402
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (orig_expr != NULL &&
-            orig_expr->variant.typeid_info.is_cli_typeid) {
+            orig_expr->is_cli_typeid) {
           /* C++/CLI T::typeid form. */
           add_str_to_mangled_name("v19clitypeid", mctl);
         } else

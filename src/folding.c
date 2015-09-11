@@ -5976,9 +5976,9 @@ a constexpr expansion, and the block provides context information.
     case enk_typeid:
       if (expr->variant.typeid_info.expr == NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          && !expr->variant.typeid_info.is_cli_typeid
+          && !expr->is_cli_typeid
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          ) {
+                                 ) {
         /* The type is known at compile time, so the address of the
            std::type_info object is a compile-time constant. */
         is_constant_addr = TRUE;
@@ -10008,9 +10008,8 @@ ceblock gives context information for the evaluation.
   expr = skip_parens(expr);
   pos = ceblock->source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (cmp_source_positions(expr->operator_position,
-                           null_source_position) != 0) {
-    pos = expr->operator_position;
+  if (cmp_source_positions(expr->position, null_source_position) != 0) {
+    pos = expr->position;
   } else if (cmp_source_positions(expr->expr_range.start,
                                   null_source_position) != 0) {
     pos = expr->expr_range.start;

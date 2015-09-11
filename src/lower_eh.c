@@ -5729,10 +5729,8 @@ is not passed through).
      expression node. */
   internal_try_node = alloc_lowered_eh_construct_node(
                                (a_lowered_eh_construct_kind)leck_internal_try);
-  internal_try_node->variant.lowered_eh.variant.
-                                              internal_try.try_expr = try_expr;
-  internal_try_node->variant.lowered_eh.variant.
-                                          internal_try.catch_expr = catch_expr;
+  internal_try_node->variant.lowered_eh.variant.try_and_catch_expr = try_expr;
+  try_expr->next = catch_expr;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   return internal_try_node;
 }  /* make_internal_try_expr */

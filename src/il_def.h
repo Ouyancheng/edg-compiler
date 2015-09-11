@@ -15542,6 +15542,16 @@ typedef struct an_expr_node {
   a_bit_field	element_of_cli_param_array_arg:1;
 			/* TRUE when this is an argument matching a
 			   C++/CLI parameter array. */
+  a_byte_boolean
+		is_cli_typeid;
+			/* TRUE for a typeid entry that comes from a C++/CLI
+			   typeid, of the form T::typeid.  In that case,
+			   variant.typeid_info.type gives the type T, and
+			   variant.typeid_info.expr is NULL.  Note that
+			   cv-qualifiers on T are not removed (we want to keep
+			   any typedefs) so a back end should remove them
+			   before selecting the appropriate System::Type
+			   entry. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   a_bit_field	is_non_normalized_boolean_controlling_expr:1;
@@ -15574,6 +15584,22 @@ typedef struct an_expr_node {
 			   representing the function ("f" in the example) that
 			   has this flag set, not the selector expression. */
   bitfield_to_avoid_codecenter_warnings()
+  a_source_position
+		position;
+			/* When kind == enk_operation, the position at which
+			   the operator appears in the source.  Otherwise, the
+			   starting position of the corresponding construct, or
+			   null_source_position if there is no such
+			   construct. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		expr_range;
+			/* When the node corresponds to an explicit sequence
+			   of tokens in the source, the source positions of
+			   start and end of the expression.  Otherwise, the
+			   source positions where the expression would appear
+			   if it were explicit.  May be null_source_range. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
     /* When kind == enk_operation: */
@@ -15897,16 +15923,6 @@ typedef struct an_expr_node {
 			   type that was specified using the "auto"
 			   type-specifier, this is the expression
 			   specified; otherwise NULL. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      a_byte_boolean
-		is_cli_typeid;
-			/* TRUE if this typeid comes from a C++/CLI typeid,
-			   of the form T::typeid.  type gives the type T,
-			   and expr is NULL.  Note that cv-qualifiers on T
-			   are not removed (we want to keep any typedefs)
-			   so a back end should remove them before selecting
-			   the appropriate System::Type entry. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } typeid_info;
     /* When kind == enk_sizeof or kind == enk_alignof: */
     struct {
@@ -16004,15 +16020,12 @@ typedef struct an_expr_node {
         /* When kind == leck_internal_try: */
         /* Note that an leck_internal_try expression has a void type,
            i.e., it does not pass through the value of the try_expr. */
-        struct {
-          an_expr_node_ptr
-		try_expr;
-			/* Expression to evaluate. */
-          an_expr_node_ptr
-		catch_expr;
-			/* Expression to execute if an exception is thrown
-			   while evaluating try_expr. */
-        } internal_try;
+        an_expr_node_ptr
+		try_and_catch_expr;
+			/* A list of two nodes.  The first node is the
+			   expression to evaluate.  The second node is the
+			   expression to execute if an exception is thrown
+			   while evaluating the first node. */
       } variant;
     } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -16117,20 +16130,6 @@ typedef struct an_expr_node {
     } await_info;
 #endif /* COROUTINES_ALLOWED */
   } variant;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_range
-		expr_range;
-			/* When the node corresponds to an explicit sequence
-			   of tokens in the source, the source positions of
-			   start and end of the expression.  Otherwise, the
-			   source positions where the expression would appear
-			   if it were explicit.  May be null_source_range. */
-  a_source_position
-		operator_position;
-			/* When kind == enk_operation, the source position
-			   at which the operator appears in the source.
-			   Otherwise, null_source_position. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_name_reference_ptr
 		name_reference;
 			/* If non-NULL, points to information about the

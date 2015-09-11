@@ -3321,10 +3321,8 @@ as specified in the control block.
     case enk_lowered_eh_construct:
       if (expr->variant.lowered_eh.kind ==
                               (a_lowered_eh_construct_kind)leck_internal_try) {
-        traverse_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,
-                      tblock);
-        traverse_expr(expr->variant.lowered_eh.variant.internal_try.catch_expr,
-                      tblock);
+        traverse_expr_list(expr->variant.lowered_eh.variant.try_and_catch_expr,
+                           tblock);
       }  /* if */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

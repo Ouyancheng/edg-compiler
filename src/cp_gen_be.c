@@ -12839,7 +12839,7 @@ done_with_operation_after_parens:
     case enk_typeid:
       /* C++ typeid operator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (expr->variant.typeid_info.is_cli_typeid) {
+      if (expr->is_cli_typeid) {
         /* C++/CLI variant, T::typeid. */
         gen_type(expr->variant.typeid_info.type);
         write_tok_str("::typeid");

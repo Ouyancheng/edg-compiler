@@ -2970,29 +2970,12 @@ values.
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-
-void set_expr_position(an_expr_node_ptr  expr,
-                       a_source_position *start_position,
-                       a_source_position *end_position,
-                       a_source_position *operator_position)
-/*
-Set the start, end, and operator positions in an expression node.
-operator_position can be NULL if there is no operator position.
-*/
-{
-  expr->expr_range.start = *start_position;
-  expr->expr_range.end   = *end_position;
-  if (operator_position != NULL && is_operation_node(expr)) {
-    expr->operator_position = *operator_position;
-  }  /* if */
-}  /* set_expr_position */
-
 
 void set_operand_expr_position_if_expr(an_operand        *operand,
                                        a_source_position *operator_pos)
 /*
-If operand is an expression operand, set the source positions in the
+If operand is an expression operand (or has an associated expression, such as
+a backing expression for a constant operand), set the source positions in the
 underlying expression from the positions already in the operand.  If
 operator_position is non-NULL, use that position as the operator position
 if setting the positions in the underlying expression.
@@ -3000,24 +2983,23 @@ if setting the positions in the underlying expression.
 {
   an_expr_node_ptr expr = expr_node_from_operand(operand);
 
-  if (expr != NULL && is_operation_node(expr) &&
-      node_operator_is(expr, eok_ref_indirect)) {
-    /* Set the positions on the operand of the ref_indirect. */
-    expr = expr->variant.operation.operands;
-  }  /* if */
-  if (expr != NULL &&
-      /* Don't set the position on a compiler-generated operation unless
-         it is an operator-notation call node. */
-      (!is_operation_node(expr) ||
-       !expr->variant.operation.compiler_generated ||
-       expr->variant.operation.call_uses_operator_syntax)) {
-    /* Set the position on the expression. */
-    set_expr_position(expr, &operand->position, &operand->end_position,
-                      operator_pos);
+  if (expr != NULL) {
+    if (is_operation_node(expr) && node_operator_is(expr, eok_ref_indirect)) {
+      /* Set the positions on the operand of the ref_indirect. */
+      expr = expr->variant.operation.operands;
+    }  /* if */
+    /* Don't set the position on a compiler-generated operation unless it is
+       an operator-notation call node. */
+    if (!is_operation_node(expr) ||
+        !expr->variant.operation.compiler_generated ||
+        expr->variant.operation.call_uses_operator_syntax) {
+      /* Set the position on the expression. */
+      set_expr_position(expr, &operand->position, &operand->end_position,
+                        operator_pos);
+    }  /* if */
   }  /* if */
 }  /* set_operand_expr_position_if_expr */
 
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 static void set_operand_position_to_pos_curr_token(an_operand *operand)
 /*
@@ -5747,7 +5729,6 @@ destroyed its source position, etc.  Restore such things from
   /* This routine must be callable even when there is nothing on the
      expression stack. */
   copy_operand_position(orig_operand, operand);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   /* If necessary, set the position in the expression too. */
   if (is_expression_operand(orig_operand) &&
       is_expression_operand(operand) &&
@@ -5766,7 +5747,6 @@ destroyed its source position, etc.  Restore such things from
   } else {
     set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
   }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
   operand->orig_routine_type = orig_operand->orig_routine_type;
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
@@ -7323,7 +7303,6 @@ the rewritten expression.
     an_expr_node_ptr cli_string_node;
     string_constant->type = make_handle_to_system_string();
     cli_string_node = alloc_node_for_constant(string_constant);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Copy the position information from the original constant node,
        skipping over any compiler-generated nodes like array-decay, which
        have no source position. */
@@ -7331,8 +7310,9 @@ the rewritten expression.
            expr->variant.operation.compiler_generated) {
       expr = expr->variant.operation.operands;
     }  /* while */
+    cli_string_node->position = expr->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     cli_string_node->expr_range = expr->expr_range;
-    cli_string_node->operator_position = expr->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     expr = cli_string_node;
   } else if (is_operation_node(expr) &&
@@ -13226,12 +13206,10 @@ some other kind of expression (e.g., a constructor call).
   if (alep->pack_expansion_descr != NULL) {
     node->is_pack_expansion = TRUE;
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   set_expr_position(node,
                     init_component_pos(alep),
                     init_component_end_pos(alep),
                     (a_source_position *)NULL);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (expr_stack->possible_rescan_context) {
     /* In a potential rescan context, make a dummy operand that has the
        source position information and record it as rescan information. */
@@ -14262,10 +14240,9 @@ or is NULL if none is needed.
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
-  /* If the operand has kind ok_expression, set the position in the
-     expression too. */
-  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Set the position in the expression too. */
+  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 }  /* make_lvalue_variable_operand */
 
 
@@ -14687,10 +14664,10 @@ reference entry, or is NULL if none is needed.
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!compiler_generated) {
     set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
   }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Start a list of reference entries related to the operand. */
   result->ref_entries_list = rep;
   /* If this is a non-virtual call, mark the routine entry as actually
@@ -14744,9 +14721,9 @@ with extra source positions).
   result->position = *source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Set the position in the expression too. */
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
   set_operand_id_details_from_locator(result, locator);
 }  /* make_field_operand */
@@ -16903,10 +16880,8 @@ explicit "&" operator in the source and *operator_position gives its position.
                                         make_handle_type(expr->type), expr);
               if (is_implicit) {
                 expr->variant.operation.compiler_generated = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
               } else {
-                expr->operator_position = *operator_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                expr->position = *operator_position;
               }  /* if */
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16924,9 +16899,7 @@ explicit "&" operator in the source and *operator_position gives its position.
               if (is_implicit)  {
                 expr->variant.operation.compiler_generated = TRUE;
               } else {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                expr->operator_position = *operator_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                expr->position = *operator_position;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -18190,13 +18163,15 @@ it might produce an error).
   a_boolean      processed = FALSE;
   a_boolean      template_constant = FALSE;
   a_type_ptr     prvalue_node_type;
+  a_source_position
+                 saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range saved_expr_range;
-  a_source_position
-                 saved_operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+  saved_position = node->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_expr_range = node->expr_range;
-  saved_operator_position = node->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (constant_case != NULL) *constant_case = FALSE;
   if (con_value != NULL) *con_value = NULL;
@@ -18688,12 +18663,10 @@ lvalue_adjust:
       /* Make a distinct copy of the constant so we can change it. */
       con_expr_value = alloc_unshared_constant(con_expr_value);
       con_expr_value->expr = node;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Restore the original expression position. */
+      node->position = saved_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
       node->expr_range = saved_expr_range;
-      if (is_operation_node(node)) {
-        node->operator_position = saved_operator_position;
-      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       node = NULL;
     } else if (con_expr_value->expr != NULL) {
@@ -19370,7 +19343,8 @@ by an "&" operator and *ampersand_position gives its position.
       /* Use a "&" operator to get the address because there was one in
          the source. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      a_source_position end_position = expr->expr_range.end;
+      a_source_position end_position;
+      end_position = expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                 (template_constant ||
@@ -19378,10 +19352,8 @@ by an "&" operator and *ampersand_position gives its position.
                                    type_of_unknown_templ_param_nontype :
                                    make_pointer_type(expr->type),
                                 expr);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       set_expr_position(expr, ampersand_position, &end_position,
                         ampersand_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Use implicit decay to get the address. */
       expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
@@ -19532,9 +19504,7 @@ used in generating the function-identifying operand in a call.
       /* Change the start position of the operand to include the "&" operator
          that was added. */
       operand->position = *ampersand_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       set_operand_expr_position_if_expr(operand, ampersand_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     operand->is_id_expression = FALSE;
   } else {
