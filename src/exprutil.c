@@ -13196,20 +13196,21 @@ instantiations; in other contexts initializer lists always resolve to
 some other kind of expression (e.g., a constructor call).
 */
 {
-  an_expr_node_ptr node =
-                      alloc_expr_node((an_expr_node_kind)enk_braced_init_list);
+  an_expr_node_ptr   node;
+  a_source_position  *pos = init_component_pos(alep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  *end_pos = init_component_end_pos(alep);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   check_assertion(is_braced_init_component(alep));
+  node = alloc_expr_node((an_expr_node_kind)enk_braced_init_list);
   node->variant.braced_init_list =
               make_expr_list_from_argument_list(alep->variant.braced.list);
   node->type = type_of_unknown_templ_param_nontype;
   if (alep->pack_expansion_descr != NULL) {
     node->is_pack_expansion = TRUE;
   }  /* if */
-  set_expr_position(node,
-                    init_component_pos(alep),
-                    init_component_end_pos(alep),
-                    (a_source_position *)NULL);
+  set_expr_position(node, pos, end_pos, (a_source_position *)NULL);
   if (expr_stack->possible_rescan_context) {
     /* In a potential rescan context, make a dummy operand that has the
        source position information and record it as rescan information. */

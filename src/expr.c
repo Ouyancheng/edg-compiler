@@ -37972,16 +37972,17 @@ handle_deduced_return_type:
       wrap_up_dynamic_init_full_expression(*dip);
       expression = NULL;
     } else {
+      a_source_position  *pos = init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_source_position  *end_pos = init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (init_state.init_error) {
         expression = error_node();
       } else {
         check_assertion(init_state.init_con != NULL);
         expression = alloc_node_for_allocated_constant(init_state.init_con);
       }  /* if */
-      set_expr_position(expression,
-                        init_component_pos(icp),
-                        init_component_end_pos(icp),
-                        (a_source_position *)NULL);
+      set_expr_position(expression, pos, end_pos, (a_source_position *)NULL);
       expression = wrap_up_full_expression(expression);
       if (is_void_type(required_type)) set_expr_result_not_used(expression);
       /* Use a dynamic init instead of an expression so we can record that the
