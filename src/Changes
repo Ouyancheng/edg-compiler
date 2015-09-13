@@ -1,5 +1,24 @@
 Version 4.11
 
+9/13/15  [EDGcpfe/16507]
+C- and C++-generating back end: representation of extended characters in
+literals
+
+Depending on the locale settings, the output of the C- and C++-generating
+back ends could represent extended characters (those with values larger
+than 0x7f) as single bytes within character and string literals.  If the
+generated code is later compiled assuming a different code page (e.g., as
+UTF-8), those characters would be interpreted differently, perhaps as the
+start of an invalid multibyte sequence.  This has now been addressed by
+using octal escapes for all extended characters when generating compilable
+code.  For example, using the C++-generating back end in a locale in which
+'\xf6' is a valid printable character:
+
+  template <char> struct C;
+  C<(char)-10> *p;  // Template argument was previously generated using an
+                    // extended character with value 0xf6, now "C<'\366'>"
+
+
 9/11/15  [EDGcpfe/16510]
 Expression nodes and positions (IL CHANGE)
 

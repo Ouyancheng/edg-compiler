@@ -3175,7 +3175,10 @@ output.
   char *bptr = buffer;
   int  nchars = 1;
 
-  if ((isprint((unsigned char)ch)
+  if ((isprint((unsigned char)ch) &&
+       /* Render extended characters as octal escapes in compilable code to
+          avoid potential misinterpretation in a different code page: */
+       !(octl->gen_compilable_code && ((unsigned char)ch) > 0x7f)
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
        /* The Sun cc (4.1.2) in -O mode when outputting assembly language
           has a bug that transforms quote into accent grave.  Avoid it. */
