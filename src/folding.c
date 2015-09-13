@@ -10101,6 +10101,12 @@ ceblock gives context information for the evaluation.
       case eok_comma:
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
+        if (is_operation_node(op1) && node_operator_is(op1, eok_cast) &&
+            is_void_type(op1->type)) {
+          /* Skip over an initial cast to void, which is normally not
+             foldable but doesn't affect this result. */
+          op1 = op1->variant.operation.operands;
+        }  /* if */
         if (is_glvalue_node(op1) ?
               fold_glvalue_expr(op1, ceblock, op1_constant) :
               fold_expr(op1, ceblock, op1_constant)) {
@@ -10592,6 +10598,12 @@ ceblock gives context information for the evaluation.
       case eok_comma:
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
+        if (is_operation_node(op1) && node_operator_is(op1, eok_cast) &&
+            is_void_type(op1->type)) {
+          /* Skip over an initial cast to void, which is normally not
+             foldable but doesn't affect this result. */
+          op1 = op1->variant.operation.operands;
+        }  /* if */
         if (is_glvalue_node(op1) ?
               fold_glvalue_expr(op1, ceblock, op1_constant) :
               fold_expr(op1, ceblock, op1_constant)) {
