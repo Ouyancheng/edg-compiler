@@ -5380,6 +5380,8 @@ inline namespaces.
   a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean	is_linkage_or_friend_lookup =
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+  a_boolean	is_linkage_lookup =
+                         ((options & IDL_LINKAGE_LOOKUP) != 0);
   a_boolean	is_declarator_lookup = (options & IDL_IS_DECLARATOR) != 0;
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
@@ -5471,15 +5473,15 @@ inline namespaces.
       sym = namespace_symbol;
     }  /* if */
   }  /* if */
-  if ((!is_linkage_or_friend_lookup ||
+  if ((!is_linkage_lookup ||
        (options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&
       !direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
         visible because of an inline namespace.  Skip this process for a
-        linkage lookup.  A linkage or friend lookup should only find names
-        that are actually defined in a scope.  The template-id exception
-        is made because class template declarations use a linkage lookup
-        but should do the inline namespace processing. */
+        linkage lookup.  A linkage lookup should only find names that are
+        actually defined in a scope.  The template-id exception is made
+        because class template declarations use a linkage lookup but should
+        do the inline namespace processing. */
     a_symbol_ptr	new_sym;
     new_sym = qualified_using_directive_lookup(
                                   locator, ns_ptr, ns_ptr->variant.assoc_scope,

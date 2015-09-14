@@ -5954,11 +5954,20 @@ function.
       }  /* if */
       if (sym == NULL || sym->kind == (a_symbol_kind)sk_namespace_projection) {
         /* There's no entry directly declared in the specified scope. */
+        a_symbol_ptr	sym_for_inline_ns_check = sym;
+        a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(*locator);
+        if (sym != NULL && sym->synthesized_namespace_projection) {
+          sym_for_inline_ns_check = fundamental_symbol_of(sym);
+        }  /* if */
         if (sym != NULL && sym->ambiguous) {
           /* The lookup was ambiguous. */
           pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-        } else if (sym != NULL && is_symbol_from_inline_namespace(sym)) {
+        } else if (sym != NULL && parent_namespace != NULL &&
+                   is_symbol_from_inline_namespace_of_scope(
+                                       sym_for_inline_ns_check,
+                                      parent_namespace->variant.assoc_scope)) {
           /* A symbol found via an inline namespace -- this is okay. */
+          err = FALSE;
         } else if (nsp != NULL) {
           /* Namespace scope. */
           pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
