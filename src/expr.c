@@ -41852,7 +41852,7 @@ empty) list of type operands args, and returns TRUE if so.
     expr_stack->suppress_constexpr_call_folding = TRUE;
     saved_defer_access_checks = scope_stack_top().defer_access_checks;
     scope_stack_top().defer_access_checks = FALSE;
-    if (is_reference_type(dst_type)) {
+    if (!is_aggregate_or_union_type(dst_type)) {
       if (arg_list != NULL && arg_list->next == NULL) {
         an_init_state  init_state;
         expr_clear_init_state(&init_state);
@@ -41864,8 +41864,7 @@ empty) list of type operands args, and returns TRUE if so.
                               /*make_lvalue_temp=*/FALSE, (an_operand *)NULL,
                               &init_state, (an_arg_match_summary*)NULL);
       } else {
-        /* A reference variable must be initialized with exactly one
-           element. */
+        /* This kind of types can be initialized with a single element only. */
         result = FALSE;
         goto have_result;
       }  /* if */
