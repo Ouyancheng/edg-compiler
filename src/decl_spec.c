@@ -9139,7 +9139,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_decl_specifiers_set      decl_specifiers_seen;
   a_boolean                  any_decl_specifiers_seen = FALSE;
   a_boolean                  marked_as_gnu_extension =
-                                  (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
+                              (input_flags & DSI_MARKED_AS_GNU_EXTENSION) != 0;
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size           saved_block_size = UPC_BLOCK_SIZE_INDEFINITE;
   a_boolean                  multiple_shared_seen = FALSE;

@@ -960,7 +960,7 @@ EXTERN int
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
 
-EXTERN int
+EXTERN a_boolean
 		microsoft_dialect_is_generated_code_target;
 			/* TRUE if code is being generated for a compiler
 			   accepting Microsoft extensions. */

@@ -241,8 +241,8 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
-extern int fp_is_negative(a_float_kind            kind,
-                          an_internal_float_value *value);
+extern a_boolean fp_is_negative(a_float_kind            kind,
+                                an_internal_float_value *value);
 
 a_boolean fp_same_representation(a_float_kind            kind,
                                  an_internal_float_value *value_1,

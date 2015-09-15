@@ -2504,8 +2504,8 @@ values:
 }  /* fp_compare */
 
 
-int fp_is_negative(a_float_kind            kind,
-                   an_internal_float_value *value)
+a_boolean fp_is_negative(a_float_kind            kind,
+                         an_internal_float_value *value)
 /*
 Return TRUE if "value" is negative.  If "value" is positive or a NaN,
 return FALSE.

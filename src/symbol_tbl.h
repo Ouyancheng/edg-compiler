@@ -2528,7 +2528,7 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a variadic template, or should be
 			   treated as variadic in GNU mode because it might
 			   contain GNU variadic operators such as __bases. */
-  a_bit_field	has_variadic_template_params;
+  a_bit_field	has_variadic_template_params:1;
 			/* TRUE if this is an actual variadic template and
 			   not simply treated as variadic in GNU mode (see
 			   is_variadic above. */
