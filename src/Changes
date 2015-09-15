@@ -1,5 +1,21 @@
 Version 4.11
 
+9/15/15  [EDGcpfe/16514]
+Braced function call arguments and partial ordering of function templates
+
+The front end previously sometimes ignored the partial ordering of function
+templates in calls involving braced function call arguments.  This could lead
+to spurious ambiguity errors.  For example:
+
+  template<class T> int f(T const&) = delete;
+  template<class T> int f(T const(&)[2]);
+  int r = f<int[2][2]>({ {1}, {2} });
+    // Previously this call was treated as ambiguous.  Now the second
+    // function template is selected because it is more specialized than
+    // the first.
+
+This is now fixed.
+
 
 9/15/15  [EDGcpfe/16513]
 __is_constructible and pointer-to-integer conversions

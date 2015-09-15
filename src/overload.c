@@ -3549,6 +3549,9 @@ handle_braced_init_list:
                           (an_operand *)NULL,
                           (an_init_state *)NULL,
                           arg_summary);
+    if (ptp != NULL) {
+      arg_summary->param_num = ptp->param_num;
+    }  /* if */
   }  /* if */
 }  /* determine_arg_list_elem_match_level */
 
