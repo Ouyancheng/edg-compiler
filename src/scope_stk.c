@@ -10530,13 +10530,13 @@ Return the number of actual arguments in *elements.
         result_ptp = vpip->param_type;
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
     /* Count the number of pack elements. */
     for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
          ptp = ptp->next) {
       (*elements)++;
     }  /* for */
-  }  /* for */
+  }  /* if */
   return result_vpip;
 }  /* find_variadic_param_info_for_pack */
 
