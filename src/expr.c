@@ -2125,6 +2125,24 @@ done.
                                                /*is_declarator=*/FALSE);
     any_more = advance_to_next_pack_element(pesep);
   }  /* while */
+  if (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) {
+    /* We're in a context where some pack elements might have been specified
+       explicitly, but more such elements might be deduced.  We have to ensure
+       that the substituted list keeps the ability to gain more elements (i.e.,
+       this is really a dependent expression list still).  Append a copy of the
+       parameterized pack expansion. */
+    an_expr_node_ptr     expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+    an_operand           opnd;
+    an_arg_list_elem_ptr alep;
+    make_expression_operand(expr_copy, &opnd);
+    alep = alloc_arg_list_elem_for_operand(&opnd);
+    if (*expr_list == NULL) {
+      *expr_list = alep;
+    } else {
+      append_elem(*end_expr_list, alep);
+    }  /* if */
+    *end_expr_list = alep;
+  }  /* if */
 }  /* rescan_pack_expansion */
 
 
