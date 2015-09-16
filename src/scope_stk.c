@@ -10526,16 +10526,19 @@ Return the number of actual arguments in *elements.
       if (vpip->orig_param_type->param_num == param_num &&
           strcmp(vpip->orig_param_type->name,
                  prp->symbol->header->identifier) == 0) {
-        result_vpip = vpip;
-        result_ptp = vpip->param_type;
+          result_vpip = vpip;
+          result_ptp = vpip->param_type;
         break;
       }  /* if */
     }  /* for */
-    /* Count the number of pack elements. */
-    for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
-         ptp = ptp->next) {
-      (*elements)++;
-    }  /* for */
+    if (result_ptp != NULL &&
+        vpip->param_type->type != vpip->orig_param_type->type) {
+      /* Count the number of pack elements. */
+      for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
+           ptp = ptp->next) {
+        (*elements)++;
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result_vpip;
 }  /* find_variadic_param_info_for_pack */
