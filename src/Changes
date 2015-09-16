@@ -1,5 +1,16 @@
 Version 4.11
 
+9/16/15  [EDGcpfe/16517]
+GNU compatibility: __extension__ keyword
+
+While cleaning up a few issues with integer values being used as booleans,
+a pre-existing bug involving the marked_as_gnu_extension field in
+a_source_correspondence was found and fixed (in C++-generating back end
+configurations).  For example (with --gcc):
+
+  __extension__ typedef struct S {} s;
+
+
 9/15/15  [EDGcpfe/16380]
 Array decay in gcc-mode constant expressions
 

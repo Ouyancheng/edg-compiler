@@ -5632,7 +5632,10 @@ al_tag_name attributes (if any).
     curr_source_sequence_entry = type->source_corresp.source_sequence_entry;
     sublist_parent_source_sequence_entry = NULL;  /* Arbitrary. */
 #if GNU_EXTENSIONS_ALLOWED
-    if (type->source_corresp.marked_as_gnu_extension) {
+    if (type->source_corresp.marked_as_gnu_extension &&
+        type->autonomous_primary_tag_decl) {
+      /* If the type was not defined autonomously, the "__extension__" keyword
+         is rendered elsewhere. */
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

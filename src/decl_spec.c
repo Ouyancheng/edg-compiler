@@ -9245,6 +9245,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         break;
       case tok_typedef:
         specifier_allows_vacuous_decl = !strict_ansi_mode;
+        /* Reset the local indication of seeing a GNU "__extension__" keyword
+           (so it won't apply to the type underlying the typedef). */
+        marked_as_gnu_extension = FALSE;
         goto storage_class_specifier;
       case tok_ellipsis:
         if (variadic_templates_enabled &&
