@@ -1,5 +1,27 @@
 Version 4.11
 
+9/16/15  [EDGcpfe/16516]
+Explicit template arguments in call, with implicit variadic arguments
+
+Overload resolution sometimes spuriously failed for a call to a function
+template with variadic template parameters where a nonvariadic template
+argument is specified explicitly, while the variadic arguments must be
+deduced.  For example:
+
+  struct S {
+    template<template<int> class F, typename ... Ts >
+      static auto f(int, Ts && ... ps) -> decltype (F<42>::run((Ts)(ps) ...));
+  };
+  template<int> struct X {
+    static int run(int);
+  };
+  void g(int p) {
+    S::f<X>(p, 0);  // Previously failed to resolve the call; now okay.
+  }
+
+This is now fixed.
+
+
 9/16/15  [EDGcpfe/16517]
 GNU compatibility: __extension__ keyword
 
