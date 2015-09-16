@@ -41871,17 +41871,16 @@ empty) list of type operands args, and returns TRUE if so.
     scope_stack_top().defer_access_checks = FALSE;
     if (!is_aggregate_or_union_type(dst_type)) {
       if (arg_list != NULL && arg_list->next == NULL) {
-        an_init_state  init_state;
-        expr_clear_init_state(&init_state);
         prep_list_initializer(arg_list, dst_type, /*is_direct_init=*/TRUE,
                               /*check_narrowing=*/FALSE,  /* Ignored */
                               /*warning_on_narrowing=*/FALSE,  /* Ditto */
                               CCO_INITIALIZING_VARIABLE,
                               /*fill_in_dtor=*/FALSE, /*force_temp=*/FALSE,
-                              /*make_lvalue_temp=*/FALSE, (an_operand *)NULL,
-                              &init_state, (an_arg_match_summary*)NULL);
+                              /*make_lvalue_temp=*/FALSE, &operand,
+                              (an_init_state*)NULL,
+                              (an_arg_match_summary*)NULL);
       } else {
-        /* This kind of types can be initialized with a single element only. */
+        /* This kind of type can be initialized with a single element only. */
         result = FALSE;
         goto have_result;
       }  /* if */

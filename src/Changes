@@ -59,8 +59,8 @@ This is now fixed.
 9/15/15  [EDGcpfe/16513]
 __is_constructible and pointer-to-integer conversions
 
-The front end previously produced a "true" variable for an invocation of the
-type traits helper __is_constructible like "__is_constructible(int*, int)"
+The front end previously produced a "true" value for an invocation of the type
+traits helper __is_constructible like "__is_constructible(int*, int)"
 (erroneously suggesting an integer is constructible from a pointer).  This is
 now fixed.
 
