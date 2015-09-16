@@ -9337,14 +9337,16 @@ error indication in *rcblock).
                to a pointer.  It has type "pointer-to-array-element" rather
                than "pointer to array" as in ANSI. */
             expr_pos_warning(ec_pcc_address_of_array, &start_position);
-            conv_array_operand_to_pointer_operand(&operand);
+            conv_array_operand_to_pointer_operand(&operand,
+                                                  /*const_expr_okay=*/FALSE);
           } else if (microsoft_bugs && microsoft_version < 1400 &&
                      operand_is_string_literal(&operand)) {
             /* Early Microsoft compilers ignore "&" in front of a string
                literal (wide or narrow, in parentheses or not) in both C and
                C++ mode.  Note that the type of &"abc" is supposed to be a
                pointer to array, whereas "abc" decays to pointer to char. */
-            conv_array_operand_to_pointer_operand(&operand);
+            conv_array_operand_to_pointer_operand(&operand,
+                                                  /*const_expr_okay=*/FALSE);
           } else {
             if (!C_mode() && was_prvalue &&
                 is_class_struct_union_type(operand.type)) {
@@ -24897,7 +24899,15 @@ that case.
   if (!processed) {
     /* Non-operator-function cases. */
     /* The first operand must be an arithmetic or enum type or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+    a_transformation_options_set options;
+    if (gcc_mode && curr_expr_kind_is(ek_init_constant)) {
+      /* gcc and clang permit operations like x==x, where x is an automatic
+         array, to appear in constant expressions. */
+      options = TOPT_ALLOW_NONCONST_ARRAY_IN_CONST_EXPR;
+    } else {
+      options = TOPT_NO_OPTIONS;
+    }  /* if */
+    do_operand_transformations(operand_1, options);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
     operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
@@ -24914,7 +24924,7 @@ that case.
                                      expr_not_arithmetic_or_pointer_code())) {
       operand_1_is_pointer = TRUE;
     }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+    do_operand_transformations(&operand_2, options);
     /* Check the operand types for compatibility. */
     operation_type = operand_1->type;  /* Assume. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
@@ -25885,7 +25895,8 @@ that case.
     if (is_array_type(operand_1->type)) {
       /* If the first operand is an array, do the decay to pointer before
          cloning it. */
-      conv_array_operand_to_pointer_operand(operand_1);
+      conv_array_operand_to_pointer_operand(operand_1,
+                                            /*const_expr_okay=*/FALSE);
     }  /* if */
     clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used,
                   /*treat_as_potential_prvalue=*/TRUE);
@@ -29234,7 +29245,9 @@ variable:
                  rvalue (e.g., because it's a constant-valued variable that
                  cannot be captured in a lambda). */
               if (is_array_type(result->type)) {
-                conv_array_operand_to_pointer_operand(result);
+                conv_array_operand_to_pointer_operand(
+                                                    result,
+                                                    /*const_expr_okay=*/FALSE);
               } else {
                 conv_glvalue_to_prvalue(result);
               }  /* if */
@@ -35975,7 +35988,8 @@ created, needed to reactivate that scope.
        arrays (if they should come up; at the moment, because the collection
        expression is passed through a reference, it wouldn't be an rvalue
        here). */
-    conv_array_operand_to_pointer_operand(&operand);
+    conv_array_operand_to_pointer_operand(&operand,
+                                          /*const_expr_okay=*/FALSE);
     if (multi_dim) {
       cast_operand(make_pointer_type(element_type), &operand,
                    /*is_implicit_cast=*/TRUE);
@@ -36002,7 +36016,8 @@ created, needed to reactivate that scope.
     make_enhanced_for_expression_operand(felp->collection_expr_ref,
                                          &operand);
     /* Convert the array to a decayed rvalue pointer, as above. */
-    conv_array_operand_to_pointer_operand(&operand);
+    conv_array_operand_to_pointer_operand(&operand,
+                                          /*const_expr_okay=*/FALSE);
     if (multi_dim) {
       cast_operand(make_pointer_type(element_type), &operand,
                    /*is_implicit_cast=*/TRUE);
@@ -36649,7 +36664,8 @@ an error and returns FALSE.
     /* push_expr_stack done above. */
     /* make_enhanced_for_expression_operand(..., &operand); --done above.*/
     /* Convert the array to a decayed rvalue pointer. */
-    conv_array_operand_to_pointer_operand(&operand);
+    conv_array_operand_to_pointer_operand(&operand,
+                                          /*const_expr_okay=*/FALSE);
     /* Make the "__begin" temporary variable and initialize it from the
        expression just made. */
     begin_var = alloc_temporary_variable(operand.type, /*force_static=*/FALSE);
@@ -36664,7 +36680,8 @@ an error and returns FALSE.
                     /*suppress_object_lifetime=*/FALSE);
     make_enhanced_for_expression_operand(rbflp->range, &operand);
     /* Convert the array to a decayed rvalue pointer. */
-    conv_array_operand_to_pointer_operand(&operand);
+    conv_array_operand_to_pointer_operand(&operand,
+                                          /*const_expr_okay=*/FALSE);
     /* In some modes the array may have a variable length. */
     if (is_vla_type(expr_type)) {
       /* Build a node representing sizeof(array)/sizeof(element). */

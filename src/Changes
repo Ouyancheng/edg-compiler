@@ -1,5 +1,33 @@
 Version 4.11
 
+9/15/15  [EDGcpfe/16380]
+Array decay in gcc-mode constant expressions
+
+The GNU C compiler allows a constant expression to contain a conversion of
+an lvalue designating an array of automatic storage duration to a pointer
+to the array's first element if the context is a comparison or subtraction
+whose operands both involve the same array variable.  The front end
+previously rejected such conversions as non-constant but has now been
+adjusted to permit them when emulating gcc.  For example, with --gcc:
+
+  void f() {
+    int a[5];
+    sizeof(struct { int f : a == a; });  // Previously an error
+  }
+
+In addition, this change fixes a bug introduced in version 4.10.1 by the
+change for EDGcpfe/10791,EDGcpfe/15927.  In configurations in which the IL
+is written to a file, the front end could abort with a failed assertion or
+behave unpredictably if the width expression of a bit-field refers to a
+variable with automatic storage duration.  This is now fixed.  For example,
+again with --gcc:
+
+  void f() {
+    const int i = 5;
+    sizeof(struct { int f : i + 2; });  // Previously might abort
+  }
+
+
 9/15/15  [EDGcpfe/16514]
 Braced function call arguments and partial ordering of function templates
 

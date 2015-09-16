@@ -673,6 +673,13 @@ some of the transformations.
 			   a copy.  This is required by the C++ standard, but
 			   it actually applies only in certain unusual
 			   situations, so we leave the default as no copy. */
+#define TOPT_ALLOW_NONCONST_ARRAY_IN_CONST_EXPR 0x100
+			/* An array to pointer conversion of an array with
+			   a non-constant address is normally not permitted
+			   in a constant expression.  This flag overrides
+			   that restriction for expressions like x==x,
+			   where the result is known at compile time even
+			   though the address of "x" is not a constant. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 
@@ -2515,9 +2522,11 @@ extern a_boolean check_integral_or_enum_or_fixed_point_operand(
 
 extern an_expr_node_ptr conv_array_expr_to_pointer(an_expr_node_ptr node);
 
-extern void do_array_to_pointer_conversion(an_operand *operand);
+extern void do_array_to_pointer_conversion(an_operand *operand,
+                                           a_boolean  const_expr_okay);
 
-extern void conv_array_operand_to_pointer_operand(an_operand *operand);
+extern void conv_array_operand_to_pointer_operand(an_operand *operand,
+                                                  a_boolean  const_expr_okay);
 
 extern a_type_ptr type_after_function_to_pointer_transformation(
                                                       a_type_ptr arg_type,

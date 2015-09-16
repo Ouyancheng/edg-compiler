@@ -9044,7 +9044,8 @@ in pre-C99 C.  A diagnostic is issued in strict mode.
                           ec_bad_rvalue_array, &operand->position);
     }  /* if */
     /* Convert the array rvalue to a pointer to the first element. */
-    do_array_to_pointer_conversion(operand);    
+    do_array_to_pointer_conversion(operand,
+                                   /*const_expr_okay=*/FALSE);
   }  /* if */
 }  /* handle_nonstandard_array_rvalue */
 
@@ -12595,7 +12596,9 @@ of a subscript operation).
       did_not_fold = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gcc_mode &&
-               op == (an_expr_operator_kind)eok_pdiff &&
+               (op == (an_expr_operator_kind)eok_pdiff ||
+                op == (an_expr_operator_kind)eok_eq ||
+                op == (an_expr_operator_kind)eok_ne) &&
                is_expression_operand(operand_1) &&
                is_expression_operand(operand_2) &&
                is_pointer_type(operand_1->type) &&
@@ -12614,8 +12617,9 @@ of a subscript operation).
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL)) {
-      /* gcc allows a pointer difference of two pointer values based on
-         addresses of the same local variable to be folded to a constant. */
+      /* gcc allows a pointer difference or equality comparison of two
+         pointer values based on addresses of the same local variable to be
+         folded to a constant. */
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
       result->state = (an_operand_state)os_prvalue;
@@ -19065,11 +19069,13 @@ decay on it, and return a pointer to the decayed expression.
 }  /* conv_array_expr_to_pointer */
 
 
-void do_array_to_pointer_conversion(an_operand *operand)
+void do_array_to_pointer_conversion(an_operand *operand,
+                                    a_boolean  const_expr_okay)
 /*
 Do array-to-pointer decay on the given operand, which is an lvalue or
 rvalue of array type.  Don't check whether this decay is valid in the
-current mode -- just do it.
+current mode -- just do it.  This conversion is permitted in a constant
+expression only if const_expr_okay is TRUE.
 */
 {
   an_expr_node_ptr expr;
@@ -19118,9 +19124,10 @@ current mode -- just do it.
     make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_evaluated_const()) {
+  } else if (curr_expr_kind_is_evaluated_const() && !const_expr_okay) {
     /* The array-to-pointer operation must fold to a constant in a constant
-       expression. */
+       expression except in certain expressions such as x==x, where the
+       result is known at compile time. */
     error_in_operand(ec_expr_not_constant, operand);
   } else {
     /* Keep the result in expression form. */
@@ -19152,13 +19159,15 @@ current mode -- just do it.
 }  /* do_array_to_pointer_conversion */
 
 
-void conv_array_operand_to_pointer_operand(an_operand *operand)
+void conv_array_operand_to_pointer_operand(an_operand *operand,
+                                           a_boolean  const_expr_okay)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
 to the operand.  If the operand is an array lvalue it is changed to a prvalue
 pointer to the first element of the array.  If the operand is an array rvalue,
 the conversion is done in some modes (C++, C99) and not in others.  All other
-cases are left alone.
+cases are left alone.  This conversion is permitted in an evaluated constant
+expression only if const_expr_okay is TRUE.
 */
 {
   if (is_array_type(operand->type)) {
@@ -19174,7 +19183,7 @@ cases are left alone.
       do_decay = TRUE;
     }  /* if */
     if (do_decay) {
-      do_array_to_pointer_conversion(operand);
+      do_array_to_pointer_conversion(operand, const_expr_okay);
     }  /* if */
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */
@@ -20502,7 +20511,9 @@ transformations.
     if (!(options & TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION)) {
       /* In most contexts, an operand of array type is changed to
          "pointer to first element of array". */
-      conv_array_operand_to_pointer_operand(operand);
+      a_boolean const_expr_okay =
+                      (options & TOPT_ALLOW_NONCONST_ARRAY_IN_CONST_EXPR) != 0;
+      conv_array_operand_to_pointer_operand(operand, const_expr_okay);
     }  /* if */
   } else if (is_a_glvalue(operand)) {
     /* A non-array glvalue. */
