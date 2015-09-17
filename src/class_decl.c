@@ -18404,7 +18404,7 @@ information about the member declaration, respectively.
     /* Fields can only be declared in class scope, but severe syntax errors
        can sometimes get us here with a different scope on top of the stack. */
     expect_error();
-  } else {
+  } else if (dps->sym != NULL) {
     a_field_ptr                    field;
     check_assertion(symbol_is(dps->sym, sk_field));
     field = dps->sym->variant.field.ptr;
