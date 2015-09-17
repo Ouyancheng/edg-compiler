@@ -2588,6 +2588,7 @@ to it.
   fp->has_initializer      = FALSE;
   fp->has_direct_braced_initializer = FALSE;
   fp->has_nonconstant_initializer = FALSE;
+  fp->bit_size_constant_expr_in_local_expr_node_ref = FALSE;
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

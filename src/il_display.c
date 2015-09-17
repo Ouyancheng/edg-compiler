@@ -2956,6 +2956,9 @@ Display the indicated field.
     if (ptr->has_nonconstant_initializer) {
       disp_boolean("has_nonconstant_initializer", TRUE);
     }  /* if */
+    if (ptr->bit_size_constant_in_local_expr_node_ref) {
+      disp_boolean("bit_size_constant_in_local_expr_node_ref", TRUE);
+    }  /* if */
     disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
     if (ptr->entities_defined_in_initializer != NULL) {
       disp_entity_list("entities_defined_in_initializer",

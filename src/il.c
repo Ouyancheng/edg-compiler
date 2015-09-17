@@ -11469,6 +11469,13 @@ The expression can then be recovered using find_local_expr_node.
       ((a_constant_ptr)referrer)->variant.template_param.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    case lerk_bit_field_width:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_field;
+      check_assertion(!((a_field_ptr)referrer)->
+                                bit_size_constant_expr_in_local_expr_node_ref);
+      ((a_field_ptr)referrer)->bit_size_constant_expr_in_local_expr_node_ref =
+                                                                          TRUE;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -17885,6 +17892,7 @@ be called to start a copy.
       break;
     case enk_constant:
       if ((options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) ||
+          (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) ||
           expr->variant.constant->part_of_constexpr_master_expr ||
           (!in_file_scope(expr->variant.constant) &&
            (in_file_scope(expr_copy) ||
@@ -17901,6 +17909,12 @@ be called to start a copy.
                        i_copy_constant_full(expr->variant.constant,
                                             (a_constant *)NULL,
                                             subcopy_options, cblock);
+        if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF &&
+            expr->variant.constant->expr != NULL) {
+          /* Get a local copy of the backing expression as well. */
+          expr_copy->variant.constant->expr =
+               i_copy_expr_tree(expr->variant.constant->expr, options, cblock);
+        }  /* if */
       }  /* if */
       break;
     case enk_operation:

@@ -7643,7 +7643,20 @@ declaration following this one is such a continuation.
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
     if (field->bit_size_constant != NULL) {
-      gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
+      if (field->bit_size_constant_expr_in_local_expr_node_ref &&
+          innermost_function_scope != NULL) {
+        /* The expression for the bit-field size contains a reference to
+           a local variable, so it is represented by an
+           a_local_expr_node_ref entry. */
+        an_expr_node_ptr width_expr;
+        width_expr = find_local_expr_node(
+                             (char *)field,
+                             (a_local_expr_node_ref_kind)lerk_bit_field_width);
+        check_assertion(width_expr != NULL);
+        gen_expression(width_expr);
+      } else {
+        gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
+      }  /* if */
     } else {
       write_unsigned_num((unsigned long)field->bit_size);
     }  /* if */

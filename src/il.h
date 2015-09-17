@@ -1406,6 +1406,11 @@ typedef int an_expr_copy_options_set;
 #define CE_COPYING_FOR_CONSTEXPR_FOLDING 0x1000
 			/* When TRUE, the copy is being done as part of
 			   constexpr evaluation folding. */
+#define CE_COPYING_FOR_LOCAL_EXPR_NODE_REF 0x2000
+			/* When TRUE, the copy is being done to create an
+			   expression tree in function-scope memory that
+			   can be referenced by an a_local_expr_node_ref
+			   entry. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

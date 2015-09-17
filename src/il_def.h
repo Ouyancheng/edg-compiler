@@ -10205,8 +10205,16 @@ typedef struct a_field {
 			   expression", and not "the initializer dynamic-init
 			   is not a constant"; an initializer like f() could be
 			   not-yet-foldable when the initializer is scanned,
-			   but foldable to c constant later when a constexpr
+			   but foldable to a constant later when a constexpr
 			   constructor is called. */
+  a_bit_field	bit_size_constant_expr_in_local_expr_node_ref:1;
+			/* TRUE if the expression for the bit-field width
+			   contains a reference to a local variable.
+			   Because such expressions cannot appear in
+			   file-scope memory, the expression is represented
+			   as an a_local_expr_node_ref in the function
+			   scope and the associated expr field will be
+			   NULL.  This applies to bit_size_constant->expr. */
   bitfield_to_avoid_codecenter_warnings()
   a_dynamic_init_ptr
 		initializer;
@@ -15388,7 +15396,7 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_tpl_param_expr,	/* The expression in a
 			   ck_template_param/tpck_expression constant. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-  lerk_array_bound,	/* The expression for an array bound, which, despite
+  lerk_array_bound,	/* The expression for an array bound that, despite
 			   being constant, refers to a local variable.  This
 			   can occur for initialized const variables and for
 			   non-const variables that appear in unselected
@@ -15396,8 +15404,10 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_dep_array_bound,	/* Like lerk_array_bound, but for the expressions
 			   under a dependent constant giving the bound, rather
 			   than the "expr" field of the constant. */
-  lerk_decltype		/* An expression used as an argument for a decltype
+  lerk_decltype,	/* An expression used as an argument for a decltype
 			   construct. */
+  lerk_bit_field_width	/* The expression for the width of a bit-field that
+			   refers to a local variable. */
 };
 
 typedef a_byte a_local_expr_node_ref_kind;
