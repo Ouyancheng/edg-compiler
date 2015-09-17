@@ -1,5 +1,21 @@
 Version 4.11
 
+9/17/15  [EDGcpfe/10609,EDGcpfe/16520]
+Relaxed rules for scope of explicit specialization (core issue 374)
+
+In C++11, an explicit specialization is no longer required to be first
+declared in the namespace of the template.  Now it also may be declared in
+an enclosing namespace.  This is core issue 374, resolved by paper N3064.
+We now implement the new rules in C++11 and newer modes.
+
+  namespace N {
+    template<typename T> struct S { };
+  }
+  // Formerly resulted in an error in all strict modes.  Now only an error
+  // in strict C++98/03 modes.
+  template<> struct N::S<int> { };
+
+
 9/16/15  [EDGcpfe/16516]
 Explicit template arguments in call, with implicit variadic arguments
 

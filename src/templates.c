@@ -16289,8 +16289,8 @@ generated.
   } else {
     /* Note that the prototype_template is not set to NULL. */
     tssp->is_specific_definition = TRUE;
-    /* A specialization must first be declared in the namespace
-       containing the template. */
+    /* In some modes, a specialization must first be declared in the
+       namespace containing the template. */
     check_specialization_scope(template_sym, error_pos);
     /* Check for any existing instantiations.  A specialization must be
        declared before it is used. */
@@ -24030,15 +24030,16 @@ issued.
 void check_specialization_scope(a_symbol_ptr	     sym,
 			        a_source_position     *pos)
 /*
-This is the initial specialization declaration of "sym".  An entity must
-first be declared as a specialization in the namespace containing the
-template.  "pos" is the position to be used if an error is to be issued.
+This is the initial specialization declaration of "sym".  Prior to C++11, an
+entity must first be declared as a specialization in the namespace containing
+the template.  "pos" is the position to be used if an error is to be issued.
 */
 {
   a_namespace_ptr	sym_nsp;
   a_namespace_ptr	curr_nsp;
 
-  if (strict_ansi_mode && !is_symbol_from_inline_namespace(sym)) {
+  if (!cpp11_mode && strict_ansi_mode &&
+      !is_symbol_from_inline_namespace(sym)) {
     sym_nsp = parent_namespace_for_symbol(sym);
     curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     if (sym_nsp != curr_nsp) {
@@ -24543,8 +24544,8 @@ that follows.
       if (already_specialized) first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
       if (!already_specialized) {
-        /* A specialization must first be declared in the namespace
-           containing the template. */
+        /* In some modes, a specialization must first be declared in the
+           namespace containing the template. */
         check_specialization_scope(sym, &locator.source_position);
       }  /* if */
       if (scp->referenced && !already_specialized) {
