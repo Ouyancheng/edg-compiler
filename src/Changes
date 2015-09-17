@@ -1,5 +1,24 @@
 Version 4.11
 
+9/17/15  [EDGcpfe/16297]
+Incorrect behavior and/or abort in substitution of default template argument
+
+If a program substituted a pack into the template argument list of a
+non-variadic template, default arguments of the non-variadic template
+were sometimes not substituted properly.  This could result in incorrect
+types, or an abort (in get_template_arg_by_list_pos) starting with version
+4.10.  Now fixed.  Prior to 4.10 certain cases like this could get an
+internal error in equiv_template_arg_lists.
+
+  template <typename T> struct A {};
+  template <typename V, typename T = int, typename S = A<T> > class B {};
+  template <typename... A> void f(int n, B<A...>);
+  int main() {
+    B<int> b;
+    f<int>(1, b);
+  }
+
+
 9/17/15  [EDGcpfe/16211]
 Spurious "pack ... not expanded error" in disambiguation
 

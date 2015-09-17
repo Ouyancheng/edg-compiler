@@ -10424,6 +10424,20 @@ associated parameter.
       arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
       tap = alloc_template_arg(arg_kind);
       get_template_arg_value_from_default(template_sym, tap, tpp);
+      /* The default argument could make use of earlier template
+         arguments.  Do substitution on the argument using the
+         new list created so far.  This is used for cases like:
+             template <typename T = int, typename S = C<T> > class A {};
+      */
+      if (new_list != NULL && tpp->def_arg_involves_template_param) {
+        substitute_template_argument(tap, tpp, arg_list_to_copy,
+                                     param_list_for_copy,
+                                     new_list, param_list_for_copy,
+                                     source_pos,
+                                     options, orig_is_nonreal_template,
+                                     is_generic,
+                                     copy_error, ctws_state);
+      }  /* if */
       any_more = TRUE;
     }  /* if */
     while (any_more) {
