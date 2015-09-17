@@ -23,7 +23,7 @@ This is now fixed.
 
 
 9/16/15  [EDGcpfe/16517]
-GNU compatibility: __extension__ keyword
+C++-generating back end: GNU __extension__ keyword
 
 While cleaning up a few issues with integer values being used as booleans,
 a pre-existing bug involving the marked_as_gnu_extension field in
