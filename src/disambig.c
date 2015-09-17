@@ -1758,7 +1758,7 @@ cache passed by the caller are flushed.
   a_disambig_state    state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+  init_disambig_state(&state, /*suppress_packs=*/TRUE,
                       /*cache_tokens=*/FALSE);
   state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);

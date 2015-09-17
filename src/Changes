@@ -1,5 +1,17 @@
 Version 4.11
 
+9/17/15  [EDGcpfe/16211]
+Spurious "pack ... not expanded error" in disambiguation
+
+A spurious "pack was referenced but not expanded" error could be issued on
+a variadic constructor template.  Now fixed.
+
+  template <int I> struct A {};
+  template <int... J> struct B {
+    template<int... K> B(const A<K>&... ak) { }
+  };
+
+
 9/17/15  [EDGcpfe/10609,EDGcpfe/16520]
 Relaxed rules for scope of explicit specialization (core issue 374)
 
