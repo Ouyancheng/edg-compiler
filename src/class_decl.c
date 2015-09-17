@@ -18420,8 +18420,10 @@ information about the member declaration, respectively.
       expr_for_local_ref = copy_expr_tree(expr_for_local_ref,
                                           CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
       switch_il_region(file_scope_region_number);
-      make_local_expr_node_ref(expr_for_local_ref, lerk_bit_field_width,
-                               (char *)field, function_scope);
+      make_local_expr_node_ref(
+                              expr_for_local_ref,
+                              (a_local_expr_node_ref_kind)lerk_bit_field_width,
+                              (char *)field, function_scope);
     }  /* if */
     if (dps->has_initializer) {
       /* A field initializer.  For nontemplate classes (and prototype
