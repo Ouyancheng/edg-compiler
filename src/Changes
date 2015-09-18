@@ -97,10 +97,15 @@ adjusted to permit them when emulating gcc.  For example, with --gcc:
 
 In addition, this change fixes a bug introduced in version 4.10.1 by the
 change for EDGcpfe/10791,EDGcpfe/15927.  In configurations in which the IL
-is written to a file, the front end could abort with a failed assertion or
-behave unpredictably if the width expression of a bit-field refers to a
-variable with automatic storage duration.  This is now fixed.  For example,
-again with --gcc:
+is written to a file, the front end could abort with a failed assertion (in
+EXPENSIVE_CHECKING configurations) or behave unpredictably if the width
+expression of a bit-field refers to a local variable.  This is now fixed,
+which required an IL CHANGE: in such cases, the new flag
+bit_size_constant_expr_in_local_expr_node_ref in the a_field entry will be
+set to TRUE and the backing expression for the entry to which the
+bit_size_constant field points will be represented by an
+a_local_expr_node_ref entry (see the entry of 4/28/06).  For example, again
+with --gcc:
 
   void f() {
     const int i = 5;
