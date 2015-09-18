@@ -20,7 +20,7 @@ internal error in equiv_template_arg_lists.
 
 
 9/17/15  [EDGcpfe/16211]
-Spurious "pack ... not expanded error" in disambiguation
+Spurious "pack ... not expanded" error in disambiguation
 
 A spurious "pack was referenced but not expanded" error could be issued on
 a variadic constructor template.  Now fixed.
