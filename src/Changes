@@ -1,5 +1,24 @@
 Version 4.11
 
+9/20/15  [EDGcpfe/16525]
+Template keyword in non-template context in C++11 mode
+
+The template keyword used for syntactic disambiguation is allowed in
+non-template contexts in C++11.  This has been allowed in qualified
+names since version 3.9, but was incorrectly diagnosed in class member
+accesses in C++11 mode.  Now fixed.
+
+  struct A {
+    template <typename T> static void f() {}
+  };
+  int main() {
+    A a;
+    A* ap = &a;
+    a.template f<int>();
+    ap->template f<int>();
+  }
+
+
 9/17/15  [EDGcpfe/16297]
 Incorrect behavior and/or abort in substitution of default template argument
 

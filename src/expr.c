@@ -6243,7 +6243,7 @@ Set *err to TRUE if there is an error.
       /* A construct like "p->template f<x>...".  If it is allowed in this
          context, pass a flag to the identifier coalescing routine that
          the name is known to be a template. */
-      if (!is_template_context()) {
+      if (!cpp11_mode && !is_template_context()) {
         /* The template keyword, when used for syntactic disambiguation,
            may only appear within a template. */
         expr_pos_diagnostic(strict_ansi_mode ?
