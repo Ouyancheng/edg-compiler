@@ -491,9 +491,10 @@ static void gen_declaration(a_boolean for_init);
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand);
 static a_boolean entity_name_is_accessible(
-                                   a_source_correspondence_ptr scp,
-                                   an_il_entry_kind            kind,
-                                   a_boolean                   ignore_context);
+                                  a_source_correspondence_ptr scp,
+                                  an_il_entry_kind            kind,
+                                  a_boolean                   ignore_context,
+                                  a_boolean                   *for_all_scopes);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void gen_prop_event_or_op_synth_call(
                           an_expr_node_ptr                    obj_expr,
@@ -1386,16 +1387,15 @@ static a_typedef_hash_entry
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 
-static a_hash_value hash_type_ptr(a_type_ptr type)
+static a_hash_value hash_IL_ptr(void *ptr)
 /*
-Hash function for a type pointer.  Return the numeric value of the result
-of skip_typerefs applied to the pointer, right-shifted six bits to account
-for the size of an a_type entry.  (The result of skip_typerefs is used so
-that typedefs with identical types will hash into the same bucket.)
+Hash function for a pointer to an IL entry.  Return the numeric value of
+the pointer, right-shifted six bits to account for the size of a typical IL
+entry.
 */
 {
-  return (a_hash_value)(((unsigned long)skip_typerefs(type)) >> 6);
-}  /* hash_typedef */
+  return (a_hash_value)(((unsigned long)ptr) >> 6);
+}  /* hash_IL_ptr */
 
 
 static void add_typedef_to(a_typedef_hash_entry *hash_table,
@@ -1408,7 +1408,7 @@ Add type (which must be a typedef) to hash_table.
 
   check_assertion(type_is_typedef(type));
   /* Find the hash bucket, keyed by the underlying type of the typedef. */
-  bucket = hash_type_ptr(type->variant.typeref.type) %
+  bucket = hash_IL_ptr(skip_typerefs(type->variant.typeref.type)) %
                                                 BUCKETS_FOR_TYPEDEF_HASH_TABLE;
   if (hash_table[bucket].type != NULL) {
     /* There's already a type that hashes into this bucket.  Move the
@@ -1434,7 +1434,7 @@ otherwise, return NULL.
   a_typedef_hash_entry_ptr entry;
   a_hash_value             bucket;
 
-  bucket = hash_type_ptr(type) % BUCKETS_FOR_TYPEDEF_HASH_TABLE;
+  bucket = hash_IL_ptr(skip_typerefs(type)) % BUCKETS_FOR_TYPEDEF_HASH_TABLE;
   for (entry = &hash_table[bucket];
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
@@ -1479,14 +1479,18 @@ such typedefs.
 */
 {
   a_type_ptr targ_type;
+  a_boolean  type_for_all_scopes = TRUE;
+  a_boolean  targ_for_all_scopes = TRUE;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   targ_type = type->variant.typeref.type;
   if (entity_name_is_accessible(&type->source_corresp, iek_type,
-                                /*ignore_context=*/TRUE) &&
+                                /*ignore_context=*/TRUE,
+                                &type_for_all_scopes) &&
       has_name_before_mangling(targ_type) &&
       !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
-                                 /*ignore_context=*/TRUE) &&
+                                 /*ignore_context=*/TRUE,
+                                 &targ_for_all_scopes) &&
       !target_type_has_circularity(type)) {
     /* This typedef can be substituted for the target type when that type
        is inaccessible.  Add it to the table of such typedefs. */
@@ -1638,11 +1642,13 @@ static void replace_inaccessible_type_with_accessible_typedef(
 
 
 static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
-                                            a_boolean          ignore_context)
+                                            a_boolean          ignore_context,
+                                            a_boolean          *for_all_scopes)
 /*
 Return TRUE if all names in the template argument are accessible (either
 publicly or in the current context, depending on the value of
 ignore_context) or if the argument contains no names, FALSE otherwise.
+Pass for_all_scopes through to entity_name_is_accessible.
 */
 {
   a_boolean                   is_accessible = TRUE;
@@ -1651,7 +1657,8 @@ ignore_context) or if the argument contains no names, FALSE otherwise.
   switch (argp->kind) {
   case tak_type:
     scp = &argp->variant.type->source_corresp;
-    is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context);
+    is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
+                                              for_all_scopes);
     if (!is_accessible) {
       /* Check to see if this is a typedef whose underlying type is
          accessible.  If so, the underlying type will be used instead of
@@ -1660,7 +1667,8 @@ ignore_context) or if the argument contains no names, FALSE otherwise.
       if (type_is_typedef(argp->variant.type)) {
         a_type_ptr tp = skip_typerefs(argp->variant.type);
         is_accessible = entity_name_is_accessible(&tp->source_corresp,
-                                                  iek_type, ignore_context);
+                                                  iek_type, ignore_context,
+                                                  for_all_scopes);
       }  /* if */
     }  /* if */
     if (!is_accessible) {
@@ -1683,24 +1691,24 @@ ignore_context) or if the argument contains no names, FALSE otherwise.
                                            (an_address_base_kind)abk_routine) {
           is_accessible = entity_name_is_accessible(
                     &constant->variant.address.variant.routine->source_corresp,
-                    iek_routine, ignore_context);
+                    iek_routine, ignore_context, for_all_scopes);
         } else if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
           is_accessible = entity_name_is_accessible(
                    &constant->variant.address.variant.variable->source_corresp,
-                   iek_variable, ignore_context);
+                   iek_variable, ignore_context, for_all_scopes);
         }  /* if */
       } else {
         if (constant->variant.ptr_to_member.is_function_ptr &&
             constant->variant.ptr_to_member.variant.routine != NULL) {
           is_accessible = entity_name_is_accessible(
               &constant->variant.ptr_to_member.variant.routine->source_corresp,
-              iek_routine, ignore_context);
+              iek_routine, ignore_context, for_all_scopes);
         } else if (!constant->variant.ptr_to_member.is_function_ptr &&
                    constant->variant.ptr_to_member.variant.field != NULL) {
           is_accessible = entity_name_is_accessible(
                 &constant->variant.ptr_to_member.variant.field->source_corresp,
-                iek_field, ignore_context);
+                iek_field, ignore_context, for_all_scopes);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1708,7 +1716,8 @@ ignore_context) or if the argument contains no names, FALSE otherwise.
   case tak_template:
     is_accessible = entity_name_is_accessible(
                                       &argp->variant.templ.ptr->source_corresp,
-                                      iek_template, ignore_context);
+                                      iek_template, ignore_context,
+                                      for_all_scopes);
     break;
   default:
     unexpected_condition();
@@ -1717,105 +1726,309 @@ ignore_context) or if the argument contains no names, FALSE otherwise.
 }  /* template_arg_is_accessible */
 
 
+/*
+Definitions for a hash table caching the results of accessibility checks.
+If a subsequent accessibility check occurs for the same item in a
+compatible scope, the previous result can be used instead of performing the
+potentially-expensive check for the name, its template arguments, their
+template arguments, etc.
+*/
+typedef struct an_access_cache_entry *an_access_cache_entry_ptr;
+typedef struct an_access_cache_entry {
+  an_access_cache_entry_ptr
+		next;	/* The next entry in the bucket or on the free list,
+			   or NULL if none. */
+  a_source_correspondence_ptr
+		scp;	/* Designates the entity whose access was
+			   checked. */
+  a_scope_ptr	lookup_scope;
+			/* The scope at the top of the name context stack
+			   at the time the access was checked.  If the name
+			   is accessible in a given scope, it is accessible
+			   in all contained scopes; however, if it is
+			   inaccessible in a given scope, it may be
+			   accessible in a nested scope (the out-of-class
+			   definition of a class member, for example).  If
+			   all names involved in naming the entity are
+			   publicly accessible, the lookup scope is
+			   irrelevant, and this field will be set to NULL
+			   to indicate that fact. */
+  a_boolean	is_accessible;
+			/* TRUE if the entity designated by scp is
+			   accessible in the scope designated by
+			   lookup_scope and FALSE otherwise. */
+} an_access_cache_entry;
+
+#define BUCKETS_FOR_ACCESS_CACHE 16383
+static an_access_cache_entry
+		access_cache[BUCKETS_FOR_ACCESS_CACHE];
+
+/*
+A list of free access cache entries available for reuse.
+*/
+static an_access_cache_entry_ptr
+		avail_access_cache_entries;
+
+
+static void cache_access_result_for(a_source_correspondence_ptr scp,
+                                    a_boolean                   is_accessible,
+                                    a_boolean                   for_all_scopes)
+/*
+Add the result of the access check for the IL entry designated by scp to
+the access cache.  If for_all_scopes is TRUE, the result is valid in all
+scopes and the lookup_scope in the cache entry will be set to NULL;
+otherwise, it will be set to the scope designated by the current top of the
+name context stack.
+*/
+{
+  a_hash_value bucket = hash_IL_ptr(scp) % BUCKETS_FOR_ACCESS_CACHE;
+
+  if (access_cache[bucket].scp != NULL) {
+    /* There's already an IL entry in this bucket.  Move the current bucket
+       contents to a new entry and link it to the bucket.  If a lookup was
+       done from a containing scope, this gives LIFO access in parallel
+       with the scopes' stack organization. */
+    an_access_cache_entry_ptr entry;
+    if (avail_access_cache_entries != NULL) {
+      entry = avail_access_cache_entries;
+      avail_access_cache_entries = entry->next;
+    } else {
+      entry = alloc_general_of_type(an_access_cache_entry);
+    }  /* if */
+    *entry = access_cache[bucket];
+    access_cache[bucket].next = entry;
+  }  /* if */
+  /* Store the cached information into the entry in the cache array. */
+  access_cache[bucket].scp = scp;
+  access_cache[bucket].is_accessible = is_accessible;
+  if (for_all_scopes) {
+    access_cache[bucket].lookup_scope = NULL;
+  } else {
+    check_assertion(curr_name_context != NULL);
+    access_cache[bucket].lookup_scope = curr_name_context->assoc_scope;
+  }  /* if */
+}  /* cache_access_result_for */
+
+
+static a_boolean access_from_cache_for(
+                                   a_source_correspondence_ptr scp,
+                                   a_boolean                   *is_accessible,
+                                   a_boolean                   *for_all_scopes)
+/*
+See if a previous access check from a compatible scope was made for the
+entity designated by scp.  If so, return TRUE and set *is_accessible to
+that result; otherwise, return FALSE.  In the case of a TRUE return for an
+entry for which the scope is relevant (i.e., one in which at least some
+names are not public), set *for_all_scopes to FALSE.
+*/
+{
+  a_hash_value              bucket =
+                                   hash_IL_ptr(scp) % BUCKETS_FOR_ACCESS_CACHE;
+  an_access_cache_entry_ptr entry;
+  an_access_cache_entry_ptr prev_entry = NULL;
+  a_boolean                 found = FALSE;
+
+  if (access_cache[bucket].scp != NULL) {
+    /* There's at least one entry in this bucket. */
+    entry = &access_cache[bucket];
+  } else {
+    entry = NULL;
+  }  /* if */
+  while (entry != NULL && !found) {
+    a_boolean unlink_entry = FALSE;
+    if (entry->scp == scp) {
+      /* Found a result for this entity.  Check to see if it is applicable
+         to the current scope. */
+      if (entry->lookup_scope == NULL) {
+        /* The result is valid for all scopes. */
+        *is_accessible = entry->is_accessible;
+        found = TRUE;
+      } else if (entry->is_accessible &&
+                 scope_is_in_name_context_stack(entry->lookup_scope)) {
+        /* If a name is accessible in a given scope, it is also accessible
+           in nested scopes. */
+        *is_accessible = TRUE;
+        *for_all_scopes = FALSE;
+        found = TRUE;
+      } else if (curr_name_context != NULL &&
+                 curr_name_context->assoc_scope == entry->lookup_scope) {
+        /* We are still in the same scope in which the previous lookup was
+           done, so the cached result is valid. */
+        *is_accessible = entry->is_accessible;
+        *for_all_scopes = FALSE;
+        found = TRUE;
+      } else if (scope_is_in_name_context_stack(entry->lookup_scope)) {
+        /* The entity was looked up and found to be inaccessible in a
+           containing scope.  It might be accessible in the current scope,
+           however (in the definition of a member of the class, for
+           example), so we need to perform the check again.  Nevertheless,
+           we might do a subsequent lookup in the current scope later on,
+           so we'll leave this entry in the cache and just terminate the
+           loop here. */
+        entry = NULL;
+      } else {
+        /* The lookup was done in a scope that is now defunct.  Remove the
+           current entry so it won't be found again but continue the loop
+           in case there was a lookup in a containing scope whose result
+           can be used. */
+        unlink_entry = TRUE;
+      }  /* if */
+    }  /* if */
+    if (unlink_entry) {
+      /* This entry is no longer useful, so remove it from the cache. */
+      an_access_cache_entry_ptr next = entry->next;
+      if (prev_entry == NULL) {
+        /* This entry is the one directly in the hash table array. */
+        if (next == NULL) {
+          /* There is no next entry -- just invalidate the bucket entry
+             and terminate the loop. */
+          entry->scp = NULL;
+          entry = NULL;
+        } else {
+          /* Replace the entry in the hash table array with the next entry,
+             recycle that entry, and continue the loop with the one in the
+             hash table array. */
+          *entry = *next;
+          next->next = avail_access_cache_entries;
+          avail_access_cache_entries = next;
+        }  /* if */
+      } else {
+        /* Remove the current entry from the linked list and recycle it,
+           continuing the loop with the next entry. */
+        prev_entry->next = next;
+        entry->next = avail_access_cache_entries;
+        avail_access_cache_entries = entry;
+        entry = next;
+      }  /* if */
+    } else if (entry != NULL) {
+      /* Just advance to the next linked entry. */
+      prev_entry = entry;
+      entry = entry->next;
+    }  /* if */
+  }  /* while */
+  return found;
+}  /* access_from_cache_for */
+
+
 static a_boolean entity_name_is_accessible(
-                                    a_source_correspondence_ptr scp,
-                                    an_il_entry_kind            kind,
-                                    a_boolean                   ignore_context)
+                                   a_source_correspondence_ptr scp,
+                                   an_il_entry_kind            kind,
+                                   a_boolean                   ignore_context,
+                                   a_boolean                   *for_all_scopes)
 /*
 Return TRUE if the entity described by scp and kind can be named without
 access errors -- i.e., if the entity and any classes in which it is nested
 are non-members or public members of their containing classes, or (when
 ignore_context is FALSE) if the containing class is in the context stack.
-This check also includes the names of the template arguments of class
-template instances.
+This check also includes any other names needed to name the entity, e.g.,
+template arguments, parameter types in function types, etc.  If any of the
+names is not public, set *for_all_scopes to FALSE.
 */
 {
   a_boolean  is_accessible;
   a_type_ptr parent_class;
+  a_boolean  local_for_all_scopes = TRUE;
 
-  if (kind == iek_type) {
-    /* We need to skip over type modifiers -- pointer-to, array-of, or
-       non-typedef typerefs -- that sit on top of a type that might have
-       a name with access. */
-    a_type_ptr tp = (a_type_ptr)scp;
-    a_boolean  skipping_unnamed_types = TRUE;
-    while (skipping_unnamed_types) {
-      tp = skip_typerefs_not_typedefs_or_type_operators(tp);
-      if (tp->kind == (a_type_kind)tk_pointer) {
-        tp = tp->variant.pointer.type;
-      } else if (tp->kind == (a_type_kind)tk_array) {
-        tp = tp->variant.array.element_type;
-      } else {
-        skipping_unnamed_types = FALSE;
-      }  /* if */
-    }  /* while */
-    scp = &tp->source_corresp;
-  }  /* if */
-  parent_class= scp->is_class_member ? scp_parent_class(scp) : NULL;
-  if (kind == iek_type && ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
-      typeref_is_type_operator((a_type_ptr)scp)) {
-    /* Rather than trying to deal with all the complexities of expression
-       operands of type operators, for safety's sake we treat all type
-       operators as inaccessible. */
-    is_accessible = FALSE;
-  } else if (scp->access == (an_access_specifier)as_public) {
-    /* Either a public class member or a non-member. */
-    is_accessible = TRUE;
-  } else if (!ignore_context) {
-    /* Check to see if the containing class is in the context stack. */
-    is_accessible = (class_is_in_name_context_stack(
+  if (access_from_cache_for(scp, &is_accessible, &local_for_all_scopes)) {
+    /* No need to repeat the testing, we can reuse a previously-cached
+       result. */
+  } else {
+    if (kind == iek_type) {
+      /* We need to skip over type modifiers -- pointer-to, array-of, or
+         non-typedef typerefs -- that sit on top of a type that might have
+         a name with access. */
+      a_type_ptr tp = (a_type_ptr)scp;
+      a_boolean  skipping_unnamed_types = TRUE;
+      while (skipping_unnamed_types) {
+        tp = skip_typerefs_not_typedefs_or_type_operators(tp);
+        if (tp->kind == (a_type_kind)tk_pointer) {
+          tp = tp->variant.pointer.type;
+        } else if (tp->kind == (a_type_kind)tk_array) {
+          tp = tp->variant.array.element_type;
+        } else {
+          skipping_unnamed_types = FALSE;
+        }  /* if */
+      }  /* while */
+      scp = &tp->source_corresp;
+    }  /* if */
+    parent_class= scp->is_class_member ? scp_parent_class(scp) : NULL;
+    if (kind == iek_type &&
+        ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
+        typeref_is_type_operator((a_type_ptr)scp)) {
+      /* Rather than trying to deal with all the complexities of expression
+         operands of type operators, for safety's sake we treat all type
+         operators as inaccessible. */
+      is_accessible = FALSE;
+    } else if (scp->access == (an_access_specifier)as_public) {
+      /* Either a public class member or a non-member. */
+      is_accessible = TRUE;
+    } else if (!ignore_context) {
+      local_for_all_scopes = FALSE;
+      /* Check to see if the containing class is in the context stack. */
+      is_accessible = (class_is_in_name_context_stack(
                                   parent_class, /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/FALSE) ||
-                     (curr_name_context != NULL &&
-                      curr_name_context->class_type_for_access_not_naming ==
+                       (curr_name_context != NULL &&
+                        curr_name_context->class_type_for_access_not_naming ==
                                                                 parent_class));
-  } else {
-    is_accessible = FALSE;
-  }  /* if */
-  if (is_accessible && kind == iek_type) {
-    /* If the name of the type itself is accessible, also check for the
-       accessibility of other names used in the type name. */
-    a_type_ptr type = (a_type_ptr)scp;
-    if (type->kind == (a_type_kind)tk_routine) {
-      /* Check names used in the return type and parameter types. */
-      a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-      a_param_type_ptr              ptp;
-      is_accessible = entity_name_is_accessible(
-                            &type->variant.routine.return_type->source_corresp,
-                            iek_type, ignore_context);
-      for (ptp = rtsp->param_type_list; is_accessible && ptp != NULL;
-           ptp = ptp->next) {
-        is_accessible = entity_name_is_accessible(&ptp->type->source_corresp,
-                                                  iek_type, ignore_context);
-      }  /* for */
-    } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-      /* Check the names of the member's class and type. */
-      is_accessible =
-        entity_name_is_accessible(
-          &type->variant.ptr_to_member.class_of_which_a_member->source_corresp,
-          iek_type, ignore_context) &&
-        entity_name_is_accessible(
-                             &type->variant.ptr_to_member.type->source_corresp,
-                             iek_type, ignore_context);
-    } else if (is_immediate_class_type(type)) {
-      /* Check names used in template arguments, if any. */
-      a_template_arg_ptr tap;
-      begin_template_arg_list_traversal_simple(
-                type->variant.class_struct_union.extra_info->template_arg_list,
-                &tap);
-      for (; is_accessible && tap != NULL;
-           advance_to_next_template_arg_simple(&tap)) {
-        if (!template_arg_is_accessible(tap, ignore_context)) {
-          is_accessible = FALSE;
-        }  /* if */
-      }  /* for */
+    } else {
+      local_for_all_scopes = FALSE;
+      is_accessible = FALSE;
     }  /* if */
+    if (is_accessible && kind == iek_type) {
+      /* If the name of the type itself is accessible, also check for the
+         accessibility of other names used in the type name. */
+      a_type_ptr type = (a_type_ptr)scp;
+      if (type->kind == (a_type_kind)tk_routine) {
+        /* Check names used in the return type and parameter types. */
+        a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+        a_param_type_ptr              ptp;
+        is_accessible = entity_name_is_accessible(
+                            &type->variant.routine.return_type->source_corresp,
+                            iek_type, ignore_context, &local_for_all_scopes);
+        for (ptp = rtsp->param_type_list; is_accessible && ptp != NULL;
+             ptp = ptp->next) {
+          is_accessible = entity_name_is_accessible(&ptp->type->source_corresp,
+                                                    iek_type, ignore_context,
+                                                    &local_for_all_scopes);
+        }  /* for */
+      } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+        /* Check the names of the member's class and type. */
+        is_accessible =
+          entity_name_is_accessible(&type->
+                 variant.ptr_to_member.class_of_which_a_member->source_corresp,
+                                    iek_type, ignore_context,
+                                    &local_for_all_scopes) &&
+          entity_name_is_accessible(&type->
+                                    variant.ptr_to_member.type->source_corresp,
+                                    iek_type, ignore_context,
+                                    &local_for_all_scopes);
+      } else if (is_immediate_class_type(type)) {
+        /* Check names used in template arguments, if any. */
+        a_template_arg_ptr tap;
+        begin_template_arg_list_traversal_simple(type->
+                      variant.class_struct_union.extra_info->template_arg_list,
+                                                 &tap);
+        for (; is_accessible && tap != NULL;
+             advance_to_next_template_arg_simple(&tap)) {
+          if (!template_arg_is_accessible(tap, ignore_context,
+                                          &local_for_all_scopes)) {
+            is_accessible = FALSE;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    if (is_accessible && parent_class != NULL) {
+      /* Need to check as well for inaccessible template arguments on
+         parent classes. */
+      is_accessible = entity_name_is_accessible(&parent_class->source_corresp,
+                                                iek_type, ignore_context,
+                                                &local_for_all_scopes);
+    }  /* if */
+    cache_access_result_for(scp, is_accessible, local_for_all_scopes);
   }  /* if */
-  if (is_accessible && parent_class != NULL) {
-    /* Need to check as well for inaccessible template arguments on parent
-       classes. */
-    is_accessible = entity_name_is_accessible(&parent_class->source_corresp,
-                                              iek_type, ignore_context);
+  if (!local_for_all_scopes) {
+    *for_all_scopes = FALSE;
   }  /* if */
   return is_accessible;
 }  /* entity_name_is_accessible */
@@ -3071,11 +3284,13 @@ that the remaining arguments will be defaulted.
              specializations.)  Otherwise, check the accessibility of the
              argument to see if we should truncate the argument list at
              this point to avoid possible access problems. */
+          a_boolean for_all_scopes = TRUE;
           if (
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
               entry_kind == iek_type ||
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-              !template_arg_is_accessible(argp, /*ignore_context=*/FALSE)) {
+              !template_arg_is_accessible(argp, /*ignore_context=*/FALSE,
+                                          &for_all_scopes)) {
             break;
           }  /* if */
         }  /* if */
@@ -3456,6 +3671,7 @@ been defined.
 {
   a_boolean unusable = FALSE;
   a_boolean typedef_will_be_implicitly_instantiated_if_referenced;
+  a_boolean for_all_scopes = TRUE;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
                   typeref_is_typedef(type));
@@ -3507,7 +3723,8 @@ been defined.
     if (type->is_builtin_va_list) unusable = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
   } else if (!entity_name_is_accessible(&type->source_corresp, iek_type,
-                                        /*ignore_context=*/FALSE)) {
+                                        /*ignore_context=*/FALSE,
+                                        &for_all_scopes)) {
     /* The typedef is an inaccessible member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
@@ -3574,7 +3791,7 @@ is called.
        linkage specification. */
     a_type_ptr underlying_type =
       skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
-
+    a_boolean  for_all_scopes = TRUE;
     invisible = TRUE;
     if (type_involves_non_cplusplus_function(underlying_type)) {
       /* The type is or points to a function with non-C++ linkage, so we need
@@ -3583,7 +3800,8 @@ is called.
       invisible = FALSE;
     } else if (!entity_name_is_accessible(&underlying_type->source_corresp,
                                           iek_type,
-                                          /*ignore_context=*/FALSE)) {
+                                          /*ignore_context=*/FALSE,
+                                          &for_all_scopes)) {
       /* The underlying type may be inaccessible, so we have to use the
          typedef. */
       invisible = FALSE;
@@ -3606,7 +3824,10 @@ inaccessible in the current context and there is an accessible typedef that
 designates the same type, set *scp to point to that typedef instead.
 */
 {
-  if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE)) {
+  a_boolean for_all_scopes = TRUE;
+
+  if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE,
+                                 &for_all_scopes)) {
     a_type_ptr typedef_type =
               find_typedef_in(accessible_typedef_hash_table, (a_type_ptr)*scp);
     if (typedef_type != NULL) {
@@ -18298,6 +18519,16 @@ Initialize for the C++/C-generating back end.
   }  /* for */
 #endif /* NULL_POINTER_IS_ZERO */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if NULL_POINTER_IS_ZERO
+  memzero((char *)access_cache, sizeof(access_cache));
+#else /* !NULL_POINTER_IS_ZERO */
+  for (bucket = 0; bucket < BUCKETS_FOR_ACCESS_CACHE; ++bucket) {
+    access_cache[bucket].next = NULL;
+    access_cache[bucket].scp = NULL;
+    access_cache[bucket].lookup_scope = NULL;
+    access_cache[bucket].is_accessible = FALSE;
+  }  /* for */
+#endif /* NULL_POINTER_IS_ZERO */
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
