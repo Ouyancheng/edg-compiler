@@ -1125,6 +1125,26 @@ Return TRUE if the indicated scope is currently on the name context stack.
 }  /* scope_is_in_name_context_stack */
 
 
+static a_boolean scope_number_is_in_name_context_stack(a_scope_number number)
+/*
+Return TRUE if the indicated scope number designates a scope that is
+currently on the name context stack.  This is used to avoid problems when
+the scope might be in a memory region that is freed.
+*/
+{
+  a_boolean          scope_in_stack = FALSE;
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; ncp != NULL && !scope_in_stack;
+       ncp = ncp->next) {
+    if (ncp->assoc_scope->number == number) {
+      scope_in_stack = TRUE;
+    }  /* if */
+  }  /* for */
+  return scope_in_stack;
+}  /* scope_number_is_in_name_context_stack */
+
+
 static a_namespace_ptr innermost_enclosing_namespace()
 /*
 Return a pointer to the innermost namespace in the name context stack or
@@ -1741,18 +1761,23 @@ typedef struct an_access_cache_entry {
   a_source_correspondence_ptr
 		scp;	/* Designates the entity whose access was
 			   checked. */
-  a_scope_ptr	lookup_scope;
-			/* The scope at the top of the name context stack
-			   at the time the access was checked.  If the name
-			   is accessible in a given scope, it is accessible
-			   in all contained scopes; however, if it is
-			   inaccessible in a given scope, it may be
-			   accessible in a nested scope (the out-of-class
-			   definition of a class member, for example).  If
-			   all names involved in naming the entity are
-			   publicly accessible, the lookup scope is
-			   irrelevant, and this field will be set to NULL
-			   to indicate that fact. */
+  a_scope_number
+		lookup_scope;
+			/* The number of the scope at the top of the name
+			   context stack at the time the access was
+			   checked.  (The scope number is used instead of a
+			   scope pointer to allow for the case when the
+			   scope is a function scope that might be in a
+			   memory region that is freed before the entry is
+			   checked.)  If the name is accessible in a given
+			   scope, it is accessible in all contained scopes;
+			   however, if it is inaccessible in a given scope,
+			   it may be accessible in a nested scope (the
+			   out-of-class definition of a class member, for
+			   example).  If all names involved in naming the
+			   entity are publicly accessible, the lookup scope
+			   is irrelevant, and this field will be set to
+			   NO_SCOPE_NUMBER to indicate that fact. */
   a_boolean	is_accessible;
 			/* TRUE if the entity designated by scp is
 			   accessible in the scope designated by
@@ -1802,10 +1827,10 @@ name context stack.
   access_cache[bucket].scp = scp;
   access_cache[bucket].is_accessible = is_accessible;
   if (for_all_scopes) {
-    access_cache[bucket].lookup_scope = NULL;
+    access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
   } else {
     check_assertion(curr_name_context != NULL);
-    access_cache[bucket].lookup_scope = curr_name_context->assoc_scope;
+    access_cache[bucket].lookup_scope = curr_name_context->assoc_scope->number;
   }  /* if */
 }  /* cache_access_result_for */
 
@@ -1839,25 +1864,26 @@ names are not public), set *for_all_scopes to FALSE.
     if (entry->scp == scp) {
       /* Found a result for this entity.  Check to see if it is applicable
          to the current scope. */
-      if (entry->lookup_scope == NULL) {
+      if (entry->lookup_scope == NO_SCOPE_NUMBER) {
         /* The result is valid for all scopes. */
         *is_accessible = entry->is_accessible;
         found = TRUE;
       } else if (entry->is_accessible &&
-                 scope_is_in_name_context_stack(entry->lookup_scope)) {
+                 scope_number_is_in_name_context_stack(entry->lookup_scope)) {
         /* If a name is accessible in a given scope, it is also accessible
            in nested scopes. */
         *is_accessible = TRUE;
         *for_all_scopes = FALSE;
         found = TRUE;
       } else if (curr_name_context != NULL &&
-                 curr_name_context->assoc_scope == entry->lookup_scope) {
+                 curr_name_context->assoc_scope->number ==
+                                                         entry->lookup_scope) {
         /* We are still in the same scope in which the previous lookup was
            done, so the cached result is valid. */
         *is_accessible = entry->is_accessible;
         *for_all_scopes = FALSE;
         found = TRUE;
-      } else if (scope_is_in_name_context_stack(entry->lookup_scope)) {
+      } else if (scope_number_is_in_name_context_stack(entry->lookup_scope)) {
         /* The entity was looked up and found to be inaccessible in a
            containing scope.  It might be accessible in the current scope,
            however (in the definition of a member of the class, for
@@ -18525,7 +18551,7 @@ Initialize for the C++/C-generating back end.
   for (bucket = 0; bucket < BUCKETS_FOR_ACCESS_CACHE; ++bucket) {
     access_cache[bucket].next = NULL;
     access_cache[bucket].scp = NULL;
-    access_cache[bucket].lookup_scope = NULL;
+    access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
     access_cache[bucket].is_accessible = FALSE;
   }  /* for */
 #endif /* NULL_POINTER_IS_ZERO */
