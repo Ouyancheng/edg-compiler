@@ -1925,7 +1925,7 @@ template arguments, parameter types in function types, etc.  If any of the
 names is not public, set *for_all_scopes to FALSE.
 */
 {
-  a_boolean  is_accessible;
+  a_boolean  is_accessible = FALSE;
   a_type_ptr parent_class;
   a_boolean  local_for_all_scopes = TRUE;
 
