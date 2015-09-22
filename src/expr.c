@@ -41888,7 +41888,16 @@ empty) list of type operands args, and returns TRUE if so.
     saved_defer_access_checks = scope_stack_top().defer_access_checks;
     scope_stack_top().defer_access_checks = FALSE;
     if (!is_aggregate_or_union_type(dst_type)) {
-      if (arg_list != NULL && arg_list->next == NULL) {
+      if (arg_list == NULL) {
+        /* References require an actual initializer.  Scalar types can be
+           default initialized. */
+        result = !is_reference_type(dst_type);
+        goto have_result;
+      } else if (arg_list->next != NULL) {
+        /* Multiple initializers are not valid. */
+        result = FALSE;
+        goto have_result;
+      } else {
         prep_list_initializer(arg_list, dst_type, /*is_direct_init=*/TRUE,
                               /*check_narrowing=*/FALSE,  /* Ignored */
                               /*warning_on_narrowing=*/FALSE,  /* Ditto */
@@ -41897,10 +41906,6 @@ empty) list of type operands args, and returns TRUE if so.
                               /*make_lvalue_temp=*/FALSE, &operand,
                               (an_init_state*)NULL,
                               (an_arg_match_summary*)NULL);
-      } else {
-        /* This kind of type can be initialized with a single element only. */
-        result = FALSE;
-        goto have_result;
       }  /* if */
     } else {
       /* Model the remaining initialization cases as a functional-notation
