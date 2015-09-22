@@ -1592,7 +1592,7 @@ source file's compilation.
   il_header.any_templates_seen = FALSE;
   il_header.prototype_instantiations_in_il = prototype_instantiations_in_il;
   il_header.il_has_all_prototype_instantiations =
-                                            prototype_instantiations_in_il &&
+                                            all_template_info_in_il &&
                                             nonclass_prototype_instantiations;
   il_header.il_has_C_semantics = C_mode();
 #if ONE_INSTANTIATION_PER_OBJECT

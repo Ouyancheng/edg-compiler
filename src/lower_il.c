@@ -5049,6 +5049,9 @@ IL prefix is accessed).
         fill_out_aggregate_ptr_to_data_member_initialization(constant);
 #endif /* IA64_ABI */
         break;
+      case ck_template_param:
+        /* Template parameter constants are left unlowered. */
+        break;
 #if GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
         /* Shouldn't come up here. */
@@ -8184,7 +8187,8 @@ functions, including virtual functions, needed in this process).
   }  /* if */
   /* Visit all types to find all class types. */
   for (type = scope->types; type != NULL; type = type->next) {
-    if (is_immediate_class_type(type)) {
+    if (is_immediate_class_type(type) &&
+        !ignore_type_in_back_end(type)) {
       define_virtual_function_tables(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) {
@@ -8428,6 +8432,9 @@ TRUE, bcp is a direct or indirect primary base of class_type.
                base_ctsp->assoc_scope->routines : (a_routine_ptr)NULL);
        rout != NULL;
        rout = rout->next) {
+    /* Skip things like prototype instantiations of member function
+       templates. */
+    if (ignore_routine_in_back_end(rout)) continue;
     /* Skip non-virtual functions. */
     if (!rout->is_virtual) continue;
     /* Alternate entry points of constructors and destructors are not
@@ -8700,7 +8707,7 @@ Do IL lowering of the indicated list of types and everything under it.
   a_type_ptr type;
 
   for (type = type_list; type != NULL; type = type->next) {
-    lower_type(type);
+    if (!ignore_type_in_back_end(type)) lower_type(type);
   }  /* for */
 }  /* lower_type_list */
 
@@ -9284,10 +9291,7 @@ Do IL lowering of the indicated type and everything under it.
            template prototype instantiation.)  The "auto" and "decltype(auto)"
            types are an exception since they can reasonably appear in a
            "declared_type" field. */
-        if (!is_auto_type(type)) {
-          clear_parent(&type->source_corresp);
-          set_type_kind(type, (a_type_kind)tk_error);
-        } else {
+        if (is_auto_type(type)) {
           /* Overwrite an "auto" type with a typeref to void. */
           overwrite_type_with_new_type(type, void_type());
         }  /* if */
@@ -9367,7 +9371,9 @@ Do IL lowering of the indicated list of variables and everything under it.
   a_variable_ptr variable;
 
   for (variable = variable_list; variable != NULL; variable = variable->next) {
-    lower_variable(variable);
+    if (!ignore_variable_in_back_end(variable)) {
+      lower_variable(variable);
+    }  /* if */
   }  /* for */
 }  /* lower_variable_list */
 
@@ -9641,7 +9647,9 @@ Do IL lowering of the indicated list of routines and everything under it.
   a_routine_ptr routine;
 
   for (routine = routine_list; routine != NULL; routine = routine->next) {
-    lower_routine(routine);
+    if (!ignore_routine_in_back_end(routine)) {
+      lower_routine(routine);
+    }  /* if */
   }  /* for */
 }  /* lower_routine_list */
 
@@ -9885,6 +9893,7 @@ Do IL lowering of the indicated routine and everything under it.  This does
 not include the function scope memory region, if any.
 */
 {
+  check_assertion(!ignore_routine_in_back_end(routine));
   if (!visited_yet(routine)) {
     mark_as_visited(routine);
     lower_source_correspondence(&routine->source_corresp);
@@ -18927,7 +18936,8 @@ end_local_types for later processing.
   for (; type != NULL; type = next_type) {
     next_type = type->next;
     /* If the type is a class, promote its members. */
-    if (is_immediate_class_type(type)) {
+    if (is_immediate_class_type(type) &&
+        !ignore_type_in_back_end(type)) {
       promote_class_members(type, promotion_scope, insert_pointer);
     }  /* if */
 #if DEBUG
@@ -19127,8 +19137,10 @@ and all subscopes.
     local_types = end_local_types = NULL;
     for (; type != NULL; type = next_type) {
       next_type = type->next;
-      /* If the type is a class, promote its members out of the class. */
-      if (is_immediate_class_type(type)) {
+      /* If the type is a class, promote its members out of the class.
+         Ignore types such as prototype instantiations. */
+      if (is_immediate_class_type(type) &&
+          !ignore_type_in_back_end(type)) {
         promote_class_members(type, scope, &insert_pointer);
         insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -19370,7 +19382,8 @@ by things that will be in the file scope.
        might refer to the types etc. of the surrounding scopes). */
     /* Visit all types to find all class types and their scopes. */
     for (type = scope->types; type != NULL; type = type->next) {
-      if (is_immediate_class_type(type)) {
+      if (is_immediate_class_type(type) &&
+          !ignore_type_in_back_end(type)) {
         if (class_type_supp(type)->is_lambda_closure_class) {
           /* The presence of a lambda inside a function forces promotion of
              local entities.  Otherwise a lambda might make reference to a
@@ -20785,6 +20798,8 @@ not reachable from the normal file-scope IL tree.
   for (solhp = il_header.scope_orphaned_list_headers;
        solhp != NULL;
        solhp = solhp->next) {
+    /* Don't process routines that are prototype instantiations. */
+    if (ignore_routine_in_back_end(solhp->assoc_routine)) continue;
     lower_type_list(solhp->orphaned_types);
     lower_variable_list(solhp->orphaned_variables);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -21045,7 +21060,9 @@ translation units (their statics are picked up after copying).
   for (rout = scope->routines;
        rout != NULL;
        rout = rout->next) {
-    if (rout->source_corresp.static_used_by_instantiation &&
+    if (ignore_routine_in_back_end(rout)) {
+      /* Ignore any prototype instantiations. */
+    } else if (rout->source_corresp.static_used_by_instantiation &&
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */

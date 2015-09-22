@@ -14646,11 +14646,12 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void make_typeid_operand(a_type_ptr        typeid_type,
-                                an_expr_node_ptr  typeid_expr,
-                                a_boolean         is_cli_typeid,
-                                a_boolean         make_constant,
-                                an_operand        *result)
+static void make_typeid_operand(a_rescan_control_block *rcblock,
+                                a_type_ptr             typeid_type,
+                                an_expr_node_ptr       typeid_expr,
+                                a_boolean              is_cli_typeid,
+                                a_boolean              make_constant,
+                                an_operand             *result)
 /*
 Create an operand (in *result) representing the application of a typeid
 operator.  typeid_type is the adjusted static type passed to the typeid
@@ -14659,7 +14660,8 @@ be retrieved (or NULL if only the static type should be used).
 If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid).
 If make_constant is TRUE, an operand based on a constant address should be
 produced; otherwise, an expression operand whose top-level node is an
-enk_typeid entry should be created.
+enk_typeid entry should be created.  If rcblock is non-NULL, this is
+being done in the context of the rescan of a previously-scanned expression.
 */
 {
   an_expr_node_ptr typeid_node;
@@ -14727,7 +14729,10 @@ enk_typeid entry should be created.
     typeid_node->is_lvalue = TRUE;
     make_glvalue_expression_operand(typeid_node, result);
   }  /* if */
-  set_used_in_exception_or_rtti_flag(typeid_type);
+  if (rcblock == NULL || !rcblock->error_detected) {
+    /* Don't add the type if the rescan resulted in an error. */
+    set_used_in_exception_or_rtti_flag(typeid_type);
+  }  /* if */
 }  /* make_typeid_operand */
 
 
@@ -15154,8 +15159,8 @@ indication in *rcblock).
     make_error_operand(result);
   } else {
     /* Create a typeid operand. */
-    make_typeid_operand(typeid_type, expr, is_cli_typeid, make_constant,
-                        result);
+    make_typeid_operand(rcblock, typeid_type, expr, is_cli_typeid,
+                        make_constant, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
@@ -27876,7 +27881,9 @@ in *rcblock).
       /* Mark the type as having been used in an exception.  (Also, if it
          "contains" any classes, they are marked as requiring external
          linkage.) */
-      set_used_in_exception_or_rtti_flag(throw_type);
+      if (!expr_stack->any_suppressed_error) {
+        set_used_in_exception_or_rtti_flag(throw_type);
+      }  /* if */
     } else {
       /* There is no throw expression (i.e., this is a rethrow). */
       /* Discard the throw supplement. */

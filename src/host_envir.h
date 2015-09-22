@@ -578,6 +578,19 @@ slower.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
+When this flag is TRUE the prototype instantiations of function definitions
+are included in the IL.  In addition, IL data structures that mirror
+certain front end template data structures (e.g., a_template_decl and
+a_template_parameter) are created.  When the flag is FALSE, prototype
+instantiations of function definitions may or may not be done, depending
+on other modes, but the definition generated (if any) will not be included
+in the IL.
+*/
+#ifndef ALL_TEMPLATE_INFO_IN_IL
+#define ALL_TEMPLATE_INFO_IN_IL FALSE
+#endif /* ifndef ALL_TEMPLATE_INFO_IN_IL */
+
+/*
 A prototype instantiation results from parsing and analyzing a template
 without substituting actual template argument entities for the formal
 parameters.  This flag should be set to TRUE if such structured but abstract
@@ -587,7 +600,7 @@ prototype_instantiations_in_il.  Note that prototype instantiations cannot
 be generated when doing IL lowering.
 */
 #ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
-#define PROTOTYPE_INSTANTIATIONS_IN_IL FALSE
+#define PROTOTYPE_INSTANTIATIONS_IN_IL TRUE
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
@@ -601,15 +614,15 @@ This is desirable because deferral of prototype instantiations changes the
 set of programs that can be compiled without errors.
 */
 #ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#if ALL_TEMPLATE_INFO_IN_IL
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#else /* !ALL_TEMPLATE_INFO_IN_IL */
 #if BACK_END_IS_CP_GEN_BE
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED TRUE
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* ALL_TEMPLATE_INFO_IN_IL */
 #endif /* ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
 
 /*
@@ -1134,9 +1147,6 @@ with a C back end.
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
  #error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING
- #error -- IL lowering cannot be done when parsed templates may be recorded
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING */
 #ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
 #define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING FALSE
 #endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
@@ -1265,7 +1275,7 @@ single backing expression, the expressions in subsequent references will be
 discarded, even if they cause other template instantiations.
 */
 #ifndef KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#if ALL_TEMPLATE_INFO_IN_IL
 /* It is particularly important when generating template definitions from
    the prototype instantiation IL to have the backing expression for a
    non-type template argument; otherwise, the constant might be folded to a
@@ -1275,9 +1285,9 @@ discarded, even if they cause other template instantiations.
    passed to a parameter pack; the original pack expansion naming the
    variable can only be retrieved from the constant's backing expression. */
 #define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION TRUE
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#else /* !ALL_TEMPLATE_INFO_IN_IL */
 #define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION FALSE
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* ALL_TEMPLATE_INFO_IN_IL */
 #endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
 #if KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && DO_IL_LOWERING && \
     !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
@@ -1456,7 +1466,7 @@ are enabled, source sequence entries are being generated, and prototype
 instantiations are included in the IL
 */
 #ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL &&	\
+#if GENERATE_SOURCE_SEQUENCE_LISTS && ALL_TEMPLATE_INFO_IN_IL &&	\
     MICROSOFT_EXTENSIONS_ALLOWED
 #define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES TRUE
 #else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
@@ -1465,10 +1475,10 @@ instantiations are included in the IL
 #endif /* ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-#if !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !ALL_TEMPLATE_INFO_IN_IL
  #error -- GENERATE_MICROSOFT_IF_EXISTS_ENTRIES requires \
-           GENERATE_SOURCE_SEQUENCE_LISTS and PROTOTYPE_INSTANTIATIONS_IN_IL
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL */
+           GENERATE_SOURCE_SEQUENCE_LISTS and ALL_TEMPLATE_INFO_IN_IL
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !ALL_TEMPLATE_INFO_IN_IL */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 /*
@@ -3637,6 +3647,12 @@ EXTERN a_boolean
 		prototype_instantiations_in_il;
 			/* If TRUE, prototype instantiations are recorded
 			   in the IL tree. */
+
+EXTERN a_boolean
+		all_template_info_in_il;
+			/* If TRUE complete information about templates is
+			   provided in the il.  See ALL_TEMPLATE_INFO_IN_IL
+			   for more information. */
 
 EXTERN a_boolean
 		in_front_end;

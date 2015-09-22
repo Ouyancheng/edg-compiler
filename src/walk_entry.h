@@ -238,13 +238,15 @@ during the walk_needed_on_list traversal when KEEP_IN_IL_WALK is TRUE.
 Specifically, if lowering is done, unneeded class scope entities in the
 primary translation unit should not be kept, because lowering will
 promote them to namespace scope (only called for static data members,
-member functions, and nested types).
+member functions, and nested types).  Prototype instantiations don't
+get lowered, so the promotion doesn't happen for them.
 */
 #undef class_scope_member_should_be_kept
 #if KEEP_IN_IL_WALK
 #if DO_IL_LOWERING
 #define class_scope_member_should_be_kept(entry_ptr) \
-  (suppress_il_lowering || in_secondary_trans_unit(entry_ptr))
+  (suppress_il_lowering || in_secondary_trans_unit(entry_ptr) ||	\
+   parent_class_of(entry_ptr)->variant.class_struct_union.is_nonreal_class)
 #else /* !DO_IL_LOWERING */
 #define class_scope_member_should_be_kept(entry_ptr) TRUE
 #endif /* DO_IL_LOWERING */
@@ -438,9 +440,9 @@ Macro to remap parent scope only if it exists.  When doing the needed
 or keep-in-IL walk, visit the associated namespace or class (through which
 the scope will also be visited).  When remapping, just ensure that the
 parent scope pointer is remapped. */
-#undef remap_parent
+#undef walk_or_remap_parent
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-#define remap_parent(ptr) \
+#define walk_or_remap_parent(ptr, walk) \
 { if ((ptr).parent_scope != NULL) { \
     if ((ptr).parent_scope->kind == (a_scope_kind)sck_namespace) { \
       walk_ptr((ptr).parent_scope->variant.assoc_namespace, a_namespace_ptr, \
@@ -452,8 +454,13 @@ parent scope pointer is remapped. */
   }  /* if */  \
 }  /* remap_parent */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-#define remap_parent(ptr) \
-{ remap_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); }
+#define walk_or_remap_parent(ptr, walk) \
+{ if ((walk)) { \
+    walk_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \
+  } else { \
+    remap_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \
+  }  /* if */ \
+}  /* walk_or_remap_parent */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
 /*
@@ -520,14 +527,15 @@ prototype instantiations in the IL.
 Process the source correspondence field pointed to by ptr.
 */
 #undef walk_source_corresp
+#undef walk_source_corresp_full
 #if NEEDED_FLAG_WALK
 /* Note intentional use of walk_ptr not walk_list for name references, because
   of issues with export creating lists that run between translation units. */
-#define walk_source_corresp(ptr) \
+#define walk_source_corresp_full(ptr, walk) \
 { \
-  remap_parent(ptr); \
+  walk_or_remap_parent((ptr), (walk)); \
   walk_ptr((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
-}  /* walk_source_corresp */
+}  /* walk_source_corresp_full */
 #else /* !NEEDED_FLAG_WALK */
 #undef walk_unmangled_name
 #if NEED_NAME_MANGLING
@@ -554,11 +562,11 @@ Process the source correspondence field pointed to by ptr.
 #define walk_decl_position_supplement(ptr) /* Nothing */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-#define walk_source_corresp(ptr) \
+#define walk_source_corresp_full(ptr, walk) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
   conditionally_clear_fe_pointer((ptr).trans_unit_corresp); \
-  remap_parent(ptr); \
+  walk_or_remap_parent((ptr), (walk)); \
   remap_ptr((ptr).enclosing_routine, a_routine_ptr, iek_routine); \
   remap_source_sequence_entry(ptr); \
   conditionally_clear_fe_pointer((ptr).assoc_info); \
@@ -567,8 +575,10 @@ Process the source correspondence field pointed to by ptr.
   /* See note above. */ \
   walk_ptr((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
   walk_list((ptr).attributes, an_attribute_ptr, iek_attribute); \
-}  /* walk_source_corresp */
+}  /* walk_source_corresp_full */
 #endif /* NEEDED_FLAG_WALK */
+/* The default source correspondence walk just remaps its parent pointer. */
+#define walk_source_corresp(ptr) walk_source_corresp_full((ptr), FALSE);
 
 /*
 If defined, nonstatic_variable_always_needed returns TRUE if the specified
@@ -917,7 +927,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
         }  /* switch */
-        walk_source_corresp(ptr->source_corresp);
+        walk_source_corresp_full(ptr->source_corresp,
+                                 ptr->kind ==
+                                      (a_constant_repr_kind)ck_template_param);
       }
       break;
     case iek_param_type:
@@ -995,7 +1007,10 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_type:
       {
         a_type_ptr ptr = (a_type_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
+        /* Template parameter scopes are not linked into the IL, so for
+           those we walk instead of remap the parent scope pointer. */
+        walk_source_corresp_full(ptr->source_corresp,
+                                (ptr->kind == (a_type_kind)tk_template_param));
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
 #if NEEDED_FLAG_WALK
         /* When walking to set "needed" flags, the based types list in
@@ -2145,8 +2160,8 @@ do_set_proper_definition_needed_flag:
       {
         a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_hidden_name_ptr, iek_hidden_name);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        walk_ptr(ptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->entity.kind);
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -2199,7 +2214,11 @@ do_set_proper_definition_needed_flag:
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
+        /* Template template parameters have a parent scope that is in the
+           template declaration scope, so they require a walk_ptr for the
+           parent. */
+        walk_source_corresp_full(ptr->source_corresp,
+               (ptr->kind == (a_template_kind)templk_template_template_param));
         remap_next_ptr(ptr->next, a_template_ptr, iek_template);
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
@@ -2504,10 +2523,17 @@ do_set_proper_definition_needed_flag:
       {
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
         remap_ptr(ptr->prev, a_scope_ptr, iek_scope);
-#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->parent, a_scope_ptr, iek_scope);
+#else /* !(!NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK) */
+        if (!scope_is(ptr, sck_function)) {
+          /* For needed and keep-in-il walks, don't walk the previous and
+             next pointers of function scopes. */
+          remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
+          remap_ptr(ptr->prev, a_scope_ptr, iek_scope);
+        }  /* if */
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         switch (kind) {
           case sck_file:
@@ -2917,7 +2943,9 @@ do_set_proper_definition_needed_flag:
         walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
-        set_proper_definition_needed_flag(ptr->derived_class);
+        if (ptr->derived_class != NULL) {
+          set_proper_definition_needed_flag(ptr->derived_class);
+        }  /* if */
         conditionally_clear_fe_pointer(ptr->trans_unit_corresp);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
@@ -2970,7 +2998,11 @@ after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* Fields to be processed even if the definition of the class is
            not to be processed: */
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+        /* Nonreal classes based on template template parameters can have
+           an associated template that is in a template declaration scope
+           and therefore doesn't show up elsewhere on the walk.  Thus
+           the walk_ptr. */
+        walk_ptr(ptr->assoc_template, a_template_ptr, iek_template);
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
         walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
@@ -3656,8 +3688,9 @@ end_of_routine:;
 #endif /* DO_SUBTREE_WALK */
 }  /* walk_entry_and_subtree */
 
-#undef remap_parent
+#undef walk_or_remap_parent
 #undef walk_source_corresp
+#undef walk_source_corresp_full
 
 #ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 
@@ -3886,9 +3919,10 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef definition_needed_if_class
 #undef set_proper_definition_needed_flag
 #undef set_proper_routine_definition_needed_flag
-#undef remap_parent
+#undef walk_or_remap_parent
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
+#undef walk_source_corresp_full
 #undef walk_unmangled_name
 #undef conditionally_clear_fe_pointer
 #undef pm_class_type_possibly_lowered

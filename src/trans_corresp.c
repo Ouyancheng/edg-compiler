@@ -1933,6 +1933,9 @@ all_instantiations list of the associated template symbol supplement.
         }  /* if */
       }  /* if */
     }  /* for */
+    /* Handle the prototype instantiation. */
+    clear_trans_unit_corresp(iek_routine, tssp->variant.function.routine,
+                             visited);
   }  /* if */
 }  /* clear_instantation_correspondences */
 
@@ -3930,7 +3933,8 @@ is in fact valid.
     corresp_sym = symbol_for(corresp_templ);
     scp = &templ->canonical_template->source_corresp,
     corresp_scp = &corresp_templ->source_corresp;
-    match = verify_name_correspondence(templ);
+    match = templ->kind == corresp_templ->kind &&
+                                             verify_name_correspondence(templ);
     if (match && is_template_symbol(templ_sym)) {
       /* templ_sym could also be an ordinary member function. */
       tssp = templ_sym->variant.template_info;

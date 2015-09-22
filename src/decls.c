@@ -6850,8 +6850,13 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */
     variable_ptr = make_variable(type_ptr, storage_class, scope_depth);
     source_corresp_ptr = &variable_ptr->source_corresp;
-    if (*ext_sym != NULL &&
-        (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
+    if (*ext_sym == NULL) {
+      dps->first_decl = TRUE;
+      if (scope_stack_top().in_prototype_instantiation) {
+        variable_ptr->is_prototype_instantiation = TRUE;
+      }  /* if */ 
+   } else if ((*ext_sym)->variant.extern_symbol_descr
+                         ->variant.variable != NULL) {
       /* A new variable entry has been created, yet the external symbol
          already refers to a different variable.  This can occur when there
          is an error, but it can also occur in SVR4 C mode -- for example:
@@ -9003,7 +9008,12 @@ skip_overloading:;
                                  (a_special_function_kind)sfk_udl_operator);
       }  /* if */
     }  /* if */
-    if (!linked_redecl_error && *ext_sym != NULL &&
+    if (*ext_sym == NULL) {
+      dps->first_decl = TRUE;
+      if (scope_stack_top().in_prototype_instantiation) {
+        routine_ptr->is_prototype_instantiation = TRUE;
+      }  /* if */
+    } else if (!linked_redecl_error && *ext_sym != NULL &&
         (*ext_sym)->variant.extern_symbol_descr
                   ->variant.routine.ptr != NULL) {
       /* A new routine entry has been created, yet the external symbol already

@@ -229,7 +229,7 @@ referenced by exported templates.
   a_type_ptr type;
 
   for (type = type_list; type != NULL; type = type->next) {
-    if (is_immediate_class_type(type)) {
+    if (is_immediate_class_type(type) && !ignore_type_in_back_end(type)) {
       a_scope_ptr scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
       if (scope != NULL) {
@@ -256,13 +256,15 @@ scope, or a class scope.
                   scope->kind == (a_scope_kind)sck_class_struct_union);
   externalize_type_list_statics_for_exported_templates(scope->types);
   for (rout = scope->routines; rout != NULL; rout = rout->next) {
-    if (routine_should_be_externalized_for_exported_templates(rout)) {
+    if (!ignore_routine_in_back_end(rout) &&
+        routine_should_be_externalized_for_exported_templates(rout)) {
       externalize_entity_for_exported_templates(&rout->source_corresp,
                                                 iek_routine);
     }  /* if */
   }  /* for */
   for (var = scope->variables; var != NULL; var = var->next) {
-    if (variable_should_be_externalized_for_exported_templates(var)) {
+    if (!ignore_variable_in_back_end(var) &&
+        variable_should_be_externalized_for_exported_templates(var)) {
       externalize_entity_for_exported_templates(&var->source_corresp,
                                                 iek_variable);
     }  /* if */

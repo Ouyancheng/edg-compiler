@@ -13600,6 +13600,7 @@ contexts are excluded from the check.
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
     ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
+    ttt_flags |= TTT_SKIP_TYPEREFS;
   } else {
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */

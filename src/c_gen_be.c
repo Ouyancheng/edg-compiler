@@ -4192,7 +4192,11 @@ the scope must be the file scope.
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
       check_membership_info(type, scope);
-      dump_type_decl(type, pass);
+      /* Certain types, such as a prototype instantiations, should not be
+         processed by the back end. */
+      if (!ignore_type_in_back_end(type)) {
+	dump_type_decl(type, pass);
+      }  /* if */
     }  /* for */
     /* K&R C doesn't have prototype scopes, so when generating K&R C
        promote any types defined in prototype scopes out of those scopes.
@@ -4245,9 +4249,12 @@ the scope must be the file scope.
     for (solhp = il_header.scope_orphaned_list_headers;
          solhp != NULL;
          solhp = solhp->next) {
+      if (ignore_routine_in_back_end(solhp->assoc_routine)) continue;
       for (type = solhp->orphaned_types;
            type != NULL;
            type = type->next) {
+        /* Don't process types that are prototype instantiations. */
+        if (ignore_type_in_back_end(type)) continue;
         if (type->kind == (a_type_kind)tk_typeref &&
             type->variant.typeref.has_variably_modified_type) {
           /* Variably-modified types are put out where their stmk_vla_decl
@@ -10275,6 +10282,7 @@ that have bodies.
   a_boolean     superseded_external_seen = FALSE;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    if (ignore_routine_in_back_end(routine)) continue;
     check_membership_info(routine, scope);
     if (routine->superseded_external) {
       /* Do not put out declarations of superseded externals on this pass.

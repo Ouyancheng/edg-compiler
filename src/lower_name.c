@@ -11740,6 +11740,8 @@ compression and truncation.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
+    /* Ignore types such as prototype instantiations. */
+    if (ignore_type_in_back_end(type)) continue;
     mangle_type_name(type);
     /* If the type is a class, process its scope. */
     if (is_immediate_class_type(type)) {
@@ -11839,7 +11841,8 @@ including classes.
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
     /* If the type is a class, do its scope. */
-    if (is_immediate_class_type(type)) {
+    if (is_immediate_class_type(type) &&
+        !ignore_type_in_back_end(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
@@ -11988,7 +11991,8 @@ also does type name mangling.
     /* Look for member constants (an extension in classes) and mangle their
        names. */
     for (con = scope->constants; con != NULL; con = con->next) {
-      if (con->source_corresp.is_class_member) {
+      if (con->source_corresp.is_class_member &&
+          !ignore_constant_in_back_end(con)) {
         mangle_member_constant_name(con);
       }  /* if */
     }  /* for */
@@ -12017,7 +12021,9 @@ also does type name mangling.
   }  /* for */
   /* Visit all routines. */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    mangle_function_name(routine, /*suppress_parent_encoding=*/FALSE);
+    if (!ignore_routine_in_back_end(routine)) {
+      mangle_function_name(routine, /*suppress_parent_encoding=*/FALSE);
+    }  /* if */
   }  /* for */
   if (scope->kind == (a_scope_kind)sck_class_struct_union ||
       scope->kind == (a_scope_kind)sck_namespace) {
@@ -12115,6 +12121,8 @@ also processed.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
+    /* Ignore types such as prototype instantiations. */
+    if (ignore_type_in_back_end(type)) continue;
     /* If the type is a class, do its scope. */
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
@@ -12155,7 +12163,9 @@ indicated scope (a file, namespace, or class scope) and all subscopes.
   }  /* for */
   /* Visit all routines. */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    final_entity_name_mangling(&routine->source_corresp);
+    if (!ignore_routine_in_back_end(routine)) {
+      final_entity_name_mangling(&routine->source_corresp);
+    }  /* if */
   }  /* for */
   /* Visit all variables. */
   for (variable = scope->variables;

@@ -75,6 +75,15 @@ static a_pack_instantiation_descr_ptr
 			/* A list of pack instantiation descriptors that have
 			   been freed and are available for reuse. */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+static a_boolean
+		any_lowering_being_done;
+			/* TRUE if C99 lowering or C++ lowering is being
+			   done. */
+#endif /* DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -3493,6 +3502,11 @@ the scope being pushed.
         /* Prototype instantiations inside real instantiations should not
            generate source sequence entries. */
         source_sequence_entries_disallowed = TRUE;
+#if DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+      } else if (any_lowering_being_done) {
+        /* Suppress source sequence entries when IL lowering is done. */
+        source_sequence_entries_disallowed = TRUE;
+#endif /* DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
       } else {
         /* In all other cases, produce source sequence entries for the
            prototype instantiation. */
@@ -7554,7 +7568,7 @@ discarded right after they have been generated.
     discard = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (routine->is_prototype_instantiation &&
-             !prototype_instantiations_in_il) {
+             !all_template_info_in_il) {
     /* This is a prototype instantiation, and we're not keeping prototype
        instantiations in the IL. */
     discard = TRUE;
@@ -12404,8 +12418,9 @@ given translation unit.
 #if DO_IL_LOWERING
   /* Suppress source sequence entries when IL lowering is done. */
 #if !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
-  source_sequence_entries_disallowed |= (C_mode() ? c99_il_lowering_needed() :
-                                                    il_lowering_needed());
+  any_lowering_being_done = (C_mode() ? c99_il_lowering_needed() :
+                                        il_lowering_needed());
+  source_sequence_entries_disallowed |= any_lowering_being_done;
 #endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

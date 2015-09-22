@@ -2106,9 +2106,11 @@ unit set to the primary translation unit.
              definition is not needed anywhere and is removed by
              the unneeded-entity removal processing). */
           move_to_end = (!is_class_scope &&
-                         (is_immediate_class_type(corresp_type) ?
-                                           class_type_has_body(corresp_type) :
-                                           !is_incomplete_type(corresp_type)));
+                         (is_immediate_class_type(corresp_type)
+                                 ? class_type_has_body(corresp_type) &&
+                                   !corresp_type->variant.class_struct_union.
+                                                               is_nonreal_class
+                                 : !is_incomplete_type(corresp_type)));
           if (move_to_end) {
             move_to_end_of_types_list(primary_type, NO_SCOPE_DEPTH);
             last_type = primary_type;
@@ -2623,7 +2625,8 @@ inline functions, if appropriate.
   if (instantiate_extern_inline) {
     a_routine_ptr primary_routine =
                             (a_routine_ptr)transitive_copy_address_of(routine);
-    if (treat_as_extern_inline(primary_routine)) {
+    if (treat_as_extern_inline(primary_routine) &&
+        !routine->is_prototype_instantiation) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */
 #if DEBUG

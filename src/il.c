@@ -21673,8 +21673,7 @@ treated as a form of destruction.
        il_lowering_underway ||
 #endif /* DO_IL_LOWERING */
        (depth_scope_stack == NO_SCOPE_DEPTH ||
-        !is_template_dependent_context() ||
-        prototype_instantiations_in_il))) {
+        !is_template_dependent_context()))) {
     /* This is a destructible entity. */
     if (static_lifetime) {
       /* Note that we do NOT use depth_innermost_function_scope, as it would
@@ -23125,7 +23124,10 @@ Add the IL template entry pointed to by tp to the indicated scope.
      gets a separate template entry that goes on the list wherever it appears.
      The parent pointer is usually set already, and if so we leave it
      alone. */
-  if (parent_scope_of(tp) == NULL) {
+  if (parent_scope_of(tp) == NULL && 
+      !tp->source_corresp.parent_via_local_scope_ref) {
+    /* The parent_via_local_scope_ref is used to suppress this in certain error
+       cases. */
     set_parent_scope(&tp->source_corresp, iek_template, sp);
   }  /* if */
 }  /* add_to_templates_list */
@@ -23826,16 +23828,18 @@ a template, clear its instantiation required information.
 {
   /* Don't attempt to do this for prototype instantiations, which are not
      put on the instantiation required list. */
-  if ((rp->is_template_function && !rp->is_specialized &&
-#if MICROSOFT_EXTENSIONS_ALLOWED
-       !(rp->is_generic_definition || rp->is_generic_instance) &&
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       !rp->is_prototype_instantiation) ||
+  if ((rp->is_template_function && !rp->is_specialized) ||
       (instantiate_extern_inline && rp->is_inline)) {
-    a_symbol_ptr sym;
-    sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-    if (sym != NULL) {
-      set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+    if (!rp->is_prototype_instantiation
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       && !(rp->is_generic_definition || rp->is_generic_instance)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                              ) {
+      a_symbol_ptr sym;
+      sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+      if (sym != NULL) {
+        set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* clear_routine_instantiation_required */
@@ -26148,7 +26152,7 @@ process_referenced_type_for_ordering for the description of must_be_complete.
           !type->type_processed_for_ordering) {
         /* Array typedefs must be complete in C. */
         process_type_for_ordering(type, /*must_be_complete=*/TRUE);
-      } else {
+      } else if (!ignore_type_in_back_end(type)) {
         process_referenced_type_for_ordering(type->variant.typeref.type,
                                              must_be_complete);
       }  /* if */
@@ -26181,7 +26185,7 @@ process_referenced_type_for_ordering for the description of must_be_complete.
       break;
     case tk_struct:
     case tk_union:
-      if (must_be_complete) {
+      if (must_be_complete && !ignore_type_in_back_end(type)) {
         /* struct or union type.  Process the member types. */
         a_field_ptr field;
         for (field = type->variant.class_struct_union.field_list;
@@ -26281,6 +26285,21 @@ IL lowering.
                                                is_immediate_enum_type(type)));
       }  /* if */
     }  /* for */
+#if DEBUG
+    if ((unsigned long)(next_type_reordering_slot - type_reordering)
+                                                                  != n_types &&
+        db_flag_is_set("ftlop")) {
+      type = il_header.primary_scope->types;
+      fprintf(f_debug, "Types for reordering: \n");
+      for (; type != NULL; type = type->next) {
+        db_type_name(type); fprintf(f_debug, "\n");
+      }  /* if */
+      fprintf(f_debug, "Types being addded: \n");
+      for (k = 0; k < n_types; ++k) {
+        db_type_name(type_reordering[k]); fprintf(f_debug, "\n");
+      }  /* for */
+    }  /* if */
+#endif /* DEBUG */
     check_assertion(
       (unsigned long)(next_type_reordering_slot - type_reordering) == n_types);
     /* Now apply the reordering. */

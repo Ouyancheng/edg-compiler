@@ -10419,9 +10419,11 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
 #if DO_IL_LOWERING
-  /* Prototype instantiations cannot be lowered, so make sure that they are
-     not generated when doing IL lowering. */
-  prototype_instantiations_in_il = FALSE;
+  /* Things like prototype instantiations of function bodies cannot be
+     lowered, so don't bother passing them to the back end.  Note that the
+     IL can still contain class prototype instantiations and other
+     dependent entities. */
+  all_template_info_in_il = FALSE;
 #endif /* DO_IL_LOWERING */
   /* When name mangling is being done, name references are needed for entities
      from template deduction contexts. */

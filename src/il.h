@@ -466,6 +466,43 @@ Return TRUE if cp is a template nontype parameter pack.
    (cp)->variant.template_param.is_pack)
 
 
+/*
+Return TRUE if type should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+#define ignore_type_in_back_end_no_typerefs(type)			\
+  ((is_immediate_class_type(type) &&					\
+    (type)->variant.class_struct_union.is_nonreal_class) ||		\
+   (type->kind == (a_type_kind)tk_typeref &&				\
+    (type)->variant.typeref.is_nonreal) ||				\
+   (type)->kind == (a_type_kind)tk_template_param)
+
+#define ignore_type_in_back_end(type)					\
+  (ignore_type_in_back_end_no_typerefs(type) ||				\
+   ((type)->kind == (a_type_kind)tk_typeref &&				\
+    ignore_type_in_back_end_no_typerefs(f_skip_typerefs(type))))
+
+/*
+Return TRUE if rout should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+#define ignore_routine_in_back_end(rout)				\
+  ((rout)->is_prototype_instantiation)
+
+/*
+Return TRUE if var should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+#define ignore_variable_in_back_end(var)				\
+  ((var)->is_prototype_instantiation)
+
+/*
+Return TRUE if constant should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+#define ignore_constant_in_back_end(constant) \
+  ((constant)->kind == (a_constant_repr_kind)ck_template_param)
+
 extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
 
 extern a_lambda_ptr get_current_lambda(void);

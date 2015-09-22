@@ -26042,7 +26042,7 @@ to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
-  if (prototype_instantiations_in_il) {
+  if (all_template_info_in_il) {
     /* Fill in the information in the IL template declaration structures. */
     complete_template_decl(decl_info->template_decl, decl_info->parameters);
   }  /* if */
@@ -26416,7 +26416,7 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   }  /* if */
   /* Cache the declarator part of the lambda. */
   cache_template_declaration(templ_state);
-  if (prototype_instantiations_in_il) {
+  if (all_template_info_in_il) {
     complete_template_decl(template_decl_info->template_decl,
                            template_decl_info->parameters);
   }  /* if */
@@ -26634,6 +26634,7 @@ specified by "tip" depend on a template parameter.
 {
   a_symbol_ptr		sym;
   a_template_arg_ptr	arg_list;
+  a_boolean		is_prototype_instantiation = FALSE;
 
   sym = tip->instance_sym;
   /* Get the template argument list for the routine or static data member. */
@@ -26641,9 +26642,14 @@ specified by "tip" depend on a template parameter.
     a_routine_ptr	rp;
     rp = sym->variant.routine.ptr;
     arg_list = rp->template_arg_list;
+    is_prototype_instantiation = rp->is_prototype_instantiation;
   } else {
+    a_variable_ptr	vp;
     /* A static data member -- always a member of a class template. */
+    check_assertion(symbol_is(sym, sk_static_data_member));
     arg_list = NULL;
+    vp = sym->variant.static_data_member.variable;
+    is_prototype_instantiation = vp->is_prototype_instantiation;
   }  /* if */
   if (arg_list == NULL) {
     /* If the argument list is NULL this must be a member of a template
@@ -26660,7 +26666,8 @@ specified by "tip" depend on a template parameter.
     check_assertion(type != NULL);
     arg_list = class_type_supp(type)->template_arg_list;
   }  /* if */
-  check_assertion_str2(!template_arg_list_is_dependent(arg_list) ||
+  check_assertion_str2((!template_arg_list_is_dependent(arg_list) &&
+                        !is_prototype_instantiation) ||
                        total_errors != 0,
                        "check_for_nonreal_instance:",
                        "nonreal instance on instantiation required list");
@@ -31819,7 +31826,8 @@ are treated as extern inlines.
 {
   a_boolean	result = FALSE;
 
-  if (translation_unit_needed_only_for_exported_templates) {
+  if (translation_unit_needed_only_for_exported_templates &&
+      !rout_ptr->is_prototype_instantiation) {
     if ((!(rout_ptr)->is_template_function || (rout_ptr)->is_specialized) &&
         !(rout_ptr->is_inline &&
          (rout_ptr->storage_class != (a_storage_class)sc_static ||
@@ -32498,7 +32506,7 @@ the function template, and decl_state tracks its declaration.
   curr_default_args = NULL;
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
-  if (prototype_instantiations_in_il) {
+  if (all_template_info_in_il) {
     a_template_decl_info_ptr tdip;
     create_template_decl(decl_state, &null_source_position);
     tdip = decl_state->decl_info;

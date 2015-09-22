@@ -16967,9 +16967,20 @@ enough to cause the back end to invoke the routine at initialization.
       an_insert_location     insert_location2;
       a_variable_ptr         guard_var = NULL;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+      /* Break the link between dynamic inits.  After lowering, no dynamic
+         inits remain on the file scope list.  However, they may remain on
+         object lifetime lists, and in those cases it's not good to have the
+         "next" pointer pointing off to dynamic inits that are otherwise
+         not linked into the IL. */
+      dip_next = dip->next;
+      dip->next = NULL;
       var = dip->variable;
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      if (ignore_variable_in_back_end(var)) {
+        /* Don't lower prototype instantiations of static data members. */
+        continue;
+      }  /* if */
       if (var->is_template_static_data_member) {
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
         /* This is the initialization of a static data member in a template.
            Add guard code around the initialization if necessary. */
         if (add_static_data_member_init_guard_test(var,
@@ -16980,15 +16991,8 @@ enough to cause the back end to invoke the routine at initialization.
              inserted inside the guard "if". */
           eff_insert_location = &insert_location2;
         }  /* if */
-      }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-      /* Break the link between dynamic inits.  After lowering, no dynamic
-         inits remain on the file scope list.  However, they may remain on
-         object lifetime lists, and in those cases it's not good to have the
-         "next" pointer pointing off to dynamic inits that are otherwise
-         not linked into the IL. */
-      dip_next = dip->next;
-      dip->next = NULL;
+      }  /* if */
       set_var_init_pos_descr(var, &ipd);
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
