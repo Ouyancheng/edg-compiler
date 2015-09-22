@@ -4908,6 +4908,11 @@ file.
 #else /* !defined(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C) */
   comment_undefined_macro_name(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C);
 #endif /* defined(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C) */
+#if defined(ALL_TEMPLATE_INFO_IN_IL)
+  define_numeric_valued_macro(ALL_TEMPLATE_INFO_IN_IL);
+#else /* !defined(ALL_TEMPLATE_INFO_IN_IL) */
+  comment_undefined_macro_name(ALL_TEMPLATE_INFO_IN_IL);
+#endif /* defined(ALL_TEMPLATE_INFO_IN_IL) */
 #if defined(ALTERNATE_IL_FILE_FORMAT)
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   define_numeric_valued_macro(ALTERNATE_IL_FILE_FORMAT);

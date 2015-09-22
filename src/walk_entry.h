@@ -455,7 +455,7 @@ parent scope pointer is remapped. */
 }  /* remap_parent */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 #define walk_or_remap_parent(ptr, walk) \
-{ if ((walk)) { \
+{ if ((walk)) /*lint --e(506) */ { \
     walk_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \
   } else { \
     remap_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \

@@ -9014,8 +9014,8 @@ skip_overloading:;
         routine_ptr->is_prototype_instantiation = TRUE;
       }  /* if */
     } else if (!linked_redecl_error && *ext_sym != NULL &&
-        (*ext_sym)->variant.extern_symbol_descr
-                  ->variant.routine.ptr != NULL) {
+               (*ext_sym)->variant.extern_symbol_descr
+                                               ->variant.routine.ptr != NULL) {
       /* A new routine entry has been created, yet the external symbol already
          refers to a different routine.  This can occur when there is an error,
          but it can also occur in SVR4 and Microsoft C mode -- for example:
