@@ -1137,7 +1137,7 @@ the scope might be in a memory region that is freed.
 
   for (ncp = curr_name_context; ncp != NULL && !scope_in_stack;
        ncp = ncp->next) {
-    if (ncp->assoc_scope->number == number) {
+    if (ncp->assoc_scope != NULL && ncp->assoc_scope->number == number) {
       scope_in_stack = TRUE;
     }  /* if */
   }  /* for */
@@ -1807,30 +1807,42 @@ name context stack.
 */
 {
   a_hash_value bucket = hash_IL_ptr(scp) % BUCKETS_FOR_ACCESS_CACHE;
+  a_boolean    suppress_cache = FALSE;
 
-  if (access_cache[bucket].scp != NULL) {
-    /* There's already an IL entry in this bucket.  Move the current bucket
-       contents to a new entry and link it to the bucket.  If a lookup was
-       done from a containing scope, this gives LIFO access in parallel
-       with the scopes' stack organization. */
-    an_access_cache_entry_ptr entry;
-    if (avail_access_cache_entries != NULL) {
-      entry = avail_access_cache_entries;
-      avail_access_cache_entries = entry->next;
-    } else {
-      entry = alloc_general_of_type(an_access_cache_entry);
-    }  /* if */
-    *entry = access_cache[bucket];
-    access_cache[bucket].next = entry;
-  }  /* if */
-  /* Store the cached information into the entry in the cache array. */
-  access_cache[bucket].scp = scp;
-  access_cache[bucket].is_accessible = is_accessible;
-  if (for_all_scopes) {
-    access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
-  } else {
+  if (!for_all_scopes) {
     check_assertion(curr_name_context != NULL);
-    access_cache[bucket].lookup_scope = curr_name_context->assoc_scope->number;
+    if (curr_name_context->assoc_scope == NULL) {
+      /* Do not cache a scope-dependent lookup result for a non-real class
+         scope; it does not have an IL scope entry and thus subsequent
+         checks cannot determine if they are in the same scope or not. */
+      suppress_cache = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!suppress_cache) {
+    if (access_cache[bucket].scp != NULL) {
+      /* There's already an IL entry in this bucket.  Move the current
+         bucket contents to a new entry and link it to the bucket.  If a
+         lookup was done from a containing scope, this gives LIFO access in
+         parallel with the scopes' stack organization. */
+      an_access_cache_entry_ptr entry;
+      if (avail_access_cache_entries != NULL) {
+        entry = avail_access_cache_entries;
+        avail_access_cache_entries = entry->next;
+      } else {
+        entry = alloc_general_of_type(an_access_cache_entry);
+      }  /* if */
+      *entry = access_cache[bucket];
+      access_cache[bucket].next = entry;
+    }  /* if */
+    /* Store the cached information into the entry in the cache array. */
+    access_cache[bucket].scp = scp;
+    access_cache[bucket].is_accessible = is_accessible;
+    if (for_all_scopes) {
+      access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
+    } else {
+      access_cache[bucket].lookup_scope =
+                                        curr_name_context->assoc_scope->number;
+    }  /* if */
   }  /* if */
 }  /* cache_access_result_for */
 
@@ -1876,6 +1888,7 @@ names are not public), set *for_all_scopes to FALSE.
         *for_all_scopes = FALSE;
         found = TRUE;
       } else if (curr_name_context != NULL &&
+                 curr_name_context->assoc_scope != NULL &&
                  curr_name_context->assoc_scope->number ==
                                                          entry->lookup_scope) {
         /* We are still in the same scope in which the previous lookup was
