@@ -6855,7 +6855,7 @@ for use in generating cross-reference output describing this declaration.
       if (scope_stack_top().in_prototype_instantiation) {
         variable_ptr->is_prototype_instantiation = TRUE;
       }  /* if */ 
-   } else if ((*ext_sym)->variant.extern_symbol_descr
+    } else if ((*ext_sym)->variant.extern_symbol_descr
                          ->variant.variable != NULL) {
       /* A new variable entry has been created, yet the external symbol
          already refers to a different variable.  This can occur when there
