@@ -465,22 +465,7 @@ Return TRUE if cp is a template nontype parameter pack.
   ((cp)->kind == (a_constant_repr_kind)ck_template_param &&		\
    (cp)->variant.template_param.is_pack)
 
-
-/*
-Return TRUE if type should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
-*/
-#define ignore_type_in_back_end_no_typerefs(type)			\
-  ((is_immediate_class_type(type) &&					\
-    (type)->variant.class_struct_union.is_nonreal_class) ||		\
-   (type->kind == (a_type_kind)tk_typeref &&				\
-    (type)->variant.typeref.is_nonreal) ||				\
-   (type)->kind == (a_type_kind)tk_template_param)
-
-#define ignore_type_in_back_end(type)					\
-  (ignore_type_in_back_end_no_typerefs(type) ||				\
-   ((type)->kind == (a_type_kind)tk_typeref &&				\
-    ignore_type_in_back_end_no_typerefs(f_skip_typerefs(type))))
+extern a_boolean ignore_type_in_back_end(a_type_ptr	type);
 
 /*
 Return TRUE if rout should be ignored by IL lowering and code generating
