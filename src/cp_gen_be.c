@@ -1778,10 +1778,20 @@ typedef struct an_access_cache_entry {
 			   entity are publicly accessible, the lookup scope
 			   is irrelevant, and this field will be set to
 			   NO_SCOPE_NUMBER to indicate that fact. */
-  a_boolean	is_accessible;
+  a_byte_boolean
+		is_accessible;
 			/* TRUE if the entity designated by scp is
 			   accessible in the scope designated by
 			   lookup_scope and FALSE otherwise. */
+  a_byte_boolean
+		ignore_context;
+			/* TRUE if the query represented by this cache
+			   entry was context-independent, FALSE if the
+			   result potentially depends on the current scope.
+			   Note that lookup_scope can be NO_SCOPE_NUMBER
+			   even if ignore_context is FALSE, i.e., when a
+			   context-dependent query finds that only public
+			   names are involved. */
 } an_access_cache_entry;
 
 #define BUCKETS_FOR_ACCESS_CACHE 16383
@@ -1797,13 +1807,17 @@ static an_access_cache_entry_ptr
 
 static void cache_access_result_for(a_source_correspondence_ptr scp,
                                     a_boolean                   is_accessible,
-                                    a_boolean                   for_all_scopes)
+                                    a_boolean                   for_all_scopes,
+                                    a_boolean                   ignore_context)
 /*
 Add the result of the access check for the IL entry designated by scp to
 the access cache.  If for_all_scopes is TRUE, the result is valid in all
 scopes and the lookup_scope in the cache entry will be set to NULL;
 otherwise, it will be set to the scope designated by the current top of the
-name context stack.
+name context stack.  ignore_context is TRUE if this result represents a
+context-independent query and FALSE if the result might depend the current
+scope.  The value of for_all_scopes reflects the result of the query, while
+ignore_context reflects the character of the query itself.
 */
 {
   a_hash_value bucket = hash_IL_ptr(scp) % BUCKETS_FOR_ACCESS_CACHE;
@@ -1837,6 +1851,7 @@ name context stack.
     /* Store the cached information into the entry in the cache array. */
     access_cache[bucket].scp = scp;
     access_cache[bucket].is_accessible = is_accessible;
+    access_cache[bucket].ignore_context = ignore_context;
     if (for_all_scopes) {
       access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
     } else {
@@ -1849,14 +1864,17 @@ name context stack.
 
 static a_boolean access_from_cache_for(
                                    a_source_correspondence_ptr scp,
+                                   a_boolean                   ignore_context,
                                    a_boolean                   *is_accessible,
                                    a_boolean                   *for_all_scopes)
 /*
-See if a previous access check from a compatible scope was made for the
-entity designated by scp.  If so, return TRUE and set *is_accessible to
-that result; otherwise, return FALSE.  In the case of a TRUE return for an
-entry for which the scope is relevant (i.e., one in which at least some
-names are not public), set *for_all_scopes to FALSE.
+See if a previous compatible access check was made for the entity
+designated by scp; a query is compatible if the value of ignore_context was
+the same or if the result is valid in all scopes.  If a compatible cache
+entry exists, return TRUE and set *is_accessible to that result; otherwise,
+return FALSE.  In the case of a TRUE return for an entry for which the
+scope is relevant (i.e., one in which at least some names are not public),
+set *for_all_scopes to FALSE.
 */
 {
   a_hash_value              bucket =
@@ -1880,6 +1898,11 @@ names are not public), set *for_all_scopes to FALSE.
         /* The result is valid for all scopes. */
         *is_accessible = entry->is_accessible;
         found = TRUE;
+      } else if (entry->ignore_context != ignore_context) {
+        /* This entry records a scope-dependent query and we're now looking
+           for scope-independent results or vice versa, so we can't use this
+           entry.  Keep looking in case there's a compatible entry further
+           along in the chain. */
       } else if (entry->is_accessible &&
                  scope_number_is_in_name_context_stack(entry->lookup_scope)) {
         /* If a name is accessible in a given scope, it is also accessible
@@ -1968,7 +1991,8 @@ names is not public, set *for_all_scopes to FALSE.
   a_type_ptr parent_class;
   a_boolean  local_for_all_scopes = TRUE;
 
-  if (access_from_cache_for(scp, &is_accessible, &local_for_all_scopes)) {
+  if (access_from_cache_for(scp, ignore_context, &is_accessible,
+                            &local_for_all_scopes)) {
     /* No need to repeat the testing, we can reuse a previously-cached
        result. */
   } else {
@@ -2064,7 +2088,8 @@ names is not public, set *for_all_scopes to FALSE.
                                                 iek_type, ignore_context,
                                                 &local_for_all_scopes);
     }  /* if */
-    cache_access_result_for(scp, is_accessible, local_for_all_scopes);
+    cache_access_result_for(scp, is_accessible, local_for_all_scopes,
+                            ignore_context);
   }  /* if */
   if (!local_for_all_scopes) {
     *for_all_scopes = FALSE;
@@ -18566,6 +18591,7 @@ Initialize for the C++/C-generating back end.
     access_cache[bucket].scp = NULL;
     access_cache[bucket].lookup_scope = NO_SCOPE_NUMBER;
     access_cache[bucket].is_accessible = FALSE;
+    access_cache[bucket].ignore_context = FALSE;
   }  /* for */
 #endif /* NULL_POINTER_IS_ZERO */
   /* Set out the output control block used for interface with the il_to_str
