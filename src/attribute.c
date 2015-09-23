@@ -3344,7 +3344,7 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
   if (cssp->class_template != NULL) {
     a_symbol_ptr  proto_sym = cssp->corresp_prototype_sym;
     *p_t_args = templ_arg_list_for_class(class_type);
-    check_assertion(*p_t_args != NULL);
+    check_assertion(*p_t_args != NULL && proto_sym != NULL);
     *p_t_params = proto_sym->variant.class_struct_union.extra_info
                            ->template_info
                            ->cache.decl_info
@@ -3377,9 +3377,11 @@ TRUE if a substitution error occurs.
   check_assertion(aap->variant.constant->kind ==
                                       (a_constant_repr_kind)ck_template_param);
   if (parent_class != NULL &&
-      parent_class->variant.class_struct_union.is_template_class) {
-    /* If the parent class is itself a template instance, first recursively
-       substitute any parameters that it is associated with. */
+      parent_class->variant.class_struct_union.is_template_class &&
+      !parent_class->variant.class_struct_union.is_specialized) {
+    /* If the parent class is itself a template instance (but not an explicit
+       specialization), first recursively substitute any parameters that it is
+       associated with. */
     a_template_arg_ptr    parent_t_args = NULL;
     a_template_param_ptr  parent_t_params;
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
@@ -3418,9 +3420,11 @@ is a class member, parent_class points to the entry for its parent class
 */
 {
   if (parent_class != NULL &&
-      parent_class->variant.class_struct_union.is_template_class) {
-    /* If the parent class is itself a template instance, first recursively
-       substitute any parameters that it is associated with. */
+      parent_class->variant.class_struct_union.is_template_class &&
+      !parent_class->variant.class_struct_union.is_specialized) {
+    /* If the parent class is itself a template instance (but not an explicit
+       specialization), first recursively substitute any parameters that it is
+       associated with. */
     a_template_arg_ptr    parent_t_args;
     a_template_param_ptr  parent_t_params;
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
