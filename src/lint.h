@@ -148,6 +148,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,make_prefixed_object_name)*/
 /*lint -esym(759,add_cast_to_node)*/
 /*lint -esym(765,add_cast_to_node)*/
+/*lint -esym(759,source_corresp_for_template_param)*/
+/*lint -esym(765,source_corresp_for_template_param)*/
 #if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !RECORD_MACRO_INVOCATIONS */

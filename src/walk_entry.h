@@ -533,7 +533,7 @@ Process the source correspondence field pointed to by ptr.
   of issues with export creating lists that run between translation units. */
 #define walk_source_corresp_full(ptr, walk) \
 { \
-  walk_or_remap_parent((ptr), (walk)); \
+  walk_or_remap_parent((ptr), (walk))  /*lint --e(506) */ ; \
   walk_ptr((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
 }  /* walk_source_corresp_full */
 #else /* !NEEDED_FLAG_WALK */
@@ -566,7 +566,7 @@ Process the source correspondence field pointed to by ptr.
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
   conditionally_clear_fe_pointer((ptr).trans_unit_corresp); \
-  walk_or_remap_parent((ptr), (walk)); \
+  walk_or_remap_parent((ptr), (walk)) /*lint --e(506) */ ; \
   remap_ptr((ptr).enclosing_routine, a_routine_ptr, iek_routine); \
   remap_source_sequence_entry(ptr); \
   conditionally_clear_fe_pointer((ptr).assoc_info); \
