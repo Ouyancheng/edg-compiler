@@ -25960,6 +25960,30 @@ is found in check_operation_node_consistency.)
 
 #endif /* CHECKING */
 
+/*
+Return TRUE if type should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+#define ignore_type_in_back_end_no_typerefs(type)			\
+  ((is_immediate_class_type(type) &&					\
+    (type)->variant.class_struct_union.is_nonreal_class) ||		\
+   (type->kind == (a_type_kind)tk_typeref &&				\
+    (type)->variant.typeref.is_nonreal) ||				\
+   (type)->kind == (a_type_kind)tk_template_param)
+
+
+a_boolean ignore_type_in_back_end(a_type_ptr	type)
+/*
+Return TRUE if type should be ignored by IL lowering and code generating
+back ends.  This is TRUE for dependent template entities.
+*/
+{
+  a_type_ptr type_without_typerefs = skip_typerefs(type);
+  return (ignore_type_in_back_end_no_typerefs(type) ||
+          ((type)->kind == (a_type_kind)tk_typeref &&
+           ignore_type_in_back_end_no_typerefs(type_without_typerefs)));
+}  /* ignore_type_in_back_end */
+
 #if !STANDALONE_UTILITY_PROGRAM
 #if COROUTINES_ALLOWED
 #if DEBUG
@@ -26047,32 +26071,6 @@ Display memory use for entities in front end memory in this file (il.c).
 }  /* db_show_il_c_fe_space_used */
 
 #endif /* DEBUG */
-
-
-/*
-Return TRUE if type should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
-*/
-#define ignore_type_in_back_end_no_typerefs(type)			\
-  ((is_immediate_class_type(type) &&					\
-    (type)->variant.class_struct_union.is_nonreal_class) ||		\
-   (type->kind == (a_type_kind)tk_typeref &&				\
-    (type)->variant.typeref.is_nonreal) ||				\
-   (type)->kind == (a_type_kind)tk_template_param)
-
-
-a_boolean ignore_type_in_back_end(a_type_ptr	type)
-/*
-Return TRUE if type should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
-*/
-{
-  a_type_ptr type_without_typerefs = skip_typerefs(type);
-  return (ignore_type_in_back_end_no_typerefs(type) ||
-          ((type)->kind == (a_type_kind)tk_typeref &&
-           ignore_type_in_back_end_no_typerefs(type_without_typerefs)));
-}  /* ignore_type_in_back_end */
-
 
 
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
