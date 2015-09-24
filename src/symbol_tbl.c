@@ -14130,7 +14130,7 @@ is_pack_element is TRUE if the parameter is a pack element.
 {
   a_param_id_ptr  new_param_id;
   a_symbol_ptr    sym;
-  a_boolean       unnamed_param = FALSE, ambiguous = FALSE;
+  a_boolean       unnamed_param = FALSE, duplicate = FALSE;
   a_boolean       is_prototype_param_decl = (type_ptr != NULL);
   a_boolean       non_initial_variadic_param = FALSE;
 
@@ -14144,9 +14144,10 @@ is_pack_element is TRUE if the parameter is a pack element.
          into the symbol table. */
       non_initial_variadic_param = TRUE;
     } else if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
-      if ((gpp_mode && gnu_version < 40300) ||
-          (gcc_mode && !is_prototype_param_decl)) {
-        ambiguous = TRUE;
+      if (((gpp_mode && gnu_version < 40300) ||
+           (gcc_mode && !is_prototype_param_decl)) &&
+          !clang_mode) {
+        duplicate = TRUE;
       } else {
         pos_error(ec_dupl_param_name, &error_position);
         set_to_error_locator(*locator);
@@ -14188,7 +14189,7 @@ is_pack_element is TRUE if the parameter is a pack element.
           sym = create_symbol_for_non_initial_variadic_param(locator);
         } else {
           sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
-                             depth_scope_stack, ambiguous);
+                             depth_scope_stack, duplicate);
         }  /* if */
         sym->is_pack_element = is_pack_element;
         if (parameters_visible_late) {
@@ -14207,7 +14208,10 @@ is_pack_element is TRUE if the parameter is a pack element.
       }  /* if */
       new_param_id->symbol = sym;
       sym->variant.param_id = new_param_id;
-      sym->ambiguous = ambiguous;
+      if (duplicate) {
+        sym->ambiguous = TRUE;
+        sym->is_invisible = TRUE;
+      }  /* if */
       set_decl_sequence_number(sym);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -719,8 +719,12 @@ associated with a variadic parameter, but not the initial one.
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
       /* In some modes, the parameter symbols (in the prototype scopes) are
          invisible.  Ensure that they will be visible when copied to the
-         function scope. */
-      sym->is_invisible = FALSE;
+         function scope.  In GNU modes, a parameter with a name that is a
+         duplicate of an earlier parameter is both "ambiguous" and "invisible":
+         That case is not made visible here. */
+      if (!sym->ambiguous) {
+        sym->is_invisible = FALSE;
+      }  /* if */
     }  /* if */
     if (ptp->is_pack_element) sym->is_pack_element = TRUE;
     sym->variant.variable.ptr = vp;

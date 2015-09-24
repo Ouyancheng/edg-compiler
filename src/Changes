@@ -1,5 +1,19 @@
 Version 4.11
 
+9/24/15  [EDGcpfe/16535]
+GNU C-mode abort on use of ambiguous parameter
+
+In GNU C mode, referring to a duplicate parameter name in a non-evaluated
+context could result in an abort in make_param_ref_operand (due to a runaway
+pointer).  For example:
+
+  void g(x, x) {        // Error: duplicate parameter name.
+    int r = sizeof(x);  // Usually triggered an abort.
+  }
+
+This is now fixed.
+
+
 9/23/15  [EDGcpfe/16533]
 Segfault in get_substitution_pairs_for_template_class
 
