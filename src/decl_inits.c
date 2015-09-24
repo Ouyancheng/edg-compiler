@@ -6300,14 +6300,25 @@ given type, and record the initializer in *cip if cip is non-NULL.
   if (cip != NULL) {
     /* A dynamic init entry has been produced: Record it in the
        constructor init entry. */
-    check_assertion(is.init_dip != NULL);
-    cip->initializer = is.init_dip;
-    cip->initializer->is_constructor_init = TRUE;
+    a_dynamic_init_ptr  dip = is.init_dip;
+    check_assertion(dip != NULL);
+    dip->is_constructor_init = TRUE;
+    cip->initializer = dip;
     cip->is_braced = TRUE;
-    /* If the initializer produced an object lifetime for the full expression,
-       remove it temporarily from the object lifetime tree and restore it in
-       the correct position later. */
-    detach_object_lifetime_for_dynamic_init(cip->initializer);
+    if (exceptions_enabled) {
+      /* If the initializer produced an object lifetime for the full
+         expression, remove it temporarily from the object lifetime tree and
+         restore it in the correct position later. */
+      detach_object_lifetime_for_dynamic_init(dip);
+    } else {
+      /* Clear the destructor effects. */
+      dip->destructor = NULL;
+      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+          !dip->variant.constant
+              ->variant.aggregate.has_dynamic_init_component) {
+        dip->kind = (a_dynamic_init_kind)dik_constant;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* braced_mem_initializer */
 

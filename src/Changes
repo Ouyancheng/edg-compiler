@@ -1,5 +1,21 @@
 Version 4.11
 
+9/24/15  [EDGcpfe/16432]
+Abort on braced mem-initializer for aggregate class with destructor
+
+In C++11 mode with exceptions disabled, the front end could abort with an
+internal error in lower_dynamic_init when lowering a braced mem-initializer
+for an aggregate class with a destructor.  For example:
+
+  struct X { ~X(); };
+  struct Y {
+    X x;
+    Y(): x{} {}  // Lowering of the mem-initializer could previously
+  };             // trigger an internal error.
+
+This is now fixed.
+
+
 9/24/15  [EDGcpfe/16535]
 GNU C-mode abort on use of ambiguous parameter
 
