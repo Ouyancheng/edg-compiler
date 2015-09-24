@@ -600,8 +600,12 @@ prototype_instantiations_in_il.  Note that prototype instantiations cannot
 be generated when doing IL lowering.
 */
 #ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
-#define PROTOTYPE_INSTANTIATIONS_IN_IL TRUE
+#define PROTOTYPE_INSTANTIATIONS_IN_IL FALSE
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
+
+/* FIXME: */
+#undef ALL_TEMPLATE_INFO_IN_IL
+#define ALL_TEMPLATE_INFO_IN_IL PROTOTYPE_INSTANTIATIONS_IN_IL
 
 /*
 In some modes, the prototype instantiation of functions is deferred until
