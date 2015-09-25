@@ -9916,8 +9916,11 @@ Does not handle user-defined conversions.
   dest_type = skip_typerefs(dest_type);
   if (identical_types(source_type, dest_type)) {
     okay = TRUE;
-  } else if (is_template_param_type(source_type) ||
-             is_template_param_type(dest_type)) {
+  } else if (constexpr_enabled ?
+                      (is_template_param_or_nonreal_class_type(source_type) ||
+                       is_template_param_or_nonreal_class_type(dest_type))
+                    : (is_template_param_type(source_type) ||
+                       is_template_param_type(dest_type))) {
     /* A template parameter type might match another type. */
     okay = TRUE;
   } else if (is_error_type(source_type) ||

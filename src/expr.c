@@ -38635,7 +38635,7 @@ memory region).  Do various error checks.
     implicit_cast(constant, make_reference_type(param_type));
   } else {
     /* Convert to the required type if necessary.  Do not use user-defined
-       conversions. */
+       conversions, except if the conversion is "constexpr". */
     prep_initializer_operand(operand, param_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
                              /*is_copy_initialization=*/TRUE,

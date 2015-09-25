@@ -18723,6 +18723,7 @@ is_transparent.  conv_context describes the context of the conversion.
 {
   a_conv_descr  local_conversion;
   an_error_code err_code;
+  a_boolean     wrap_in_template_constant_if_needed = FALSE;
 
 #if CHECKING
   if (is_any_reference_type(dest_type)) {
@@ -18742,13 +18743,13 @@ is_transparent.  conv_context describes the context of the conversion.
                                     &local_conversion)) {
     /* Some conversions are not allowed on a nontype template argument. */
     if (conv_context & CCO_NONTYPE_TEMPLATE_ARG) {
-      a_type_ptr eff_source_type = source_operand->type;
+      a_type_ptr src_type = source_operand->type, eff_src_type = src_type;
       if (conversion->routine != NULL) {
-        eff_source_type = return_type_of(conversion->routine->type);
+        eff_src_type = return_type_of(conversion->routine->type);
       }  /* if */
       if (!conversion_allowed_for_nontype_template_argument(
                                            &conversion->std,
-                                           eff_source_type,
+                                           eff_src_type,
                                            is_constant_operand(source_operand),
                                            &source_operand->variant.constant,
                                            dest_type,
@@ -18756,8 +18757,12 @@ is_transparent.  conv_context describes the context of the conversion.
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              err_code)) {
           pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
-                             source_operand->type, dest_type);
+                             src_type, dest_type);
         }  /* if */
+      } else if (conversion->unknown_dependent_conversion) {
+        /* After the conversion is applied it may not produce a constant entry.
+           If so, wrap the expression in a ck_template_param entry below. */
+        wrap_in_template_constant_if_needed = TRUE;
       }  /* if */
     }  /* if */
     /* The types are compatible.  Do the conversion. */
@@ -18765,6 +18770,10 @@ is_transparent.  conv_context describes the context of the conversion.
     /* Force the result to be a prvalue. */
     conversion->result_is_a_glvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);
+    if (!is_constant_operand(source_operand) &&
+        wrap_in_template_constant_if_needed) {
+      make_template_param_expr_constant_operand(source_operand);
+    }  /* if */
   }  /* if */
 }  /* prep_conversion_operand */
 
