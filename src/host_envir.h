@@ -599,13 +599,11 @@ for direct code generation.)  It is the default value of the variable
 prototype_instantiations_in_il.  Note that prototype instantiations cannot
 be generated when doing IL lowering.
 */
-#ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
-#define PROTOTYPE_INSTANTIATIONS_IN_IL FALSE
-#endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
-
 /* FIXME: */
-#undef ALL_TEMPLATE_INFO_IN_IL
-#define ALL_TEMPLATE_INFO_IN_IL PROTOTYPE_INSTANTIATIONS_IN_IL
+#undef PROTOTYPE_INSTANTIATIONS_IN_IL
+#ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
+#define PROTOTYPE_INSTANTIATIONS_IN_IL TRUE
+#endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
 In some modes, the prototype instantiation of functions is deferred until
@@ -1256,7 +1254,11 @@ be of limited use; they may contain operators and types that the
 back end does not understand.
 */
 #ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+#if ALL_TEMPLATE_INFO_IN_IL
+#define RECORD_BACKING_EXPRS_WITH_IL_LOWERING TRUE
+#else /* ifdef RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #define RECORD_BACKING_EXPRS_WITH_IL_LOWERING FALSE
+#endif /* ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #if RECORD_BACKING_EXPRS_WITH_IL_LOWERING && !DO_IL_LOWERING
  #error -- DO_IL_LOWERING must be TRUE if \

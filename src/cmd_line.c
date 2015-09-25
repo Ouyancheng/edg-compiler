@@ -10428,7 +10428,12 @@ enable_microsoft_mode:
      lowered, so don't bother passing them to the back end.  Note that the
      IL can still contain class prototype instantiations and other
      dependent entities. */
+/* FIXME */
+#if 0
   all_template_info_in_il = FALSE;
+#else
+  all_template_info_in_il = prototype_instantiations_in_il;
+#endif
 #endif /* DO_IL_LOWERING */
   /* When name mangling is being done, name references are needed for entities
      from template deduction contexts. */
