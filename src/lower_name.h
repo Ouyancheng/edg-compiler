@@ -116,6 +116,8 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
 extern void mangle_wrapper_name(a_routine_ptr entry_routine);
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
+extern void set_ctor_dtor_mangled_name_kind(a_routine_ptr routine);
+
 extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
                                               a_routine_ptr prim_routine);
 #endif /* IA64_ABI */

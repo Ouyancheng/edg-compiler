@@ -4815,6 +4815,7 @@ interface to the two routines is identical).
   check_assertion(routine->primary_ctor_or_dtor == NULL);
   if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
     a_type_ptr class_type = parent_class_of(routine);
+    check_assertion(!routine->source_corresp.name_has_been_mangled);
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* The class has virtual bases.  The primary routine is the subobject
          constructor, and the complete object constructor calls that. */
@@ -15045,6 +15046,15 @@ constructor (at the specified insert_location).
     } else {
       scope->variant.routine.ptr->ctor_dtor_kind =
                                            (a_ctor_or_dtor_kind)cdk_delegation;
+#if IA64_ABI
+      if (scope->variant.routine.ptr->source_corresp.name_has_been_mangled) {
+        /* If a mangled name has already been assigned (because this primary
+           routine was mangled in order to derive alternate entry point mangled
+           names), change the name to reflect that this is now a delegating
+           constructor. */
+        set_ctor_dtor_mangled_name_kind(scope->variant.routine.ptr);
+      }  /* if */
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
