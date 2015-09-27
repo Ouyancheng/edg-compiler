@@ -1,5 +1,21 @@
 Version 4.11
 
+9/27/15  [EDGcpfe/16493]
+Dialect differences for universal-character-names in identifiers
+
+The front end previously used the table from Annex D of the C99 Standard in
+all modes when determining whether a universal-character-name (UCN) is
+acceptable in an identifier.  This table, however, differs from the
+corresponding tables in the C++03, C++11, C++14, and C11 Standards in a
+number of particulars.  The front end has now been changed so that the
+handling of UCNs in identifiers correctly reflects the language dialect in
+effect.  For example:
+
+  int \u00b8;     // Previously incorrectly rejected in C++11 and C11 modes
+  int \u00aa;     // Previously incorrectly accepted in C++03 mode
+  int \U00010000; // Previously incorrectly rejected in c++11 and C11 modes
+
+
 9/25/15  [EDGcpfe/16538]
 Spurious errors on nonreal template arguments with constexpr conversions
 
