@@ -4890,7 +4890,7 @@ IL prefix is accessed).
   a_variable_ptr temp_var;
   a_constant_ptr addressed_con;
 
-  if (!visited_yet(constant)) {
+  if (!visited_yet(constant) && !ignore_constant_in_back_end(constant)) {
     mark_as_visited(constant);
     lower_source_correspondence(&constant->source_corresp);
     if (constant->type != NULL) lower_os_type(constant->type);
@@ -9077,7 +9077,7 @@ Do IL lowering of the indicated type and everything under it.
      The fact that we are lowering a type means we are lowering the
      file scope and therefore no other type can be in a different
      memory region. */
-  if (!visited_yet(type)) {
+  if (!visited_yet(type) && !ignore_type_in_back_end(type)) {
     mark_as_visited(type);
     lower_source_correspondence(&type->source_corresp);
     /* The based types list is not lowered on purpose. */
@@ -9459,6 +9459,7 @@ Do IL lowering of the indicated variable and everything under it.
 */
 {
   if (!visited_yet(variable)) {
+    check_assertion(!ignore_variable_in_back_end(variable));
     mark_as_visited(variable);
     lower_source_correspondence(&variable->source_corresp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -9893,8 +9894,8 @@ Do IL lowering of the indicated routine and everything under it.  This does
 not include the function scope memory region, if any.
 */
 {
-  check_assertion(!ignore_routine_in_back_end(routine));
   if (!visited_yet(routine)) {
+    check_assertion(!ignore_routine_in_back_end(routine));
     mark_as_visited(routine);
     lower_source_correspondence(&routine->source_corresp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
