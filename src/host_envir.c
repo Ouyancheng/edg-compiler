@@ -5820,10 +5820,10 @@ This is done before command line processing.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
 /* FIXME */
-#if 0
-  all_template_info_in_il = ALL_TEMPLATE_INFO_IN_IL;
-#else
+#if DO_IL_LOWERING
   all_template_info_in_il = prototype_instantiations_in_il;
+#else
+  all_template_info_in_il = ALL_TEMPLATE_INFO_IN_IL;
 #endif
   in_front_end = FALSE;
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
