@@ -135,7 +135,7 @@ fields of the a_UCN_range entry.  There is one flag for both C11 and C++11,
 since the character tables specified in the respective Standards are
 identical.
 */
-#define CPP03	  0x1
+#define CPP03     0x1
 #define C99       0x2
 #define CPP11_C11 0x4
 #define _         0x80	/* Unused flag for spacing in the table below. */
