@@ -4889,29 +4889,11 @@ this macro is checked when the front end is executed.
 #endif /* ifndef HOST_POINTER_ALIGNMENT */
 
 /*
-Each IL entity is preceded in memory by an_il_entry_prefix structure that
-contains information about the IL entry that follows.  In order to keep the
-structure small, the entry_number field can be combined with a small number
-of bit fields (four or five, depending on the configuration), thereby avoiding
-wasteful padding.  When compiling some translation units (particular those with
-many mangled names), the resulting size of the entry_number field may be too
-small, resulting in an ec_program_too_large catastrophic error.  In order to
-accommodate such programs, the following configuration macro can be set to
-FALSE in which case the entry_number field is "full-sized" (i.e., all the bits
-of TYPE_FOR_PREFIX_ENTRY_NUMBER are available to indicate an entry number).
-*/
-#ifndef ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
-#define ENTRY_NUMBER_SHARES_BITS_IN_PREFIX TRUE
-#endif /* ifndef ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
-
-/*
 The host type for the entry_number bit-field of the an_il_entry_prefix
 structure.  This field is typically an unsigned 32-bit type, but for some
 complex cases (typically with many long, mangled names), an unsigned 64-bit
 type may be needed.  This is only used when IL_SHOULD_BE_WRITTEN_TO_FILE and
-ALTERNATE_IL_FILE_FORMAT are TRUE.  In cases where
-ENTRY_NUMBER_SHARES_BITS_IN_PREFIX is TRUE (see above), not all bits of this
-type may be available.
+ALTERNATE_IL_FILE_FORMAT are TRUE.
 */
 #ifndef TYPE_FOR_PREFIX_ENTRY_NUMBER
 #if EDG_MSDOS
@@ -4923,7 +4905,7 @@ type may be available.
 #endif /* EDG_MSDOS */
 #endif /* ifndef TYPE_FOR_PREFIX_ENTRY_NUMBER */
 
-typedef TYPE_FOR_PREFIX_ENTRY_NUMBER an_il_entry_number;
+typedef TYPE_FOR_PREFIX_ENTRY_NUMBER a_prefix_entry_number;
 
 /*
 The alignment required for the an_il_entry_prefix structure defined in
