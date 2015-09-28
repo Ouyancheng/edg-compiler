@@ -2134,8 +2134,10 @@ done.
     an_expr_node_ptr     expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
     an_operand           opnd;
     an_arg_list_elem_ptr alep;
+    expr_copy->is_pack_expansion = TRUE;
     make_expression_operand(expr_copy, &opnd);
     alep = alloc_arg_list_elem_for_operand(&opnd);
+    alep->pack_expansion_descr = pedep;
     if (*expr_list == NULL) {
       *expr_list = alep;
     } else {
