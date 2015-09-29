@@ -22755,7 +22755,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
-        if (prototype_instantiations_in_il) {
+        if (all_template_info_in_il) {
           create_template_decl(decl_state, &template_pos);
         }  /* if */
       } else if (is_template_param || decl_state->is_generic) {
@@ -22777,7 +22777,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         }  /* if */
         /* Bypass the ">". */
         (void)get_token();
-        if (prototype_instantiations_in_il) {
+        if (all_template_info_in_il) {
           create_template_decl(decl_state, &template_pos);
         }  /* if */
       }  /* if */
@@ -26411,7 +26411,7 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
     end_template_param_list = template_param;
   }  /* if */
   template_decl_info->declaration_scope = scope_stack_top().number;
-  if (prototype_instantiations_in_il) {
+  if (all_template_info_in_il) {
     create_template_decl(templ_state, &null_source_position);
   }  /* if */
   /* Cache the declarator part of the lambda. */
