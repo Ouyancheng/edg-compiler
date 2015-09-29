@@ -14552,6 +14552,23 @@ matches, a new argument list is returned in *new_arg_list.
                            templ_param_list, /*is_partial_order_check=*/FALSE);
   }  /* if */
   pop_instantiation_scope_for_rescan();
+  if (result_type != NULL && symbol_is(template_sym, sk_function_template) &&
+      tssp->variant.function.routine->has_deducible_return_type) {
+    /* For function templates with a deducible return type, we must perform an
+       instantiation at this point to finalize the deduced return type. */
+    a_symbol_ptr instance_sym;
+    instance_sym = make_template_function(template_sym, *new_arg_list,
+                                          /*in_class_specialization=*/FALSE);
+    if (instance_sym == NULL || !is_simple_function_symbol(instance_sym)) {
+      unexpected_condition();
+    } else {
+      a_routine_ptr  rp = instance_sym->variant.routine.ptr;
+      if (!rp->has_deduced_return_type) {
+        finalize_deduced_return_type(rp, &error_position);
+      }  /* if */
+      result_type = rp->type;
+    }  /* if */
+  }  /* if */
   /* If there was no match, free the new template argument list, if any. */
   if (result_type == NULL && *new_arg_list != NULL) {
     free_template_arg_list(*new_arg_list);
