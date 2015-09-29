@@ -14168,7 +14168,7 @@ instantiation is available; see gen_template_from_prototype_instantiation).
   a_boolean  result = il_header.il_has_all_prototype_instantiations;
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (!result && prototype_instantiations_in_il &&
+  if (!result && all_template_info_in_il &&
       tp->source_corresp.is_class_member) {
     /* Check if this is a member template of a real instantiation. */
     a_type_ptr  parent_class = parent_class_of(tp);
@@ -18658,6 +18658,7 @@ from the primary source file name in the IL information.
      il_header has been read. */
   standalone_utility_early_init();
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
+  all_template_info_in_il = ALL_TEMPLATE_INFO_IN_IL;
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
 
