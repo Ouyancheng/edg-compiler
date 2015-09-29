@@ -34801,6 +34801,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   an_operand          operand1, operand2, operand;
   a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
   an_expr_stack_entry expr_stack_entry;
+  a_type_ptr          orig_op1_type;
+  a_boolean           via_udc = FALSE;
 
   *ne_call_expr = NULL;
   *incr_call_expr = NULL;
@@ -34812,14 +34814,15 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   make_lvalue_variable_operand(begin_var,
                                &null_source_position, &null_source_position,
                                &operand1, (a_ref_entry *)NULL);
+  orig_op1_type = operand1.type;
   make_lvalue_variable_operand(end_var,
                                &null_source_position, &null_source_position,
                                &operand2, (a_ref_entry *)NULL);
   processed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled) has_predef_meaning = is_handle_type(operand1.type);
+  if (cli_or_cx_enabled) has_predef_meaning = is_handle_type(orig_op1_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_overloadable_first_operand_type(operand1.type)) {
+  if (is_overloadable_first_operand_type(orig_op1_type)) {
     check_for_operator_overloading((an_opname_kind)onk_ne,
                                    /*is_unary_op=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
@@ -34829,13 +34832,20 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                    tok_seq_number,
                                    (a_nondependent_call_depth)1,
                                    expr_position, &operand, &processed);
+    if (orig_op1_type != operand.type) {
+      /* The overload resolution process didn't find a matching user-defined
+         comparison operator, but it did find a match with built-in types
+         via a user-defined conversion.  operand1 and operand2 are already
+         converted. */
+      via_udc = TRUE;
+    }  /* if */
   }  /* if */
   if (processed) {
     /* An overloaded operator!= was used (or there was an error). */
   } else {
     /* Try a non-overloaded "!=" operator. */
-    if (!(is_pointer_or_handle_type(operand1.type) ||
-          is_enum_type(operand1.type))) {
+    if (!(via_udc || is_pointer_or_handle_type(orig_op1_type) ||
+          is_enum_type(orig_op1_type))) {
       pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
                                  ec_missing_notequal_on_range_based_for_type,
                    expr_position, operand1.type);

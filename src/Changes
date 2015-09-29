@@ -1,5 +1,30 @@
 Version 4.11
 
+9/29/15  [EDGcpfe/16499]
+Range-based "for" statements and user-defined iterator conversions
+
+The processing of range-based "for" statements produces internal iterators to
+which the "!=" operator is applied.  Previously, that application failed to
+consider a match with the built-in "!=" via a user-defined conversion, leading
+to spurious errors.  For example:
+
+  struct I {
+    void operator++();
+    int& operator*();
+    operator bool();  // User-defined conversion operator enables
+  };                  // comparisons.
+  struct C {
+    friend I begin(C*);
+    friend I end(C*);
+  };
+  void g(C c) {
+    for (int i : &c) {  // Previously triggered a spurious error; now okay.
+    }
+  }
+
+This is now fixed.
+
+
 9/29/15  [EDGcpfe/16526]
 Positions of rescanned call-like built-in operations
 
