@@ -1,5 +1,13 @@
 Version 4.11
 
+9/29/15  [EDGcpfe/16526]
+Positions of rescanned call-like built-in operations
+
+When rescanning a call-like built-in operation (like the type traits helper
+__is_empty), the front end failed to restore the originally recorded position
+of that operation in the IL for the rescanned expression.  That is now fixed.
+
+
 9/29/15  [EDGcpfe/16494]
 Incorrect type of integer literals in C++11 mode preprocessor expressions
 

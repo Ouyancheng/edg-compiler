@@ -11598,7 +11598,7 @@ indication in *rcblock).
                     expr->variant.builtin_operation.kind ==
                                                (a_builtin_operation_kind)kind);
     eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-    start_position = eriep->saved_operand.position;
+    start_position = eriep->operator_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
