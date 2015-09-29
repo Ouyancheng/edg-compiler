@@ -11626,17 +11626,18 @@ literals are left unchanged.
 
 static void adjust_pp_int_constant(void)
 /*
-The current token is an integer constant scanned within a preprocessing
-#if expression.  It should be made long if it is not already so (or intmax_t
-in C99 mode).  See C89 standard, 3.8.1.
+The current token is an integer constant scanned within a preprocessing #if
+expression.  It should be made long if it is not already so (or
+intmax_t/uintmax_t in C99, C++11, and later modes).  See C89 Standard,
+3.8.1; C99 Standard, 6.10.1; and C++11 Standard, 16.1.
 */
 {
   an_integer_kind ik;
 
   ik = const_for_curr_token.type->variant.integer.int_kind;
-  if (c99_mode) {
-    /* In C99 mode, use intmax_t for signed types, uintmax_t for unsigned
-       types. */
+  if (c99_mode || cpp11_mode) {
+    /* In C99 and C++11 modes, use intmax_t for signed types, uintmax_t for
+       unsigned types. */
     if (ik == targ_intmax_kind || ik == targ_uintmax_kind) {
       /* The type is already right, so leave it alone. */
     } else {
@@ -11648,7 +11649,7 @@ in C99 mode).  See C89 standard, 3.8.1.
       const_for_curr_token.type = integer_type(ik);
     }  /* if */
   } else {
-    /* C++ or C89.  Use long or unsigned long. */
+    /* C++03 or C89.  Use long or unsigned long. */
     if (ik == (an_integer_kind)ik_long ||
         ik == (an_integer_kind)ik_unsigned_long) {
       /* The type is long, so leave it alone. */

@@ -1,5 +1,22 @@
 Version 4.11
 
+9/29/15  [EDGcpfe/16494]
+Incorrect type of integer literals in C++11 mode preprocessor expressions
+
+In C++03, integer literals in preprocessor expressions were treated as
+having the long or unsigned long type.  The C++11 Standard changed that
+specification to use intmax_t/uintmax_t.  The front end has now been
+updated to implement this behavior.  For example, with --c++11 on a host
+with 32-bit long and 64-bit intmax_t:
+
+  bool correct_type =
+  #if 0xffffffff + 1  // == 0 in 32-bit arithmetic
+    true;             // Now correctly selected in C++11 mode
+  #else
+    false;            // Previously incorrectly selected in C++11 mode
+  #endif
+
+
 9/28/15  [EDGcpfe/16534]
 More flexibility in configuring entry_number field in an_il_entry_prefix
 
