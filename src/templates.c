@@ -20128,7 +20128,7 @@ depends on a another template parameter.
     add_to_templates_list(templ_ptr, depth_scope_stack);
   }  /* if */
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
-  if (prototype_instantiations_in_il) {
+  if (all_template_info_in_il) {
     /* Keep a record of the parameterization structure.  (Needed, e.g., in the
        C++-generating back end.) */
     templ_ptr->template_decl = local_decl_state.template_decl;
@@ -25666,7 +25666,7 @@ See scan_generic_constraint_clauses for syntax details.
   }  /* if */
   /* If a valid type was specified and prototype instantiations are recorded
      in the IL, create an IL entry representing the clause. */
-  if (prototype_instantiations_in_il && param_type != NULL) {
+  if (all_template_info_in_il && param_type != NULL) {
     il_entry = alloc_generic_constraint_clause();
     /* Copy the entry constructed above. */
     *il_entry = gcc;
