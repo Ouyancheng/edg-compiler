@@ -4907,7 +4907,7 @@ are expected to be NULL in that case.
   an_expr_node_ptr  operand_node;
   a_boolean         gnu_sync_function_case = FALSE;
   a_boolean         result_operand_is_call;
-  a_boolean         member_of_proto_inst = FALSE;
+  a_boolean         implicit_this_selector = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -5121,7 +5121,6 @@ are expected to be NULL in that case.
         is_a_function_designator(operand) &&
         !operand->bound_function) {
       a_symbol_ptr  member_func_sym = operand->symbol;
-      a_type_ptr    this_class = sym_parent_class(member_func_sym);
       if (make_this_pointer_operand(member_func_sym,
                                     member_func_sym,
                                     &call_position,
@@ -5132,10 +5131,7 @@ are expected to be NULL in that case.
         a_source_position saved_end_position;
         saved_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (this_class
-                    ->variant.class_struct_union.is_prototype_instantiation) {
-          member_of_proto_inst = TRUE;
-        }  /* if */
+        implicit_this_selector = TRUE;
         /* Make an operand for the function bound to the "this" pointer. */
         make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
@@ -5254,17 +5250,18 @@ are expected to be NULL in that case.
                is_template_dependent_context() &&
                (is_template_param_type(operand->type) ||
                 ((gpp_mode || clang_mode || microsoft_mode) &&
-                 member_of_proto_inst))) {
+                 implicit_this_selector))) {
       /* A call of a dependent expression in a prototype instantiation.  Note
          that we test only for a top-level parameter type here, which might be
-         a class.  If a call "f()" is implicitly treated as "this->f()" with f
-         a member of prototype instantiation, Clang, GCC, and MSVC consider it
-         template-dependent, too (if "this" is explicit, "this->f" will already
-         be a ck_template_param constant in those modes).  More testing for
-         other dependent cases is done below. */
+         a class.  If a call "f()" is implicitly treated as "this->f()" in a
+         template-dependent context, Clang, GCC, and MSVC consider it template-
+         dependent, too (if "this" is explicit, "this->f" will already be a
+         ck_template_param constant in those modes).  More testing for other
+         dependent cases is done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
-      if ((gpp_mode || clang_mode || microsoft_mode) && member_of_proto_inst) {
+      if ((gpp_mode || clang_mode || microsoft_mode) &&
+          implicit_this_selector) {
         /* Make the call target opaque. */
         make_template_param_expr_constant_operand(operand);
         operand->type = type_of_unknown_templ_param_nontype;
