@@ -541,9 +541,10 @@ necessary to make it directly accessible in memory.
          into the area preceding the entry. */
       if (reading_file_scope_il) {
         char               *orphan_ptr;
-        an_il_entry_number orphan_number;
+        an_encoded_entry_number
+                           orphan_number;
         fread_with_check((char *)&orphan_ptr, sizeof(orphan_ptr));
-        orphan_number = (an_il_entry_number)orphan_ptr;
+        orphan_number = (an_encoded_entry_number)orphan_ptr;
         /* Remap the entry number to a pointer immediately. */
         fs_orphan_pointer_of(entry_ptr) =
                                      remap_encoded_number_to_ptr(orphan_number,

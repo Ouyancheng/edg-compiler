@@ -446,6 +446,7 @@ Write the initial information to the IL file, if there is one.
     }  /* if */
   }
 #endif /* CHECKING */
+#if ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
   /* Verify that BITS_IN_ENTRY_NUMBER is set correctly. */
   { int num_bits = BITS_IN_ENTRY_NUMBER;
 #if CHECKING
@@ -464,6 +465,9 @@ Write the initial information to the IL file, if there is one.
       max_entry_number = ((an_il_entry_number)1 << BITS_IN_ENTRY_NUMBER) - 1;
     }  /* if */
   }
+#else /* !ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
+  max_entry_number = ~(an_il_entry_number)0;  /* All "1" bits. */
+#endif /* ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
 #if CHECKING
   /* Make sure the entry_number field in the prefix can contain the maximum
      value computed. */
@@ -473,6 +477,8 @@ Write the initial information to the IL file, if there is one.
       internal_error("start_il_file: prefix entry_number is defined wrong");
     }  /* if */
   }
+  check_assertion(sizeof(an_encoded_entry_number) >=
+                  sizeof(an_il_entry_number));
 #endif /* CHECKING */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 }  /* start_il_file */
@@ -598,7 +604,8 @@ its length.
 */
 {
   a_byte             byte_entry_kind;
-  an_il_entry_number entry_number;
+  an_encoded_entry_number
+                     entry_number;
   an_il_entry_prefix *epp;
   a_boolean          is_string_entry = is_string_entry_kind(entry_kind);
   char               entry_copy[MAX_SIZEOF_IL_ENTRY];
