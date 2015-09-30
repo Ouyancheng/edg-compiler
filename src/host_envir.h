@@ -594,8 +594,9 @@ as the bases of the value for this flag.
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define ALL_TEMPLATE_INFO_IN_IL FALES
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#endif /* ifdef PROTOTYPE_INSTANTIATIONS_IN_IL */
+#else /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define ALL_TEMPLATE_INFO_IN_IL FALSE
+#endif /* ifdef PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifndef ALL_TEMPLATE_INFO_IN_IL */
 
 /*
@@ -1262,11 +1263,7 @@ be of limited use; they may contain operators and types that the
 back end does not understand.
 */
 #ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING
-#if ALL_TEMPLATE_INFO_IN_IL
-#define RECORD_BACKING_EXPRS_WITH_IL_LOWERING TRUE
-#else /* ifdef RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #define RECORD_BACKING_EXPRS_WITH_IL_LOWERING FALSE
-#endif /* ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #if RECORD_BACKING_EXPRS_WITH_IL_LOWERING && !DO_IL_LOWERING
  #error -- DO_IL_LOWERING must be TRUE if \
