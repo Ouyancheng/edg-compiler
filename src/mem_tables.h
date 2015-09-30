@@ -140,10 +140,8 @@ Entry that precedes each IL entry and indicates some things about it.
 */
 typedef struct an_il_entry_prefix *an_il_entry_prefix_ptr;
 typedef struct an_il_entry_prefix {
-#if ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
   /* Note that if you add bits here you must adjust NUM_OF_BIT_FIELDS_IN_PREFIX
      below. */
-#endif /* ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
   a_bit_field	file_scope:1;
 			/* TRUE if this IL entry is allocated in the file
 			   scope memory region. */
@@ -183,24 +181,14 @@ typedef struct an_il_entry_prefix {
      is where it is stored.   Pick a size that makes the whole prefix
      struct the same size as a long.  (This is just for efficiency;
      other sizes will work too.) */
-#if ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
-  /* The size of the entry_number field is decreased by the bit fields
-     defined above (to keep the structure compact). */
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
          /*lint --e(506)*/                                             \
          (5 + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
 #define BITS_IN_ENTRY_NUMBER                                           \
-  (sizeof(an_il_entry_number)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
-  an_il_entry_number
+  (sizeof(a_prefix_entry_number)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
+  a_prefix_entry_number
                 entry_number:BITS_IN_ENTRY_NUMBER;
 			/* Entry number for the IL entry. */
-#else /* !ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
-  /* A full-sized entry_number field is used (wasting some space in each
-     prefix). */
-  an_il_entry_number
-                entry_number;
-			/* Entry number for the IL entry. */
-#endif /* ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
@@ -318,6 +306,11 @@ depend on it being set properly.
 }  /* clear_il_entry_prefix */
 
 
+#if ALTERNATE_IL_FILE_FORMAT
+typedef unsigned long /* Should be an unsigned type. */
+		an_il_entry_number;
+			/* Type of entry number when not in the prefix. */
+#endif /* ALTERNATE_IL_FILE_FORMAT */
 /* Amount of space to allocate for the prefix.  The size is the smallest
    multiple of HOST_IL_ENTRY_PREFIX_ALIGNMENT that is at least as large as
    the size of an_il_entry_prefix.  This preserves the necessary alignment

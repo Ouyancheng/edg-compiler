@@ -401,7 +401,7 @@ extern int fileno(FILE *);
 #if ALTERNATE_IL_FILE_FORMAT
 /*lint -esym(769,ec_intermediate_language_7)*/
 #else /* !ALTERNATE_IL_FILE_FORMAT */
-/*lint -esym(756,an_il_entry_number)*/
+/*lint -esym(756,a_prefix_entry_number)*/
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #if DEBUG
 /*lint -esym(765, db_sym_list)*/
