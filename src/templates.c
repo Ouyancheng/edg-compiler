@@ -14557,8 +14557,9 @@ matches, a new argument list is returned in *new_arg_list.
     /* For function templates with a deducible return type, we must perform an
        instantiation at this point to finalize the deduced return type. */
     a_symbol_ptr instance_sym;
-    instance_sym = make_template_function(template_sym, *new_arg_list,
-                                          /*in_class_specialization=*/FALSE);
+    instance_sym = find_template_function(template_sym, new_arg_list,
+                                          /*explicit_arg_list_present=*/TRUE,
+                                          &error_position);
     if (instance_sym == NULL || !is_simple_function_symbol(instance_sym)) {
       unexpected_condition();
     } else {
