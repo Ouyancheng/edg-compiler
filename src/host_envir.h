@@ -584,9 +584,17 @@ certain front end template data structures (e.g., a_template_decl and
 a_template_parameter) are created.  When the flag is FALSE, prototype
 instantiations of function definitions may or may not be done, depending
 on other modes, but the definition generated (if any) will not be included
-in the IL.
+in the IL.  If PROTOTYPE_INSTANTIATIONS_IN_IL is already defined, use that
+as the bases of the value for this flag.
 */
 #ifndef ALL_TEMPLATE_INFO_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define ALL_TEMPLATE_INFO_IN_IL TRUE
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#define ALL_TEMPLATE_INFO_IN_IL FALES
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* ifdef PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define ALL_TEMPLATE_INFO_IN_IL FALSE
 #endif /* ifndef ALL_TEMPLATE_INFO_IN_IL */
 
