@@ -328,6 +328,7 @@ necessary to make it directly accessible in memory.
   char                      **entry_array_base_array_ptr;
   a_byte                    byte_entry_kind;
   an_il_entry_kind          entry_kind;
+  an_encoded_entry_number   encoded_number;
   an_il_entry_number        entry_number;
   sizeof_t                  entry_length;
   char                      *entry_ptr;
@@ -458,7 +459,10 @@ necessary to make it directly accessible in memory.
     if (byte_entry_kind == 0) break;
     entry_kind = (an_il_entry_kind)byte_entry_kind;
     /* Read the entry number. */
-    fread_with_check((char *)&entry_number, sizeof(entry_number));
+    fread_with_check((char *)&encoded_number, sizeof(encoded_number));
+    /* This is a potentially narrowing cast, but we're assured that the
+       entry number value previously fit in an_il_entry_number. */
+    entry_number = (an_il_entry_number)encoded_number;
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Read IL entry from file: kind = %u, number = %lu\n",
@@ -541,9 +545,10 @@ necessary to make it directly accessible in memory.
          into the area preceding the entry. */
       if (reading_file_scope_il) {
         char               *orphan_ptr;
-        an_il_entry_number orphan_number;
+        an_encoded_entry_number
+                           orphan_number;
         fread_with_check((char *)&orphan_ptr, sizeof(orphan_ptr));
-        orphan_number = (an_il_entry_number)orphan_ptr;
+        orphan_number = (an_encoded_entry_number)orphan_ptr;
         /* Remap the entry number to a pointer immediately. */
         fs_orphan_pointer_of(entry_ptr) =
                                      remap_encoded_number_to_ptr(orphan_number,

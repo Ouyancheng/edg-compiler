@@ -6147,6 +6147,11 @@ file.
 #else /* !defined(ENSURE_LOWERED_TYPE_LIST_ORDERING) */
   comment_undefined_macro_name(ENSURE_LOWERED_TYPE_LIST_ORDERING);
 #endif /* defined(ENSURE_LOWERED_TYPE_LIST_ORDERING) */
+#if defined(ENTRY_NUMBER_SHARES_BITS_IN_PREFIX)
+  define_numeric_valued_macro(ENTRY_NUMBER_SHARES_BITS_IN_PREFIX);
+#else /* !defined(ENTRY_NUMBER_SHARES_BITS_IN_PREFIX) */
+  comment_undefined_macro_name(ENTRY_NUMBER_SHARES_BITS_IN_PREFIX);
+#endif /* defined(ENTRY_NUMBER_SHARES_BITS_IN_PREFIX) */
 #if defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES)
   define_numeric_valued_macro(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES);
 #else /* !defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) */

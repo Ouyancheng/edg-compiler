@@ -446,6 +446,7 @@ Write the initial information to the IL file, if there is one.
     }  /* if */
   }
 #endif /* CHECKING */
+#if ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
   /* Verify that BITS_IN_ENTRY_NUMBER is set correctly. */
   { int num_bits = BITS_IN_ENTRY_NUMBER;
 #if CHECKING
@@ -464,6 +465,9 @@ Write the initial information to the IL file, if there is one.
       max_entry_number = ((an_il_entry_number)1 << BITS_IN_ENTRY_NUMBER) - 1;
     }  /* if */
   }
+#else /* !ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
+  max_entry_number = ~(an_il_entry_number)0;  /* All "1" bits. */
+#endif /* ENTRY_NUMBER_SHARES_BITS_IN_PREFIX */
 #if CHECKING
   /* Make sure the entry_number field in the prefix can contain the maximum
      value computed. */
@@ -473,6 +477,8 @@ Write the initial information to the IL file, if there is one.
       internal_error("start_il_file: prefix entry_number is defined wrong");
     }  /* if */
   }
+  check_assertion(sizeof(an_encoded_entry_number) >=
+                  sizeof(an_il_entry_number));
 #endif /* CHECKING */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 }  /* start_il_file */
@@ -598,7 +604,8 @@ its length.
 */
 {
   a_byte             byte_entry_kind;
-  an_il_entry_number entry_number;
+  an_encoded_entry_number
+                     encoded_number;
   an_il_entry_prefix *epp;
   a_boolean          is_string_entry = is_string_entry_kind(entry_kind);
   char               entry_copy[MAX_SIZEOF_IL_ENTRY];
@@ -606,7 +613,7 @@ its length.
   /* Give this entry an entry number if it does not have one yet.  The entry
      number is stored just ahead of the entry. */
   epp = assign_entry_number(entry_ptr, entry_kind, is_string_entry,
-                            entry_length, &entry_number);
+                            entry_length, &encoded_number);
 
   /* Check the "already written" flag in the entry number.  For strings,
      that's okay, since the same string can be pointed to from different
@@ -626,7 +633,7 @@ its length.
   if (debug_level >= 5) {
     fprintf(f_debug,
            "Writing IL entry to file: kind = %d, number = %lu, length = %lu\n",
-           (int)entry_kind, (unsigned long)entry_number,
+           (int)entry_kind, (unsigned long)encoded_number,
            (unsigned long)entry_length);
   }  /* if */
 #endif /* DEBUG */
@@ -647,7 +654,8 @@ its length.
   (void)fwrite((char *)&byte_entry_kind, sizeof(byte_entry_kind), 1,
                f_il_output);
   /* Write the entry number. */
-  (void)fwrite((char *)&entry_number, sizeof(entry_number), 1, f_il_output);
+  (void)fwrite((char *)&encoded_number, sizeof(encoded_number), 1,
+               f_il_output);
   /* For strings, write the length. */
   if (is_string_entry) {
     (void)fwrite((char *)&entry_length, sizeof(entry_length), 1, f_il_output);

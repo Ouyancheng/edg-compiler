@@ -1,5 +1,26 @@
 Version 4.11
 
+10/1/15  [EDGcpfe/16534]
+More flexibility in configuring entry_number field in an_il_entry_prefix
+
+Each allocated IL entry has an associated an_il_entry_prefix structure and
+one of the fields in this structure is entry_number.  The entry_number field
+contains a unique number for the entry, and, particularly in cases where
+there are many long mangled names, this field can overflow (resulting in
+an ec_program_too_large catastrophic error).  To keep the prefix size small,
+the entry_number field has always been a bit field whose size was engineered
+to be the maximum possible while still allowing for four or five (depending
+on configuration) additional one-bit flags.  A new configuration macro,
+ENTRY_NUMBER_SHARES_BITS_IN_PREFIX has been added to control whether or
+not entry_number is a bit field.  When TRUE (the default), the effective size
+of the entry_number field is reduced by the number of bit fields in the prefix;
+when FALSE, the full size of the TYPE_FOR_PREFIX_ENTRY_NUMBER type is
+available to store entry numbers (at a cost of a larger prefix due to padding).
+These changes only affect configurations where ALTERNATE_IL_FILE_FORMAT is
+TRUE.  Alternatively, a larger type can be used for
+TYPE_FOR_PREFIX_ENTRY_NUMBER.
+
+
 9/29/15  [EDGcpfe/16499]
 Range-based "for" statements and user-defined iterator conversions
 
@@ -48,27 +69,6 @@ with 32-bit long and 64-bit intmax_t:
   #else
     false;            // Previously incorrectly selected in C++11 mode
   #endif
-
-
-9/28/15  [EDGcpfe/16534]
-More flexibility in configuring entry_number field in an_il_entry_prefix
-
-Each allocated IL entry has an associated an_il_entry_prefix structure and
-one of the fields in this structure is entry_number.  The entry_number field
-contains a unique number for the entry, and, particularly in cases where
-there are many long mangled names, this field can overflow (resulting in
-an ec_program_too_large catastrophic error).  To keep the prefix size small,
-the entry_number field has always been a bit field whose size was engineered
-to be the maximum possible while still allowing for four or five (depending
-on configuration) additional one-bit flags.  A new configuration macro,
-ENTRY_NUMBER_SHARES_BITS_IN_PREFIX has been added to control whether or
-not entry_number is a bit field.  When TRUE (the default), the effective size
-of the entry_number field is reduced by the number of bit fields in the prefix;
-when FALSE, the full size of the TYPE_FOR_PREFIX_ENTRY_NUMBER type is
-available to store entry numbers (at a cost of a larger prefix due to padding).
-These changes only affect configurations where ALTERNATE_IL_FILE_FORMAT is
-TRUE.  Alternatively, a larger type can be used for
-TYPE_FOR_PREFIX_ENTRY_NUMBER.
 
 
 9/27/15  [EDGcpfe/16493]
