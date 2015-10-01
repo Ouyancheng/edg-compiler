@@ -329,7 +329,6 @@ necessary to make it directly accessible in memory.
   a_byte                    byte_entry_kind;
   an_il_entry_kind          entry_kind;
   an_encoded_entry_number   encoded_number;
-  an_il_entry_number        entry_number;
   sizeof_t                  entry_length;
   char                      *entry_ptr;
   a_boolean                 is_string_entry;
@@ -460,13 +459,10 @@ necessary to make it directly accessible in memory.
     entry_kind = (an_il_entry_kind)byte_entry_kind;
     /* Read the entry number. */
     fread_with_check((char *)&encoded_number, sizeof(encoded_number));
-    /* This is a potentially narrowing cast, but we're assured that the
-       entry number value previously fit in an_il_entry_number. */
-    entry_number = (an_il_entry_number)encoded_number;
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Read IL entry from file: kind = %u, number = %lu\n",
-              (unsigned int)byte_entry_kind, (unsigned long)entry_number);
+              (unsigned int)byte_entry_kind, (unsigned long)encoded_number);
     }  /* if */
 #endif /* DEBUG */
 #if CHECKING
@@ -477,11 +473,11 @@ necessary to make it directly accessible in memory.
     /* Remove the tag bit from a function scope entry number in order
        to check it. */
     if (reading_file_scope_il != 
-        ((entry_number & FUNC_ENTRY_NUMBER_BIT) == 0)) {
+        ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0)) {
       internal_error(
                    "read_memory_region: func scope bit wrong in entry number");
     }  /* if */
-    trimmed_entry_number = entry_number & ~FUNC_ENTRY_NUMBER_BIT;
+    trimmed_entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
     if (trimmed_entry_number == 0 ||
         trimmed_entry_number > entry_count_array_ptr[byte_entry_kind]) {
       internal_error("read_memory_region: bad entry number");
@@ -489,7 +485,7 @@ necessary to make it directly accessible in memory.
 #endif /* CHECKING */
     /* Determine the address of the entry within the array of entries of
        that kind. */
-    entry_ptr = remap_encoded_number_to_ptr(entry_number, entry_kind);
+    entry_ptr = remap_encoded_number_to_ptr(encoded_number, entry_kind);
     /* Set the entry prefix appropriately. */
     clear_il_entry_prefix(&il_entry_prefix_of_no_check(entry_ptr),
                           reading_file_scope_il, FALSE);
