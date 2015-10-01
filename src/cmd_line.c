@@ -2094,7 +2094,6 @@ by a command line option.
     binary_literals_allowed = TRUE;
     digit_separators_enabled = TRUE;
     long_long_is_standard = TRUE;
-    long_long_promotion_allowed = TRUE;
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */

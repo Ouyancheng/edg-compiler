@@ -1,5 +1,21 @@
 Version 4.11
 
+10/1/15  [EDGcpfe/16543]
+Microsoft compatibility: long long promotion
+
+As a result of the changes for EDGcpfe/16219, "long long" promotion had
+been enabled when microsoft_version >= 1900, but it appears that was
+overzealous and has now been disabled.  For example (in 32-bit configurations
+with --microsoft_version 1900):
+
+  void g(int) {}
+  void g(unsigned long int) {}
+  void f() {
+    g(2147483647);    // Okay -- calls g(int).
+    g(2147483648L);   // Had been ambiguous because of "long long" promotion.
+  }
+
+
 10/1/15  [EDGcpfe/16534]
 More flexibility in configuring entry_number field in an_il_entry_prefix
 
