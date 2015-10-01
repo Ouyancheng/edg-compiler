@@ -1510,13 +1510,13 @@ in interpreter storage.  In the case of a class type, the layout is computed if
 needed.  Array or class types that are too large trigger an interpretation
 failure (*ips is updated accordingly).
 */
-#define value_bytes_for_type(ips, tp)                                        \
+#define value_bytes_for_type(ips, tp, result_flag)                           \
   ((tp)->kind == (a_type_kind)tk_integer ?                                   \
        sizeof(an_integer_value) :                                            \
    (tp)->kind == (a_type_kind)tk_float ?                                     \
        sizeof(an_internal_float_value) :                                     \
    /* else */                                                                \
-    f_value_bytes_for_type((ips), (tp)))
+    f_value_bytes_for_type(ips, tp, result_flag))
 
 /*
 Macro returning the larger of two values.
@@ -1534,18 +1534,22 @@ Macro giving the number of bytes required for a scalar value.
       sizeof(a_constexpr_ptr_to_mem_function))
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
-                                       a_type_ptr  tp);
+                                       a_type_ptr            tp,
+                                       a_boolean             *p_result);
 static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
-                                       a_type_ptr  tp);
+                                       a_type_ptr            tp,
+                                       a_boolean             *p_result);
 
 
 /*ARGSUSED*/  /*FIXME:delete once errors are recorded. */
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
-                                           a_type_ptr            tp)
+                                           a_type_ptr            tp,
+                                           a_boolean             *p_result)
 /*
 Return the number of bytes needed to represent a value of the given type.
 Always called through the macro value_bytes_for_type, which handles some common
-type kinds.  If the number of bytes is too large, interpretation fails.
+type kinds.  If the number of bytes is too large, interpretation fails, and
+*p_result is set to FALSE.
 */
 {
   a_byte_count  result;
@@ -1562,31 +1566,37 @@ redo:
       result = sizeof(a_constexpr_address);
       break;
     case tk_array:
-      {
+      if (!tp->variant.array.is_variable_size_array) {
         a_targ_size_t  n_elems = num_array_elements(tp);
         a_type_ptr     etp = underlying_array_element_type(tp);
-        result = value_bytes_for_type(ips, etp);
         etp = skip_typerefs(etp);
-        if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
+        result = value_bytes_for_type(ips, etp, p_result);
+        if (!*p_result) {
+          /* Interpretation failure. */
+        } else if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
           /* Too many elements. */
-          /* FIXME: Interpretation failure. */
-          unexpected_condition();
+          *p_result = FALSE;
+          /* FIXME: Diagnostic. */
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
-      }
+      } else {
+        /* FIXME: Diagnostic. */
+        *p_result = FALSE;
+        result = 0;
+      }  /* if */
       break;
     case tk_class:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        result = lay_out_class_type(ips, tp);
+        result = lay_out_class_type(ips, tp, p_result);
       }  /* if */
       break;
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        result = lay_out_union_type(ips, tp);
+        result = lay_out_union_type(ips, tp, p_result);
       }  /* if */
       break;
     case tk_typeref:
@@ -1615,15 +1625,20 @@ redo:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-      /* FIXME: Interpretation failure. */
+      /* These types are not supported by the interpreter. */
+      /* FIXME: Diagnostic. */
+      *p_result = FALSE;
+      result = 0;
+      break;
     case tk_void:
     case tk_routine:
     case tk_template_param:
     case tk_unknown:
     default:
+      /* These types should never be encountered by the interpreter. */
       /* The GNU optimizer complains if result is not assigned a value on
          this branch. */
-      result = (a_byte_count)tp->size;
+      result = 0;
       unexpected_condition();
   }  /* switch */
   return result;
@@ -1631,13 +1646,14 @@ redo:
 
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
-                                       a_type_ptr            tp)
+                                       a_type_ptr            tp,
+                                       a_boolean             *p_result)
 /*
 Compute and return the size of the given non-union class type.  Also record
 offsets in any associated fields as well as any direct or virtual base classes.
 If needed, this will recursively lay out types this class type is composed of.
 ips is used to record an interpretation failure if the size exceeds the
-interpreter's limits.
+interpreter's limits; in that case, *p_result is set to FALSE.
 */
 {
   a_byte_count      total_size = 0;
@@ -1661,9 +1677,11 @@ interpreter's limits.
        fp = next_initializable_field(fp->next)) {
     do_host_alignment(total_size);
     map_byte_count(&persistent_map, fp, total_size);
-    total_size += value_bytes_for_type(ips, fp->type);
+    total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-      /* FIXME: error & saturate. */
+      /* FIXME: Diagnostic. */
+      *p_result = TRUE;
+      total_size = MAX_CONSTEXPR_TYPE_SIZE;
       goto done;
     }  /* if */
   }  /* for */
@@ -1672,9 +1690,11 @@ interpreter's limits.
     if (bcp->direct && !bcp->is_virtual) {
       do_host_alignment(total_size);
       map_byte_count(&persistent_map, bcp, total_size);
-      total_size += value_bytes_for_type(ips, bcp->type);
+      total_size += value_bytes_for_type(ips, bcp->type, p_result);
       if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-        /* FIXME: error & saturate. */
+        /* FIXME: Diagnostic. */
+        *p_result = TRUE;
+        total_size = MAX_CONSTEXPR_TYPE_SIZE;
         goto done;
       }  /* if */
     }  /* if */
@@ -1685,9 +1705,11 @@ interpreter's limits.
       if (bcp->direct && !bcp->is_virtual) {
         do_host_alignment(total_size);
         map_byte_count(&persistent_map, bcp, total_size);
-        total_size += value_bytes_for_type(ips, bcp->type);
+        total_size += value_bytes_for_type(ips, bcp->type, p_result);
         if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-          /* FIXME: error & saturate. */
+          /* FIXME: Diagnostic. */
+          *p_result = TRUE;
+          total_size = MAX_CONSTEXPR_TYPE_SIZE;
           goto done;
         }  /* if */
       }  /* if */
@@ -1700,12 +1722,13 @@ done:
 
 
 static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
-                                       a_type_ptr            tp)
+                                       a_type_ptr            tp,
+                                       a_boolean             *p_result)
 /*
 Return the size that should be allocated for the given union type, and record
 the offsets of its fields.  If needed, this will recursively lay out the types
 of the fields.  ips is used to record an interpretation failure if the size
-exceeds the interpreter's limits.
+exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
 */
 {
   a_byte_count      prefix_size = 0, max_field_size = 0, total_size;
@@ -1718,7 +1741,7 @@ exceeds the interpreter's limits.
   /* Determine the size of the largest field and record the field offsets. */
   fp = tp->variant.class_struct_union.field_list;
   for (; fp != NULL; fp = fp->next) {
-    a_byte_count  field_size = value_bytes_for_type(ips, fp->type);
+    a_byte_count  field_size = value_bytes_for_type(ips, fp->type, p_result);
     map_byte_count(&persistent_map, fp, prefix_size);
     if (field_size > max_field_size) max_field_size = field_size;
   }  /* for */
@@ -1961,7 +1984,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_constant_ptr  elem_con;
           n_elems = tp->variant.array.variant.number_of_elements;
           elem_size = value_bytes_for_type(
-                                         ips, tp->variant.array.element_type);
+                                ips, tp->variant.array.element_type, &result);
+          if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (!copy_val_from_constant(ips, elem_con, value)) {
@@ -1995,8 +2019,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
                  remainder of the class value. */
-              a_byte_count  class_size = value_bytes_for_type(ips, tp);
-              memzero(value+offset, size_t_arg(class_size-offset));
+              a_byte_count  class_size = value_bytes_for_type(ips, tp,
+                                                              &result);
+              if (result) {
+                memzero(value+offset, size_t_arg(class_size-offset));
+              }  /* if */
               break;
             } else if (!copy_val_from_constant(ips, elem_con, value+offset)) {
               result = FALSE;
@@ -2136,7 +2163,7 @@ Interpret the given block statement and its associated scope (if any).
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
       do {
-        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type, &result);
         a_byte        *var_storage;
         alloc_stack_bytes(ips, n_bytes, var_storage);
         /* Associate with the variable its value storage. */
@@ -2148,6 +2175,7 @@ Interpret the given block statement and its associated scope (if any).
                        ips->curr_alloc_seq_number);
         vp = vp->next;
       } while (vp != NULL);
+      if (!result) goto unmap_storage;
     }  /* if */
   }  /* if */
   if (result) {
@@ -2162,6 +2190,7 @@ Interpret the given block statement and its associated scope (if any).
       }  /* if */
     }  /* for */
   }  /* if */
+unmap_storage:
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
@@ -2201,7 +2230,7 @@ Interpret the given for-statement.
     if (vp != NULL) {
       local_storage = TRUE;
       do {
-        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type, &result);
         a_byte        *var_storage;
         alloc_stack_bytes(ips, n_bytes, var_storage);
         /* Associate with the variable its value storage. */
@@ -2213,6 +2242,7 @@ Interpret the given for-statement.
                        ips->curr_alloc_seq_number);
         vp = vp->next;
       } while (vp != NULL);
+      if (!result) goto unmap_storage;
     }  /* if */
   }  /* if */
   /* Run the initialization statement (if any). */
@@ -2242,7 +2272,8 @@ Interpret the given for-statement.
     incr = loop_info->increment;
     if (incr != NULL) {
       incr_type = skip_typerefs(incr->type);
-      n_bytes = value_bytes_for_type(ips, incr_type);
+      n_bytes = value_bytes_for_type(ips, incr_type, &result);
+      if (!result) goto unmap_storage;
       if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
           !incr->is_lvalue && !incr->is_xvalue) {
         /* The result of the increment expression is larger than a scalar
@@ -2308,6 +2339,7 @@ Interpret the given for-statement.
       }   /* if */
     } while (result && bool_val);
   }  /* if */
+unmap_storage:
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
     a_variable_ptr  vp = init_scope->nonstatic_variables;
@@ -2345,7 +2377,7 @@ Interpret the given range-based for-statement.
   vp[2] = loop_info->begin;
   vp[3] = loop_info->end;
   for (k = 0; k<4; ++k) {
-    a_byte_count  n_bytes = value_bytes_for_type(ips, vp[k]->type);
+    a_byte_count  n_bytes = value_bytes_for_type(ips, vp[k]->type, &result);
     alloc_stack_bytes(ips, n_bytes, var_storage[k]);
     /* Associate with the variable its value storage. */
     map_stack_bytes(ips, vp[k], var_storage[k]);
@@ -2355,6 +2387,7 @@ Interpret the given range-based for-statement.
     map_byte_count(&ips->map, &vp[k]->storage_class,
                    ips->curr_alloc_seq_number);
   }  /* for */
+  if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
   for (k = 1; k<4; ++k) {
     dip = vp[k]->initializer.dynamic;
@@ -2375,7 +2408,7 @@ Interpret the given range-based for-statement.
     a_boolean         ovfl;
     a_host_large_integer
                       bool_val;
-    n_bytes = value_bytes_for_type(ips, incr_type);
+    n_bytes = value_bytes_for_type(ips, incr_type, &result);
     if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
         !incr->is_lvalue && !incr->is_xvalue) {
       /* The result of the increment expression is larger than a scalar type,
@@ -2384,6 +2417,7 @@ Interpret the given range-based for-statement.
     } else {
       incr_value = incr_bytes;
     }  /* if */
+    if (!result) goto unmap_storage;
     dip = vp[0]->initializer.dynamic;
     do {
       /* Evaluate the test expression. */
@@ -2441,6 +2475,7 @@ Interpret the given range-based for-statement.
       }   /* if */
     } while (result && bool_val);
   }  /* if */
+unmap_storage:
   /* Release and unmap the local storage. */
   for (k = 4; k--;) {
     unmap_stack_bytes(ips, vp[k]);
@@ -2474,7 +2509,7 @@ successfully interpreted, FALSE otherwise.
       {
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
-        n_bytes = value_bytes_for_type(ips, tp);
+        n_bytes = value_bytes_for_type(ips, tp, &result);
         save_storage_stack(ips, saved_stack);
         if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
             !expr->is_lvalue && !expr->is_xvalue) {
@@ -2484,8 +2519,13 @@ successfully interpreted, FALSE otherwise.
         } else {
           expr_value = expr_bytes;
         }  /* if */
-        result = do_constexpr_expression(ips, expr, expr_value);
-        release_address_structures(expr, tp, expr_value);
+        if (!result) {
+          /* Stop interpretation. */
+        } else if (!do_constexpr_expression(ips, expr, expr_value)) {
+          result = FALSE;
+        } else {
+          release_address_structures(expr, tp, expr_value);
+        }  /* if */
         restore_storage_stack(ips, saved_stack);
       }
       break;
@@ -2834,10 +2874,10 @@ accordingly.
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp); 
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result); 
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
         result = FALSE;
         goto reclaim_arg_storage;
       }  /* if */
@@ -2848,10 +2888,10 @@ accordingly.
     }  /* if */
     for (; arg != NULL; arg = arg->next, param = param->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
         /* Undo the mappings so far. */
         a_variable_ptr  up = callee_scope->variant.routine.parameters;
         for (; up != param; up = up->next) {
@@ -2956,10 +2996,10 @@ the body of the (constructor) function proper.
     }  /* if */
     for (; arg != NULL; arg = arg->next, param = param->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
         /* Undo the mappings so far. */
         a_variable_ptr  up = callee_scope->variant.routine.parameters;
         for (; up != param; up = up->next) {
@@ -3061,12 +3101,13 @@ of the prvalue result.
   a_boolean            result = TRUE;
   an_expr_node_ptr     expr = skip_parens(orig_expr);
   a_type_ptr           tp = skip_typerefs(expr->type);
-  a_byte_count         n_bytes = value_bytes_for_type(ips, tp);
+  a_byte_count         n_bytes = value_bytes_for_type(ips, tp, &result);
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
   a_constant_ptr       con;
 
+  if (!result) goto done;
   switch (expr->kind) {
     case enk_operation:
       {
@@ -3174,7 +3215,7 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
-        opnd_n_bytes = value_bytes_for_type(ips, opnd1_type);
+        opnd_n_bytes = value_bytes_for_type(ips, opnd1_type, &result);
         if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
@@ -3183,7 +3224,9 @@ type.  This includes checking the value of ovfl set by the operation.
         } else {
           opnd1_value = opnd1_bytes;
         }  /* if */
-        result = do_constexpr_expression(ips, opnd1, opnd1_value);
+        if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
+          result = FALSE;
+        }  /* if */
         if (result && opnd2 != NULL &&
             !node_operator_is(expr, eok_land) &&
             !node_operator_is(expr, eok_lor) &&
@@ -3195,7 +3238,7 @@ type.  This includes checking the value of ovfl set by the operation.
              be handled similarly (although the evaluation is unconditional in
              that case). */
           opnd2_type = skip_typerefs(opnd2->type);
-          opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
+          opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
           if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
@@ -3204,7 +3247,9 @@ type.  This includes checking the value of ovfl set by the operation.
           } else {
             opnd2_value = opnd2_bytes;
           }  /* if */
-          result = do_constexpr_expression(ips, opnd2, opnd2_value);
+          if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+            result = FALSE;
+          }  /* if */
         } else {
           opnd2_value = opnd2_bytes;
           opnd2_type = NULL;
@@ -3434,7 +3479,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     a_byte        *base_address;
                     elem_type =
                               skip_typerefs(opnd1->type->variant.pointer.type);
-                    elem_size = value_bytes_for_type(ips, elem_type);
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
                     ptr->address += elem_size;
                     base_address = get_base_address(ptr);
                     if (ptr->address == base_address + ptr->length*elem_size) {
@@ -3497,7 +3542,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     a_byte        *base_address;
                     elem_type =
                               skip_typerefs(opnd1->type->variant.pointer.type);
-                    elem_size = value_bytes_for_type(ips, elem_type);
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
                     base_address = get_base_address(ptr);
                     if (ptr->address == base_address) {
                       /* The pointer can point ahead of the array. */
@@ -3564,7 +3609,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   a_byte_count  elem_size;
                   a_byte        *base_address;
                   elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type);
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
                   ptr->address += elem_size;
                   base_address = get_base_address(ptr);
                   if (ptr->address == base_address + ptr->length*elem_size) {
@@ -3625,7 +3670,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   a_byte_count  elem_size;
                   a_byte        *base_address;
                   elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type);
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
                   base_address = get_base_address(ptr);
                   if (ptr->address == base_address) {
                     /* The pointer can point ahead of the array. */
@@ -3807,7 +3852,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos, len;
                     a_byte        *base_address;
-                    elem_size = value_bytes_for_type(ips, elem_type);
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    if (!result) break;
                     len = result_addr->length;
                     base_address = get_base_address(result_addr);
                     pos = (a_byte_count)(result_addr->address - base_address)
@@ -3819,7 +3865,8 @@ type.  This includes checking the value of ovfl set by the operation.
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr->address +=
-                            host_int_val*value_bytes_for_type(ips, elem_type);
+                        host_int_val
+                              * value_bytes_for_type(ips, elem_type, &result);
                       if (pos+host_int_val == len) {
                         result_addr->flags |= CA_CANNOT_DEREFERENCE;
                       } else {
@@ -3856,7 +3903,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos, len;
                     a_byte        *base_address;
-                    elem_size = value_bytes_for_type(ips, elem_type);
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    if (!result) break;
                     len = result_addr->length;
                     base_address = get_base_address(result_addr);
                     pos = (a_byte_count)(result_addr->address - base_address)
@@ -3868,7 +3916,8 @@ type.  This includes checking the value of ovfl set by the operation.
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr->address -=
-                            host_int_val*value_bytes_for_type(ips, elem_type);
+                        host_int_val
+                              * value_bytes_for_type(ips, elem_type, &result);
                       if (pos - host_int_val == len) {
                         result_addr->flags |= CA_CANNOT_DEREFERENCE;
                       } else {
@@ -4755,7 +4804,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   /* Evaluate the second operand. */
                   opnd2_type = skip_typerefs(opnd2->type);
-                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
+                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type,
+                                                      &result);
                   if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
                       !opnd2->is_lvalue && !opnd2->is_xvalue) {
                     /* The value may be larger than a scalar type, so allocate
@@ -4764,7 +4814,10 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     opnd2_value = opnd2_bytes;
                   }  /* if */
-                  result = do_constexpr_expression(ips, opnd2, opnd2_value);
+                  if (result &&
+                      !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+                    result = FALSE;
+                  }  /* if */
                   if (!result) {
                     /* Interpretation of the second operand failed. */
                   } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
@@ -4805,7 +4858,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   /* Evaluate the second operand. */
                   opnd2_type = skip_typerefs(opnd2->type);
-                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type);
+                  opnd_n_bytes = value_bytes_for_type(ips, opnd2_type,
+                                                      &result);
                   if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
                       !opnd2->is_lvalue && !opnd2->is_xvalue) {
                     /* The value may be larger than a scalar type, so allocate
@@ -4814,7 +4868,10 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     opnd2_value = opnd2_bytes;
                   }  /* if */
-                  result = do_constexpr_expression(ips, opnd2, opnd2_value);
+                  if (result &&
+                      !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+                    result = FALSE;
+                  }  /* if */
                   if (!result) {
                     /* Interpretation of the second operand failed. */
                   } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
@@ -4868,7 +4925,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     a_byte_count  elem_size, pos, len;
                     a_byte        *base_address;
-                    elem_size = value_bytes_for_type(ips, elem_type);
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    if (!result) break;
                     len = result_addr.length;
                     base_address = get_base_address(&result_addr);
                     pos = (a_byte_count)(result_addr.address - base_address)
@@ -4880,7 +4938,9 @@ type.  This includes checking the value of ovfl set by the operation.
                       result = FALSE;  /* FIXME: diagnostic */
                     } else {
                       result_addr.address +=
-                            host_int_val*value_bytes_for_type(ips, elem_type);
+                        host_int_val
+                              * value_bytes_for_type(ips, elem_type, &result);
+                      if (!result) break;
                       if (pos+host_int_val == len) {
                         result_addr.flags |= CA_CANNOT_DEREFERENCE;
                       } else {
@@ -5151,7 +5211,7 @@ successful, and produce the resulting value in result_con.  Otherwise,
 return FALSE.
 */
 {
-  a_boolean             result = FALSE;
+  a_boolean             result = TRUE;
   an_interpreter_state  ips;
   a_byte                *result_storage;
   a_byte_count          n_bytes;
@@ -5162,12 +5222,13 @@ return FALSE.
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
-  n_bytes = value_bytes_for_type(&ips, result_type); 
+  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);
   result_con->type = result_type;
-  result = do_constexpr_call(&ips, call_expr, result_storage);
   if (result &&
-      !copy_interpreter_object_to_constant(
+      !do_constexpr_call(&ips, call_expr, result_storage)) {
+    result = FALSE;
+  } else if (!copy_interpreter_object_to_constant(
                                    result_storage, result_type, result_con)) {
     result = FALSE;
   }  /* if */
@@ -5193,7 +5254,7 @@ successful, and produce the resulting value in result_con.  Otherwise,
 return FALSE.
 */
 {
-  a_boolean             result = FALSE;
+  a_boolean             result = TRUE;
   a_routine_ptr         ctor;
   an_interpreter_state  ips;
   a_byte                *result_storage;
@@ -5214,12 +5275,12 @@ return FALSE.
   }  /* if */
   init_interpreter_state(&ips);
   result_type = parent_class_of(ctor);
-  n_bytes = value_bytes_for_type(&ips, result_type); 
+  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);
-  /* FIXME check failure of value_bytes_for_type and alloc_stack_bytes. */
-  result = do_constexpr_ctor(&ips, dip, result_storage);
-  if (result &&
-      !copy_interpreter_object_to_constant(
+  /* FIXME check failure of alloc_stack_bytes. */
+  if (result && !do_constexpr_ctor(&ips, dip, result_storage)) {
+    result = FALSE;
+  } else if (!copy_interpreter_object_to_constant(
                                    result_storage, result_type, result_con)) {
     result = FALSE;
   }  /* if */
