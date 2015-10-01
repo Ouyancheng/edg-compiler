@@ -2778,6 +2778,7 @@ generate/define typeinfo variables for any types that need them.
   a_type_ptr type;
 
   for (type = type_list; type != NULL; type = type->next) {
+    if (ignore_type_in_back_end(type)) continue;
     generate_type_typeinfo_var_if_needed(type);
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
