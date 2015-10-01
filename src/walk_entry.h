@@ -2466,8 +2466,10 @@ do_set_proper_definition_needed_flag:
       case iek_generic_constraint:
         {
           a_generic_constraint_ptr ptr = (a_generic_constraint_ptr)entry_ptr;
-          remap_next_ptr(ptr->next, a_generic_constraint_ptr,
-                         iek_generic_constraint);
+          /* Walk the next pointer because the constraint clause is not in
+             the IL if all_template_info_in_il is not set. */
+          walk_ptr(ptr->next, a_generic_constraint_ptr,
+                   iek_generic_constraint);
           remap_ptr(ptr->type, a_type_ptr, iek_type);
         }
         break;
