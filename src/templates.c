@@ -14561,11 +14561,7 @@ matches, a new argument list is returned in *new_arg_list.
     instance_sym = find_template_function(template_sym, &arg_list,
                                           /*explicit_arg_list_present=*/TRUE,
                                           &error_position);
-    if (arg_list != NULL) {
-      /* The template argument list was not consumed by find_template_function.
-         Make it available for reuse. */
-      free_template_arg_list(arg_list);
-    }  /* if */
+    check_assertion(arg_list == NULL);
     if (instance_sym == NULL || !is_simple_function_symbol(instance_sym)) {
       unexpected_condition();
     } else {
