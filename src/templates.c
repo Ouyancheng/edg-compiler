@@ -14556,10 +14556,16 @@ matches, a new argument list is returned in *new_arg_list.
       tssp->variant.function.routine->has_deducible_return_type) {
     /* For function templates with a deducible return type, we must perform an
        instantiation at this point to finalize the deduced return type. */
-    a_symbol_ptr instance_sym;
-    instance_sym = find_template_function(template_sym, new_arg_list,
+    a_symbol_ptr        instance_sym;
+    a_template_arg_ptr  arg_list = copy_template_arg_list(*new_arg_list);
+    instance_sym = find_template_function(template_sym, &arg_list,
                                           /*explicit_arg_list_present=*/TRUE,
                                           &error_position);
+    if (arg_list != NULL) {
+      /* The template argument list was not consumed by find_template_function.
+         Make it available for reuse. */
+      free_template_arg_list(arg_list);
+    }  /* if */
     if (instance_sym == NULL || !is_simple_function_symbol(instance_sym)) {
       unexpected_condition();
     } else {
