@@ -1780,6 +1780,15 @@ Output the contents of the interpreted object of type tp stored at addr.
                       ovflo ? " (overflow!)" : "");
       }
       break;
+    case tk_float:
+      (void)fprintf(f_debug, "%s\n",
+                    fp_to_string(tp->variant.float_kind,
+                                 (an_internal_float_value*)addr,
+                                 /*pos_infinity=*/(a_boolean*)NULL,
+                                 /*neg_infinity=*/(a_boolean*)NULL,
+                                 /*not_a_number=*/(a_boolean*)NULL));
+     
+      break;
     case tk_struct:
     case tk_class:
       {
@@ -3968,7 +3977,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) == 0) {
@@ -4016,7 +4025,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) != 0) {
@@ -4064,7 +4073,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) < 0) {
@@ -4112,7 +4121,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) > 0) {
@@ -4160,7 +4169,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) <= 0) {
@@ -4208,7 +4217,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 /* Floating-point operands. */
-                if (fp_compare(tp->variant.float_kind,
+                if (fp_compare(opnd1_type->variant.float_kind,
                                fp_value(opnd1_value),
                                fp_value(opnd2_value),
                                &unord) >= 0) {
@@ -4909,6 +4918,24 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                   set_result_val_from_operand_address(&result_addr);
                 }  /* if */
+              }
+              break;
+            case eok_question:
+              { a_boolean             cond;
+                a_host_large_integer  bool_val;
+                if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                  int_kind = opnd1_type->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
+                  cond = ovfl || bool_val;
+                } else {
+                  unexpected_condition();
+                }  /* if */
+                if (!cond) {
+                  /* Evaluate the third operand. */
+                  opnd2 = opnd2->next;
+                }  /* if */
+                result = do_constexpr_expression(ips, opnd2, result_storage);
               }
               break;
             case eok_call:
