@@ -17071,13 +17071,18 @@ processing should proceed after the call.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Skip over the "using" token. */
       (void)get_token();
-      /* Attributes cannot precede a using-declaration or using-directive. */
-      disallow_attributes(&state->prefix_attributes);
       if (curr_token == tok_namespace) {
+        if (gpp_mode && !clang_mode) {
+          /* Attributes are allowed on using-directives, but g++ disallows. */
+          disallow_attributes(&state->prefix_attributes);
+        }  /* if */
         using_directive(state, &using_pos);
         state->decl_okay_in_constexpr_body = TRUE;
       } else {
         a_token_kind  next_tok;
+        /* Attributes cannot precede a using-declaration (they are allowed
+           on using-directives). */
+        disallow_attributes(&state->prefix_attributes);
         if (alias_declarations_enabled &&
             is_generalized_identifier_start(GID_NO_OPTIONS) &&
             ((next_tok = next_token()) == tok_assign ||
