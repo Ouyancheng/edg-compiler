@@ -2543,7 +2543,7 @@ successfully interpreted, FALSE otherwise.
           /* Evaluation of the test expression succeeded.  Get its value to
              see which dependent statement should be executed. */
           get_int_val_from(expr_value, tp, bool_val, ovfl);
-          if (!ovfl && bool_val) {
+          if (ovfl || bool_val) {
             /* Execute the "then" statement. */
             result = do_constexpr_statement(
                                    ips, stmt->variant.if_stmt.then_statement);
@@ -3354,7 +3354,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 is_signed = int_kind_is_signed[int_kind];
                 if (cmp_integer_values((an_integer_value *)opnd1_value,
                                        is_signed,
-                                       (an_integer_value *)opnd2_value,
+                                       (an_integer_value *)&zero_int,
                                        is_signed) != 0) {
                   *(an_integer_value *)result_storage = one_int;
                 } else {
@@ -3487,17 +3487,16 @@ type.  This includes checking the value of ovfl set by the operation.
                   /* Something was wrong with the operand address. */
                 } else if (tp->kind == (a_type_kind)tk_integer) {
                   /* An integral type. */
+                  an_integer_value  *ival = int_value_at(opnd1_value);
                   if (tp->variant.integer.bool_type) {
                     /* Incrementing a bool variable sets it to TRUE. */
-                    *(an_integer_value *)value_bytes_at(opnd1_value) = one_int;
+                    *ival = one_int;
                   } else {
                     /* An integer. */
                     int_kind = tp->variant.integer.int_kind;
                     is_signed = int_kind_is_signed[int_kind];
-                    add_integer_values(int_value_at(opnd1_value), &one_int,
-                                     is_signed, &ovfl);
-                    check_int_range(int_value_at(opnd1_value), tp, result,
-                                    ovfl);
+                    add_integer_values(ival, &one_int, is_signed, &ovfl);
+                    check_int_range(ival, tp, result, ovfl);
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
@@ -3555,12 +3554,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   /* Something was wrong with the operand address. */
                 } else if (tp->kind == (a_type_kind)tk_integer) {
                   /* An integer. */
+                  an_integer_value  *ival = int_value_at(opnd1_value);
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   subtract_mixed_signed_integer_values(
-                                          int_value_at(opnd1_value), is_signed,
-                                          &one_int, is_signed, &ovfl);
-                  check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
+                                 ival, is_signed, &one_int, is_signed, &ovfl);
+                  check_int_range(ival, tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
                   }  /* if */
@@ -3624,11 +3623,11 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)value_bytes_at(opnd1_value) = one_int;
                 } else {
                   /* An integer. */
+                  an_integer_value  *ival = int_value_at(opnd1_value);
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
-                  add_integer_values(int_value_at(opnd1_value), &one_int,
-                                     is_signed, &ovfl);
-                  check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
+                  add_integer_values(ival, &one_int, is_signed, &ovfl);
+                  check_int_range(ival, tp, result, ovfl);
                   if (!result) {
                     /* FIXME: record a diagnostic. */
                   }  /* if */
@@ -3682,14 +3681,13 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* FIXME: record a diagnostic. */
                 result = FALSE;
               } else if (tp->kind == (a_type_kind)tk_integer) {
-                /* An integral type. */
                 /* An integer. */
+                  an_integer_value  *ival = int_value_at(opnd1_value);
                 int_kind = tp->variant.integer.int_kind;
                 is_signed = int_kind_is_signed[int_kind];
                 subtract_mixed_signed_integer_values(
-                                         int_value_at(opnd1_value), is_signed,
-                                         &one_int, is_signed, &ovfl);
-                check_int_range(int_value_at(opnd1_value), tp, result, ovfl);
+                                 ival, is_signed, &one_int, is_signed, &ovfl);
+                check_int_range(ival, tp, result, ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
@@ -3753,8 +3751,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 add_integer_values((an_integer_value*)result_storage,
                                    (an_integer_value*)opnd2_value,
                                    is_signed, &ovfl);
-                check_int_range((an_integer_value*)(opnd1_value), tp, result,
-                                ovfl);
+                check_int_range((an_integer_value*)(result_storage), tp,
+                                result, ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
@@ -3782,8 +3780,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 subtract_integer_values((an_integer_value*)result_storage,
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
-                check_int_range((an_integer_value*)(opnd1_value), tp, result,
-                                ovfl);
+                check_int_range((an_integer_value*)(result_storage), tp,
+                                result, ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
@@ -3811,8 +3809,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 multiply_integer_values((an_integer_value*)result_storage,
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
-                check_int_range((an_integer_value*)(opnd1_value), tp, result,
-                                ovfl);
+                check_int_range((an_integer_value*)(result_storage), tp,
+                                result, ovfl);
                 if (!result) {
                   /* FIXME: record a diagnostic. */
                 }  /* if */
