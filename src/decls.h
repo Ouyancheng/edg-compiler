@@ -688,6 +688,11 @@ typedef struct a_decl_parse_state {
 			   calls type_name_full; so is_type_name will also be
 			   TRUE in that case). */
   a_bit_field
+		is_param_decl:1;
+			/* TRUE if this information block is one created for a
+			   parameter declaration in a function declarator (not
+			   an old-style parameter declaration). */
+  a_bit_field
 		trailing_return_type_allowed:1;
 			/* TRUE if the current context allows a trailing
 			   return type. */

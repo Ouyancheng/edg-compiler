@@ -2004,7 +2004,7 @@ a trailing return type.
     }  /* if */
     /* Check whether a trailing return type is missing. */
     if (is_function_declarator && !state->has_trailing_return_type) {
-      if (deduced_return_types_enabled) {
+      if (deduced_return_types_enabled && !state->is_param_decl) {
         /* Something like "auto g() { return 0; }", which is permitted in
            C++14. */
         state->has_deducible_return_type = TRUE;
@@ -2763,6 +2763,7 @@ an error if a default argument expression is encountered.
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
+        param_state.is_param_decl = TRUE;
         param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
         param_state.auto_type_allowed = generic_lambdas_enabled &&

@@ -1,5 +1,16 @@
 Version 4.11
 
+10/2/15  [EDGcpfe/16548]
+Missing diagnostic for "auto" as a function parameter return type
+
+In C++14 mode, the front end previously failed to diagnose an "auto" return
+type when it appears on a parameter declaration.  For example:
+
+  void g(auto p()) {}  // Previously erroneously accepted.
+
+This is now fixed.
+
+
 10/1/15  [EDGcpfe/16531]
 Attributes on a using-directive
 

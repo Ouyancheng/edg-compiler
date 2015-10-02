@@ -161,6 +161,7 @@ be restored).
     dps->is_type_name = FALSE;
     dps->is_alias_template_type = FALSE;
     dps->is_template_type_argument = FALSE;
+    dps->is_param_decl = FALSE;
     dps->trailing_return_type_allowed = FALSE;
     dps->has_trailing_return_type = FALSE;
     dps->is_new_expr_type = FALSE;
