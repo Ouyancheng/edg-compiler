@@ -4981,19 +4981,17 @@ type.  This includes checking the value of ovfl set by the operation.
               }
               break;
             case eok_question:
-              { a_boolean             cond;
-                a_host_large_integer  bool_val;
+              { a_host_large_integer  bool_val;
                 if (opnd1_type->kind == (a_type_kind)tk_integer) {
                   int_kind = opnd1_type->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
-                  cond = ovfl || bool_val;
+                  if (!(ovfl || bool_val)) {
+                    /* Evaluate the third operand. */
+                    opnd2 = opnd2->next;
+                  }  /* if */
                 } else {
                   unexpected_condition();
-                }  /* if */
-                if (!cond) {
-                  /* Evaluate the third operand. */
-                  opnd2 = opnd2->next;
                 }  /* if */
                 result = do_constexpr_expression(ips, opnd2, result_storage);
               }
