@@ -553,6 +553,9 @@ static void gen_expr(an_expr_node_ptr expr,
 #define gen_expression(expr)       gen_expr(                                  \
                                        expr, /*need_parens=*/FALSE,           \
                                        /*obj_expr_of_mfunc_operator=*/FALSE)
+static a_boolean template_should_be_generated_from_prototype_instantiation(
+                                                a_template_ptr  tp,
+                                                a_boolean       is_definition);
 
 /*
 Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
@@ -6819,6 +6822,68 @@ Generate the block of Microsoft attributes pointed to by msap.
 }  /* gen_ms_attribute_block */
 
 
+static a_boolean template_generated_from_string(an_ms_attribute_ptr msap)
+/*
+Return TRUE if the entity with which the attribute specified by msap is
+associated is the prototype instantiation of a template for which the
+string form of the template should be copied into the generated code;
+otherwise, return FALSE.
+*/
+{
+  a_boolean      result = FALSE;
+
+  if (msap->entity.ptr != NULL) {
+    a_template_ptr assoc_template = NULL;
+    a_boolean      is_definition = FALSE;
+    a_type_ptr     type;
+    a_variable_ptr var;
+    a_routine_ptr  rout;
+    /* If the entity with which the attribute is associated is a prototype
+       instantiation, get the associated template. */
+    switch (msap->entity.kind) {
+      case iek_type:
+        type = (a_type_ptr)msap->entity.ptr;
+        if (is_immediate_class_type(type) &&
+            type->variant.class_struct_union.is_prototype_instantiation) {
+          assoc_template =
+                   type->variant.class_struct_union.extra_info->assoc_template;
+        } else if (type->kind == (a_type_kind)tk_integer &&
+                   type->variant.integer.is_prototype_instantiation) {
+          assoc_template = type->variant.integer.extra_info->assoc_template;
+        }  /* if */
+        is_definition = !type->incomplete;
+        break;
+      case iek_variable:
+        var = (a_variable_ptr)msap->entity.ptr;
+        if (var->is_prototype_instantiation) {
+          assoc_template = var->assoc_template;
+          is_definition = TRUE;
+        }  /* if */
+        break;
+      case iek_routine:
+        rout = (a_routine_ptr)msap->entity.ptr;
+        if (rout->is_prototype_instantiation) {
+          assoc_template = rout->assoc_template;
+          is_definition = rout->function_def_number !=
+                                                      NULL_function_def_number;
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
+    /* If there is an associated template, determine whether it should be
+       generated from the prototype instantiation IL or copied from the
+       string form. */
+    if (assoc_template != NULL) {
+      result = !template_should_be_generated_from_prototype_instantiation(
+                                                                assoc_template,
+                                                                is_definition);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* template_generated_from_string */
+
+
 static a_boolean gen_ms_attribute_block_from_ss_list(void)
 /*
 Generate any Microsoft attributes at the current source sequence entry.
@@ -6841,7 +6906,9 @@ Return TRUE if any were processed.
     any_found = TRUE;
     msap = ss_entry_ptr(curr_source_sequence_entry, an_ms_attribute_ptr);
     adv_curr_source_sequence_entry();
-    gen_ms_attribute(msap, &first);
+    if (!template_generated_from_string(msap)) {
+      gen_ms_attribute(msap, &first);
+    }  /* if */
   }  /* for */
   return any_found;
 }  /* gen_ms_attribute_block_from_ss_list */
