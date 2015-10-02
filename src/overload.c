@@ -10505,7 +10505,7 @@ that case, and this_type is used for the type.
        allows us to ignore these exceptions later on.  (For GCC mode we need
        to preserve the qualifiers, however.)  MSVC doesn't parse templates at
        all; treating these cases as dependent in Microsoft-mode prototype
-       instantiation results in a better emulation, however. */
+       instantiations results in a better emulation, however. */
     a_type_ptr            tp = type_pointed_to(result->type);
     a_type_qualifier_set  tqs = get_type_qualifiers(tp);
     result->type = make_pointer_type(

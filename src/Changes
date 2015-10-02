@@ -672,7 +672,7 @@ caused an assertion failure in constant_for_base_class.  Now fixed.
 Microsoft compatibility: Calls to member functions in class templates
 
 The changes for Clang compatibility made for EDGcpfe/16428 (see the entry of
-8/12/15 below) are now also enabled for Microsoft mode.  These changes apply
+8/12/15) are now also enabled for Microsoft mode.  These changes apply
 primarily to the prototype instantiations of templates, which are usually not
 performed in Microsoft mode.  However, prototype instantiations are performed
 in Microsoft mode for variadic templates, and some source analysis applications
