@@ -8964,11 +8964,16 @@ being popped.
   if (!old_region_still_needed) {
     if (discard_function_body) {
       /* This is a function whose body should be discarded (e.g., a
-         trivial default constructor).  Discard it now. */
+         trivial default constructor).  Discard it now.  Other functions
+         that should be discarded are done later after source sequence
+         processing has been done. */
       check_assertion(il_scope != NULL); /* For Coverity. */
-      clear_function_body(il_scope);
-      /* Put the "defined" flag back on. */
-      curr_routine->defined = TRUE;
+      if (curr_routine->is_trivial_default_constructor) {
+        clear_function_body(il_scope);
+        /* Put the "defined" flag back on. */
+        curr_routine->defined = TRUE;
+        discard_function_body = FALSE;
+      }  /* if */
     } else {
       if (il_scope->kind == (a_scope_kind)sck_function) {
         /* Set the parent scopes for any block scopes represented in the IL. */
@@ -9087,6 +9092,17 @@ being popped.
     free_string_literal_table(ssep);
   }  /* if */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+  if (discard_function_body) {
+    /* If the function body should be discarded (and was not done above),
+       do orphan processing to promote file scope IL entities that may be
+       on the scope list of the routine, and then get rid of the function
+       body.  This must be done after the source sequence list processing
+       above has been completed. */
+    add_scope_orphaned_il_lists(il_scope);
+    clear_function_body(il_scope);
+    /* Put the "defined" flag back on. */
+    curr_routine->defined = TRUE;
+  }  /* if */
   /* Pop the stack. */
   pop_scope_stack_entry();
   if (C_dialect == C_dialect_cplusplus) {

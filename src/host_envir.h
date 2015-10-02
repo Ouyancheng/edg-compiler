@@ -558,6 +558,41 @@ FALSE means the IL is passed in memory to the back end.
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
 /*
+Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
+language to C intermediate language, allowing the C++ front end to be used
+with a C back end.
+*/
+#ifndef DO_IL_LOWERING
+#if BACK_END_IS_CP_GEN_BE
+#define DO_IL_LOWERING FALSE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#if defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS
+#define DO_IL_LOWERING FALSE
+#else /* !(defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS) */
+#define DO_IL_LOWERING TRUE
+#endif /* defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS */
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef DO_IL_LOWERING */
+#if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
+ #error -- IL lowering must be done for the C-generating back end.
+#endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
+#ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
+#define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING FALSE
+#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
+#if CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING
+#if ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
+/* Okay, the user has said "trust me, I know what I'm doing."  IL lowering
+   and the back end will be suppressed whenever C++/CLI or C++/CX is enabled.
+   This is really intended only for testing within EDG. */
+#else /* !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
+ #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
+#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
+#endif /* CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING */
+#if COROUTINES_ALLOWED && DO_IL_LOWERING
+ #error -- IL lowering cannot be done (currently) when coroutines are allowed
+#endif /* COROUTINES_ALLOWED && DO_IL_LOWERING */
+
+/*
 If the IL is written to a file, this flag selects the file format.
 The "usual" form (flag FALSE) is written out and read back in as
 large blocks of memory, and a tree walk is required on the receiving
@@ -625,6 +660,9 @@ This is desirable because deferral of prototype instantiations changes the
 set of programs that can be compiled without errors.
 */
 #ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
+#if DO_IL_LOWERING
+#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED TRUE
+#else /* !DO_IL_LOWERING */
 #if ALL_TEMPLATE_INFO_IN_IL
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
 #else /* !ALL_TEMPLATE_INFO_IN_IL */
@@ -634,6 +672,7 @@ set of programs that can be compiled without errors.
 #define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED TRUE
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ALL_TEMPLATE_INFO_IN_IL */
+#endif /* DO_IL_LOWERING */
 #endif /* ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
 
 /*
@@ -1138,41 +1177,6 @@ is TRUE.
 #define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-
-/*
-Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
-language to C intermediate language, allowing the C++ front end to be used
-with a C back end.
-*/
-#ifndef DO_IL_LOWERING
-#if BACK_END_IS_CP_GEN_BE
-#define DO_IL_LOWERING FALSE
-#else /* !BACK_END_IS_CP_GEN_BE */
-#if defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS
-#define DO_IL_LOWERING FALSE
-#else /* !(defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS) */
-#define DO_IL_LOWERING TRUE
-#endif /* defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS */
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* ifndef DO_IL_LOWERING */
-#if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
- #error -- IL lowering must be done for the C-generating back end.
-#endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
-#ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
-#define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING FALSE
-#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
-#if CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING
-#if ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
-/* Okay, the user has said "trust me, I know what I'm doing."  IL lowering
-   and the back end will be suppressed whenever C++/CLI or C++/CX is enabled.
-   This is really intended only for testing within EDG. */
-#else /* !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
- #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
-#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
-#endif /* CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING */
-#if COROUTINES_ALLOWED && DO_IL_LOWERING
- #error -- IL lowering cannot be done (currently) when coroutines are allowed
-#endif /* COROUTINES_ALLOWED && DO_IL_LOWERING */
 
 /*
 Flag that is TRUE if IL lowering should normalize boolean controlling
