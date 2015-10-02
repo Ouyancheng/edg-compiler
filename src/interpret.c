@@ -250,6 +250,8 @@ except for the last entry whose next_index field is set to 0.
 {
   a_data_map_entry  *table = map->table;
 
+  
+  map->next_free = first;
   while (first != last) {
     table[first].next_index = first+1;
     first = first+1;
@@ -270,7 +272,6 @@ Initialize the given data map.
     /* Initialize the data map fields. */
     a_byte_count  n_bytes;
     map->overflow_size = 100;
-    map->next_free = NUM_DATA_MAP_HASH_HEADERS;
     n_bytes = (NUM_DATA_MAP_HASH_HEADERS+map->overflow_size)
                                          * sizeof(a_data_map_entry);
     map->table = (a_data_map_entry*)alloc_resizable_buffer(n_bytes);
