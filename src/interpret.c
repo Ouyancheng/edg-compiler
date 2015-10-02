@@ -3292,7 +3292,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
                 } else if (tp->kind == (a_type_kind)tk_float) {
-                  a_boolean  err, depends_of_fp_mode;
+                  a_boolean  depends_of_fp_mode;
                   fp_change_kind(fp_value(opnd1_value),
                                  opnd1_type->variant.float_kind,
                                  fp_value(result_storage),
@@ -3991,8 +3991,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     set_integer_value(
                         (an_integer_value*)result_storage,
-                        (a_host_large_integer)
-                               ((addr1->address - addr2->address)/elem_size));
+                        (a_host_large_integer)(addr1->address - addr2->address)
+                           / (a_host_large_integer)elem_size);
                     int_kind = tp->variant.integer.int_kind;
                     is_signed = int_kind_is_signed[int_kind];
                     ovfl = FALSE;
