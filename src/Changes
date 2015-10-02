@@ -39,7 +39,7 @@ an ec_program_too_large catastrophic error).  To keep the prefix size small,
 the entry_number field has always been a bit field whose size was engineered
 to be the maximum possible while still allowing for four or five (depending
 on configuration) additional one-bit flags.  A new configuration macro,
-ENTRY_NUMBER_SHARES_BITS_IN_PREFIX has been added to control whether or
+ENTRY_NUMBER_SHARES_BITS_IN_PREFIX, has been added to control whether or
 not entry_number is a bit field.  When TRUE (the default), the effective size
 of the entry_number field is reduced by the number of bit fields in the prefix;
 when FALSE, the full size of the TYPE_FOR_PREFIX_ENTRY_NUMBER type is

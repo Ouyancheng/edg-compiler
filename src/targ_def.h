@@ -4893,7 +4893,7 @@ Each IL entity is preceded in memory by an_il_entry_prefix structure that
 contains information about the IL entry that follows.  In order to keep the
 structure small, the entry_number field can be combined with a small number
 of bit fields (four or five, depending on the configuration), thereby avoiding
-wasteful padding.  When compiling some translation units (particular those with
+wasteful padding.  When compiling some translation units (especially those with
 many mangled names), the resulting size of the entry_number field may be too
 small, resulting in an ec_program_too_large catastrophic error.  In order to
 accommodate such programs, the following configuration macro can be set to
