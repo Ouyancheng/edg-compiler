@@ -1,5 +1,14 @@
 Version 4.11
 
+10/2/15  [EDGcpfe/16546]
+Add a new routine to cache type_info type
+
+A new routine, make_ptr_to_const_typeinfo_type, has been added to reduce the
+number of times make_user_typeinfo_type is invoked.  There should be no
+discernible effect (affects only lowering configurations that do exception
+handling).
+
+
 10/2/15  [EDGcpfe/16548]
 Missing diagnostic for "auto" as a function parameter return type
 

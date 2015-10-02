@@ -931,6 +931,26 @@ typedef a_host_large_unsigned a_base_class_flags_set;
 #endif /* !IA64_ABI */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+static a_type_ptr
+                ptr_to_const_typeinfo_type;
+                        /* A "cached" version of a pointer to a const-qualified
+                           (tik_implementation) typeinfo type. */
+
+static a_type_ptr make_ptr_to_const_typeinfo_type()
+/*
+Return a pointer-to-const typeinfo (tik_implementation) type.
+*/
+{
+  if (ptr_to_const_typeinfo_type == NULL) {
+    ptr_to_const_typeinfo_type = make_pointer_type(
+                                   make_qualified_type(
+                                     make_typeinfo_type(tik_implementation,
+                                                        (a_type_ptr)NULL),
+                                     TQ_CONST));
+  }  /* if */
+  return ptr_to_const_typeinfo_type;
+}  /* make_ptr_to_const_typeinfo_type */
+
 
 static a_type_ptr make_base_class_spec_type(void)
 /*
@@ -964,11 +984,7 @@ and return a pointer to it.  Its definition is
     /* field: typeinfo *tinfo (Cfront-like ABI). */
 #if !IA64_ABI
     make_lowered_field("tinfo", 
-                       make_pointer_type(
-                                make_qualified_type(
-                                         make_typeinfo_type(tik_implementation,
-                                                            (a_type_ptr)NULL),
-                                         TQ_CONST)),
+                       make_ptr_to_const_typeinfo_type(),
                        base_class_spec_type, &last_field);
     /* field: short offset */
     make_lowered_field("offset", 
@@ -4211,12 +4227,7 @@ The ptr_flags field is not present for ABI levels less than 2.41.
     last_field = NULL;
     /* field: typeinfo *tinfo */
     make_lowered_field("tinfo", 
-                       make_pointer_type(
-                              make_qualified_type(
-                                         make_typeinfo_type(
-                                                      tik_implementation,
-                                                      (a_type_ptr)NULL),
-                                         TQ_CONST)),
+                       make_ptr_to_const_typeinfo_type(),
                        exception_type_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
@@ -4293,12 +4304,7 @@ beginning and end of the list of constants for the array.  Increment
   typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (type == NULL) {
     /* This entry is for an ellipsis, so the typeinfo pointer is NULL. */
-    make_zero_of_proper_type(make_pointer_type(
-                                    make_qualified_type(
-                                               make_typeinfo_type(
-                                                        tik_implementation,
-                                                        (a_type_ptr)NULL),
-                                               TQ_CONST)),
+    make_zero_of_proper_type(make_ptr_to_const_typeinfo_type(),
                              typeinfo_con);
     flags_value = ETS_IS_ELLIPSIS;
   } else {
@@ -4311,11 +4317,7 @@ beginning and end of the list of constants for the array.  Increment
        implementation typeinfo type.  Cast the address constant to the
        appropriate type. */
     implicit_cast(typeinfo_con,
-                  make_pointer_type(
-                         make_qualified_type(
-                                    make_typeinfo_type(tik_implementation,
-                                                       (a_type_ptr)NULL),
-                                    TQ_CONST)));
+                  make_ptr_to_const_typeinfo_type());
 #endif /* IA64_ABI */
   }  /* if */
   if (last_entry) flags_value |= ETS_LAST;
@@ -6450,6 +6452,7 @@ must be initialized for each compilation.
   object_addr_table_var = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* eh_lower_trans_unit_init is called from il_lower_trans_unit_init. */
+  ptr_to_const_typeinfo_type = NULL;
 }  /* eh_lower_init */
 
 #endif /* DO_IL_LOWERING */
