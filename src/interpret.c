@@ -3130,6 +3130,14 @@ of the prvalue result.
              be the case. */
           result = do_constexpr_call(ips, expr, result_storage);
           goto done;
+        } else if (node_operator_is(expr, eok_parens) ||
+                   node_operator_is(expr, eok_class_rvalue_adjust)) {
+          /* These are pass-through operators for prvalues.  So we cannot just
+             copy the operand, since it could invalidate internal addresses.
+             Instead, the operand must be evaluated directly into the final
+             result storage. */
+          result = do_constexpr_expression(
+                       ips, expr->variant.operation.operands, result_storage);
         }  /* if */
 /*
 Macro to set result_storage from either the address in opnd or the value
@@ -3266,6 +3274,95 @@ type.  This includes checking the value of ovfl set by the operation.
               *(a_constexpr_address *)result_storage =
                                            *(a_constexpr_address *)opnd1_value;
               break;
+            case eok_indirect:
+            case eok_ref_indirect:
+              /* The result is either a copy of the operand (which is an
+                 a_constexpr_address) if the result is a glvalue or the
+                 value to which the address points for a prvalue. */
+              set_result_val_from_operand_address(opnd1_value);
+              break;
+            case eok_cast:
+              if (tp->kind == opnd1_type->kind) {
+                /* The type kinds are the same, so the representation is
+                   the same, and we can just copy the opnd1 value. */
+                if (tp->kind == (a_type_kind)tk_integer) {
+                  /* Integers: Somewhat surprisingly, narrowing conversions are
+                     valid here ("implementation-defined").  So we don't check
+                     that the result is in range. */
+                  *(an_integer_value *)result_storage =
+                                              *(an_integer_value *)opnd1_value;
+                } else if (tp->kind == (a_type_kind)tk_float) {
+                  a_boolean  err, depends_of_fp_mode;
+                  fp_change_kind(fp_value(opnd1_value),
+                                 opnd1_type->variant.float_kind,
+                                 fp_value(result_storage),
+                                 tp->variant.float_kind,
+                                 &err, &depends_of_fp_mode);
+                  if (err) result = FALSE;
+                } else if (tp->kind == (a_type_kind)tk_void) {
+                  release_address_structures(opnd1, opnd1_type, opnd1_value);
+                } else {
+                  /* FIXME: Diagnostic. */
+                  result = FALSE;
+                }  /* if */
+              } else {
+                unexpected_condition();  /* FIXME: implement conversions. */
+              }  /* if */
+              break;
+            case eok_lvalue_cast:
+            case eok_ref_cast:
+            case eok_lvalue_adjust:
+              if (tp != opnd1_type) {
+                /* FIXME: Diagnostic. */
+                result = FALSE;
+              } else {
+                set_result_val_from_operand_address(opnd1_value);
+              }  /* if */
+              break;
+            case eok_base_class_cast:
+              if (tp->kind == (a_type_kind)tk_pointer) {
+                /* An address adjustment. */
+                a_constexpr_address  *result_addr =
+                                         (a_constexpr_address*)result_storage;
+                a_type_ptr           dtp, btp;
+                a_base_class_ptr     bcp;
+                a_byte_count         offset;
+                dtp = skip_typerefs(opnd1_type->variant.pointer.type);
+                btp = skip_typerefs(tp->variant.pointer.type);
+                bcp = find_direct_base_class_of(dtp, btp);
+                get_mapped_byte_count(&persistent_map, bcp, offset);
+                *result_addr = *(a_constexpr_address *)opnd1_value;
+                result_addr->address += offset;
+                result_addr->flags &= ~CA_ARRAY_ELEMENT;
+              } else {
+                /* FIXME: NYI, slicing. */
+              }  /* if */
+              break;
+            case eok_derived_class_cast:
+              /* FIXME: NYI. */
+              break;
+            case eok_pm_base_class_cast:
+              /* FIXME: NYI. */
+              break;
+            case eok_pm_derived_class_cast:
+              /* FIXME: NYI. */
+              break;
+            case eok_bool_cast:
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                if (cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed) != 0) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else {
+                unexpected_condition();  /* FIXME: NYI, other source types. */
+              }  /* if */
+              break;
             case eok_array_to_pointer:
               /* The actual address is unchanged, but record the array
                  characteristics. */
@@ -3290,65 +3387,15 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
-            case eok_indirect:
-            case eok_ref_indirect:
-              /* The result is either a copy of the operand (which is an
-                 a_constexpr_address) if the result is a glvalue or the
-                 value to which the address points for a prvalue. */
-              set_result_val_from_operand_address(opnd1_value);
+            case eok_dot_vacuous_destructor_call:
+            case eok_points_to_vacuous_destructor_call:
+              /* This operator has no effect. */
               break;
-            case eok_cast:
-              if (tp->kind == opnd1_type->kind) {
-                /* The type kinds are the same, so the representation is
-                   the same, and we can just copy the opnd1 value. */
-                if (tp->kind == (a_type_kind)tk_integer) {
-                  /* Integers: Somewhat surprisingly, narrowing conversions are
-                     valid here ("implementation-defined").  So we don't check
-                     that the result is in range. */
-                  *(an_integer_value *)result_storage =
-                                              *(an_integer_value *)opnd1_value;
-                } else {
-                  unexpected_condition(); /* FIXME: implement non-ints. */
-                }  /* if */
-              } else {
-                unexpected_condition();  /* FIXME: implement conversions. */
-              }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            case eok_assume:
+              /* This operator has no effect. */
               break;
-            case eok_base_class_cast:
-              if (tp->kind == (a_type_kind)tk_pointer) {
-                /* An address adjustment. */
-                a_constexpr_address  *result_addr =
-                                         (a_constexpr_address*)result_storage;
-                a_type_ptr           dtp, btp;
-                a_base_class_ptr     bcp;
-                a_byte_count         offset;
-                dtp = skip_typerefs(opnd1_type->variant.pointer.type);
-                btp = skip_typerefs(tp->variant.pointer.type);
-                bcp = find_direct_base_class_of(dtp, btp);
-                get_mapped_byte_count(&persistent_map, bcp, offset);
-                *result_addr = *(a_constexpr_address *)opnd1_value;
-                result_addr->address += offset;
-                result_addr->flags &= ~CA_ARRAY_ELEMENT;
-              } else {
-                /* FIXME: NYI, slicing. */
-              }  /* if */
-              break;
-            case eok_bool_cast:
-              if (opnd1_type->kind == (a_type_kind)tk_integer) {
-                int_kind = opnd1_type->variant.integer.int_kind;
-                is_signed = int_kind_is_signed[int_kind];
-                if (cmp_integer_values((an_integer_value *)opnd1_value,
-                                       is_signed,
-                                       (an_integer_value *)opnd2_value,
-                                       is_signed) != 0) {
-                  *(an_integer_value *)result_storage = one_int;
-                } else {
-                  *(an_integer_value *)result_storage = zero_int;
-                }  /* if */
-              } else {
-                unexpected_condition();  /* FIXME: NYI, other source types. */
-              }  /* if */
-              break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             case eok_negate:
               if (opnd1_type->kind == (a_type_kind)tk_integer) {
                 *(an_integer_value *)result_storage =
@@ -3925,6 +3972,35 @@ type.  This includes checking the value of ovfl set by the operation.
                       }  /* if */
                     }  /* if */
                   }  /* if */
+                }  /* if */
+              }
+              break;
+            case eok_pdiff:
+              { a_constexpr_address  *addr1, *addr2;
+                addr1 = (a_constexpr_address*)opnd1_value;
+                addr2 = (a_constexpr_address*)opnd2_value;
+                if (is_array_element(addr1) && is_array_element(addr2) &&
+                    get_base_address(addr1) == get_base_address(addr2)) {
+                  a_type_ptr    etp = opnd1_type->variant.array.element_type;
+                  a_byte_count  elem_size = value_bytes_for_type(
+                                                           ips, etp, &result);
+                  if (!result) {
+                    /* Nothing more to do. */
+                  } else if (elem_size == 0) {
+                    result = FALSE;  /* FIXME: diagnostic */ 
+                  } else {
+                    set_integer_value(
+                        (an_integer_value*)result_storage,
+                        (a_host_large_integer)
+                               ((addr1->address - addr2->address)/elem_size));
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    ovfl = FALSE;
+                    check_int_range((an_integer_value*)result_storage, tp,
+                                    result, ovfl);
+                  }  /* if */
+                } else {
+                  result = FALSE;  /* FIXME: diagnostic */
                 }  /* if */
               }
               break;
@@ -4785,6 +4861,14 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
+            case eok_padd_assign:
+              /* FIXME: NYI. */
+              unexpected_condition();
+              break;
+            case eok_psubtract_assign:
+              /* FIXME: NYI. */
+              unexpected_condition();
+              break;
             case eok_land:
               { a_boolean             logical_and_result;
                 a_host_large_integer  bool_val;
@@ -4980,6 +5064,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
               }
               break;
+            case eok_pm_field:
+            case eok_pm_points_to_field:
+              /* FIXME: NYI. */
+              unexpected_condition();
+              break;
+            case eok_dot_static:
+            case eok_points_to_static:
+              /* FIXME: NYI. */
+              unexpected_condition();
+              break;
             case eok_question:
               { a_host_large_integer  bool_val;
                 if (opnd1_type->kind == (a_type_kind)tk_integer) {
@@ -4996,9 +5090,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 result = do_constexpr_expression(ips, opnd2, result_storage);
               }
               break;
+#if /* FIXME: Handled separately above, for now. */0
             case eok_call:
               result = do_constexpr_call(ips, expr, result_storage);
               break;
+#endif /* 0 */
             default:
               unexpected_condition();  /* FIXME: handle errors. */
           }  /* switch */
