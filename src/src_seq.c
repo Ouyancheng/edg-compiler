@@ -703,11 +703,10 @@ templ_entry is NULL.
                                    /*end_of_list_ptr=*/NULL);
       if (moved_list == NULL) {
         moved_list = head_to_move;
-        end_moved_list = head_to_move;
       } else {
         end_moved_list->next = head_to_move;
-        end_moved_list = tail_to_move;
       }  /* if */
+      end_moved_list = tail_to_move;
     } else if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct &&
                ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->entity.ptr
                                                                   == entity) {
@@ -719,7 +718,12 @@ templ_entry is NULL.
   }  /* for */
   if (moved_list != NULL) {
     end_moved_list->next = ssep->next;
-    ssep->next->prev = end_moved_list;
+    if (ssep->next != NULL) {
+      ssep->next->prev = end_moved_list;
+    } else {
+      scope_stack[depth_innermost_namespace_scope]
+                                .end_of_source_sequence_list = end_moved_list;
+    }  /* if */
     moved_list->prev = ssep;
     ssep->next = moved_list;
   }  /* if */
