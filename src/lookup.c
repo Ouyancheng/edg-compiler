@@ -2979,7 +2979,8 @@ the ck_template_param constant.
   a_class_symbol_supplement_ptr	cssp;
 
   cssp = symbol_supplement_for_class(class_type);
-  if (!type_is_lambda_closure(class_type) &&
+  if (is_template_dependent_context() &&
+      !type_is_lambda_closure(class_type) &&
       (class_type->variant.class_struct_union.is_nonreal_class ||
        is_template_dependent_type(conv_result))) {
     /* A template context where either the source object type or the
