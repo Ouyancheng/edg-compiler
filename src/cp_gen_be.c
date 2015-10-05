@@ -4736,7 +4736,9 @@ qualified is TRUE, force the generation of a qualified name.
       gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
   } else {
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
     a_name_reference_ptr  nrp;
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
     a_type_ptr            parent_class = parent_class_or_null(rout);
     a_boolean             saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;

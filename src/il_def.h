@@ -2284,7 +2284,7 @@ typedef struct a_name_reference {
 
 EXTERN a_name_reference null_name_reference
 #if VAR_INITIALIZERS
-= {}
+= { NULL }
 #endif /* VAR_INITIALIZERS */
 ;
 
