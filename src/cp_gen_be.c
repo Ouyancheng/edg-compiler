@@ -12387,10 +12387,17 @@ gen_expr that might end up generating this expr as a temporary.
   a_boolean             is_pack_expansion;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
-  /* Capture the is_pack_expansion flag now.  The code below can change
-     expr to point to one of its operands; in such cases, however, the
-     is_pack_expansion flag is set in the node that is skipped over. */
-  is_pack_expansion = expr->is_pack_expansion;
+  if (expr->is_pack_expansion) {
+    /* Capture the is_pack_expansion flag now.  The code below can change
+       expr to point to one of its operands; in such cases, however, the
+       is_pack_expansion flag is set in the node that is skipped over.
+       Also, force parentheses, so that the ellipsis will apply to the
+       entire expression and not just to the last subexpression. */
+    is_pack_expansion = TRUE;
+    need_parens = TRUE;
+  } else {
+    is_pack_expansion = FALSE;
+  }  /* if */
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   expr = assoc_expr_if_constant(expr);

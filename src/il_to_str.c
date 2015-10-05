@@ -367,10 +367,12 @@ Output the indicated template argument in the way described by octl.
           check_assertion(con != NULL);
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the
-             argument list. */
+             argument list or to ensure that an ellipsis applies to the
+             entire expression. */
           need_parens = octl->gen_compilable_code &&
                         (octl->has_unprotected_gt_or_comma_operation == NULL ||
-                         octl->has_unprotected_gt_or_comma_operation(con));
+                         octl->has_unprotected_gt_or_comma_operation(con) ||
+                         tap->is_pack);
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */

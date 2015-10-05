@@ -1,5 +1,21 @@
 Version 4.11
 
+10/5/15  [EDGcpfe/16463]
+C++-generating back end: parentheses for expression in pack expansion
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end failed to parenthesize an expression that is a pack
+expansion, causing the ellipsis to apply to the last subexpression instead
+of to the entire expression.  This is now fixed.  For example:
+
+  template<int I> int g() {
+    return I;
+  }
+  template<int... Is> int f() {
+    return g<(Is-0)...>();  // Previously generated as g<Is-0...>()
+  }
+
+
 10/2/15  [EDGcpfe/16546]
 Add a new routine to cache type_info type
 
