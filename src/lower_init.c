@@ -435,7 +435,7 @@ to data members are lowered into a small integer type.
       /* This must be done on a copy because the constant is typically shared
          and in the file scope, and therefore unlowerable at this point. */
       a_constant_ptr con = local_constant();
-      *con = *expr->variant.constant;
+      *con = *node_constant(expr);
       lower_ptr_to_member_constant(con);
       /* Widen the constant by changing its type. */
 #if CHECKING
@@ -446,7 +446,7 @@ to data members are lowered into a small integer type.
 #endif /* CHECKING */
       con->type = promoted_type;
       /* Allocate a copy of the constant, and point the expression to it. */
-      expr->variant.constant = alloc_shareable_constant(con);
+      node_constant(expr) = alloc_shareable_constant(con);
       expr->type = promoted_type;
       release_local_constant(&con);
     } else {
@@ -1545,7 +1545,7 @@ type of the constant that is returned may be a lowered version of desired_type
 
   make_zero_of_proper_type(desired_type, zero_constant);
   expr = alloc_node_for_constant(zero_constant);
-  cp = expr->variant.constant;
+  cp = node_constant(expr);
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
     if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
       /* An un-lowered pointer-to-data-member type; generate a lowered
@@ -1576,7 +1576,7 @@ type of the constant that is returned may be a lowered version of desired_type
     /* Replace an aggregate constant with a variable (so that it can be
        used as an rvalue for an assignment). */
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-    expr->variant.variable = temp_var;
+    node_variable(expr) = temp_var;
   }  /* if */
   release_local_constant(&zero_constant);
   return expr;
@@ -3852,11 +3852,11 @@ a parameter in expr (if one exists) with a corresponding parameter.
 {
   a_variable_ptr  orig_ptr, new_ptr;
 
-  if (is_variable_node(expr) && expr->variant.variable->is_parameter) {
+  if (is_variable_node(expr) && node_variable(expr)->is_parameter) {
     for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
          orig_ptr != NULL && new_ptr != NULL;
          orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
-      if (expr->variant.variable == orig_ptr) {
+      if (node_variable(expr) == orig_ptr) {
         check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
@@ -3868,7 +3868,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
                      new_ptr->assoc_param_type == NULL ||
                      orig_ptr->assoc_param_type->passed_via_copy_constructor ==
                       new_ptr->assoc_param_type->passed_via_copy_constructor));
-        expr->variant.variable = new_ptr;
+        node_variable(expr) = new_ptr;
         break;
       }  /* if */
       /* Skip the VTT parameter that follows the "this" parameter in
@@ -8396,7 +8396,7 @@ effect.
         if (statement->expr != NULL) {
 #if CTORS_RETURN_THIS || DTORS_RETURN_THIS
           if (is_variable_node(statement->expr) &&
-              statement->expr->variant.variable->is_this_parameter) {
+              node_variable(statement->expr)->is_this_parameter) {
             /* It's okay for a constructor or destructor to return "this". */
           } else
 #endif /* CTORS_RETURN_THIS || DTORS_RETURN_THIS */
@@ -9912,7 +9912,7 @@ the position to insert the necessary code.
     /* A cookie is required.  If the cookie size is known, subtract it
        now, otherwise create an expression to do the subtraction. */
     if (is_constant_node(prefix_size_node)) {
-      a_constant_ptr  cookie_size = prefix_size_node->variant.constant;
+      a_constant_ptr  cookie_size = node_constant(prefix_size_node);
       check_assertion(cookie_size->type->kind == (a_type_kind)tk_integer);
       subtract_integer_values(&max_elements_constant->variant.integer_value,
                               &(cookie_size->variant.integer_value),
@@ -11579,7 +11579,7 @@ Do IL lowering of an enk_temp_init expression node.
       /* Change the enk_temp_init node to an enk_variable node that refers to
          the temporary variable.  The lvalueness of the node is unchanged. */
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-      expr->variant.variable = temp_var;
+      node_variable(expr) = temp_var;
       /* Generate code for the dynamic init. */
       set_var_init_pos_descr(temp_var, &ipd);
     }  /* if */
@@ -11663,7 +11663,7 @@ Do IL lowering of an enk_temp_init expression node.
                              (this is needed for optimized class rvalue "?"
                              operations). */
                           (is_variable_node(second_operand) &&
-                           second_operand->variant.variable == dip->variable));
+                           node_variable(second_operand) == dip->variable));
           if (result_is_not_used) {
             /* The result is not used and the second operand has no side
                effects (because it's a simple variable reference).  Do
@@ -14528,7 +14528,7 @@ given by vptr_node.
     a_field_ptr                 field;
     a_type_ptr                  class_type = skip_typerefs(aggr_con->type);
     a_class_type_supplement_ptr ctsp;
-    a_constant_ptr              vptr_con = vtbl_addr_node->variant.constant;
+    a_constant_ptr              vptr_con = node_constant(vtbl_addr_node);
     a_constant_ptr              cp, prev_con = NULL;
 
     ctsp = class_type->variant.class_struct_union.extra_info;
@@ -17833,7 +17833,7 @@ with the value of their corresponding captured variables.
      expression kind is changed.  This is done early because code might be
      inserted during lowering of capture initializations. */
   set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-  expr->variant.variable = closure_var;
+  node_variable(expr) = closure_var;
   /* Initialization (if any) is inserted before the lambda expression. */
   set_expr_insert_location(expr, &insert_location);
   /* Set the variable for the initialization to point to the temporary. */

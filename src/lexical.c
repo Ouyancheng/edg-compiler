@@ -17619,7 +17619,7 @@ describes the name specified by "locator".
   if (is_dtor_like_locator(*locator)) {
     a_type_ptr	dtor_type = locator->variant.destructor_type;
     if (dtor_type != NULL) {
-      nrp->destructor_type = dtor_type;
+      nrp->variant.destructor_type = dtor_type;
     }  /* if */
   }  /* if */
   if (locator->is_template_id) {
@@ -17676,7 +17676,18 @@ a previously created entry that can be reused.
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
-        nrp->destructor_type == entry_to_copy->destructor_type &&
+        nrp->special_kind == entry_to_copy->special_kind &&
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+        (special_kind_is(nrp, sfk_none) ?
+            nrp->variant.destructor_type ==
+                                      entry_to_copy->variant.destructor_type :
+            nrp->variant.property_or_event_descr ==
+                            entry_to_copy->variant.property_or_event_descr) &&
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) */
+        nrp->variant.destructor_type ==
+                                      entry_to_copy->variant.destructor_type &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+
         nrp->from_prototype_instantiation ==
                                  entry_to_copy->from_prototype_instantiation &&
         nrp->is_super_qualified == entry_to_copy->is_super_qualified) {
@@ -17687,14 +17698,7 @@ a previously created entry that can be reused.
   if (nrp == NULL) {
     /* No match was found -- create a new entry. */
     nrp = alloc_name_reference();
-    nrp->qualifier = entry_to_copy->qualifier;
-    nrp->num_template_arguments = entry_to_copy->num_template_arguments;
-    nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
-    nrp->is_template_id = entry_to_copy->is_template_id;
-    nrp->destructor_type = entry_to_copy->destructor_type;
-    nrp->is_super_qualified = entry_to_copy->is_super_qualified;
-    nrp->from_prototype_instantiation =
-                                   entry_to_copy->from_prototype_instantiation;
+    *nrp = *entry_to_copy;
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;

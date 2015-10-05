@@ -3187,9 +3187,9 @@ as specified in the control block.
     case enk_constant:
       if (tblock->process_non_dynamic_constants ||
           (tblock->process_template_parameter_constants_and_expressions &&
-           expr->variant.constant->kind ==
+           node_constant(expr)->kind ==
                                     (a_constant_repr_kind)ck_template_param)) {
-        traverse_constant(expr->variant.constant, tblock);
+        traverse_constant(node_constant(expr), tblock);
       }  /* if */
       break;
     case enk_variable:

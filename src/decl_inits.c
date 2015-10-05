@@ -2138,9 +2138,9 @@ can be NULL (in which case dims[1] ... dims[rank] will be set to -1).
 
   for (; rank != 0; --rank) {
     if (expr != NULL && is_constant_node(expr) &&
-        expr->variant.constant->kind == (a_constant_repr_kind)ck_integer) {
+        node_constant(expr)->kind == (a_constant_repr_kind)ck_integer) {
       a_boolean  ovflo = FALSE;
-      dims[rank] = value_of_integer_constant(expr->variant.constant, &ovflo);
+      dims[rank] = value_of_integer_constant(node_constant(expr), &ovflo);
     } else {
       dims[rank] = -1;
     }  /* if */

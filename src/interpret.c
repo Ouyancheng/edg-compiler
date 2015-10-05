@@ -5038,7 +5038,7 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_dot_field:
             case eok_points_to_field:
               { a_constexpr_address  result_addr;
-                a_field_ptr          field = opnd2->variant.field;
+                a_field_ptr          field = node_field(opnd2);
                 a_byte_count         offset;
                 result_addr = *(a_constexpr_address*)opnd1_value;
                 if (opnd1_type->kind == (a_type_kind)tk_union &&
@@ -5101,12 +5101,12 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     case enk_constant:
-      result = copy_val_from_constant(ips, expr->variant.constant,
+      result = copy_val_from_constant(ips, node_constant(expr),
                                       result_storage);
       break;
     case enk_variable:
       {
-        a_variable_ptr  var = expr->variant.variable;
+        a_variable_ptr  var = node_variable(expr);
         a_byte          *var_bytes;
         get_stack_bytes(ips, var, var_bytes);
         if (!expr->is_lvalue && !expr->is_xvalue) {

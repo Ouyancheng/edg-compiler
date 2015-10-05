@@ -443,6 +443,12 @@ member, and NULL otherwise.
                                          : (a_type_ptr)NULL)
 
 /*
+Return TRUE if a constant is of a given kind.
+*/
+#define constant_is(con, con_kind)                                          \
+  ((con)->kind == (a_constant_repr_kind)(con_kind))
+
+/*
 Return TRUE if cp is a ck_template_param/tpck_unknown_function constant.
 */
 #define is_unknown_function_constant(cp) \
@@ -2713,6 +2719,37 @@ extern void clear_instantiation_required_on_unneeded_entities(
 extern an_expr_node_ptr make_dummy_lvalue_expr(a_type_ptr type);
 
 extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
+
+/*
+Get the name reference associated with a node, if any.
+*/
+#define name_ref_for_node(node)                                               \
+  (is_constant_node(node) ? (node)->variant.constant.name_reference :         \
+   is_variable_node(node) ? (node)->variant.variable.name_reference :         \
+   is_routine_node(node) ? (node)->variant.routine.name_reference :           \
+   is_field_node(node) ? (node)->variant.field.name_reference :               \
+   is_type_node(node) ? (node)->variant.type_operand.name_reference :         \
+   /* else */ (a_name_reference*)NULL)
+
+#define special_kind_for_routine_node(node)                                   \
+  ((node)->variant.routine.name_reference != NULL ?                           \
+       (node)->variant.routine.name_reference->special_kind :                 \
+       (a_special_function_kind)sfk_none)
+
+/*
+Get the property/event descriptor associated with a routine node, if any.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+#define property_or_event_for_routine_node(node)                              \
+  (((node)->variant.routine.name_reference != NULL &&                         \
+    !special_kind_is((node)->variant.routine.name_reference, sfk_none)) ?     \
+       (node)->variant.routine.name_reference                                 \
+             ->variant.property_or_event_descr :                              \
+       (a_property_or_event_descr_ptr)NULL)
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) */
+#define property_or_event_for_routine_node(node)                              \
+  ((a_property_or_event_descr_ptr)NULL)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
 
 extern
 a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,

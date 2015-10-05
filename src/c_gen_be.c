@@ -4402,7 +4402,7 @@ selection operation).
 
   check_assertion_str(second_operand->kind == (an_expr_node_kind)enk_field,
                     "dump_field_from_second_operand: operand 2 not enk_field");
-  field = second_operand->variant.field;
+  field = node_field(second_operand);
 #if CHECKING
   { a_type_ptr field_class = parent_class_of(field);
     a_type_ptr struct_class;
@@ -4439,7 +4439,7 @@ Output a reference to the variable indicated by the given enk_variable
 node.  The output is usually just the variable name.
 */
 {
-  a_variable_ptr var = node->variant.variable;
+  a_variable_ptr var = node_variable(node);
 
   if (var->superseded_external) {
     /* Superseded variable (there are multiple incompatible block-scope
@@ -4511,7 +4511,7 @@ on top of the expansion.
     a_boolean        comma_case;
     object_expr = operand_1->variant.operation.operands;
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
-    field = object_expr->next->variant.field;
+    field = node_field(object_expr->next);
     if (field->is_bit_field) {
       bit_field_case = TRUE;
       field_offset = field->offset;
@@ -4648,7 +4648,7 @@ output with parentheses if needed.
                   (node_operator_is(expr, eok_dot_field) ||
                    node_operator_is(expr, eok_points_to_field)));
   struct_expr = expr->variant.operation.operands;
-  field = struct_expr->next->variant.field;
+  field = node_field(struct_expr->next);
   if (field->base_class_subobject_with_tail_padding) {
     /* The field represents a base class subobject with padding.  The
        fields of such subobjects are promoted into the derived class, so
@@ -4869,7 +4869,7 @@ signed bit fields under pcc, which does not support them.
         (node_operator_is(operand, eok_dot_field) ||
          node_operator_is(operand, eok_points_to_field))) {
       a_field_ptr dest_field =
-                      operand->variant.operation.operands->next->variant.field;
+                        field_node(operand->variant.operation.operands->next);
       if (dest_field->is_bit_field) {
         /* For this case, we need to truncate the result of the assignment
            because pcc does not do it.  For a signed bit field, use __sexten;
@@ -4903,7 +4903,7 @@ closing parentheses needed if any code was generated there.
         (node_operator_is(operand, eok_dot_field) ||
          node_operator_is(operand, eok_points_to_field))) {
       a_field_ptr dest_field =
-                      operand->variant.operation.operands->next->variant.field;
+                        field_node(operand->variant.operation.operands->next);
       if (dest_field->is_bit_field) {
         if (dest_field->bit_field_is_signed) {
           /* End of __sexten call. */
@@ -4931,8 +4931,8 @@ Return TRUE if the indicated expression is a zero constant.
 {
   a_boolean is_zero =
            (expr->kind == (an_expr_node_kind)enk_constant &&
-            expr->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
-            cmplit_integer_constant(expr->variant.constant,
+            node_constant_is(expr, ck_integer) &&
+            cmplit_integer_constant(node_constant(expr),
                                     (a_host_large_integer)0) == 0);
   return is_zero;
 }  /* expr_is_zero_constant */
@@ -5061,7 +5061,7 @@ variable and terminate the traversal.
          a pointer variable in a member access expression ("p" in "p->x").
          That case is not of interest here, but it can be avoided by
          requiring that the enk_variable node be an lvalue. */
-      a_variable_ptr var = expr->variant.variable;
+      a_variable_ptr var = node_variable(expr);
       if (is_array_type(var->type) ||
           is_class_struct_union_type(var->type)) {
         /* This routine is called for the purpose of determining whether a
@@ -5122,11 +5122,11 @@ and terminate the traversal.
   if (is_variable_node(expr)) {
     if (expr->is_lvalue) {
       /* We only want lvalues -- i.e., "x.i" and not "p->i". */
-      var_for_address_taken_check = expr->variant.variable;
+      var_for_address_taken_check = node_variable(expr);
     }  /* if */
     tblock->terminate = TRUE;
   } else if (is_routine_node(expr)) {
-    rout_for_address_taken_check = expr->variant.routine.ptr;
+    rout_for_address_taken_check = node_routine(expr);
     tblock->terminate = TRUE;
   }  /* if */
 }  /* set_target_of_addressing_op */
@@ -5172,7 +5172,7 @@ type of the variable to which it refers.
 
   check_assertion_str(is_variable_node(expr),
                       "check_type_of_variable_node: wrong kind of node");
-  expected_type = expr->variant.variable->type;
+  expected_type = node_variable(expr)->type;
   if (is_array_type(tp) && is_array_type(expected_type) &&
       (is_incomplete_array_type(tp) ||
        is_incomplete_array_type(expected_type))) {
@@ -5302,7 +5302,7 @@ or third operand of a "?" operator).
 {
   if (is_class_struct_union_type(operand->type)) {
     if ((is_variable_node(operand) &&
-         is_qualified_type(operand->variant.variable->type)) ||
+         is_qualified_type(node_variable(operand)->type)) ||
         (is_operation_node(operand) &&
          (node_operator_is(operand, eok_indirect) ||
           node_operator_is(operand, eok_points_to_field)) &&
@@ -5753,9 +5753,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (sun_is_generated_code_target &&
               operand_2->kind == (an_expr_node_kind)enk_constant &&
-              operand_2->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-              eqlit_integer_constant(operand_2->variant.constant,
+              node_constant_is(operand_2, ck_integer) &&
+              eqlit_integer_constant(node_constant(operand_2),
                                      (a_host_large_integer)1)) {
             /* The SUN cc compiler has a bug with "i %= 1" -- It generates no
                code.  Generate "i %= (0, 1)" instead, which works. */
@@ -5901,7 +5900,7 @@ process_assignment:
         case eok_dot_field:
         case eok_points_to_field:
 #if !C_GEN_BE_GENERATES_ANSI_C
-          field = operand_2->variant.field;
+          field = field_node(operand_2);
           if (field->is_bit_field && field->bit_field_is_signed) {
             /* Signed bit field.  Do sign extension on the unsigned bit field
                provided by pcc. */
@@ -6016,8 +6015,9 @@ process_assignment:
           /* Put out the arguments. */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
           if (is_routine_node(operand_1) &&
-              operand_1->variant.routine.special_kind ==
-                    (a_special_function_kind)sfk_gnu_atomic_generic_function) {
+              operand_1->variant.routine.name_reference != NULL &&
+              special_kind_is(operand_1->variant.routine.name_reference,
+                              sfk_gnu_atomic_generic_function)) {
             /* Omit the first argument in a GNU __atomic_... generic function
                (it is generated by the front end) as well as compiler
                generated casts. */
@@ -6243,7 +6243,7 @@ done_with_operation:
       if (need_parens) m_write_tok_ch(')');
       break;
     case enk_constant:
-      dump_constant(expr->variant.constant);
+      dump_constant(node_constant(expr));
       break;
     case enk_variable:
 #if CHECKING && !STANDALONE_C_GEN_BE
@@ -6500,7 +6500,7 @@ operator that always returns a 0/1 value (e.g., "<" or "!=").
   }  /* if */
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
   if (node->kind == (an_expr_node_kind)enk_constant) {
-    a_constant_ptr  cp = node->variant.constant;
+    a_constant_ptr  cp = node_constant(node);
     result = cp->kind == (a_constant_repr_kind)ck_integer &&
              (cmplit_integer_constant(cp, (a_host_large_integer)0) == 0 ||
               cmplit_integer_constant(cp, (a_host_large_integer)1) == 0);
@@ -9520,7 +9520,7 @@ parameter.  Returns TRUE if the expression was replaced.
                                              (an_expr_operator_kind)eok_call) {
       /* Assignment of call result to temporary variable. */
       call_node = expr->variant.operation.operands->next;
-      return_variable = expr->variant.operation.operands->variant.variable;
+      return_variable = node_variable(expr->variant.operation.operands);
     } else if (is_operation_node(expr) &&
                expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_call) {
@@ -9536,7 +9536,7 @@ parameter.  Returns TRUE if the expression was replaced.
                         (an_expr_node_kind)enk_result_of_overriding_function) {
       /* Assignment of enk_result_of_overriding_function to temporary. */
       replacing_roof = TRUE;
-      return_variable = expr->variant.operation.operands->variant.variable;
+      return_variable = node_variable(expr->variant.operation.operands);
     } else if (expr->kind ==
                         (an_expr_node_kind)enk_result_of_overriding_function) {
       /* Standalone enk_result_of_overriding_function. */
@@ -9546,7 +9546,7 @@ parameter.  Returns TRUE if the expression was replaced.
     if (replacing_roof ||
         (call_node != NULL &&
          is_routine_node(call_node->variant.operation.operands) &&
-         call_node->variant.operation.operands->variant.routine.ptr ==
+         node_routine(call_node->variant.operation.operands) ==
                                   master_routine_scope->variant.routine.ptr)) {
       a_scope_ptr      saved_curr_scope = curr_scope;
       /* We've found the "call" to the master routine.  Effectively inline

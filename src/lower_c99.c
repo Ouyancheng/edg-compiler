@@ -172,7 +172,7 @@ Lower the expression in a VLA dimension entry.
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
     if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
+      a_constant_ptr con = node_constant(expr);
       if (con->kind == (a_constant_repr_kind)ck_integer &&
           sign_of_integer_constant(con) <= 0) {
         pos_error(ec_array_size_must_be_positive, &vdp->position);
@@ -1614,7 +1614,7 @@ is used for the increment/decrement).
   /* Mark the constant as un-lowered, then lower it.  This will replace the
      constant expression with a file scope static temporary that will be used
      in place of the constant. */
-  mark_as_not_visited(con_node->variant.constant);
+  mark_as_not_visited(node_constant(con_node));
   lower_c99_constant_expr(con_node);
   if (is_post_op && expr->result_is_not_used) {
     /* We don't need the more complicated post-incr/decr code if the
@@ -3573,12 +3573,12 @@ constructs.
 #if LOWER_COMPLEX
   if (is_imaginary_type(expr->type)) {
     /* Turn the imaginary constant into a real floating point constant. */
-    lower_c99_constant(expr->variant.constant);
+    lower_c99_constant(node_constant(expr));
   } else if (is_complex_type(expr->type)) {
     /* Replace this node by a reference to a static variable initialized
        with an aggregate representing the constant complex value. */
     a_variable_ptr  tmp;
-    a_constant_ptr  constant = expr->variant.constant;
+    a_constant_ptr  constant = node_constant(expr);
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the assoc_var field. */
     if (constant->assoc_var != NULL) {
@@ -3617,7 +3617,7 @@ constructs.
   {
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled && is_fixed_point_type(expr->type)) {
-      lower_c99_constant(expr->variant.constant);
+      lower_c99_constant(node_constant(expr));
     }  /* if */
 #endif /* LOWER_FIXED_POINT */
   }  /* if */
@@ -3669,7 +3669,7 @@ in C99 mode to represent a compound literal.
   /* Change the enk_temp_init node to an enk_variable node; its lvalueness is
      unchanged. */
   set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-  expr->variant.variable = var;
+  node_variable(expr) = var;
   /* Set the insert point preceding the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
   set_var_init_pos_descr(var, &ipd);
@@ -3807,13 +3807,13 @@ second parameter.
       break;
     case enk_variable:
 #if MINIMAL_INLINING
-      if (expr->is_lvalue && expr->variant.variable->is_parameter) {
+      if (expr->is_lvalue && node_variable(expr)->is_parameter) {
         /* Set flag indicating that this parameter is used as an lvalue. */
-        expr->variant.variable->param_used_as_lvalue = TRUE;
+        node_variable(expr)->param_used_as_lvalue = TRUE;
       }  /* if */
 #endif /* MINIMAL_INLINING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-      if (expr->variant.variable->is_vla && expr->is_lvalue) {
+      if (node_variable(expr)->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used. */
         lower_vla_variable_lvalue(expr);
@@ -3826,7 +3826,7 @@ second parameter.
          adjusted (in match_routine_type_in_call) when processing call
          nodes. */
 #if LOWER_IFUNC
-      if (expr->variant.routine.ptr->is_ifunc) {
+      if (node_routine(expr)->is_ifunc) {
         /* Re-write the node to avoid calling the wrapper. */
         lower_ifunc_expr(expr);
       }  /* if */

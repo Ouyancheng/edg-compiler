@@ -196,10 +196,10 @@ Display the indicated variable remapping for debugging purposes.
     } else if (vrip->kind == vrk_constant_expr) {
       an_expr_node_ptr expr = vrip->variant.expr;
       if (is_constant_node(expr)) {
-        db_constant(vrip->variant.expr->variant.constant);
+        db_constant(node_constant(vrip->variant.expr));
       } else if (is_variable_node(expr)) {
         if (expr->is_lvalue) fprintf(f_debug, "[lvalue]");
-        db_name(&expr->variant.variable->source_corresp);
+        db_name(&node_variable(expr)->source_corresp);
       } else {
         db_expression(expr);
       }  /* if */
@@ -740,16 +740,16 @@ because of remapped variables.
   if (kind == (an_expr_node_kind)enk_variable) {
     if (expr->is_lvalue) {
       /* Variable lvalue.  See if the variable is remapped. */
-      expr->variant.variable = remap_var_for_inlining(expr->variant.variable);
+      node_variable(expr) = remap_var_for_inlining(node_variable(expr));
     } else {
       /* Value of a variable.  See if the variable is remapped. */
-      vrip = get_var_remapping_for_inlining(expr->variant.variable);
+      vrip = get_var_remapping_for_inlining(node_variable(expr));
       if (vrip != NULL) {
         /* Yes, there is some kind of remapping. */
         switch (vrip->kind) {
           case vrk_temporary:
             /* The variable is remapped to a temporary variable. */
-            expr->variant.variable = vrip->variant.variable;
+            node_variable(expr) = vrip->variant.variable;
             vrip->temporary_used = TRUE;
             break;
           case vrk_constant_expr:
@@ -760,7 +760,7 @@ because of remapped variables.
               /* The variable is remapped to a constant.  Use an enk_constant
                  instead. */
               set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-              expr->variant.constant = constant_expr->variant.constant;
+              node_constant(expr) = node_constant(constant_expr);
             } else {
               /* Other, more complicated, cases.  Just copy the expression. */
               overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
@@ -787,11 +787,11 @@ because of remapped variables.
        The constant we are copying is probably from an initializer, and
        therefore unshared, but this reference from an expression node
        can use a shareable constant. */
-    con = expr->variant.constant;
+    con = node_constant(expr);
     if (!in_file_scope(con)) {
-      expr->variant.constant = alloc_shareable_constant(con);
+      node_constant(expr) = alloc_shareable_constant(con);
       /* The expression tree would also be in another function scope. */
-      expr->variant.constant->expr = NULL;
+      node_constant(expr)->expr = NULL;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_operation) {
     /* Look for operations that now have constant operands because of
@@ -804,8 +804,8 @@ because of remapped variables.
         (operand2 == NULL || is_constant_node(operand2))) {
       /* The operands are constant. */
       a_boolean did_not_fold = TRUE, template_constant = FALSE;
-      con = operand->variant.constant;
-      if (operand2 != NULL) con2 = operand2->variant.constant;
+      con = node_constant(operand);
+      if (operand2 != NULL) con2 = node_constant(operand2);
       /* Fold certain constant operations.  Some, like floating-point
          operations, are not folded because cfront does not do so,
          and because if it were done people might get different
@@ -908,8 +908,8 @@ because of remapped variables.
         operand = operand->next;
         if (is_constant_node(operand) &&
             constant_bool_value_known_at_compile_time(
-                                                  operand->variant.constant) &&
-            is_false_constant(operand->variant.constant)) {
+                                                    node_constant(operand)) &&
+            is_false_constant(node_constant(operand))) {
           /* Yes, this is &auto_variable != NULL, which is always 1,
              or the "== 0" case, which is always 0. */
           a_host_large_integer	temp_value;
@@ -947,7 +947,7 @@ because of remapped variables.
        backing expression. */
     constant->expr = NULL;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-    expr->variant.constant = alloc_shareable_constant(constant);
+    node_constant(expr) = alloc_shareable_constant(constant);
   }  /* if */
   release_local_constant(&constant);
 }  /* adjust_copied_expression_for_inlining */
@@ -1041,7 +1041,7 @@ otherwise, do no copying and return FALSE.
     operand = expr->variant.operation.operands;
     operand2 = operand->next;
     if (is_variable_node(operand)) {
-      a_variable_ptr var = operand->variant.variable;
+      a_variable_ptr var = node_variable(operand);
       if (var->is_temp_for_constructor_this_inlined_param ||
           var->is_temp_for_unmodified_inlined_param) {
         a_variable_remapping_for_inlining_ptr vrip;
@@ -1091,7 +1091,7 @@ otherwise, do no copying and return FALSE.
              of the right type. */
           make_zero_of_proper_type(expr->type, constant);
           set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-          expr->variant.constant = alloc_shareable_constant(constant);
+          node_constant(expr) = alloc_shareable_constant(constant);
           release_local_constant(&constant);
         } else {
           /* The operation cannot be eliminated, so finish the rewriting,
@@ -1310,8 +1310,8 @@ This is useful in cases where iterative inlining can create huge routines.
         result_is_then = result_is_else = FALSE;
         if (is_constant_node(stmt_expr) &&
             constant_bool_value_known_at_compile_time(
-                                                stmt_expr->variant.constant)) {
-          if (is_false_constant(stmt_expr->variant.constant)) {
+                                                  node_constant(stmt_expr))) {
+          if (is_false_constant(node_constant(stmt_expr))) {
             result_is_else = TRUE;
           } else {
             result_is_then = TRUE;

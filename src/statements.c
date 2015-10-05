@@ -3023,8 +3023,8 @@ The safe answer, if the truth cannot be discovered, is FALSE.
   }  /* while */
   is_true_constant = (is_constant_node(expr) &&
                       constant_bool_value_known_at_compile_time(
-                                                     expr->variant.constant) &&
-                      !is_false_constant(expr->variant.constant));
+                                                       node_constant(expr)) &&
+                      !is_false_constant(node_constant(expr)));
   return is_true_constant;
 }  /* is_true_constant_expr */
 

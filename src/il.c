@@ -1509,10 +1509,10 @@ Dump the contents of the indicated type entry, for debug purposes.
             } else {
               switch (expr->kind) {
                 case enk_constant:
-                  db_constant(expr->variant.constant);
+                  db_constant(node_constant(expr));
                   break;
                 case enk_variable:
-                  db_name_full(&expr->variant.variable->source_corresp,
+                  db_name_full(&node_variable(expr)->source_corresp,
                                iek_variable);
                   break;
                 case enk_error:
@@ -1742,7 +1742,7 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* while */
       break;
     case enk_constant:
-      const_ptr = node->variant.constant;
+      const_ptr = node_constant(node);
       if (!has_name(const_ptr)) {
         fputs("constant: value = ", f_debug);
       } else {
@@ -1757,19 +1757,22 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_variable:
       fputs("variable: ", f_debug);
-      db_variable_without_type(node->variant.variable);
+      db_variable_without_type(node_variable(node));
       fputs(", node type: ", f_debug);
       db_abbreviated_type(node->type);
       fputs("\n", f_debug);
       break;
     case enk_routine:
       fprintf(f_debug, "routine: %s\n",
-	      node->variant.routine.ptr->source_corresp.name != NULL ?
-                node->variant.routine.ptr->source_corresp.name : "<unnamed>");
+              node_routine(node) == NULL ?
+                "<NULL>" :
+	      node_routine(node)->source_corresp.name != NULL ?
+                node_routine(node)->source_corresp.name :
+                "<unnamed>");
       break;
     case enk_field:
       fprintf(f_debug, "field ");
-      db_name_full(&node->variant.field->source_corresp, iek_field);
+      db_name_full(&node_field(node)->source_corresp, iek_field);
       fputs("\n", f_debug);
       break;
     case enk_temp_init:
@@ -1987,7 +1990,7 @@ sizeof_cases:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
       fprintf(f_debug, "type_operand: type = ");
-      db_abbreviated_type(node->variant.type_operand.type);
+      db_abbreviated_type(type_operand_type(node));
       fputs("\n", f_debug);
       break;
     case enk_builtin_operation:
@@ -6509,12 +6512,12 @@ are done.
         }  /* if */
         break;
       case enk_constant:
-        eq = compare_constants(node1->variant.constant,
-                               node2->variant.constant,
+        eq = compare_constants(node_constant(node1),
+                               node_constant(node2),
                                options);
         break;
       case enk_variable:
-        eq = same_entities(node1->variant.variable, node2->variant.variable);
+        eq = same_entities(node_variable(node1), node_variable(node2));
         /* Don't do the type comparison because we may be comparing variables
            from different translation units, one of which may have an
            incomplete array type.  It's enough to know they are the same
@@ -6522,11 +6525,11 @@ are done.
         do_type_comparison = FALSE;
         break;
       case enk_routine:
-        eq = same_entities(node1->variant.routine.ptr,
-                           node2->variant.routine.ptr);
+        eq = same_entities(node_routine(node1),
+                           node_routine(node2));
         break;
       case enk_field:
-        eq = same_entities(node1->variant.field, node2->variant.field);
+        eq = same_entities(node_field(node1), node_field(node2));
         break;
       case enk_temp_init:
         eq = compare_dynamic_inits(node1->variant.init.dynamic_init,
@@ -6648,8 +6651,8 @@ are done.
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case enk_type_operand:
-        eq = identical_types_full(node1->variant.type_operand.type,
-                                  node2->variant.type_operand.type,
+        eq = identical_types_full(type_operand_type(node1),
+                                  type_operand_type(node2),
                                   itf_options);
         break;
       case enk_builtin_operation:
@@ -7191,8 +7194,8 @@ contains it among its operands (in a position that can be deduced from).
                                 (a_template_param_constant_kind)tpck_param);
   node = skip_parens(node);
   if (node->kind == (an_expr_node_kind)enk_constant) {
-    cp2 = node->variant.constant;
-    if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
+    cp2 = node_constant(node);
+    if (constant_is(cp2, ck_template_param)) {
       if (cp == NULL) {
         found = TRUE;
       } else {
@@ -8379,7 +8382,7 @@ it is set to NULL in all other cases.
     }  /* if */
   }  /* if */
   if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
+    a_constant_ptr con = node_constant(expr);
     if (!expr->is_lvalue && con_is_exact_addr_of_routine(con)) {
       /* Constant that is the address of a routine. */
       routine = con->variant.address.variant.routine;
@@ -8391,7 +8394,7 @@ it is set to NULL in all other cases.
     }  /* if */
     if (is_routine_node(expr)) {
       *node = expr;
-      routine = expr->variant.routine.ptr;
+      routine = node_routine(expr);
     }  /* if */
   }  /* if */
   return routine;
@@ -12822,12 +12825,12 @@ scan.
 */
 {
   if (expr->kind == (an_expr_node_kind)enk_routine) {
-    instantiate_il_entity(&expr->variant.routine.ptr->source_corresp);
+    instantiate_il_entity(&node_routine(expr)->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
-    instantiate_il_entity(&expr->variant.variable->source_corresp);
+    instantiate_il_entity(&node_variable(expr)->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_constant) {
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address) {
+    a_constant_ptr con = node_constant(expr);
+    if (constant_is(con, ck_address)) {
       if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
         instantiate_il_entity(
                         &con->variant.address.variant.routine->source_corresp);
@@ -12836,7 +12839,7 @@ scan.
         instantiate_il_entity(
                        &con->variant.address.variant.variable->source_corresp);
       }  /* if */
-    } else if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    } else if (constant_is(con, ck_ptr_to_member)) {
       if (con->variant.ptr_to_member.is_function_ptr) {
         a_routine_ptr rout = con->variant.ptr_to_member.variant.routine;
         if (rout != NULL) {
@@ -14334,7 +14337,7 @@ otherwise NULL.
     con = dip->variant.constant;
   } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
     an_expr_node_ptr expr = dip->variant.expression;
-    if (is_constant_node(expr)) con = expr->variant.constant;
+    if (is_constant_node(expr)) con = node_constant(expr);
   }  /* if */
   return con;
 }  /* constant_value_of_dynamic_init */
@@ -15099,7 +15102,7 @@ constant.
   an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_constant);
-  node->variant.constant = alloc_shareable_constant(constant);
+  node_constant(node) = alloc_shareable_constant(constant);
   node->type = constant->type;
   return node;
 }  /* alloc_node_for_constant */
@@ -15115,7 +15118,7 @@ IL constant.
   an_expr_node_ptr expr;
 
   expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-  expr->variant.constant = constant;
+  node_constant(expr) = constant;
   expr->type = constant->type;
   return expr;
 }  /* alloc_node_for_allocated_constant */
@@ -16147,7 +16150,7 @@ options is a set of name lookup options.
     case enk_constant:
       /* The expression is just a constant.  Do substitution and return
          the constant after substitution. */
-      *alloc_con = copy_template_param_con(expr->variant.constant,
+      *alloc_con = copy_template_param_con(node_constant(expr),
                                            template_arg_list,
                                            template_param_list,
                                            guide_type,
@@ -16722,7 +16725,7 @@ original constant.
           expr->variant.operation.compiler_generated) {
         an_expr_node_ptr	operand = expr->variant.operation.operands;
         if (operand->kind == (an_expr_node_kind)enk_constant) {
-          constant = operand->variant.constant;
+          constant = node_constant(operand);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -16937,7 +16940,7 @@ instantiation dependent, set *p_template_case to TRUE.
           opkind == (an_expr_operator_kind)eok_points_to_field) {
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
         alignof_value = alignment_of_field_full(
-                               field_op->variant.field, /*for_alignof=*/TRUE);
+                                  node_field(field_op), /*for_alignof=*/TRUE);
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16947,7 +16950,7 @@ instantiation dependent, set *p_template_case to TRUE.
       /* If the expression is an lvalue for a variable with an explicit
          alignment, use it.  (GNU C++ versions prior to 3.1 ignore the
          explicit alignment.) */
-      a_variable_ptr  var = expr->variant.variable;
+      a_variable_ptr  var = node_variable(expr);
       if (var->alignment != 0) {
         alignof_value = var->alignment;
       }  /* if */
@@ -17895,8 +17898,8 @@ be called to start a copy.
     case enk_constant:
       if ((options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) ||
           (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) ||
-          expr->variant.constant->part_of_constexpr_master_expr ||
-          (!in_file_scope(expr->variant.constant) &&
+          node_constant(expr)->part_of_constexpr_master_expr ||
+          (!in_file_scope(node_constant(expr)) &&
            (in_file_scope(expr_copy) ||
             (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
                         CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER))))) {
@@ -17907,15 +17910,15 @@ be called to start a copy.
            function-scope memory region, or when explicitly requested. */
         an_expr_copy_options_set subcopy_options = options;
         subcopy_options |= CE_COPIED_CONSTANTS_MAY_BE_SHARED;
-        expr_copy->variant.constant =
-                       i_copy_constant_full(expr->variant.constant,
+        node_constant(expr_copy) =
+                       i_copy_constant_full(node_constant(expr),
                                             (a_constant *)NULL,
                                             subcopy_options, cblock);
         if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF &&
-            expr->variant.constant->expr != NULL) {
+            node_constant(expr)->expr != NULL) {
           /* Get a local copy of the backing expression as well. */
-          expr_copy->variant.constant->expr =
-               i_copy_expr_tree(expr->variant.constant->expr, options, cblock);
+          node_constant(expr_copy)->expr =
+               i_copy_expr_tree(node_constant(expr)->expr, options, cblock);
         }  /* if */
       }  /* if */
       break;
@@ -18452,7 +18455,7 @@ object or a prvalue that is a pointer or handle to an object.
           /* Static data members of managed classes are on the managed heap
              (they're in a data block associated with the class that's
              allocated before the first use of an instance of the class). */
-          { a_variable_ptr var = node->variant.variable;
+          { a_variable_ptr var = node_variable(node);
             if (var->source_corresp.is_class_member) {
               a_type_ptr parent_class = parent_class_of(var); 
               if (is_immediate_managed_class_type(parent_class)) {
@@ -18568,11 +18571,11 @@ the test means its address cannot be NULL.
     if (expr->kind == (an_expr_node_kind)enk_variable) {
       /* The address of a variable is generally non-NULL, but watch out for
          extern variables affected by linker magic. */
-      cannot_be = variable_has_non_null_address(expr->variant.variable);
+      cannot_be = variable_has_non_null_address(node_variable(expr));
     } else if (expr->kind == (an_expr_node_kind)enk_routine) {
       /* The address of a routine is generally non-NULL, but watch out for
          extern routines affected by linker magic. */
-      cannot_be = routine_has_non_null_address(expr->variant.routine.ptr);
+      cannot_be = routine_has_non_null_address(node_routine(expr));
     } else if (is_operation_node(expr)) {
       an_expr_operator_kind op = expr->variant.operation.kind;
       an_expr_node_ptr      operand = expr->variant.operation.operands;
@@ -18580,7 +18583,7 @@ the test means its address cannot be NULL.
           op == (an_expr_operator_kind)eok_points_to_field) {
         /* The address of a field reference can't be NULL in a legal program,
            but watch out for ((struct s *)0)->i. */
-        if (operand->next->variant.field->offset != 0) {
+        if (node_field(operand->next)->offset != 0) {
           /* The field offset is non-zero, so even if the pointer is zero the
              address will be non-zero. */
           cannot_be = TRUE;
@@ -18598,7 +18601,7 @@ the test means its address cannot be NULL.
   } else {
     /* The expression passed in is a pointer to an object. */
     if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
+      a_constant_ptr con = node_constant(expr);
       if (con->kind == (a_constant_repr_kind)ck_integer) {
         /* An integer constant (cast to a pointer type in this case) is
            non-NULL if it's non-zero. */
@@ -18609,7 +18612,7 @@ the test means its address cannot be NULL.
         cannot_be = constant_bool_value_known_at_compile_time(con);
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_variable) {
-      a_variable_ptr var = expr->variant.variable;
+      a_variable_ptr var = node_variable(expr);
       if (innermost_function_scope != NULL &&
           innermost_function_scope->variant.routine.this_param_variable ==
                                                                          var) {
@@ -18662,7 +18665,7 @@ for variables with reference type.
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
   node->type = var->type;
   node->is_lvalue = TRUE;
-  node->variant.variable = var;
+  node_variable(node) = var;
   return node;
 }  /* var_lvalue_expr */
 
@@ -18679,7 +18682,7 @@ for variables with reference type.
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
   /* Drop any type qualifiers on the variable type as appropriate. */
   node->type = prvalue_type(var->type);
-  node->variant.variable = var;
+  node_variable(node) = var;
   return node;
 }  /* var_rvalue_expr */
 
@@ -18882,10 +18885,10 @@ isn't terminated once a flag is set (allows for something like &(i ? j : k) ).
   if (is_variable_node(expr)) {
     if (expr->is_lvalue) {
       /* We only want lvalues -- i.e., "x.i" and not "p->i". */
-      set_variable_address_taken(expr->variant.variable);
+      set_variable_address_taken(node_variable(expr));
     }  /* if */
   } else if (is_routine_node(expr)) {
-    expr->variant.routine.ptr->address_taken = TRUE;
+    node_routine(expr)->address_taken = TRUE;
   }  /* if */
 }  /* set_address_taken_on_target_of_addressing_op */
 
@@ -19076,7 +19079,7 @@ proper, use fe_field_lvalue_selection_expr instead.
   /* Make the expression node for the field. */
   field_node = alloc_expr_node((an_expr_node_kind)enk_field);
   field_node->type = field->type;
-  field_node->variant.field = field;
+  node_field(field_node) = field;
   node->next = field_node;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
@@ -19150,7 +19153,7 @@ rest.
                                            au_field->type, new_selection_type);
   au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
   au_field_node->type = au_field->type;
-  au_field_node->variant.field = au_field;
+  node_field(au_field_node) = au_field;
   op1->next = au_field_node;
   new_op1 = make_operator_node(node->variant.operation.kind,
                                new_selection_type, op1);
@@ -19394,7 +19397,7 @@ as part of seeing whether an expression is a pointer with restrict semantics.
 {
   if (is_variable_node(expr) ||
       expr->kind == (an_expr_node_kind)enk_param_ref) {
-    a_type_ptr var_type = is_variable_node(expr) ? expr->variant.variable->type
+    a_type_ptr var_type = is_variable_node(expr) ? node_variable(expr)->type
                                                  : expr->type;
     /* Ignore error types. */
     if (is_pointer_type(var_type)) {
@@ -19576,7 +19579,7 @@ top-level node is considered -- fetches in child nodes are not.
       case enk_variable:
         /* An rvalue variable reference fetches the variable's value. */
         does_fetch = TRUE;
-        fetched_type = node->variant.variable->type;
+        fetched_type = node_variable(node)->type;
         break;
       case enk_temp_init:
         /* An rvalue temp init fetches the value of the temporary. */
@@ -19625,7 +19628,7 @@ process_field_selection:
               does_fetch = TRUE;
               check_assertion(op2 != NULL &&
                               op2->kind == (an_expr_node_kind)enk_field);
-              fetched_type = make_field_selection_type(op2->variant.field,
+              fetched_type = make_field_selection_type(node_field(op2),
                                                        get_type_qualifiers(
                                                                 operand_type));
               break;
@@ -19932,11 +19935,11 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
     case enk_constant:
-      if (is_error_constant(node->variant.constant)) {
+      if (is_error_constant(node_constant(node))) {
         /* An error constant might have been anything -- it might have
            had side effects. */
         has_side_effects = TRUE;
-      } else if (node->variant.constant->is_result_of_constexpr_call) {
+      } else if (node_constant(node)->is_result_of_constexpr_call) {
         /* No warning for a constexpr function or constructor call result
            that is a constant. */
         tblock->suppress_warning = TRUE;
@@ -20226,7 +20229,7 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
     } else {
       /* Non-lvalue cases. */
       if (is_variable_node(expr)) {
-        if (expr->variant.variable->source_corresp.name == NULL) {
+        if (node_variable(expr)->source_corresp.name == NULL) {
           /* An unnamed variable is a temporary.  Assume that such a thing is
              not changed in the "vars_can_change" mode.  This is important,
              because if the expression has been assigned to a temporary once,
@@ -20264,7 +20267,7 @@ sets tblock->result to TRUE and terminates the traversal if expr is an
 enk_variable node that refers to a variable in a local scope.
 */
 {
-  if (is_variable_node(expr) && !in_file_scope(expr->variant.variable)) {
+  if (is_variable_node(expr) && !in_file_scope(node_variable(expr))) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -20459,7 +20462,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
         an_expr_node_ptr op1 = node->variant.operation.operands;
         a_routine_ptr    rout = routine_from_function_expr(op1);
         if (rout == NULL && is_constant_node(op1)) {
-          a_constant_ptr con = op1->variant.constant;
+          a_constant_ptr con = node_constant(op1);
           if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
               con->variant.ptr_to_member.is_function_ptr) {
             /* Handle pointer-to-member calls. */

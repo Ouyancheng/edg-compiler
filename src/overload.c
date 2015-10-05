@@ -3947,8 +3947,8 @@ it is always NULL.
                arg_operand != NULL &&
                is_expression_operand(arg_operand) &&
                is_variable_node(arg_operand->variant.expression) &&
-               arg_operand->variant.expression->variant.variable->
-                                                           is_this_parameter &&
+               node_variable(arg_operand->variant.expression)
+                                                         ->is_this_parameter &&
                !is_rvalue_ref &&
                is_template_param_type(param_type) &&
                !is_qualified_type(param_type)) {
@@ -8494,14 +8494,14 @@ an argument of a call in gpp mode even though the standard says it's not.
            Note that conv_expr_function_designator_to_ptr_to_function forces
            such functions to be (value-)dependent. */
         if (is_constant_node(op1) &&
-            op1->variant.constant->kind ==
+            node_constant(op1)->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
           result = TRUE;
         }  /* if */
       }  /* if */
       if (potential_this != NULL &&
           is_variable_node(potential_this) &&
-          potential_this->variant.variable->is_this_parameter) {
+          node_variable(potential_this)->is_this_parameter) {
         result = TRUE;
       }  /* if */
     }  /* if */
@@ -9787,9 +9787,9 @@ an expression like "&(p->f)" appearing in an unevaluated context).
       is_constant_node(stripped_selector_expr) &&
       is_constant_node(stripped_orig_expr) &&
       !is_glvalue_node(stripped_orig_expr) &&
-      (stripped_selector_expr->variant.constant->kind ==
+      (node_constant(stripped_selector_expr)->kind ==
                                    (a_constant_repr_kind)ck_template_param ||
-       stripped_orig_expr->variant.constant->kind ==
+       node_constant(stripped_orig_expr)->kind ==
                                    (a_constant_repr_kind)ck_template_param)) {
     /* The operation is based on constants, and at least one of those
        is a ck_template_param, so build an expression and later put that
@@ -9798,7 +9798,7 @@ an expression like "&(p->f)" appearing in an unevaluated context).
     template_constant = TRUE;
   } else if (!is_glvalue_node(stripped_orig_expr) &&
              is_constant_node(stripped_orig_expr) &&
-             stripped_orig_expr->variant.constant->kind !=
+             node_constant(stripped_orig_expr)->kind !=
                                    (a_constant_repr_kind)ck_template_param &&
              current_mode_allows_dot_static_folding(stripped_selector_expr) &&
              !is_dependent_selection_first_operand(is_arrow_operator,
@@ -9818,7 +9818,7 @@ an expression like "&(p->f)" appearing in an unevaluated context).
                     !node_has_side_effects(stripped_selector_expr,
                                            (a_boolean *)NULL) ||
                     is_error_node(stripped_selector_expr));
-    make_constant_operand(stripped_orig_expr->variant.constant, operand);
+    make_constant_operand(node_constant(stripped_orig_expr), operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
     if (curr_il_region_number == file_scope_region_number &&
@@ -10676,7 +10676,7 @@ is not considered to match.  For "this" in a prototype instantiation
     operand_expr = skip_parens(operand->variant.expression);
     if (is_variable_node(operand_expr)) {
       /* The operand is a prvalue that is the value of a simple variable. */
-      operand_var = operand_expr->variant.variable;
+      operand_var = node_variable(operand_expr);
       if (variable_this_exists_full(&this_var, (a_type_ptr *)NULL,
                                     /*allow_lambda_this=*/FALSE,
                                     (a_source_position *)NULL) &&
@@ -19390,8 +19390,7 @@ happen only in C++ mode.
                                            class_type,
                                            &source_operand->position);
         set_dynamic_init_constant(
-                     dip,
-                     alloc_unshared_constant(arg_expr_list->variant.constant));
+                  dip, alloc_unshared_constant(node_constant(arg_expr_list)));
       } else {
         /* Use a dik_expression entry to do a bitwise copy. */
         dip = alloc_dynamic_init_possibly_with_dtor(
@@ -20178,7 +20177,7 @@ The type of the operand will be updated if necessary.
   if (is_expression_operand(operand)) {
     expr = skip_parens(operand->variant.expression);
     if (is_variable_node(expr)) {
-      var = expr->variant.variable;
+      var = node_variable(expr);
     }  /* if */
   }  /* if */
   if (var != NULL) {
@@ -23452,7 +23451,7 @@ Return TRUE if the operand is reference to a packed field in GNU mode.
     if (is_operation_node(expr) &&
         (node_operator_is(expr, eok_dot_field) ||
          node_operator_is(expr, eok_points_to_field))) {
-      a_field_ptr field= expr->variant.operation.operands->next->variant.field;
+      a_field_ptr field = node_field(expr->variant.operation.operands->next);
       if (field->is_packed ||
           parent_class_of(field)->variant.class_struct_union.is_packed) {
         is_packed_field = TRUE;

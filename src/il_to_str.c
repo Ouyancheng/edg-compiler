@@ -4699,8 +4699,8 @@ it represents a backing expression for the floating-point constant value.
          arg = expr->variant.operation.operands->next,
          is_gnu_builtin_function(rp) &&
          is_constant_node(arg) &&
-         arg->variant.constant->kind == (a_constant_repr_kind)ck_address &&
-         (string_con = arg->variant.constant->variant.address.variant.constant,
+         node_constant(arg)->kind == (a_constant_repr_kind)ck_address &&
+         (string_con = node_constant(arg)->variant.address.variant.constant,
           string_con->kind == (a_constant_repr_kind)ck_string))) {
       /* NaNs can have various bit patterns; to most accurately recreate
          this particular NaN pattern, see if the NaN constant has a backing
@@ -4926,8 +4926,7 @@ on every expression.
                      is_operation_node(operand) &&
                      node_operator_is(operand, eok_lvalue) &&
                      is_constant_node(operand->variant.operation.operands) &&
-                     (con = operand->variant.operation.operands
-                                                         ->variant.constant)
+                     (con = node_constant(operand->variant.operation.operands))
                            ->kind == (a_constant_repr_kind)ck_template_param &&
                      (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
@@ -4941,18 +4940,18 @@ on every expression.
         }
         break;
       case enk_constant:
-        form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
+        form_constant(node_constant(expr), /*need_parens=*/TRUE, octl);
         break;
       case enk_variable:
-        form_name(&expr->variant.variable->source_corresp,
+        form_name(&node_variable(expr)->source_corresp,
                   (an_il_entry_kind)iek_variable, octl);
         break;
       case enk_routine:
-        form_name(&expr->variant.routine.ptr->source_corresp,
+        form_name(&node_routine(expr)->source_corresp,
                   (an_il_entry_kind)iek_routine, octl);
         break;
       case enk_field:
-        form_name(&expr->variant.field->source_corresp,
+        form_name(&node_field(expr)->source_corresp,
                   (an_il_entry_kind)iek_field, octl);
         break;
       case enk_temp_init:

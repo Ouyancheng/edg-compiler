@@ -1524,7 +1524,7 @@ specified with the custom AttributeUsage attribute described by msap.
       is_constant_node(msap->variant.custom_info.args) &&
       is_cli_type_of_kind(msap->variant.custom_info.args->type,
                           csk_system_attribute_targets)) {
-    con = msap->variant.custom_info.args->variant.constant;
+    con = node_constant(msap->variant.custom_info.args);
     if (cppcx_enabled) {
       if (!int_constant_is_signed(con)) {
         a_cppcx_attribute_target cppcxat;
@@ -1558,7 +1558,7 @@ specified with the custom AttributeUsage attribute described by msap.
       a_const_char *name =
                          unmangled_name_of(&named_arg->field->source_corresp);
       check_assertion(name != NULL && is_constant_node(named_arg->expression));
-      con = named_arg->expression->variant.constant;
+      con = node_constant(named_arg->expression);
       if (is_bool_type(con->type) && strcmp(name, "AllowMultiple") == 0) {
         check_assertion(int_constant_is_signed(con));
         attribute_usage->allow_multiple =

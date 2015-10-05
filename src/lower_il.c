@@ -649,10 +649,10 @@ that an insertion will be made.
       an_expr_node_ptr second_op = first_op->next;
       an_expr_node_ptr other_op = NULL;
       if (first_op->kind == (an_expr_node_kind)enk_constant) {
-        con = first_op->variant.constant;
+        con = node_constant(first_op);
         other_op = second_op;
       } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
-        con = second_op->variant.constant;
+        con = node_constant(second_op);
         other_op = first_op;
       }  /* if */
       if (con != NULL) {
@@ -1539,7 +1539,7 @@ version of a pointer to member function constant.
   a_boolean is_pmf_con = FALSE;
 
   if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
+    a_variable_ptr var = node_variable(expr);
     if (!has_name(var) &&
         /* Variables for constants are initialized.  Temporaries are not. */
         var->init_kind == (an_init_kind)initk_static &&
@@ -2115,7 +2115,7 @@ The result is an rvalue.
   /* Make the expression node for the field. */
   field_node = alloc_expr_node((an_expr_node_kind)enk_field);
   field_node->type = field->type;
-  field_node->variant.field = field;
+  node_field(field_node) = field;
   node->next = field_node;
   /* The selected field is an rvalue and therefore has no cv-qualifiers. */
   selection_type = prvalue_type(field->type);
@@ -2143,7 +2143,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
      unions. */
   for (;;) {
     op2 = node->variant.operation.operands->next;
-    field = op2->variant.field;
+    field = node_field(op2);
     /* See if the field is from an anonymous union. */
     field_class = parent_class_of(field);
     ctsp = field_class->variant.class_struct_union.extra_info;
@@ -2354,7 +2354,7 @@ is not lowered -- but needs to be -- see lower_ne_0_normalization.)
   make_zero_of_proper_type(get_underlying_type(expr->type), zero);
   expr->next = alloc_node_for_constant(zero);
   /* Make sure the zero is properly lowered by marking it not visited. */
-  mark_as_not_visited(expr->next->variant.constant);
+  mark_as_not_visited(node_constant(expr->next));
   release_local_constant(&zero);
   return expr;
 }  /* make_operands_for_ne_0 */
@@ -2376,7 +2376,7 @@ the first operand is a pointer-to-member value).
   check_assertion(zero_node != NULL && is_constant_node(zero_node));
   if (node_operator_type_kind_is(expr, tk_ptr_to_member)) {
     /* For the pointer-to-member case, the comparison must be lowered. */
-    mark_as_not_visited(zero_node->variant.constant);
+    mark_as_not_visited(node_constant(zero_node));
     /* Note that zero_node is not lowered; that allows the subroutine to
        generate better code. */
     lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
@@ -2809,8 +2809,7 @@ not to contain any top level base class casts.
     /* This test (for base class casts) only works on unlowered IL. */
     expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
     if (is_constant_node(expr) &&
-        check_for_troublesome_aggregate_constant(expr->variant.constant,
-                                           &temp)) {
+        check_for_troublesome_aggregate_constant(node_constant(expr), &temp)) {
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
@@ -3216,11 +3215,11 @@ FALSE and *temp_var set to NULL.
       /* The expression is an assignment */
       an_expr_node_ptr operand1 = expr->variant.operation.operands;
       if (is_variable_node(operand1) &&
-          operand1->variant.variable->source_corresp.name == NULL) {
+          node_variable(operand1)->source_corresp.name == NULL) {
         check_assertion(operand1->is_lvalue);
         /* The destination is a temporary. */
         is_assign_to_temp = TRUE;
-        *temp_var = operand1->variant.variable;
+        *temp_var = node_variable(operand1);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4605,11 +4604,11 @@ for string literals that must have the same address across translation units
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_constant &&
                   expr->is_lvalue);
-  string_con = expr->variant.constant;
+  string_con = node_constant(expr);
   check_assertion(string_con->kind == (a_constant_repr_kind)ck_string &&
                   string_con->variant.string.sequence_number != 0);
   set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-  expr->variant.variable = get_variable_for_string_constant(string_con);
+  node_variable(expr) = get_variable_for_string_constant(string_con);
 }  /* rewrite_string_constant_as_variable */
 
 
@@ -12730,17 +12729,15 @@ variables can have changed since the first reference.
 {
   an_expr_node_ptr comp_expr;
 
-  if (is_constant_node(expr) &&
-      expr->variant.constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+  if (is_constant_node(expr) && node_constant_is(expr, ck_ptr_to_member)) {
     a_targ_ptrdiff_t delta, idx, offset;
     a_routine_ptr    routine;
 
-    check_assertion(expr->variant.constant->
-                                        variant.ptr_to_member.is_function_ptr);
+    check_assertion(node_constant(expr)
+                                     ->variant.ptr_to_member.is_function_ptr);
     /* Constant case.  Generate an expression for the proper constant
        value of the proper component. */
-    repr_for_ptr_to_member_function_constant(expr->variant.constant,
-                                             &delta, &idx,
+    repr_for_ptr_to_member_function_constant(node_constant(expr), &delta, &idx,
                                              &routine, &offset);
 #if !IA64_ABI
     if (field == mptr_i_field) {
@@ -12782,14 +12779,14 @@ variables can have changed since the first reference.
     /* The general case -- not an unlowered pointer-to-member-function
        constant.  Generate a field selection. */
     if (is_constant_node(expr) &&
-        check_for_troublesome_aggregate_constant(expr->variant.constant,
+        check_for_troublesome_aggregate_constant(node_constant(expr),
                                                  &temp_var)) {
       /* This expression node is a pointer-to-member-function constant, which
          has become a struct represented by a ck_aggregate constant.  Since a
          ck_aggregate constant is not allowed here, use the value of a
          temporary variable initialized with the ck_aggregate constant. */
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-      expr->variant.variable = temp_var;
+      node_variable(expr) = temp_var;
     } else if (need_copy) {
       expr = make_reusable_copy(expr, vars_can_change);
     }  /* if */
@@ -12893,8 +12890,8 @@ first operand (but not the second) has been lowered already.
 #if !IA64_ABI_VARIANT_PMF
     if (is_constant_node(select1_node) &&
         constant_bool_value_known_at_compile_time(
-                                             select1_node->variant.constant) &&
-        is_false_constant(select1_node->variant.constant)) {
+                                               node_constant(select1_node)) &&
+        is_false_constant(node_constant(select1_node))) {
       /* If op1.i is zero, the whole expression reduces to
            0 == op2.i
          (or != for the ne_case).  This is a test against a null
@@ -13210,8 +13207,7 @@ case is handled properly.
   if (string_literals_are_const && is_operation_node(expr)) {
     operand = expr->variant.operation.operands;
     if (is_constant_node(operand) &&
-        operand->is_lvalue &&
-        operand->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+        operand->is_lvalue && node_constant_is(operand, ck_string)) {
       /* Remove const qualifier from expression and operand.  lower_constant
          will remove constness from the ck_string. */
       orig_expr_type = expr->type;
@@ -14163,7 +14159,7 @@ inlining and therefore yield different results.
 
   *is_non_null = FALSE;
   if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
+    a_constant_ptr con = node_constant(expr);
     is_constant_valued = TRUE;
     /* Don't treat string literals as constant, because if we generate C code
        and refer to the constant several times, the address of the string
@@ -14180,7 +14176,7 @@ inlining and therefore yield different results.
     /* A pointer to member function constant is constant. */
     is_constant_valued = TRUE;
   } else if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
+    a_variable_ptr var = node_variable(expr);
     if (expr->is_lvalue) {
       is_constant_valued = TRUE;
       /* We assume that variables other than extern variables have non-null
@@ -14298,7 +14294,7 @@ inlining and therefore yield different results.
                                                            other_vars_change,
                                                            this_cannot_be_null,
                                                            is_non_null);
-        if (!*is_non_null && operand->next->variant.field->offset != 0) {
+        if (!*is_non_null && node_field(operand->next)->offset != 0) {
           /* If the field offset is non-zero, the entire expression will
              be non-zero even if the class address is zero. */
           *is_non_null = TRUE;
@@ -14330,7 +14326,7 @@ expression is known.  This routine does not investigate all possible cases
   if (is_constant_node(expr)) {
     /* A constant expression: See if the constant has a known boolean
        control value. */
-    a_constant_ptr con = expr->variant.constant;
+    a_constant_ptr con = node_constant(expr);
     if (constant_bool_value_known_at_compile_time(con)) {
       *value = !is_false_constant(con);
       value_is_known = TRUE;
@@ -14649,7 +14645,7 @@ The given node is an eok_assign node.  Lower the node if needed.
                           innermost_function_scope->variant.routine.parameters;
           if (operand_node->kind == (an_expr_node_kind)enk_variable &&
               operand_node->is_lvalue &&
-              operand_node->variant.variable == this_param_var) {
+              node_variable(operand_node) == this_param_var) {
             /* This is an assignment to "this".  Add the wrapper code (to
                initialize base classes, etc.) following the assignment to
                "this".  Add a comma expression on top that produces the same
@@ -14831,7 +14827,7 @@ If we're in a non-constant aggregate initialization, search for that first.
       check_assertion(identical_types_ignoring_qualifiers(ctor_init_this->type,
                                                           expr->type));
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-      expr->variant.variable = ctor_init_this;
+      node_variable(expr) = ctor_init_this;
     } else {
       unexpected_condition();
     }  /* if */
@@ -14852,7 +14848,7 @@ wrapper routine if applicable.
   a_boolean         wrapper_needed = FALSE;
 
   check_assertion(is_variable_node(expr));
-  var = expr->variant.variable;
+  var = node_variable(expr);
   check_assertion(var_has_thread_storage_duration(var));
   if (var->storage_class == (a_storage_class)sc_extern) {
     /* If the variable is defined in another translation unit, a wrapper is
@@ -15076,14 +15072,14 @@ cast.  See lower_expr for typical invocation.
     case enk_variable:
 #if MINIMAL_INLINING
       if (expr->is_lvalue &&
-          (expr->variant.variable->is_parameter ||
-           expr->variant.variable->is_handler_param)) {
+          (node_variable(expr)->is_parameter ||
+           node_variable(expr)->is_handler_param)) {
         /* Set flag indicating that this parameter is used as an lvalue. */
-        expr->variant.variable->param_used_as_lvalue = TRUE;
+        node_variable(expr)->param_used_as_lvalue = TRUE;
       }  /* if */
 #endif /* MINIMAL_INLINING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-      if (expr->variant.variable->is_vla && expr->is_lvalue) {
+      if (node_variable(expr)->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used. */
         lower_vla_variable_lvalue(expr);
@@ -15094,7 +15090,7 @@ cast.  See lower_expr for typical invocation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* Do not add code here. */
       {
-        var = expr->variant.variable;
+        var = node_variable(expr);
         /* If the variable is a parameter that's passed by copy constructor,
            an implicit indirection must be added. */
         /* assoc_param_type is NULL on the "this" parameter variable and
@@ -15201,7 +15197,7 @@ cast.  See lower_expr for typical invocation.
                                                 (an_init_kind)initk_static,
                                                 new_con,
                                                 (a_dynamic_init_ptr)NULL);
-          expr->variant.variable = new_var;
+          node_variable(expr) = new_var;
         }  /* if */
       }  /* if */
       break;
@@ -15641,7 +15637,7 @@ cast.  See lower_expr for typical invocation.
       break;
     case enk_constant:
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_complex)  {
+      if (node_constant_is(expr,ck_complex))  {
         /* The lowering of a complex constant results in an aggregate constant,
            which needs special treatment (much like the pointer-to-member case
            below). */
@@ -15650,7 +15646,7 @@ cast.  See lower_expr for typical invocation.
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
       /* Do not insert code here. */
       {
-        a_constant_ptr con = expr->variant.constant;
+        a_constant_ptr con = node_constant(expr);
         if (con->kind == (a_constant_repr_kind)ck_string && expr->is_lvalue) {
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
           if (con->variant.string.sequence_number != 0) {
@@ -15689,7 +15685,7 @@ cast.  See lower_expr for typical invocation.
                of a temporary variable initialized with the ck_aggregate
                constant. */
             set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-            expr->variant.variable = temp_var;
+            node_variable(expr) = temp_var;
             /* Note that the type will be lowered to the proper struct type.
                The const on the variable type won't be there, but that's
                correct; it should be dropped because the reference is an
@@ -16046,18 +16042,18 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
   if (is_constant_node(expr) &&
-      constant_bool_value_known_at_compile_time(expr->variant.constant)) {
+      constant_bool_value_known_at_compile_time(node_constant(expr))) {
     /* The constant expression can be replaced by a 0 or 1 constant. */
     a_constant_ptr  norm_con = local_constant();
     set_integer_constant(norm_con,
                          (a_host_large_integer)
-                                    !is_false_constant(expr->variant.constant),
+                                      !is_false_constant(node_constant(expr)),
                          (an_integer_kind)ik_int);
 #if RECORD_BACKING_EXPRS_WITH_IL_LOWERING
-    if (expr->variant.constant->expr != NULL) {
+    if (node_constant(expr)->expr != NULL) {
       /* Transfer the backing expression to the normalized constant. */
       an_expr_node_ptr backing_expr;
-      if (constant_is_shareable(expr->variant.constant)) {
+      if (constant_is_shareable(node_constant(expr))) {
         /* In a case like an enumeration constant, the constant has an
            expression that's really the definition of the value of the constant
            instead of a normal backing expression.  We don't want to point to
@@ -16065,18 +16061,17 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
            us two constants pointing to the same expression, which is not
            allowed), so switch to a backing expression that is the value
            of the shareable (e.g., enumeration) constant. */
-        backing_expr =
-                     alloc_node_for_allocated_constant(expr->variant.constant);
+        backing_expr = alloc_node_for_allocated_constant(node_constant(expr));
       } else {
         /* If the constant is not shareable, we can just reuse its backing
            expression as is, because we're abandoning the constant that
            pointed to it. */
-        backing_expr = expr->variant.constant->expr;
+        backing_expr = node_constant(expr)->expr;
       }  /* if */
       norm_con->expr = backing_expr;
     }  /* if */
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
-    expr->variant.constant = alloc_shareable_constant(norm_con);
+    node_constant(expr) = alloc_shareable_constant(norm_con);
     expr->type = norm_con->type;
     release_local_constant(&norm_con);
   } else {

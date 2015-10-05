@@ -489,7 +489,12 @@ consumption:
       of two nodes (the two nodes that were previously recorded in separate
       fields); and
   (3) the fields "position" (formerly "operator_position") and "expr_range"
-      have been moved to follow the top-level flags.
+      have been moved to follow the top-level flags; and
+  (4) the name_reference field has been moved to the variants for enk_field,
+      enk_variable, enk_routine, and enk_constant, and some existing fields
+      in the enk_routine variant are not recorded in name_reference instead;
+      new macros (node_constant, node_variable, etc.) are now used to access
+      entities referred to by the affected nodes.
 
 This is a significant IL CHANGE.
 

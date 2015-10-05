@@ -2028,7 +2028,7 @@ Typically, the same diagnostic is issued multiple times in the same expression
       check_assertion(is_variable_node(spiep->expr));
       pos_sy_diagnostic(es_remark, ec_unsequenced_use_of_variable,
                         &spiep->expr->expr_range.start,
-                        symbol_for(spiep->expr->variant.variable));
+                        symbol_for(node_variable(spiep->expr)));
     }  /* if */
     spiep->diagnostic_issued = TRUE;
   }  /* if */
@@ -2580,7 +2580,7 @@ as part of looking for unordered temp inits or unsequenced side-effects.
 process_side_effect:
             var_node = expr->variant.operation.operands;
             if (is_variable_node(var_node) &&
-                has_name(var_node->variant.variable)) {
+                has_name(node_variable(var_node))) {
               /* This expression modifies the value of a variable; allocate
                  a side-effect entry that captures this information and
                  see if it conflicts with any existing side-effects or uses
@@ -2593,7 +2593,7 @@ process_side_effect:
                  (though it would need to handle cases like
                  "(0 ? y : x ) = x++" where there are multiple lvalues). */
               check_assertion(var_node->is_lvalue);
-              spvep = alloc_seq_pt_var_entry(var_node->variant.variable);
+              spvep = alloc_seq_pt_var_entry(node_variable(var_node));
               spiep = alloc_sequence_info_entry(var_node);
               spiep->independent_of_value_computation =
                                               independent_of_value_computation;
@@ -2619,10 +2619,10 @@ process_side_effect:
       if (sequencing_diagnostics_enabled &&
           !tblock->set_unordered_on_dynamic_inits &&
           !expr->is_lvalue &&
-          has_name(expr->variant.variable)) {
+          has_name(node_variable(expr))) {
         /* Record a use of the variable in this expression. */
         spvep = seq_pt_entry_for_var(&tblock->seq_pt_var_list,
-                                     expr->variant.variable);
+                                     node_variable(expr));
         spiep = alloc_sequence_info_entry(expr);
         spiep->next = spvep->uses;
         spvep->uses = spiep;
@@ -3388,7 +3388,7 @@ Return TRUE if the given expression node is a bit-field extraction.
        (is_operation_node(node) &&
         (node_operator_is((node), eok_dot_field) ||
          node_operator_is((node), eok_points_to_field)) &&
-        (node)->variant.operation.operands->next->variant.field->is_bit_field);
+        node_field((node)->variant.operation.operands->next)->is_bit_field);
   return is_bit_field_extract;
 }  /* is_bit_field_extract_node */
 
@@ -3452,7 +3452,7 @@ called during lowering (as value category is known at that time).
                                   treat_as_potential_prvalue);
       }  /* if */
       expr_copy = field_lvalue_selection_expr(operand1_copy,
-                                              operand2->variant.field);
+                                              node_field(operand2));
       copy_node_value_category(expr, expr_copy);
     } else if (op == (an_expr_operator_kind)eok_question) {
       /* For a "?" operator, make reusable copies of all three operands,
@@ -3743,7 +3743,7 @@ cast in some modes.  orig_operand_expr can be NULL.
       }  /* switch */
       expr = expr->variant.operation.operands;
     } else if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
+      a_constant_ptr con = node_constant(expr);
       an_expr_node_ptr next_expr = NULL;
       if (con->kind == (a_constant_repr_kind)ck_template_param) {
         if (con->variant.template_param.kind ==
@@ -4181,9 +4181,9 @@ that has it.
         expr = expr->variant.operation.operands;
       }  /* if */
     } else if (is_constant_node(expr)) {
-      a_constant_ptr   con = expr->variant.constant;
+      a_constant_ptr   con = node_constant(expr);
       an_expr_node_ptr next_expr = NULL;
-      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (constant_is(con, ck_template_param)) {
         if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
           next_expr = expr_node_from_tpck_expression(con);
@@ -4194,7 +4194,7 @@ that has it.
              case we can skip the cast and continue with the expression. */
           a_constant_ptr cast_op_con =
                                   con->variant.template_param.variant.constant;
-          if (cast_op_con->kind == (a_constant_repr_kind)ck_template_param &&
+          if (constant_is(cast_op_con, ck_template_param) &&
               cast_op_con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
             next_expr = expr_node_from_tpck_expression(cast_op_con);
@@ -4594,14 +4594,14 @@ expression (which is returned in *op_expr).
        see if we have a uuidof address. */
     expr = expr->variant.operation.operands;
     if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_address) {
+      a_constant_ptr con = node_constant(expr);
+      if (constant_is(con, ck_address)) {
         if (con->variant.address.kind == (an_address_base_kind)abk_uuidof) {
           is_uuidof = TRUE;
           *is_type = TRUE;
           *type = con->variant.address.variant.type;
         }  /* if */
-      } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      } else if (constant_is(con, ck_template_param)) {
         if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_uuidof) {
           is_uuidof = TRUE;
@@ -4703,8 +4703,8 @@ template argument list being tried.
   } else if (is_constant_node(expr)) {
     /* tpck_sizeof, tpck_alignof, tpck_typeid, or tpck_noexcept constant form.
        tpck_uuidof gets handled above and doesn't get here. */
-    a_constant_ptr con = expr->variant.constant;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+    a_constant_ptr con = node_constant(expr);
+    check_assertion(constant_is(con, ck_template_param) &&
                     (con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_sizeof ||
                      con->variant.template_param.kind ==
@@ -5234,32 +5234,36 @@ that extra work.
 
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
-      node->name_reference = find_allocated_name_reference(
-                                    &node->variant.routine.ptr->source_corresp,
-                                    &operand->name_reference);
+      node->variant.routine.name_reference =
+                                  find_allocated_name_reference(
+                                          &node_routine(node)->source_corresp,
+                                          &operand->name_reference);
     } else if (is_variable_node(node)) {
-      node->name_reference = find_allocated_name_reference(
-                                       &node->variant.variable->source_corresp,
-                                       &operand->name_reference);
+      node->variant.variable.name_reference =
+                                  find_allocated_name_reference(
+                                         &node_variable(node)->source_corresp,
+                                         &operand->name_reference);
     } else if (is_constant_node(node)) {
       a_template_param_constant_kind kind;
-      if (is_enum_constant(node->variant.constant) ||
-          (node->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-           ((kind = node->variant.constant->variant.template_param.kind),
+      a_constant_ptr                 con = node_constant(node);
+      if (is_enum_constant(con) ||
+          (constant_is(con, ck_template_param) &&
+           ((kind = con->variant.template_param.kind),
             (kind == (a_template_param_constant_kind)tpck_member ||
              kind == (a_template_param_constant_kind)tpck_destructor ||
              kind == (a_template_param_constant_kind)tpck_unknown_function ||
              kind == (a_template_param_constant_kind)tpck_address ||
              kind == (a_template_param_constant_kind)tpck_template_ref)))) {
-        node->name_reference = find_allocated_name_reference(
-                                       &node->variant.constant->source_corresp,
-                                       &operand->name_reference);
+        node->variant.constant.name_reference =
+                                  find_allocated_name_reference(
+                                                    &con->source_corresp,
+                                                    &operand->name_reference);
       }  /* if */
     } else if (node->kind == (an_expr_node_kind)enk_field) {
-      node->name_reference = find_allocated_name_reference(
-                                       &node->variant.field->source_corresp,
-                                       &operand->name_reference);
+      node->variant.field.name_reference =
+                                  find_allocated_name_reference(
+                                            &node_field(node)->source_corresp,
+                                            &operand->name_reference);
     } else if (is_operation_node(node)) {
       an_expr_operator_kind op = node->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_dot_vacuous_destructor_call ||
@@ -5268,11 +5272,17 @@ that extra work.
            reference.  If one is found, and the type is a named typeref or
            class type (i.e., not a built-in type), attach a name reference
            to the node. */
-        a_type_ptr dtor_name_type = operand->name_reference.destructor_type;
+        a_type_ptr dtor_name_type;
+        dtor_name_type = operand->name_reference.variant.destructor_type;
         if (dtor_name_type != NULL && has_name(dtor_name_type)) {
-          node->name_reference = find_allocated_name_reference(
-                                       &dtor_name_type->source_corresp,
-                                       &operand->name_reference);
+          an_expr_node_ptr  vacuous_dtor_node =
+                              alloc_expr_node((an_expr_node_kind)enk_routine);
+          vacuous_dtor_node->type = void_type();
+          vacuous_dtor_node->variant.routine.name_reference =
+                find_allocated_name_reference(&dtor_name_type->source_corresp,
+                                              &operand->name_reference);
+          check_assertion(node->variant.operation.operands != NULL);
+          node->variant.operation.operands->next = vacuous_dtor_node;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5487,10 +5497,11 @@ Extract the constant value from the operand *operand and place it in
         a_constant_ptr   shared_constant =
                           alloc_shareable_constant(&operand->variant.constant);
         an_expr_node_ptr expr = alloc_node_for_constant(shared_constant);
-        expr->name_reference = find_allocated_name_reference(
+        expr->variant.constant.name_reference =
+                                         find_allocated_name_reference(
                                               &shared_constant->source_corresp,
                                               &operand->name_reference);
-        if (expr->name_reference != NULL) {
+        if (expr->variant.constant.name_reference != NULL) {
           constant->expr = expr;
           /* If this operand represents the definition of a named constant
              (enumerator or non-standard member constant), the shared
@@ -7197,8 +7208,7 @@ literals, that is convertible to a C++/CLI System::String^.
     /* The expression is a string literal that has decayed to a pointer. */
     is_string_lit = TRUE;
   } else if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_string) {
+    if (node_constant_is(expr, ck_string)) {
       /* The node is an undecayed string literal. */
       is_string_lit = TRUE;
     }  /* if */
@@ -7636,7 +7646,7 @@ to indicate that.
          and copy the result to a new constant.  Since we are in a
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
-      copy_constant(node->variant.constant, local_con);
+      copy_constant(node_constant(node), local_con);
       if (within_expr_processing) {
         expr_type_change_constant(local_con, new_type, is_implicit_cast,
                                   check_cast_access,
@@ -7671,8 +7681,8 @@ to indicate that.
     } else {
       /* The operation was successfully folded to a constant. */
       check_assertion(is_constant_node(node));
-      node->variant.constant = alloc_shareable_constant(local_con);
-      node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
+      node_constant(node) = alloc_shareable_constant(local_con);
+      node_constant(node)->is_reinterpret_cast = is_reinterpret_cast;
       node->type = new_type;
     }  /* if */
   }  /* if */
@@ -8776,7 +8786,7 @@ desired.
   field_node = node->variant.operation.operands->next;
   check_assertion(field_node != NULL &&
                   field_node->kind == (an_expr_node_kind)enk_field);
-  field = field_node->variant.field;
+  field = node_field(field_node);
   field_size = field->bit_size;
   type = node->type;
   if (!is_glvalue_node(node)) type = prvalue_type(type);
@@ -8905,7 +8915,7 @@ case it sets *p_type to the bit-field's promoted type.
       switch (node->variant.operation.kind) {
         case eok_dot_field:
         case eok_points_to_field:
-          fp = node->variant.operation.operands->next->variant.field;
+          fp = node_field(node->variant.operation.operands->next);
           if (fp->is_bit_field) {
             /* The given expression was a bit-field expression.  Determine its
                promoted type. */
@@ -10008,11 +10018,11 @@ the null pointer constant returned in *operand_constant.
       /* The operand is a comma expression. */
       expr = skip_parens(expr->variant.operation.operands->next);
       if (is_constant_node(expr) &&
-          is_or_might_be_null_pointer_constant(expr->variant.constant)) {
+          is_or_might_be_null_pointer_constant(node_constant(expr))) {
         /* The operand is a comma node with a second operand that is a
            null pointer constant, e.g., (x, 0). */
         *operand_is_constant = TRUE;
-        *operand_constant = expr->variant.constant;
+        *operand_constant = node_constant(expr);
         if (con_expr != NULL) *con_expr = expr;
       }  /* if */
     }  /* if */
@@ -10937,13 +10947,14 @@ member function.  If no nonreal member is found, return NULL.
   *is_function = FALSE;
   if (!expr->is_lvalue) {
     if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
+      a_constant_ptr con = node_constant(expr);
       if (is_nonreal_member_constant(con, is_function)) {
         /* Add an eok_lvalue node to make the nonreal member an lvalue. */
         an_expr_node_ptr new_expr = alloc_node_for_constant(con);
         check_assertion(!new_expr->is_lvalue);
         new_expr->rescan_info = expr->rescan_info;
-        new_expr->name_reference = expr->name_reference;
+        new_expr->variant.constant.name_reference =
+                                        expr->variant.constant.name_reference;
         new_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                              new_expr->type, new_expr);
         overwrite_node(expr, new_expr);
@@ -11173,7 +11184,7 @@ when gnu_version would ordinarily indicate they should not be.
            lvalue selection. */
         an_expr_node_ptr texpr = expr->variant.operation.operands;
         an_expr_node_ptr texpr2 = texpr->next;
-        a_field_ptr      field = texpr2->variant.field;
+        a_field_ptr      field = node_field(texpr2);
         an_operand       class_operand;
         texpr->next = NULL;
         /* Turn the first operand, the class object, into an lvalue. */
@@ -11800,7 +11811,7 @@ or floating type).
   if (is_expression_operand(operand)) {
     /* Check if the expression is a constant zero. */
     node = skip_parens(operand->variant.expression);
-    if (is_constant_node(node) && is_zero_constant(node->variant.constant)) {
+    if (is_constant_node(node) && is_zero_constant(node_constant(node))) {
       is_constant_zero = TRUE;
     }  /* if */
   } else if (is_constant_operand(operand)) {
@@ -11825,7 +11836,7 @@ to rule out certain cases before calling this routine.
   if (is_expression_operand(operand)) {
     /* Check if the expression is a false constant. */
     node = skip_parens(operand->variant.expression);
-    if (is_constant_node(node) && is_false_constant(node->variant.constant)) {
+    if (is_constant_node(node) && is_false_constant(node_constant(node))) {
       is_constant_false = TRUE;
     }  /* if */
   } else if (is_constant_operand(operand)) {
@@ -12016,8 +12027,8 @@ the subscript case).
     ptr_node = skip_parens(ptr_node);
     sub_node = skip_parens(sub_node);
     if (is_constant_node(sub_node)) {
-      sub_con = sub_node->variant.constant;
-      if (sub_con->kind == (a_constant_repr_kind)ck_integer) {
+      sub_con = node_constant(sub_node);
+      if (constant_is(sub_con, ck_integer)) {
         /* The subscript is an integer constant.  The other operand should
            have type "pointer to x" (the test rules out error cases). */
         ptr_type = ptr_node->type;
@@ -12026,7 +12037,7 @@ the subscript case).
              that. */
           underlying_type = NULL;
           if (is_constant_node(ptr_node)) {
-            a_constant_ptr con = ptr_node->variant.constant;
+            a_constant_ptr con = node_constant(ptr_node);
             a_constant_ptr scon;
             if (constant_is_pointer_to_string_literal(con, &scon)) {
               /* The constant is a string literal decayed or cast to a
@@ -14196,7 +14207,7 @@ A variable surrounded by parentheses still counts as the simple variable.
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_variable_node(expr) && expr->is_lvalue) {
       result = TRUE;
-      *var = expr->variant.variable;
+      *var = node_variable(expr);
     }  /* if */
   }  /* if */
   return result;
@@ -14719,7 +14730,7 @@ with extra source positions).
   /* Make the expression node. */
   node = alloc_expr_node((an_expr_node_kind)enk_field);
   node->type = field->type;
-  node->variant.field = field;
+  node_field(node) = field;
   /* Make the operand with the node. */
   make_expression_operand(node, result);
   result->symbol = proj_field_sym;
@@ -15570,8 +15581,9 @@ a function expression to which the argument list (including the implicit
               node_operator_is(node, eok_base_class_cast) ||
               node_operator_is(node, eok_derived_class_cast));
              node = skip_parens(node->variant.operation.operands)) {}
-        if (is_variable_node(node) && node->variant.variable ==
-              innermost_function_scope->variant.routine.this_param_variable) {
+        if (is_variable_node(node) &&
+            node_variable(node) == innermost_function_scope
+                                      ->variant.routine.this_param_variable) {
           /* The call's object expression uses the constructor/destructor's
              "this" pointer.  The final check is whether the final overrider
              of the function being called is a pure virtual function. */
@@ -16308,7 +16320,7 @@ and if so, return TRUE.
      A case like that could be handled, but it's tricky, since the
      subexpressions could have different types. */
   if (is_bit_field_extract_node(node)) {
-    field = node->variant.operation.operands->next->variant.field;
+    field = node_field(node->variant.operation.operands->next);
     if (is_bit_field_whose_address_can_be_taken(field)) {
       /* The bit field is one whose size and alignment are such that its
          address can be taken. */
@@ -16363,7 +16375,7 @@ considered to match.
     check_assertion(innermost_function_scope != NULL);
     this_var = innermost_function_scope->variant.routine.this_param_variable;
     check_assertion(this_var != NULL);
-    result = (expr->variant.variable == this_var);
+    result = (node_variable(expr) == this_var);
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      operand1 = expr->variant.operation.operands;
@@ -16466,8 +16478,7 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
       tblock->suppress_subtree_walk = TRUE;
     } else if (node_operator_is(expr, eok_dot_field) ||
                node_operator_is(expr, eok_points_to_field)) {
-      if (expr->variant.operation.operands->next->variant.field->
-                                                                is_initonly) {
+      if (node_field(expr->variant.operation.operands->next)->is_initonly) {
         /* A reference to a nonstatic initonly field. */
         class_instance_node = expr->variant.operation.operands;
         initonly_field_node = expr->variant.operation.operands->next;
@@ -16483,8 +16494,7 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
     } else if (node_operator_is(expr, eok_dot_static) ||
                node_operator_is(expr, eok_points_to_static)) {
       if (is_variable_node(expr->variant.operation.operands->next) &&
-          expr->variant.operation.operands->next->variant.variable->
-                                                                is_initonly) {
+          node_variable(expr->variant.operation.operands->next)->is_initonly) {
         /* A reference to a static initonly field of the form x.y or p->y. */
         initonly_field_node = expr->variant.operation.operands->next;
       }  /* if */
@@ -16492,7 +16502,7 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
          initonly field selection. */
       tblock->suppress_subtree_walk = TRUE;
     }  /* if */
-  } else if (is_variable_node(expr) && expr->variant.variable->is_initonly) {
+  } else if (is_variable_node(expr) && node_variable(expr)->is_initonly) {
     /* A direct reference to a static initonly field. */
     initonly_field_node = expr;
   }  /* if */
@@ -16503,7 +16513,7 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
       /* Skip any initonly field selections that are valid lvalue uses within
          the innermost function scope. */
       a_routine_ptr routine = current_routine_entry();
-      if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+      if (special_kind_is(routine, sfk_constructor)) {
         if (is_field_node(initonly_field_node) &&
             is_this_parameter_expr_in_current_scope(class_instance_node)) {
           /* The expression is a nonstatic initonly field selection being
@@ -16511,12 +16521,11 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
              constructor.  This is a valid lvalue use of the field. */
           skip_node = TRUE;
         }  /* if */
-      } else if (routine->special_kind ==
-                            (a_special_function_kind)sfk_static_constructor) {
+      } else if (special_kind_is(routine, sfk_static_constructor)) {
         if (is_variable_node(initonly_field_node) &&
-            same_entities(parent_class_of(routine),
-                          parent_class_of(initonly_field_node->
-                                                         variant.variable))) {
+            same_entities(
+                       parent_class_of(routine),
+                       parent_class_of(node_variable(initonly_field_node)))) {
           /* The expression is a static initonly field selection being
              evaluated within the context of its parent class' static
              constructor.  This is a valid lvalue use of the field. */
@@ -16638,7 +16647,7 @@ address in addition to the cases usually covered.
     is_constant_addr = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
+    a_variable_ptr var = node_variable(expr);
     if (var->decl_modifiers & DM_DLLIMPORT) {
       is_constant_addr = TRUE;
       set_variable_address_constant(var, conaddr,
@@ -16684,8 +16693,8 @@ we test for a limited set of cases, and only lvalues.
           node_operator_is(op2, eok_lvalue)) {
         an_expr_node_ptr mnode = op2->variant.operation.operands;
         if (is_constant_node(mnode)) {
-          a_constant_ptr mcon = mnode->variant.constant;
-          if (mcon->kind == (a_constant_repr_kind)ck_template_param &&
+          a_constant_ptr mcon = node_constant(mnode);
+          if (constant_is(mcon, ck_template_param) &&
               mcon->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
             result = TRUE;
@@ -16788,8 +16797,8 @@ explicit "&" operator in the source and *operator_position gives its position.
             if (is_operation_node(test_expr) &&
                 node_operator_is(test_expr, eok_points_to_field) &&
                 is_constant_node(test_expr->variant.operation.operands) &&
-                test_expr->variant.operation.operands->variant.constant->kind==
-                                     (a_constant_repr_kind)ck_template_param) {
+                node_constant_is(test_expr->variant.operation.operands,
+                                 ck_template_param)) {
               /* A template-dependent field selection whose first operand
                  is a dependent address.  This comes up in offsetof.
                  Create a tpck_expression constant for "&" applied to
@@ -17210,7 +17219,7 @@ from being re-introduced once lowering has eliminated it).
      case. */
   if (is_variable_node(node)) {
     /* The value of a variable.  Change it to an lvalue for the variable. */
-    a_variable_ptr var = node->variant.variable;
+    a_variable_ptr var = node_variable(node);
     possible = TRUE;
     /* Re-fetch the variable type, because cv-qualifiers might have been
        dropped in converting it to an rvalue. */
@@ -17483,7 +17492,8 @@ from being re-introduced once lowering has eliminated it).
           }  /* if */
           if (possible) {
             if (op == (an_expr_operator_kind)eok_dot_field) {
-              lvalue_type = make_field_selection_type(op2->variant.field,
+              lvalue_type = make_field_selection_type(
+                                              node_field(op2),
                                               get_type_qualifiers(class_type));
             } else {
               check_assertion(op == (an_expr_operator_kind)eok_pm_field);
@@ -17502,9 +17512,9 @@ from being re-introduced once lowering has eliminated it).
         if (is_pointer_type(op1->type)) {
           a_type_ptr class_type = type_pointed_to(op1->type);
           if (op == (an_expr_operator_kind)eok_points_to_field) {
-            lvalue_type = make_field_selection_type(op2->variant.field,
-                                                    get_type_qualifiers(
-                                                                  class_type));
+            lvalue_type = make_field_selection_type(
+                                              node_field(op2),
+                                              get_type_qualifiers(class_type));
           } else {
             check_assertion(op == (an_expr_operator_kind)eok_pm_field);
             lvalue_type = make_pm_selection_type(class_type, op2->type);
@@ -17962,7 +17972,7 @@ If p_var is non-NULL and the expression is an lvalue for a variable,
   check_assertion(node->is_lvalue || is_error_node(node));
   if (is_variable_node(node)) {
     /* The expression is an lvalue for a variable. */
-    a_variable_ptr var = node->variant.variable;
+    a_variable_ptr var = node_variable(node);
     if (p_var != NULL) *p_var = var;
     /* See if the variable has a constant value known at compile time. */
     con_var_value = var_constant_value_full(var,
@@ -18118,12 +18128,12 @@ the value there, and return the address of the new constant.
       node_operator_is(expr, eok_base_class_cast)) {
     an_expr_node_ptr op1 = expr->variant.operation.operands;
     if (is_constant_node(op1) &&
-        op1->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
+        node_constant_is(op1, ck_aggregate)) {
       a_constant_ptr   addr_con = local_constant();
       a_base_class_ptr bcp = find_base_class_of(op1->type, expr->type);
       check_assertion(bcp != NULL);
       /* Make a temporary address so we can use constant_value_at_address. */
-      set_temporary_address_constant(op1->variant.constant, addr_con);
+      set_temporary_address_constant(node_constant(op1), addr_con);
       addr_con->variant.address.offset = bcp->offset;
       addr_con->type = make_pointer_type(expr->type);
       result = constant_value_at_address(addr_con,
@@ -18283,16 +18293,14 @@ it might produce an error).
             is_constant_node(op1) &&
             is_constant_node(op2) &&
             is_constant_node(op3)) {
-          a_constant_ptr con1 = op1->variant.constant;
+          a_constant_ptr con1 = node_constant(op1);
           if (constant_bool_value_known_at_compile_time(con1)) {
             /* The operation can be folded to the second or third operand. */
             an_expr_node_ptr result = is_false_constant(con1) ? op3 : op2;
-            con_expr_value = result->variant.constant;
-          } else if (con1->kind == (a_constant_repr_kind)ck_template_param ||
-                     op2->variant.constant->kind ==
-                                   (a_constant_repr_kind)ck_template_param ||
-                     op3->variant.constant->kind ==
-                                   (a_constant_repr_kind)ck_template_param) {
+            con_expr_value = node_constant(result);
+          } else if (constant_is(con1, ck_template_param) ||
+                     node_constant_is(op2, ck_template_param) ||
+                     node_constant_is(op3, ck_template_param)) {
             template_constant = TRUE;
           }  /* if */
         }  /* if */
@@ -18340,8 +18348,7 @@ it might produce an error).
             node->type = prvalue_node_type;
             processed = TRUE;
           } else if (allow_folding != NULL && is_constant_node(op1)) {
-            if (op1->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
+            if (node_constant_is(op1, ck_template_param)) {
               /* A dependent expression.  Treat it as a prvalue template
                  constant. */
               template_constant = TRUE;
@@ -18354,7 +18361,7 @@ it might produce an error).
                  a constant.  The Microsoft compiler accepts a unary *
                  applied to an address constant designating a variable with
                  a constant value. */
-              a_constant_ptr cp = op1->variant.constant;
+              a_constant_ptr cp = node_constant(op1);
               a_variable_ptr var;
               if (con_is_exact_addr_of_variable(cp, &var,
                                                /*array_decay_allowed=*/TRUE) &&
@@ -18392,8 +18399,8 @@ it might produce an error).
               /* Something like "abc"[1] can be folded to the character
                  value. */
               if (!strict_ansi_mode &&
-                  conv_subscript_in_string_to_char(op1->variant.constant,
-                                                   op2->variant.constant,
+                  conv_subscript_in_string_to_char(node_constant(op1),
+                                                   node_constant(op2),
                                                    result_con)) {
                 con_expr_value = alloc_shareable_constant(result_con);
               } else if (constexpr_enabled) {
@@ -18404,7 +18411,7 @@ it might produce an error).
                 a_boolean      did_not_fold;
                 an_error_code  error_detected;
                 binary_operation((an_expr_operator_kind)eok_padd,
-                                 op1->variant.constant, op2->variant.constant,
+                                 node_constant(op1), node_constant(op2),
                                  node->type, addr_con,
                                  /*constant_context=*/FALSE,
                                  /*evaluated_context=*/TRUE,
@@ -18447,7 +18454,7 @@ it might produce an error).
                a constant, do so. */
             check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL) ||
                             is_error_node(op1));
-            con_expr_value = op2->variant.constant;
+            con_expr_value = node_constant(op2);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
           node->type = prvalue_node_type;
@@ -18480,8 +18487,8 @@ it might produce an error).
             /* Both operands are now constant so fold to a constant result. */
             a_boolean did_not_fold;
             expr_binary_operation(op,
-                                  op1->variant.constant,
-                                  op2->variant.constant,
+                                  node_constant(op1),
+                                  node_constant(op2),
                                   op1->type,
                                   result_con,
                                   &did_not_fold,
@@ -18533,7 +18540,7 @@ it might produce an error).
           if (allow_folding != NULL && is_constant_node(op1)) {
             /* The operand is now constant so the overall expression is
                constant. */
-            con_expr_value = op1->variant.constant;
+            con_expr_value = node_constant(op1);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
           node->type = op1->type;
@@ -18551,7 +18558,7 @@ it might produce an error).
             /* The operand is now constant so try to fold the cast to a
                constant. */
             a_boolean did_not_fold;
-            copy_constant(op1->variant.constant, result_con);
+            copy_constant(node_constant(op1), result_con);
             expr_type_change_constant(result_con, prvalue_node_type,
                                       /*is_implicit_cast=*/FALSE,
                                       /*check_cast_access=*/FALSE,
@@ -18620,7 +18627,7 @@ lvalue_adjust:
                result directly, we'd just create another expression node below
                to return the constant, so we might as well use the one we
                have.) */
-            con_expr_value = op1->variant.constant;
+            con_expr_value = node_constant(op1);
             /* Note that in this case we don't record the expression for the
                constant.  It's an enk_constant node, which wouldn't be
                useful. */
@@ -18882,9 +18889,9 @@ cases so we don't do it here.
           test_node = strip_ref_indirect(test_node, /*parens_also=*/TRUE);
           possibly_constant_with_constexpr = TRUE;
           if (is_variable_node(test_node)) {
-            var = test_node->variant.variable;
+            var = node_variable(test_node);
           } else if (is_constant_node(test_node)) {
-            if (con_is_exact_addr_of_variable(test_node->variant.constant,
+            if (con_is_exact_addr_of_variable(node_constant(test_node),
                                               &var,
                                               /*array_decay_allowed=*/TRUE)) {
             }  /* if */
@@ -19097,8 +19104,7 @@ expression only if const_expr_okay is TRUE.
        make_lvalue_operand_from_compound_constant), and (b) the expression
        might be folded below by a call to fold_constexpr_expr. */
     expr = skip_parens(expr);
-    make_lvalue_operand_from_compound_constant(expr->variant.constant,
-                                               operand);
+    make_lvalue_operand_from_compound_constant(node_constant(expr), operand);
     /* Restore the source position in case we give an error. */
     restore_operand_details(operand, &orig_operand);
     expr = make_node_from_operand(operand);
@@ -19759,7 +19765,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
         routine_ptr = routine_and_node_from_function_expr(routine_expr,
                                                           &routine_node);
         if (routine_node != NULL) {
-          routine_ptr = routine_node->variant.routine.ptr;
+#if !DO_IL_LOWERING
+          a_name_reference_ptr  nrp = alloc_name_reference();
+#endif /* !DO_IL_LOWERING */
+          routine_ptr = node_routine(routine_node);
 #if !DO_IL_LOWERING
           /* Record the information about the property in the enk_routine
              node to indicate that the call resulted from a transformed
@@ -19776,8 +19785,9 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
             pedp = routine_ptr->variant.property_or_event_descr;
           }  /* if */
           check_assertion(pedp != NULL);
-          routine_node->variant.routine.property_or_event_descr = pedp;
-          routine_node->variant.routine.special_kind = (put_operand == NULL) ?
+          routine_node->variant.routine.name_reference = nrp;
+          nrp->variant.property_or_event_descr = pedp;
+          nrp->special_kind = (put_operand == NULL) ?
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
 #endif /* !DO_IL_LOWERING */
@@ -19947,10 +19957,12 @@ to TRUE and *result becomes an error operand.
                node to indicate that the call resulted from a transformed
                event reference rather than an explicit use of the event
                accessor. */
-            a_routine_ptr rp = opnd->variant.routine.ptr;
-            opnd->variant.routine.property_or_event_descr =
+            a_routine_ptr         rp = node_routine(opnd);
+            a_name_reference_ptr  nrp = alloc_name_reference();
+            opnd->variant.routine.name_reference = nrp;
+            nrp->variant.property_or_event_descr =
                                            rp->variant.property_or_event_descr;
-            opnd->variant.routine.special_kind = rp->special_kind;
+            nrp->special_kind = rp->special_kind;
           }  /* if */
         }  /* if */
 #endif /* !DO_IL_LOWERING */
@@ -20024,9 +20036,10 @@ selector expression used to designate the event.
       /* Record the information about the event in the enk_routine node to
          indicate that the call resulted from a transformed event reference
          rather than an explicit use of the event accessor. */
-      routine_node->variant.routine.property_or_event_descr = pedp;
-      routine_node->variant.routine.special_kind =
-                                      (a_special_function_kind)sfk_event_raise;
+      a_name_reference_ptr  nrp = alloc_name_reference();
+      routine_node->variant.routine.name_reference = nrp;
+      nrp->variant.property_or_event_descr = pedp;
+      nrp->special_kind = (a_special_function_kind)sfk_event_raise;
     }  /* if */
 #endif /* !DO_IL_LOWERING */
     if (selector != NULL) {
@@ -20673,7 +20686,7 @@ that identifies an object or a prvalue that is a pointer to an object.
       expr = expr->variant.operation.operands;
     }  /* while */
     if (is_variable_node(expr)) {
-      a_variable_ptr var = expr->variant.variable;
+      a_variable_ptr var = node_variable(expr);
       if (!var_has_static_or_thread_storage_duration(var)) {
         /* An lvalue for a nonstatic local variable or a parameter. */
         tblock->result = TRUE;

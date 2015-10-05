@@ -818,7 +818,7 @@ in parameter types of C++ mode functions.
       /* This entry represents a parameter variable fixup. */
       check_assertion(vfp->param_sym != NULL &&
                       vfp->param_sym->kind == (a_symbol_kind)sk_variable);
-      vfp->expr->variant.variable = vfp->param_sym->variant.variable.ptr;
+      node_variable(vfp->expr) = vfp->param_sym->variant.variable.ptr;
     }  /* if */
   }  /* for */
   /* On the second pass over the fixup list, create the VLA dimension

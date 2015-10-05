@@ -5802,7 +5802,7 @@ constexpr expansion, and the block provides context information.
       int_con_ptr = int_con;
     }  /* if */
   } else if (is_constant_node(int_op)) {
-    int_con_ptr = int_op->variant.constant;
+    int_con_ptr = node_constant(int_op);
   }  /* if */
   if (int_con_ptr != NULL &&
       constant_prvalue_pointer_full(ptr_op, ceblock, ptr_con,
@@ -5923,7 +5923,7 @@ a constexpr expansion, and the block provides context information.
       break;
     case enk_variable:
       /* An lvalue for a variable. */
-      { a_variable_ptr var = expr->variant.variable;
+      { a_variable_ptr var = node_variable(expr);
         if (variable_has_constant_address(var) ||
             ((options & CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT) &&
              var->storage_class == (a_storage_class)sc_auto)) {
@@ -5959,14 +5959,13 @@ a constexpr expansion, and the block provides context information.
       break;
     case enk_routine:
       /* An lvalue for a function. */
-      make_constant_routine_address(expr->variant.routine.ptr, con,
-                                    address_escapes,
+      make_constant_routine_address(node_routine(expr), con, address_escapes,
                                     template_constant);
       is_constant_addr = TRUE;
       break;
     case enk_constant:
       /* The address of a string is a constant. */
-      { a_constant_ptr econ = expr->variant.constant;
+      { a_constant_ptr econ = node_constant(expr);
         if (econ->kind == (a_constant_repr_kind)ck_string) {
           is_constant_addr = TRUE;
           set_constant_address_constant(econ, con);
@@ -6037,8 +6036,8 @@ a constexpr expansion, and the block provides context information.
             break;
 handle_field_selection:
             { a_field_ptr field;
-              check_assertion(op2->kind == (an_expr_node_kind)enk_field);
-              field = op2->variant.field;
+              check_assertion(is_field_node(op2));
+              field = node_field(op2);
               if (field->is_bit_field &&
                   !is_bit_field_whose_address_can_be_taken(field)) {
                 /* You can't take the address of a bit field.  The error is
@@ -6066,7 +6065,7 @@ handle_pm_field_selection:
                 /* We're not in a constexpr function, so we can't call
                    fold_expr, but we can fold this expression if the
                    operand is already a constant. */
-                op2_con = op2->variant.constant;
+                op2_con = node_constant(op2);
               }  /* if */
               if (op2_con != NULL &&
                   op2_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
@@ -6200,7 +6199,7 @@ handle_pm_field_selection:
             /* The address of an eok_lvalue applied to a ck_template_param
                constant is sometimes a constant. */
             if (is_constant_node(op1)) {
-              a_constant_ptr acon = op1->variant.constant;
+              a_constant_ptr acon = node_constant(op1);
               if (acon->kind == (a_constant_repr_kind)ck_template_param) {
                 if (acon->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
@@ -6348,7 +6347,7 @@ stack and return TRUE.  Otherwise, return FALSE.
        type is the direct or indirect parent of the field. */
     a_type_ptr                parent_class;
     an_aggr_init_con_elem_ptr init_con;
-    for (parent_class = parent_class_or_null(expr->next->variant.field);
+    for (parent_class = parent_class_or_null(node_field(expr->next));
          !result && parent_class != NULL;
          parent_class = parent_class_or_null(parent_class)) {
       for (init_con = curr_init_aggr_con; !result && init_con != NULL;
@@ -6456,7 +6455,7 @@ context information.
       /* An rvalue for a variable can only be a pointer-typed constant in
          C++11. */
       if (constexpr_enabled) {
-        a_constant_ptr var_con = var_constant_value(expr->variant.variable);
+        a_constant_ptr var_con = var_constant_value(node_variable(expr));
         if (var_con != NULL) {
           copy_constant(var_con, con);
           is_constant_ptr = TRUE;
@@ -6490,7 +6489,7 @@ context information.
       break;
     case enk_constant:
       /* A constant with pointer type is a constant pointer value. */
-      copy_constant(expr->variant.constant, con);
+      copy_constant(node_constant(expr), con);
       is_constant_ptr = TRUE;
       break;
     case enk_operation:
@@ -6703,7 +6702,7 @@ to the string literal constant if there is one.
   if (scon != NULL) *scon = NULL;
   expr = skip_parens(expr);
   if (is_constant_node(expr)) {
-    if (constant_is_pointer_to_string_literal(expr->variant.constant, scon)) {
+    if (constant_is_pointer_to_string_literal(node_constant(expr), scon)) {
       /* A constant for the address of a string literal, decayed to
          a pointer to the underlying type. */
       result = TRUE;
@@ -6719,7 +6718,7 @@ to the string literal constant if there is one.
         node_operator_is(expr, eok_array_to_pointer)) {
       an_expr_node_ptr op1 = skip_parens(expr->variant.operation.operands);
       if (op1->is_lvalue && is_constant_node(op1) &&
-          op1->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+          node_constant_is(op1, ck_string)) {
         /* An expression for a string literal, decayed to a pointer to
            the underlying type. */
         result = TRUE;
@@ -6734,7 +6733,7 @@ to the string literal constant if there is one.
             result = FALSE;
           }  /* if */
         }  /* if */
-        if (result && scon != NULL) *scon = op1->variant.constant;
+        if (result && scon != NULL) *scon = node_constant(op1);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6762,7 +6761,7 @@ it is non-NULL).  Otherwise, return TRUE.
   /* eok_parens shouldn't appear in these generated operations. */
   if (is_constant_node(expr)) {
     /* Presumably the null constant that is the root of the tree. */
-    check_assertion(is_false_constant(expr->variant.constant));
+    check_assertion(is_false_constant(node_constant(expr)));
     goto done;
   } else {
     check_assertion(is_operation_node(expr));
@@ -6773,8 +6772,8 @@ it is non-NULL).  Otherwise, return TRUE.
   switch (expr->variant.operation.kind) {
     case eok_dot_field:
     case eok_points_to_field:
-      check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
-      accum_field_offset(offset, args->next->variant.field, &ovflo);
+      check_assertion(is_field_node(args->next));
+      accum_field_offset(offset, node_field(args->next), &ovflo);
       break;
     case eok_subscript:
       { a_type_ptr       elem_type = type_pointed_to(args->type);
@@ -6785,7 +6784,7 @@ it is non-NULL).  Otherwise, return TRUE.
            either order, in offsetof the subscript is always the second
            operand. */
         accum_array_offset(offset, /*offset_is_signed=*/FALSE,
-                           /*subtract=*/FALSE, arg2->variant.constant,
+                           /*subtract=*/FALSE, node_constant(arg2),
                            skip_typerefs(elem_type)->size,
                            /*no_ovflo_on_unsigned_add=*/FALSE, &ovflo,
                            &did_not_fold);
@@ -6858,8 +6857,7 @@ If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
     if (node_operator_is(expr, eok_subscript)) {
       if (!is_constant_node(args->next)) {
         *not_a_constant = TRUE;
-      } else if (args->next->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
+      } else if (node_constant_is(args->next, ck_template_param)) {
         template_dependent = TRUE;
       }  /* if */
     } else if (node_operator_is(expr, eok_dot_static)) {
@@ -6868,8 +6866,7 @@ If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
          in the prototype instantiation where we can't tell what kind of thing
          the lookup will find. */
       check_assertion(is_constant_node(args->next) &&
-                      args->next->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param);
+                      node_constant_is(args->next, ck_template_param));
       template_dependent = TRUE;
     }  /* if */
     expr = args;
@@ -6904,8 +6901,8 @@ are issued at the position it indicates.
   *not_a_constant = FALSE;
   /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
-                  arg1->kind == (an_expr_node_kind)enk_type_operand);
-  if (is_template_dependent_type(arg1->variant.type_operand.type) ||
+                  is_type_node(arg1));
+  if (is_template_dependent_type(type_operand_type(arg1)) ||
       is_template_dependent_offsetof_member(arg2, not_a_constant)) {
     /* The template-dependent case. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
@@ -6918,7 +6915,7 @@ are issued at the position it indicates.
     set_unsigned_integer_constant(constant, (a_host_large_unsigned)0,
                                   targ_size_t_int_kind);
     if (add_offset_of_accessed_member(arg2, constant, pos)) {
-      arg1->variant.type_operand.definition_needed = TRUE;
+      arg1->type_definition_needed = TRUE;
     } else {
       clear_constant(constant, (a_constant_repr_kind)ck_error);
     }  /* if */
@@ -6971,8 +6968,8 @@ the returned constant will be set as well.
       result = (same_entities(type2, type1) ||
                 find_base_class_of(type2, type1) != NULL);
     }  /* if */
-    arg1->variant.type_operand.definition_needed = TRUE;
-    arg2->variant.type_operand.definition_needed = TRUE;
+    arg1->type_definition_needed = TRUE;
+    arg2->type_definition_needed = TRUE;
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
@@ -7060,8 +7057,8 @@ constant will be set as well.
     }  /* if */
     result = compute_is_convertible(type1, type2);
 result_known:
-    arg1->variant.type_operand.definition_needed = TRUE;
-    arg2->variant.type_operand.definition_needed = TRUE;
+    arg1->type_definition_needed = TRUE;
+    arg2->type_definition_needed = TRUE;
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
@@ -7101,15 +7098,14 @@ constant will be set as well.
   a_boolean         dependent = FALSE, result;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg1 != NULL &&
-                  arg1->kind == (an_expr_node_kind)enk_type_operand);
-  type1 = arg1->variant.type_operand.type;
+  check_assertion(arg1 != NULL && is_type_node(arg1));
+  type1 = type_operand_type(arg1);
   if (is_template_dependent_type(type1)) {
     dependent = TRUE;
   } else {
     for (argn = arg1->next; argn != NULL; argn = argn->next) {
-      check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
-      typen = argn->variant.type_operand.type;
+      check_assertion(is_type_node(argn));
+      typen = type_operand_type(argn);
       if (is_template_dependent_type(typen)) {
         dependent = TRUE;
         break;
@@ -7125,10 +7121,10 @@ constant will be set as well.
     constant->variant.template_param.variant.expr = expr;
   } else {
     result = compute_is_constructible(kind, type1, arg1->next);
-    arg1->variant.type_operand.definition_needed = TRUE;
+    arg1->type_definition_needed = TRUE;
     for (argn = arg1->next; argn != NULL; argn = argn->next) {
-      check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
-      argn->variant.type_operand.definition_needed = TRUE;
+      check_assertion(is_type_node(argn));
+      argn->type_definition_needed = TRUE;
     }  /* for */
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
@@ -7166,9 +7162,8 @@ returned constant will be set as well.
   a_type_ptr        type1;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg1 != NULL &&
-                  arg1->kind == (an_expr_node_kind)enk_type_operand);
-  type1 = arg1->variant.type_operand.type;
+  check_assertion(arg1 != NULL && is_type_node(arg1));
+  type1 = type_operand_type(arg1);
   if (is_template_dependent_type(type1)) {
     /* The type is dependent, so the result is still unknown. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
@@ -7177,7 +7172,7 @@ returned constant will be set as well.
     constant->variant.template_param.variant.expr = expr;
   } else {
     a_boolean  result = compute_is_destructible(kind, type1);
-    arg1->variant.type_operand.definition_needed = TRUE;
+    arg1->type_definition_needed = TRUE;
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
@@ -7213,13 +7208,11 @@ constant will be set as well.
   a_type_ptr        type1, type2;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg1 != NULL &&
-                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  check_assertion(arg1 != NULL && is_type_node(arg1));
   arg2 = arg1->next;
-  check_assertion(arg2 != NULL &&
-                  arg2->kind == (an_expr_node_kind)enk_type_operand);
-  type1 = arg1->variant.type_operand.type;
-  type2 = arg2->variant.type_operand.type;
+  check_assertion(arg2 != NULL && is_type_node(arg2));
+  type1 = type_operand_type(arg1);
+  type2 = type_operand_type(arg2);
   if (is_template_dependent_type(type1) || is_template_dependent_type(type2)) {
     /* One or more of the types is dependent, so the result is still
        unknown. */
@@ -7229,8 +7222,8 @@ constant will be set as well.
     constant->variant.template_param.variant.expr = expr;
   } else {
     a_boolean  result = compute_is_assignable(kind, type1, type2);
-    arg1->variant.type_operand.definition_needed = TRUE;
-    arg2->variant.type_operand.definition_needed = TRUE;
+    arg1->type_definition_needed = TRUE;
+    arg2->type_definition_needed = TRUE;
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
@@ -7721,9 +7714,8 @@ constant will be set as well.
   a_type_ptr        type;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg != NULL && arg->next == NULL &&
-                  arg->kind == (an_expr_node_kind)enk_type_operand);
-  type = arg->variant.type_operand.type;
+  check_assertion(arg != NULL && arg->next == NULL && is_type_node(arg));
+  type = type_operand_type(arg);
   if (is_template_dependent_type(type) ||
       (microsoft_mode && in_ms_nonreal_class_instantiation())) {
     /* For template-dependent types, create a ck_template_param result.
@@ -7892,7 +7884,7 @@ constant will be set as well.
         incomplete_class_error = TRUE;
         goto result_known;
       } else {
-        arg->variant.type_operand.definition_needed = TRUE;
+        arg->type_definition_needed = TRUE;
         cssp = symbol_supplement_for_class(type);
       }  /* if */
     }  /* if */
@@ -8440,9 +8432,8 @@ argument cannot be represented in a_host_large_unsigned.
   result_type = return_type_of(rp->type);
   result_type = skip_typerefs(result_type);
   check_assertion(result_type->kind == (a_type_kind)tk_integer);
-  if (is_constant_node(arg) &&
-      arg->variant.constant->kind == (a_constant_repr_kind)ck_integer) {
-    a_constant_ptr         cp = arg->variant.constant;
+  if (is_constant_node(arg) && node_constant_is(arg, ck_integer)) {
+    a_constant_ptr         cp = node_constant(arg);
     a_boolean              err;
     a_host_large_unsigned  val = unsigned_value_of_integer_constant(cp, &err);
     if (!err) {
@@ -8534,9 +8525,8 @@ Otherwise, return FALSE.
   result_type = return_type_of(rp->type);
   result_type = skip_typerefs(result_type);
   check_assertion(result_type->kind == (a_type_kind)tk_integer);
-  if (is_constant_node(arg) &&
-      arg->variant.constant->kind == (a_constant_repr_kind)ck_float) {
-    a_constant_ptr         cp = arg->variant.constant;
+  if (is_constant_node(arg) && node_constant_is(arg, ck_float)) {
+    a_constant_ptr         cp = node_constant(arg);
     a_host_large_unsigned  result = 0;
     switch (rp->variant.builtin_function_kind) {
       case bfk_isnan:
@@ -8702,11 +8692,10 @@ TRUE.
 {
   a_boolean  folded = FALSE, err;
 
-  if (is_constant_node(size_arg) &&
-      size_arg->variant.constant->kind == (a_constant_repr_kind)ck_integer) {
+  if (is_constant_node(size_arg) && node_constant_is(size_arg, ck_integer)) {
     /* These queries can only be folded if the first argument is a
        constant. */
-    a_constant_ptr         size_con = size_arg->variant.constant;
+    a_constant_ptr         size_con = node_constant(size_arg);
     a_host_large_unsigned  size;
     a_boolean              size_8_foldable = FALSE;
     if (bfk == (a_builtin_function_kind)bfk_atomic_always_lock_free ||
@@ -8968,8 +8957,7 @@ the folding mechanism is used as a way to validate argument values.
         { a_constant_ptr con;
           if (args != NULL && args2 == NULL &&
               is_constant_node(args) &&
-              (con = args->variant.constant)->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
+              constant_is((con = node_constant(args)), ck_integer) &&
               is_integral_type(con->type) &&
               is_integral_type(result_type)) {
             a_boolean err = FALSE;
@@ -8997,8 +8985,7 @@ the folding mechanism is used as a way to validate argument values.
         { a_constant_ptr con;
           if (args != NULL && args2 == NULL &&
               is_constant_node(args) &&
-              (con = args->variant.constant)->kind ==
-                                              (a_constant_repr_kind)ck_float &&
+              constant_is((con = node_constant(args)), ck_float) &&
               is_real_floating_type(con->type) &&
               is_real_floating_type(result_type)) {
             a_boolean    err = FALSE, depends_on_fp_mode = FALSE;
@@ -9040,8 +9027,8 @@ the folding mechanism is used as a way to validate argument values.
                  fold_pow_if_possible folds a different set of combinations,
                  but the cases somewhat likely to show up in real code should
                  be covered. */
-              folded = fold_pow_if_possible(args->variant.constant,
-                                            args2->variant.constant,
+              folded = fold_pow_if_possible(node_constant(args),
+                                            node_constant(args2),
                                             result, result_type);
             }  /* if */
           }  /* if */
@@ -9509,7 +9496,7 @@ be an lvalue or rvalue; it doesn't matter.
 */
 {
   a_boolean      folded = FALSE;
-  a_variable_ptr var = expr->variant.variable;
+  a_variable_ptr var = node_variable(expr);
 
   if (var->is_parameter) {
     a_constexpr_remap_ptr crp =
@@ -10020,7 +10007,7 @@ ceblock gives context information for the evaluation.
   } else if (is_constant_node(expr)) {
     /* The expression is a constant. */
     folded = TRUE;
-    copy_constant_for_constexpr_evaluation(expr->variant.constant, result_con);
+    copy_constant_for_constexpr_evaluation(node_constant(expr), result_con);
   } else if (!do_not_call_back &&
              is_pointer_type(expr->type) &&
              (ceblock->do_not_call_back = TRUE,
@@ -10187,10 +10174,10 @@ ceblock gives context information for the evaluation.
         /* p->field or p->*field.  Try to fold the left operand to a
            constant, then try to fold the field selection. */
         op1_folded = fold_expr(op1, ceblock, op1_constant);
-        if (!op1_folded && op1->kind == (an_expr_node_kind)enk_variable &&
-            op1->variant.variable->is_this_parameter &&
+        if (!op1_folded && is_variable_node(op1) &&
+            node_variable(op1)->is_this_parameter &&
             (obj_expr_con =
-                     aggr_con_for_this_param(op1->variant.variable)) != NULL) {
+                       aggr_con_for_this_param(node_variable(op1))) != NULL) {
           /* This member access expression refers to a field of an object
              currently being initialized.  Use the address of that
              in-progress constant as the pointer. */
@@ -10205,7 +10192,7 @@ field_selection:
           a_boolean points_to =
                             (op == (an_expr_operator_kind)eok_points_to_field);
           if (fold_constant_field_selection(op1_constant, points_to,
-                                            op2->variant.field, result_con)) {
+                                            node_field(op2), result_con)) {
             folded = TRUE;
           }  /* if */
         }  /* if */
@@ -10559,7 +10546,7 @@ ceblock gives context information for the evaluation.
     /* The expression has a constant address. */
     folded = TRUE;
   } else if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
+    a_variable_ptr var = node_variable(expr);
     if (var->is_constexpr) {
       /* An lvalue variable node for a constexpr variable can be replaced
          by the constant address of the variable -- it points to the
@@ -11737,7 +11724,7 @@ errors.
         obj_expr_con = constant_value_addressed_by_node(obj_expr, pos);
       } else if (is_constant_node(obj_expr)) {
         /* ... or if the object expression is a class value constant... */
-        obj_expr_con = obj_expr->variant.constant;
+        obj_expr_con = node_constant(obj_expr);
       } else if (expr->is_xvalue &&
                  fold_constexpr_expr(obj_expr, /*treat_as_object=*/FALSE,
                                      pos, local_con)) {
@@ -11752,8 +11739,7 @@ errors.
          whole selection to a constant result. */
       if (obj_expr_con != NULL &&
           fold_constant_field_selection(obj_expr_con, pointer_case,
-                                        field_expr->variant.field,
-                                        result_con)) {
+                                        node_field(field_expr), result_con)) {
         folded = TRUE;
       }  /* if */
       release_local_constant(&local_con);

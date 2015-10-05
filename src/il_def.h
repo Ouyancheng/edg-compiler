@@ -2146,6 +2146,68 @@ typedef struct a_name_qualifier {
 			   is a namespace. */
 } a_name_qualifier;
 
+
+/*
+An enumeration of C++ special function kinds.  These may be user written
+or compiler generated functions for which special rules may apply.  (See
+ARM chapter 12.)
+*/
+enum a_special_function_kind_tag {
+  sfk_none,		/* Not a special function. */
+  sfk_constructor,	/* A constructor. */
+  sfk_destructor,	/* A destructor. */
+  sfk_conversion,	/* A conversion operator function. */
+  sfk_udl_operator,	/* A literal operator function. */
+  sfk_operator,		/* Any other operator function. */
+  sfk_lambda_entry_point,
+			/* A static member representing an alternative entry
+			   point for the invocation of a lambda with no capture
+			   fields.  (A pointer to this entry point is returned
+			   by the conversion function declared in such a
+			   lambda.) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sfk_static_constructor,
+			/* A C++/CLI static constructor. */
+  sfk_finalizer,	/* A C++/CLI finalizer. */
+  sfk_idisposable_dispose,
+			/* A compiler-generated implementation of the
+			   IDisposable::Dispose() member. */
+  sfk_dispose_bool,	/* A compiler-generated Dispose(bool) member. */
+  sfk_object_finalize,	/* A compiler-generated overrider for the
+			   Object::Finalize() member. */
+  sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
+  sfk_first_accessor = sfk_property_get,
+  sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
+  sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
+  sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
+  sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
+  sfk_last_accessor = sfk_event_raise,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  sfk_gnu_sync_concrete_function,
+			/* The concrete version of a GNU __sync_... or
+			   __atomic_... builtin function, except the
+			   __atomic_..._n functions (see next).  Used only
+			   in enk_routine expression nodes, never as the
+			   special_kind in an a_routine entry. */
+  sfk_gnu_atomic_nongeneric_function,
+			/* Like sfk_gnu_sync_concrete_function except
+			   representing a GNU __atomic_..._n function
+			   (__atomic_load_n, etc.).  These are treated
+			   separately to allow the original source form to
+			   be accurately determined. */
+  sfk_gnu_atomic_generic_function,
+			/* Represents a generic GNU __atomic_... function.
+			   Generic functions have an initial size_t argument
+			   added by the front end. */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+  sfk_last		/* Must be last. */
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_special_function_kind;
+
+
 /*
 Entry used to represent the form of name used to refer to an entity.
 */
@@ -2160,16 +2222,42 @@ typedef struct a_name_reference {
 			/* Points to a description of the class or namespace
 			   qualifier portion of the name.  NULL if there is
 			   no such qualifier. */
-  a_type_ptr	destructor_type;
+  union {
+    /* When special_kind is sfk_none: */
+    a_type_ptr	destructor_type;
 			/* If the name refers to a destructor name in which
 			   the name after the "~" is not the same as the class
 			   name, this points to the type of the identifier
 			   after the "~".  This also points to the type when
 			   a type keyword is used.  NULL otherwise. */
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+    /* When special_kind is sfk_property_get, sfk_property_set, or
+       sfk_event_raise. */
+    a_property_or_event_descr_ptr
+		property_or_event_descr;
+			/* If this entry is for an enk_routine node that is
+			   part of a call to a Microsoft property accessor
+			   (C++/CLI or __declspec) that was rewritten from a
+			   reference to a property field, this points to the
+			   descriptor for that property.  It is otherwise
+			   NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+  } variant;
   long		num_template_arguments;
 			/* If is_template_id is TRUE, this is the number of
 			   template arguments used in the last component of
 			   the name; -1L otherwise. */
+  a_special_function_kind
+		special_kind;
+			/* If this entry is for an is part of a call to a
+			   Microsoft property accessor (C++/CLI or __declspec)
+			   that was rewritten from a reference to a property
+			   field, this is set to either sfk_property_set or
+			   sfk_property_get to reflect the kind of access;
+			   it is sfk_gnu_sync_concrete_function if the node
+			   designates the concrete version of a GNU __sync_...
+			   or __atomic_... builtin function; otherwise, it is
+			   sfk_none. */
   a_bit_field	is_global_qualified_name:1;
 			/* TRUE if the name begins with a unary "::"
 			   (e.g., ::y or ::A::x). */
@@ -2196,7 +2284,8 @@ typedef struct a_name_reference {
 
 EXTERN a_name_reference null_name_reference
 #if VAR_INITIALIZERS
-= { NULL, NULL, NULL, 0, FALSE, FALSE, FALSE,
+= { NULL, NULL, { NULL }, 0, (a_special_function_kind)sfk_none,
+    FALSE, FALSE, FALSE,
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     FALSE,
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3825,65 +3914,6 @@ enum a_character_kind_tag {
 
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_character_kind;
-
-/*
-An enumeration of C++ special function kinds.  These may be user written
-or compiler generated functions for which special rules may apply.  (See
-ARM chapter 12.)
-*/
-enum a_special_function_kind_tag {
-  sfk_none,		/* Not a special function. */
-  sfk_constructor,	/* A constructor. */
-  sfk_destructor,	/* A destructor. */
-  sfk_conversion,	/* A conversion operator function. */
-  sfk_udl_operator,	/* A literal operator function. */
-  sfk_operator,		/* Any other operator function. */
-  sfk_lambda_entry_point,
-			/* A static member representing an alternative entry
-			   point for the invocation of a lambda with no capture
-			   fields.  (A pointer to this entry point is returned
-			   by the conversion function declared in such a
-			   lambda.) */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  sfk_static_constructor,
-			/* A C++/CLI static constructor. */
-  sfk_finalizer,	/* A C++/CLI finalizer. */
-  sfk_idisposable_dispose,
-			/* A compiler-generated implementation of the
-			   IDisposable::Dispose() member. */
-  sfk_dispose_bool,	/* A compiler-generated Dispose(bool) member. */
-  sfk_object_finalize,	/* A compiler-generated overrider for the
-			   Object::Finalize() member. */
-  sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
-  sfk_first_accessor = sfk_property_get,
-  sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
-  sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
-  sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
-  sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
-  sfk_last_accessor = sfk_event_raise,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  sfk_gnu_sync_concrete_function,
-			/* The concrete version of a GNU __sync_... or
-			   __atomic_... builtin function, except the
-			   __atomic_..._n functions (see next).  Used only
-			   in enk_routine expression nodes, never as the
-			   special_kind in an a_routine entry. */
-  sfk_gnu_atomic_nongeneric_function,
-			/* Like sfk_gnu_sync_concrete_function except
-			   representing a GNU __atomic_..._n function
-			   (__atomic_load_n, etc.).  These are treated
-			   separately to allow the original source form to
-			   be accurately determined. */
-  sfk_gnu_atomic_generic_function,
-			/* Represents a generic GNU __atomic_... function.
-			   Generic functions have an initial size_t argument
-			   added by the front end. */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
-  sfk_last		/* Must be last. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_special_function_kind;
 
 #if DEBUG
 /*
@@ -15565,8 +15595,8 @@ typedef struct an_expr_node {
   a_bit_field	element_of_cli_param_array_arg:1;
 			/* TRUE when this is an argument matching a
 			   C++/CLI parameter array. */
-  a_byte_boolean
-		is_cli_typeid;
+  a_bit_field
+		is_cli_typeid:1;
 			/* TRUE for a typeid entry that comes from a C++/CLI
 			   typeid, of the form T::typeid.  In that case,
 			   variant.typeid_info.type gives the type T, and
@@ -15606,6 +15636,11 @@ typedef struct an_expr_node {
 			   function (e.g., "(p->f)()") it is the node 
 			   representing the function ("f" in the example) that
 			   has this flag set, not the selector expression. */
+  a_bit_field
+		type_definition_needed:1;
+			/* A flag indicating that the type definition must be
+			   kept in the IL for the type indicated in the
+			   enk_type_operand case. */
   bitfield_to_avoid_codecenter_warnings()
   a_source_position
 		position;
@@ -15816,48 +15851,50 @@ typedef struct an_expr_node {
     } operation;
 
     /* When kind == enk_constant: */
-    a_constant_ptr
-                constant;
+    struct {
+      a_constant_ptr
+                ptr;
                         /* A pointer to the constant.  This may be a shared
 			   constant. */
-
+      a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to. */
+    } constant;
     /* When kind == enk_variable: */
-    a_variable_ptr
-                variable;
+    struct {
+      a_variable_ptr
+                ptr;
                         /* A pointer to the variable. */
-
+      a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to. */
+    } variable;
     /* When kind == enk_routine: */
     struct {
       a_routine_ptr
                 ptr;	/* A pointer to the routine. */
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-      a_property_or_event_descr_ptr
-		property_or_event_descr;
-			/* If this node is part of a call to a Microsoft
-			   property accessor (C++/CLI or __declspec) that
-			   was rewritten from a reference to a property
-			   field, this points to the descriptor for that
-			   property.  It is otherwise NULL. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
-    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-      a_special_function_kind
-		special_kind;
-			/* If this node is part of a call to a Microsoft
-			   property accessor (C++/CLI or __declspec) that
-			   was rewritten from a reference to a property
-			   field, this is set to either sfk_property_set or
-			   sfk_property_get to reflect the kind of access;
-			   it is sfk_gnu_sync_concrete_function if this
-			   node designates the concrete version of a GNU
-			   __sync_... or __atomic_... builtin function;
-			   otherwise, it is sfk_none. */
-#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
+      a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to. */
     } routine;
     /* When kind == enk_field: */
-    a_field_ptr field;
+    struct {
+      a_field_ptr
+		ptr;
 			/* A pointer to the field.  Used as an operand to an
 			   eok_dot_field or eok_points_to_field operation. */
+      a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to. */
+    } field;
     /* When kind == enk_temp_init: */
     /* C++ only, but used in C for C99 compound literals. */
     /* The result of this operator is a temporary.  It's an lvalue if
@@ -16070,10 +16107,11 @@ typedef struct an_expr_node {
 		type;	/* The type represented by the operand.  NULL for an
 			   entry representing the "default:" case of a C11
 			   _Generic construct. */
-      a_bit_field
-		definition_needed:1;
-			/* A flag indicating that the type definition must be
-			   kept in the IL. */
+      a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to. */
     } type_operand;
     /* When kind == enk_builtin_operation: */
     struct {
@@ -16153,12 +16191,6 @@ typedef struct an_expr_node {
     } await_info;
 #endif /* COROUTINES_ALLOWED */
   } variant;
-  a_name_reference_ptr
-		name_reference;
-			/* If non-NULL, points to information about the
-			   form of reference to a name that this expression
-			   node refers to (e.g., a function name for an
-			   enk_routine). */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For expressions scanned in templates that might

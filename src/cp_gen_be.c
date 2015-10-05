@@ -426,15 +426,15 @@ If e is an enk_constant node and the constant has an associated expression
 (backing expression or template parameter expression) that will be put out,
 return that expression; otherwise return e.
 */
-#define assoc_expr_if_constant(e)                                            \
-  (is_constant_node(e) &&                                                    \
-   constant_should_be_put_out_as_expr((e)->variant.constant)) ?              \
-                                  (e)->variant.constant->expr :              \
-  (is_constant_node(e) &&                                                    \
-   (e)->variant.constant->kind == (a_constant_repr_kind)ck_template_param && \
-   (e)->variant.constant->variant.template_param.kind ==                     \
-                         (a_template_param_constant_kind)tpck_expression) ?  \
-                    expr_node_from_tpck_expression((e)->variant.constant) : (e)
+#define assoc_expr_if_constant(e)                                             \
+  ((is_constant_node(e) &&                                                    \
+    constant_should_be_put_out_as_expr(node_constant(e))) ?                   \
+                                        node_constant(e)->expr :              \
+   (is_constant_node(e) &&                                                    \
+    node_constant(e)->kind == (a_constant_repr_kind)ck_template_param &&      \
+    node_constant(e)->variant.template_param.kind ==                          \
+                          (a_template_param_constant_kind)tpck_expression) ?  \
+                     expr_node_from_tpck_expression(node_constant(e)) : (e))
 
 
 /* Needed because of forward references: */
@@ -4704,8 +4704,9 @@ qualified is TRUE, force the generation of a qualified name.
   a_routine_ptr rout = routine_from_function_expr(node);
 
   check_assertion(rout != NULL);
-  if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
-                                   iek_routine, /*is_declaration=*/FALSE,
+  if (gen_name_from_name_reference(name_ref_for_node(node),
+                                   &rout->source_corresp, iek_routine,
+                                   /*is_declaration=*/FALSE,
                                    /*suppress_declarator_parens=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
@@ -4735,9 +4736,10 @@ qualified is TRUE, force the generation of a qualified name.
       gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
   } else {
-    a_boolean  saved_qualification_needed =
+    a_name_reference_ptr  nrp;
+    a_type_ptr            parent_class = parent_class_or_null(rout);
+    a_boolean             saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;
-    a_type_ptr parent_class = parent_class_or_null(rout);
     if (qualified ||
         /* The following condition is a workaround for the fact that g++
            has a bug requiring that a qualified name be used when the
@@ -4752,10 +4754,9 @@ qualified is TRUE, force the generation of a qualified name.
     }  /* if */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
     if (is_routine_node(node) &&
-        (node->variant.routine.special_kind ==
-                     (a_special_function_kind)sfk_gnu_sync_concrete_function ||
-         node->variant.routine.special_kind ==
-                (a_special_function_kind)sfk_gnu_atomic_nongeneric_function)) {
+        (nrp = node->variant.routine.name_reference) != NULL &&
+        (special_kind_is(nrp, sfk_gnu_sync_concrete_function) ||
+         special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function))) {
       /* This is a concrete __sync_... or __atomic_... builtin function
          that was transformed from the name that appeared in the source.
          We need to restore the original name here because the concrete
@@ -4775,8 +4776,7 @@ qualified is TRUE, force the generation of a qualified name.
            i > 0 && isdigit((unsigned char)name[i]);
            --i) {}
       check_assertion(name[i] == '_');
-      if (node->variant.routine.special_kind ==
-                 (a_special_function_kind)sfk_gnu_atomic_nongeneric_function) {
+      if (special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function)) {
         /* The digit(s) must be replaced with 'n'. */
         char c1 = name[i + 1];
         char c2 = name[i + 2];
@@ -4794,7 +4794,9 @@ qualified is TRUE, force the generation of a qualified name.
     } else
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
     /* Do not insert code here. */
-    gen_routine_name(rout);
+    {
+      gen_routine_name(rout);
+    }  /* if */
     rout->source_corresp.qualification_needed = saved_qualification_needed;
   }  /* if */
 }  /* gen_name_from_routine_node */
@@ -5228,9 +5230,10 @@ Generate the name of a variable from an enk_variable node.
   a_variable_ptr var;
 
   check_assertion(is_variable_node(node));
-  var = node->variant.variable;
-  if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
-                                   iek_variable, /*is_declaration=*/FALSE,
+  var = node_variable(node);
+  if (gen_name_from_name_reference(node->variant.variable.name_reference,
+                                   &var->source_corresp, iek_variable,
+                                   /*is_declaration=*/FALSE,
                                    /*suppress_declarator_parens=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
@@ -6497,9 +6500,9 @@ parameter.
   if (expr != NULL) {
     write_tok_str(" = ");
     if (is_pointer_type(param->type) && is_constant_node(expr) &&
-        expr->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
-        cmplit_integer_constant(expr->variant.constant,
-                                               (a_host_large_integer)0) == 0) {
+        node_constant(expr)->kind == (a_constant_repr_kind)ck_integer &&
+        cmplit_integer_constant(node_constant(expr),
+                                (a_host_large_integer)0) == 0) {
       /* A null pointer constant default argument.  Use a simple "0" and
          count on implicit conversion.  This works around a bug in
          MSVC++ 5.0. */
@@ -9191,7 +9194,7 @@ Generate the name of the field from the indicated node (an enk_field node).
 
   check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
                       "gen_field_reference: not enk_field");
-  field = node->variant.field;
+  field = node_field(node);
   if (field->is_captured_pack_element) {
     /* Number captured pack elements in a way that matches the numbering
        created by gen_param_name. */
@@ -9230,7 +9233,7 @@ set *op to the operator used in that selection.
         this_op == (an_expr_operator_kind)eok_points_to_field) {
       an_expr_node_ptr subobject_expr= object_expr->variant.operation.operands;
       an_expr_node_ptr subfield_expr = subobject_expr->next;
-      a_field_ptr      subfield = subfield_expr->variant.field;
+      a_field_ptr      subfield = node_field(subfield_expr);
       if (!has_name(subfield)) {
         object_expr = subobject_expr;
         *op = this_op;
@@ -9336,7 +9339,7 @@ the expression reflects an implicit member access ("this->y"), so the
          We set the naming class to reflect the parent of the field to
          ensure that the qualified name is used. */
       check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
-      naming_class = parent_class_of(field_expr->variant.field);
+      naming_class = parent_class_of(node_field(field_expr));
     }  /* if */
   }  /* if */
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
@@ -9349,7 +9352,7 @@ the expression reflects an implicit member access ("this->y"), so the
   if (op == (an_expr_operator_kind)eok_points_to_field) {
     if (expr->variant.operation.compiler_generated) {
       if (is_variable_node(object_expr) &&
-          object_expr->variant.variable->is_this_parameter) {
+          node_variable(object_expr)->is_this_parameter) {
         /* This is an implicit member access ("this->y"), so nothing should
            be generated for the object expression and operator. */
       } else {
@@ -9361,7 +9364,7 @@ the expression reflects an implicit member access ("this->y"), so the
            closure class). */
         a_type_ptr  parent_class;
         check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
-        parent_class = parent_class_of(field_expr->variant.field);
+        parent_class = parent_class_of(node_field(field_expr));
         if (has_name_before_mangling(parent_class)) {
           gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
                               (a_boolean *)NULL);
@@ -9375,13 +9378,13 @@ the expression reflects an implicit member access ("this->y"), so the
       write_tok_str("->");
     }  /* if */
   } else if (is_variable_node(object_expr) &&
-             object_expr->variant.variable->is_anonymous_parent_object) {
+             node_variable(object_expr)->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
        at all. */
     /* Do check for a field that ends up requiring a global qualifier.
        Field references are put out as unqualified names, so this is not
        checked when putting out the field. */
-    if (field_expr->variant.field->source_corresp.qualification_needed) {
+    if (node_field(field_expr)->source_corresp.qualification_needed) {
       write_tok_str("::");
     }  /* if */
   } else {
@@ -9421,7 +9424,7 @@ the expression reflects an implicit member access ("this->y"), so the
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
-  if (field_expr->variant.field->is_captured_this) {
+  if (node_field(field_expr)->is_captured_this) {
     /* A reference to a captured "this" in a lambda's closure class. */
     write_tok_str("this");
   } else {
@@ -9538,7 +9541,7 @@ in determining how to generate dynamic initializations).
        proper type to be deduced. */
     if (dip->kind == (a_dynamic_init_kind)dik_expression &&
         is_constant_node(dip->variant.expression)) {
-      a_constant_ptr con = dip->variant.expression->variant.constant;
+      a_constant_ptr con = node_constant(dip->variant.expression);
       if (is_address_of_string_constant(con) && con->implicit_cast) {
         write_tok_ch('(');
         gen_cast(con->type);
@@ -9600,9 +9603,8 @@ generated as an expression and the expression is a named variable.
 */
 {
   a_boolean has_effective_name;
-  if (constant_should_be_put_out_as_expr(con) &&
-      con->expr->kind == (an_expr_node_kind)enk_variable) {
-    has_effective_name = has_name_before_mangling(con->expr->variant.variable);
+  if (constant_should_be_put_out_as_expr(con) && is_variable_node(con->expr)) {
+    has_effective_name = has_name_before_mangling(node_variable(con->expr));
   } else {
     has_effective_name = has_name_before_mangling(con);
   }  /* if */
@@ -9642,7 +9644,7 @@ indicated by opstr.
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
   if (!is_glvalue_node(operand_2) && is_constant_node(operand_2)) {
-    con = operand_2->variant.constant;
+    con = node_constant(operand_2);
     /* For unknown functions, we need to use the field-selection form,
        and we need to suppress the "&" below. */
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -9769,11 +9771,11 @@ it is a tpck_unknown_function constant and to NULL otherwise.
     an_expr_node_ptr callee = expr->variant.operation.operands->next;
     is_dot_static = TRUE;
     if (unknown_function != NULL && is_constant_node(callee) &&
-        callee->variant.constant->kind ==
+        node_constant(callee)->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-        callee->variant.constant->variant.template_param.kind ==
+        node_constant(callee)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function) {
-      *unknown_function = callee->variant.constant;
+      *unknown_function = node_constant(callee);
     }  /* if */
   }  /* if */
   return is_dot_static;
@@ -9827,7 +9829,7 @@ removed and FALSE otherwise.
   a_boolean        removed_nodes = FALSE;
 
   if (is_constant_node(node)) {
-    a_constant_ptr constant = node->variant.constant;
+    a_constant_ptr constant = node_constant(node);
     if (constant_should_be_put_out_as_expr(constant)) {
       /* This might be a constant node on top of an lvalue cast sequence. */
       node = constant->expr;
@@ -9882,13 +9884,13 @@ case, is passed along to gen_expr.
 */
 {
   while (is_constant_node(expr) &&
-         constant_should_be_put_out_as_expr(expr->variant.constant)) {
-    expr = expr->variant.constant->expr;
+         constant_should_be_put_out_as_expr(node_constant(expr))) {
+    expr = node_constant(expr)->expr;
   }  /* while */
   expr = optimized_expr_for_selection(expr, (a_type_ptr *)NULL);
   if (!is_glvalue_node(expr) && is_constant_node(expr) &&
-      expr->variant.constant->kind == (a_constant_repr_kind)ck_address &&
-      !constant_should_be_put_out_as_expr(expr->variant.constant)) {
+      node_constant(expr)->kind == (a_constant_repr_kind)ck_address &&
+      !constant_should_be_put_out_as_expr(node_constant(expr))) {
     /* This constant is not an lvalue but needs to be put out as one.  This
        situation arises for code like:
 
@@ -9901,7 +9903,7 @@ case, is passed along to gen_expr.
        lvalue "s", as required, but because the lvalue cast sequence is
        implicit in the constant value, we need to short-circuit the
        normal processing and call form_lvalue_address_constant directly. */
-    form_lvalue_address_constant(expr->variant.constant,
+    form_lvalue_address_constant(node_constant(expr),
                                  /*need_parens=*/!obj_expr_of_mfunc_operator,
                                  &octl);
   } else {
@@ -10030,12 +10032,12 @@ obscure Microsoft bug).
     }  /* if */
   } else if (il_header.source_language == sl_C &&
              is_constant_node(expr) &&
-             is_implicitly_cast_integral_constant(expr->variant.constant)) {
+             is_implicitly_cast_integral_constant(node_constant(expr))) {
     /* An integral constant that can be implicitly converted to another
        type.  Put out with the conversion implicit.  This is important in
        the case where the type involves a prototype scope type that cannot
        be named here. */
-    form_integer_constant(expr->variant.constant, /*suppress_cast=*/TRUE,
+    form_integer_constant(node_constant(expr), /*suppress_cast=*/TRUE,
                           need_parens, &octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_compiler_generated_gcnew_cli_array(expr)) {
@@ -10122,7 +10124,7 @@ Return TRUE if the given expression will be put out as a braced-init-list.
       is_braced_init = TRUE;
     }  /* if */
   } else if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
+    a_constant_ptr con = node_constant(expr);
     if (constant_should_be_put_out_as_expr(con) &&
         expr_is_braced_init_list(con->expr)) {
       is_braced_init = TRUE;
@@ -10541,11 +10543,12 @@ the function's name will be qualified to suppress virtual-ness on the
 function reference.
 */
 {
-  a_routine_ptr      rout = routine_from_function_expr(func_expr);
-  a_type_ptr         naming_class, selection_class;
-  a_boolean          force_qualified_name = FALSE;
-  a_boolean          suppress_this = FALSE;
-  a_name_context_ptr new_name_context = NULL;
+  a_routine_ptr         rout = routine_from_function_expr(func_expr);
+  a_type_ptr            naming_class, selection_class;
+  a_boolean             force_qualified_name = FALSE;
+  a_boolean             suppress_this = FALSE;
+  a_name_context_ptr    new_name_context = NULL;
+  a_name_reference_ptr  nrp = name_ref_for_node(func_expr);
 
   check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type) &&
@@ -10587,10 +10590,10 @@ function reference.
     if (use_arrow) {
       /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&
-          object_expr->variant.variable->is_this_parameter) {
+          node_variable(object_expr)->is_this_parameter) {
         /* Suppress "this->", as it's implied. */
-        if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-            rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        if (special_kind_is(rout, sfk_constructor) ||
+            special_kind_is(rout, sfk_destructor)) {
           /* Don't suppress "this->" when a constructor is called explicitly
              (a Microsoft extension), because
                this->X::X()   and
@@ -10607,8 +10610,7 @@ function reference.
           suppress_this = TRUE;
         }  /* if */
       }  /* if */
-      if (func_expr->name_reference != NULL &&
-          func_expr->name_reference->is_super_qualified) {
+      if (nrp != NULL && nrp->is_super_qualified) {
         /* The __super Microsoft extension does not work if "this->" is
            explicitly coded. */
         suppress_this = TRUE;
@@ -10688,8 +10690,7 @@ function reference.
     if (force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
     gen_name(&rout->source_corresp, iek_routine, options, (a_boolean *)NULL);
   } else {
-    if (gen_name_from_name_reference(func_expr->name_reference,
-                                     &rout->source_corresp, iek_routine,
+    if (gen_name_from_name_reference(nrp, &rout->source_corresp, iek_routine,
                                      /*is_declaration=*/FALSE,
                                      /*suppress_declarator_parens=*/FALSE)) {
       /* We have the form of the name reference in the original source and
@@ -10957,7 +10958,7 @@ return FALSE and let the caller generate the code normally.
           arg = arg->variant.operation.operands;
         }  /* if */
         check_assertion(is_constant_node(arg));
-        con = arg->variant.constant;
+        con = node_constant(arg);
         if (con->kind == (a_constant_repr_kind)ck_address &&
             con->variant.address.kind == (an_address_base_kind)abk_constant) {
           con = con->variant.address.variant.constant;
@@ -11370,14 +11371,16 @@ corresponding simple operation.
                                     (a_special_function_kind)sfk_property_get);
       tblock->result = TRUE;
       tblock->terminate = TRUE;
-    } else if (node->variant.routine.property_or_event_descr != NULL) {
-      /* This should be the "get" accessor: indicate success and terminate
-         the traversal so we don't get confused by whatever might be in the
-         second operand of the simple operation. */
-      check_assertion(node->variant.routine.special_kind ==
-                                    (a_special_function_kind)sfk_property_get);
-      tblock->result = TRUE;
-      tblock->terminate = TRUE;
+    } else {
+      if (property_or_event_for_routine_node(node) != NULL) {
+        /* This should be the "get" accessor: indicate success and terminate
+           the traversal so we don't get confused by whatever might be in the
+           second operand of the simple operation. */
+        check_assertion(special_kind_is(node->variant.routine.name_reference,
+                                        sfk_property_get));
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (tree_is_from_operator_synthesis && compound_operation_string != NULL) {
@@ -11562,7 +11565,7 @@ otherwise.
     /* Check to see if an object expression is needed and generate it if
        necessary before putting out the property/event name. */
     if (is_variable_node(obj_expr) &&
-        obj_expr->variant.variable->is_this_parameter) {
+        node_variable(obj_expr)->is_this_parameter) {
       /* Omit the "this" keyword. */
       if (desc != NULL && desc->is_default_indexed) {
         /* This is a default-indexed property with an implicit "this" as
@@ -11715,7 +11718,7 @@ call.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (rout != NULL && routine_node != NULL) {
-      pedp = routine_node->variant.routine.property_or_event_descr;
+      pedp = property_or_event_for_routine_node(routine_node);
     } else if (unknown_function != NULL) {
       pedp = unknown_function->variant.template_param.variant.
                                       unknown_function.property_or_event_descr;
@@ -11760,7 +11763,7 @@ call.
         a_special_function_kind       special_kind;
         an_expr_node_ptr              obj_expr;
         if (routine_node != NULL) {
-          special_kind = routine_node->variant.routine.special_kind;
+          special_kind = special_kind_for_routine_node(routine_node);
         } else if (unknown_function != NULL) {
           special_kind = unknown_function->variant.template_param.variant.
                                                  unknown_function.special_kind;
@@ -11803,16 +11806,16 @@ call.
       }  /* if */
     } else {
       if (is_constant_node(func_expr) &&
-          func_expr->variant.constant->kind ==
+          node_constant(func_expr)->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-          (func_expr->variant.constant->variant.template_param.kind ==
+          (node_constant(func_expr)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
-           func_expr->variant.constant->variant.template_param.kind ==
+           node_constant(func_expr)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref)) {
         /* A tpck_unknown_function or tpck_template_ref constant
            represents the address of the unknown function.  Drop the "&"
            (it's implied) to make neater output. */
-        form_unknown_function_constant(func_expr->variant.constant, &octl);
+        form_unknown_function_constant(node_constant(func_expr), &octl);
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
         a_boolean need_parens = TRUE;
@@ -11835,7 +11838,7 @@ call.
       /* Put out the arguments. */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
       if (rout != NULL && routine_node != NULL &&
-          routine_node->variant.routine.special_kind ==
+          special_kind_for_routine_node(routine_node) ==
                     (a_special_function_kind)sfk_gnu_atomic_generic_function) {
         /* Omit the first argument in a GNU __atomic_... generic function
            (it is generated by the front end). */
@@ -12308,7 +12311,7 @@ used as an rvalue).
   a_template_param_constant_kind tpkind;
 
   check_assertion(is_constant_node(expr));
-  constant = expr->variant.constant;
+  constant = node_constant(expr);
   if (constant_should_be_put_out_as_expr(constant)) {
     /* There's a backing expression, so use that. */
     gen_expr(constant->expr, need_parens,
@@ -12574,7 +12577,7 @@ gen_expr that might end up generating this expr as a temporary.
                 msvc_target_version_number < 1310 &&
                 is_pointer_type(expr->type) &&
                 is_constant_node(operand_1) &&
-                is_zero_constant(operand_1->variant.constant)) {
+                is_zero_constant(node_constant(operand_1))) {
               /* Versions of MSVC++ before 7.1 do not recognize zero-valued
                  integral constant expressions as null pointer constants if
                  they contain a cast to a short type, which il_to_str will
@@ -13152,7 +13155,7 @@ done_with_operation:
 done_with_operation_after_parens:
       break;
     case enk_constant:
-      { a_constant_ptr constant = expr->variant.constant;
+      { a_constant_ptr constant = node_constant(expr);
         if ((is_enum_constant(constant) ||
              (constant->kind == (a_constant_repr_kind)ck_template_param &&
               (constant->variant.template_param.kind ==
@@ -13161,7 +13164,7 @@ done_with_operation_after_parens:
                           (a_template_param_constant_kind)tpck_destructor))) &&
             has_name_before_mangling(constant) &&
             gen_name_from_name_reference(
-                                       expr->name_reference,
+                                       expr->variant.constant.name_reference,
                                        &constant->source_corresp, iek_constant,
                                        /*is_declaration=*/FALSE,
                                        /*suppress_declarator_parens=*/FALSE)) {
@@ -15837,12 +15840,11 @@ it does not add its own set of braces.
       /* Skip over the implicit reference node. */
       arg = arg->variant.operation.operands;
     }  /* if */
-    if (is_constant_node(arg) && arg->variant.constant->expr != NULL &&
-        arg->variant.constant->expr->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
+    if (is_constant_node(arg) && node_constant(arg)->expr != NULL &&
+        node_constant(arg)->expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* A constexpr constructor for std::initializer_list can result in a
          constant at this level. */
-      arg = arg->variant.constant->expr;
+      arg = node_constant(arg)->expr;
     }  /* if */
     if (arg->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr arg_dip = arg->variant.init.dynamic_init;
@@ -15853,10 +15855,10 @@ it does not add its own set of braces.
            expression points to the actual dynamic init of interest. */
         an_expr_node_ptr subexpr = arg_dip->variant.expression;
         if (is_constant_node(subexpr) &&
-            subexpr->variant.constant->expr != NULL &&
-            subexpr->variant.constant->expr->kind ==
+            node_constant(subexpr)->expr != NULL &&
+            node_constant(subexpr)->expr->kind ==
                                             (an_expr_node_kind)enk_temp_init) {
-          arg_dip = subexpr->variant.constant->expr->variant.init.dynamic_init;
+          arg_dip = node_constant(subexpr)->expr->variant.init.dynamic_init;
         }  /* if */
       }  /* if */
       if (arg_dip->is_creation_of_initializer_list_object) {
@@ -17226,9 +17228,9 @@ flags on the classes found on an earlier call.
           }  /* if */
         }  /* if */
       } else if (is_variable_node(expr)) {
-        scp = &expr->variant.variable->source_corresp;
+        scp = &node_variable(expr)->source_corresp;
       } else if (is_constant_node(expr)) {
-        a_constant_ptr con = expr->variant.constant;
+        a_constant_ptr con = node_constant(expr);
         if (con->kind == (a_constant_repr_kind)ck_address) {
           switch (con->variant.address.kind) {
             case abk_routine:

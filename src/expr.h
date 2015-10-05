@@ -822,10 +822,26 @@ Macro that is TRUE if the node is a constant node.
 	((node)->kind == (an_expr_node_kind)enk_constant)
 
 /*
+Macro to get the constant from a constant node.
+*/
+#define node_constant(node)  ((node)->variant.constant.ptr)
+
+/*
+Macro to test for a constant kind in a constant node.
+*/
+#define node_constant_is(node, con_kind)                                \
+  constant_is(node_constant(node), (con_kind))
+
+/*
 Macro that is TRUE if the node is a variable node.
 */
 #define is_variable_node(node)						\
 	((node)->kind == (an_expr_node_kind)enk_variable)
+
+/*
+Macro to get the variable from a variable node.
+*/
+#define node_variable(node)  ((node)->variant.variable.ptr)
 
 /*
 Macro that is TRUE if the node is a field node.
@@ -834,10 +850,31 @@ Macro that is TRUE if the node is a field node.
 	((node)->kind == (an_expr_node_kind)enk_field)
 
 /*
+Macro to get the field from a field node.
+*/
+#define node_field(node)  ((node)->variant.field.ptr)
+
+/*
 Macro that is TRUE if the node is a routine node.
 */
 #define is_routine_node(node)						\
 	((node)->kind == (an_expr_node_kind)enk_routine)
+
+/*
+Macro to get the routine from a routine node.
+*/
+#define node_routine(node)  ((node)->variant.routine.ptr)
+
+/*
+Macro that is TRUE if the node is a type operand node.
+*/
+#define is_type_node(node)						\
+	((node)->kind == (an_expr_node_kind)enk_type_operand)
+
+/*
+Macro to get the type from a type operand node.
+*/
+#define type_operand_type(node)  ((node)->variant.type_operand.type)
 
 /*
 Macro that is TRUE if the node is an error node.

@@ -3473,14 +3473,13 @@ been scanned: builtin_func represents the reference to the builtin function
       }  /* if */
       if (is_variable_node(node2) &&
           (node2->is_lvalue || gpp_mode)) {
-        if (last_param_var != NULL &&
-            node2->variant.variable == last_param_var) {
-          /* Correct use of the final parameter. */
-          okay = TRUE;
-        } else if (last_param_var == NULL) {
+        if (last_param_var == NULL) {
           /* Previous error. */
           check_assertion(err);
-        } else if (node2->variant.variable->is_parameter) {
+        } else if (node_variable(node2) == last_param_var) {
+          /* Correct use of the final parameter. */
+          okay = TRUE;
+        } else if (node_variable(node2)->is_parameter) {
           /* A parameter, but not the last one.  Call that a warning. */
           pos_warning(ec_bad_va_start, &operand.position);
           okay = TRUE;
@@ -4243,7 +4242,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
       arg_expr = skip_parens(arg_expr);
       if (is_variable_node(arg_expr)) {
-        a_variable_ptr  vp = arg_expr->variant.variable;
+        a_variable_ptr  vp = node_variable(arg_expr);
         if (!vp->source_corresp.is_local_to_function &&
             is_potentially_constant_valued_variable(vp) &&
             var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
@@ -4638,11 +4637,12 @@ that the final call needs to be cast to the indicated type.
       err = TRUE;
     } else {
       /* Find the concrete routine to dispatch the operation to. */
-      a_symbol_ptr  sym;
-      an_operand    orig_operand;
-      char          name[100];
-      sizeof_t      name_len = strlen(builtin_function_kind_names[bfk]);
-      a_boolean     nongeneric_atomic = FALSE;
+      a_symbol_ptr      sym;
+      an_operand        orig_operand;
+      char              name[100];
+      sizeof_t          name_len = strlen(builtin_function_kind_names[bfk]);
+      a_boolean         nongeneric_atomic = FALSE;
+      a_name_reference  *nrp = alloc_name_reference();;
       /* Construct the concrete routine's name: */
       check_assertion(name_len < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -4669,11 +4669,12 @@ that the final call needs to be cast to the indicated type.
                                        target->ref_entries_list, target);
       check_assertion(is_expression_operand(target) &&
                       is_routine_node(target->variant.expression));
+      target->variant.expression->variant.routine.name_reference = nrp;
       if (nongeneric_atomic) {
-        target->variant.expression->variant.routine.special_kind =
+        nrp->special_kind =
                    (a_special_function_kind)sfk_gnu_atomic_nongeneric_function;
       } else {
-        target->variant.expression->variant.routine.special_kind =
+        nrp->special_kind =
                        (a_special_function_kind)sfk_gnu_sync_concrete_function;
       }  /* if */
       conv_function_designator_to_ptr_to_function(target,
@@ -4692,6 +4693,7 @@ that the final call needs to be cast to the indicated type.
         an_operand        size_operand;
         a_constant_ptr    size_constant = local_constant();
         an_expr_node_ptr  expr_arg;
+        a_name_reference  *nrp = alloc_name_reference();;
         set_integer_constant(size_constant,
                              (a_host_large_integer)dispatch_type->size,
                              targ_size_t_int_kind);
@@ -4703,7 +4705,8 @@ that the final call needs to be cast to the indicated type.
         /* Mark the routine as being a generic __atomic_... function (this is
            used to strip the added argument in C++- and C-generating back
            ends). */
-        target->variant.expression->variant.routine.special_kind =
+        target->variant.expression->variant.routine.name_reference = nrp;
+        nrp->special_kind =
                       (a_special_function_kind)sfk_gnu_atomic_generic_function;
       } /* if */
       /* Convert the prescanned arguments to the type expected by the
@@ -5304,9 +5307,9 @@ are expected to be NULL in that case.
                    (castexp = skip_parens(operand->variant.expression),
                     is_operation_node(castexp)) &&
                    node_operator_is(castexp, eok_cast) &&
-                   (castexp=skip_parens(castexp->variant.operation.operands),
+                   (castexp = skip_parens(castexp->variant.operation.operands),
                     is_constant_node(castexp)) &&
-                   is_zero_constant(castexp->variant.constant)))) {
+                   is_zero_constant(node_constant(castexp))))) {
         /* Microsoft Visual C++ allows a call like 0(x) -- it is ignored. */
         /* (void)0 is also allowed. */
         expr_pos_warning(ec_call_of_zero, &operand->position);
@@ -6776,8 +6779,8 @@ a left parenthesis in the source.
       if (is_constant_node(member_op)) {
         /* Most template cases come across as ck_template_param constants
            which we can do substitution on and produce a symbol. */
-        a_constant_ptr con = member_op->variant.constant;
-        if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        a_constant_ptr con = node_constant(member_op);
+        if (constant_is(con, ck_template_param)) {
           a_constant_ptr member_con = NULL;
           a_boolean      is_template_ref = FALSE;
           if (con->variant.template_param.kind ==
@@ -6899,10 +6902,10 @@ a left parenthesis in the source.
                                                          &expl_templ_arg_list);
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
-        sym = symbol_for(member_op->variant.variable);
+        sym = symbol_for(node_variable(member_op));
       } else if (is_routine_node(member_op)) {
         /* Static member function. */
-        sym = symbol_for(member_op->variant.routine.ptr);
+        sym = symbol_for(node_routine(member_op));
       } else {
         unexpected_condition();
       }  /* if */
@@ -10198,7 +10201,7 @@ for the sizeof result is built and returned there.
     /* Make sure the referenced flag is set on a VLA variable. */
     expr = skip_parens(expr);
     if (expr->is_lvalue && is_variable_node(expr)) {
-      a_variable_ptr var = expr->variant.variable;
+      a_variable_ptr var = node_variable(expr);
       var->source_corresp.referenced = TRUE;
     }  /* if */
   }  /* if */
@@ -12389,8 +12392,8 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
         if (!is_error_node(arg)) {
           a_constant_ptr  int_con;
           check_assertion(is_constant_node(arg));
-          int_con = arg->variant.constant;
-          if (int_con->kind == (a_constant_repr_kind)ck_integer) {
+          int_con = node_constant(arg);
+          if (constant_is(int_con, ck_integer)) {
             if ((cmp_integer_constants(int_con, max_con) != -1) &&
                 (cmp_integer_constants(int_con, minus_one) != 0)) {
               /* Argument values must be less than the total number of
@@ -12674,10 +12677,10 @@ __builtin_complex construct.
       a_constant_ptr  result_con = local_constant();
       clear_constant(result_con, (a_constant_repr_kind)ck_complex);
       result_con->type = result_type;
-      result_con->variant.complex_value->real = node1->variant.constant
-                                                    ->variant.float_value;
-      result_con->variant.complex_value->imag = node2->variant.constant
-                                                    ->variant.float_value;
+      result_con->variant.complex_value->real =
+                                    node_constant(node1)->variant.float_value;
+      result_con->variant.complex_value->imag =
+                                    node_constant(node2)->variant.float_value;
       result_con->expr = expr;
       make_constant_operand(result_con, result);
       release_local_constant(&result_con);
@@ -12836,7 +12839,7 @@ expression (i.e., id-expression or member access).
       case eok_dot_field:
       case eok_points_to_field:
         check_assertion(arg2->kind == (an_expr_node_kind)enk_field);
-        result = arg2->variant.field->type;
+        result = node_field(arg2)->type;
         break;
       case eok_dot_static:
       case eok_points_to_static:
@@ -12858,9 +12861,9 @@ id_case:
       /* Expression for simple id, lvalue or rvalue. */
       /* Note that parens are significant and are not skipped if present. */
       if (is_variable_node(expr)) {
-        result = expr->variant.variable->type;
+        result = node_variable(expr)->type;
       } else if (is_routine_node(expr)) {
-        result = expr->variant.routine.ptr->type;
+        result = node_routine(expr)->type;
       } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
         /* A reference to a parameter in a function declarator: This is
            similar to the variable case.  When the enk_param_ref represents
@@ -14380,7 +14383,7 @@ where <typename-or-default> is either a type name or the keyword "default".
     if (is_constant_node(match_type_arg->next)) {
       /* If the selected expression is a constant, the _Generic construct
          should also produce a constant. */
-      make_constant_operand(match_type_arg->next->variant.constant, result);
+      make_constant_operand(node_constant(match_type_arg->next), result);
       result->variant.constant.expr = result_expr;
     } else {
       make_expression_operand(result_expr, result);
@@ -26744,11 +26747,11 @@ accepted as a null pointer constant.
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
         expr = skip_parens(expr->variant.operation.operands);
         if (is_constant_node(expr) &&
-            is_null_pointer_constant(expr->variant.constant)) {
+            is_null_pointer_constant(node_constant(expr))) {
           /* The expression is (void)0.  Replace it by 0. */
           an_operand orig_operand;
           orig_operand = *operand;
-          make_constant_operand(expr->variant.constant, operand);
+          make_constant_operand(node_constant(expr), operand);
           restore_operand_details(operand, &orig_operand);
           if (expr_diagnostic_should_be_issued(es_warning,
                                                ec_bad_initializer_type)) {
@@ -31243,10 +31246,10 @@ passed).
     /* Clear backing expressions in the argument constants since they're
        meaningless and confuse mangling. */
     if (is_constant_node(arg_list)) {
-      arg_list->variant.constant->expr = NULL;
+      node_constant(arg_list)->expr = NULL;
     }  /* if */
     if (arg_list->next != NULL && is_constant_node(arg_list->next)) {
-      arg_list->next->variant.constant->expr = NULL;
+      node_constant(arg_list->next)->expr = NULL;
     }  /* if */
     free_init_component_list(op_list);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
@@ -37302,7 +37305,7 @@ parameter type (this is ordinarily done when the expression is scanned).
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   if (is_constant_node(expr)) {
-    a_constant_ptr   con = expr->variant.constant;
+    a_constant_ptr   con = node_constant(expr);
     an_expr_node_ptr saved_backing_expr = con->expr;
     con->expr = NULL;
     make_constant_operand(con, &operand);
@@ -39031,15 +39034,15 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     an_expr_node_ptr op2 = op1->next;
     check_assertion(node_operator_is(expr, eok_dot_field) &&
                     is_variable_node(op1) &&
-                    op1->variant.variable->is_anonymous_parent_object);
+                    node_variable(op1)->is_anonymous_parent_object);
     check_assertion(op2->kind == (an_expr_node_kind)enk_field);
-    sym = symbol_for(op2->variant.field);
+    sym = symbol_for(node_field(op2));
     check_assertion(sym != NULL);
   } else {
     /* Constant case (ck_template_param representing an unknown name). */
     a_constant_ptr con;
     check_assertion(is_constant_node(expr));
-    con = expr->variant.constant;
+    con = node_constant(expr);
     /* Do substitution and produce a symbol for the substituted result. */
     sym = symbol_for_template_param_unknown_entity_rescan(
                                                         con,
@@ -39128,7 +39131,7 @@ set accordingly.
         if (expr->variant.operation.compiler_generated &&
             (op1 = expr->variant.operation.operands,
              is_variable_node(op1)) &&
-            op1->variant.variable->is_anonymous_parent_object) {
+            node_variable(op1)->is_anonymous_parent_object) {
           /* This selection picks a field out of an anonymous union variable.
              Treat it as a simple identifier reference. */
           operator_token = tok_identifier;
@@ -39386,8 +39389,8 @@ set accordingly.
         break;
     }  /* switch */
   } else if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+    a_constant_ptr con = node_constant(expr);
+    if (constant_is(con, ck_template_param)) {
       switch (con->variant.template_param.kind) {
         case tpck_member:
         case tpck_address:

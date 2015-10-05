@@ -1463,8 +1463,6 @@ the file scope, do not process it (but record an orphan in the latter case).
           definition_needed_if_class(ptr->type);
         }  /* if */
         remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->name_reference, a_name_reference_ptr,
-                 iek_name_reference);
         conditionally_clear_fe_pointer(ptr->rescan_info);
         switch (ptr->kind) {
           case enk_error:
@@ -1570,29 +1568,33 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case enk_constant:
-            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+            walk_ptr(ptr->variant.constant.ptr, a_constant_ptr, iek_constant);
+            walk_ptr(ptr->variant.constant.name_reference,
+                     a_name_reference_ptr, iek_name_reference);
             break;
           case enk_variable:
             /* Variables are handled from the scope that contains them.  Do
                not visit them here. */
-            remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
+            remap_ptr(ptr->variant.variable.ptr, a_variable_ptr, iek_variable);
+            walk_ptr(ptr->variant.variable.name_reference,
+                     a_name_reference_ptr, iek_name_reference);
             break;
           case enk_routine:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
-            remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-            walk_ptr(ptr->variant.routine.property_or_event_descr,
-                     a_property_or_event_descr_ptr,
-                     iek_property_or_event_descr);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-            set_proper_routine_definition_needed_flag(ptr->
-                                                          variant.routine.ptr);
+            if (node_routine(ptr) != NULL) {
+              remap_ptr(node_routine(ptr), a_routine_ptr, iek_routine);
+              set_proper_routine_definition_needed_flag(node_routine(ptr));
+            }  /* if */
+            walk_ptr(ptr->variant.routine.name_reference,
+                     a_name_reference_ptr, iek_name_reference);
             break;
           case enk_field:
             /* Fields are handled in processing the tag that contains
                them. */
-            remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+            remap_ptr(ptr->variant.field.ptr, a_field_ptr, iek_field);
+            walk_ptr(ptr->variant.field.name_reference,
+                     a_name_reference_ptr, iek_name_reference);
             break;
           case enk_temp_init:
             walk_ptr(ptr->variant.init.dynamic_init,
@@ -1763,7 +1765,9 @@ do_set_proper_definition_needed_flag:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
           case enk_type_operand:
             walk_ptr(ptr->variant.type_operand.type, a_type_ptr, iek_type);
-            if (ptr->variant.type_operand.definition_needed) {
+            walk_ptr(ptr->variant.type_operand.name_reference,
+                     a_name_reference_ptr, iek_name_reference);
+            if (ptr->type_definition_needed) {
               definition_needed_if_class(ptr->variant.type_operand.type);
             }  /* if */
             break;
@@ -2346,10 +2350,18 @@ do_set_proper_definition_needed_flag:
                                              a_name_qualifier_ptr,
                                              iek_name_qualifier);
         }  /* if */
-        if (ptr->destructor_type != NULL) {
-          clear_or_walk_name_reference_field(ptr, ptr->destructor_type,
-                                             a_type_ptr,
-                                             iek_type);
+        if (ptr->special_kind == (a_special_function_kind)sfk_none) {
+          if (ptr->variant.destructor_type != NULL) {
+            clear_or_walk_name_reference_field(ptr,
+                                               ptr->variant.destructor_type,
+                                               a_type_ptr, iek_type);
+          }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+        } else {
+          clear_or_walk_name_reference_field(
+                  ptr, ptr->variant.property_or_event_descr,
+                  a_property_or_event_descr_ptr, iek_property_or_event_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
         }  /* if */
       }
       break;

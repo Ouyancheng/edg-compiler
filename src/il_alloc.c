@@ -3249,23 +3249,20 @@ fields to default values.
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:
-      node->variant.constant = NULL;
+      node->variant.constant.ptr = NULL;
+      node->variant.constant.name_reference = NULL;
       break;
     case enk_variable:
-      node->variant.variable = NULL;
+      node->variant.variable.ptr = NULL;
+      node->variant.variable.name_reference = NULL;
       break;
     case enk_routine:
       node->variant.routine.ptr = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-      node->variant.routine.property_or_event_descr = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
-    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-      node->variant.routine.special_kind = (a_special_function_kind)sfk_none;
-#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
+      node->variant.routine.name_reference = NULL;
       break;
     case enk_field:
-      node->variant.field = NULL;
+      node->variant.field.ptr = NULL;
+      node->variant.field.name_reference = NULL;
       break;
     case enk_temp_init:
       node->variant.init.dynamic_init = NULL;
@@ -3389,7 +3386,7 @@ fields to default values.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
       node->variant.type_operand.type = NULL;
-      node->variant.type_operand.definition_needed = FALSE;
+      node->variant.type_operand.name_reference = NULL;
       break;
     case enk_builtin_operation:
       node->variant.builtin_operation.kind =
@@ -3453,6 +3450,7 @@ its kind to the indicated kind.
   node->keep_as_cast_for_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
   node->is_parenthesized = FALSE;
+  node->type_definition_needed = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -3460,7 +3458,6 @@ its kind to the indicated kind.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  node->name_reference = NULL;
   node->rescan_info = NULL;
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
@@ -4965,8 +4962,9 @@ Initialize the fields of a name reference entry.
 {
   nrp->next = NULL;
   nrp->qualifier = NULL;
-  nrp->destructor_type = NULL;
+  nrp->variant.destructor_type = NULL;
   nrp->num_template_arguments = -1L;
+  nrp->special_kind = (a_special_function_kind)sfk_none;
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;
   nrp->is_super_qualified = FALSE;

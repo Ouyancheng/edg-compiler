@@ -4680,11 +4680,11 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
       case enk_variable:
         /* The variable is the complete object and its type is the
            complete object type. */
-        complete_object_type = node->variant.variable->type;
+        complete_object_type = node_variable(node)->type;
         break;
       case enk_constant:
         /* The only constant lvalue is a string. */
-        { a_constant_ptr con = node->variant.constant;
+        { a_constant_ptr con = node_constant(node);
           if (con->kind == (a_constant_repr_kind)ck_string) {
             complete_object_type = con->type;
           }  /* if */
@@ -4705,7 +4705,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
                and get the derived class behavior.  Confirmed in 5.0 through
                8.0. */
             if (!microsoft_mode) {
-              complete_object_type = operand2->variant.field->type;
+              complete_object_type = node_field(operand2)->type;
             }  /* if */
             suppress_subtree_walk = TRUE;
           } else if (op == (an_expr_operator_kind)eok_pm_field ||
@@ -4811,7 +4811,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
         /* Complete object type is not known in general, but if the variable
            is the "this" parameter for a constructor or destructor, and we're
            optimizing a virtual call case, it is known. */
-        { a_variable_ptr var = node->variant.variable;
+        { a_variable_ptr var = node_variable(node);
           if (tblock->call_case && var->source_corresp.name == NULL &&
               var->is_parameter && innermost_function_scope != NULL) {
             /* The variable is a parameter and we're inside a function. */
@@ -4838,7 +4838,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
       case enk_constant:
         /* Address constant. */
         complete_object_type =
-                      pointer_con_complete_object_type(node->variant.constant);
+                        pointer_con_complete_object_type(node_constant(node));
         break;
       case enk_operation:
         /* Operator. */
@@ -5126,8 +5126,7 @@ Return TRUE if the two array types have identical bounds.
       node_2 = skip_parens(node_2);
       if (node_1->kind == (an_expr_node_kind)enk_constant &&
           node_2->kind == (an_expr_node_kind)enk_constant) {
-        identical = eq_constants(node_1->variant.constant,
-                                 node_2->variant.constant);
+        identical = eq_constants(node_constant(node_1), node_constant(node_2));
       }  /* if */
     } else {
       /* A variable-bound array and a fixed-bound array. */

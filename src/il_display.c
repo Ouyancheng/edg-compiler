@@ -591,8 +591,25 @@ Display a_name_reference entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_name_reference);
   disp_ptr("qualifier", (char *)ptr->qualifier, iek_name_qualifier);
-  if (ptr->destructor_type != NULL) {
-    disp_ptr("destructor_type", (char *)ptr->destructor_type, iek_type);
+  if (special_kind_is(ptr, sfk_none)) {
+    if (ptr->variant.destructor_type != NULL) {
+      disp_ptr("destructor_type", (char *)ptr->variant.destructor_type,
+               iek_type);
+    }  /* if */
+#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
+    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  } else {
+    disp_name("special_kind");
+    disp_special_function_kind_name(ptr->special_kind);
+    (void)printf("\n");
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+    if (ptr->variant.property_or_event_descr != NULL) {
+      disp_ptr("property_or_event_descr",
+               (char *)ptr->variant.property_or_event_descr,
+               iek_property_or_event_descr);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
   }  /* if */
   disp_long("num_template_arguments", ptr->num_template_arguments);
   disp_boolean("is_global_qualified_name",
@@ -4141,6 +4158,9 @@ Display the indicated expression node.
   if (ptr->is_parenthesized) {
     disp_boolean("is_parenthesized", TRUE);
   }  /* if */
+  if (ptr->type_definition_needed) {
+    disp_boolean("type_definition_needed", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -4238,35 +4258,31 @@ Display the indicated expression node.
       break;
     case enk_constant:
       (void)printf("enk_constant\n");
-      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
+      disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
+      if (ptr->variant.constant.name_reference != NULL) {
+        disp_name_reference(ptr->variant.constant.name_reference);
+      }  /* if */
       break;
     case enk_variable:
       (void)printf("enk_variable\n");
-      disp_ptr("variable", (char *)ptr->variant.variable, iek_variable);
+      disp_ptr("variable", (char *)ptr->variant.variable.ptr, iek_variable);
+      if (ptr->variant.variable.name_reference != NULL) {
+        disp_name_reference(ptr->variant.variable.name_reference);
+      }  /* if */
       break;
     case enk_routine:
       (void)printf("enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine.ptr, iek_routine);
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-      if (ptr->variant.routine.property_or_event_descr != NULL) {
-        disp_ptr("property_or_event_descr",
-                 (char *)ptr->variant.routine.property_or_event_descr,
-                 iek_property_or_event_descr);
+      if (ptr->variant.routine.name_reference != NULL) {
+        disp_name_reference(ptr->variant.routine.name_reference);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
-    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-      if (ptr->variant.routine.special_kind !=
-                                           (a_special_function_kind)sfk_none) {
-        disp_name("special_kind");
-        disp_special_function_kind_name(ptr->variant.routine.special_kind);
-        (void)printf("\n");
-      }  /* if */
-#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
       break;
     case enk_field:
       (void)printf("enk_field\n");
-      disp_ptr("field", (char *)ptr->variant.field, iek_field);
+      disp_ptr("field", (char *)ptr->variant.field.ptr, iek_field);
+      if (ptr->variant.field.name_reference != NULL) {
+        disp_name_reference(ptr->variant.field.name_reference);
+      }  /* if */
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
@@ -4460,8 +4476,9 @@ cleanup_state_common:
     case enk_type_operand:
       (void)printf("enk_type_operand\n");
       disp_ptr("type", (char *)ptr->variant.type_operand.type, iek_type);
-      disp_boolean("definition_needed",
-                   (a_boolean)ptr->variant.type_operand.definition_needed);
+      if (ptr->variant.type_operand.name_reference != NULL) {
+        disp_name_reference(ptr->variant.type_operand.name_reference);
+      }  /* if */
       break;
     case enk_builtin_operation:
       (void)printf("enk_builtin_operation\n");
@@ -4508,9 +4525,6 @@ cleanup_state_common:
   disp_source_range("expr_range", &ptr->expr_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_source_position("position", &ptr->position);
-  if (ptr->name_reference != NULL) {
-    disp_name_reference(ptr->name_reference);
-  }  /* if */
 }  /* disp_expr_node */
 
 

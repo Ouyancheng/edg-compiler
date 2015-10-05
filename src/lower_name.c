@@ -2601,13 +2601,13 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
                                                     &suppress_address_of);
     check_assertion(pack_expr != NULL);
     if (is_constant_node(pack_expr) &&
-        pack_expr->variant.constant->kind ==
+        node_constant(pack_expr)->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-        pack_expr->variant.constant->variant.template_param.kind ==
+        node_constant(pack_expr)->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_param) {
       /* Non-type template parameter. */
-      coordinates = &pack_expr->variant.constant->
-                                    variant.template_param.variant.coordinates;
+      coordinates = &node_constant(pack_expr)
+                                  ->variant.template_param.variant.coordinates;
     }  /* if */
   }  /* if */
   /* The argument is either a template (template) parameter (as identified
@@ -4420,9 +4420,9 @@ constant.
 */
 #define is_typeid_template_param(expr)                                   \
   (((expr)->kind == (an_expr_node_kind)enk_constant) &&                  \
-   ((expr)->variant.constant->kind ==                                    \
+   (node_constant(expr)->kind ==                                         \
                             (a_constant_repr_kind)ck_template_param &&   \
-    (expr)->variant.constant->variant.template_param.kind ==             \
+    node_constant(expr)->variant.template_param.kind ==                  \
                            (a_template_param_constant_kind)tpck_typeid))
 
 #endif /* IA64_ABI */
@@ -4490,11 +4490,11 @@ call that has no arguments).
 #if IA64_ABI
       if (op == (an_expr_operator_kind)eok_lvalue &&
           is_constant_node(child) &&
-          child->variant.constant->kind ==
+          node_constant(child)->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-          (child->variant.constant->variant.template_param.kind ==
+          (node_constant(child)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
-           child->variant.constant->variant.template_param.kind ==
+           node_constant(child)->variant.template_param.kind ==
                           (a_template_param_constant_kind)tpck_template_ref)) {
         /* A tpck_unknown_function/tpck_template_ref constant is typically
            mangled with an implied "address of" operation, but in this case,
@@ -4548,7 +4548,7 @@ call that has no arguments).
           {
             if (op == (an_expr_operator_kind)eok_dot_field &&
                 is_variable_node(child) &&
-                child->variant.variable->is_anonymous_parent_object) {
+                node_variable(child)->is_anonymous_parent_object) {
               /* Remove a compiler-generated "." operation added to access a
                  member of an anonymous union. */
               expr = child->next;
@@ -4586,8 +4586,8 @@ call that has no arguments).
              mangling (no substitutions are used for constants, so this should
              be okay). */
           expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-          expr->variant.constant = dip->variant.constant;
-          expr->type = expr->variant.constant->type;
+          node_constant(expr) = dip->variant.constant;
+          expr->type = node_constant(expr)->type;
         } else {
           /* Note that expr may be set to NULL here in some cases (e.g.,
              dik_constructor where the constructor has no arguments). */
@@ -4988,9 +4988,11 @@ details any qualification that applies to the destructor.
 {
   a_type_ptr  destructor_type;
 
-  if (name_reference != NULL && name_reference->destructor_type != NULL) {
+  if (name_reference != NULL &&
+      special_kind_is(name_reference, sfk_none) &&
+      name_reference->variant.destructor_type != NULL) {
     /* Use the destructor_type from the name_reference if it's available. */
-    destructor_type = name_reference->destructor_type;
+    destructor_type = name_reference->variant.destructor_type;
   } else {
     /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
        passed in is a pointer to a class. */
@@ -5080,7 +5082,7 @@ expression that was used to select expr (NULL if no selector was used).
      mangled output. */
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
   check_assertion(expr != NULL);
-  name_reference = expr->name_reference;
+  name_reference = name_ref_for_node(expr);
 #if IA64_ABI
   if (emulate_gnu_abi_bugs && selector != NULL) {
     /* g++ seems to add the "on" mangling to operator names only when there
@@ -5095,7 +5097,7 @@ expression that was used to select expr (NULL if no selector was used).
   }  /* if */
 #endif /* IA64_ABI */
   if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
+    a_constant_ptr con = node_constant(expr);
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
       if (con->variant.template_param.kind ==
                            (a_template_param_constant_kind)tpck_template_ref) {
@@ -5160,8 +5162,9 @@ expression that was used to select expr (NULL if no selector was used).
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
           check_assertion(name_reference != NULL &&
-                          name_reference->destructor_type != NULL);
-          destructor_type = name_reference->destructor_type;
+                          special_kind_is(name_reference, sfk_none) &&
+                          name_reference->variant.destructor_type != NULL);
+          destructor_type = name_reference->variant.destructor_type;
         } else {
           scp = &con->source_corresp;
         }  /* if */
@@ -5170,8 +5173,8 @@ expression that was used to select expr (NULL if no selector was used).
   } else if (is_variable_node(expr)) {
     /* Static data members are mangled with <simple-id>; others are
        mangled using <expr-primary>. */
-    if (expr->variant.variable->source_corresp.is_class_member) {
-      scp = &expr->variant.variable->source_corresp;
+    if (node_variable(expr)->source_corresp.is_class_member) {
+      scp = &node_variable(expr)->source_corresp;
     }  /* if */
   } else if (is_routine_node(expr)) {
 #if IA64_ABI
@@ -5189,7 +5192,7 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* IA64_ABI */
     /* Do not insert code here. */
     {
-      a_routine_ptr rp = expr->variant.routine.ptr;
+      a_routine_ptr rp = node_routine(expr);
       template_arg_list = rp->template_arg_list;
       if (rp->special_kind != (a_special_function_kind)sfk_none) {
         /* See if this routine requires special handling. */
@@ -5232,9 +5235,9 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* IA64_ABI */
       }  /* if */
     }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_field) {
+  } else if (is_field_node(expr)) {
     /* A field (possibly of an anonymous union). */
-    scp = &expr->variant.field->source_corresp;
+    scp = &node_field(expr)->source_corresp;
 #if IA64_ABI
     if (emulate_gnu_abi_bugs && name_reference != NULL &&
         name_reference->qualifier != NULL &&
@@ -5341,11 +5344,12 @@ in_dependent_expr is TRUE if this expression is part of a template-dependent
 expression. 
 */
 {
-  an_expr_node_ptr selector = NULL, selection = NULL, operand;
-  a_boolean        use_unresolved_name_mangling = TRUE;
+  an_expr_node_ptr      selector = NULL, selection = NULL, operand;
+  a_boolean             use_unresolved_name_mangling = TRUE;
+  a_name_reference_ptr  nrp;
 #if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404
-  a_constant_ptr   dummy_constant = local_constant();
-  an_expr_node     dummy_expr;
+  a_constant_ptr        dummy_constant = local_constant();
+  an_expr_node          dummy_expr;
 #endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404 */
 
   check_assertion(is_operation_node(expr));
@@ -5358,6 +5362,7 @@ expression.
     case eok_points_to_static:
       selector = operand;
       selection = operand->next;
+      nrp = name_ref_for_node(selection);
       break;
     case eok_dot_member_call:
     case eok_points_to_member_call:
@@ -5365,11 +5370,19 @@ expression.
     case eok_points_to_pm_call:
       selector = operand->next;
       selection = operand;
+      nrp = name_ref_for_node(selection);
       break;
     case eok_dot_vacuous_destructor_call:
     case eok_points_to_vacuous_destructor_call:
       selector = operand;
       selection = NULL;
+      if (operand->next != NULL) {
+        /* A NULL enk_routine entry was appended to record the form used to
+           denote the destructor. */
+        nrp = name_ref_for_node(operand->next);
+      } else {
+        nrp = NULL;
+      }  /* if */
       break;
     default:
       unexpected_condition();
@@ -5377,10 +5390,9 @@ expression.
   if (expr->variant.operation.compiler_generated) {
     if (expr->is_objectless_nonstatic_data_mem_ref
 #if !IA64_ABI
-        && (selection->name_reference != NULL &&
-            selection->name_reference->qualifier != NULL)
+        && (nrp != NULL && nrp->qualifier != NULL)
 #endif /* !IA64_ABI */
-                                                         ) {
+                                                  ) {
       /* A case like decltype(p.x+A::x); remove the "((A *)0)->" portion of
          the expression used in the internal representation. */
       selector = NULL;
@@ -5393,8 +5405,7 @@ expression.
            to produce a mangling that mimics the source as written). */
         selector = NULL;
 #else /* !IA64_ABI */
-        if (selection->name_reference != NULL &&
-            selection->name_reference->qualifier != NULL) {
+        if (nrp != NULL && nrp->qualifier != NULL) {
           /* The selection has a qualifier (e.g., A::m), so use the qualifier
              in the mangling (rather than the implicit "this"). */
           selector = NULL;
@@ -5471,7 +5482,7 @@ expression.
     /* A vacuous destructor.  Vacuous destructors of the type int::~int()
        don't get a name_reference structure, so they appear in demangled
        names as ~int(). */
-    mangled_destructor_name(selector->type, expr->name_reference, mctl);
+    mangled_destructor_name(selector->type, nrp, mctl);
   }  /* if */
 #if !IA64_ABI
   if (selector != NULL) add_to_mangled_name('O', mctl);
@@ -6039,7 +6050,7 @@ is TRUE.
 #if IA64_ABI
       if (is_typeid_template_param(expr) && !suppress_address_of) {
         /* Add an implicit "&" to a tpck_typeid template parameter constant. */
-        mangled_entity_reference(&expr->variant.constant->source_corresp,
+        mangled_entity_reference(&node_constant(expr)->source_corresp,
                                  (an_il_entry_kind)iek_constant,
                                  (a_routine_info_block *)NULL, 
                                  /*add_address_of=*/TRUE, mctl);
@@ -6047,7 +6058,7 @@ is TRUE.
 #endif /* IA64_ABI */
       /* Do not insert code here. */
       {
-        mangled_encoding_for_constant(expr->variant.constant,
+        mangled_encoding_for_constant(node_constant(expr),
                                       /*old_form=*/FALSE,
                                       in_dependent_expr,
                                       suppress_address_of,
@@ -6247,7 +6258,7 @@ is TRUE.
       mangled_encoding_for_sizeof_pack(expr, mctl);
       break;
     case enk_variable:
-      if (expr->variant.variable->is_this_parameter) {
+      if (node_variable(expr)->is_this_parameter) {
         /* When "this" is used explicitly in a trailing return type, it is
            mangled as a special type of parameter reference.  Seeing a
            "this" variable here should occur only in prototype instantiations;
@@ -6260,30 +6271,30 @@ is TRUE.
 #endif /* IA64_ABI */
       } else {
 #if IA64_ABI
-        mangled_entity_reference(&expr->variant.variable->source_corresp,
+        mangled_entity_reference(&node_variable(expr)->source_corresp,
                                  (an_il_entry_kind)iek_variable,
                                  (a_routine_info_block *)NULL,
                                  /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
-        mangled_variable_name(expr->variant.variable, mctl);
+        mangled_variable_name(node_variable(expr), mctl);
 #endif /* IA64_ABI */
       }  /* if */
       break;
     case enk_field:
       /* This should only happen for fields of anonymous unions. */
       check_assertion(class_type_supp(
-                      scp_parent_class(&expr->variant.field->source_corresp))->
+                      scp_parent_class(&node_field(expr)->source_corresp))->
                                                         anonymous_union_kind !=
                                             (an_anonymous_union_kind)auk_none);
 #if IA64_ABI
-      mangled_entity_reference(&expr->variant.field->source_corresp,
+      mangled_entity_reference(&node_field(expr)->source_corresp,
                                (an_il_entry_kind)iek_field,
                                (a_routine_info_block *)NULL,
                                /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
-      mangled_simple_id(&expr->variant.field->source_corresp,
+      mangled_simple_id(&node_field(expr)->source_corresp,
                         (a_template_arg_ptr)NULL,
-                        expr->name_reference,
+                        expr->variant.field.name_reference,
                         /*include_length=*/TRUE,
                         mctl);
 #endif /* IA64_ABI */
@@ -6303,13 +6314,13 @@ is TRUE.
       } else {
         add_address_of = TRUE;
       }  /* if */
-      mangled_entity_reference(&expr->variant.routine.ptr->source_corresp,
+      mangled_entity_reference(&node_routine(expr)->source_corresp,
                                (an_il_entry_kind)iek_routine,
                                (a_routine_info_block *)NULL,
                                add_address_of,
                                mctl);
 #else /* !IA64_ABI */
-      mangled_routine_name(expr->variant.routine.ptr, mctl);
+      mangled_routine_name(node_routine(expr), mctl);
 #endif /* IA64_ABI */
       break;
     case enk_reuse_value:  /* Not expected generally, but can come up
