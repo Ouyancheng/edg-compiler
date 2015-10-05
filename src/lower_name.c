@@ -5346,7 +5346,7 @@ expression.
 {
   an_expr_node_ptr      selector = NULL, selection = NULL, operand;
   a_boolean             use_unresolved_name_mangling = TRUE;
-  a_name_reference_ptr  nrp;
+  a_name_reference_ptr  nrp = NULL;
 #if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404
   a_constant_ptr        dummy_constant = local_constant();
   an_expr_node          dummy_expr;
@@ -5380,8 +5380,6 @@ expression.
         /* A NULL enk_routine entry was appended to record the form used to
            denote the destructor. */
         nrp = name_ref_for_node(operand->next);
-      } else {
-        nrp = NULL;
       }  /* if */
       break;
     default:
