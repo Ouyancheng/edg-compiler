@@ -8447,6 +8447,11 @@ typedef struct a_type {
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
+  a_bit_field	process_for_ordering:1;
+			/* Set during the processing that fixes ordering
+			   problems in the file scope types list, to indicate
+			   that the type should be processed (because it is
+			   on the file scope list). */
   a_bit_field	type_processed_for_ordering:1;
 			/* Set during the processing that fixes ordering
 			   problems in the file scope types list, to indicate

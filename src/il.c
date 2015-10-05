@@ -26242,6 +26242,7 @@ list (i.e., struct, union, enum, or typedef).
 {
   a_boolean  append_type_early = FALSE;
 
+  if (!type->process_for_ordering) goto done;
   /* Set the flags indicating that this type has been processed before actually
      traversing the subtree to avoid unnecessary recursion. */
   check_assertion(!type->type_processed_for_ordering);
@@ -26272,6 +26273,7 @@ list (i.e., struct, union, enum, or typedef).
     process_referenced_types_for_ordering(type, must_be_complete);
     append_type_to_reordering(type);
   }  /* if */
+done:;
 }  /* process_type_for_ordering */
 
 
@@ -26290,8 +26292,13 @@ IL lowering.
        are processed previously so that they will precede the type on the
        list (if they ought to be on the list at all). */
     /* First count the types to be reordered and allocate an array of
-       a_type_ptr values to keep track of the new order. */
-    for (; type != NULL; type = type->next) ++n_types;
+       a_type_ptr values to keep track of the new order.  Mark the flags
+       that are on the list.  Only those types will be considered when
+       encountered for ordering. */
+    for (; type != NULL; type = type->next) {
+      type->process_for_ordering = TRUE;
+      ++n_types;
+    }  /* for */
     type_reordering = (a_type_ptr*)alloc_general(n_types*sizeof(a_type_ptr));
     next_type_reordering_slot = type_reordering;
     /* We're modeling references in types output in the second pass of
@@ -26313,18 +26320,20 @@ IL lowering.
       }  /* if */
     }  /* for */
 #if DEBUG
-    if ((unsigned long)(next_type_reordering_slot - type_reordering)
-                                                                  != n_types &&
-        db_flag_is_set("ftlop")) {
-      type = il_header.primary_scope->types;
-      fprintf(f_debug, "Types for reordering: \n");
-      for (; type != NULL; type = type->next) {
-        db_type_name(type); fprintf(f_debug, "\n");
+    { unsigned long new_n_types =
+                ((unsigned long)(next_type_reordering_slot - type_reordering));
+      if (new_n_types != n_types &&
+          db_flag_is_set("ftlop")) {
+        type = il_header.primary_scope->types;
+        fprintf(f_debug, "Types for reordering: \n");
+        for (; type != NULL; type = type->next) {
+          db_type_name(type); fprintf(f_debug, "\n");
+        }  /* if */
+        fprintf(f_debug, "Types being addded: \n");
+        for (k = 0; k < new_n_types; ++k) {
+          db_type_name(type_reordering[k]); fprintf(f_debug, "\n");
+        }  /* for */
       }  /* if */
-      fprintf(f_debug, "Types being addded: \n");
-      for (k = 0; k < n_types; ++k) {
-        db_type_name(type_reordering[k]); fprintf(f_debug, "\n");
-      }  /* for */
     }  /* if */
 #endif /* DEBUG */
     check_assertion(

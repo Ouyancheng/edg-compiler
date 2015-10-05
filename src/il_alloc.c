@@ -2145,6 +2145,7 @@ variant fields to default values.
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
+  pte->process_for_ordering = FALSE;
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
