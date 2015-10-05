@@ -24341,6 +24341,12 @@ that follows.
     if (is_error_locator(locator)) {
       /* Ignore it. */
       sym = NULL;
+    } else if (microsoft_mode && decl_state->class_declared_in != NULL &&
+               decl_state->class_declared_in->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+      /* Don't attempt to match an in-class specialization in a Microsoft
+         nonreal instantiation. */
+      sym = NULL;
     } else if ((in_prototype_instantiation_or_cli_generic(decl_state) &&
                 !allow_in_class_specializations) ||
                decl_state->decl_scope_err) {
@@ -24411,7 +24417,8 @@ that follows.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (sym == NULL) {
-          /* No match was found and an error was issued. */
+          /* No match was found and an error was issued (or ignored in
+             some cases). */
         } else if (microsoft_bugs && microsoft_version <= 1300) {
           /* Microsoft allows specialization syntax to be used to define
              non-template entities. */

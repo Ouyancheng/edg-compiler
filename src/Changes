@@ -1,5 +1,23 @@
 Version 4.11
 
+10/5/15  [EDGcpfe/16009]
+Microsoft compatibility: spurious error on in-class specialization
+
+A problem with Microsoft nonreal base class processing could result in
+a spurious error when attempting to match an in-class specialization
+with the template declaration that it specializes.  This would occur
+when the instantiation on which the nonreal base class is being performed
+is based on a member class template of another class template.  Now fixed.
+
+  template <typename T> struct A {
+    template<typename U> void f(U& stream) {  }
+    template<> void f<>(int& stream) { }
+  };
+  template <class T2> struct B {
+    template <class U2> struct C : A<U2> { };
+  };
+
+
 10/5/15  [EDGcpfe/16552]
 Missing error on uses of "operator auto" in C++14 mode
 
