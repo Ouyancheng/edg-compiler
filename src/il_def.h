@@ -2282,17 +2282,7 @@ typedef struct a_name_reference {
 			   included in the IL. */
 } a_name_reference;
 
-EXTERN a_name_reference null_name_reference
-#if VAR_INITIALIZERS
-= { NULL, NULL, { NULL }, 0, (a_special_function_kind)sfk_none,
-    FALSE, FALSE, FALSE,
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    FALSE,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    FALSE
-}
-#endif /* VAR_INITIALIZERS */
-;
+EXTERN a_name_reference null_name_reference;
 
 typedef struct an_attribute_group *an_attribute_group_ptr;
 typedef struct an_attribute_group {
