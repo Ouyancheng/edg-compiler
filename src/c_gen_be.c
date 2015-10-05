@@ -4869,7 +4869,7 @@ signed bit fields under pcc, which does not support them.
         (node_operator_is(operand, eok_dot_field) ||
          node_operator_is(operand, eok_points_to_field))) {
       a_field_ptr dest_field =
-                        field_node(operand->variant.operation.operands->next);
+                        node_field(operand->variant.operation.operands->next);
       if (dest_field->is_bit_field) {
         /* For this case, we need to truncate the result of the assignment
            because pcc does not do it.  For a signed bit field, use __sexten;
@@ -4903,7 +4903,7 @@ closing parentheses needed if any code was generated there.
         (node_operator_is(operand, eok_dot_field) ||
          node_operator_is(operand, eok_points_to_field))) {
       a_field_ptr dest_field =
-                        field_node(operand->variant.operation.operands->next);
+                        node_field(operand->variant.operation.operands->next);
       if (dest_field->is_bit_field) {
         if (dest_field->bit_field_is_signed) {
           /* End of __sexten call. */
@@ -5900,7 +5900,7 @@ process_assignment:
         case eok_dot_field:
         case eok_points_to_field:
 #if !C_GEN_BE_GENERATES_ANSI_C
-          field = field_node(operand_2);
+          field = node_field(operand_2);
           if (field->is_bit_field && field->bit_field_is_signed) {
             /* Signed bit field.  Do sign extension on the unsigned bit field
                provided by pcc. */
