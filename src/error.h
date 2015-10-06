@@ -37,6 +37,20 @@ can only use those as opaque types.
 typedef struct a_diagnostic *a_diagnostic_ptr;
 
 /*
+Structure used to represent a list of diagnostic entries.
+*/
+typedef struct a_diag_list *a_diag_list_ptr;
+typedef struct a_diag_list {
+  a_diagnostic_ptr
+		head;
+			/* The start of the list. */
+  a_diagnostic_ptr
+		tail;
+			/* The end of the list. */
+} a_diag_list;
+
+
+/*
 Structure used to map error tags into error codes.  An array of these
 entries is used.  The array is sorted by tag so that a binary search
 may be used to look up a given tag.
@@ -620,6 +634,16 @@ extern void pos_sy2_warning(an_error_code     error_code,
 extern void sym_add_diag_info(a_diagnostic_ptr primary_dp,
                               an_error_code    error_code,
                               struct a_symbol  *symbol);
+
+extern void more_info_diagnostic(an_error_code     error_code,
+                                 a_source_position *error_pos,
+                                 a_diag_list_ptr   diag_list);
+
+extern void add_more_info_list(a_diagnostic_ptr		dp,
+			       a_diag_list_ptr		dlp);
+
+
+extern void discard_more_info_list(a_diag_list_ptr		dlp);
 
 extern void pch_message(an_error_code error_code,
    		        a_const_char  *fill_in_str);

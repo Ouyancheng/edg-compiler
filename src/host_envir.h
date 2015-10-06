@@ -3265,6 +3265,7 @@ Internal coding used for error severities.
 typedef enum /*an_error_severity*/ {
   es_default,	/* Must be zero. */
   es_once,	/* Used internally to issue certain diagnostics only once. */
+  es_more_info,	/* Used to mark "more information" diagnostics. */
   es_none,
   es_remark,
   es_warning,

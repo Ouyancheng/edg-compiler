@@ -232,20 +232,6 @@ typedef struct a_source_info_for_pos {
 
 
 /*
-Structure used to represent a list of diagnostic entries.
-*/
-typedef struct a_diag_list *a_diag_list_ptr;
-typedef struct a_diag_list {
-  a_diagnostic_ptr
-		head;
-			/* The start of the list. */
-  a_diagnostic_ptr
-		tail;
-			/* The end of the list. */
-} a_diag_list;
-
-
-/*
 Structure used to build a diagnostic to be issued.  A diagnostic consists of
 a primary entry and an optional list of sub-messages used for lists of
 information associated with the primary entry.  Primary entries and sub-
@@ -724,7 +710,7 @@ of freed entries if possible.
 static void free_diagnostic(a_diagnostic_ptr dp);
 
 
-static void free_diag_list(a_diag_list_ptr	dlp)
+static void free_diag_list_elements(a_diag_list_ptr	dlp)
 /*
 Free the list of diagnostics pointed to by the diagnostic list entry dip.
 */
@@ -736,7 +722,7 @@ Free the list of diagnostics pointed to by the diagnostic list entry dip.
     next_dp = dp->next;
     free_diagnostic(dp);
   }  /* for */
-}  /* free_diag_list */
+}  /* free_diag_list_elements */
 
 
 static void free_diagnostic(a_diagnostic_ptr dp)
@@ -748,10 +734,10 @@ that are available for reuse.
   /* Don't put entries from general memory on the available lists. */
   if (diag_memory_region != NO_MEMORY_REGION_NUMBER) {
     /* If there are sub-lists, free them now. */
-    free_diag_list(&dp->sub_msgs);
-    free_diag_list(&dp->context);
-    free_diag_list(&dp->macro_context);
-    free_diag_list(&dp->more_info);
+    free_diag_list_elements(&dp->sub_msgs);
+    free_diag_list_elements(&dp->context);
+    free_diag_list_elements(&dp->macro_context);
+    free_diag_list_elements(&dp->more_info);
     /* If the diagnostic has fill-ins, add them to the available list. */
     if (dp->fill_in_head != NULL) {
       dp->fill_in_tail->next = avail_diag_fill_ins;
@@ -2697,7 +2683,8 @@ static void general_diagnostic(
 			a_symbol_ptr		symbol2,
 			a_type_ptr		type1,
 			a_type_ptr		type2,
-			a_source_position	*other_pos);
+			a_source_position	*other_pos,
+			a_diag_list_ptr		diag_list);
 
 #if CHECKING
 
@@ -2724,7 +2711,7 @@ An internal error has occurred.  Write the given message and abort.
                      error_message, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
@@ -4724,11 +4711,14 @@ static void general_diagnostic(
 			a_symbol_ptr		symbol2,
 			a_type_ptr		type1,
 			a_type_ptr		type2,
-			a_source_position	*other_pos)
+			a_source_position	*other_pos,
+			a_diag_list_ptr		dlp)
 /*
-General interface to the diagnostic routines.  Issue a diagnostic with
+General interface to the diagnostic routines.  Build a diagnostic with
 the specified severity, error code, and error position.   If any of the
-other parameters is non-NULL, add a fill-in of the given kind.
+other parameters is non-NULL, add a fill-in of the given kind.  If dlp
+is NULL, issue the diagnostic.  If it is not NULL, add the diagnostic
+to the specified list.
 */
 {
   a_diagnostic_ptr	dp;
@@ -4741,7 +4731,18 @@ other parameters is non-NULL, add a fill-in of the given kind.
   if (type1 != NULL) add_type_fill_in(dp, type1);
   if (type2 != NULL) add_type_fill_in(dp, type2);
   if (other_pos != NULL) add_position_fill_in(dp, other_pos);
-  wrap_up_diagnostic(dp);
+  if (dlp == NULL) {
+    wrap_up_diagnostic(dp);
+  } else {
+    /* Link this entry on the specified list. */
+    if (dlp->head == NULL) {
+      dlp->head = dp;
+    }  /* if */
+    if (dlp->tail != NULL) {
+      dlp->tail->next = dp;
+    }  /* if */
+    dlp->tail = dp;
+  }  /* if */
 }  /* general_diagnostic */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -4758,7 +4759,7 @@ terminate the compilation.
                      concat_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* str_command_line_warning */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -4775,7 +4776,7 @@ terminate the compilation.
                      concat_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
   exit_compilation(es_internal_error);
@@ -4805,7 +4806,7 @@ at the indicated position.
                      error_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_st_diagnostic */
 
 
@@ -4843,7 +4844,7 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      type, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty_diagnostic */
 
 
@@ -4861,7 +4862,7 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      type1, type2,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty2_diagnostic */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -4879,7 +4880,7 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      symbol, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy_diagnostic */
 
 
@@ -4896,7 +4897,7 @@ is also provided.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     other_pos);
+                     other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_diagnostic */
 
 
@@ -4914,7 +4915,7 @@ indicated position, a second position is also provided.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      symbol, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     other_pos);
+                     other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_sy_diagnostic */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4936,7 +4937,7 @@ indicated position, a second position is also provided.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
-                     other_pos);
+                     other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_ty_diagnostic */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4959,7 +4960,7 @@ indicated position.
                      (a_symbol_ptr)NULL,
                      type1,
                      type2,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy_ty2_diagnostic */
 
 
@@ -4980,7 +4981,7 @@ indicated position.
                      symbol2,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy2_diagnostic */
 
 
@@ -5013,7 +5014,7 @@ indicated position.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_syty_diagnostic */
 
 
@@ -5034,7 +5035,7 @@ at the indicated position.
                      (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_stsy_diagnostic */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -5057,7 +5058,7 @@ at the indicated position.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_stty_diagnostic */
 
 
@@ -5079,7 +5080,7 @@ position indicated by error_position.
                      (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
-                     (a_source_position*)NULL);
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_st2_diagnostic */
 
 
@@ -5986,6 +5987,47 @@ primary_dp.
   dp = create_sub_message(primary_dp, error_code);
   add_symbol_fill_in(dp, symbol);
 }  /* sym_add_diag_info */
+
+
+void add_more_info_list(a_diagnostic_ptr	dp,
+			a_diag_list_ptr		dlp)
+/*
+Add the list of "more information" diagnostics specified by dlp to the
+primary diagnostic dp.
+*/
+{
+  dp->more_info = *dlp;
+  /* Clear the entries in the list passed in. */
+  clear_diag_list(dlp);
+}  /* add_more_info_list */
+
+
+void discard_more_info_list(a_diag_list_ptr		dlp)
+/*
+Discard the list of "more information" diagnostics specified by dlp.  The
+list is freed and the list passed in is reset.
+*/
+{
+  free_diag_list_elements(dlp);
+  /* Clear the entries in the list passed in. */
+  clear_diag_list(dlp);
+}  /* add_more_info_list */
+
+
+void more_info_diagnostic(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.
+*/
+{
+  general_diagnostic(es_more_info, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL, diag_list);
+}  /* more_info_diagnostic */
 
 
 void pch_message(an_error_code error_code,
