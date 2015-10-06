@@ -14336,12 +14336,23 @@ expression is known.  This routine does not investigate all possible cases
        boolean value.  Specifically, the address of variables and
        functions. */
     a_boolean  non_null = FALSE;
-    *value = is_constant_valued_expression(expr,
-                                           /*local_vars_change=*/TRUE,
-                                           /*other_vars_change=*/TRUE,
-                                           this_cannot_be_null,
-                                           &non_null) &&
-             non_null;
+    if (is_constant_valued_expression(expr,
+                                      /*local_vars_change=*/TRUE,
+                                      /*other_vars_change=*/TRUE,
+                                      this_cannot_be_null,
+                                      &non_null) &&
+        non_null) {
+      /* Value is constant and known to be non-NULL (so it always evaluates
+         to TRUE). */
+      *value = TRUE;
+    } else if (non_null) {
+      /* Value is not constant, but is known to be non-NULL (so it always
+         evaluates to TRUE). */
+      *value = TRUE;
+    } else {
+      /* Nothing can be said about the value. */
+      *value = FALSE;
+    }  /* if */
     value_is_known = *value;
   }  /* if */
   return value_is_known;

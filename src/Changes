@@ -1,5 +1,34 @@
 Version 4.11
 
+10/5/15  [EDGcpfe/16550]
+Assumptions about values of boolean expressions at run time
+
+During the inlining process, boolean expressions are examined to determine
+whether or not their value can be determined at compile time (thereby allowing
+the inliner to short-circuit unnecessary operations).  Previously, only
+expressions that return constant values were considered to have known boolean
+values, but now expressions that return non-constant values, but whose values
+are all known to be non-zero are also assumed to be known (and returning TRUE).
+Such a case arises in configurations where NEW_CAN_BE_FOLDED_INTO_CTOR is
+TRUE in the example below (in this case, when the call to A::A(E) is inlined,
+the argument for "this" is &temp->m2, which is non-null because the offset
+for m2 is not zero).  Previously this had resulted in an assertion failure
+(remap_var_for_inlining: wrong kind of remap) when compiled with --c++11
+--no_exceptions.
+
+  enum E { e };
+  struct A {
+    A(E _e) {}
+  };
+  struct S {
+    int m1;
+    A   m2;
+  };
+  void f() {
+    new S{ 0, e };
+  }
+
+
 10/5/15  [EDGcpfe/16009]
 Microsoft compatibility: spurious error on in-class specialization
 
