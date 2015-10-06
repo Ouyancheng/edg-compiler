@@ -1,5 +1,29 @@
 Version 4.11
 
+10/6/15  [EDGcpfe/16547]
+Facility to provide additional information about diagnostics
+
+Version 4.10.1 included a reworking of the diagnostic mechanism to allow
+additional information about the cause of an error (for example, the reason
+for a constexpr evaluation failure) to be provided.  The interface
+routines to make use of this have now been added, and are available for
+customers to add similar facilities for other purposes.  The function
+list_diagnostic can be used to add a "more information" diagnostic to a
+list that may or may not be used later if an error is detected.  Later,
+add_more_info_list or discard_more_info_list can be used to issue or
+discard the information.  For example:
+
+  list_diagnostic(ec_some_info, &pos, &my_list);
+  /* ... */
+  if (error_occurred) {
+    dp = start_pos_error(ec_something, &pos);
+    add_more_info_list(dp, &my_list);
+    end_diagnostic(dp);
+  } else {
+    discard_more_info_list(&my_list);
+  }  /* if */
+
+
 10/5/15  [EDGcpfe/16550]
 Assumptions about values of boolean expressions at run time
 
