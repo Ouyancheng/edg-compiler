@@ -36,9 +36,9 @@ A problem with Microsoft nonreal base class processing could result in
 a spurious error when attempting to match an in-class specialization
 with the template declaration that it specializes.  This would occur
 when the nonreal base class was being instantiated with a template
-argument that is based on the template parameter of a member class
-template that is itself defined in  another class template (e.g., when
-A is instantiated based on U2 in the example below).  Now fixed.
+argument that involves a template parameter of a member class
+template that is itself defined in another class template (e.g., when
+A is instantiated with U2 in the example below).  Now fixed.
 
   template <typename T> struct A {
     template<typename U> void f(U& stream) {  }
