@@ -35,8 +35,10 @@ Microsoft compatibility: spurious error on in-class specialization
 A problem with Microsoft nonreal base class processing could result in
 a spurious error when attempting to match an in-class specialization
 with the template declaration that it specializes.  This would occur
-when the instantiation on which the nonreal base class is being performed
-is based on a member class template of another class template.  Now fixed.
+when the nonreal base class was being instantiated with a template
+argument that is based on the template parameter of a member class
+template that is itself defined in  another class template (e.g., when
+A is instantiated based on U2 in the example below).  Now fixed.
 
   template <typename T> struct A {
     template<typename U> void f(U& stream) {  }
