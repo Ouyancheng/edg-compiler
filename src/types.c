@@ -14545,7 +14545,7 @@ to the caller.  If no modification is done return the original type.
      nonreal typerefs. */
   if (type->kind == (a_type_kind)tk_typeref &&
       prototype_instantiations_in_il) {
-    if (!is_template_dependent_type(type)) {
+    if (is_template_dependent_context() && !is_template_dependent_type(type)) {
       force_strip_nonreal = TRUE;
     }  /* if */
   }  /* if */
