@@ -15424,6 +15424,11 @@ cast.  See lower_expr for typical invocation.
             /* A call of a "destructor" for a class or simple type that does
                not have one, e.g., p->int::~int().  Change the node into
                a cast to void. */
+            /* A second operand node is only present to hold a name reference
+               representing the way the vacuous destructor was expressed in
+               the source.  Eliminate, since it is not valid as a cast
+               operand. */
+            operand_node->next = NULL;
             if (operand_node->is_lvalue) {
               /* For the lvalue.T::~T() case, change the lvalue to an rvalue
                  and then cast that to void. */
