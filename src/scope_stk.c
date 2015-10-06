@@ -5519,8 +5519,9 @@ body.  Only called in C++ mode.
   /* Examine each of the class types on the types list of the scope.  If
      this is a class scope, it picks up the nested classes. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
-    if (is_immediate_class_type(tp)) {
-      class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+    if (is_immediate_class_type(tp) &&
+        !tp->variant.class_struct_union.is_nonreal_class) {
+      class_scope = class_type_supp(tp)->assoc_scope;
       if (class_scope != NULL) {
         /* Check the member functions of the nested class. */
         check_referenced_member_functions(class_scope, is_function_local,

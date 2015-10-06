@@ -1,5 +1,18 @@
 Version 4.11
 
+10/6/15  [EDGcpfe/16559]
+Spurious error on virtual inline member of a class template
+
+In strict mode, the front end issues a spurious error on a virtual inline
+member of a class template with no function body.  For example:
+
+  template<typename> struct S {
+    virtual inline ~S();  // This previously triggered an error in strict
+  };                      // mode, even when the template is unused.
+
+This is now fixed.
+
+
 10/6/15  [EDGcpfe/16547]
 Facility to provide additional information about diagnostics
 
