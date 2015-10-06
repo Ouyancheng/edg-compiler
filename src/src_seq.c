@@ -703,14 +703,27 @@ templ_entry is NULL.
       }  /* if */
       tail_to_move = ssep;
       ssep = tail_to_move->next;
-      (void)unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
-                                   /*end_of_list_ptr=*/NULL);
-      if (moved_list == NULL) {
-        moved_list = head_to_move;
-      } else {
-        end_moved_list->next = head_to_move;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (var->initializer_in_class && cppcli_enabled &&
+          is_managed_class_type(parent_class_of(var))) {
+        /* A declaration of a static data member of a managed class with an
+           in-class initializer is a definition of that static data member.
+           It should not be moved out of the class definition. */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* Extract the source sequence entry (or entries) for this static
+           data member (to be appended later). */
+        (void)unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
+                                     /*end_of_list_ptr=*/NULL);
+        if (moved_list == NULL) {
+          moved_list = head_to_move;
+        } else {
+          end_moved_list->next = head_to_move;
+        }  /* if */
+        end_moved_list = tail_to_move;
       }  /* if */
-      end_moved_list = tail_to_move;
     } else if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct &&
                ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->entity.ptr
                                                                   == entity) {
