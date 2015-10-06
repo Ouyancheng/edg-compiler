@@ -15065,20 +15065,25 @@ cast.  See lower_expr for typical invocation.
       /* No processing required. */
       break;
     case enk_routine:
+#if GNU_FUNCTION_MULTIVERSIONING || LOWER_IFUNC
+      { a_routine_ptr  rp = node_routine(expr);
+        if (rp != NULL) {
 #if GNU_FUNCTION_MULTIVERSIONING
-      if (is_multiversion_representative(expr->variant.routine.ptr)) {
-        /* Replace a representative routine with a target-specific version
-           if one is available. */
-        expr->variant.routine.ptr =
-                                 lowered_mv_routine(expr->variant.routine.ptr);
-      }  /* if */
+          if (is_multiversion_representative(rp)) {
+            /* Replace a representative routine with a target-specific version
+               if one is available. */
+            expr->variant.routine.ptr = lowered_mv_routine(rp);
+          }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
-      if (expr->variant.routine.ptr->is_ifunc) {
-        /* Re-write the node to avoid calling the wrapper routine. */
-        lower_ifunc_expr(expr);
-      }  /* if */
+          if (rp->is_ifunc) {
+            /* Re-write the node to avoid calling the wrapper routine. */
+            lower_ifunc_expr(expr);
+          }  /* if */
 #endif /* LOWER_IFUNC */
+        }  /* if */
+      }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING || LOWER_IFUNC */
       break;
     case enk_variable:
 #if MINIMAL_INLINING

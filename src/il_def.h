@@ -15870,7 +15870,10 @@ typedef struct an_expr_node {
     /* When kind == enk_routine: */
     struct {
       a_routine_ptr
-                ptr;	/* A pointer to the routine. */
+                ptr;	/* A pointer to the routine.  May be NULL for nodes
+			   used to representing vacuous destructors.  (The
+			   name_reference field records the form of the
+			   destructor.) */
       a_name_reference_ptr
 		name_reference;
 			/* If non-NULL, points to information about the
