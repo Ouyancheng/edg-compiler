@@ -7569,16 +7569,16 @@ discarded right after they have been generated.
        not discarded but their bodies should only be used for inlining. */
     discard = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (routine->is_prototype_instantiation &&
-             !all_template_info_in_il) {
-    /* This is a prototype instantiation, and we're not keeping prototype
-       instantiations in the IL. */
-    discard = TRUE;
   } else if (routine->contains_generic_lambda ||
              (routine->is_lambda_body && routine->is_template_function)) {
     /* Routines that are or contain generic lambdas may need to have their
        scopes reactivated for instantiations. */
     discard = FALSE;
+  } else if (routine->is_prototype_instantiation &&
+             !all_template_info_in_il) {
+    /* This is a prototype instantiation, and we're not keeping prototype
+       instantiations in the IL. */
+    discard = TRUE;
   } else if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
     /* This is a non-template or a specialization in a secondary translation
        unit that is being compiled only for its exported templates.
