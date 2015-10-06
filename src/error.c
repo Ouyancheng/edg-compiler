@@ -2528,6 +2528,9 @@ number is added into the output.
   /* Determine the appropriate severity string, and also count this
      diagnostic against the total for the severity. */
   switch (dp->severity) {
+    case es_more_info:
+      severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
+      break;
     case es_remark:
       severity_code = capitalize_severity ? ec_Remark : ec_remark;
       total_remarks++;
@@ -3568,7 +3571,7 @@ that might be required.
     write_source_line(&dp->diag_header_pos, &dp->diag_header_source_info);
   }  /* if */
   /* If there are context messages, process them now. */
-  if (dp->kind == dck_primary) {
+  if (dp->kind == dck_primary && dp->severity != es_more_info) {
     a_diagnostic_ptr	sub_dp;
     /* Output macro context diagnostics. */
     for (sub_dp = dp->macro_context.head; sub_dp != NULL;
@@ -3578,6 +3581,13 @@ that might be required.
     if (dp->kind == dck_primary && !brief_diagnostics) {
       /* Display the macro invocation source line, if needed. */
       write_source_line_for_macro(dp);
+    }  /* if */
+    /* If there are more-info, process them now. */
+    if (dp->kind == dck_primary) {
+      a_diagnostic_ptr	mi_dp;
+      for (mi_dp = dp->more_info.head; mi_dp != NULL; mi_dp = mi_dp->next) {
+        construct_message(mi_dp);
+      }  /* for */
     }  /* if */
     /* Output instantiation context messages. */
     for (sub_dp = dp->context.head; sub_dp != NULL; sub_dp = sub_dp->next) {
