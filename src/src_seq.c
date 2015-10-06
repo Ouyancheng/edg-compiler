@@ -666,7 +666,11 @@ templ_entry is NULL.
                                moved_list = NULL, end_moved_list = NULL;
   char                         *entity;
 
-  if (templ_entry != NULL) {
+  if (class_type->incomplete) {
+    /* The instantiation has no body.  This can happen in error situations. */
+    expect_error();
+    goto done;
+  } else if (templ_entry != NULL) {
     start_ssep = templ_entry->source_corresp.source_sequence_entry;
     entity = (char*)templ_entry;
   } else {
