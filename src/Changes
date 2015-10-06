@@ -7,7 +7,7 @@ During the inlining process, boolean expressions are examined to determine
 whether or not their value can be determined at compile time (thereby allowing
 the inliner to short-circuit unnecessary operations).  Previously, only
 expressions that return constant values were considered to have known boolean
-values, but now expressions that return non-constant values, but whose values
+values, but now expressions that return non-constant values but whose values
 are all known to be non-zero are also assumed to be known (and returning TRUE).
 Such a case arises in configurations where NEW_CAN_BE_FOLDED_INTO_CTOR is
 TRUE in the example below (in this case, when the call to A::A(E) is inlined,
