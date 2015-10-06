@@ -6385,7 +6385,7 @@ the processing of the function or file scope in which the class is defined.
   a_routine_ptr first_virtual;
   a_boolean     saved_il_lowering_underway;
 
-  if (il_lowering_needed()) {
+  if (il_lowering_needed() && !ignore_type_in_back_end(class_type)) {
     saved_il_lowering_underway = il_lowering_underway;
     il_lowering_underway = TRUE;
     /* Force generation of the virtual function table variable (if any) for the
