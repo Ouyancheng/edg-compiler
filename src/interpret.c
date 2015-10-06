@@ -561,11 +561,18 @@ typedef struct an_interpreter_state {
   a_call_frame_ptr
 		curr_call_frame;
 			/* The currently active call. */
-  a_diagnostic_ptr
-		diagnostic;
-			/* A pointer to a representation of a pending
-			   diagnostic (presumably explaining why interpretation
-			   failed to produce a constant result). */
+  a_diag_list
+		diag_list;
+			/* A representation of a pending diagnostics
+			   (presumably explaining why interpretation failed to
+			   produce a constant result).  This diagnostic is not
+			   necessarily emitted (we may be in a SFINAE context,
+			   or in an initialization context that permits both
+			   constant and non-constant initializers). */
+  a_source_position
+		position;
+			/* The position of the expression where interpretation
+			   starts. */
   unsigned long	cost;
 			/* An interpretation "cost" counter.  It counts the
 			   number of calls and loop-back branches. */
@@ -645,7 +652,9 @@ Initialize the given interpreter state.
   init_constexpr_stack(&ips->storage_stack);
   init_live_set(&ips->live_set);
   ips->curr_alloc_seq_number = 1;
-  ips->diagnostic = NULL;
+  ips->diag_list.head = NULL;
+  ips->diag_list.tail = NULL;
+  ips->position = null_source_position;
   ips->cost = 0;
 }  /* init_interpreter_state */
 
@@ -2842,6 +2851,9 @@ accordingly.
   /* Retrieve the routine scope, or issue an error. */
   if (callee->function_def_number == NULL_function_def_number) {
     /* FIXME: error. */
+    more_info_diagnostic(ec_constexpr_function_undefined,
+                         &callee->source_corresp.decl_position,
+                         &ips->diag_list);
     result = FALSE;
 #if /*FIXME*/0
   } else if (ellipsis_case) {
@@ -2850,6 +2862,8 @@ accordingly.
 #endif /* 0 */
   } else if (cost_exceeded(ips)) {
     /* FIXME: record an error. */
+    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                         &ips->diag_list);
     result = FALSE;
   } else {
     a_scope_ptr     callee_scope = scope_for_routine(callee);
@@ -5297,11 +5311,12 @@ represents an address of interpreter storage).
 
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
-                                   a_constant_ptr    result_con)
+                                   a_constant_ptr    result_con,
+                                   a_diag_list_ptr   diag_list)
 /*
 Attempt to interpret the call represented by call_expr.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise,
-return FALSE.
+return FALSE, and record diagnostic info in *diag_list.
 */
 {
   a_boolean             result = TRUE;
@@ -5315,6 +5330,7 @@ return FALSE.
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
+  ips.position = call_expr->position;
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);
   result_con->type = result_type;
@@ -5325,6 +5341,7 @@ return FALSE.
                                    result_storage, result_type, result_con)) {
     result = FALSE;
   }  /* if */
+  *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
 #if CHECKING
   /* Check that all variant path entries have been freed. */
@@ -5367,6 +5384,7 @@ return FALSE.
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
+  ips.position = error_position;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);

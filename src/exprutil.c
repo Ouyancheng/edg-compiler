@@ -5650,8 +5650,9 @@ of the call.
   if (constexpr_call_folding_should_be_done()) {
     a_constant_ptr  result_con = local_constant();
     an_error_code   failure_warning = ec_no_error;
+    a_diag_list     diag_list;
     if (relaxed_constexpr_enabled) {
-      folded = interpret_constexpr_call(call_expr, result_con);
+      folded = interpret_constexpr_call(call_expr, result_con, &diag_list);
     } else {
       a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
@@ -5673,6 +5674,14 @@ of the call.
                  is_class_struct_union_type(result->type)) {
         temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
+      if (relaxed_constexpr_enabled) {
+        discard_more_info_list(&diag_list);
+      }  /* if */
+    } else if (relaxed_constexpr_enabled) {
+      a_diagnostic_ptr  dp;
+      dp = pos_start_diagnostic(es_warning, ec_constexpr_call_not_folded, pos);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
     }  /* if */

@@ -2762,6 +2762,8 @@ ec_await_not_allowed_outside_function_scope;;"an await expression must appear in
 ec_await_not_allowed_in_catch_clause;;"an await expression is not allowed inside a catch clause"
 ec_coroutine_with_ellipsis_parameter;;"a coroutine cannot have an ellipsis parameter"
 ec_cl_relaxed_constexpr_requires_bool;;"enabling C++14-style constexpr requires support for\"bool\""
+ec_constexpr_function_undefined;;"constexpr function is not defined"
+ec_constexpr_call_not_folded;;"constexpr call not folded"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
