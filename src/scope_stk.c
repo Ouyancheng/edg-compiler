@@ -5516,8 +5516,9 @@ body.  Only called in C++ mode.
   a_template_instance_ptr  tip;
   a_boolean                is_inline_virtual;
 
-  /* Examine each of the class types on the types list of the scope.  If
-     this is a class scope, it picks up the nested classes. */
+  /* Examine each of the class types on the types list of the scope (except
+     prototype instantiations, since their member functions are never truly
+     used).  If this is a class scope, it picks up the nested classes. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp) &&
         !tp->variant.class_struct_union.is_nonreal_class) {
