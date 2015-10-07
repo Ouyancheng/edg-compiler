@@ -2016,6 +2016,8 @@ static a_flag_name
   { "coroutines", &coroutines_enabled },
   { "coroutine_keywords", &coroutine_keywords_enabled },
 #endif /* COROUTINES_ALLOWED */
+  { "suppress_deferral_on_partial_spec_members",
+    &suppress_deferral_on_partial_spec_members },
   { NULL, NULL }  /* must be last */
 };
 
@@ -4357,6 +4359,10 @@ This function is also called in clang mode.
       defer_function_prototype_instantiations =
                                           nonclass_prototype_instantiations ||
                                           variadic_templates_enabled;
+      /* The deferral is suppressed by default for members of partial
+         specializations.  See the comment for this variable in cmd_line.h
+         for more information. */
+      suppress_deferral_on_partial_spec_members = TRUE;
     }  /* if */
   }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
@@ -10679,6 +10685,7 @@ variables declared in cmd_line.h.
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
   defer_function_prototype_instantiations = FALSE;
+  suppress_deferral_on_partial_spec_members = FALSE;
   defer_friend_instantiation = TRUE;
   nonstandard_instantiation_lookup_enabled =
                                       DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;

@@ -740,6 +740,18 @@ EXTERN a_boolean
 			   information. */
 
 EXTERN a_boolean
+		suppress_deferral_on_partial_spec_members;
+			/* TRUE if function prototype instantiation deferral
+			   should not be done on members of partial
+			   specializations.  This is set in g++ mode to
+			   permit compilation of some common open source
+			   applications that contain some code that is
+			   technically undefined according to the standard
+			   because the partial specialization determination
+			   differs from the point where the template is
+			   defined and where it is instantiated. */
+
+EXTERN a_boolean
 		defer_friend_instantiation;
 			/* TRUE if the semantic analysis of friend functions
 			   of class templates should be deferred until the

@@ -3051,7 +3051,10 @@ nested class.
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
           if (prototype_instantiation_should_be_done_for_function(sym) &&
-              !defer_function_prototype_instantiations) {
+              (!defer_function_prototype_instantiations ||
+               (class_type_supp(class_type)->
+                                     partial_spec_template_arg_list != NULL &&
+                suppress_deferral_on_partial_spec_members))) {
             if (rfp->is_definition) {
               /* Do the prototype instantiation of the function body. */
               function_prototype_instantiation(sym);
@@ -3083,7 +3086,10 @@ nested class.
           tssp->variant.function.func_info = rfp->func_info;
           rfp->func_info.param_id_list = NULL;
           if (prototype_instantiation_should_be_done_for_function(sym) &&
-              !defer_function_prototype_instantiations) {
+              (!defer_function_prototype_instantiations ||
+               (class_type_supp(class_type)->
+                                     partial_spec_template_arg_list != NULL &&
+                suppress_deferral_on_partial_spec_members))) {
             /* Do the prototype instantiation of the member function body. */
             function_prototype_instantiation(sym);
           }  /* if */
