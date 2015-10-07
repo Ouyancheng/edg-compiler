@@ -1,5 +1,13 @@
 Version 4.11
 
+10/7/15  [EDGcpfe/16560]
+PCH issue with new diagnostic processing routines
+
+The reworked diagnostic routines in version 4.10.1 failed to restore some
+variables when a precompiled header file was being read.  This could
+cause an abort if the compilation using the PCH file issued diagnostics
+prior to the PCH file being read.  Now fixed.
+
 10/6/15  [EDGcpfe/16559]
 Spurious error on virtual inline member of a class template
 

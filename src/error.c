@@ -6271,6 +6271,8 @@ are handled in error_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(head_of_file_index_list),
       pch_saved_var_array_elem(tail_of_file_index_list),
+      pch_saved_var_array_elem(avail_diagnostics),
+      pch_saved_var_array_elem(avail_diag_fill_ins),
       pch_saved_var_array_elem(error_position),
       pch_array_saved_var_array_elem(default_severity_for_error_code),
       pch_array_saved_var_array_elem(current_severity_for_error_code),
