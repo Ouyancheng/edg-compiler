@@ -1252,18 +1252,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_coroutine_with_ellipsis_parameter)*/
 #endif /* !COROUTINES_ALLOWED */
 
-/* FIXME: temporarily needed. */
-/*lint -esym(759,discard_more_info_list)*/
-/*lint -esym(765,discard_more_info_list)*/
-/*lint -esym(714,discard_more_info_list)*/
-/*lint -esym(759,add_more_info_list)*/
-/*lint -esym(765,add_more_info_list)*/
-/*lint -esym(714,add_more_info_list)*/
-/*lint -esym(759,more_info_diagnostic)*/
-/*lint -esym(765,more_info_diagnostic)*/
-/*lint -esym(714,more_info_diagnostic)*/
-
-
 #endif /* ifndef LINT_H */
 
 /******************************************************************************
