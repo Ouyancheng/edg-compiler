@@ -1,5 +1,28 @@
 Version 4.11
 
+10/7/15  [EDGcpfe/16128]
+Function template instantiation failure with variadic alias templates
+
+The front end did not always correctly handle a chain of variadic alias
+templates when instantiating a function template declaration involving such a
+chain.  This resulted in spurious instantiation failures.  For example:
+
+  template<typename ... Ts> struct V1 {};
+  template<typename ... Ts> using V1alias = V1<Ts...>;
+  template<typename ... Ts> struct V2 {};
+  template<typename ... Ts> using V2alias = V2<V1alias<Ts...>>;
+  template<typename ... Ts> V2alias<Ts...> ft(Ts...) {
+    return V2alias<Ts...>();
+  }
+  int main() {
+    ft(1);  // Previously failed to instantiate ft<int>.
+  }
+
+This case elicited a spurious error because the parameter pack for Ts in
+V1alias was not correctly expanded during the instantiation of V2alias<Ts...>
+in the declaration of ft.  This is now fixed.
+
+
 10/7/15  [EDGcpfe/16335]
 Incorrect pack value following sizeof...
 

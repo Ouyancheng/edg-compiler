@@ -7402,10 +7402,15 @@ error type is used.
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
         ps_options |= PS_NONREAL_INSTANTIATION;
-        if (is_prototype_instantiation_context()) {
-          /* When an alias is instantiated in a template declaration,
-             it is sometimes necessary to copy pack expansion information
-             from an enclosing template declaration. */
+        if (is_prototype_instantiation_context() ||
+            (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+             scope_stack[depth_innermost_instantiation_scope]
+                                                   .alias_in_template_decl)) {
+          /* When an alias is instantiated in a template declaration, it is
+             sometimes necessary to copy pack expansion information from an
+             enclosing template declaration.  (This applies to chains of alias
+	     instantiations too; not just alias instantiations directly in
+             template declarations.) */
           ps_options |= PS_ALIAS_IN_TEMPLATE_DECL;
         }  /* if */
       }  /* if */
