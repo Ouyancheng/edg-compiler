@@ -18300,10 +18300,11 @@ it might produce an error).
         op3 = skip_parens(op3);
         if (allow_folding != NULL &&
             is_constant_node(op1) &&
-            is_constant_node(op2) &&
-            is_constant_node(op3)) {
+            ((is_constant_node(op2) && is_constant_node(op3)) ||
+             node_constant_is(op1, ck_template_param))) {
           a_constant_ptr con1 = node_constant(op1);
-          if (constant_bool_value_known_at_compile_time(con1)) {
+          if (constant_bool_value_known_at_compile_time(con1) &&
+              is_constant_node(op2) && is_constant_node(op3)) {
             /* The operation can be folded to the second or third operand. */
             an_expr_node_ptr result = is_false_constant(con1) ? op3 : op2;
             con_expr_value = node_constant(result);

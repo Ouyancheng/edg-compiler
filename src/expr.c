@@ -26258,6 +26258,8 @@ that case.
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
       a_transformation_options_set options = TOPT_NO_OPTIONS;
+      a_boolean                    saved_potentially_unevaluated =
+                                       curr_expr_is_potentially_unevaluated();
       if (suppress_class_rvalue_temp) {
         /* Don't copy on conversion from class lvalue to rvalue because
            we're in a mode that's supposed to suppress the class rvalue
@@ -26276,6 +26278,14 @@ that case.
         /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
       }  /* if */
+      if (constexpr_enabled && curr_expr_kind_is_const() &&
+          is_constant_operand(operand_1) &&
+          operand_1->variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+        /* Allow non-constant operands if the controlling expression is
+           value-dependent. */
+        expr_stack->potentially_unevaluated = TRUE;
+      }  /* if */
       expr_stack->evaluated = expr2_evaluated;
       if (constexpr_enabled) {
         saved_cpp11_constant_expr_ruled_out =
@@ -26290,6 +26300,7 @@ that case.
       }  /* if */
       expr_stack->evaluated = expr3_evaluated;
       do_operand_transformations(&operand_3, options);
+      expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->evaluated = saved_evaluated;
       if (constexpr_enabled) {
         if (expr_stack->constant_expr_ruled_out &&
