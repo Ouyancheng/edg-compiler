@@ -2090,14 +2090,17 @@ for more information about when this is done.
 }  /* reset_enclosing_pack_values */
 
 
-static void restore_enclosing_pack_values(void)
+static void restore_enclosing_pack_values(a_boolean process_enclosing_scopes)
 /*
-Go through the scope stack and restore the template parameters associated
-with any enclosing variadic classes to their current actual values
-(after having been changed by a call of reset_enclosing_pack_values).
+Restore the pack values of the current pack expansion (after another
+pack expansion has completed).  If process_enclosing_scopes is TRUE
+go through the scope stack and restore the template parameters associated
+with any enclosing packs to their appropriate values (after having been
+changed by a call of reset_enclosing_pack_values).
 */
 {
   a_scope_stack_entry_ptr	ssep;
+  a_boolean			first = TRUE;
 
   /* Go through any visible template instantiation scopes on the scope
      stack and restore the template parameters to refer to the actual
@@ -2109,10 +2112,19 @@ with any enclosing variadic classes to their current actual values
       a_pack_expansion_stack_entry_ptr	pesep;
       update_template_param_symbols(ssep->template_decl_info->parameters,
                                     ssep->template_arg_list);
-      pesep = ssep->pack_expansion_stack;
+      /* For the top instantiation scope, use the current value of the
+         pack_expansion_stack variable.  For subsequent entries, use
+         the value from the scope stack. */
+      if (first) {
+        pesep = pack_expansion_stack;
+        first = FALSE;
+      } else {
+        pesep = ssep->pack_expansion_stack;
+      }  /* if */
       if (pesep != NULL && pesep->instantiation_descr != NULL) {
         update_parameter_pack_symbol_values(pesep);
       }  /* if */
+      if (!process_enclosing_scopes) break;
     }  /* if */
   }  /* for */
 }  /* restore_enclosing_pack_values */
@@ -10140,11 +10152,9 @@ Pop the current entry off of the pack expansion stack.
   if (pesep->template_arg_list != NULL) {
     free_template_arg_list(pesep->template_arg_list);
   }  /* if */
-  /* If this pack reference involved resetting the enclosing pack parameters,
-     restore those values now. */
-  if (pesep->enclosing_packs_reset) {
-    restore_enclosing_pack_values();
-  }  /* if */
+  /* Restore the previous values of the parameters packs used by this
+     expansion. */
+  restore_enclosing_pack_values(pesep->enclosing_packs_reset);
   /* Add the old entry to the list of available stack entries. */
   pesep->next = avail_pack_expansion_stack_entries;
   avail_pack_expansion_stack_entries = pesep;
