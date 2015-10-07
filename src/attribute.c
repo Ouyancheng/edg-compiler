@@ -4329,7 +4329,7 @@ entity.
                [[noreturn]] int f();
              }
            if prototype instantiations of function templates are done. */
-        prev_type = rp->type;
+        prev_type = dps->prev_type;
       } else {
         a_symbol_locator  loc, eloc;
         a_symbol_ptr      esym;
