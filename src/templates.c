@@ -7409,7 +7409,7 @@ error type is used.
           /* When an alias is instantiated in a template declaration, it is
              sometimes necessary to copy pack expansion information from an
              enclosing template declaration.  (This applies to chains of alias
-	     instantiations too; not just alias instantiations directly in
+             instantiations too; not just alias instantiations directly in
              template declarations.) */
           ps_options |= PS_ALIAS_IN_TEMPLATE_DECL;
         }  /* if */

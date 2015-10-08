@@ -15,12 +15,12 @@ example, with --c++11:
    };
 
 
-10/7/15  [EDGcpfe/16128]
-Function template instantiation failure with variadic alias templates
+10/7/15  [EDGcpfe/16128,EDGcpfe/16376,EDGcpfe/16397]
+Template instantiation failure with variadic alias templates
 
 The front end did not always correctly handle a chain of variadic alias
-templates when instantiating a function template declaration involving such a
-chain.  This resulted in spurious instantiation failures.  For example:
+templates when instantiating a template declaration involving such a chain.
+This resulted in spurious instantiation failures.  For example:
 
   template<typename ... Ts> struct V1 {};
   template<typename ... Ts> using V1alias = V1<Ts...>;
@@ -35,7 +35,23 @@ chain.  This resulted in spurious instantiation failures.  For example:
 
 This case elicited a spurious error because the parameter pack for Ts in
 V1alias was not correctly expanded during the instantiation of V2alias<Ts...>
-in the declaration of ft.  This is now fixed.
+in the declaration of ft.
+
+The underlying problem was an erroneous representation of template argument
+packs.  For example:
+
+  template<typename ... T0> struct A {};
+  template<typename ... T1> using B = typename A<T1...>::type1; 
+  template<typename T2> struct C {};
+  template<typename ... T3> using D = typename C<B<T3...> >::type2; 
+  template<typename ... T4> using E = typename D<T4...>::type3; 
+
+In the last line, the template argument T4 of D lost its "is_pack" flag
+setting during the processing of the various layers of aliases.  This caused
+erroneous output by the C++-generating back end when the configuration macro
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE.
+
+This is now fixed.
 
 
 10/7/15  [EDGcpfe/16335]
