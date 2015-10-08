@@ -64,7 +64,7 @@ prior to the PCH file being read.  Now fixed.
 10/6/15  [EDGcpfe/16559]
 Spurious error on virtual inline member of a class template
 
-In strict mode, the front end issues a spurious error on a virtual inline
+In strict mode, the front end issued a spurious error on a virtual inline
 member of a class template with no function body.  For example:
 
   template<typename> struct S {
