@@ -1,5 +1,31 @@
 Version 4.11
 
+10/8/15  [EDGcpfe/16550]
+Inlining of constructor when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE
+
+The code that inlines constructors assumes that the "this" parameter
+will not be used as an lvalue in the constructor, and relies on being able
+to optimize the assignment to "this" that lowering introduces in configurations
+where NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  That optimization assumes that
+it can always be determined that "this" is non-null, but in the case below
+that assumption had failed resulting in an assertion failure
+(remap_var_for_inlining: wrong kind of remap).  A change has been made to
+forgo the optimization of "this" in such cases.  For example (with --c++11
+--no_exceptions):
+
+  enum E { e };
+  struct A {
+    A(E _e) {}
+  };
+  struct S {
+    int m1;
+    A   m2;
+  };
+  void f() {
+    new S{ 0, e };
+  }
+
+
 10/8/15  [EDGcpfe/15600,EDGcpfe/16558]
 Allow use of inaccessible injected template name
 
@@ -129,35 +155,6 @@ discard the information.  For example:
   } else {
     discard_more_info_list(&my_list);
   }  /* if */
-
-
-10/5/15  [EDGcpfe/16550]
-Assumptions about values of boolean expressions at run time
-
-During the inlining process, boolean expressions are examined to determine
-whether or not their value can be determined at compile time (thereby allowing
-the inliner to short-circuit unnecessary operations).  Previously, only
-expressions that return constant values were considered to have known boolean
-values, but now expressions that return non-constant values but whose values
-are all known to be non-zero are also assumed to be known (and returning TRUE).
-Such a case arises in configurations where NEW_CAN_BE_FOLDED_INTO_CTOR is
-TRUE in the example below (in this case, when the call to A::A(E) is inlined,
-the argument for "this" is &temp->m2, which is non-null because the offset
-for m2 is not zero).  Previously this had resulted in an assertion failure
-(remap_var_for_inlining: wrong kind of remap) when compiled with --c++11
---no_exceptions.
-
-  enum E { e };
-  struct A {
-    A(E _e) {}
-  };
-  struct S {
-    int m1;
-    A   m2;
-  };
-  void f() {
-    new S{ 0, e };
-  }
 
 
 10/5/15  [EDGcpfe/16009]
