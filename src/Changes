@@ -4,9 +4,10 @@ Version 4.11
 Dependent constexpr conditional expressions
 
 The front end previously issued a spurious "must have a constant value"
-diagnostic for non-constant expressions appearing in conditional expressions
-in which the controlling expression is value-dependent.  This is now fixed.
-For example, with --c++11:
+diagnostic for non-constant expressions appearing in conditional
+expressions in contexts requiring a constant expression when the
+controlling expression is value-dependent.  This is now fixed.  For
+example, with --c++11:
 
    extern int i;
    template <bool B> struct S {
