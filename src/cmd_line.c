@@ -4359,10 +4359,6 @@ This function is also called in clang mode.
       defer_function_prototype_instantiations =
                                           nonclass_prototype_instantiations ||
                                           variadic_templates_enabled;
-      /* The deferral is suppressed by default for members of partial
-         specializations.  See the comment for this variable in cmd_line.h
-         for more information. */
-      suppress_deferral_on_partial_spec_members = TRUE;
     }  /* if */
   }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
@@ -5856,6 +5852,13 @@ file.
 #else /* !defined(DEFAULT_SUN_LINKER_SCOPE_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_SUN_LINKER_SCOPE_ALLOWED);
 #endif /* defined(DEFAULT_SUN_LINKER_SCOPE_ALLOWED) */
+#if defined(DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS)
+  define_numeric_valued_macro(
+                            DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS);
+#else /* !defined(DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS) */
+  comment_undefined_macro_name(
+                            DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS);
+#endif /* defined(DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS) */
 #if defined(DEFAULT_SVR4_C_MODE)
   define_numeric_valued_macro(DEFAULT_SVR4_C_MODE);
 #else /* !defined(DEFAULT_SVR4_C_MODE) */
@@ -10685,7 +10688,8 @@ variables declared in cmd_line.h.
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
   defer_function_prototype_instantiations = FALSE;
-  suppress_deferral_on_partial_spec_members = FALSE;
+  suppress_deferral_on_partial_spec_members =
+                             DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS;
   defer_friend_instantiation = TRUE;
   nonstandard_instantiation_lookup_enabled =
                                       DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;

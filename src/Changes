@@ -1,5 +1,34 @@
 Version 4.11
 
+10/8/15  [EDGcpfe/16146]
+Function deferral issue with partial specialization
+
+A variable has been added to the front end that is TRUE if, when deferring
+function prototype instantiations, partial specialization members should not
+have their prototype instantiations deferred.  This feature was added to
+workaround the fact that parsing code in an unused function template or
+member function of template class can result in the instantiation of a
+class, and a different result would be obtained if the instantiation were
+done later.  Compilers should complain about such position-dependencies
+in partial specializations, but at this point, it appears that only the
+EDG front end does.  This is essentially a heuristic to allow some open
+source applications to build.  This feature can be enabled by default with
+the DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS macro.  It can
+also be enabled with --set_flag suppress_deferral_on_partial_spec_members.
+The value is only used if defer_function_prototype_instantiations is TRUE.
+
+  template <class T1, class T2> class A;
+  template <class T> struct A<T, void> { void f(); };
+  template <class T> struct A<T*,void> {
+    // This unused function binds A<char,void> to the partial
+    // specialization above.
+    void g() { A<char, void>().f(); }
+  };
+  template<typename T> struct A<char, T> {};
+  // Ambiguous unless the prototype instantiation of g is done above
+  A<char, void> f;
+
+
 10/8/15  [EDGcpfe/16550]
 Inlining of constructor when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE
 
