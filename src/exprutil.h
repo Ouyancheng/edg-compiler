@@ -1890,11 +1890,12 @@ operator in the expression.
 #define set_expr_base_position(expr, start_pos, operator_pos)                 \
 {                                                                             \
   /* Use a variable in case operator_pos expands to NULL. */                  \
-  a_source_position  *pos_var = operator_pos;                                 \
+  /* ("*(NULL)" elicits compiler errors.) */                                  \
+  a_source_position  *pos_var = (operator_pos);                               \
   if (pos_var != NULL && is_operation_node(expr)) {                           \
     (expr)->position = *pos_var;                                              \
   } else {                                                                    \
-    (expr)->position = *start_pos;                                            \
+    (expr)->position = *(start_pos);                                          \
   }  /* if */                                                                 \
 }
 

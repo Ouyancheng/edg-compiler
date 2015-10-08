@@ -2249,15 +2249,15 @@ typedef struct a_name_reference {
 			   the name; -1L otherwise. */
   a_special_function_kind
 		special_kind;
-			/* If this entry is for an is part of a call to a
-			   Microsoft property accessor (C++/CLI or __declspec)
-			   that was rewritten from a reference to a property
-			   field, this is set to either sfk_property_set or
-			   sfk_property_get to reflect the kind of access;
-			   it is sfk_gnu_sync_concrete_function if the node
-			   designates the concrete version of a GNU __sync_...
-			   or __atomic_... builtin function; otherwise, it is
-			   sfk_none. */
+			/* If this entry is for an enk_routine node that is
+			   part of a call to a Microsoft property accessor
+			   (C++/CLI or __declspec) that was rewritten from a
+			   reference to a property field, this is set to either
+			   sfk_property_set or sfk_property_get to reflect the
+			   kind of access; it is sfk_gnu_sync_concrete_function
+			   if the node designates the concrete version of a GNU
+			   __sync_...  or __atomic_... builtin function;
+			   otherwise, it is sfk_none. */
   a_bit_field	is_global_qualified_name:1;
 			/* TRUE if the name begins with a unary "::"
 			   (e.g., ::y or ::A::x). */
