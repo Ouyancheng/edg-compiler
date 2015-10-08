@@ -15072,7 +15072,8 @@ cast.  See lower_expr for typical invocation.
           if (is_multiversion_representative(rp)) {
             /* Replace a representative routine with a target-specific version
                if one is available. */
-            expr->variant.routine.ptr = lowered_mv_routine(rp);
+            rp = lowered_mv_routine(rp);
+            expr->variant.routine.ptr = rp;
           }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
