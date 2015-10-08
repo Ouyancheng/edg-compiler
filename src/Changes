@@ -1,5 +1,22 @@
 Version 4.11
 
+10/8/15  [EDGcpfe/15600,EDGcpfe/16558]
+Allow use of inaccessible injected template name
+
+Other compilers seem to (for an unknown reason) fail to do access
+checking on the injected class name of class templates.  We did do
+such checking, causing us to issue an error on examples like the one
+below.  We now suppress those access checks in all but strict mode.
+
+  template <typename T> struct A {};
+  struct B : private A<int> {};
+  struct C : B {
+    void f() {
+      A<int> A;
+    }
+  };
+
+
 10/7/15  [EDGcpfe/16489]
 Dependent constexpr conditional expressions
 

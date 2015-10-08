@@ -11731,6 +11731,9 @@ in the source program.
        be done after the specific function is determined. */
   } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
     /* Likewise treat templates as sets of overloaded functions. */
+  } else if (!strict_ansi_mode && is_injected_template_symbol(fund_sym)) {
+    /* Microsoft, g++, clang, and Sun all treat the injected class name
+       of a class template as accessible in all cases. */
   } else {
     have_access = have_access_across_derivations(fund_sym, symbol);
   }  /* if */
