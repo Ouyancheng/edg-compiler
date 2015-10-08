@@ -42,7 +42,7 @@ Incorrect pack value following sizeof...
 
 If a pack expansion included a sizeof... operator that used the same pack
 both in the sizeof... and later in the expansion, the latter reference
-would get the incorrect value.  Now fixed.
+would get an incorrect value.  Now fixed.
 
   template <int ... > class A;
   template <> struct A<3,4> {};
