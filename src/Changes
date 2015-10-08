@@ -16,7 +16,7 @@ example, with --c++11:
 
 
 10/7/15  [EDGcpfe/16128,EDGcpfe/16376,EDGcpfe/16397]
-Template instantiation failure with variadic alias templates
+Chains of variadic alias templates
 
 The front end did not always correctly handle a chain of variadic alias
 templates when instantiating a template declaration involving such a chain.
