@@ -1,5 +1,13 @@
 Version 4.11
 
+10/9/15  [EDGcpfe/16570]
+is_constexpr indication for alternate entry points in the IA-64 ABI
+
+The is_constexpr and is_declared_constexpr flag settings were inadvertently
+not transferred from the primary routine when creating alternate entry points
+in the IA-64 ABI.  Now fixed.
+
+
 10/8/15  [EDGcpfe/16528]
 constexpr member function invocation during copy construction
 
