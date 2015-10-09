@@ -1,5 +1,13 @@
 Version 4.11
 
+10/9/15  [EDGcpfe/16565]
+Access to uninitialized position variable in f_is_generalized_identifier_start
+
+In some error cases, the front end sometimes copied an uninitialized position
+variable (representing the position of a constructor or finalizer).  This
+happened in f_is_generalized_identifier_start.  This is now fixed.
+
+
 10/9/15  [EDGcpfe/16523]
 Internal error on aggregate mem-initializer with nontrivial destruction
 

@@ -18382,11 +18382,11 @@ selection operator, in which case it points to the type of the left operand.
 				  (options & GID_VACUOUS_DTOR_RECOGNIZED) != 0;
   a_boolean			dtor_or_finalizer_must_be_nonclass =
 				  (options & GID_DTOR_MUST_BE_NONCLASS) != 0;
+  a_boolean			is_dtor_or_finalizer = FALSE;
   a_boolean			is_vacuous_dtor_or_finalizer = FALSE;
   a_boolean			is_nonclass_dtor_or_finalizer = FALSE;
   a_type_ptr			dtor_or_finalizer_class_type = NULL;
   a_type_ptr			dtor_or_finalizer_type = NULL;
-  a_source_position		dtor_or_finalizer_position;
   a_boolean            		might_be_qualifier;
   a_token_kind         		qualifier_separator = tok_colon_colon;
   a_boolean                     qualifier_is_type = TRUE;
@@ -19431,6 +19431,7 @@ selection operator, in which case it points to the type of the left operand.
          preceded by a qualifier, then they are only recognized when
          GID_DTOR_RECOGNIZED is TRUE.  In either case, finalizer names are
          only recognized when cli_or_cx_enabled is TRUE. */
+      is_dtor_or_finalizer = TRUE;
       /* If we have already discovered that we have a vacuous destructor/
          finalizer reference, then it must be a non-class destructor/
          finalizer reference (e.g., int::~int). */
@@ -19471,7 +19472,6 @@ selection operator, in which case it points to the type of the left operand.
            "dtor_or_finalizer_must_be_nonclass" mode. */
         is_vacuous_dtor_or_finalizer = is_nonclass_dtor_or_finalizer = TRUE;
       }  /* if */
-      dtor_or_finalizer_position = pos_curr_token;
     } else if (is_qualified_name) {
       /* A qualifier followed by something invalid.  Proceed as if
          it is an identifier and let an error be diagnosed later when we
@@ -19533,212 +19533,213 @@ selection operator, in which case it points to the type of the left operand.
        always recognized following a class qualifier, but otherwise are only
        recognized if the GID_DTOR_RECOGNIZED flag is set.  In either case,
        finalizer names are only recognized when cli_or_cx_enabled is TRUE. */
-    if (is_nonclass_dtor_or_finalizer) {
-      a_boolean is_destructor_name = (curr_token == tok_compl);
-      a_boolean is_finalizer_name = (cli_or_cx_enabled &&
-                                     curr_token == tok_not);
-      /* Don't do normal destructor/finalizer processing on a non-class
-         vacuous destructor/finalizer.  Set the destructor/finalizer flag in
-         the locator and look up the identifier or type that follows the tilde
-         (or the exclamation point in the finalizer case). */
-      (void)get_token();  /* Get the token after the "~" or "!". */
-      if (curr_token == tok_identifier) {
+    if (is_dtor_or_finalizer) {
+      a_source_position  dtor_or_finalizer_position;
+      dtor_or_finalizer_position = pos_curr_token;
+      if (is_nonclass_dtor_or_finalizer) {
+        a_boolean is_destructor_name = (curr_token == tok_compl);
+        a_boolean is_finalizer_name = (cli_or_cx_enabled &&
+                                       curr_token == tok_not);
+        /* Don't do normal destructor/finalizer processing on a non-class
+           vacuous destructor/finalizer.  Set the destructor/finalizer flag in
+           the locator and look up the identifier or type that follows the
+           tilde (or the exclamation point in the finalizer case). */
+        (void)get_token();  /* Get the token after the "~" or "!". */
+        if (curr_token == tok_identifier) {
 	/* A typedef name -- lookup the symbol and find the type pointed to.
-           This will be something like "i::~i" or "A::i::~i".  If "i"
-           is a member of a class then we need to do the lookup in the class
-           of which "i" is a member.  Likewise, if "i" is a member of a
-           namespace then we need to do the lookup in the namespace of which
-           "i" is a member.  If "i" is not a member, then do either a
-           normal or file-scope lookup depending on whether "i" had used
-           a global scope qualifier. */
-        a_symbol_ptr	type_sym = NULL;
+             This will be something like "i::~i" or "A::i::~i".  If "i"
+             is a member of a class then we need to do the lookup in the class
+             of which "i" is a member.  Likewise, if "i" is a member of a
+             namespace then we need to do the lookup in the namespace of which
+             "i" is a member.  If "i" is not a member, then do either a
+             normal or file-scope lookup depending on whether "i" had used
+             a global scope qualifier. */
+          a_symbol_ptr	type_sym = NULL;
 
-        /* Set dtor_or_finalizer_class_type to class_type.  This is only
-           needed when we have a typedef name.  For a type name like "int" it
-           will already have been set. */
-        dtor_or_finalizer_class_type = qualifier_type;
-        /* Look up the destructor/finalizer name based on the qualifier that
-           was present (if any). */
-        type_sym = look_up_destructor_or_finalizer_name(
+          /* Set dtor_or_finalizer_class_type to class_type.  This is only
+             needed when we have a typedef name.  For a type name like "int" it
+             will already have been set. */
+          dtor_or_finalizer_class_type = qualifier_type;
+          /* Look up the destructor/finalizer name based on the qualifier that
+             was present (if any). */
+          type_sym = look_up_destructor_or_finalizer_name(
                                                  &locator_for_curr_id,
                                                  is_file_scope_qualified_name,
                                                  qualifier_sym,
                                                  /*no_normal_lookup=*/FALSE,
                                                  IDL_NO_OPTIONS);
-        if (type_sym != NULL) {
-          /* Make sure the lookup of the destructor/finalizer type was not
-             ambiguous. */
-          check_for_ambiguity(&locator_for_curr_id);
-        }  /* if */
-        /* Clear the specific symbol found by these lookups. */
-        clear_specific_symbol(locator_for_curr_id);
-        if (type_sym != NULL && is_type_symbol(type_sym)) {
+          if (type_sym != NULL) {
+            /* Make sure the lookup of the destructor/finalizer type was not
+               ambiguous. */
+            check_for_ambiguity(&locator_for_curr_id);
+          }  /* if */
+          /* Clear the specific symbol found by these lookups. */
+          clear_specific_symbol(locator_for_curr_id);
+          if (type_sym != NULL && is_type_symbol(type_sym)) {
 	  /* If the symbol found is a type, get the type pointed to. */
 	  dtor_or_finalizer_type = type_symbol_type(type_sym);
-          /* This will eventually result in the locator qualifier class type
+            /* This will eventually result in the locator qualifier class type
 	     being set to the type of the vacuous destructor/finalizer. */
-          qualifier_type = dtor_or_finalizer_type;
-          qualifier_is_type = TRUE;
-          /* In some cases, such as "p->::~T", dtor_or_finalizer_class_type is
-             not set yet.  If so, set it now. */
+            qualifier_type = dtor_or_finalizer_type;
+            qualifier_is_type = TRUE;
+            /* In some cases, such as "p->::~T", dtor_or_finalizer_class_type
+               is not set yet.  If so, set it now. */
+            if (dtor_or_finalizer_class_type == NULL) {
+              dtor_or_finalizer_class_type = dtor_or_finalizer_type;
+            }  /* if */
+          } else {
+            if (!in_if_exists && !is_error_locator(locator_for_curr_id)) {
+              pos_st_error(ec_not_a_type_name, &dtor_or_finalizer_position,
+                           locator_for_curr_id.symbol_header->identifier);
+            }  /* if */
+            err = TRUE;
+	}  /* if */
+        } else if (curr_token == tok_decltype ||
+                   (!strict_ansi_mode &&
+                    (dtor_or_finalizer_type = type_keyword()) != NULL)) {
+	/* "~decltype(x)" or a type keyword such as "~int". */
+          if (curr_token == tok_decltype) {
+            a_type_ptr	tp;
+            /* might_be_id_start is passed in as TRUE to prevent the token
+               after the closing ")" from being fetched. */
+            tp = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                        /*might_be_id_start=*/TRUE);
+            dtor_or_finalizer_type = skip_typerefs(tp);
+          }  /* if */
+          /* If the thing being scanned looks like "T::~int", where T is a
+	   typedef, save the type pointed to as dtor_or_finalizer_class_type.
+             This will be used later for error checking. */
+          check_assertion(qualifier_is_type == TRUE);
           if (dtor_or_finalizer_class_type == NULL) {
-            dtor_or_finalizer_class_type = dtor_or_finalizer_type;
+            dtor_or_finalizer_class_type = qualifier_type;
+          }  /* if */
+          /* This will eventually result in the locator qualifier class type
+             being set to the type of the vacuous destructor/finalizer. */
+          qualifier_type = dtor_or_finalizer_type;
+          /* Make the current token a tok_identifier. */
+          curr_token = tok_identifier;
+        } else {
+          /* The token after the "~" is not an identifier or a type name. */
+          if (!in_if_exists) pos_error(ec_exp_identifier, &error_position);
+          err = TRUE;
+        }  /* if */
+        if (is_destructor_name) {
+          locator_for_curr_id.is_destructor_name = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (is_finalizer_name) {
+          locator_for_curr_id.is_finalizer_name = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
+        if (!err && field_sel_type != NULL) {
+          a_type_ptr	unqual_field_sel_type;
+          a_type_ptr	dtor_or_finalizer_type_under_typerefs;
+          /* When field_sel_type is non-NULL we are processing the right hand
+             side of a field selection (e.g., "p->~X()").  Make sure that the
+             destructor/finalizer type that has been found matches the type
+             of the left operand. */
+          check_assertion(dtor_or_finalizer_type != NULL);
+          unqual_field_sel_type = make_unqualified_type(field_sel_type);
+          if (!strict_ansi_mode && is_array_type(dtor_or_finalizer_type) &&
+              !is_array_type(unqual_field_sel_type)) {
+            /* For "p->~T()", where T is an array type and p is not an
+               array type, decay the array type to a pointer. */
+            dtor_or_finalizer_type = 
+                  type_after_array_to_pointer_transformation(
+                                                      dtor_or_finalizer_type);
+            /* Update the qualifier type that will be returned in the
+               locator. */
+            qualifier_type = dtor_or_finalizer_type;
+          }  /* if */
+          dtor_or_finalizer_type_under_typerefs =
+                                        skip_typerefs(dtor_or_finalizer_type);
+          if (!identical_types(unqual_field_sel_type,
+                               dtor_or_finalizer_type_under_typerefs) &&
+              !is_template_param_type(dtor_or_finalizer_type_under_typerefs) &&
+              !is_proxy_class(unqual_field_sel_type)) {
+            if (!in_if_exists) {
+              pos_ty_error(is_finalizer_name ? ec_invalid_finalizer_name
+                                             : ec_invalid_destructor_name,
+                           &dtor_or_finalizer_position, field_sel_type);
+            }  /* if */
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        if (err) {
+          /* An error has occurred.  Set the result types to NULL to prevent
+             subsequent errors. */
+          qualifier_type = NULL;
+          dtor_or_finalizer_type = NULL;
+          dtor_or_finalizer_class_type = NULL;
+        }  /* if */
+      } else if (((options & GID_DTOR_RECOGNIZED) ||
+                  (is_qualified_name && qualifier_is_type)) &&
+                 !is_file_scope_qualified_name) {
+        /* The name can be a destructor name like "~A" or a C++/CLI finalizer
+           name like "!A". */
+        if (is_dtor_or_finalizer_token(curr_token)) {
+          get_destructor_or_finalizer_name(
+                          field_sel_type, is_file_scope_qualified_name,
+                          qualifier_sym, (options & GID_IS_EXPR_CONTEXT) != 0);
+          if (locator_for_curr_id.specific_symbol != NULL) {
+            is_vacuous_dtor_or_finalizer = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* The position of the current identifier should be the tilde that
+         begins the destructor name (or the exclamation point in the
+         finalizer case). */
+      locator_for_curr_id.source_position = dtor_or_finalizer_position;
+      if (is_vacuous_dtor_or_finalizer && is_qualified_name) {
+        /* Make sure a vacuous destructor/finalizer reference is correctly
+           formed.  These tests only apply if the vacuous destructor/finalizer
+           is part of a qualified name. */
+        if (!is_nonclass_dtor_or_finalizer) {
+	/* If qualifier_type is NULL an error must have already occurred. */
+          if (qualifier_type != NULL) {
+            /* If this is a vacuous destructor/finalizer reference, just make
+               sure the name of the destructor matches the name of the
+               class. */
+            if (is_error_locator(locator_for_curr_id)) {
+               /* An error occurred earlier while checking the destructor/
+                  finalizer. */
+               err = TRUE;
+              /* Set the class type to NULL as an indicator to the
+	       coalesce routine that an error has occurred. */
+               qualifier_type = NULL;
+            }  /* if */
           }  /* if */
         } else {
-          if (!in_if_exists && !is_error_locator(locator_for_curr_id)) {
-            pos_st_error(ec_not_a_type_name, &dtor_or_finalizer_position,
-                         locator_for_curr_id.symbol_header->identifier);
-          }  /* if */
-          err = TRUE;
-	}  /* if */
-      } else if (curr_token == tok_decltype ||
-                 (!strict_ansi_mode &&
-                  (dtor_or_finalizer_type = type_keyword()) != NULL)) {
-	/* "~decltype(x)" or a type keyword such as "~int". */
-        if (curr_token == tok_decltype) {
-          a_type_ptr	tp;
-          /* might_be_id_start is passed in as TRUE to prevent the token
-             after the closing ")" from being fetched. */
-          tp = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                      /*might_be_id_start=*/TRUE);
-          dtor_or_finalizer_type = skip_typerefs(tp);
-        }  /* if */
-        /* If the thing being scanned looks like "T::~int", where T is a
-	   typedef, save the type pointed to as dtor_or_finalizer_class_type.
-           This will be used later for error checking. */
-        check_assertion(qualifier_is_type == TRUE);
-        if (dtor_or_finalizer_class_type == NULL) {
-          dtor_or_finalizer_class_type = qualifier_type;
-        }  /* if */
-        /* This will eventually result in the locator qualifier class type
-           being set to the type of the vacuous destructor/finalizer. */
-        qualifier_type = dtor_or_finalizer_type;
-        /* Make the current token a tok_identifier. */
-        curr_token = tok_identifier;
-      } else {
-        /* The token after the "~" is not an identifier or a type name. */
-        if (!in_if_exists) pos_error(ec_exp_identifier, &error_position);
-        err = TRUE;
-      }  /* if */
-      if (is_destructor_name) {
-        locator_for_curr_id.is_destructor_name = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (is_finalizer_name) {
-        locator_for_curr_id.is_finalizer_name = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      if (!err && field_sel_type != NULL) {
-        a_type_ptr	unqual_field_sel_type;
-        a_type_ptr	dtor_or_finalizer_type_under_typerefs;
-        /* When field_sel_type is non-NULL we are processing the right hand
-           side of a field selection (e.g., "p->~X()").  Make sure that the
-           destructor/finalizer type that has been found matches the type
-           of the left operand. */
-        check_assertion(dtor_or_finalizer_type != NULL);
-        unqual_field_sel_type = make_unqualified_type(field_sel_type);
-        if (!strict_ansi_mode && is_array_type(dtor_or_finalizer_type) &&
-            !is_array_type(unqual_field_sel_type)) {
-          /* For "p->~T()", where T is an array type and p is not an
-             array type, decay the array type to a pointer. */
-          dtor_or_finalizer_type = 
-           type_after_array_to_pointer_transformation(dtor_or_finalizer_type);
-          /* Update the qualifier type that will be returned in the
-             locator. */
-          qualifier_type = dtor_or_finalizer_type;
-        }  /* if */
-        dtor_or_finalizer_type_under_typerefs =
-                                        skip_typerefs(dtor_or_finalizer_type);
-        if (!identical_types(unqual_field_sel_type,
-                             dtor_or_finalizer_type_under_typerefs) &&
-            !is_template_param_type(dtor_or_finalizer_type_under_typerefs) &&
-            !is_proxy_class(unqual_field_sel_type)) {
-          if (!in_if_exists) {
-            pos_ty_error(is_finalizer_name ? ec_invalid_finalizer_name
-                                           : ec_invalid_destructor_name,
-                         &dtor_or_finalizer_position, field_sel_type);
-          }  /* if */
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-      if (err) {
-        /* An error has occurred.  Set the result types to NULL to prevent
-           subsequent errors. */
-        qualifier_type = NULL;
-        dtor_or_finalizer_type = NULL;
-        dtor_or_finalizer_class_type = NULL;
-      }  /* if */
-    } else if (((options & GID_DTOR_RECOGNIZED) ||
-                (is_qualified_name && qualifier_is_type)) &&
-               !is_file_scope_qualified_name) {
-      /* The name can be a destructor name like "~A" or a C++/CLI finalizer
-         name like "!A". */
-      if (is_dtor_or_finalizer_token(curr_token)) {
-        get_destructor_or_finalizer_name(field_sel_type,
-                                         is_file_scope_qualified_name,
-                                         qualifier_sym,
-                                         (options & GID_IS_EXPR_CONTEXT) != 0);
-        if (locator_for_curr_id.specific_symbol != NULL) {
-          is_vacuous_dtor_or_finalizer = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (is_dtor_like_locator(locator_for_curr_id)) {
-      /* The position of the current identifier should be the tilde that
-         begins the destructor name (or the exclamation point in the finalizer
-         case). */
-      /* coverity[uninit_use] -- believes that dtor_or_finalizer_position is
-         not set. */
-      locator_for_curr_id.source_position = dtor_or_finalizer_position;
-    }  /* if */
-    if (is_vacuous_dtor_or_finalizer && is_qualified_name) {
-      /* Make sure a vacuous destructor/finalizer reference is correctly
-         formed.  These tests only apply if the vacuous destructor/finalizer
-         is part of a qualified name. */
-      if (!is_nonclass_dtor_or_finalizer) {
-	/* If qualifier_type is NULL an error must have already occurred. */
-        if (qualifier_type != NULL) {
-          /* If this is a vacuous destructor/finalizer reference, just make
-             sure the name of the destructor matches the name of the class. */
-          if (is_error_locator(locator_for_curr_id)) {
-             /* An error occurred earlier while checking the destructor/
-                finalizer. */
-             err = TRUE;
-            /* Set the class type to NULL as an indicator to the
-	       coalesce routine that an error has occurred. */
-             qualifier_type = NULL;
-          }  /* if */
-        }  /* if */
-      } else {
-        /* This is a vacuous destructor/finalizer reference for a non-class
-           type (e.g., int::~int).  Make sure the type of the thing
-           before the "::" matches the type of the thing after it. */
-        /* If the dtor_or_finalizer_class_type is NULL then an error occurred
-           while scanning the part before the "::~", so don't issue another
-           error here.  If the type of the thing after the "::~" is NULL,
-           or doesn't match dtor_or_finalizer_class_type, issue an error. */
-        if (dtor_or_finalizer_class_type == NULL) {
+          /* This is a vacuous destructor/finalizer reference for a non-class
+             type (e.g., int::~int).  Make sure the type of the thing
+             before the "::" matches the type of the thing after it. */
+          /* If the dtor_or_finalizer_class_type is NULL then an error occurred
+             while scanning the part before the "::~", so don't issue another
+             error here.  If the type of the thing after the "::~" is NULL,
+             or doesn't match dtor_or_finalizer_class_type, issue an error. */
+          if (dtor_or_finalizer_class_type == NULL) {
 	  qualifier_type = NULL;
-        } else if (dtor_or_finalizer_type == NULL ||
-                   (!identical_types(dtor_or_finalizer_class_type,
-                                     dtor_or_finalizer_type) &&
-                    !is_template_param_type(dtor_or_finalizer_type))) {
-          if (!in_if_exists) {
-            pos_ty_error(
+          } else if (dtor_or_finalizer_type == NULL ||
+                     (!identical_types(dtor_or_finalizer_class_type,
+                                       dtor_or_finalizer_type) &&
+                      !is_template_param_type(dtor_or_finalizer_type))) {
+            if (!in_if_exists) {
+              pos_ty_error(
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                         (cli_or_cx_enabled &&
-                          locator_for_curr_id.is_finalizer_name) ?
-                         ec_finalizer_type_mismatch :
+                           (cli_or_cx_enabled &&
+                            locator_for_curr_id.is_finalizer_name) ?
+                           ec_finalizer_type_mismatch :
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                         ec_destructor_type_mismatch,
-                         &dtor_or_finalizer_position,
-                         dtor_or_finalizer_class_type);
-          }  /* if */
-          err = TRUE;
-          /* Set the class type to NULL as an indicator to the
+                           ec_destructor_type_mismatch,
+                           &dtor_or_finalizer_position,
+                           dtor_or_finalizer_class_type);
+            }  /* if */
+            err = TRUE;
+            /* Set the class type to NULL as an indicator to the
 	     coalesce routine that an error has occurred. */
 	  qualifier_type = NULL;
-        }  /* if */
-      }  /* if*/
+          }  /* if */
+        }  /* if*/
+      }  /* if */
     }  /* if */
     /* The name can be an operator name like "operator+". */
     if (curr_token == tok_operator) {
