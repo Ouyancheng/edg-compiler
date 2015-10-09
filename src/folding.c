@@ -10842,6 +10842,7 @@ there is some kind of failure.
   a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
+  a_constexpr_remap_ptr crp;
 
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
@@ -10854,16 +10855,22 @@ there is some kind of failure.
     param_var = param_var->next;
   }  /* while */
   this_param_var = routine_scope->variant.routine.this_param_variable;
-  if (this_param_var != NULL &&
-      !special_kind_is(routine, sfk_constructor)) {
-    /* Process the "this" parameter first.  Don't process the "this"
-       parameter in constructors, because there is no corresponding
-       argument. */
-    first_real_param = param_var;
-    param_var = this_param_var;
+  if (this_param_var != NULL) {
+    if (special_kind_is(routine, sfk_constructor)) {
+      /* Special handling is required for constructors because there is no
+         corresponding argument.  Add a remap for "this", and
+         i_fold_constexpt_ctor will set constant_value once that is known
+         to provide the mapping. */
+      crp = alloc_constexpr_remap(this_param_var, NULL);
+      *last_ptr = crp;
+      last_ptr = &crp->next;
+    } else {
+      /* Process the "this" parameter first. */
+      first_real_param = param_var;
+      param_var = this_param_var;
+    }  /* if */
   }  /* if */
   for (arg = args; arg != NULL; arg = arg->next) {
-    a_constexpr_remap_ptr crp;
     a_param_type_ptr      ptp;
     if (param_var == NULL) {
       /* Still have arguments, ran out of parameters. */
@@ -11163,13 +11170,11 @@ prevents folding.  ceblock gives context information for the evaluation.
   a_constructor_init_ptr ctor_init = *p_ctor_init_list;
   a_field_ptr            field;
   a_boolean              okay = TRUE;
-  an_aggr_init_con_elem  aggr_init_con;
   a_constant_ptr         member_con = local_constant();
 
   check_assertion(is_immediate_class_type(class_type));
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
                   aggr_con->type == class_type);
-  push_aggr_init_constant(aggr_con, &aggr_init_con);
   /* Create an initializer for each member of the class. */
   /*lint --e{850} field modified in loop */
   for (field = next_non_generated_initializable_field(
@@ -11278,7 +11283,6 @@ prevents folding.  ceblock gives context information for the evaluation.
     if (is_union_type(class_type)) break;
   }  /* for */
   *p_ctor_init_list = ctor_init;
-  pop_aggr_init_constant(&aggr_init_con);
   release_local_constant(&member_con);
   return okay;
 }  /* init_class_aggr_con_from_ctor_init_list */
@@ -11336,6 +11340,13 @@ fold_constexpr_ctor should usually be called instead.
       } else {
         a_constant_ptr aggr_con = local_constant();
         a_constant_ptr con = local_constant();
+        clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
+        aggr_con->type = class_type;
+        check_assertion(scope->variant.routine.this_param_variable ==
+                        ceblock->remap_list->param_var);
+        set_temporary_address_constant(aggr_con,
+                                       &ceblock->remap_list->constant_value);
+        ceblock->remap_list->is_constant = TRUE;
         if (ctor_routine->is_delegating_ctor) {
           /* The constructor delegates to another constructor.  Fold the
              delegating initializer. */
@@ -11352,8 +11363,6 @@ fold_constexpr_ctor should usually be called instead.
              ctor-initializers.  Each one provides a value for one base
              class or nonstatic data member. */
           a_constructor_init_ptr ctor_init;
-          clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
-          aggr_con->type = class_type;
           /* Add a member constant for each ctor-init for a base class. */
           for (ctor_init =
                     scope->variant.routine.variant.constexpr_constructor_inits;

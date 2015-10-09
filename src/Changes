@@ -1,5 +1,28 @@
 Version 4.11
 
+10/8/15  [EDGcpfe/16528]
+constexpr member function invocation during copy construction
+
+When evaluating a mem-initializer of a constexpr copy constructor that
+invokes a member function of the object being copied from, the front end
+previously incorrectly evaluated it as if it were invoked for the object
+being copied to.  This is now fixed.  For example, with --c++11:
+
+extern "C" int printf(const char*,...);
+struct S {
+  constexpr S(float f) : f_(f) {}
+  constexpr S(const S& o) : f_(o.f()) {}
+  constexpr float f() const { return f_; }
+  float f_;
+};
+
+int main() {
+  S c(3);
+  S d(c);
+  printf("%f.\n", d.f() *10 + c.f());  // Previously printed 3, now 33
+}
+
+
 10/8/15  [EDGcpfe/16146]
 Function deferral issue with partial specialization
 
