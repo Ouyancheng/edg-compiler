@@ -4,23 +4,27 @@ Version 4.11
 constexpr member function invocation during copy construction
 
 When evaluating a mem-initializer of a constexpr copy constructor that
-invokes a member function of the object being copied from, the front end
-previously incorrectly evaluated it as if it were invoked for the object
-being copied to.  This is now fixed.  For example, with --c++11:
+invokes a member function of the object being copied from and the source
+object is not a constant, the front end previously incorrectly evaluated
+the call as if the member function were invoked for the object being copied
+to.  This is now fixed.  For example, with --c++11:
 
-extern "C" int printf(const char*,...);
-struct S {
-  constexpr S(float f) : f_(f) {}
-  constexpr S(const S& o) : f_(o.f()) {}
-  constexpr float f() const { return f_; }
-  float f_;
-};
+  struct S {
+    constexpr S(): a(1), b(2) { }
+    constexpr int f() const { return a; }
+    constexpr S(const S& o): a(10), b(o.f()) { }
+    int a, b;
+  };
+  void f() {
+    S x;
+    S y(x);   // Previously set y.b to 10, now to 1
+  }
 
-int main() {
-  S c(3);
-  S d(c);
-  printf("%f.\n", d.f() *10 + c.f());  // Previously printed 3, now 33
-}
+In the initialization of y, the expression o.f() in the initializer for
+S::b is transformed to x.f(), which cannot be folded because x is not a
+constant.  This previously caused the front end to evaluate y.f() instead,
+giving the value 10; now the evaluation of x.f() is correctly deferred to
+runtime, giving the value 1.
 
 
 10/8/15  [EDGcpfe/16146]

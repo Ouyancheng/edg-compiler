@@ -10858,9 +10858,10 @@ there is some kind of failure.
   if (this_param_var != NULL) {
     if (special_kind_is(routine, sfk_constructor)) {
       /* Special handling is required for constructors because there is no
-         corresponding argument.  Add a remap for "this", and
-         i_fold_constexpt_ctor will set constant_value once that is known
-         to provide the mapping. */
+         corresponding argument expression.  Add a remap for "this", and
+         i_fold_constexpr_ctor will set constant_value to designate the
+         aggregate constant being initialized to provide the value for the
+         mapping. */
       crp = alloc_constexpr_remap(this_param_var, NULL);
       *last_ptr = crp;
       last_ptr = &crp->next;
@@ -11342,6 +11343,9 @@ fold_constexpr_ctor should usually be called instead.
         a_constant_ptr con = local_constant();
         clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
         aggr_con->type = class_type;
+        /* Update the mapping for "this" in ceblock to be a pointer to the
+           aggregate constant being created, so that references to
+           previously-initialized fields can be folded. */
         check_assertion(scope->variant.routine.this_param_variable ==
                         ceblock->remap_list->param_var);
         set_temporary_address_constant(aggr_con,
