@@ -19576,8 +19576,8 @@ selection operator, in which case it points to the type of the left operand.
           /* Clear the specific symbol found by these lookups. */
           clear_specific_symbol(locator_for_curr_id);
           if (type_sym != NULL && is_type_symbol(type_sym)) {
-	  /* If the symbol found is a type, get the type pointed to. */
-	  dtor_or_finalizer_type = type_symbol_type(type_sym);
+            /* If the symbol found is a type, get the type pointed to. */
+            dtor_or_finalizer_type = type_symbol_type(type_sym);
             /* This will eventually result in the locator qualifier class type
 	     being set to the type of the vacuous destructor/finalizer. */
             qualifier_type = dtor_or_finalizer_type;
@@ -19593,11 +19593,11 @@ selection operator, in which case it points to the type of the left operand.
                            locator_for_curr_id.symbol_header->identifier);
             }  /* if */
             err = TRUE;
-	}  /* if */
+          }  /* if */
         } else if (curr_token == tok_decltype ||
                    (!strict_ansi_mode &&
                     (dtor_or_finalizer_type = type_keyword()) != NULL)) {
-	/* "~decltype(x)" or a type keyword such as "~int". */
+          /* "~decltype(x)" or a type keyword such as "~int". */
           if (curr_token == tok_decltype) {
             a_type_ptr	tp;
             /* might_be_id_start is passed in as TRUE to prevent the token
@@ -19607,7 +19607,7 @@ selection operator, in which case it points to the type of the left operand.
             dtor_or_finalizer_type = skip_typerefs(tp);
           }  /* if */
           /* If the thing being scanned looks like "T::~int", where T is a
-	   typedef, save the type pointed to as dtor_or_finalizer_class_type.
+             typedef, save the type pointed to as dtor_or_finalizer_class_type.
              This will be used later for error checking. */
           check_assertion(qualifier_is_type == TRUE);
           if (dtor_or_finalizer_class_type == NULL) {
@@ -19694,7 +19694,7 @@ selection operator, in which case it points to the type of the left operand.
            formed.  These tests only apply if the vacuous destructor/finalizer
            is part of a qualified name. */
         if (!is_nonclass_dtor_or_finalizer) {
-	/* If qualifier_type is NULL an error must have already occurred. */
+          /* If qualifier_type is NULL an error must have already occurred. */
           if (qualifier_type != NULL) {
             /* If this is a vacuous destructor/finalizer reference, just make
                sure the name of the destructor matches the name of the
@@ -19704,7 +19704,7 @@ selection operator, in which case it points to the type of the left operand.
                   finalizer. */
                err = TRUE;
               /* Set the class type to NULL as an indicator to the
-	       coalesce routine that an error has occurred. */
+                 coalesce routine that an error has occurred. */
                qualifier_type = NULL;
             }  /* if */
           }  /* if */
@@ -19717,7 +19717,7 @@ selection operator, in which case it points to the type of the left operand.
              error here.  If the type of the thing after the "::~" is NULL,
              or doesn't match dtor_or_finalizer_class_type, issue an error. */
           if (dtor_or_finalizer_class_type == NULL) {
-	  qualifier_type = NULL;
+            qualifier_type = NULL;
           } else if (dtor_or_finalizer_type == NULL ||
                      (!identical_types(dtor_or_finalizer_class_type,
                                        dtor_or_finalizer_type) &&
@@ -19735,8 +19735,8 @@ selection operator, in which case it points to the type of the left operand.
             }  /* if */
             err = TRUE;
             /* Set the class type to NULL as an indicator to the
-	     coalesce routine that an error has occurred. */
-	  qualifier_type = NULL;
+               coalesce routine that an error has occurred. */
+            qualifier_type = NULL;
           }  /* if */
         }  /* if*/
       }  /* if */
