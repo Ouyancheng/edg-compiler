@@ -6633,7 +6633,8 @@ initializer.
     a_token_sequence_number    first_tsn, last_tsn;
     first_tsn = curr_token_sequence_number;
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-    cache_token_stream_until_matching_token((a_token_cache*)NULL, cts_options);
+    (void)cache_token_stream_until_matching_token((a_token_cache*)NULL,
+                                                  cts_options);
     end_caching_fetched_tokens();
     last_tsn = curr_token_sequence_number;
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,

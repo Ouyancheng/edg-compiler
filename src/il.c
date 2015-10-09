@@ -12930,6 +12930,32 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
+static an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr dip)
+/*
+Given a dynamic init entry, return a (possibly NULL) pointer to an object
+lifetime representing the full-expression lifetime that is the initialization.
+(This may be given directly by the init_expr_lifetime field or indirectly, if
+this is a dik_expression dynamic init entry.)
+*/
+{
+  an_object_lifetime_ptr  olp = NULL;
+
+  if (dip != NULL) {
+    olp = dip->init_expr_lifetime;
+    if (olp == NULL) {
+      if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+          dip->variant.expression->kind ==
+                             (an_expr_node_kind)enk_object_lifetime) {
+        /* An enk_object_lifetime node will always be the top-most node
+           if a lifetime was pushed for the full-expression. */
+        olp = dip->variant.expression->variant.object_lifetime.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return olp;
+}  /* init_expr_lifetime_of */
+
+
 /* Forward declaration needed because of recursion: */
 static void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
 
@@ -21820,45 +21846,6 @@ object lifetime.
   }  /* if */
 }  /* promote_lifetime_contents_to_curr_object_lifetime */
 
-
-void add_as_child_of_curr_object_lifetime(an_object_lifetime_ptr olp)
-/*
-Restore olp to the object lifetime tree -- it was detached earlier, and is
-added back, but possibly in a different position on the child_lifetime list
-of curr_object_lifetime.
-*/
-{
-  db_enter(4, "add_as_child_of_curr_object_lifetime");
-  if (olp != NULL) {
-    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
-    if (outer_dip != NULL &&
-        outer_dip->overlaps_temps_in_inner_lifetime &&
-        outer_dip->lifetime_of_overlapping_temps == olp) {
-      /* There was an associated destruction for a temporary whose lifetime
-         was promoted (to bind it to a reference).  The destruction was
-         removed by detach_object_lifetime_for_dynamic_init.  Put it back
-         now at the right place in the list. */
-      record_end_of_lifetime_destruction(outer_dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/TRUE);
-    }  /* if */
-    check_assertion_str2(olp->parent_lifetime == NULL,
-                         "add_as_child_of_curr_object_lifetime:",
-                         "non-NULL parent_lifetime");
-    olp->next = curr_object_lifetime->child_lifetime;
-    curr_object_lifetime->child_lifetime = olp;
-    olp->parent_lifetime = curr_object_lifetime;
-    olp->parent_destruction_sublist = curr_object_lifetime->destructions;
-#if DEBUG
-    if (debug_level >= 4) {
-      fputs("after restoration:\n", f_debug);
-      db_object_lifetime(olp);
-      db_object_lifetime(curr_object_lifetime);
-    }  /* if */
-#endif /* DEBUG */
-  }  /* if */
-  db_exit();
-}  /* add_as_child_of_curr_object_lifetime */
-
 #if DEBUG
 
 void db_destruction(a_dynamic_init_ptr  dip)
@@ -22104,32 +22091,6 @@ Return an object lifetime to the appropriate available list.
   }  /* if */
   db_exit();
 }  /* free_object_lifetime */
-
-
-an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr dip)
-/*
-Given a dynamic init entry, return a (possibly NULL) pointer to an object
-lifetime representing the full-expression lifetime that is the initialization.
-(This may be given directly by the init_expr_lifetime field or indirectly, if
-this is a dik_expression dynamic init entry.)
-*/
-{
-  an_object_lifetime_ptr  olp = NULL;
-
-  if (dip != NULL) {
-    olp = dip->init_expr_lifetime;
-    if (olp == NULL) {
-      if (dip->kind == (a_dynamic_init_kind)dik_expression &&
-          dip->variant.expression->kind ==
-                             (an_expr_node_kind)enk_object_lifetime) {
-        /* An enk_object_lifetime node will always be the top-most node
-           if a lifetime was pushed for the full-expression. */
-        olp = dip->variant.expression->variant.object_lifetime.ptr;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return olp;
-}  /* init_expr_lifetime_of */
 
 
 static an_object_lifetime_ptr *addr_of_lifetime_ptr(
