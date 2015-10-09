@@ -8585,6 +8585,10 @@ handled in decl_inits_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(ctor_delegation_map),
+      pch_saved_var_array_elem(avail_mem_init_args_caches),
+#if DEBUG
+      pch_saved_var_array_elem(num_mem_init_args_caches_allocated),
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -8622,6 +8626,10 @@ can be redone to compile more than one source file in a single invocation of
 the front end.
 */
 {
+  avail_mem_init_args_caches = NULL;
+#if DEBUG
+  num_mem_init_args_caches_allocated = 0;
+#endif /* DEBUG */
 }  /* decl_inits_init */
 
 
