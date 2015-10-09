@@ -16878,10 +16878,20 @@ nonstandard anonymous unions is_nonstd is TRUE.
           /* Similarly, nonstandard anonymous unions can contain nested
              anonymous types. */
         } else {
-          pos_diagnostic(strict_ansi_mode ?
-                         strict_ansi_discretionary_severity : es_warning,
-                         ec_type_decl_in_anon_union,
-                         &nested_type->source_corresp.decl_position);
+          a_type_ptr  untp = skip_typerefs(nested_type);
+          if (is_immediate_class_type(untp) &&
+              untp->variant.class_struct_union.is_prototype_instantiation &&
+              class_type_supp(untp)->template_arg_list != NULL) {
+            /* A prototype instantiation of a member class template in an
+               anonymous union.  Such member templates are invalid; an error
+               should already have been issued. */
+            expect_error();
+          } else {
+            pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_discretionary_severity : es_warning,
+                           ec_type_decl_in_anon_union,
+                           &nested_type->source_corresp.decl_position);
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */
