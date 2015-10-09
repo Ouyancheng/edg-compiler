@@ -65,7 +65,10 @@ to optimize the assignment to "this" that lowering introduces in configurations
 where NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  That optimization assumes that
 it can always be determined that "this" is non-null, but in the case below
 that assumption had failed resulting in an assertion failure
-(remap_var_for_inlining: wrong kind of remap).  A change has been made to
+(remap_var_for_inlining: wrong kind of remap).  In the case below, when the
+call to A::A(E) is inlined, the argument for "this" is &temp->m2, which is not
+considered constant (because the value of the temporary could change) even
+though the offset for m2 is known to be non-zero.  A change has been made to
 forgo the optimization of "this" in such cases.  For example (with --c++11
 --no_exceptions):
 
