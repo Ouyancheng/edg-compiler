@@ -678,14 +678,14 @@ set of programs that can be compiled without errors.
 /*
 Flag that is TRUE if, when deferring function prototype instantiations,
 partial specialization members should not have their prototype instantiations
-deferred.  This feature was added to workaround the fact that parsing code
+deferred.  This feature was added to work around the fact that parsing code
 in an unused function template or member function of template class can
 result in the instantiation of a class, and a different result would
 be obtained if the instantiation were done later.  Compilers should
 complain about such position-dependencies in partial specializations, but
 at this point, it appears that only the EDG front end does.  This is
 essentially a heuristic to allow some open source applications to build.
-This feature can be enabled by default using this macro, or can be
+This feature can be enabled by default using this macro, or it can be
 enabled using a --set_flag option on the command line.  The value is
 only used if defer_function_prototype_instantiations is TRUE.
 */

@@ -33,7 +33,7 @@ Function deferral issue with partial specialization
 A variable has been added to the front end that is TRUE if, when deferring
 function prototype instantiations, partial specialization members should not
 have their prototype instantiations deferred.  This feature was added to
-workaround the fact that parsing code in an unused function template or
+work around the fact that parsing code in an unused function template or
 member function of template class can result in the instantiation of a
 class, and a different result would be obtained if the instantiation were
 done later.  Compilers should complain about such position-dependencies
