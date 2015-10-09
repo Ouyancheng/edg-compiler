@@ -3221,7 +3221,7 @@ after_entry_from_class:
                           "walk_entry_and_subtree: bad constructor init kind");
         }  /* switch */
         walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_ptr(ptr->source_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(ptr->source.expr, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
       }
       break;

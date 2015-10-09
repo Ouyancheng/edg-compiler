@@ -1,5 +1,31 @@
 Version 4.11
 
+10/9/15  [EDGcpfe/16523]
+Internal error on aggregate mem-initializer with nontrivial destruction
+
+The front end previously sometimes generated invalid IL for mem-initializers
+with nontrivial destruction, which in turn could lead to an internal error
+during IL lowering (in lower_dynamic_init).  For example:
+
+  struct A { ~A(); };
+  struct B {
+    ~B();
+    B(const A&);
+  };
+  struct C {
+    struct {
+      B b;
+      int i;
+    } m;
+    C() : m({A(), 0}) {}  // Previously generated invalid IL and an abort
+  };                      // during IL lowering.  Now okay.
+
+This is now fixed.
+
+The current problem resulted from the earlier changes for EDGcpfe/15741 (a
+related issue; see entry of 12/4/14).
+
+
 10/9/15  [EDGcpfe/16570]
 is_constexpr indication for alternate entry points in the IA-64 ABI
 

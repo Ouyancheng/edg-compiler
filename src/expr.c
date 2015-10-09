@@ -40374,7 +40374,7 @@ and the array repetition.
                                            /*sequenced_args=*/FALSE,
                                            /*fold_constexpr=*/TRUE,
                                            &operand.position);
-        cip->source_expr = make_node_from_operand(&operand);
+        cip->source.expr = make_node_from_operand(&operand);
       }  /* if */
     } else if (could_be_dependent_class_type(el_type) ||
                is_template_dependent_type(src_type)) {
@@ -40384,7 +40384,7 @@ and the array repetition.
       if (prototype_instantiations_in_il) {
         an_expr_node_ptr expr = make_node_from_operand(&operand);
         expr = wrap_up_full_expression(expr);
-        cip->source_expr = expr;
+        cip->source.expr = expr;
         full_expr_wrapup_done = TRUE;
       }  /* if */
     } else {

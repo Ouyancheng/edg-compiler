@@ -4017,7 +4017,7 @@ pointer to it.
       unexpected_condition_str("alloc_ctor_init: bad kind");
   }  /* switch */
   cip->initializer = NULL;
-  cip->source_expr = NULL;
+  cip->source.expr = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   cip->ctor_init_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

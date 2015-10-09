@@ -6874,7 +6874,9 @@ do_base_class:
   } else {
     disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
   }  /* if */
-  disp_ptr("source_expr", (char *)ptr->source_expr, iek_expr_node);
+  if (ptr->source.expr != NULL) {
+    disp_ptr("source.expr", (char *)ptr->source.expr, iek_expr_node);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("ctor_init_range", &ptr->ctor_init_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

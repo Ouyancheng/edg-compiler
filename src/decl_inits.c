@@ -5577,62 +5577,6 @@ FALSE is returned) for non-class objects.
 }  /* def_initializer */
 
 
-static void detach_object_lifetimes_for_aggr_init_elements(
-                                                     a_constant_ptr  aggr_con)
-/*
-aggr_con is an aggregate initializer appearing in a mem-initializer (a C++11
-feature).  Look through its initializer elements for dynamic initializations
-(including those in subaggregate initializers) and remove them from their
-associated destruction list (if any).  They will be reinserted by a call to
-restore_aggr_init_object_lifetimes once the final mem-initializer order is
-known.
-*/
-{
-  a_constant_ptr  con = aggr_con->variant.aggregate.first_constant;
-
-  for (; con != NULL; con = con->next) {
-    if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      remove_from_destruction_list(con->variant.dynamic_init);
-    } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-      detach_object_lifetimes_for_aggr_init_elements(con);
-    }  /* if */
-  }  /* for */
-}  /* detach_object_lifetimes_for_aggr_init_elements */
-
-
-static void detach_object_lifetime_for_dynamic_init(a_dynamic_init_ptr dip)
-/*
-If the indicated initialization has an associated object lifetime, detach
-it from the object lifetime tree.  This is done for ctor-initializers
-so that the object lifetime list can be re-constructed in the canonical
-order rather than the order in which the initializers appear in the
-source.  Also unlink any destruction for an associated temporary whose
-lifetime was promoted to match a reference.  In the case of an aggregate
-initializer (a C++11 feature in the context of ctor-initializers), multiple
-destructions may have to be unlinked.
-*/
-{
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    detach_object_lifetimes_for_aggr_init_elements(dip->variant.constant);
-  } else {
-    an_object_lifetime_ptr olp = init_expr_lifetime_of(dip);
-    if (olp != NULL) {
-      a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
-      detach_from_object_lifetime_tree(olp);
-      /* Restore the parent destruction list (cleared by the call above) so
-         that when we re-insert the lifetime we can fix the related overlapping
-         dynamic init also. */
-      olp->parent_destruction_sublist = outer_dip;
-      if (outer_dip != NULL &&
-          outer_dip->overlaps_temps_in_inner_lifetime &&
-          outer_dip->lifetime_of_overlapping_temps == olp) {
-        remove_from_destruction_list(outer_dip);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* detach_object_lifetime_for_dynamic_init */
-
-
 static a_boolean disjoint_members_of_union(a_field_ptr field1,
                                            a_field_ptr field2)
 /*
@@ -6011,7 +5955,7 @@ underlying element type and the array type itself is returned through
       /* Check through fields for which initializers have already been
          specified. */
       for (cip = cibp->cip_list; cip != NULL; cip = cip->next) {
-        if (cip->initializer != NULL) {
+        if (cip->source.arg_cache != NULL) {
           /* Note: at this point cip_list includes only fields, so we can
              assume cip->kind is cik_field. */
           if (cip->variant.field == field) {
@@ -6031,7 +5975,7 @@ underlying element type and the array type itself is returned through
       /* Note: at this point cip_list includes only fields, so we can assume
          new_cip->kind is cik_field. */
       if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
-        if (new_cip->initializer != NULL) {
+        if (new_cip->source.arg_cache != NULL) {
           sym_error(ec_member_already_initialized, member_or_base_sym);
           goto scan_paren;
         }  /* if */
@@ -6223,7 +6167,7 @@ underlying element type and the array type itself is returned through
          list. */
       new_cip->compiler_generated = FALSE;
       new_cip->orig_type = orig_type;
-      if (new_cip->initializer != NULL) {
+      if (new_cip->source.arg_cache != NULL) {
         type_error(ec_base_class_already_initialized, bcp->type);
       } else {
         check_out_of_order_init(new_cip, cibp);
@@ -6305,12 +6249,7 @@ given type, and record the initializer in *cip if cip is non-NULL.
     dip->is_constructor_init = TRUE;
     cip->initializer = dip;
     cip->is_braced = TRUE;
-    if (exceptions_enabled) {
-      /* If the initializer produced an object lifetime for the full
-         expression, remove it temporarily from the object lifetime tree and
-         restore it in the correct position later. */
-      detach_object_lifetime_for_dynamic_init(dip);
-    } else {
+    if (!exceptions_enabled) {
       /* Clear the destructor effects. */
       dip->destructor = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
@@ -6400,10 +6339,6 @@ cases, array_type is NULL).
       dip = make_error_constant_dynamic_init();
     } else {
       check_constexpr_ctor_init(ctor, &is, &lparen_pos);
-      /* If the initializer produced an object lifetime for the full
-         expression, remove it temporarily from the object lifetime tree and
-         restore it in the correct position later. */
-      detach_object_lifetime_for_dynamic_init(dip);
 #if CHECKING
       /* If this is the initialization of an array, the dynamic init entry at
          this point represents the initialization of an element of the array,
@@ -6505,10 +6440,6 @@ cases, array_type is NULL).
           dip = dps.init_state.init_dip;
           check_assertion(dip != NULL);
         }  /* if */
-        /* If the initializer produced an object lifetime for the full
-           expression, remove it temporarily from the object lifetime tree and
-           restore it in the correct position later. */
-        detach_object_lifetime_for_dynamic_init(dip);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = pos_curr_token;
@@ -6539,6 +6470,26 @@ cases, array_type is NULL).
 }  /* scan_parenthesized_mem_init_args */
 
 
+static void handle_missing_mem_init_args(a_constructor_init_ptr  cip)
+/*
+A mem-initializer-id has just been scanned and the current token is not a
+delimiter introducing the arguments for the mem-initializer.  Issue a syntax
+error and flush tokens as needed.  If cip is non-null, record an error
+initializer in that entry.
+*/
+{
+  set_err_pos_to_curr_token();
+  add_stop_token(tok_lparen);
+  if (list_init_enabled) add_stop_token(tok_lbrace);
+  syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
+  if (list_init_enabled) remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_lparen);
+  if (cip != NULL) {
+    cip->initializer = make_error_constant_dynamic_init();
+  }  /* if */
+}  /* handle_missing_mem_init_args */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* pos is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6567,13 +6518,7 @@ the mem-initializer.
     braced_mem_initializer(ctor, dtype, cip);
   } else {
     /* Neither brace nor parenthesis: A syntax error. */
-    set_err_pos_to_curr_token();
-    add_stop_token(tok_lparen);
-    if (list_init_enabled) add_stop_token(tok_lbrace);
-    syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
-    if (list_init_enabled) remove_stop_token(tok_lbrace);
-    remove_stop_token(tok_lparen);
-    if (cip != NULL) cip->initializer = make_error_constant_dynamic_init();
+    handle_missing_mem_init_args(cip);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (cip != NULL) {
@@ -6582,6 +6527,135 @@ the mem-initializer.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* scan_mem_init_args */
+
+
+/*
+A structure to cache information about mem-initializer arguments until we know
+in what order to process them.
+*/
+typedef struct a_mem_init_args_cache *a_mem_init_args_cache_ptr;
+typedef struct a_mem_init_args_cache {
+  a_mem_init_args_cache_ptr
+		next;
+			/* This pointer is currently only used to manage the
+			   list of available cache entries. */
+  a_token_cache
+		tokens;
+			/* The tokens making up the mem-initializer arguments,
+			   including the delimiters (parentheses or braces). */
+  a_type_ptr
+		init_type, array_type;
+			/* The "init_type" and "array_type" determined by
+			   scan_mem_initializer_id. */
+  a_source_position
+		start_pos;
+			/* The start position of the mem-initializer. */
+} a_mem_init_args_cache;
+
+
+static a_mem_init_args_cache_ptr
+		avail_mem_init_args_caches;
+			/* Previously allocated caches available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_mem_init_args_caches_allocated;
+			/* Counter to track use of memory. */
+
+unsigned long db_mem_init_args_caches_used(unsigned long grand_total)
+/*
+Display the amount of space used for allocation of mem-initializer arguments
+caches, for debugging purposes.  Also return the total amount.
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("mem init args caches", avail_mem_init_args_caches,
+                     num_mem_init_args_caches_allocated,
+                     a_mem_init_args_cache);
+  return grand_total;
+}  /* db_mem_init_args_caches_used */
+
+#endif /* DEBUG */
+
+
+static a_mem_init_args_cache_ptr alloc_mem_init_args_cache(void)
+/*
+Return a cache for mem-initializer arguments, initializing the embedded token
+cache (but other fields must be initialized by the caller).
+*/
+{
+  a_mem_init_args_cache_ptr  cache;
+
+  if (avail_mem_init_args_caches != NULL) {
+    cache = avail_mem_init_args_caches;
+    avail_mem_init_args_caches = avail_mem_init_args_caches->next;
+  } else {
+    cache = alloc_fe_of_type(a_mem_init_args_cache);
+#if DEBUG
+    num_mem_init_args_caches_allocated += 1;
+#endif /* DEBUG */
+  }  /* if */
+  cache->next = NULL;
+  clear_token_cache(&cache->tokens, /*reusable=*/TRUE);
+  /* The other fields will be initialized by the caller. */
+  return cache;
+}  /* alloc_mem_init_args_cache */
+
+
+static void free_mem_init_args_cache(a_mem_init_args_cache_ptr  cache)
+/*
+Discard the token cache embedded in *cache, and return *cache to the available
+caches list.
+*/
+{
+  discard_token_cache(&cache->tokens);
+  cache->next = avail_mem_init_args_caches;
+  avail_mem_init_args_caches = cache;
+}  /* free_mem_init_args_cache */
+
+
+static void prescan_mem_init_args(a_constructor_init_ptr  cip,
+                                  a_type_ptr              init_type,
+                                  a_type_ptr              array_type,
+                                  a_source_position       *pos)
+/*
+Cache the tokens of the mem-init arguments (including delimiters) for the given
+constructor init entry.  Also record the init_type and array_type returned by
+scan_mem_initializer_id and the starting position (pos) of the constructor
+initializer.
+*/
+{
+  if (curr_token == tok_lparen ||
+      (list_init_enabled && curr_token == tok_lbrace)) {
+    a_mem_init_args_cache_ptr  cache = alloc_mem_init_args_cache();
+    a_cts_flag_set             cts_options = CTS_COALESCE_IDS;
+    a_token_sequence_number    first_tsn, last_tsn;
+    first_tsn = curr_token_sequence_number;
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    cache_token_stream_until_matching_token((a_token_cache*)NULL, cts_options);
+    end_caching_fetched_tokens();
+    last_tsn = curr_token_sequence_number;
+    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
+                           /*include_last_token=*/TRUE, &cache->tokens);
+    adjust_token_handles(&cache->tokens);
+    terminate_token_cache(&cache->tokens);
+    /* Skip the final delimiter. */
+    (void)get_token();
+    cache->init_type = init_type;
+    cache->array_type = array_type;
+    cache->start_pos = *pos;
+    if (cip != NULL) {
+      cip->source.arg_cache = cache;
+    } else {
+      free_mem_init_args_cache(cache);
+      expect_error();
+    }  /* if */
+  } else {
+    /* Neither brace nor parenthesis: A syntax error. */
+    handle_missing_mem_init_args(cip);
+  }  /* if */
+}  /* prescan_mem_init_args */
 
 
 static a_constructor_init_ptr scan_mem_initializer(
@@ -6655,7 +6729,27 @@ entries are replaced as needed for each mem-initializer that is encountered.
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
-    scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
+    /* The initialization described by mem-initializers must occur in the order
+       that the corresponding members are declared in.  That can be different
+       from the order that the mem-initializers appear in.  So we ordinarily
+       cache the mem-initializer arguments, and process them after we have
+       seen and ordered all the corresponding mem-initializer-ids.  However,
+       that doesn't always work during the prototype instantiation of variadic
+       templates.  For example:
+         template<typename ... Ts> struct S: Ts ... {
+           S(Ts ... ts): Ts(ts) ... {}
+         }
+       Here the reference to ts in "Ts(ts)" must be recorded before the
+       subsequent ellipsis is seen.  For that case we therefore parse the
+       mem-initializer arguments immediately.  That is not a problem in
+       prototype instantiations, since no actual code is generated from
+       them. */
+    if (ctor->is_prototype_instantiation) {
+      scan_mem_init_args(ctor, new_cip, init_type, array_type,
+                         &init_start_pos);
+    } else {
+      prescan_mem_init_args(new_cip, init_type, array_type, &init_start_pos);
+    }  /* if */
   }  /* if */
   return new_cip;
 }  /* scan_mem_initializer */
@@ -6747,75 +6841,6 @@ whole array.
   result->is_constructor_init = TRUE;
   return result;
 }  /* repeat_mem_init_for_array */
-
-
-static void restore_aggr_init_object_lifetimes(a_constant_ptr  aggr_con)
-/*
-aggr_con is an aggregate initializer appearing in a mem-initializer (a C++11
-feature).  Look through its initializer elements for dynamic initializations
-(including those in subaggregate initializers) and relink them on the order of
-destructions list of the appropriate object lifetime entry (they were unlinked
-by a call to detach_object_lifetimes_for_aggr_init_elements).
-*/
-{
-  a_constant_ptr  con = aggr_con->variant.aggregate.first_constant;
-
-  for (; con != NULL; con = con->next) {
-    if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      record_end_of_lifetime_destruction(con->variant.dynamic_init,
-                                         /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/TRUE);
-    } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-      restore_aggr_init_object_lifetimes(con);
-    }  /* if */
-  }  /* for */
-}  /* restore_aggr_init_object_lifetimes */
-
-
-static void restore_mem_init_object_lifetime(a_dynamic_init_ptr  dip)
-/*
-dip points to an entry describing a mem-initializer.  If the initializer had
-produced an object lifetime for the full expression, it was temporarily
-removed from the object lifetime tree.  Restore the object lifetime and the
-associated destructions list.  (This restoration must respect the order of
-initialization, which is not necessarily the order in which mem-initializers
-appear in the source.)
-*/
-{
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    /* For aggregate initializers (a C++11 feature in mem-initializer
-       contexts), the restoration amounts to restoring the element dynamic
-       initializer entries on the enclosing block's lifetime destructions
-       list. */
-    restore_aggr_init_object_lifetimes(dip->variant.constant);
-  } else {
-    an_object_lifetime_ptr  olp = init_expr_lifetime_of(dip);
-    if (olp != NULL) {
-      if (!long_lifetime_temps) {
-        /* Add the lifetime back in as a child of the current object
-           lifetime.  This assures that the order of the child-lifetime
-           list will reflect the actual order of construction. */
-        add_as_child_of_curr_object_lifetime(olp);
-      } else {
-        /* Promote destructions associated with expression temps to the
-           function scope lifetime. */
-        promote_lifetime_contents_to_curr_object_lifetime(olp);
-        if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-          an_expr_node_ptr  expr = dip->variant.expression;
-          if (expr->kind == (an_expr_node_kind)enk_object_lifetime &&
-              expr->variant.object_lifetime.ptr == olp) {
-            /* Link around the enk_object_lifetime expression -- it's not
-               needed any longer. */
-            dip->variant.expression = expr->variant.object_lifetime.expr;
-          }  /* if */
-        }  /* if */
-        /* Unbind the object lifetime and return it to an available list. */
-        unbind_object_lifetime(olp);
-        free_object_lifetime(olp);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* restore_mem_init_object_lifetime */
 
 
 /*
@@ -7082,7 +7107,6 @@ constructor, the scanned type is stored for later use.
           /* Some error must have occurred. */
           expect_error();
         }  /* if */
-        restore_mem_init_object_lifetime(dip);
         if (exceptions_enabled && dip->destructor != NULL) {
           /* If an exception is thrown in the delegating body, the destructor
              for the whole object is invoked. */
@@ -7475,6 +7499,32 @@ initialized.  These are addressed in the course of the processing.
     a_type_ptr         object_class_type;
     a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
+    if (!cip->compiler_generated && !ctor_rout->is_prototype_instantiation) {
+      /* Now that we know the order in which the initializers should be
+         handled, we can complete their processing.  See also the call to
+         prescan_mem_init_args in scan_mem_initializer. */
+      a_mem_init_args_cache  *cache = cip->source.arg_cache;
+      if (cache != NULL) {
+        cip->source.arg_cache = NULL;
+        rescan_reusable_cache(&cache->tokens);
+        scan_mem_init_args(ctor_rout, cip, cache->init_type, cache->array_type,
+                           &cache->start_pos);
+        /* Skip over the final delimiter. */
+        if (curr_token == tok_rparen ||
+            (list_init_enabled && curr_token == tok_lbrace)) {
+          (void)get_token();
+        }  /* if */
+        if (curr_token != tok_end_of_source) {
+          expect_error();
+          /* If necessary, keep flushing until end-of-source is found. */
+          while (curr_token != tok_end_of_source) (void)get_token();
+        }  /* if */
+        /* Advance past the end-of-source token, which was added in
+           the prescan routine. */
+        (void)get_token();
+        free_mem_init_args_cache(cache);
+      }  /* if */
+    }  /* if */
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       field_sym = symbol_for(cip->variant.field);
       if (field_sym != NULL) {
@@ -7521,10 +7571,6 @@ initialized.  These are addressed in the course of the processing.
     /* If this was an explicit initialization, check whether an object
        lifetime needs to be restored to the IL. */
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
-      /* Restore the object lifetime in the object lifetime tree now that we
-         have the initializers in initialization order (rather than source
-         order). */
-      restore_mem_init_object_lifetime(dip);
       /* Unless this is an array type or exception processing is enabled, this
          is all that's required for explicit initializations. */
       if (exceptions_enabled ||
@@ -7798,7 +7844,7 @@ initialized.  These are addressed in the course of the processing.
           /* This constructor initializer entry is likely not really needed.
              It may be the result of an empty initializer on a field or it may
              be associated with a base class without a constructor. */
-          if (cip->source_expr != NULL) {
+          if (cip->source.expr != NULL) {
             /* A special case: An explicit array initializer in a template (if
                it weren't in a template, we wouldn't be here since a nontrivial
                dynamic initialization entry would have been generated).  This
@@ -7808,7 +7854,7 @@ initialized.  These are addressed in the course of the processing.
             check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
-                      (is_template_dependent_type(cip->source_expr->type) ||
+                      (is_template_dependent_type(cip->source.expr->type) ||
                        is_template_dependent_type(cip->variant.field->type)));
           } else {
             /* Unlink the constructor initializer entry from the list. */

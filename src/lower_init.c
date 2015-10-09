@@ -1834,7 +1834,7 @@ for an array initialization in GNU C++ mode).
   if (source_desc->ctor_init != NULL) {
     check_assertion(source_desc->capture == NULL &&
                     !source_desc->runtime_throw);
-    if (source_desc->ctor_init->source_expr == NULL) {
+    if (source_desc->ctor_init->source.expr == NULL) {
       /* The implied source is the member being copied by the
          ctor-initializer. */
       set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
@@ -1847,7 +1847,7 @@ for an array initialization in GNU C++ mode).
       /* The implied source is given by the specified expression (which has
          already been lowered).  Currently used only when copying an
          array in GNU C++ mode.  Result must be an lvalue. */
-      source_node = source_desc->ctor_init->source_expr;
+      source_node = source_desc->ctor_init->source.expr;
       check_assertion(result_is_lvalue && source_node->is_lvalue);
     }  /* if */
   } else if (source_desc->capture != NULL) {
@@ -14203,10 +14203,10 @@ are inserted at *insert_location, and *insert_location is updated.
   /* Set the source of the implied copy. */
   clear_implied_copy_source(&source_desc);
   source_desc.ctor_init = ctor_init;
-  if (ctor_init->source_expr != NULL) {
+  if (ctor_init->source.expr != NULL) {
     /* If there is an associated source expression as part of the implied copy,
        lower it. */
-    lower_expr(ctor_init->source_expr);
+    lower_expr(ctor_init->source.expr);
   }  /* if */
   check_assertion(pending_stmk_init_statements == NULL);
   if (is_expr_insert_location(insert_location)) {
