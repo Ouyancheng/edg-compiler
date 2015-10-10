@@ -12395,11 +12395,17 @@ gen_expr that might end up generating this expr as a temporary.
   if (expr->is_pack_expansion) {
     /* Capture the is_pack_expansion flag now.  The code below can change
        expr to point to one of its operands; in such cases, however, the
-       is_pack_expansion flag is set in the node that is skipped over.
-       Also, force parentheses, so that the ellipsis will apply to the
-       entire expression and not just to the last subexpression. */
+       is_pack_expansion flag is set in the node that is skipped over. */
     is_pack_expansion = TRUE;
-    need_parens = TRUE;
+    if (expr->kind != (an_expr_node_kind)enk_temp_init) {
+      /* Force parentheses, so that the ellipsis will apply to the entire
+         expression and not just to the last subexpression.  This is not
+         done for enk_temp_init nodes because parentheses are not needed
+         and older versions of g++ have a bug that causes errors compiling
+         the generated code if an explicit temporary is enclosed in
+         redundant parentheses prior to the ellipsis. */
+      need_parens = (expr->kind != (an_expr_node_kind)enk_temp_init);
+    }  /* if */
   } else {
     is_pack_expansion = FALSE;
   }  /* if */

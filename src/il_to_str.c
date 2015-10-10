@@ -363,16 +363,29 @@ Output the indicated template argument in the way described by octl.
           check_assertion(!octl->gen_compilable_code);
           octl->output_str("<expression>", octl);
         } else {
-          a_boolean need_parens;
+          a_boolean         need_parens;
+          an_expr_node_ptr expr;
           check_assertion(con != NULL);
+          expr = con->expr;
+          if (expr == NULL &&
+              con->kind == (a_constant_repr_kind)ck_template_param &&
+              con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+            expr = expr_node_from_tpck_expression(con);
+          }  /* if */
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the
              argument list or to ensure that an ellipsis applies to the
-             entire expression. */
+             entire expression.  (enk_temp_init nodes are exempted because
+             parentheses are not needed and because older versions of g++
+             have a bug that causes errors compiling the resulting code if
+             parentheses are used in that context.) */
           need_parens = octl->gen_compilable_code &&
                         (octl->has_unprotected_gt_or_comma_operation == NULL ||
                          octl->has_unprotected_gt_or_comma_operation(con) ||
-                         tap->is_pack);
+                         (tap->is_pack &&
+                          (expr == NULL ||
+                           expr->kind != (an_expr_node_kind)enk_temp_init)));
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
