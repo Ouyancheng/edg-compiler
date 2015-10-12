@@ -28,7 +28,7 @@ during IL lowering (in lower_dynamic_init).  For example:
     C() : m({A(), 0}) {}  // Previously generated invalid IL and an abort
   };                      // during IL lowering.  Now okay.
 
-This is now fixed.  The change involved a minor IL change: The field
+This is now fixed.  The change involved a minor IL CHANGE: The field
 source_expr of a_constructor_init is now source.expr instead.
 
 The current problem resulted from the earlier changes for EDGcpfe/15741 (a
