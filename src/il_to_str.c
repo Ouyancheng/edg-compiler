@@ -363,7 +363,7 @@ Output the indicated template argument in the way described by octl.
           check_assertion(!octl->gen_compilable_code);
           octl->output_str("<expression>", octl);
         } else {
-          a_boolean         need_parens;
+          a_boolean        need_parens;
           an_expr_node_ptr expr;
           check_assertion(con != NULL);
           expr = con->expr;
