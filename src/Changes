@@ -1,5 +1,35 @@
 Version 4.11
 
+10/12/15  [EDGcpfe/16550]
+Inlining of constructor when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE
+
+The code that inlines constructors assumes that the "this" parameter will not
+be used as an lvalue in the constructor, and relies on being able to optimize
+the assignment to "this" that lowering introduces in configurations where
+NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  In the case below that assumption had
+been violated (resulting in an assertion failure "remap_var_for_inlining: wrong
+kind of remap").  In this case, when the call to A::A(E) is inlined, the
+argument for "this" is &temp->m2, whose value had not been considered to be
+non-null even though the offset for m2 is known to be non-zero.  Changes were
+made to bool_value_is_known_at_compile_time and is_constant_valued_expression
+to recognize this as an expression with a non-null value which allows the
+routine to be successfully inlined (the latter change is needed in
+configurations where LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS is
+TRUE).  For example (with --c++11 --no_exceptions):
+
+  enum E { e };
+  struct A {
+    A(E _e) { while(0); }
+  };
+  struct S {
+    int m1;
+    A   m2;
+  };
+  void f() {
+    new S{ 0, e };
+  }
+
+
 10/9/15  [EDGcpfe/16565]
 Access to uninitialized position variable in f_is_generalized_identifier_start
 
