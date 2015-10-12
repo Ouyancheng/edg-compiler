@@ -99,35 +99,6 @@ The value is only used if defer_function_prototype_instantiations is TRUE.
   A<char, void> f;
 
 
-10/8/15  [EDGcpfe/16550]
-Inlining of constructor when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE
-
-The code that inlines constructors assumes that the "this" parameter
-will not be used as an lvalue in the constructor, and relies on being able
-to optimize the assignment to "this" that lowering introduces in configurations
-where NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  That optimization assumes that
-it can always be determined that "this" is non-null, but in the case below
-that assumption had failed resulting in an assertion failure
-(remap_var_for_inlining: wrong kind of remap).  In the case below, when the
-call to A::A(E) is inlined, the argument for "this" is &temp->m2, which is not
-considered constant (because the value of the temporary could change) even
-though the offset for m2 is known to be non-zero.  A change has been made to
-forgo the optimization of "this" in such cases.  For example (with --c++11
---no_exceptions):
-
-  enum E { e };
-  struct A {
-    A(E _e) {}
-  };
-  struct S {
-    int m1;
-    A   m2;
-  };
-  void f() {
-    new S{ 0, e };
-  }
-
-
 10/8/15  [EDGcpfe/15600,EDGcpfe/16558]
 Allow use of inaccessible injected template name
 
