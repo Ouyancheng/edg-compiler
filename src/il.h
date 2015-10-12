@@ -1924,6 +1924,12 @@ extern an_expr_node_ptr copy_list_of_expr_trees(
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
                                        an_expr_copy_options_set options);
 
+#if MINIMAL_INLINING
+extern an_expr_node_ptr copy_expr_tree_for_inlining(
+                                            an_expr_node_ptr expr,
+                                            a_boolean        *inlining_failed);
+#endif /* MINIMAL_INLINING */
+
 extern a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
 

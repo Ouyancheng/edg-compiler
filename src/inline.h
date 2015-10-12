@@ -116,10 +116,13 @@ EXTERN unsigned long
 
 extern a_variable_ptr remap_var_for_inlining(a_variable_ptr var);
 
-extern void adjust_copied_expression_for_inlining(an_expr_node_ptr expr);
+extern void adjust_copied_expression_for_inlining(
+                                            an_expr_node_ptr expr,
+                                            a_boolean        *inlining_failed);
 
 extern a_boolean copy_and_simplify_short_circuited_operation(
-                                                        an_expr_node_ptr expr);
+                                            an_expr_node_ptr expr,
+                                            a_boolean        *inlining_failed);
 
 extern void do_inlining_of_call(an_expr_node_ptr expr,
                                 a_statement_ptr  statement,

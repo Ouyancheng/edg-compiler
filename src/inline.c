@@ -58,22 +58,6 @@ static a_scope_ptr
 			   with this scope is being expanded as an inline. */
 
 
-static an_expr_node_ptr copy_expr_tree_for_inlining(an_expr_node_ptr expr)
-/*
-Return a copy of the specified expression tree with remapped parameter
-variables replaced with appropriate values for the invocation of the function
-currently being inlined.  copy_expr_tree calls back to
-adjust_copied_expression_for_inlining to perform the appropriate remappings.
-A lowering post pass is performed on the resulting expression (to address any
-optimization issues that may arise as a result of the variable remapping).
-*/
-{
-  expr = copy_expr_tree(expr, CE_DOING_INLINING_OF_FUNCTION_CALL);
-  perform_post_pass_on_lowered_expression(expr);
-  return expr;
-}  /* copy_expr_tree_for_inlining */
-
-
 #if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
 /*ARGSUSED*/
 #endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
@@ -425,7 +409,8 @@ finish_variable_remapping_for_inlining.
            allocation code at the top of the routine even though there's
            an assignment to "this" in that code when it does the allocation.
            We can only do that if the value being assigned to "this" is
-           non-null. */
+           non-null (if that assumption is violated, the routine will fail
+           to be inlined and a remark will be issued). */
         param_is_constructor_this = TRUE;
         if (is_non_null) param_is_unmodified = TRUE;
       }  /* if */
@@ -698,8 +683,8 @@ a_variable_ptr remap_var_for_inlining(a_variable_ptr var)
 /*
 See if the indicated variable is remapped in the current inlining operation.
 Return the new variable if there is a remapping, or the original variable
-if not.  An internal error is generated if the remapping is to something
-other than a temporary variable.
+if not.  NULL is returned if the remapping is to something other than a
+temporary variable.
 */
 {
   a_variable_ptr                        new_var;
@@ -708,11 +693,17 @@ other than a temporary variable.
   vrip = get_var_remapping_for_inlining(var);
   if (vrip != NULL) {
     /* There is a remapping. */
-    check_assertion_str(vrip->kind == vrk_temporary,
-                        "remap_var_for_inlining: wrong kind of remap");
-    new_var = vrip->variant.variable;
-    vrip->remapping_used = TRUE;
-    vrip->temporary_used = TRUE;
+    if (vrip->kind == vrk_temporary) {
+      new_var = vrip->variant.variable;
+      vrip->remapping_used = TRUE;
+      vrip->temporary_used = TRUE;
+    } else {
+      /* Not a temporary variable (as expected).  This can happen in some cases
+         where the argument used for "this" in a constructor can't be
+         determined to be non-null.  Returning NULL will typically result in
+         a failure to inline the function. */
+      new_var = NULL;
+    }  /* if */
   } else {
     /* There is no remapping, so return the original variable. */
     new_var = var;
@@ -721,11 +712,13 @@ other than a temporary variable.
 }  /* remap_var_for_inlining */
 
 
-void adjust_copied_expression_for_inlining(an_expr_node_ptr expr)
+void adjust_copied_expression_for_inlining(an_expr_node_ptr expr,
+                                           a_boolean        *inlining_failed)
 /*
 The indicated (rvalue or lvalue) expression has just been created as a copy of
 an expression during inlining.  See whether it should be adjusted, e.g.,
-because of remapped variables.
+because of remapped variables.  *inlining_failed is set to TRUE if the
+expression can't be inlined.
 */
 {
   an_expr_node_kind     kind = expr->kind;
@@ -740,7 +733,13 @@ because of remapped variables.
   if (kind == (an_expr_node_kind)enk_variable) {
     if (expr->is_lvalue) {
       /* Variable lvalue.  See if the variable is remapped. */
-      node_variable(expr) = remap_var_for_inlining(node_variable(expr));
+      a_variable_ptr var = remap_var_for_inlining(node_variable(expr));
+      if (var != NULL) {
+        node_variable(expr) = var;
+      } else {
+        /* No temporary for this mapping; inlining fails. */
+        *inlining_failed = TRUE;
+      }  /* if */
     } else {
       /* Value of a variable.  See if the variable is remapped. */
       vrip = get_var_remapping_for_inlining(node_variable(expr));
@@ -763,7 +762,9 @@ because of remapped variables.
               node_constant(expr) = node_constant(constant_expr);
             } else {
               /* Other, more complicated, cases.  Just copy the expression. */
-              overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
+              overwrite_node(expr,
+                             copy_expr_tree_for_inlining(constant_expr,
+                                                         inlining_failed));
               if (is_ptr_to_member_type(expr_type)) {
                 /* Restore the original type, which might be slightly different
                    for pointer-to-member cases. */
@@ -953,13 +954,16 @@ because of remapped variables.
 }  /* adjust_copied_expression_for_inlining */
 
 
-a_boolean copy_and_simplify_short_circuited_operation(an_expr_node_ptr expr)
+a_boolean copy_and_simplify_short_circuited_operation(
+                                             an_expr_node_ptr expr,
+                                             a_boolean        *inlining_failed)
 /*
 expr is a copy of an enk_operation node being made while copying an
 expression for inlining.  The node "expr" is a copy, but its subtree has
 not been copied yet.  If expr is a short-circuitable operation, do
 the rest of the copy (simplifying in the process) and return TRUE;
-otherwise, do no copying and return FALSE.
+otherwise, do no copying and return FALSE.  *inlining_failed is set to
+TRUE if there's a failure during inlining.
 */
 {
   a_boolean             processed = FALSE;
@@ -977,7 +981,7 @@ otherwise, do no copying and return FALSE.
     operand3 = operand2->next;
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
-    operand = copy_expr_tree_for_inlining(operand);
+    operand = copy_expr_tree_for_inlining(operand, inlining_failed);
     if (bool_value_is_known_at_compile_time(operand,
                            assume_this_cannot_be_null_in_conditional_operators,
                                             &op1_value)) {
@@ -988,11 +992,11 @@ otherwise, do no copying and return FALSE.
            of the value of the first operand. */
         if (op1_value) {
           /* The first operand is true, so keep the second operand. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2, inlining_failed);
           overwrite_node(expr, operand2);
         } else {
           /* The first operand is false, so keep the third operand. */
-          operand3 = copy_expr_tree_for_inlining(operand3);
+          operand3 = copy_expr_tree_for_inlining(operand3, inlining_failed);
           overwrite_node(expr, operand3);
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_lor) {
@@ -1004,7 +1008,7 @@ otherwise, do no copying and return FALSE.
         } else {
           /* The first operand is false, so the second operand is the value
              of the expression. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2, inlining_failed);
           overwrite_node(expr, operand2);
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_land) {
@@ -1012,7 +1016,7 @@ otherwise, do no copying and return FALSE.
         if (op1_value) {
           /* The first operand is true, so the second operand is the value
              of the expression. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2, inlining_failed);
           overwrite_node(expr, operand2);
         } else {
           /* The first operand is false, so the overall operation has the
@@ -1025,8 +1029,10 @@ otherwise, do no copying and return FALSE.
     } else {
       /* The first operand is not known false or known true, so this operation
          cannot be simplified.  Just copy the rest of the operands. */
-      operand2 = copy_expr_tree_for_inlining(operand2);
-      if (operand3 != NULL) operand3 = copy_expr_tree_for_inlining(operand3);
+      operand2 = copy_expr_tree_for_inlining(operand2, inlining_failed);
+      if (operand3 != NULL) {
+        operand3 = copy_expr_tree_for_inlining(operand3, inlining_failed);
+      }  /* if */
       /* Link the copied operands together. */
       expr->variant.operation.operands = operand;
       operand->next = operand2;
@@ -1061,7 +1067,7 @@ otherwise, do no copying and return FALSE.
         check_assertion(vrip->kind == vrk_temporary);
         /* Copy the source operand with substitution and constant folding
            so we can see if we have a constant. */
-        operand2 = copy_expr_tree_for_inlining(operand2);
+        operand2 = copy_expr_tree_for_inlining(operand2, inlining_failed);
         processed = TRUE;
         if (is_constant_valued_expression(operand2,
                                           /*local_vars_change=*/TRUE,
@@ -1096,7 +1102,7 @@ otherwise, do no copying and return FALSE.
         } else {
           /* The operation cannot be eliminated, so finish the rewriting,
              leaving an updated assignment in place. */
-          operand = copy_expr_tree_for_inlining(operand);
+          operand = copy_expr_tree_for_inlining(operand, inlining_failed);
           operand->next = operand2;
           expr->variant.operation.operands = operand;
         }  /* if */
@@ -1188,7 +1194,7 @@ This is useful in cases where iterative inlining can create huge routines.
     if (stmt_expr != NULL) {
       /* Make a copy of the expression tree (also performs substitution
          of argument values for parameters). */
-      stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
+      stmt_expr = copy_expr_tree_for_inlining(stmt_expr, failed);
     }  /* if */
     switch (statement->kind) {
       case stmk_empty:
@@ -1474,6 +1480,7 @@ This is useful in cases where iterative inlining can create huge routines.
         { a_dynamic_init_ptr dip = statement->variant.dynamic_init;
           an_expr_node_ptr   var_expr, init_expr;
           a_variable_ptr     var = remap_var_for_inlining(dip->variable);
+          check_assertion(var != NULL);
           /* A dynamic initialization is rendered as an assignment.  This is
              done even in statement insert mode, to avoid the complexity
              of copying and inserting the stmk_init.  The only negative to
@@ -1496,7 +1503,8 @@ This is useful in cases where iterative inlining can create huge routines.
                                           (a_constant *)NULL,
                                           CE_DOING_INLINING_OF_FUNCTION_CALL));
           } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-            init_expr = copy_expr_tree_for_inlining(dip->variant.expression);
+            init_expr = copy_expr_tree_for_inlining(dip->variant.expression,
+                                                    failed);
           } else {
             /* Other cases cannot be handled (they probably can't happen here,
                but for the sake of safety...). */
@@ -1557,7 +1565,8 @@ This is useful in cases where iterative inlining can create huge routines.
           /* Copy the increment expression. */
           increment_expr = statement->variant.for_loop.extra_info->increment;
           if (increment_expr != NULL) {
-            increment_expr = copy_expr_tree_for_inlining(increment_expr);
+            increment_expr = copy_expr_tree_for_inlining(increment_expr,
+                                                         failed);
             set_expr_result_not_used(increment_expr);
           }  /* if */
           /* Copy the "for" statement.  This does not use

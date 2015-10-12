@@ -4420,6 +4420,9 @@ typedef struct a_tree_copy_control_block {
 			/* Selective list of remapped entries, used to
 			   remap references to those entries found later in
 			   the same copy. */
+  a_boolean     inlining_failed;
+                        /* TRUE if, during the inlining of an expression tree,
+                           an error is found that prevents inlining. */
 } a_tree_copy_control_block;
 
 
@@ -4499,6 +4502,7 @@ Set the fields of a tree copy control block to default values.
 */
 {
   cblock->remapped_entries = NULL;
+  cblock->inlining_failed = FALSE;
 }  /* clear_tree_copy_control_block */
 
 
@@ -17954,7 +17958,10 @@ be called to start a copy.
       /* Some short-circuited operations can be simplified while they are
          copied if the first operand value is constant. */
       if ((options & CE_DOING_INLINING_OF_FUNCTION_CALL) &&
-          copy_and_simplify_short_circuited_operation(expr_copy)) break;
+          copy_and_simplify_short_circuited_operation(expr_copy,
+                                                   &cblock->inlining_failed)) {
+        break;
+      }  /* if */
 #endif /* MINIMAL_INLINING */
       expr_copy->variant.operation.operands =
                     i_copy_list_of_expr_trees(expr->variant.operation.operands,
@@ -18228,7 +18235,7 @@ be called to start a copy.
 #if MINIMAL_INLINING
   if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* When doing inlining, look for parameters that should be remapped. */
-    adjust_copied_expression_for_inlining(expr_copy);
+    adjust_copied_expression_for_inlining(expr_copy, &cblock->inlining_failed);
   }  /* if */
 #endif /* MINIMAL_INLINING */
   if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
@@ -18256,6 +18263,36 @@ a set of options for the copy.
   return expr_copy;
 }  /* copy_expr_tree */
 
+#if MINIMAL_INLINING
+
+an_expr_node_ptr copy_expr_tree_for_inlining(an_expr_node_ptr expr,
+                                             a_boolean        *inlining_failed)
+/*
+Return a copy of the specified expression tree with remapped parameter
+variables replaced with appropriate values for the invocation of the function
+currently being inlined.  copy_expr_tree calls back to
+adjust_copied_expression_for_inlining to perform the appropriate remappings.
+A lowering post pass is performed on the resulting expression (to address any
+optimization issues that may arise as a result of the variable remapping).
+*inlining_failed is set to FALSE upon successful inlining, and TRUE when an
+error is detected.
+*/
+{
+  a_tree_copy_control_block cblock;
+  an_expr_node_ptr          expr_copy;
+
+  clear_tree_copy_control_block(&cblock);
+  expr_copy = i_copy_expr_tree(expr, CE_DOING_INLINING_OF_FUNCTION_CALL,
+                               &cblock);
+  done_with_tree_copy_control_block(&cblock);
+  if (cblock.inlining_failed) {
+    perform_post_pass_on_lowered_expression(expr_copy);
+  }  /* if */
+  *inlining_failed = cblock.inlining_failed;
+  return expr_copy;
+}  /* copy_expr_tree_for_inlining */
+
+#endif /* MINIMAL_INLINING */
 
 an_expr_node_ptr add_object_lifetime_to_expr(an_expr_node_ptr       expr,
                                              an_object_lifetime_ptr lifetime)
