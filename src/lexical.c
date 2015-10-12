@@ -19546,14 +19546,14 @@ selection operator, in which case it points to the type of the left operand.
            tilde (or the exclamation point in the finalizer case). */
         (void)get_token();  /* Get the token after the "~" or "!". */
         if (curr_token == tok_identifier) {
-	/* A typedef name -- lookup the symbol and find the type pointed to.
-             This will be something like "i::~i" or "A::i::~i".  If "i"
-             is a member of a class then we need to do the lookup in the class
-             of which "i" is a member.  Likewise, if "i" is a member of a
+	  /* A typedef name -- look up the symbol and find the type pointed to.
+             This will be something like "i::~i" or "A::i::~i".  If "i" is a
+             member of a class then we need to do the lookup in the class of
+             which "i" is a member.  Likewise, if "i" is a member of a
              namespace then we need to do the lookup in the namespace of which
-             "i" is a member.  If "i" is not a member, then do either a
-             normal or file-scope lookup depending on whether "i" had used
-             a global scope qualifier. */
+             "i" is a member.  If "i" is not a member, then do either a normal
+             or file-scope lookup depending on whether "i" had used a global
+             scope qualifier. */
           a_symbol_ptr	type_sym = NULL;
 
           /* Set dtor_or_finalizer_class_type to class_type.  This is only
@@ -19579,7 +19579,7 @@ selection operator, in which case it points to the type of the left operand.
             /* If the symbol found is a type, get the type pointed to. */
             dtor_or_finalizer_type = type_symbol_type(type_sym);
             /* This will eventually result in the locator qualifier class type
-	     being set to the type of the vacuous destructor/finalizer. */
+	       being set to the type of the vacuous destructor/finalizer. */
             qualifier_type = dtor_or_finalizer_type;
             qualifier_is_type = TRUE;
             /* In some cases, such as "p->::~T", dtor_or_finalizer_class_type
