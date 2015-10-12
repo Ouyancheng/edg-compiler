@@ -14137,8 +14137,9 @@ Return TRUE if the indicated expression (which can be an rvalue or lvalue) has
 an invariant value (or address in the lvalue case) over the duration of an
 inlined call.  That is, the expression can be evaluated more than once and get
 the same answer.  That includes things like addresses of automatic variables.
-If the expression is constant valued and the value is known to be non-null,
-return *is_non_null TRUE.  If it cannot be determined whether the constant is
+If the expression is known to be non-null, return *is_non_null TRUE (in some
+cases it can be known that the expression is non-null even though it can't be
+determined to be constant).  If it cannot be determined whether the constant is
 non-NULL, the safe value is FALSE.  local_vars_change is TRUE if the values of
 unaliased local variables of the caller might change (e.g., if the argument
 expressions have side effects).  other_vars_change is TRUE if the values of
@@ -14206,7 +14207,8 @@ inlining and therefore yield different results.
          of the call. */
       is_constant_valued = TRUE;
     }  /* if */
-    if (is_constant_valued && var->is_this_parameter) {
+    if (var->is_this_parameter &&
+        (is_constant_valued || this_cannot_be_null)) {
       /* "this" is always non-null in virtual functions, and may be assumed
          to be non-null in other contexts as well (as specified by the
          caller). */
@@ -14300,6 +14302,24 @@ inlining and therefore yield different results.
           *is_non_null = TRUE;
         }  /* if */
         break;
+      case eok_ne:
+        /* In general, we can't tell whether two expressions will or won't
+           be equal at run time, but look for one specific case that is added
+           by lowering when LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+           is TRUE: "x != 0".  In this case, the entire operation is known
+           to be constant if x is known to be constant and non-null. */
+        if (is_constant_node(operand->next)) {
+          a_constant_ptr op_con = node_constant(operand->next);
+          if (constant_bool_value_known_at_compile_time(op_con) &&
+              is_false_constant(op_con)) {
+            is_constant_valued = is_constant_valued_expression(operand,
+                                                           local_vars_change,
+                                                           other_vars_change,
+                                                           this_cannot_be_null,
+                                                           is_non_null);
+          }  /* if */
+        }  /* if */
+        break;
       default:
         break;
     }  /* switch */
@@ -14336,12 +14356,23 @@ expression is known.  This routine does not investigate all possible cases
        boolean value.  Specifically, the address of variables and
        functions. */
     a_boolean  non_null = FALSE;
-    *value = is_constant_valued_expression(expr,
-                                           /*local_vars_change=*/TRUE,
-                                           /*other_vars_change=*/TRUE,
-                                           this_cannot_be_null,
-                                           &non_null) &&
-             non_null;
+    if (is_constant_valued_expression(expr,
+                                      /*local_vars_change=*/TRUE,
+                                      /*other_vars_change=*/TRUE,
+                                      this_cannot_be_null,
+                                      &non_null) &&
+        non_null) {
+      /* Value is constant and known to be non-NULL (so it always evaluates
+         to TRUE). */
+      *value = TRUE;
+    } else if (non_null) {
+      /* Value is not constant, but is known to be non-NULL (so it always
+         evaluates to TRUE). */
+      *value = TRUE;
+    } else {
+      /* Nothing can be said about the value. */
+      *value = FALSE;
+    }  /* if */
     value_is_known = *value;
   }  /* if */
   return value_is_known;
