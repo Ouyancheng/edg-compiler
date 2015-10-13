@@ -1,5 +1,26 @@
 Version 4.11
 
+10/13/15  [EDGcpfe/16573]
+IA-64 ABI: assertion failure in define_one_virtual_function_table
+
+In cases where a local class contains a virtual function and there is no
+reference to the virtual function table within that function, but the virtual
+function table is required by a reference external to the function, an
+assertion had occurred in IA-64 ABI configurations (in
+define_one_virtual_function_table).  Now fixed.  For example, with
+--c++11 -tused:
+
+  template <class T> void f() {
+    new T;
+  }
+  void g() {
+    struct A {
+      virtual void vf() {}
+    };
+    f<A>();
+  }
+
+
 10/13/15  [EDGcpfe/16385]
 UTF-8 character literals
 

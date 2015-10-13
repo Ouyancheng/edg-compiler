@@ -7670,6 +7670,15 @@ for the same virtual function table variable; see note below.
      a vtable to be added to the end of the existing contents of the
      variable (main_vtbl == FALSE). */
   main_vtbl = (vtbl_var->type->variant.array.variant.number_of_elements == 0);
+  if (!main_vtbl && !vtbl_var->vtable_defined && definition_needed) {
+    /* In the case of a local class whose virtual function table was not needed
+       withing the class, but ends up being needed outside of the class, this
+       function will have been called initially with definition_needed set to
+       FALSE (during lowering of the function scope), but will be called
+       subsequently with definition_needed set to TRUE (during file scope
+       type lowering). */
+    main_vtbl = TRUE;
+  }  /* if */
 #endif /* IA64_ABI */
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
@@ -7814,6 +7823,7 @@ for the same virtual function table variable; see note below.
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
   if (definition_needed) {
+    vtbl_var->vtable_defined = TRUE;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "\nDefining virtual function table for ");

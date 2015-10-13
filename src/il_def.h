@@ -9875,6 +9875,9 @@ typedef struct a_variable {
 			   I'm an external definition, I don't need to be put
 			   out unless referenced."  Also used for typeinfo
 			   and typeinfo string variables. */
+  a_bit_field	vtable_defined:1;
+			/* TRUE if the virtual function table for this vtable
+			   variable has been defined. */
   a_bit_field	lowering_generated:1;
 			/* TRUE if this variable was created during the
 			   lowering process. */
