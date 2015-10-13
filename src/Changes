@@ -1,5 +1,38 @@
 Version 4.11
 
+10/13/15  [EDGcpfe/16577]
+Internal error with multiple translation units and constexpr templates
+
+An internal error could occur (in update_instantiation_required_flag)
+in a compilation involving multiple translation unit mode (i.e., the use
+of secondary translation units single compilation, not multiple individual
+translation units).  This could occur when a constexpr function template
+was used in a secondary translation unit in a manner that did not require
+that the function body be preserved for code generation purposes.  This has
+only been observed in configurations in which LOWER_EXTERN_INLINE is TRUE.
+Now fixed.  In a configuration with COMPILE_MULTIPLE_TRANSLATION_UNITS
+set to TRUE, compiling the translation units below would illustrate the
+issue.
+
+  file: tu1.c:
+  extern int x;
+
+  file: tu2.c:
+  constexpr int f ( int a, int b ) { return a * b; }
+  const int i = f( 6, 7 );
+  template <typename T > constexpr T g(T a, T b) { return a < b ? b : a; }
+  const int i2 = g<int>(1,2);
+  const int i3 = g<int>(3,2);
+  const int i4 = g<int>(4,2);
+  const int i5 = g<int>(-3,5);
+  const int i6 = g<int>(-2,6);
+  int main() { 
+    int array[] = {i2,i3,i4,i5,i6};
+    int a = i;
+    return a + array[2];
+   }
+
+
 10/13/15  [EDGcpfe/16573]
 IA-64 ABI: assertion failure in define_one_virtual_function_table
 

@@ -28724,6 +28724,10 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   if (microsoft_bugs || gpp_mode) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
+  if (is_function_symbol(sym)) {
+    a_routine_ptr	rp = sym->variant.routine.ptr;
+    rout_is_constexpr = rp->is_constexpr;
+  }  /* if */
   if ((options & SIR_CONSTANT_CONTEXT) != 0 && is_function_symbol(sym)) {
     /* constexpr functions in constant contexts should always be instantiated
        immediately, except for member functions of classes being defined.
@@ -28738,7 +28742,6 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
         !is_incomplete_type(parent_class) ||
         (gpp_mode &&
          rp->type->variant.routine.extra_info->this_class == NULL)) {
-      rout_is_constexpr = rp->is_constexpr;
       defer_inline = FALSE;
     }  /* if */
   }  /* if */
