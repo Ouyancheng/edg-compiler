@@ -5649,7 +5649,8 @@ typedef struct a_mem_init_args_cache {
   a_token_cache
 		tokens;
 			/* The tokens making up the mem-initializer arguments,
-			   including the delimiters (parentheses or braces). */
+			   including the delimiters (parentheses or braces) and
+			   an optional pack-expanding ellipsis. */
   a_type_ptr
 		init_type, array_type;
 			/* The "init_type" and "array_type" determined by
@@ -5688,8 +5689,8 @@ caches, for debugging purposes.  Also return the total amount.
 
 static a_mem_init_args_cache_ptr alloc_mem_init_args_cache(void)
 /*
-Return a cache for mem-initializer arguments, initializing the embedded token
-cache (but other fields must be initialized by the caller).
+Return a cache for mem-initializer arguments.  Only the "next" pointer and
+the embedded token sequence numbers are initialized.
 */
 {
   a_mem_init_args_cache_ptr  cache;
@@ -6686,7 +6687,7 @@ Skip the tokens of the mem-init arguments (including delimiters) for the given
 constructor init entry (at this point, tokens are usually being cached as they
 are fetched).  Also record the init_type and array_type returned by
 scan_mem_initializer_id and the starting position (pos) of the constructor
-initializer.  In non-error cases the 
+initializer.
 */
 {
   if (curr_token == tok_lparen ||
@@ -7502,9 +7503,15 @@ initialized.  These are addressed in the course of the processing.
   if (cib.has_explicit_init) {
     /* User-specified initializers are present. */
     add_stop_token(tok_lbrace);
-    /* Loop through the comma-separated list of initializers. */
+    /* Scan the comma-separated list of initializers, caching them if this
+       is not a prototype instantiation.  The cached initializers will be
+       fully processed in the order in which they execute, rather than the
+       order in which they appear.  For prototype instantiations, the
+       initializers are full parsed (instead of cached) because (a) an order
+       of execution is not always known, and (b) variadic template processing
+       needs to record tokens that must be replayed during pack expansion. */
     do {
-      a_boolean                  any_more;
+      a_boolean  any_more;
       add_stop_token(tok_comma);
       if (cib.pack_expansion_context_started) {
         /* A pack expansion context was started earlier (while checking for a
