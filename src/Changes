@@ -3,11 +3,11 @@ Version 4.11
 10/12/15  [EDGcpfe/16575]
 Gracefully fail to inline when certain assumptions are violated
 
-As mentioned in the Changes entry for EDGcpfe/16550 below, inlining had
-assumed that it was always possible to determine if the argument for "this"
-in a constructor is non-null, and violating that assumption had resulted in
-an assertion failure.  A change has been made to fail to inline the routine
-(with a remark) in such cases.
+As mentioned in the Changes entry for EDGcpfe/16550, inlining had assumed that
+it is always possible to determine if the argument for "this" in a constructor
+is non-null.  Cases where a complex expression's value could not be determined
+to be non-null had resulted in an assertion failure.  A change has been made to
+fail to inline the routine (with a remark) in such cases.
 
 
 10/12/15  [EDGcpfe/16550]

@@ -4422,7 +4422,7 @@ typedef struct a_tree_copy_control_block {
 			   the same copy. */
   a_boolean     inlining_failed;
                         /* TRUE if, during the inlining of an expression tree,
-                           an error is found that prevents inlining. */
+                           a problem is found that prevents inlining. */
 } a_tree_copy_control_block;
 
 
