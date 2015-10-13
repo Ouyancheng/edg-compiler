@@ -18285,8 +18285,9 @@ optimization issues that may arise as a result of the variable remapping).
                                &cblock);
   done_with_tree_copy_control_block(&cblock);
   if (cblock.inlining_failed) {
-    perform_post_pass_on_lowered_expression(expr_copy);
     *inlining_failed = TRUE;
+  } else {
+    perform_post_pass_on_lowered_expression(expr_copy);
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree_for_inlining */
