@@ -18274,8 +18274,7 @@ currently being inlined.  copy_expr_tree calls back to
 adjust_copied_expression_for_inlining to perform the appropriate remappings.
 A lowering post pass is performed on the resulting expression (to address any
 optimization issues that may arise as a result of the variable remapping).
-*inlining_failed is set to FALSE upon successful inlining, and TRUE when an
-error is detected.
+*inlining_failed is set to TRUE when the expression cannot be inlined.
 */
 {
   a_tree_copy_control_block cblock;
@@ -18287,8 +18286,8 @@ error is detected.
   done_with_tree_copy_control_block(&cblock);
   if (cblock.inlining_failed) {
     perform_post_pass_on_lowered_expression(expr_copy);
+    *inlining_failed = TRUE;
   }  /* if */
-  *inlining_failed = cblock.inlining_failed;
   return expr_copy;
 }  /* copy_expr_tree_for_inlining */
 
