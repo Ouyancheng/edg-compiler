@@ -5631,6 +5631,101 @@ initialization of a base class.
 
 
 /*
+A structure to cache information about mem-initializer arguments until we know
+in what order to process them.
+*/
+typedef struct a_mem_init_args_cache *a_mem_init_args_cache_ptr;
+typedef struct a_mem_init_args_cache {
+  a_mem_init_args_cache_ptr
+		next;
+			/* This pointer is currently only used to manage the
+			   list of available cache entries. */
+  a_token_sequence_number
+		start_tsn, args_tsn;
+			/* The token sequence number of the starting token of
+			   the mem-initializer and of the token ('(' or '{')
+			   that starts the argument list of the
+			   mem-initializer. */
+  a_token_cache
+		tokens;
+			/* The tokens making up the mem-initializer arguments,
+			   including the delimiters (parentheses or braces). */
+  a_type_ptr
+		init_type, array_type;
+			/* The "init_type" and "array_type" determined by
+			   scan_mem_initializer_id. */
+  a_source_position
+		start_pos;
+			/* The start position of the mem-initializer. */
+} a_mem_init_args_cache;
+
+
+static a_mem_init_args_cache_ptr
+		avail_mem_init_args_caches;
+			/* Previously allocated caches available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_mem_init_args_caches_allocated;
+			/* Counter to track use of memory. */
+
+unsigned long db_mem_init_args_caches_used(unsigned long grand_total)
+/*
+Display the amount of space used for allocation of mem-initializer arguments
+caches, for debugging purposes.  Also return the total amount.
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("mem init args caches", avail_mem_init_args_caches,
+                     num_mem_init_args_caches_allocated,
+                     a_mem_init_args_cache);
+  return grand_total;
+}  /* db_mem_init_args_caches_used */
+
+#endif /* DEBUG */
+
+
+static a_mem_init_args_cache_ptr alloc_mem_init_args_cache(void)
+/*
+Return a cache for mem-initializer arguments, initializing the embedded token
+cache (but other fields must be initialized by the caller).
+*/
+{
+  a_mem_init_args_cache_ptr  cache;
+
+  if (avail_mem_init_args_caches != NULL) {
+    cache = avail_mem_init_args_caches;
+    avail_mem_init_args_caches = avail_mem_init_args_caches->next;
+  } else {
+    cache = alloc_fe_of_type(a_mem_init_args_cache);
+#if DEBUG
+    num_mem_init_args_caches_allocated += 1;
+#endif /* DEBUG */
+  }  /* if */
+  cache->next = NULL;
+  cache->start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  cache->args_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  /* The other fields will be initialized by the caller. */
+  return cache;
+}  /* alloc_mem_init_args_cache */
+
+
+static void free_mem_init_args_cache(a_mem_init_args_cache_ptr  cache)
+/*
+Discard the token cache embedded in *cache, and return *cache to the available
+caches list.
+*/
+{
+  if (cache->start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    discard_token_cache(&cache->tokens);
+  }  /* if */
+  cache->next = avail_mem_init_args_caches;
+  avail_mem_init_args_caches = cache;
+}  /* free_mem_init_args_cache */
+
+
+/*
 Data structure describing the state of the constructor init list associated
 with a constructor being defined.
 */
@@ -5653,6 +5748,10 @@ typedef struct a_ctor_init_block {
 			/* If pack_expansion_context_started is TRUE, the pack
 			   expansion stack entry produced by the associated
 			   call to begin_potential_pack_expansion_context. */
+  a_mem_init_args_cache_ptr
+		pending_mem_init_cache;
+			/* If we're caching an explicit mem-initializer, a
+			   pointer to an entry describing that cache. */
   a_constructor_init_ptr
 		last_order_checked_init;
 		 	/* Pointer to last constructor init entry for a
@@ -5703,6 +5802,54 @@ is pending).
   (enable_decltype_in_base_specifier_and_mem_initializer &&                   \
    (curr_token == tok_decltype_construct ||                                   \
     (cibp)->pending_decltype_initializer_type != NULL))                       \
+
+
+static void begin_cache_mem_initializer(a_ctor_init_block  *cibp)
+/*
+Start a cache entry for a mem-initializer and point to it from cibp.
+*/
+{
+  a_mem_init_args_cache_ptr  cache = alloc_mem_init_args_cache();
+
+  cache->start_tsn = curr_token_sequence_number;
+  clear_token_cache(&cache->tokens, /*reusable=*/TRUE);
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  cibp->pending_mem_init_cache = cache;
+}  /* begin_cache_mem_initializer */
+
+
+static void end_cache_mem_initializer(a_ctor_init_block  *cibp)
+/*
+Complete the caching of a mem-initializer.  This involves suspending
+background token caching and copying the tokens cached during that process to
+the active mem-initializer token cache.
+*/
+{
+  a_mem_init_args_cache_ptr  cache = cibp->pending_mem_init_cache;
+  a_token_sequence_number    last_tsn;
+
+  if (curr_token == tok_ellipsis) (void)get_token();
+  end_caching_fetched_tokens();
+  last_tsn = curr_token_sequence_number;
+  copy_tokens_from_cache(curr_lexical_state_cache(), cache->start_tsn,
+                         last_tsn, /*include_last_token=*/FALSE,
+                         &cache->tokens);
+  adjust_token_handles(&cache->tokens);
+  terminate_token_cache(&cache->tokens);
+  cibp->pending_mem_init_cache = NULL;
+}  /* end_cache_mem_initializer */
+
+
+static void abort_cache_mem_initializer(a_ctor_init_block  *cibp)
+/*
+Stop the caching of the current mem-initializer tokens and discard the
+associated structures.
+*/
+{
+  end_caching_fetched_tokens();
+  free_mem_init_args_cache(cibp->pending_mem_init_cache);
+  cibp->pending_mem_init_cache = NULL;
+}  /* abort_cache_mem_initializer */
 
 
 static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
@@ -6529,127 +6676,45 @@ the mem-initializer.
 }  /* scan_mem_init_args */
 
 
-/*
-A structure to cache information about mem-initializer arguments until we know
-in what order to process them.
-*/
-typedef struct a_mem_init_args_cache *a_mem_init_args_cache_ptr;
-typedef struct a_mem_init_args_cache {
-  a_mem_init_args_cache_ptr
-		next;
-			/* This pointer is currently only used to manage the
-			   list of available cache entries. */
-  a_token_cache
-		tokens;
-			/* The tokens making up the mem-initializer arguments,
-			   including the delimiters (parentheses or braces). */
-  a_type_ptr
-		init_type, array_type;
-			/* The "init_type" and "array_type" determined by
-			   scan_mem_initializer_id. */
-  a_source_position
-		start_pos;
-			/* The start position of the mem-initializer. */
-} a_mem_init_args_cache;
-
-
-static a_mem_init_args_cache_ptr
-		avail_mem_init_args_caches;
-			/* Previously allocated caches available for reuse. */
-
-#if DEBUG
-static unsigned long
-		num_mem_init_args_caches_allocated;
-			/* Counter to track use of memory. */
-
-unsigned long db_mem_init_args_caches_used(unsigned long grand_total)
-/*
-Display the amount of space used for allocation of mem-initializer arguments
-caches, for debugging purposes.  Also return the total amount.
-*/
-{
-  unsigned long  num, size, total;
-
-  db_space_used_lost("mem init args caches", avail_mem_init_args_caches,
-                     num_mem_init_args_caches_allocated,
-                     a_mem_init_args_cache);
-  return grand_total;
-}  /* db_mem_init_args_caches_used */
-
-#endif /* DEBUG */
-
-
-static a_mem_init_args_cache_ptr alloc_mem_init_args_cache(void)
-/*
-Return a cache for mem-initializer arguments, initializing the embedded token
-cache (but other fields must be initialized by the caller).
-*/
-{
-  a_mem_init_args_cache_ptr  cache;
-
-  if (avail_mem_init_args_caches != NULL) {
-    cache = avail_mem_init_args_caches;
-    avail_mem_init_args_caches = avail_mem_init_args_caches->next;
-  } else {
-    cache = alloc_fe_of_type(a_mem_init_args_cache);
-#if DEBUG
-    num_mem_init_args_caches_allocated += 1;
-#endif /* DEBUG */
-  }  /* if */
-  cache->next = NULL;
-  clear_token_cache(&cache->tokens, /*reusable=*/TRUE);
-  /* The other fields will be initialized by the caller. */
-  return cache;
-}  /* alloc_mem_init_args_cache */
-
-
-static void free_mem_init_args_cache(a_mem_init_args_cache_ptr  cache)
-/*
-Discard the token cache embedded in *cache, and return *cache to the available
-caches list.
-*/
-{
-  discard_token_cache(&cache->tokens);
-  cache->next = avail_mem_init_args_caches;
-  avail_mem_init_args_caches = cache;
-}  /* free_mem_init_args_cache */
-
-
-static void prescan_mem_init_args(a_constructor_init_ptr  cip,
+static void prescan_mem_init_args(a_ctor_init_block       *cibp,
+                                  a_constructor_init_ptr  cip,
                                   a_type_ptr              init_type,
                                   a_type_ptr              array_type,
                                   a_source_position       *pos)
 /*
-Cache the tokens of the mem-init arguments (including delimiters) for the given
-constructor init entry.  Also record the init_type and array_type returned by
+Skip the tokens of the mem-init arguments (including delimiters) for the given
+constructor init entry (at this point, tokens are usually being cached as they
+are fetched).  Also record the init_type and array_type returned by
 scan_mem_initializer_id and the starting position (pos) of the constructor
-initializer.
+initializer.  In non-error cases the 
 */
 {
   if (curr_token == tok_lparen ||
       (list_init_enabled && curr_token == tok_lbrace)) {
-    a_mem_init_args_cache_ptr  cache = alloc_mem_init_args_cache();
-    a_cts_flag_set             cts_options = CTS_COALESCE_IDS;
-    a_token_sequence_number    first_tsn, last_tsn;
-    first_tsn = curr_token_sequence_number;
-    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    a_mem_init_args_cache_ptr  cache = cibp->pending_mem_init_cache;
+    if (cache != NULL) {
+      cache->args_tsn = curr_token_sequence_number;
+    }  /* if */
     (void)cache_token_stream_until_matching_token((a_token_cache*)NULL,
-                                                  cts_options);
-    end_caching_fetched_tokens();
-    last_tsn = curr_token_sequence_number;
-    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
-                           /*include_last_token=*/TRUE, &cache->tokens);
-    adjust_token_handles(&cache->tokens);
-    terminate_token_cache(&cache->tokens);
+                                                  CTS_COALESCE_IDS);
     /* Skip the final delimiter. */
     (void)get_token();
-    cache->init_type = init_type;
-    cache->array_type = array_type;
-    cache->start_pos = *pos;
     if (cip != NULL) {
+      if (cache == NULL) {
+        /* Create a cache entry that won't hold tokens, but that still holds
+           type and position information. */
+        cache = alloc_mem_init_args_cache();
+      }  /* if */
+      cache->init_type = init_type;
+      cache->array_type = array_type;
+      cache->start_pos = *pos;
       cip->source.arg_cache = cache;
     } else {
-      free_mem_init_args_cache(cache);
+      /* An error must have occurred.  If we're caching the mem-initializer,
+         discard the cache. */
+      if (cache != NULL) {
+        abort_cache_mem_initializer(cibp);
+      }  /* if */
       expect_error();
     }  /* if */
   } else {
@@ -6722,6 +6787,10 @@ entries are replaced as needed for each mem-initializer that is encountered.
         } else {
           check_out_of_order_init(new_cip, cibp);
         }  /* if */
+        if (cibp->pending_mem_init_cache != NULL) {
+          cibp->pending_mem_init_cache->init_type = init_type;
+          cibp->pending_mem_init_cache->array_type = NULL;
+        }  /* if */
       }  /* if */
     } else {
       /* Standard case: A mem-initializer that starts with the name of a field,
@@ -6749,7 +6818,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
       scan_mem_init_args(ctor, new_cip, init_type, array_type,
                          &init_start_pos);
     } else {
-      prescan_mem_init_args(new_cip, init_type, array_type, &init_start_pos);
+      prescan_mem_init_args(cibp, new_cip, init_type, array_type,
+                            &init_start_pos);
     }  /* if */
   }  /* if */
   return new_cip;
@@ -6988,6 +7058,10 @@ constructor, the scanned type is stored for later use.
       }  /* if */
     } else {
       /* An actual mem-initializer is presumably next. */
+      if (!ctor->is_prototype_instantiation) {
+        /* Set up a cache for the upcoming mem-initializer. */
+        begin_cache_mem_initializer(cibp);
+      }  /* if */
       break;
     }  /* if */
   }  /* for */
@@ -7013,6 +7087,12 @@ constructor, the scanned type is stored for later use.
            continuing to scan for mem-initializers (since this mem-initializer
            has been consumed). */
         is_delegating_init = TRUE;
+        if (cibp->pending_mem_init_cache != NULL) {
+          /* We started caching the mem-initializer (in case it might need
+             reordering because it is a non-delegating initializer), but that
+             is now no longer needed. */
+          abort_cache_mem_initializer(cibp);
+        }  /* if */
         goto end_of_routine;
       }  /* if */
       check_assertion(decltype_type->kind == (a_type_kind)tk_typeref &&
@@ -7043,6 +7123,12 @@ constructor, the scanned type is stored for later use.
         a_dynamic_init_ptr      dip;
         a_routine_ptr           target = NULL;
         is_delegating_init = TRUE;
+        if (cibp->pending_mem_init_cache != NULL) {
+          /* We started caching the mem-initializer (in case it might need
+             reordering because it is a non-delegating initializer), but that
+             is now no longer needed. */
+          abort_cache_mem_initializer(cibp);
+        }  /* if */
         pos = pos_curr_token;
         report_gnu_cpp11_extension_if_needed(
                                     &pos, ec_delegating_constructor_is_cpp11);
@@ -7199,11 +7285,13 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     variant_explicit_init = FALSE;
   a_boolean                     bad_call_for_constexpr_ctor_reported = FALSE;
   a_boolean                     clear_constexpr_flag = FALSE;
+  a_token_sequence_number       args_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
   db_enter(3, "ctor_initializer");
   cib.cip_list = cib.end_of_cip_list = NULL;
   cib.direct_list = cib.end_of_direct_list = NULL;
   cib.virtual_list = cib.end_of_virtual_list = NULL;
+  cib.pending_mem_init_cache = NULL;
   cib.last_order_checked_init = NULL;
   cib.pending_decltype_initializer_type = NULL;
   cib.pending_decltype_pos = null_source_position;
@@ -7416,7 +7504,7 @@ initialized.  These are addressed in the course of the processing.
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
-      a_boolean  any_more;
+      a_boolean                  any_more;
       add_stop_token(tok_comma);
       if (cib.pack_expansion_context_started) {
         /* A pack expansion context was started earlier (while checking for a
@@ -7424,6 +7512,10 @@ initialized.  These are addressed in the course of the processing.
         any_more = TRUE;
       } else {
         any_more = begin_potential_pack_expansion_context(&cib.pesep);
+        if (!ctor_rout->is_prototype_instantiation && any_more) {
+          /* Prepare to background cache the upcoming member initializer. */
+          begin_cache_mem_initializer(&cib);
+        }  /* if */
       }  /* if */
       /* Extra loop is used if the mem-initializer is a variadic template
          pack expansion. */
@@ -7434,6 +7526,9 @@ initialized.  These are addressed in the course of the processing.
         if (cip != NULL && cip->kind == (a_constructor_init_kind)cik_field) {
           has_field_init = TRUE;
           has_explicit_field_init = TRUE;
+        }  /* if */
+        if (cib.pending_mem_init_cache != NULL) {
+          end_cache_mem_initializer(&cib);
         }  /* if */
         end_init_pos = pos_curr_token;
         pedep = end_potential_pack_expansion_context(cib.pesep,
@@ -7474,9 +7569,9 @@ initialized.  These are addressed in the course of the processing.
      initializations (i.e., as required by the language definition, not the
      order that appeared in the source).  The body of the loop does several
      things:
-       (1) For explicit initializations, it restores to the IL an object
-           lifetime entry that was generated for the initializer expression
-           but then removed.
+       (1) For explicit initializations, it completes processing of the
+           cached initializers (except for prototype instantiations, where
+           processing has been completed already).
        (2) It does the processing for implicit initializations:
            (a) special handling for generated copy/move constructor; or
            (b) processing for user-defined constructor or generated default
@@ -7501,28 +7596,49 @@ initialized.  These are addressed in the course of the processing.
     a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
     if (!cip->compiler_generated && !ctor_rout->is_prototype_instantiation) {
-      /* Now that we know the order in which the initializers should be
-         handled, we can complete their processing.  See also the call to
+      /* Now that we know the order in which the explicit initializers should
+         be handled, we can complete their processing.  See also the call to
          prescan_mem_init_args in scan_mem_initializer. */
       a_mem_init_args_cache  *cache = cip->source.arg_cache;
-      if (cache != NULL) {
+      if (cache == NULL) {
+        expect_error();
+      } else {
+        /* Clear the IL pointer to avoid confusing subsequent IL walks. */
         cip->source.arg_cache = NULL;
-        rescan_reusable_cache(&cache->tokens);
-        scan_mem_init_args(ctor_rout, cip, cache->init_type, cache->array_type,
-                           &cache->start_pos);
-        /* Skip over the final delimiter. */
-        if (curr_token == tok_rparen ||
-            (list_init_enabled && curr_token == tok_lbrace)) {
+        if (cache->start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+          /* The current entry has its own mem-initializer token cache (pack
+             expansion entries that are not the first of a pack expansion do
+             not have their own token cache). */
+          args_tsn = cache->args_tsn;
+          rescan_reusable_cache(&cache->tokens);
+          (void)begin_potential_pack_expansion_context(&cib.pesep);
+        }  /* if */
+        /* Skip to the arguments and process them.  (With Cfront-style base
+           class initializers, there may not be any tokens to skip.) */
+        while (curr_token_sequence_number != args_tsn) {
           (void)get_token();
         }  /* if */
-        if (curr_token != tok_end_of_source) {
-          expect_error();
-          /* If necessary, keep flushing until end-of-source is found. */
-          while (curr_token != tok_end_of_source) (void)get_token();
+        scan_mem_init_args(ctor_rout, cip, cache->init_type,
+                           cache->array_type, &cache->start_pos);
+        /* Skip over the final delimiter. */
+        if (curr_token == tok_rparen ||
+            (list_init_enabled && curr_token == tok_rbrace)) {
+          (void)get_token();
         }  /* if */
-        /* Advance past the end-of-source token, which was added in
-           the prescan routine. */
-        (void)get_token();
+        (void)end_potential_pack_expansion_context(
+                                          cib.pesep, /*is_declarator=*/FALSE);
+        if (!advance_to_next_pack_element(cib.pesep)) {
+          /* No additional pack elements follow.  Ensure we have reached the
+             end of the token cache. */
+          if (curr_token != tok_end_of_source) {
+            expect_error();
+            /* If necessary, keep flushing until end-of-source is found. */
+            while (curr_token != tok_end_of_source) (void)get_token();
+          }  /* if */
+          /* Advance past the end-of-source token, which was added in
+             the prescan routine. */
+          (void)get_token();
+        }  /* if */
         free_mem_init_args_cache(cache);
       }  /* if */
     }  /* if */
