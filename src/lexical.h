@@ -2394,7 +2394,7 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 #define SCLK_ORDINARY_LITERAL   0x01
 			/* No encoding prefix */
 #define SCLK_UTF8_LITERAL       0x02
-			/* u8"..." */
+			/* u8"..." or (C++17) u8'x' */
 #define SCLK_CHAR16_T_LITERAL   0x03
 			/* u"..." or u'x' */
 #define SCLK_CHAR32_T_LITERAL   0x04

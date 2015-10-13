@@ -2767,6 +2767,7 @@ ec_constexpr_call_not_folded;;"constexpr call not folded"
 ec_more_info;INTERNAL;"note"
 ec_More_Info;INTERNAL;"Note"
 ec_anon_union_alias_member_template;;"invalid anonymous union -- alias member template is not allowed"
+ec_utf8_char_lit_too_long;;"a UTF-8 character literal value cannot occupy more than one code unit"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

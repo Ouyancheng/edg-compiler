@@ -312,6 +312,7 @@ typedef enum /*an_option_kind*/ {
   optk_digit_separators,
   optk_target,
   optk_cpp17_mode,
+  optk_utf8_char_literals,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2138,6 +2139,11 @@ EXTERN a_boolean
 			/* TRUE if any GNU-style builtin functions are enabled
 			   in the current emulation mode. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+EXTERN a_boolean
+		utf8_char_literals_enabled;
+			/* TRUE if character literals of the form u8'x' are
+			   accepted (a C++17 feature). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

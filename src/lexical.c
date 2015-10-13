@@ -10346,6 +10346,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
   macro_line_loc_to_source_pos(curr_char_loc, start_pos);
   switch (lit_kind) {
     case SCLK_ORDINARY_LITERAL:
+    case SCLK_UTF8_LITERAL:
       character_kind = (a_character_kind)chk_char;
       break;
     case SCLK_WIDE_LITERAL:
@@ -11711,7 +11712,7 @@ literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
     kind |= SCLK_STRING_LITERAL;
   } else if (*loc == '\'' &&
              (kind & SCLK_RAW_STRING_LITERAL) == 0 &&
-             kind != SCLK_UTF8_LITERAL) {
+             (kind != SCLK_UTF8_LITERAL || utf8_char_literals_enabled)) {
     /* A valid character literal. */
   } else {
     /* Not a valid literal. */

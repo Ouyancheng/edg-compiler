@@ -905,8 +905,8 @@ recognized and processed if process_escapes is TRUE.  The character gotten
 is returned (not sign-extended) in ch.  centity_mask defines the size of
 the character entity into which this character is going (char, wchar_t,
 char16_t, or char32_t); narrow_literal is TRUE for narrow-character string
-and character literals, and utf8_literal is TRUE for a UTF-8 string
-literal.  When multibyte characters are enabled and for
+and character literals, and utf8_literal is TRUE for UTF-8 string and
+character literals.  When multibyte characters are enabled and for
 universal-character-names, each byte of the multibyte character is returned
 on a separate call of this routine.  state->remaining_char_count is set to
 the number of characters remaining to be extracted on subsequent calls, and
@@ -1355,9 +1355,11 @@ the actual number of converted characters may be less than num_chars.  */
   int                     encoding_length;
   a_character_kind        character_kind = (a_character_kind)ck_last;
   a_char_conversion_state conv_state;
+  a_boolean               utf8_literal = FALSE;
 
   /* Determine the constant type as follows:
        Single-character constant     ('x'): int in C, char in C++
+       UTF-8 character constant    (u8'x"): char (C++17)
        Multi-character constant     ('xy'): int
        Wide character constant      (L'x'): wchar_t
        char16_t character constant  (u'x'): char16_t
@@ -1405,16 +1407,27 @@ the actual number of converted characters may be less than num_chars.  */
       temp_ptr = start_of_curr_token+2;
       break;
     case 'u':
-      /* char16_t character literal. */
-      character_kind = (a_character_kind)chk_char16_t;
-      char_size = (unsigned int)targ_sizeof_char16_t;
-      /* Do not use a mask for char16_t characters at this time.  Any masking
-         operation is the responsibility of the encoding (invoked through the
-         encode_in_char16_t macro). */
-      centity_bits = sizeof(unsigned long)*CHAR_BIT;
-      centity_is_signed = FALSE; 
-      con_type = eff_char16_t_type();
-      temp_ptr = start_of_curr_token+2;
+      if (start_of_curr_token[1] == '8') {
+        /* UTF-8 character literal. */
+        utf8_literal = TRUE;
+        character_kind = (a_character_kind)chk_char;
+        char_size = 1;
+        centity_bits = targ_char_bit;
+        centity_is_signed = targ_has_signed_chars;
+        temp_ptr = start_of_curr_token + 3;
+        con_type = integer_type((an_integer_kind)ik_char);
+      } else {
+        /* char16_t character literal. */
+        character_kind = (a_character_kind)chk_char16_t;
+        char_size = (unsigned int)targ_sizeof_char16_t;
+        /* Do not use a mask for char16_t characters at this time.  Any masking
+           operation is the responsibility of the encoding (invoked through the
+           encode_in_char16_t macro). */
+        centity_bits = sizeof(unsigned long)*CHAR_BIT;
+        centity_is_signed = FALSE; 
+        con_type = eff_char16_t_type();
+        temp_ptr = start_of_curr_token+2;
+      }  /* if */
       break;
     default:
       unexpected_condition();
@@ -1440,12 +1453,13 @@ the actual number of converted characters may be less than num_chars.  */
     switch (character_kind) {
       case chk_char:
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                         centity_mask, /*narrow_literal=*/TRUE,
-                         /*utf8_literal=*/FALSE);
-        if (i >= targ_sizeof_int && !gnu_mode) {
+                         centity_mask, /*narrow_literal=*/TRUE, utf8_literal);
+        if ((i >= targ_sizeof_int && !gnu_mode) ||
+            (utf8_literal && i != 0)) {
           /* GNU compilers accept overlong literals, simply discarding any
-             leading characters that do not fit.  Otherwise, flag this as
-             an error. */
+             leading characters that do not fit.  Otherwise (including the
+             case of a UTF-8 literal with more than a single converted
+             character), flag this as an error. */
           too_many_chars = TRUE;
         }  /* if */
         break;
@@ -1534,7 +1548,11 @@ the actual number of converted characters may be less than num_chars.  */
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
   } else if (too_many_chars) {
-    *err_code = ec_too_many_characters;
+    if (utf8_literal) {
+      *err_code = ec_utf8_char_lit_too_long;
+    } else {
+      *err_code = ec_too_many_characters;
+    }  /* if */
     *err_pos = start_of_curr_token;
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);

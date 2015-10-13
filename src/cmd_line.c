@@ -1466,6 +1466,12 @@ Initialize the option information table.
   add_option_description(optk_target, "target",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_utf8_char_literals, "utf8_char_literals",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_utf8_char_literals, "no_utf8_char_literals",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2411,6 +2417,9 @@ by a command line option.
 #if COROUTINES_ALLOWED
       coroutines_enabled = TRUE;
 #endif /* COROUTINES_ALLOWED */
+      if (!option_kind_used[(int)optk_utf8_char_literals]) {
+        utf8_char_literals_enabled = TRUE;
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -3162,6 +3171,9 @@ default mode (e.g., exception handling).
       /* Features enabled in C++17 mode. */
       namespace_attributes_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
+      if (!option_kind_used[(int)optk_utf8_char_literals]) {
+        utf8_char_literals_enabled = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -9780,6 +9792,9 @@ enable_microsoft_mode:
           str_command_line_error(ec_cl_invalid_target, opt_arg);
         }  /* if */
         break;
+      case optk_utf8_char_literals:
+        utf8_char_literals_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -11086,6 +11101,7 @@ variables declared in cmd_line.h.
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  utf8_char_literals_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 
