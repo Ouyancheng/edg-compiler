@@ -16822,7 +16822,10 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_class_template:
         /* Member class template -- issue an error.  (This is not explicitly
            required by anything in the WP at this time.) */
-        pos_error(ec_anon_union_class_member_template,
+        pos_error(sym->variant.template_info
+                     ->variant.class_template.is_alias_template ?
+                                         ec_anon_union_alias_member_template :
+                                         ec_anon_union_class_member_template,
                   &assoc_object_type->source_corresp.decl_position);
         /* Remove the symbol and don't reenter it. */
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
@@ -16879,9 +16882,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
              anonymous types. */
         } else {
           a_type_ptr  untp = skip_typerefs(nested_type);
-          if (is_immediate_class_type(untp) &&
-              untp->variant.class_struct_union.is_prototype_instantiation &&
-              class_type_supp(untp)->template_arg_list != NULL) {
+          if ((is_immediate_class_type(untp) &&
+               untp->variant.class_struct_union.is_prototype_instantiation &&
+               class_type_supp(untp)->template_arg_list != NULL) ||
+              (nested_type->kind == (a_type_kind)tk_typeref &&
+               nested_type->variant.typeref.is_template_alias &&
+               nested_type->variant.typeref.is_prototype_instantiation)) {
             /* A prototype instantiation of a member class template in an
                anonymous union.  Such member templates are invalid; an error
                should already have been issued. */
