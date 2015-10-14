@@ -2995,7 +2995,8 @@ public:
               bool                           at_top_level,
               bool                           want_definition,
               bool                           class_body_only,
-              a_pending_constraint_type_list *pending_constraint_types) const;
+              a_pending_constraint_type_list *pending_constraint_types,
+              a_boolean                      *is_delegate) const;
 
   a_qualified_name name_from_typedef(
           mdTypeDef                       token,
@@ -4902,7 +4903,8 @@ Import all the types from an import scope.
                       /*want_definition=*/false,
                       /*class_body_only=*/false,
                       use_pending_constraint_clauses ?
-                                         &pending_constraint_types : nullptr);
+                                         &pending_constraint_types : nullptr,
+                      /*is_delegate=*/nullptr);
     }  /* for */
   } while (count_of_typedefs > 0);
   import_interface_->CloseEnum(enum_typedefs);
@@ -4914,7 +4916,8 @@ Import all the types from an import scope.
                     /*at_top_level=*/true,
                     /*want_definition=*/false,
                     /*class_body_only=*/false,
-                    /*pending_constraint_types=*/nullptr);
+                    /*pending_constraint_types=*/nullptr,
+                    /*is_delegate=*/nullptr);
   }  /* for */
   close_all_namespace_scopes(buffer);
 }  /* an_import_scope::import_all_types */
@@ -6438,7 +6441,8 @@ Import all the nested classes enclosed by this type.
                                        /*at_top_level=*/false,
                                        /*want_definition=*/false,
                                        /*class_body_only=*/false,
-                                       &pending_constraint_types);
+                                       &pending_constraint_types,
+                                       /*is_delegate=*/nullptr);
       }  /* if */
     }  /* for */
   } while (count_of_typedefs > 0);
@@ -6452,7 +6456,8 @@ Import all the nested classes enclosed by this type.
                                    /*at_top_level=*/false,
                                    /*want_definition=*/false,
                                    /*class_body_only=*/false,
-                                   /*pending_constraint_types=*/nullptr);
+                                   /*pending_constraint_types=*/nullptr,
+                                   /*is_delegate=*/nullptr);
   }  /* for */
 }  /* a_type_definition::import_nested_classes */
 
@@ -6494,7 +6499,8 @@ void an_import_scope::import_one_type(
                bool                           at_top_level,
                bool                           want_definition,
                bool                           class_body_only,
-               a_pending_constraint_type_list *pending_constraint_types) const
+               a_pending_constraint_type_list *pending_constraint_types,
+               a_boolean                      *is_delegate) const
 /*
 Import a single type from an import scope and create either a declaration or
 a definition for the type depending on want_definition.  Note, in some cases
@@ -6505,6 +6511,9 @@ will be suppressed.
 
 If class_body_only is true, the class head and the namespace scopes will be
 omitted.
+
+If is_delegate is non-NULL, *is_delegate is set to TRUE if the class is a
+delegate and to FALSE otherwise.
 */
 {
   is_cppcx_metadata = containing_assembly_->is_cppcx_metadata();
@@ -6513,6 +6522,7 @@ omitted.
   bool import_as_friend = (import_flags & cpp_cli_as_friend_assembly) != 0;
   auto &type_definition = get_type_definition(typedef_token);
   bool is_nested = type_definition.is_nested();
+  if (is_delegate) *is_delegate = FALSE; /* Assume. */
 
   if (is_nested && at_top_level && !class_body_only) {
     /* Do not emit nested types at top level scopes.  Nested types are
@@ -6594,6 +6604,10 @@ omitted.
         buffer << ")) ";
       }  /* if */
     } else {
+      /* Emit any custom attributes for the type. */
+      if (want_definition) {
+        type_definition.write_custom_attributes(buffer, typedef_token);
+      }  /* if */
       if (kind == a_type_definition::tdk_delegate) {
         /* Even when class_body_only is TRUE, the context-sensitive keyword
            "delegate" is needed so that a delegate class definition can be
@@ -6602,11 +6616,8 @@ omitted.
            since its definition is a complete declaration (including the
            generic<...> header and the keyword "delegate"). */
         buffer << "delegate ";
+        if (is_delegate) *is_delegate = TRUE;
       }  /* if  */
-      /* Emit any custom attributes for the type. */
-      if (want_definition) {
-        type_definition.write_custom_attributes(buffer, typedef_token);
-      }  /* if */
     }  /* if */
     if (kind == a_type_definition::tdk_delegate) {
       type_definition.import_delegate_definition(buffer);
@@ -8363,7 +8374,8 @@ public:
   void import_class_definition(ostringstream           &buffer,
                                an_assembly_scope_index assembly_scope_index,
                                a_cpp_cli_token         typedef_token,
-                               bool                    class_body_only);
+                               bool                    class_body_only,
+                               a_boolean               *is_delegate);
   bool initialize();
   bool trans_unit_init(a_const_char *tu_file_name);
   void trans_unit_wrapup();
@@ -9253,10 +9265,17 @@ void a_metadata_reader::import_class_definition(
                                  ostringstream           &buffer,
                                  an_assembly_scope_index assembly_scope_index,
                                  a_cpp_cli_token         typedef_token,
-                                 bool                    class_body_only)
+                                 bool                    class_body_only,
+                                 a_boolean               *is_delegate)
 /*
 Import the definition of the class specified by the provided assembly scope
 index and typedef token.
+
+If class_body_only is true, the class head and the namespace scopes will be
+omitted.
+
+If is_delegate is non-NULL, *is_delegate is set to TRUE if the class is a
+delegate and to FALSE otherwise.
 */
 {
   auto assembly_index = assembly_index_from_assembly_scope_index(
@@ -9269,7 +9288,8 @@ index and typedef token.
                                /*at_top_level=*/true,
                                /*want_definition=*/true,
                                class_body_only,
-                               /*pending_constraint_types=*/nullptr);
+                               /*pending_constraint_types=*/nullptr,
+                               is_delegate);
 }  /* a_metadata_reader::import_class_definition */
 
 
@@ -9652,7 +9672,8 @@ EXTERN_C_IN_CPP_FILE
 void import_class_definition(an_assembly_scope_index assembly_scope_index,
                              a_cpp_cli_token         typedef_token,
                              char                    *buffer,
-                             size_t                  *buffer_size)
+                             size_t                  *buffer_size,
+                             a_boolean               *is_delegate)
 /*
 Import the definition of the type specified by typedef_token.  The generated
 code only contains the body of the class definition, including the base classes
@@ -9666,7 +9687,8 @@ list.  The namespace scopes and class head are omitted.
   check_assertion(metadata_reader->is_initialized());
   metadata_reader->import_class_definition(os, assembly_scope_index,
                                            typedef_token,
-                                           /*class_body_only=*/true);
+                                           /*class_body_only=*/true,
+                                           is_delegate);
   str = os.str();
   /* '+1' for the NULL terminator. */
   if (str.size() + 1 <= *buffer_size) {

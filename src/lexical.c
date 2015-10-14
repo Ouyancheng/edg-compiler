@@ -21590,7 +21590,7 @@ C++/CLI delegate class types.)
   size = class_def_buffer->allocated_size;
   import_class_definition(assembly_scope_index, 
                           metadata_type_def_token,
-                          class_def_buffer->buffer, &size);
+                          class_def_buffer->buffer, &size, &is_delegate);
   if (size <= class_def_buffer->allocated_size) {
     /* The buffer fits.  Mark the size that has been written. */
     class_def_buffer->size = size;
@@ -21600,7 +21600,7 @@ C++/CLI delegate class types.)
     expand_text_buffer(class_def_buffer, size);
     import_class_definition(assembly_scope_index, 
                             metadata_type_def_token,
-                            class_def_buffer->buffer, &size);
+                            class_def_buffer->buffer, &size, &is_delegate);
     check_assertion(size <= class_def_buffer->allocated_size);
     class_def_buffer->size = size;
   }  /* if */
@@ -21644,7 +21644,6 @@ C++/CLI delegate class types.)
                                   /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
                                   position_for_tokens);
-  is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the
      semantic analysis of the generic definition. */
