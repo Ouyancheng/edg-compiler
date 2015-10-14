@@ -24282,11 +24282,6 @@ signature that matches that of the delegate definition).
       /* Presumably a template parameter type or an error type.  Don't
          generate BeginInvoke and EndInvoke in that case. */
     }  /* if */
-  } else {
-    /* Some error occurred: Don't treat the class type as a delegate type in
-       what follows. */
-    expect_error();
-    class_type->variant.class_struct_union.is_delegate_class = FALSE;
   }  /* if */
   /* Add the one-argument constructor (declaration only). */
   make_locator_for_symbol(symbol_for(class_type), &member_loc);

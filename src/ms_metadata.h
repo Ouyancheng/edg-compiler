@@ -68,8 +68,7 @@ extern void import_class_definition(
                                  an_assembly_scope_index assembly_scope_index,
                                  a_cpp_cli_token         typedef_token,
                                  char                    *buffer,
-                                 size_t                  *buffer_size,
-                                 a_boolean               *is_delegate);
+                                 size_t                  *buffer_size);
 extern void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);
