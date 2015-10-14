@@ -6491,7 +6491,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         a_hash_table_ptr	htp;
         /* Display statistics about any templates with a large number of
            instances. */
-        htp = tssp->variant.class_template.instantiation_hash_table;
+        htp = tssp->instantiation_hash_table;
         if (htp != NULL && htp->num_buckets > 100) {
           fprintf(f_debug, "Hash statistics for: ");
           db_symbol_name(sym);

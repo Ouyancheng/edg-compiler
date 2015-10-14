@@ -1125,6 +1125,9 @@ extern a_hash_value hash_instantiation(a_void_ptr	key);
 
 extern a_boolean compare_instantiation(a_void_ptr	entry,
                                        a_void_ptr	key);
+
+extern a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
+						     a_void_ptr	key);
 #endif /* TEMPLATES_H */
 
 /******************************************************************************

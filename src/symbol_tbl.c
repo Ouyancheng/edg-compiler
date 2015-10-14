@@ -194,11 +194,6 @@ static a_namespace_list_entry_ptr
 			/* List of namespace list entries freed and available
 			   for reuse. */
 
-static a_substituted_type_list_entry_ptr
-		avail_substituted_type_list_entries;
-			/* List of substituted type list entries freed and
-			   available for reuse. */
-
 static a_template_cache_segment_ptr
 		avail_template_cache_segments;
 			/* List of template cache segments freed and available
@@ -1922,46 +1917,18 @@ a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void)
 Allocate a new type list entry and return a pointer to it.
 */
 {
-  register a_substituted_type_list_entry_ptr ptr;
+  a_substituted_type_list_entry_ptr ptr;
 
-  if (avail_substituted_type_list_entries != NULL) {
-    /* Reuse an existing entry. */
-    ptr = avail_substituted_type_list_entries;
-    avail_substituted_type_list_entries =
-                                     avail_substituted_type_list_entries->next;
-  } else {
-    /* Allocate a new entry. */
-    ptr = (a_substituted_type_list_entry_ptr)
+  ptr = (a_substituted_type_list_entry_ptr)
                                alloc_fe(sizeof(a_substituted_type_list_entry));
 #if DEBUG
-    num_substituted_type_list_entries_allocated++;
+  num_substituted_type_list_entries_allocated++;
 #endif /* DEBUG */
-  }  /* if */
   ptr->next = NULL;
   ptr->templ_arg_list = NULL;
   ptr->type = NULL;
   return ptr;
 }  /* alloc_substituted_type_list_entry */
-
-
-void free_list_of_substituted_type_list_entries(
-				a_substituted_type_list_entry_ptr stlep)
-/*
-Add a list of symbol list entries to the available list.  stlep may
-be NULL, in which case nothing is done.
-*/
-{
-  a_substituted_type_list_entry_ptr	stlep_tail;
-  if (stlep != NULL) {
-    /* Find the last entry on the list. */
-    stlep_tail = stlep;
-    while (stlep_tail->next != NULL) stlep_tail = stlep_tail->next;
-    /* Add the current available list to the end of the list passed by the
-       caller. */
-    stlep_tail->next = avail_substituted_type_list_entries;
-    avail_substituted_type_list_entries = stlep;
-  }  /* if */
-}  /* free_list_of_substituted_type_list_entries */
 
 
 a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
@@ -3449,6 +3416,7 @@ and return a pointer to it.
   tssp->all_instantiations = NULL;
   tssp->name = NULL;
   tssp->attributes = NULL;
+  tssp->instantiation_hash_table = NULL;
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
@@ -3509,7 +3477,6 @@ and return a pointer to it.
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       tssp->variant.class_template.source_sequence_list = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      tssp->variant.class_template.instantiation_hash_table = NULL;
       break;
     case sk_function_template:
     case sk_member_function:
@@ -3521,7 +3488,7 @@ and return a pointer to it.
                           /*reusable=*/TRUE);
       clear_template_cache(&tssp->variant.function.exception_spec_arg_cache,
                           /*reusable=*/TRUE);
-      tssp->variant.function.substituted_types = NULL;
+      tssp->variant.function.substituted_types_table = NULL;
       tssp->variant.function.unused_instantiations = 0;
       tssp->variant.function.pending_partial_instantiations = 0;
       tssp->variant.function.pending_deductions = 0;
@@ -16309,7 +16276,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_symbol_list_entries),
       pch_saved_var_array_elem(avail_type_list_entries),
       pch_saved_var_array_elem(avail_namespace_list_entries),
-      pch_saved_var_array_elem(avail_substituted_type_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_template_decl_infos),
@@ -16529,7 +16495,6 @@ of the front end.
   avail_symbol_list_entries = NULL;
   avail_type_list_entries = NULL;
   avail_namespace_list_entries = NULL;
-  avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_template_decl_infos = NULL;
   avail_vla_fixups = NULL;

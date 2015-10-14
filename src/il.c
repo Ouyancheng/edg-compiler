@@ -5986,16 +5986,22 @@ Return a hash value for the indicated template argument list.
     next_pos = pos + 1;
     switch (tap->kind) {
       case tak_type:
-        hash_value += hash_type(tap->variant.type) + 37;
+        if (tap->variant.type != NULL) {
+          hash_value += hash_type(tap->variant.type) + 37;
+        }  /* if */
         break;
       case tak_nontype:
         /* The argument position is factored in so that <1,2,3> hashes
            differently than <3,2,1>. */
-        hash_value = hash_value +
+        if (tap->variant.constant != NULL) {
+          hash_value = hash_value +
               ((1 + hash_constant(tap->variant.constant)) << ((pos * 3) % 32));
+        }  /* if */
         break;
       case tak_template:
-        hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
+        if (tap->variant.templ.ptr != NULL) {
+          hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
+        }  /* if */
         break;
       case tak_start_of_pack_expansion:
         /* Ignore placeholders for position counting. */

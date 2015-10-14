@@ -263,6 +263,7 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (a_function_pointer)hash_void_pointer,
   (a_function_pointer)compare_for_pointer_pair_map,
+  (a_function_pointer)compare_substituted_type_list_entry,
   (a_function_pointer)last               /* fn_last */
 }
 #endif /* VAR_INITIALIZERS */

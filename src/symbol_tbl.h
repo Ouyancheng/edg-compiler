@@ -2513,6 +2513,12 @@ typedef struct a_template_symbol_supplement {
 		attributes;
 			/* Attributes specified on this template that need to
 			   be applied to every instantiation. */
+  a_hash_table_ptr
+		instantiation_hash_table;
+			/* A hash table used to locate previously created
+			   instantiations of template.  NULL if so instances
+			   have been created, or if a hash table is not used
+			   for this kind of template. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
@@ -2762,11 +2768,6 @@ typedef struct a_template_symbol_supplement {
 			   prototype instantiation of the class template;
 			   May be NULL. */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      a_hash_table_ptr
-		instantiation_hash_table;
-			/* A hash table used to locate previously created
-			   instantiations of class or alias template.
-			   NULL if so instances have been created. */
     } class_template;
     /* When symbol kind = sk_function_template or sk_member_function: */
     struct {
@@ -2814,9 +2815,9 @@ typedef struct a_template_symbol_supplement {
 		exception_spec_arg_cache;
 			/* Cache for the exception specification argument, to
 			   be instantiated when needed. */
-      a_substituted_type_list_entry_ptr
-		substituted_types;
-			/* A list of template argument lists and the type
+      a_hash_table_ptr
+		substituted_types_table;
+			/* A hash table template argument lists and the type
 			   that results from substituting the template
 			   parameters in the template routine types with
 			   specified template arguments.  This is used by
@@ -5520,8 +5521,6 @@ extern void set_membership_in_source_corresp(a_source_correspondence  *scp,
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern
 a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void);
-extern void free_list_of_substituted_type_list_entries(
-				a_substituted_type_list_entry_ptr stlep);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep);
 extern a_type_list_entry_ptr alloc_type_list_entry(void);
@@ -5955,13 +5954,15 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
    (sym)->variant.enumeration.type->variant.integer.is_template_enum)
 
 /* Return the template argument list associated with a given template class
-   or template alias symbol. */
+   template, alias template, or function template instance. */
 #define template_arg_list_for_symbol(sym)				\
   ((sym)->kind == (a_symbol_kind)sk_type				\
     ? (sym)->variant.type.ptr->						\
                      variant.typeref.extra_info->template_arg_list	\
-    : (sym)->variant.class_struct_union.type->				\
-                     variant.class_struct_union.extra_info->template_arg_list)
+    : is_class_struct_union_symbol(sym)                                 \
+      ? (sym)->variant.class_struct_union.type->			\
+                     variant.class_struct_union.extra_info->template_arg_list \
+   : (sym)->variant.routine.ptr->template_arg_list)
 
 /* Return TRUE if the given symbol kind corresponds to a tag. */
 #define is_tag_symbol_kind(kind)                                 \

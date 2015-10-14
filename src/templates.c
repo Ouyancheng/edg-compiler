@@ -6451,19 +6451,22 @@ list specified by tap.
 
 
 static an_equiv_templ_arg_options_set eta_options_for_template(
-				a_template_symbol_supplement_ptr	tssp)
+			a_symbol_ptr				template_sym,
+			a_template_symbol_supplement_ptr	tssp)
 /*
 Return the options to be used when calling equiv_template_arg_lists based
 on the current compilation options and the properties of the template
-specified by tssp.
+specified by template_sym and tssp.
 */
 {
-  an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
-  a_symbol_ptr	argument_template;
+  an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
+  a_symbol_ptr				argument_template = NULL;
 
   /* If tssp is from a template template parameter, use the argument
      template. */
-  argument_template = tssp->variant.class_template.argument_template;
+  if (is_class_template_symbol(template_sym)) {
+    argument_template = tssp->variant.class_template.argument_template;
+  }  /* if */
   if (argument_template != NULL) {
     tssp = argument_template->variant.template_info;
   }  /* if */
@@ -6712,13 +6715,13 @@ position of the second argument).
 
 /*
 Structure used to pass lookup key information into the hash routines
-for class instantiations.
+for instantiations.
 */
 typedef struct an_instantiation_key *an_instantiation_key_ptr;
 typedef struct an_instantiation_key {
   a_symbol_ptr	template_sym;
-			/* The symbol of the class or alias template
-			   for which we are looking for an instance. */
+			/* The symbol of the template for which we are
+			   looking for an instance. */
   a_template_arg_ptr
 		template_arg_list;
 			/* The template argument list of the instance to
@@ -6770,7 +6773,7 @@ entry pointer.  Return TRUE if the key matches the entry.
   template_sym = key_ikp->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   /* Get the options to be passed to equiv_template_arg_lists. */
-  eta_options = eta_options_for_template(tssp);
+  eta_options = eta_options_for_template(template_sym, tssp);
   entry_sym = (a_symbol_ptr)entry;
   entry_tap = template_arg_list_for_symbol(entry_sym);
   key_tap = key_ikp->template_arg_list;
@@ -6780,16 +6783,47 @@ entry pointer.  Return TRUE if the key matches the entry.
 }  /* compare_instantiation */
 
 
-static a_symbol_ptr *find_class_instantiation(
+a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
+					      a_void_ptr	key)
+/*
+Compare an entry in an substituted type hash table with an entry to be
+found.  "entry" is a_substituted_type_list_entry_ptr and "key" is
+an_instantiation_key entry pointer.  Return TRUE if the key matches the entry.
+*/
+{
+  a_substituted_type_list_entry_ptr	stlep;
+  a_template_arg_ptr			entry_tap;
+  an_instantiation_key_ptr		key_ikp;
+  a_template_arg_ptr			key_tap;
+  a_boolean				result;
+  an_equiv_templ_arg_options_set	eta_options;
+  a_symbol_ptr				template_sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  key_ikp = (an_instantiation_key_ptr)key;
+  template_sym = key_ikp->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  /* Get the options to be passed to equiv_template_arg_lists. */
+  eta_options = eta_options_for_template(template_sym, tssp);
+  stlep = (a_substituted_type_list_entry_ptr)entry;
+  entry_tap = stlep->templ_arg_list;
+  key_tap = key_ikp->template_arg_list;
+  result = equiv_template_arg_lists(entry_tap, key_tap,
+                                    eta_options | ETA_EXACT_MATCH_REQUIRED);
+  return result;
+}  /* compare_substituted_type_list_entry */
+
+
+static a_symbol_ptr *find_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
 		a_template_arg_ptr			template_arg_list,
 		a_boolean				create)
 /*
-Find an existing instantiation of the class or alias template specified by
-template_sym and tssp with the argument list specified by template_arg_list.
-If no instantiation is found and create is TRUE, an entry is created in the
-hash table that can be filled in later.  A pointer to the symbol entry field
+Find an existing instantiation of the template specified by template_sym
+and tssp with the argument list specified by template_arg_list.  If no
+instantiation is found and create is TRUE, an entry is created in the hash
+table that can be filled in later.  A pointer to the symbol entry field
 of the hash table is returned, or NULL is no entry is found.
 */
 {
@@ -6800,21 +6834,21 @@ of the hash table is returned, or NULL is no entry is found.
   key.template_sym = template_sym;
   key.template_arg_list = template_arg_list;
   /* If no hash table exists for this template, create one now. */
-  if (tssp->variant.class_template.instantiation_hash_table == NULL) {
-    tssp->variant.class_template.instantiation_hash_table =
+  if (tssp->instantiation_hash_table == NULL) {
+    tssp->instantiation_hash_table =
                       alloc_hash_table(FRONT_END_REGION_NUMBER,
                                        (a_hash_table_size)11,
                                        fn_for_function(hash_instantiation),
                                        fn_for_function(compare_instantiation));
   }  /* if */
   sym_in_table = (a_symbol_ptr*)hash_find(
-                         tssp->variant.class_template.instantiation_hash_table,
+                         tssp->instantiation_hash_table,
                          (a_void_ptr)&key, create);
   return sym_in_table;
-}  /* find_class_instantiation */
+}  /* find_instantiation */
 
 
-static void add_class_instantiation(
+static void add_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
 		a_symbol_ptr				instance_sym,
@@ -6828,15 +6862,18 @@ and tssp.
   a_symbol_list_entry_ptr	slep;
   a_symbol_ptr			*hash_table_sym;
 
-  hash_table_sym = find_class_instantiation(template_sym, tssp,
-                                            template_arg_list,
-                                            /*create=*/TRUE);
-  slep = alloc_symbol_list_entry();
-  slep->symbol = instance_sym;
-  slep->next = tssp->variant.class_template.instantiations;
-  tssp->variant.class_template.instantiations = slep;
+  hash_table_sym = find_instantiation(template_sym, tssp,
+                                      template_arg_list,
+                                      /*create=*/TRUE);
+  if (is_class_template_symbol(template_sym)) {
+    /* Add this to the instantiations list for the class or alias. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = instance_sym;
+    slep->next = tssp->variant.class_template.instantiations;
+    tssp->variant.class_template.instantiations = slep;
+  }  /* if */
   *hash_table_sym = instance_sym;
-}  /* add_class_instantiation */
+}  /* add_instantiation */
 
 #if EXPENSIVE_CHECKING
 
@@ -6855,7 +6892,7 @@ hashes template argument lists works properly.
   a_symbol_list_entry_ptr		slep;
   an_equiv_templ_arg_options_set	eta_options;
 
-  eta_options = eta_options_for_template(tssp);
+  eta_options = eta_options_for_template(template_sym, tssp);
   for (slep = tssp->variant.class_template.instantiations;
        slep != NULL; slep = slep->next) {
     a_template_arg_ptr	old_list;
@@ -7035,8 +7072,8 @@ such classes.
   }  /* if */
   if (add_to_instantiation_list) {
     /* Add the instantiation to the instantiations list for the template. */
-    add_class_instantiation(class_template_sym, primary_tssp, sym,
-                            template_arg_list);
+    add_instantiation(class_template_sym, primary_tssp, sym,
+                      template_arg_list);
   }  /* if */
   /* Record the argument list in the type.  It should be available in the
      IL at least for name generation and possibly for debuggers, too.  Note,
@@ -7295,8 +7332,8 @@ error type is used.
     check_new_class_instantiation(template_sym, tssp, template_arg_list);
 #endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
-    add_class_instantiation(template_sym, tssp, instance_sym,
-                            template_arg_list);
+    add_instantiation(template_sym, tssp, instance_sym,
+                      template_arg_list);
     /* Create the type entry for the alias. */
     type = alloc_type((a_type_kind)tk_typeref);
     type->variant.typeref.is_alias = TRUE;
@@ -7925,7 +7962,7 @@ exist.
 #endif /* DEBUG */
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
-  eta_options = eta_options_for_template(tssp);
+  eta_options = eta_options_for_template(template_sym, tssp);
   /* Remove any local or nonreal typedefs from the argument list. */
   strip_types_from_template_arg_list(*new_list);
   sym = NULL;
@@ -7976,8 +8013,8 @@ exist.
   if (sym == NULL) {
     a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
-    hash_table_sym = find_class_instantiation(template_sym, tssp, *new_list,
-                                              /*create=*/FALSE);
+    hash_table_sym = find_instantiation(template_sym, tssp, *new_list,
+                                        /*create=*/FALSE);
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
@@ -11839,50 +11876,42 @@ do not match, copy_error is set to TRUE.
 }  /* check_template_template_argument_types */
 
 
-static void add_to_substituted_types_list(
+static a_type_ptr find_substituted_type(
+			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp,
 			a_template_arg_ptr			templ_arg_list,
 			a_type_ptr				type)
 /*
-Create a new substituted types list entry and add it to the list of
-substituted types associated with tssp.  A copy of the template
-argument list is created so that the original list can be freed by
-the caller.
-*/
-{
-  a_substituted_type_list_entry_ptr	stlep;
-
-  stlep = alloc_substituted_type_list_entry();
-  stlep->templ_arg_list = copy_template_arg_list(templ_arg_list);
-  stlep->type = type;
-  stlep->next = tssp->variant.function.substituted_types;
-  tssp->variant.function.substituted_types = stlep;
-}  /* add_to_substituted_types_list */
-
-
-static a_type_ptr find_substituted_type(
-			a_template_symbol_supplement_ptr	tssp,
-			a_template_arg_ptr			templ_arg_list)
-/*
 Determine whether a type has already been created for a given set of template
-arguments (specified by templ_arg_list).  tssp points to the template symbol
-supplement associated with the function template being used.
+arguments (specified by templ_arg_list).  template_sym and tssp identify
+the function template being used.  If type is not NULL, an entry is created
+if none exists.
 */
 {
-  a_substituted_type_list_entry_ptr	stlep;
-  a_type_ptr				result_type = NULL;
-  an_equiv_templ_arg_options_set	eta_options;
+  a_substituted_type_list_entry_ptr	*p_stlep;
+  an_instantiation_key			key;
 
-  eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
-  for (stlep = tssp->variant.function.substituted_types;
-       stlep != NULL; stlep = stlep->next) {
-    if (equiv_template_arg_lists(templ_arg_list, stlep->templ_arg_list,
-                                 eta_options)) {
-      result_type = stlep->type;
-      break;
-    }  /* if */
-  }  /* for */
-  return result_type;
+  /* Construct the key value to be passed to the comparison routine. */
+  key.template_sym = template_sym;
+  key.template_arg_list = templ_arg_list;
+  /* If no hash table exists for this template, create one now. */
+  if (tssp->variant.function.substituted_types_table == NULL) {
+    tssp->variant.function.substituted_types_table =
+                      alloc_hash_table(FRONT_END_REGION_NUMBER,
+                         (a_hash_table_size)11,
+                         fn_for_function(hash_instantiation),
+                         fn_for_function(compare_substituted_type_list_entry));
+  }  /* if */
+  p_stlep = (a_substituted_type_list_entry_ptr*)hash_find(
+                         tssp->variant.function.substituted_types_table,
+                         (a_void_ptr)&key, type != NULL);
+  if (p_stlep != NULL && *p_stlep == NULL) {
+    check_assertion(type != NULL);
+    *p_stlep = alloc_substituted_type_list_entry();
+    (*p_stlep)->templ_arg_list = copy_template_arg_list(templ_arg_list);
+    (*p_stlep)->type = type;
+  }  /* if */
+  return p_stlep == NULL ? NULL : (*p_stlep)->type;
 }  /* find_substituted_type */
 
 
@@ -12017,7 +12046,8 @@ during wrapup processing by compare_function_templates.
        already created.  Don't do this when preserving deduced packs as
        that flag causes a different type to be returned below. */
     if (!preserve_deduced_packs) {
-      templ_rout_type = find_substituted_type(tssp, templ_arg_list);
+      templ_rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
+                                              (a_type_ptr)NULL);
     }  /* if */
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
@@ -12064,7 +12094,8 @@ during wrapup processing by compare_function_templates.
       }  /* if */
       if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
         /* Add the new type to the list of substituted types. */
-        add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
+        (void)find_substituted_type(templ_sym, tssp, templ_arg_list,
+                                    templ_rout_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13823,7 +13854,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
            templates of generic lambdas), we cannot obtain the type of the
            function by rescanning the template tokens (since there are no
            tokens).  Instead, we just substitute the generic type. */
-        rout_type = find_substituted_type(tssp, templ_arg_list);
+        rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
+                                          (a_type_ptr)NULL);
         if (rout_type == NULL) {
           a_template_param_ptr  tpl;
           a_boolean             copy_error = FALSE;
@@ -14049,6 +14081,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   sym->variant.routine.instance_ptr = tip;
   tip->next = tssp->variant.function.instantiations;
   tssp->variant.function.instantiations = tip;
+  add_instantiation(templ_sym, tssp, sym, templ_arg_list);
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   {
@@ -15274,7 +15307,7 @@ structure.
 {
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
-  a_template_instance_ptr           tip, prev_tip;
+  a_template_instance_ptr           tip = NULL;
   a_template_arg_ptr		    tap = *new_list;
   a_boolean			    is_error_routine = FALSE;
 
@@ -15332,30 +15365,17 @@ structure.
     }  /* if */
     tap = tap->next;
   }  /* while */
-  tip = tssp->variant.function.instantiations;
-  prev_tip = NULL;
-  for (; tip != NULL; tip = tip->next) {
-    a_template_arg_ptr			arg_list;
-    an_equiv_templ_arg_options_set	eta_options;
-    arg_list = tip->instance_sym->variant.routine.ptr->template_arg_list;
-    eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
-    if (equiv_template_arg_lists(arg_list, *new_list, eta_options)) {
-      /* We've found a match.  Remove the found function instantiation entry
-         from its current position in the instantiation list and add it to
-         the front. */
-      if (prev_tip != NULL) {
-        prev_tip->next = tip->next;
-        tip->next = tssp->variant.function.instantiations;
-        tssp->variant.function.instantiations = tip;
-      }  /* if */
-      sym = tip->instance_sym;
-#if DEBUG
-      if (debug_level >= 3) db_symbol(sym, "found: ", 2);
-#endif /* DEBUG */
-      break;
-    }  /* if */
-    prev_tip = tip;
-  }  /* for */
+  { a_symbol_ptr	*hash_table_sym = NULL;
+    /* Look for a previously created instantiation. */
+    hash_table_sym = find_instantiation(templ_sym, tssp, *new_list,
+                                        /*create=*/FALSE);
+    /* hash_table_sym will be NULL if no entry is found, otherwise it will
+       point to the symbol in the hash table. */
+    sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+  }
+  if (sym != NULL) {
+    tip = template_instance_for_symbol(sym);
+  }  /* if */
   if (tip == NULL) {
     /* No match was found, so create a new template function.  That means
        create a symbol entry, a routine entry, a routine type entry, and a

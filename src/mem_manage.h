@@ -486,6 +486,7 @@ enum a_function_number_tag {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fn_hash_void_pointer,
   fn_compare_for_pointer_pair_map,
+  fn_compare_substituted_type_list_entry,
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
