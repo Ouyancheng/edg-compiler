@@ -5,7 +5,7 @@ Internal error with multiple translation units and constexpr templates
 
 An internal error could occur (in update_instantiation_required_flag)
 in a compilation involving multiple translation unit mode (i.e., the use
-of secondary translation units single compilation, not multiple individual
+of secondary translation units in a single compilation, not multiple individual
 translation units).  This could occur when a constexpr function template
 was used in a secondary translation unit in a manner that did not require
 that the function body be preserved for code generation purposes.  This has
