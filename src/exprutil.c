@@ -5010,12 +5010,11 @@ void make_type_operand_rescan_type(a_rescan_control_block *rcblock,
 rcblock->argument_list points to a type-operand argument for a builtin
 operation (like a type trait test).  Get the type, do substitution on
 it (using information from rcblock), and return the substituted type in
-*type.
+*type.  Also return the source position of the operand in *type_position.
 */
 {
   an_expr_node_ptr              expr = rcblock->argument_list;
   an_expr_rescan_info_entry_ptr eriep;
-  a_token_sequence_number       operator_tok_seq_number;
 
   check_assertion(expr != NULL);
   check_assertion(expr->kind == (an_expr_node_kind)enk_type_operand);
@@ -5024,9 +5023,7 @@ it (using information from rcblock), and return the substituted type in
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   *type = do_type_substitution_for_rescan(expr->variant.type_operand.type,
                                           rcblock, eriep);
-  get_rescan_operator_positions(eriep, type_position,
-                                &operator_tok_seq_number,
-                                (a_source_position *)NULL);
+  *type_position = eriep->saved_operand.position;
 }  /* make_type_operand_rescan_type */
 
 
