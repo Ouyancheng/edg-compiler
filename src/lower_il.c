@@ -7672,7 +7672,7 @@ for the same virtual function table variable; see note below.
   main_vtbl = (vtbl_var->type->variant.array.variant.number_of_elements == 0);
   if (!main_vtbl && !vtbl_var->vtable_defined && definition_needed) {
     /* In the case of a local class whose virtual function table was not needed
-       withing the class, but ends up being needed outside of the class, this
+       within the class but ends up being needed outside of the class, this
        function will have been called initially with definition_needed set to
        FALSE (during lowering of the function scope), but will be called
        subsequently with definition_needed set to TRUE (during file scope
