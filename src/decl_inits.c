@@ -5828,13 +5828,19 @@ the active mem-initializer token cache.
 {
   a_mem_init_args_cache_ptr  cache = cibp->pending_mem_init_cache;
   a_token_sequence_number    last_tsn;
+  a_boolean                  include_last_token = FALSE;
 
   if (curr_token == tok_ellipsis) (void)get_token();
   end_caching_fetched_tokens();
   last_tsn = curr_token_sequence_number;
+  if (curr_token == tok_end_of_source) {
+    /* There was no token beyond the last mem-initializer token.  So last_tsn
+       is the last token number of the mem-initializer proper and not that of
+       the next token. */
+    include_last_token = TRUE;
+  }  /* if */
   copy_tokens_from_cache(curr_lexical_state_cache(), cache->start_tsn,
-                         last_tsn, /*include_last_token=*/FALSE,
-                         &cache->tokens);
+                         last_tsn, include_last_token, &cache->tokens);
   adjust_token_handles(&cache->tokens);
   terminate_token_cache(&cache->tokens);
   cibp->pending_mem_init_cache = NULL;
@@ -7507,7 +7513,7 @@ initialized.  These are addressed in the course of the processing.
        is not a prototype instantiation.  The cached initializers will be
        fully processed in the order in which they execute, rather than the
        order in which they appear.  For prototype instantiations, the
-       initializers are full parsed (instead of cached) because (a) an order
+       initializers are fully parsed (instead of cached) because (a) an order
        of execution is not always known, and (b) variadic template processing
        needs to record tokens that must be replayed during pack expansion. */
     do {
@@ -7619,6 +7625,13 @@ initialized.  These are addressed in the course of the processing.
           args_tsn = cache->args_tsn;
           rescan_reusable_cache(&cache->tokens);
           (void)begin_potential_pack_expansion_context(&cib.pesep);
+        } else {
+          /* Continue with the previous token sequence number.  If there isn't
+             such a number, an error must have occurred. */
+          if (args_tsn == NO_TOKEN_SEQUENCE_NUMBER) {
+            expect_error();
+            continue;
+          }  /* if */
         }  /* if */
         /* Skip to the arguments and process them.  (With Cfront-style base
            class initializers, there may not be any tokens to skip.) */
