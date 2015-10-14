@@ -2529,6 +2529,8 @@ that do normal id lookup processing.
         a_scope_pointers_block_ptr	spbp;
         a_boolean			use_lookup_table;
         a_boolean			use_scope_list = FALSE;
+        a_boolean			process_single_symbol = FALSE;
+        a_symbol_ptr			next_sym;
         spbp = assoc_pointers_block_of(ssep);
         use_lookup_table = spbp->lookup_table != NULL;
         if (ssep->is_reactivation && is_local_scope_kind(ssep->kind)) {
@@ -2555,13 +2557,33 @@ that do normal id lookup processing.
           } else {
             sym = assoc_pointers_block_of(&scope_stack[depth])->symbols;
           }  /* if */
+        } else if (scope_is(ssep, sck_template_instantiation)) {
+	  /* Template instantiation scopes don't have a lookup table, or a
+	     scope list that can be used.  Go through the template parameter
+	     list of the instantiation scope. */
+          a_template_param_ptr	tpp;
+          tpp = ssep->template_decl_info->parameters;
+          for (; tpp != NULL; tpp = tpp->next) {
+            if (tpp->param_symbol->header == locator->symbol_header) {
+              sym = tpp->param_symbol;
+              process_single_symbol = TRUE;
+            }  /* for */
+          }  /* for */
         } else {
           sym = inactive_symbol_list_from_locator(*locator);
         }  /* if */
-        for (; sym != NULL;
-             sym = use_lookup_table ? sym->next_in_lookup_table
-                                    : 
-                     use_scope_list ? sym->next_in_scope : sym->next) {
+        for (; sym != NULL; sym = next_sym) {
+	  /* Determine the next symbol to be used based on which list we used
+	     to find the symbol. */
+          if (use_lookup_table) {
+            next_sym = sym->next_in_lookup_table;
+          } else if (use_scope_list) {
+            next_sym = sym->next_in_scope;
+          } else if (process_single_symbol) {
+            next_sym = NULL;
+          } else {
+            next_sym = sym->next;
+          }  /* if */
           /* The symbol header test is really only needed when the scope list
              is being used. */
           if (sym->decl_scope == ssep->number &&
