@@ -7228,7 +7228,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
 */
 {
   a_type_ptr                     rout_type = routine_ptr->type;
-  a_boolean                      use_routine_type = TRUE;
+  a_boolean                      use_routine_type;
   a_routine_type_supplement_ptr  rtsp1, rtsp2;
 
   if (routine_ptr->declared_type != NULL) {
@@ -7262,6 +7262,11 @@ type entry if appropriate, otherwise using the indicated declared_type.
              (rtsp2->exception_specification == NULL)) {
     /* Exception specification mismatch (usually involves predeclared
        functions like new and delete). */
+    use_routine_type = FALSE;
+  } else if (rout_type->kind != (a_type_kind)tk_routine) {
+    /* The routine's type was previously expressed using a typedef, decltype
+       specifier, or a similar construct.  That may refer to entities that
+       are not really meaningful in the current context. */
     use_routine_type = FALSE;
   } else {
     /* The types can be shared. */
