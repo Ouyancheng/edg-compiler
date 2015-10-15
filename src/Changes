@@ -1,5 +1,23 @@
 Version 4.11
 
+10/15/15  [EDGcpfe/16501]
+GNU C++ compatibility: Array-wise initialization
+
+Ordinarily, initializing an array variable with non-aggregate elements requires
+braced initializer notation.  E.g.:
+
+	struct S { S(); };
+	S x[2] = { S(), S() };
+
+In GNU C++ mode, the front end now accepts a notation like:
+
+	S y[2] = S();
+
+which implies that every element of the array is initialized by the initializer
+expression (i.e., the initialization of y is equivalent to that of x in these
+examples).
+
+
 10/15/15  [EDGcpfe/16572]
 Microsoft emulation: Spurious error on local class with alignas
 

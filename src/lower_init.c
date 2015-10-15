@@ -4718,7 +4718,8 @@ modified; if not, only the new parameters are modified.
 
 static a_routine_ptr default_version_of_routine(
                                          a_routine_ptr       routine,
-                                         an_expr_node_ptr    default_arg_list)
+                                         an_expr_node_ptr    default_arg_list,
+                                         a_boolean           cctor_case)
 /*
 Return a pointer to a routine that does the same thing as "routine" but in
 which the parameters that have default argument expressions have been removed.
@@ -4731,7 +4732,8 @@ is used to generate a version of a constructor or destructor that can be
 called with just a "this" parameter, or of a copy constructor that can be
 called with just a "this" parameter and a source pointer.  The routine must
 have a "this" parameter.  If the original routine has no default arguments, no
-wrapper routine is created; the original routine is returned.
+wrapper routine is created; the original routine is returned.  cctor_case is
+TRUE when the routine is a copy constructor.
 */
 {
   a_routine_ptr    new_routine;
@@ -4781,14 +4783,15 @@ wrapper routine is created; the original routine is returned.
       internal_error("default_version_of_routine: return value ptr");
     }  /* if */
 #endif /* CHECKING */
-    /* Make any additional parameter types and parameter vars beyond the
-       "this" parameter (this comes up, for instance, on the copy
-       constructor case).  Do not process parameters with default argument
-       values, since they are removed from the routine's interface. */
-    new_rtsp = new_routine->type->variant.routine.extra_info;
-    copy_and_lower_param_type_list(routine, new_rtsp->param_type_list, 
-                                   /*do_default_args=*/FALSE,
-                                   /*do_lowering=*/TRUE);
+    if (cctor_case) {
+      /* Make any additional parameter types and parameter vars beyond the
+         "this" parameter.  Do not process parameters with default argument
+         values, since they are removed from the routine's interface. */
+      new_rtsp = new_routine->type->variant.routine.extra_info;
+      copy_and_lower_param_type_list(routine, new_rtsp->param_type_list, 
+                                     /*do_default_args=*/FALSE,
+                                     /*do_lowering=*/TRUE);
+    }  /* if */
     define_default_version_of_routine(routine, new_routine, 
                                       default_arg_list);
     routine = new_routine;
@@ -5141,8 +5144,10 @@ must NOT already be lowered (see comment in default_version_of_routine).
      generated arguments describing an empty initializer list (if an aggregate
      initializer provides no initializers for an array member).  Those are
      treated as default arguments during lowering. */
-  ctor_routine = default_version_of_routine(ctor_routine,
-                                            dip->variant.constructor.args);
+  ctor_routine = default_version_of_routine(
+                                          ctor_routine,
+                                          dip->variant.constructor.args,
+                                          /*cctor_case=*/source_node != NULL);
   dtor_routine = dip->destructor;
 #if IA64_ABI
   if (dtor_routine != NULL) {
@@ -10408,7 +10413,8 @@ arrays with class elements.
            before passing it to default_version_of_routine. */
         ctor_routine = default_version_of_routine(
                                            ctor_routine,
-                                           elem_dip->variant.constructor.args);
+                                           elem_dip->variant.constructor.args,
+                                           /*cctor_case=*/FALSE);
         if (elem_dip->init_expr_lifetime != NULL) {
           unbind_object_lifetime(elem_dip->init_expr_lifetime);
         }  /* if */

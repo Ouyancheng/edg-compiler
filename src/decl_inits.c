@@ -4027,6 +4027,8 @@ to use for diagnostics by default.
   an_init_component_ptr  expr_icp, icp;
   an_init_state          *is = &dps->init_state;
   a_variable_ptr         vp;
+  a_type_ptr             tp = skip_typerefs(dps->type);
+  a_boolean              is_array_var, is_gnu_array_fill = FALSE;
   a_boolean              is_string_var, missing_braces_diagnosed = FALSE;
   a_boolean              make_error_result = FALSE;
   an_error_severity      severity = es_none;
@@ -4036,16 +4038,31 @@ to use for diagnostics by default.
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
   is->elided_braces_disallowed = FALSE;
-  is_string_var = may_be_string_type(dps->type);
+  is_array_var = (tp->kind == (a_type_kind)tk_array);
+  is_string_var = is_array_var && may_be_string_type(tp);
   if (!is_string_var && !C_mode()) {
-    /* In C++, the only valid case here is string initialization.  We cannot
-       in general know whether this is a string initialization until we've
-       parsed the expression, but if the destination type isn't a string type,
-       we can issue the diagnostic early (which is nicer in cases where
-       parsing the expression triggers severe syntax errors). */
-    severity = es_error;
-    pos_error(ec_missing_initializer_list, &pos_curr_token);
-    missing_braces_diagnosed = TRUE;
+    /* In standard C++, the only valid case here is string initialization.  We
+       cannot in general know whether this is a string initialization until
+       we've parsed the expression, but if the destination type isn't a string
+       type, we can issue the diagnostic early (which is nicer in cases where
+       parsing the expression triggers severe syntax errors).  GCC accepts an
+       extension that allows initializing a one-dimensional array of non-
+       aggregate class objects using a non-brace-enclosed expression producing
+       the corresponding class type: Each element of the array is then
+       initialized with that value.  Set is_gnu_array_fill to TRUE for that
+       case. */
+    if (gpp_mode && is_array_var && !is_incomplete_array_type(tp)) {
+      a_type_ptr  etp = tp->variant.array.element_type;
+      etp = skip_typerefs(etp);
+      if (is_immediate_class_type(etp) && !is_aggregate_type(etp)) {
+        is_gnu_array_fill = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!is_gnu_array_fill) {
+      severity = es_error;
+      pos_error(ec_missing_initializer_list, &pos_curr_token);
+      missing_braces_diagnosed = TRUE;
+    }  /* if */
   }  /* if */
   expr_icp = scan_full_initializer_expr_as_component(
                                          dps,
@@ -4064,6 +4081,24 @@ to use for diagnostics by default.
              try_string_literal_init(expr_icp, &dps->type, is,
                                      &is->init_con)) {
     /* String initialization. */
+  } else if (is_gnu_array_fill) {
+    a_type_ptr      atype = dps->type;
+    a_constant_ptr  fill_con;
+    a_type_ptr      etp = tp->variant.array.element_type;
+    icp = expr_icp;
+    is->non_top_level_aggregate = TRUE;
+    aggr_init_element(&icp, etp, is, diag_pos, &fill_con);
+    if (!has_unknown_specified_bound(tp)) {
+      is->init_con = repeat_constant_for_array_init(fill_con, tp);
+    } else {
+      is->init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      add_constant_to_aggregate(fill_con, is->init_con);
+    }  /* if */
+    is->init_con->type = atype;
+    is->init_con->source_corresp.decl_position = *init_component_pos(expr_icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    is->init_con->end_position = *init_component_end_pos(expr_icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* A braced initializer is normally required here.  However, pcc allows
        the braces to be omitted (e.g., "int a[2] = 1;" is treated as equivalent
@@ -4642,11 +4677,16 @@ returned set to TRUE.
         decl_pos_block->var_init_range.end = curr_construct_end_position;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (gnu_mode && static_lifetime) {
+    } else if (gnu_mode && static_lifetime &&
+               (C_mode() ||
+                !is_class_struct_union_type(skip_array_types(vp_type)) ||
+                is_aggregate_type(skip_array_types(vp_type)))) {
       /* In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
-         literal. */
+         literal.  Exclude arrays of nonaggregate class types from this case,
+         because GCC has a different special treatment of them (see
+         expr_init_aggr_variable). */
       a_constant_ptr  constant = local_constant();
       scan_constant_initializer_expression(vp_type, dps, constant);
       init_con = move_local_constant_to_il(&constant);

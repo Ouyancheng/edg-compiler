@@ -5577,6 +5577,9 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
+    if (!constant->explicit_braces_on_aggregate) {
+      suppress_braces = TRUE;
+    }  /* if */
     if (!suppress_braces && !transparent_case) {
       if (constant->explicit_cast_applied) {
         /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
