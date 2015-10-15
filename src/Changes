@@ -1,5 +1,23 @@
 Version 4.11
 
+10/14/15  [EDGcpfe/16580]
+Performance improvements in template processing
+
+A number of changes have been made to improve the performance of code
+that makes heavy use of templates.  Specifically:
+
+- inactive_scope_lookup now handles template parameter lookup specially to
+  avoid looking through long lists of symbols on the inactive list.
+
+- A hash table is used to find previously created function template
+  instantiations.
+
+- A hash table is used to find previously created substituted types.
+
+An improvement of 2-10% is common for many large template cases, but
+improvements of up to 3X have been observed for some extreme cases.
+
+
 10/14/15  [EDGcpfe/16549]
 C++/CX and C++/CLI: Importing delegates with attributes
 
