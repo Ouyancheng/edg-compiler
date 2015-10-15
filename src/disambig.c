@@ -1558,7 +1558,8 @@ types separated by commas (when single_type_required is FALSE).
   next_tok = next_token();
   is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
   if (microsoft_mode && is_start_of_type && curr_token != tok_identifier &&
-      next_tok != tok_lparen && next_tok != tok_declspec) {
+      next_tok != tok_lparen && next_tok != tok_declspec &&
+      next_tok != tok_alignas) {
     a_token_cache	cache;
     a_token_kind	next_2_tok;
     a_boolean		any_tokens_fetched = FALSE;
