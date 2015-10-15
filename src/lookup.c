@@ -2567,7 +2567,8 @@ that do normal id lookup processing.
             if (tpp->param_symbol->header == locator->symbol_header) {
               sym = tpp->param_symbol;
               process_single_symbol = TRUE;
-            }  /* for */
+              break;
+            }  /* if */
           }  /* for */
         } else {
           sym = inactive_symbol_list_from_locator(*locator);
