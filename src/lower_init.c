@@ -13483,9 +13483,9 @@ the implicit parameters follow it.
 #if CHECKING
   { a_type_ptr param_base_type =
                        f_skip_typerefs(type_pointed_to(vbase_param_var->type));
+    a_type_ptr subobject_type = subobject_for_class(base_class_type);
     if (!same_entities(param_base_type, base_class_type) &&
-        !same_entities(param_base_type,
-                       subobject_for_class(base_class_type))) {
+        !same_entities(param_base_type, subobject_type)) {
       internal_error(
                     "implicit_virtual_base_parameter: param type not correct");
     }  /* if */
