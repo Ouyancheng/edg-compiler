@@ -2515,9 +2515,9 @@ typedef struct a_template_symbol_supplement {
 			   be applied to every instantiation. */
   a_hash_table_ptr
 		instantiation_hash_table;
-			/* A hash table used to locate previously created
-			   instantiations of template.  NULL if so instances
-			   have been created, or if a hash table is not used
+			/* A hash table used to locate previously-created
+			   instantiations of template.  NULL if no instances
+			   have been created or if a hash table is not used
 			   for this kind of template. */
   a_bit_field
 		is_specific_definition:1;
@@ -2817,8 +2817,8 @@ typedef struct a_template_symbol_supplement {
 			   be instantiated when needed. */
       a_hash_table_ptr
 		substituted_types_table;
-			/* A hash table template argument lists and the type
-			   that results from substituting the template
+			/* A hash table for template argument lists and the
+			   type that results from substituting the template
 			   parameters in the template routine types with
 			   specified template arguments.  This is used by
 			   substitute_template_arguments to determine whether

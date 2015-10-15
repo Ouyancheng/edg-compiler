@@ -6786,7 +6786,7 @@ entry pointer.  Return TRUE if the key matches the entry.
 a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
 					      a_void_ptr	key)
 /*
-Compare an entry in an substituted type hash table with an entry to be
+Compare an entry in a substituted type hash table with an entry to be
 found.  "entry" is a_substituted_type_list_entry_ptr and "key" is
 an_instantiation_key entry pointer.  Return TRUE if the key matches the entry.
 */

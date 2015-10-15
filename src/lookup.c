@@ -2558,7 +2558,7 @@ that do normal id lookup processing.
             sym = assoc_pointers_block_of(&scope_stack[depth])->symbols;
           }  /* if */
         } else if (scope_is(ssep, sck_template_instantiation)) {
-	  /* Template instantiation scopes don't have a lookup table, or a
+	  /* Template instantiation scopes don't have a lookup table or a
 	     scope list that can be used.  Go through the template parameter
 	     list of the instantiation scope. */
           a_template_param_ptr	tpp;
