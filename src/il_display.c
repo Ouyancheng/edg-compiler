@@ -6783,7 +6783,7 @@ Display the indicated class type supplement entry.
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
   /* Do not print out ptr->virtual_function_table_var and
-     ptr->type_as_subobject, which are used only during IL lowering. */
+     ptr->subobject_partner, which are used only during IL lowering. */
 #if IA64_ABI
   /* Likewise ptr->virtual_table_table_var. */
 #endif /* IA64_ABI */

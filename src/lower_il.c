@@ -3167,8 +3167,7 @@ pointer to the new node.
       node_class_type = skip_typerefs(node_class_type);
 #if CHECKING
       if (node_class_type != step_class_type &&
-          node_class_type != step_class_type->variant.class_struct_union.
-                                               extra_info->type_as_subobject) {
+          node_class_type != subobject_for_class(step_class_type)) {
         internal_error("make_base_class_lvalue: node has wrong type");
       }  /* if */
 #endif /* CHECKING */
@@ -5705,7 +5704,7 @@ index number of the first entry, or 0 if no entries were created.
                          sub_bcp->type->variant.class_struct_union.extra_info;
         /* The base class should have been prelowered already, so that
            construction_vtbls is set already. */
-        check_assertion(sub_ctsp->type_as_subobject != NULL);
+        check_assertion(class_has_been_prelowered(sub_bcp->type));
         /* Process only direct and virtual base classes, and process virtual
            base classes only in the outermost class (the outermost constructor
            calls the virtual base class constructor). */
@@ -8258,7 +8257,7 @@ static void make_subobject_class_type(a_type_ptr class_type)
 /*
 Make a version of the indicated class type that is suitable for use when
 the class is used as a subobject.  Record the subobject type in the
-type_as_subobject field of the class type supplement.  If the original
+subobject_partner field of the class type supplement.  If the original
 class has no virtual base classes, the subobject type will be the same
 type.  The original class type must have been lowered just to the point where
 the fields for the virtual base class space would be added; that allows
@@ -8390,9 +8389,11 @@ added_to_list:;
        own type as subobject.  This prevents prelowering from being done on
        the class type, and therefore prevents generation of virtual function
        tables. */
-    subobject_ctsp->type_as_subobject = subobject_type;
+    subobject_ctsp->subobject_partner = class_type;
+    /* Indicate that this class has a distinct subobject type. */
+    ctsp->has_subobject_type = TRUE;
   }  /* if */
-  ctsp->type_as_subobject = subobject_type;
+  ctsp->subobject_partner = subobject_type;
 }  /* make_subobject_class_type */
 
 #if IA64_ABI
@@ -8561,14 +8562,13 @@ routine assumes the class type is as complete as it will ever get.
 {
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
-  a_class_type_supplement_ptr base_ctsp;
   a_type_ptr                  base_class_type;
   a_source_position           saved_error_position;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   check_assertion(is_primary_translation_unit);
   /* See if prelowering has already been done. */
-  if (ctsp->type_as_subobject == NULL) {
+  if (!class_has_been_prelowered(class_type)) {
     saved_error_position = error_position;
     error_position = class_type->source_corresp.decl_position;
     /* If the class has a definition, the processing of the definition
@@ -8585,8 +8585,7 @@ routine assumes the class type is as complete as it will ever get.
     bcp = ctsp->primary_base_class;
     if (bcp != NULL) {
       prelower_class_type(bcp->type);
-      base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-      base_class_type = base_ctsp->type_as_subobject;
+      base_class_type = subobject_for_class(bcp->type);
       add_base_class_dummy_field(bcp->type,
                                  (char *)(bcp->is_virtual ? "__v_" : "__b_"),
                                  base_class_type, bcp->offset, 
@@ -8598,8 +8597,7 @@ routine assumes the class type is as complete as it will ever get.
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       /* Pre-lower base classes. */
       prelower_class_type(bcp->type);
-      base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-      base_class_type = base_ctsp->type_as_subobject;
+      base_class_type = subobject_for_class(bcp->type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* Decide whether to use the base class's type or its
          type-as-subobject for this instance as a base class.  The
@@ -8685,8 +8683,7 @@ routine assumes the class type is as complete as it will ever get.
              some other base class, it need not be allocated here. */
           if (bcp->data_section_base_class == NULL) {
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-            base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-            base_class_type = base_ctsp->type_as_subobject;
+            base_class_type = subobject_for_class(bcp->type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
             /* Decide whether to use the base class's type or its
                type-as-subobject for this instance as a base class.
@@ -8796,8 +8793,8 @@ Do IL lowering on the indicated class/struct/union type.
   }  /* if */
   /* Lower the template argument list, if any. */
   lower_template_arg_list(ctsp->template_arg_list);
-  /* Lower the type-as-subobject. */
-  lower_type(ctsp->type_as_subobject);
+  /* Lower the type-as-subobject (may already have been lowered). */
+  lower_type(ctsp->subobject_partner);
   if (class_type->kind == (a_type_kind)tk_class) {
     class_type->kind = (a_type_kind)tk_struct;
   }  /* if */
@@ -8848,8 +8845,7 @@ not lowered at this time (see lower_constructor_code).
          bcp = bcp->next) {
       if (bcp->is_virtual) {
         /* Use the type of the base class when used as a subobject. */
-        subobject_type = bcp->type->variant.class_struct_union.extra_info->
-                                                             type_as_subobject;
+        subobject_type = subobject_for_class(bcp->type);
         added_param = alloc_param_type(make_pointer_type(subobject_type));
         /* Note that the original parameter entries have already been lowered,
            so it is not necessary to clear il_lowering_flag to ensure that the
@@ -20311,8 +20307,7 @@ scope.
            constructed on this call.  lower_constructor_routine_type does the
            similar processing for the param type list.  See ARM p. 296. */
         /* Use the type of the virtual base class when used as a subobject. */
-        subobject_type = bcp->type->variant.class_struct_union.extra_info->
-                                                             type_as_subobject;
+        subobject_type = subobject_for_class(bcp->type);
         vbase_param_var =
                 make_lowered_param_variable(make_pointer_type(subobject_type));
         vbase_param_var->next = prev_param_var->next;

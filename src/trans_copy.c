@@ -501,9 +501,10 @@ and remap the pointers in the copy.
 #if DO_IL_LOWERING
   } else if (kind == iek_class_type_supplement) {
     a_class_type_supplement_ptr ctsp = (a_class_type_supplement_ptr)copy;
-    /* type_as_subobject can be non-NULL if prelowering of the class type
+    /* subobject_partner can be non-NULL if prelowering of the class type
        has been done.  If so, clear the pointer on copy. */
-    ctsp->type_as_subobject = NULL;
+    ctsp->subobject_partner = NULL;
+    ctsp->has_subobject_type = FALSE;
 #endif /* DO_IL_LOWERING */
   }  /* if */
 }  /* copy_entry */

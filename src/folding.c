@@ -9751,12 +9751,11 @@ evaluation (e.g., parameter values).
                 a_type_ptr    base_class_for_size = base_class;
                 a_targ_size_t base_class_size;
 #if DO_IL_LOWERING
-                if (class_type_supp(base_class)->type_as_subobject != NULL) {
+                if (class_has_been_prelowered(base_class)) {
                   /* The size of a base class subobject can be different
                      from that of a standalone object with that type, so
                      use the subobject type for size calculations. */
-                  base_class_for_size =
-                                class_type_supp(base_class)->type_as_subobject;
+                  base_class_for_size = subobject_for_class(base_class);
                 }  /* if */
 #endif /* DO_IL_LOWERING */
                 if (bp->is_optimized_empty_base) {

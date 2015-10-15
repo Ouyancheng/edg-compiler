@@ -3112,7 +3112,7 @@ after_entry_from_class:
 #if IA64_ABI
           conditionally_clear_fe_pointer(ptr->virtual_table_table_var);
 #endif /* IA64_ABI */
-          conditionally_clear_fe_pointer(ptr->type_as_subobject);
+          conditionally_clear_fe_pointer(ptr->subobject_partner);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ptr->uuid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

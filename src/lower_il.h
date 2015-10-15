@@ -821,6 +821,41 @@ is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
 #endif /* IA64_ABI */
 
 
+/*
+Utility that returns TRUE if the class type has been pre-lowered.
+*/
+#define class_has_been_prelowered(class)                                      \
+  (check_assertion(is_immediate_class_type((class))),                         \
+   class_type_supp((class))->subobject_partner != NULL)
+
+/*
+Utility to return a pointer to the subobject type for a class type that has
+already been pre-lowered.  Note that in cases where a subobject type isn't
+needed the class type itself is returned.
+*/
+#define subobject_for_class(class)                                            \
+  (check_assertion(class_has_been_prelowered((class))),                       \
+   class_type_supp((class))->has_subobject_type ?                             \
+     class_type_supp((class))->subobject_partner :                            \
+     (check_assertion((class) == class_type_supp((class))->subobject_partner),\
+      (class)))
+
+/*
+Utility to return a pointer to the original class type given a subobject class
+type that was generated during pre-lowering.
+*/
+#define orig_class_for_potential_subobject_type(class)                        \
+  (check_assertion(class_has_been_prelowered(class)),                         \
+   class_type_supp(class)->has_subobject_type ?                               \
+    (check_assertion(class_type_supp((class))->subobject_partner == (class)), \
+     (class)) :                                                               \
+     (class_type_supp((class))->subobject_partner == (class) ?                \
+      (class) :                                                               \
+      (check_assertion(class_type_supp(class_type_supp((class))               \
+                                   ->subobject_partner)->has_subobject_type), \
+       class_type_supp((class))->subobject_partner)))
+
+
 extern a_boolean il_lowering_needed(void);
 
 extern void pop_context(void);

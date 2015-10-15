@@ -7647,6 +7647,11 @@ typedef struct a_class_type_supplement {
 			/* TRUE if this class is compiler-generated.
 			   Specifically, this is TRUE for the "types
 			   as subobjects" generated during IL lowering. */
+  a_bit_field  has_subobject_type:1;
+			/* TRUE if this class has been pre-lowered and a
+			   subobject type has been generated for this type
+			   (for cases where the type is used as a subobject).
+			   The subobject type is given by subobject_partner. */
 #endif /* DO_IL_LOWERING */
 #if RECORD_HIDDEN_NAMES_IN_IL
   a_bit_field	hidden_names_processed:1;
@@ -7818,13 +7823,14 @@ typedef struct a_class_type_supplement {
 			   for this class.  NULL until allocated and NULL if
 			   not needed. */
 #endif /* IA64_ABI */
-  a_type_ptr	type_as_subobject;
-			/* When IL lowering is done, this points to a type
-			   (possibly the same one) for this class as a
-			   subobject, i.e., without allocated space for any
-			   virtual base classes.  NULL until set; in fact,
-			   non-NULL is used as an indication that certain
-			   lowering steps have already been done. */
+  a_type_ptr	subobject_partner;
+			/* NULL until the type has been pre-lowered.  In cases
+                           where a separate subobject type is needed, this
+			   points to that type (and has_subobject_type is set
+			   to TRUE).  If a separate subobject type is not
+			   needed, this points to the class type itself.  Also,
+			   for compiler-generated subobject types themselves,
+			   points back to the original class type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_variable_ptr
 		uuid_variable;

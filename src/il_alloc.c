@@ -1583,13 +1583,16 @@ class is available.
   ctsp->size_without_virtual_base_classes = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
   ctsp->highest_virtual_function_number   = VIRTUAL_FUNCTION_NUMBER_NONE;
-#if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING
+  ctsp->has_subobject_type                = FALSE;
+#if IA64_ABI
   /* There are always two entries below the address point of the virtual
      table: the offset-to-top and RTTI information. */
   ctsp->next_negative_virtual_table_index = -3;
   ctsp->first_vcall_offset_index          = 0;
   ctsp->vcall_offsets                     = NULL;
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
 #if DECL_MODIFIERS_IN_USE
@@ -1638,7 +1641,7 @@ class is available.
 #if IA64_ABI
   ctsp->virtual_table_table_var           = NULL;
 #endif /* IA64_ABI */
-  ctsp->type_as_subobject                 = NULL;
+  ctsp->subobject_partner                 = NULL;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   ctsp->promoted_local_types              = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */

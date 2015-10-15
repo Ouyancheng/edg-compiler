@@ -2092,8 +2092,7 @@ There is an implied argument for the VTT.
         /* Allocate an expression that is a NULL pointer to the virtual
            base class.  Use the type of the base class when used as a
            subobject. */
-        subobject_type = bcp->type->variant.class_struct_union.extra_info->
-                                                             type_as_subobject;
+        subobject_type = subobject_for_class(bcp->type);
         if (delegated_params == NULL) {
           /* Use zero for the value of the implied argument. */
           make_zero_of_proper_type(make_pointer_type(subobject_type),
@@ -13205,9 +13204,8 @@ have already had their designated initializers lowered.
                    (is_immediate_class_type(con_type) &&
                     /* Allow a match if the class type is being used as a
                        subobject. */
-                    class_type_supp(con_type)->type_as_subobject != NULL &&
-                    identical_types(class_type_supp(con_type)->
-                                                             type_as_subobject,
+                    class_has_been_prelowered(con_type) &&
+                    identical_types(subobject_for_class(con_type),
                                     member_type)),
                    "lower_aggregate_designated_initializers: type mismatch");
       }
@@ -13487,8 +13485,7 @@ the implicit parameters follow it.
                        f_skip_typerefs(type_pointed_to(vbase_param_var->type));
     if (!same_entities(param_base_type, base_class_type) &&
         !same_entities(param_base_type,
-                       base_class_type->variant.class_struct_union.
-                                              extra_info->type_as_subobject)) {
+                       subobject_for_class(base_class_type))) {
       internal_error(
                     "implicit_virtual_base_parameter: param type not correct");
     }  /* if */
@@ -14486,6 +14483,9 @@ are traversed while searching for the matching constant).
       a_type_ptr        ftp = skip_typerefs(field->type);
       a_base_class_ptr  r_bcp;
       check_assertion(is_immediate_class_type(ftp));
+      /* In cases where the field type is that of a subobject, retrieve the
+         original class type associated with the subobject type. */
+      ftp = orig_class_for_potential_subobject_type(ftp);
       r_bcp = corresponding_base_class(bcp, ftp, (a_base_class_ptr)NULL);
       cp->vptr_has_been_lowered = TRUE;
       cp = constant_for_base_class(cp, r_bcp);
