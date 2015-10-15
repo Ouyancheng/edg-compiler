@@ -260,9 +260,9 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_pad_bit_fields_larger_than_base_type, _TC)
   TARGET_MAP_MACRO(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED,
                    targ_plain_int_bit_field_is_unsigned, _TC)
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && TARG_ALL_POINTERS_SAME_SIZE
   TARGET_MAP_MACRO(TARG_POINTER_MODE, targ_pointer_mode, _TC)
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_ALL_POINTERS_SAME_SIZE */
   TARGET_MAP_MACRO(TARG_PTRDIFF_T_INT_KIND,
                    targ_ptrdiff_t_int_kind, _TC)
 #if DO_IL_LOWERING && GENERATE_EH_TABLES

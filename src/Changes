@@ -1,5 +1,13 @@
 Version 4.11
 
+10/15/15  [EDGcpfe/16581]
+Build issue when TARG_ALL_POINTERS_SAME_SIZE is FALSE
+
+As a result of the changes for EDGcpfe/15604 et al., the front end failed to
+build in configurations where TARG_ALL_POINTERS_SAME_SIZE is set to FALSE.
+Now fixed.
+
+
 10/15/15  [EDGcpfe/16298]
 C++-generating back end abort on function declared with decltype
 
