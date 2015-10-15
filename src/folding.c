@@ -6544,7 +6544,9 @@ context information.
                                   f_skip_typerefs(type_pointed_to(op1->type));
               if (identical_types(target_type, source_type) ||
                   /* Also allow a cast to char *. */
-                  is_character_type(target_type)) {
+                  is_character_type(target_type) ||
+                  /* Also allow a cast to void * in gcc mode. */
+                  (gcc_mode && is_void_type(target_type))) {
                 goto cast_case;
               }  /* if */
             }  /* if */

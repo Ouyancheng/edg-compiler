@@ -1707,6 +1707,7 @@ is pushed regardless of any of the other factors.
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
+  new_entry->allow_array_decay_in_constant_expr = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -9060,8 +9061,7 @@ in pre-C99 C.  A diagnostic is issued in strict mode.
                           ec_bad_rvalue_array, &operand->position);
     }  /* if */
     /* Convert the array rvalue to a pointer to the first element. */
-    do_array_to_pointer_conversion(operand,
-                                   /*const_expr_okay=*/FALSE);
+    do_array_to_pointer_conversion(operand);    
   }  /* if */
 }  /* handle_nonstandard_array_rvalue */
 
@@ -19083,13 +19083,11 @@ decay on it, and return a pointer to the decayed expression.
 }  /* conv_array_expr_to_pointer */
 
 
-void do_array_to_pointer_conversion(an_operand *operand,
-                                    a_boolean  const_expr_okay)
+void do_array_to_pointer_conversion(an_operand *operand)
 /*
 Do array-to-pointer decay on the given operand, which is an lvalue or
 rvalue of array type.  Don't check whether this decay is valid in the
-current mode -- just do it.  This conversion is permitted in a constant
-expression only if const_expr_okay is TRUE.
+current mode -- just do it.
 */
 {
   an_expr_node_ptr expr;
@@ -19137,7 +19135,8 @@ expression only if const_expr_okay is TRUE.
     make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_evaluated_const() && !const_expr_okay) {
+  } else if (curr_expr_kind_is_evaluated_const() &&
+             !expr_stack->allow_array_decay_in_constant_expr) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression except in certain expressions such as x==x, where the
        result is known at compile time. */
@@ -19172,15 +19171,13 @@ expression only if const_expr_okay is TRUE.
 }  /* do_array_to_pointer_conversion */
 
 
-void conv_array_operand_to_pointer_operand(an_operand *operand,
-                                           a_boolean  const_expr_okay)
+void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
 to the operand.  If the operand is an array lvalue it is changed to a prvalue
 pointer to the first element of the array.  If the operand is an array rvalue,
 the conversion is done in some modes (C++, C99) and not in others.  All other
-cases are left alone.  This conversion is permitted in an evaluated constant
-expression only if const_expr_okay is TRUE.
+cases are left alone.
 */
 {
   if (is_array_type(operand->type)) {
@@ -19196,7 +19193,7 @@ expression only if const_expr_okay is TRUE.
       do_decay = TRUE;
     }  /* if */
     if (do_decay) {
-      do_array_to_pointer_conversion(operand, const_expr_okay);
+      do_array_to_pointer_conversion(operand);
     }  /* if */
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */
@@ -20531,9 +20528,7 @@ transformations.
     if (!(options & TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION)) {
       /* In most contexts, an operand of array type is changed to
          "pointer to first element of array". */
-      a_boolean const_expr_okay =
-                      (options & TOPT_ALLOW_NONCONST_ARRAY_IN_CONST_EXPR) != 0;
-      conv_array_operand_to_pointer_operand(operand, const_expr_okay);
+      conv_array_operand_to_pointer_operand(operand);
     }  /* if */
   } else if (is_a_glvalue(operand)) {
     /* A non-array glvalue. */
