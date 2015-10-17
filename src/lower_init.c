@@ -4363,6 +4363,7 @@ operator of a no-capture lambda.
       /* Create an expression temporary lifetime surrounding the copy of
          the expressions to catch any needed destructions. */
       an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+      an_expr_copy_options_set opts = CE_UNLINK_SOURCE_DESTRUCTIONS;
       src_param_type = rtsp->param_type_list->next;
       /* Find the original parameter type that corresponds to this
          parameter. */
@@ -4375,10 +4376,14 @@ operator of a no-capture lambda.
       curr_object_lifetime = saved_curr_object_lifetime;
       /* Push a context for the lifetime.  */
       push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
+      if (!in_file_scope(default_arg_list)) {
+        /* If arguments are in another function scope, copy them to the
+           current function scope. */
+        opts |= CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER;
+      }  /* if */
       /* Copy the default argument expressions into the function memory
          region. */
-      default_arg_list = copy_list_of_expr_trees(default_arg_list,
-                                                CE_UNLINK_SOURCE_DESTRUCTIONS);
+      default_arg_list = copy_list_of_expr_trees(default_arg_list, opts);
       if (is_useless_object_lifetime(init_expr_lifetime)) {
         /* There weren't any temporaries in the default argument expressions,
            so the lifetime is not needed. */
