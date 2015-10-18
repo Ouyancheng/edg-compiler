@@ -632,7 +632,7 @@ exact criteria).
         add_verification_entry(kind, old_ce);
       }  /* if */
       change_canonical_entry(tcp, entity);
-      if (kind == (a_byte_il_entry_kind)iek_type) {
+      if (kind == (an_il_entry_kind)iek_type) {
         a_type_ptr  old_ctp = (a_type_ptr)old_ce;
         if (is_immediate_class_type(old_ctp) && !old_ctp->incomplete) {
           /* The we're changing from one class definition to another.  Update
