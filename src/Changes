@@ -1,5 +1,30 @@
 Version 4.11
 
+10/17/15  [EDGcpfe/16583]
+Incorrect correspondence processing for fields in C modes
+
+When simultaneously compiling multiple translation units in C mode, the front
+end sometimes produced incorrect cross-translation-unit correspondences for
+fields of struct and union types.  That resulted in incorrect IL and likely
+aborts in the processing that followed.  For example:
+
+  // File f1.c:
+  struct S { char *s; };
+  extern void g(const struct S*);
+
+  // File f2.c:
+  struct S { char *s; };
+  void f(const struct S *ps) {}
+
+  // File f3.c:
+  struct S;
+  void f(const struct S *ps);
+  void g(const struct S *ps) {}
+
+Simultaneously compiling these three translation units in the given order in
+C99 mode resulted in a crash (configuration dependent).  This is now fixed.
+
+
 10/15/15  [EDGcpfe/16501]
 GNU C++ compatibility: Array-wise initialization
 

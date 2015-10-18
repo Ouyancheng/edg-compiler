@@ -537,17 +537,18 @@ exact criteria).
     }  /* if */
   } else {
     a_trans_unit_corresp  *tcp = trans_unit_corresp_of_unknown_entry(entity);
+    char                  *old_ce;
     check_assertion(tcp != NULL && kind == tcp->kind);
-    if (tcp->canonical != entity &&
-        canonical_ranking(kind, entity) > canonical_ranking(kind,
-                                                            tcp->canonical)) {
+    old_ce = tcp->canonical;
+    if (old_ce != entity &&
+        canonical_ranking(kind, entity) > canonical_ranking(kind, old_ce)) {
       /* The canonical entity is about to change.  Update any information
          that depends on the canonical entry. */
       switch (kind) {
         case iek_routine:
           {
             a_routine_ptr  routine = (a_routine_ptr)entity,
-                           corresp_routine = (a_routine_ptr)tcp->canonical;
+                           corresp_routine = (a_routine_ptr)old_ce;
             if (routine->is_template_function &&
                 corresp_routine->is_template_function &&
                 !routine->is_prototype_instantiation &&
@@ -562,11 +563,10 @@ exact criteria).
                all_instantiations list must be moved too. */
             a_template_ptr
                  corresp_templ = (a_template_ptr)entity,
-                 templ = (a_template_ptr)tcp->canonical;
+                 templ = (a_template_ptr)old_ce;
             a_symbol_ptr
-                 templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
-                 corresp_sym =
-                       (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+                 templ_sym = symbol_for(templ),
+                 corresp_sym = symbol_for(corresp_templ);
             a_template_symbol_supplement_ptr
                  tssp = template_supplement_for_symbol(templ_sym),
                  corresp_tssp = template_supplement_for_symbol(corresp_sym);
@@ -602,11 +602,9 @@ exact criteria).
             if (var->is_template_static_data_member &&
                 !parent_class_of(var)
                     ->variant.class_struct_union.is_prototype_instantiation) {
-              a_variable_ptr
-                   old_ce = (a_variable_ptr)tcp->canonical;
               a_symbol_ptr
-                   new_sym = (a_symbol_ptr)var->source_corresp.assoc_info,
-                   old_sym = (a_symbol_ptr)old_ce->source_corresp.assoc_info;
+                   new_sym = symbol_for(var),
+                   old_sym = symbol_for((a_variable_ptr)old_ce);
               a_template_instance_ptr
                    new_tip = new_sym->variant.static_data_member.instance_ptr,
                    old_tip = old_sym->variant.static_data_member.instance_ptr;
@@ -617,7 +615,8 @@ exact criteria).
                    that are invalid C++ where this is not the case. */
                 expect_error();
               } else {
-                set_master_instance_for_new_canonical_variable(var, old_ce);
+                set_master_instance_for_new_canonical_variable(
+                                                 var, (a_variable_ptr)old_ce);
               }  /* if */
             }  /* if */
           }
@@ -626,13 +625,21 @@ exact criteria).
           /* Nothing to be done. */
           break;
       }  /* switch */
-      if (in_secondary_trans_unit(tcp->canonical)) {
+      if (in_secondary_trans_unit(old_ce)) {
         /* Make sure that the previously canonical entry is compared against
            whichever entry ends up being the canonical entry of the
            correspondence set. */
-        add_verification_entry(kind, tcp->canonical);
+        add_verification_entry(kind, old_ce);
       }  /* if */
       change_canonical_entry(tcp, entity);
+      if (kind == (a_byte_il_entry_kind)iek_type) {
+        a_type_ptr  old_ctp = (a_type_ptr)old_ce;
+        if (is_immediate_class_type(old_ctp) && !old_ctp->incomplete) {
+          /* The we're changing from one class definition to another.  Update
+             the member correspondences. */
+          establish_trans_unit_correspondences_for_class(old_ctp);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* update_canonical_entry */
