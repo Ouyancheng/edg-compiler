@@ -2102,6 +2102,9 @@ by a command line option.
     binary_literals_allowed = TRUE;
     digit_separators_enabled = TRUE;
     long_long_is_standard = TRUE;
+    if (!option_kind_used[(int)optk_uliterals]) {
+      uliterals_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
@@ -2395,9 +2398,6 @@ by a command line option.
       inline_namespaces_enabled = TRUE;
       if (!option_kind_used[(int)optk_user_defined_literals]) {
         user_defined_literals_enabled = TRUE;
-      }  /* if */
-      if (!option_kind_used[(int)optk_uliterals]) {
-        uliterals_enabled = TRUE;
       }  /* if */
       deduced_return_types_enabled = TRUE;
       if (auto_type_specifier_enabled) {
