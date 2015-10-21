@@ -5575,9 +5575,16 @@ field designator.
     gen_expr(constant->expr, !is_expl_ctor_or_value_init(constant->expr),
              /*obj_expr_of_mfunc_operator=*/FALSE);
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-    a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
-    if (!constant->explicit_braces_on_aggregate) {
+    a_boolean      array_case = FALSE, template_dependent_case = FALSE;
+    a_constant_ptr first_con = constant->variant.aggregate.first_constant;
+    /* Ordinarily, we don't put out braces if they weren't in the source.
+       However, in some unusual cases, we add a designator to the aggregate
+       (to indicate which element of a union should be initialized), and the
+       designator would be invalid without the braces. */
+    if (!constant->explicit_braces_on_aggregate &&
+        !(first_con != NULL &&
+          first_con->kind == (a_constant_repr_kind)ck_designator)) {
       suppress_braces = TRUE;
     }  /* if */
     if (!suppress_braces && !transparent_case) {
@@ -5667,7 +5674,7 @@ field designator.
                                   type->variant.class_struct_union.field_list);
     }  /* if */
     /* Loop through the list of initializer constants. */
-    sub_con = constant->variant.aggregate.first_constant;
+    sub_con = first_con;
     if (sub_con != NULL &&
         (sub_con->implicit_aggr_element ||
          (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&

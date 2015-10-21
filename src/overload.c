@@ -21762,6 +21762,7 @@ be suppressed (i.e., SFINAE mode).
      containing the values in the braced-init-list. */
   if (arg_match == NULL) {
     aggr_constant = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_constant->explicit_braces_on_aggregate = TRUE;
   }  /* if */
   /* Go through the braced-init-list and add an element to the aggregate
      constant for each element in the list. */
