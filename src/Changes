@@ -1,5 +1,16 @@
 Version 4.11
 
+10/23/15  [EDGcpfe/16595]
+Spurious error on "typename :: template"
+
+The resolution for core issue 1411 amended the grammar to allow "typename ::
+template" and the front end has now been modified accordingly.  The following
+example had resulted in a spurious error:
+
+  template <class T> struct A {};
+  template <class T> typename :: template A<T> f();
+
+
 10/17/15  [EDGcpfe/16583]
 Incorrect correspondence processing for fields in C modes
 

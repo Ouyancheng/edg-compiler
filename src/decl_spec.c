@@ -6470,16 +6470,10 @@ void typename_specifier(a_type_ptr            *type_ptr,
                         a_boolean             is_decl_specifier,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
-Scan a typename specifier.  Typename is an elaborated type specifier.
-The syntax is
-
-	typename ::    nested-name-specifier identifier
-                   opt
-
-The identifier that follows the typename keyword must be a type name, otherwise
-a diagnostic is issued.  The type is returned in *type_ptr.  The type symbol is
-returned in *type_sym.  On return, the current token is the one following the
-final identifier above.
+Scan a typename-specifier.  The identifier that follows the typename keyword
+must be a type name, otherwise a diagnostic is issued.  The type is returned in
+*type_ptr.  The type symbol is returned in *type_sym.  On return, the current
+token is the one following the final identifier above.
 
 within_using_decl is TRUE in a class member using declaration that starts with
 "using typename".  If is_decl_specifier is TRUE, this routine is called from
@@ -6529,15 +6523,10 @@ position information when the context is a declaration.
     if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm, &err) ||
         (!cli_or_cx_enabled &&
          (!locator_for_curr_id.is_qualified_name ||
-          (locator_for_curr_id.is_file_scope_qualified_name &&
-           (locator_for_curr_id.is_global_qualified_name &&
-            !ignore_std_namespace) && !gpp_mode) || err))) {
+          err))) {
       /* The identifier scanned is not a class-qualified name,
-         namespace-qualified name (file-scope qualified names such as ::x are
-         disallowed by the syntax), or is a qualified name that refers to a
-         nonexistent member.  In ignore_std_namespace mode, in a reference such
-         as std::X, the namespace pointer is cleared, and the locator is set
-         to indicate a file scope reference. */
+         namespace-qualified name, or is a qualified name that refers to a
+         nonexistent member. */
       if (!err) {
         pos_error(ec_qualified_name_required, &error_position);
       }  /* if */

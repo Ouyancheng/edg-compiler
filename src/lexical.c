@@ -18471,6 +18471,11 @@ selection operator, in which case it points to the type of the left operand.
       follows_template = FALSE;
     }  /* if */
     (void)get_token();
+    if (curr_token == tok_template && (options & GID_IS_TYPENAME) != 0) {
+      /* The "typename :: template" case. */
+      follows_template = TRUE;
+      (void)get_token();
+    }  /* if */
   }  /* if */
   if (curr_token == tok_operator) {
     get_opname(/*is_class_member=*/FALSE,
