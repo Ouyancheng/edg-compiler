@@ -635,7 +635,7 @@ exact criteria).
       if (kind == (an_il_entry_kind)iek_type) {
         a_type_ptr  old_ctp = (a_type_ptr)old_ce;
         if (is_immediate_class_type(old_ctp) && !old_ctp->incomplete) {
-          /* The we're changing from one class definition to another.  Update
+          /* We're changing from one class definition to another.  Update
              the member correspondences. */
           establish_trans_unit_correspondences_for_class(old_ctp);
         }  /* if */
