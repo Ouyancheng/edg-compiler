@@ -4170,6 +4170,9 @@ This function is also called in clang mode.
     alignof_enabled = TRUE;
     alignas_enabled = TRUE;
   }  /* if */
+  if (gnu_version >= 40900) {
+    std_thread_local_storage_specifier_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 

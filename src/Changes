@@ -1,5 +1,15 @@
 Version 4.11
 
+10/26/15  [EDGcpfe/15492]
+GNU compatibility: Allow _Thread_local in C mode when gnu_version >= 40900
+
+The _Thread_local storage class specifier is now enabled when using GNU C
+emulation mode and gnu_version >= 40900.  For example (with --gcc --gnu_version
+40900):
+
+  _Thread_local int i;
+
+
 10/23/15  [EDGcpfe/16595]
 Spurious error on "typename :: template"
 
