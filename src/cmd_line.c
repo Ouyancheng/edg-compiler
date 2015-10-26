@@ -2361,10 +2361,10 @@ by a command line option.
     if (!va_list_in_std_namespace) {
       va_list_using_using_decl_in_std_namespace = TRUE;
     }  /* if */
-    if (cppcli_enabled || microsoft_version >= 1800) {
+    if (cppcli_enabled || microsoft_version >= 1700) {
       explicit_conversion_functions_enabled = TRUE;
     }  /* if */
-    if (microsoft_version >= 1800) {
+    if (microsoft_version >= 1700) {
       raw_string_literals_enabled = TRUE;
       list_init_enabled = TRUE;
       if (!option_kind_used[(int)optk_delegating_constructors]) {
@@ -2373,6 +2373,8 @@ by a command line option.
       if (!option_kind_used[(int)optk_variadic_templates]) {
         variadic_templates_enabled = TRUE;
       }  /* if */
+    }  /* if */
+    if (microsoft_version >= 1800) {
       deleted_functions_enabled = TRUE;
       defaulted_special_members_enabled = TRUE;
       field_initializers_enabled = TRUE;

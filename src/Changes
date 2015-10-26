@@ -2936,6 +2936,10 @@ digit separators, C++11 attributes, as well as other smaller features.
 Binary literals and digit separators are also enabled in Microsoft C mode
 when microsoft_version >= 1900.
 
+Additionally some features, which had been enabled when microsoft_version >=
+1800, have now been enabled when microsoft_version >= 1700 to better match
+the features enabled in later versions of Microsoft Visual Studio 2012.
+
 
 6/12/15  [EDGcpfe/16309]
 Parent pointers in statement entries
