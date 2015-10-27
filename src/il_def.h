@@ -7825,7 +7825,7 @@ typedef struct a_class_type_supplement {
 #endif /* IA64_ABI */
   a_type_ptr	subobject_partner;
 			/* NULL until the type has been pre-lowered.  In cases
-                           where a separate subobject type is needed, this
+			   where a separate subobject type is needed, this
 			   points to that type (and has_subobject_type is set
 			   to TRUE).  If a separate subobject type is not
 			   needed, this points to the class type itself.  Also,
