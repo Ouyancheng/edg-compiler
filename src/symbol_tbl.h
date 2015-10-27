@@ -2516,9 +2516,9 @@ typedef struct a_template_symbol_supplement {
   a_hash_table_ptr
 		instantiation_hash_table;
 			/* A hash table used to locate previously-created
-			   instantiations of template.  NULL if no instances
-			   have been created or if a hash table is not used
-			   for this kind of template. */
+			   instantiations of this template.  NULL if no
+			   instances have been created or if a hash table is
+			   not used for this kind of template. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
