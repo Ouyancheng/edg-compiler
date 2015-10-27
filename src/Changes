@@ -63,6 +63,9 @@ aborts in the processing that followed.  For example:
 Simultaneously compiling these three translation units in the given order in
 C99 mode resulted in a crash (configuration dependent).  This is now fixed.
 
+A similar fix was made to handle enumerator constants of C-mode enumeration
+types.
+
 
 10/15/15  [EDGcpfe/16501]
 GNU C++ compatibility: Array-wise initialization
