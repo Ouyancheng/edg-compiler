@@ -35,7 +35,7 @@ the processing of the various pragma binding kinds:
 			Processed		Processed
 Kind			when encountered	when rescanned
 ----------		----------------	--------------
-immediate		no			yes
+immediate		yes			yes
 next_token		no			yes
 preproc_immediate	yes			no
 next_construct		no			yes
@@ -62,8 +62,8 @@ typedef enum a_pragma_binding_kind {
 		   the cache is scanned. */
   pbk_immediate,
 		/* Processed after the pragma directive is scanned.  When
-		   the pragma appears in a cached context, it is not processed
-		   at that point but is processed each time the cache is
+		   the pragma appears in a cached context, it is processed
+		   when it is encountered and again each time the cache is
 		   scanned. */
   pbk_other,
 		/* Processed by special code added to handle a given pragma. */
