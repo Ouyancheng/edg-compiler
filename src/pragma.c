@@ -1137,9 +1137,9 @@ with a token that is to be cached.
   /* Suppress this processing when we are caching tokens. */
   if (!caching_tokens) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Create source sequence entries for any pragmas that don't yet have
-     them. */
-  add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
+    /* Create source sequence entries for any pragmas that don't yet have
+       them. */
+    add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
       pkdp = ppp->descr_ptr;
