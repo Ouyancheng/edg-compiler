@@ -638,6 +638,12 @@ exact criteria).
           /* We're changing from one class definition to another.  Update
              the member correspondences. */
           establish_trans_unit_correspondences_for_class(old_ctp);
+        } else if (is_immediate_enum_type(old_ctp) && !old_ctp->incomplete) {
+          /* We're changing from one enum definition to another.  (This is
+             possible because many modes permit a nondefining declaration of
+             an enum type.)  Update the correspondences of the enumerator
+             constants if needed. */
+          establish_trans_unit_correspondences_for_enum(old_ctp);
         }  /* if */
       }  /* if */
     }  /* if */
