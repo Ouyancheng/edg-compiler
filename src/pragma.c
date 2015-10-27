@@ -1134,33 +1134,36 @@ with a token that is to be cached.
   an_immediate_pragma_function_ptr
                                 ipfp;
 
+  /* Suppress this processing when we are caching tokens. */
+  if (!caching_tokens) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Create source sequence entries for any pragmas that don't yet have
      them. */
   add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
-    pkdp = ppp->descr_ptr;
-    if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_immediate) {
-      if (!ppp->has_been_processed) {
-        /* Unless this token is going into a token cache, mark this pragma
-           as having been processed so that it won't be applied again by
-           process_curr_token_pragmas. */
-        ppp->has_been_processed = TRUE;
-        if (pkdp->automatically_include_in_il) {
-          /* Create an IL entry for pragmas that should automatically be
-             included in the IL. */
-          create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
-                                     (a_statement_ptr)NULL);
-        }  /* if */
-        ipfp = (an_immediate_pragma_function_ptr)index_to_function_pointer(
+    for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
+      pkdp = ppp->descr_ptr;
+      if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_immediate) {
+        if (!ppp->has_been_processed) {
+          /* Unless this token is going into a token cache, mark this pragma
+             as having been processed so that it won't be applied again by
+             process_curr_token_pragmas. */
+          ppp->has_been_processed = TRUE;
+          if (!caching_tokens && pkdp->automatically_include_in_il) {
+            /* Create an IL entry for pragmas that should automatically be
+               included in the IL. */
+            create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                                       (a_statement_ptr)NULL);
+          }  /* if */
+          ipfp = (an_immediate_pragma_function_ptr)index_to_function_pointer(
                                               pkdp->processing_function_index);
-        if (ipfp != NULL) {
-          (*ipfp)(ppp);
+          if (ipfp != NULL) {
+            (*ipfp)(ppp);
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 }  /* process_immediate_pragmas */
 
 
