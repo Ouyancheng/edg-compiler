@@ -22,7 +22,7 @@ argument list.  This is now fixed.  For example, with --c++11 --strict:
   }
 
 
-10/27/15  [EDGcpfe/15703]
+10/27/15 [EDGcpfe/15703]
 Handling of immediate pragmas in cached contexts
 
 When an immediate pragma is encountered while caching tokens, source
@@ -40,7 +40,7 @@ C++-generating back end.  Now fixed.
   };
 
 
-10/26/15  [EDGcpfe/15492]
+10/26/15 [EDGcpfe/15492]
 GNU compatibility: Allow _Thread_local in C mode when gnu_version >= 40900
 
 The _Thread_local storage class specifier is now enabled when using GNU C
@@ -50,7 +50,7 @@ emulation mode and gnu_version >= 40900.  For example (with --gcc --gnu_version
   _Thread_local int i;
 
 
-10/23/15  [EDGcpfe/16595]
+10/23/15 [EDGcpfe/16595]
 Spurious error on "typename :: template"
 
 The resolution for core issue 1411 amended the grammar to allow "typename ::
@@ -61,7 +61,7 @@ example had resulted in a spurious error:
   template <class T> typename :: template A<T> f();
 
 
-10/17/15  [EDGcpfe/16583]
+10/17/15 [EDGcpfe/16583]
 Incorrect correspondence processing for fields in C modes
 
 When simultaneously compiling multiple translation units in C mode, the front
@@ -89,7 +89,7 @@ A similar fix was made to handle enumerator constants of C-mode enumeration
 types.
 
 
-10/15/15  [EDGcpfe/16501]
+10/15/15 [EDGcpfe/16501]
 GNU C++ compatibility: Array-wise initialization
 
 Ordinarily, initializing an array variable with non-aggregate elements requires
@@ -107,7 +107,7 @@ expression (i.e., the initialization of y is equivalent to that of x in these
 examples).
 
 
-10/15/15  [EDGcpfe/16572]
+10/15/15 [EDGcpfe/16572]
 Microsoft emulation: Spurious error on local class with alignas
 
 When the keyword alignas appears on a local class definition in Microsoft
@@ -119,7 +119,7 @@ with --microsoft_version 1900:
   }
 
 
-10/15/15  [EDGcpfe/16581]
+10/15/15 [EDGcpfe/16581]
 Build issue when TARG_ALL_POINTERS_SAME_SIZE is FALSE
 
 As a result of the changes for EDGcpfe/15604 et al., the front end failed to
@@ -127,7 +127,7 @@ build in configurations where TARG_ALL_POINTERS_SAME_SIZE is set to FALSE.
 Now fixed.
 
 
-10/15/15  [EDGcpfe/16298]
+10/15/15 [EDGcpfe/16298]
 C++-generating back end abort on function declared with decltype
 
 When a function is first declared with a type expressed via a decltype
@@ -147,7 +147,7 @@ C++-generating back end (gen_routine_specifiers_and_declaration).  For example:
 This is now fixed.
 
 
-10/14/15  [EDGcpfe/16580]
+10/14/15 [EDGcpfe/16580]
 Performance improvements in template processing
 
 A number of changes have been made to improve the performance of code
@@ -165,7 +165,7 @@ An improvement of 2-10% is common for many large template cases, but
 improvements of up to 3X have been observed for some extreme cases.
 
 
-10/14/15  [EDGcpfe/16549]
+10/14/15 [EDGcpfe/16549]
 C++/CX and C++/CLI: Importing delegates with attributes
 
 When importing delegates with attributes, the "source code equivalent" was
@@ -174,7 +174,7 @@ invalid IL (a class type marked as a delegate class type, but without an
 invocation type).  This is now fixed.
 
 
-10/13/15  [EDGcpfe/16577]
+10/13/15 [EDGcpfe/16577]
 Internal error with multiple translation units and constexpr templates
 
 An internal error could occur (in update_instantiation_required_flag)
@@ -207,7 +207,7 @@ issue.
    }
 
 
-10/13/15  [EDGcpfe/16573]
+10/13/15 [EDGcpfe/16573]
 IA-64 ABI: assertion failure in define_one_virtual_function_table
 
 In cases where a local class contains a virtual function and there is no
@@ -228,7 +228,7 @@ define_one_virtual_function_table).  Now fixed.  For example, with
   }
 
 
-10/13/15  [EDGcpfe/16385]
+10/13/15 [EDGcpfe/16385]
 UTF-8 character literals
 
 The front end now accepts UTF-8 character literals as described in
@@ -241,7 +241,7 @@ microsoft_version >= 1900; it can be controlled explicitly via the
   char b = u8'\u00e0';  // Error, >1 code unit in UTF-8 character literal
 
 
-10/12/15  [EDGcpfe/16575]
+10/12/15 [EDGcpfe/16575]
 Gracefully fail to inline when certain assumptions are violated
 
 As mentioned in the Changes entry for EDGcpfe/16550, inlining had assumed that
@@ -251,7 +251,7 @@ to be non-null had resulted in an assertion failure.  A change has been made to
 fail to inline the routine (with a remark) in such cases.
 
 
-10/12/15  [EDGcpfe/16550]
+10/12/15 [EDGcpfe/16550]
 Inlining of constructor when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE
 
 The code that inlines constructors assumes that the "this" parameter will not
