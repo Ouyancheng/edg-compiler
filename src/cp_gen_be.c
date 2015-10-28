@@ -3538,8 +3538,8 @@ for the meaning of need_closing_paren.
         gen_bare_name(scp, iek_template_parameter);
       } else {
         /* Use the name of the dependent type directly. */
-        gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
-                 need_closing_paren);
+        gen_name(&template_param_type->source_corresp, iek_type,
+                 options | GN_QUALIFIER, need_closing_paren);
       }  /* if */
     } else if (clang_is_generated_code_target &&
                class_type->

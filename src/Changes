@@ -1,5 +1,27 @@
 Version 4.11
 
+10/28/15 [EDGcpfe/16388]
+C++-generating back end: missing template arguments in alias template
+specialization
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, a
+dependent specialization of an alias template appearing in a template
+definition was sometimes emitted in the generated code without a template
+argument list.  This is now fixed.  For example, with --c++11 --strict:
+
+  struct S { static const bool v = true; };
+
+  template<typename F, typename A> S f(int);
+
+  template<typename F, typename A> using X = decltype(f<F, A>(1));
+
+  template <bool b> void g(void);
+
+  template <typename T, typename U> void h() {
+    g<X<T,U>::v>();  // Previously generated as g<X::v>()
+  }
+
+
 10/27/15  [EDGcpfe/15703]
 Handling of immediate pragmas in cached contexts
 
