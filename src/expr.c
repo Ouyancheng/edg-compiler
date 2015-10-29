@@ -30736,7 +30736,6 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
     a_type_ptr         dest_type = lcp->closure_field->type;
     a_type_ptr         base_dest_type;
-    a_ref_entry_ptr    rep = NULL;
     an_operand         operand;
     a_dynamic_init_ptr dip;
     a_constant_ptr     init_con;
@@ -30785,11 +30784,18 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       a_field_ptr     source_field = lcp->capture_info.source_closure_field;
       if (var != NULL) {
         /* Watch out for "this", which has no associated symbol. */
-        a_symbol_ptr  var_sym = symbol_for(var);
+        a_symbol_ptr    var_sym = symbol_for(var);
         if (var_sym != NULL) {
-          rep = ref_entry(var_sym, capture_pos);
-          rep->kind |= lcp->capture_by_reference ? SRK_ADDRESS_TAKEN
-                                                 : SRK_USE;
+          /* Record a symbol reference. */
+          /* In the case of a variadic parameter, the symbol may not actually
+             point to the variable.  Temporarily reset the link. */
+          a_variable_ptr  saved_var = var_sym->variant.variable.ptr;
+	  var_sym->variant.variable.ptr = var;
+          record_symbol_reference(lcp->capture_by_reference ? SRK_ADDRESS_TAKEN
+                                                            : SRK_USE,
+                                  var_sym, &lcp->position,
+                                  /*update_il_entry=*/TRUE);
+	  var_sym->variant.variable.ptr = saved_var;
         }  /* if */
       }  /* if */
       if (source_field == NULL) {
@@ -30799,7 +30805,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                        capture_pos,
                                        &null_source_position,
                                        &operand,
-                                       rep);
+                                       (a_ref_entry_ptr)NULL);
         } else {
           expect_error();
           make_error_operand(&operand);
