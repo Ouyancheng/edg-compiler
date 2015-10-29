@@ -676,9 +676,9 @@ in *unk_func_constant.
     /* Not a C++ overloaded operator. */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  /* If this represents an overloaded operator, set the specific kind. */
-  constant->variant.template_param.variant.unknown_function.
+    /* Do not insert code here. */
+    /* If this represents an overloaded operator, set the specific kind. */
+    constant->variant.template_param.variant.unknown_function.
                                          opname_kind = sym_hdr->variant.opname;
   *unk_func_constant = constant;
   scp = &constant->source_corresp;
