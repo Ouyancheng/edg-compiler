@@ -8404,6 +8404,15 @@ dependent context.
    /* Some compilers don't really process things in certain decltype contexts,
       so defer all calls there to avoid errors. */
     defer = TRUE;
+  } else if (symbol_is(sym, sk_undefined) && (clang_mode || microsoft_mode) &&
+             expr_stack->uses_this_operand) {
+    /* In a template-dependent context Clang appears to treat as dependent a
+       call of the form "f(<expr-list>)" where f is not found and <expr-list>
+       is non-dependent but <expr-list> uses "this" (explicitly or implicitly).
+       We extend this behavior to Microsoft mode since it results in behavior
+       closer to that of the Microsoft compiler when parsing function template
+       definitions (which the Microsoft compiler doesn't do). */
+    defer = TRUE;
   }  /* if */
   return defer;
 }  /* is_symbol_for_which_overload_resolution_should_be_deferred */
@@ -10496,22 +10505,7 @@ that case, and this_type is used for the type.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  if ((gpp_mode || clang_mode || microsoft_mode) &&
-      is_template_dependent_context()) {
-    /* "this" in template-dependent contexts is type-dependent.  However,
-       "this->x" or "this->f()" is not necessarily dependent.  See N4431
-       14.6.2.2 paragraphs 1 and 2.  Clang and GCC do not appear to follow
-       the exceptions suggested by paragraph 1; forcing an unknown type here
-       allows us to ignore these exceptions later on.  (For GCC mode we need
-       to preserve the qualifiers, however.)  MSVC doesn't parse templates at
-       all; treating these cases as dependent in Microsoft-mode prototype
-       instantiations results in a better emulation, however. */
-    a_type_ptr            tp = type_pointed_to(result->type);
-    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
-    result->type = make_pointer_type(
-                      make_qualified_type(type_of_unknown_templ_param_nontype,
-                                          tqs));
-  }  /* if */
+  expr_stack->uses_this_operand = TRUE;
 }  /* make_this_variable_operand */
 
 

@@ -1770,8 +1770,8 @@ of the call.  However, in Clang and GCC modes, some of these calls are now
 treated as template-dependent (and therefore accepted).  Specifically, in
 GCC and Clang mode, a call to "f" equivalent to a call to "this->f" is now
 treated as type-dependent in a template-dependent context, and in Clang mode
-accessing a member m of an enclosing class template is also considered to be
-a type-dependent expression.
+an explicit or implicit use of "this" in the argument of a call makes that
+call dependent too.
 
 
 8/12/15  [EDGcpfe/16425]

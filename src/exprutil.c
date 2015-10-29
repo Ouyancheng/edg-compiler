@@ -1708,6 +1708,7 @@ is pushed regardless of any of the other factors.
   new_entry->suppress_constexpr_call_folding = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
+  new_entry->uses_this_operand = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;

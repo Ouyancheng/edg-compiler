@@ -4911,9 +4911,12 @@ are expected to be NULL in that case.
   a_boolean         gnu_sync_function_case = FALSE;
   a_boolean         result_operand_is_call;
   a_boolean         member_of_proto_inst = FALSE;
+  a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
 
   db_enter(4, "scan_function_call");
-
+  /* While processing this call, ensure that the "uses_this_operand" only
+     reflects uses of "this" within the current call. */
+  expr_stack->uses_this_operand = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_lparen);
@@ -5580,6 +5583,11 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (saved_uses_this_operand && !expr_stack->uses_this_operand) {
+    /* If the surrounding expression used "this", restore that information for
+       a potential enclosing call. */
+    expr_stack->uses_this_operand = TRUE;
+  }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
   if (result_operand_is_call) {
@@ -5765,6 +5773,7 @@ accepts the case where the first operand is a C++/CLI handle.
   a_type_ptr            result_type;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
+  a_type_qualifier_set  qualifiers;
   a_boolean             result_is_a_glvalue = FALSE;
   a_boolean             result_is_an_xvalue = FALSE;
     
@@ -5819,52 +5828,39 @@ accepts the case where the first operand is a C++/CLI handle.
       }  /* if */
     }  /* if */
     /* Determine the result type. */
-    if ((clang_mode || microsoft_mode) &&
-        class_struct_union_type->kind == (a_type_kind)tk_template_param) {
-      /* Clang treats something like "this->x" in a template context as a
-         type-dependent construct.  MSVC does not parse templates in their
-         generic form, but if we do perform Microsoft-mode prototype
-         instantiations (e.g., for variadic templates) we get a better
-         emulation if we also treat field selections as dependent in that
-         context. */
-      result_type = type_of_unknown_templ_param_nontype;
-    } else {
-      a_type_qualifier_set  qualifiers;
-      qualifiers = get_type_qualifiers(class_struct_union_type);
-      if (cfront_2_1_mode) {
-        /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
-        result_type = field->type;
-        if (qualifiers != TQ_NONE) {
-          a_type_ptr unqual_class_type;
-          a_boolean  operand_1_was_rvalue = (is_an_rvalue(operand_1) &&
-                                             !is_arrow_operator);
-          /* Drop the type qualifiers on the left operand to generate correct
-             IL. */
-          /* Adjust the type by turning the operand into a pointer (if
-             necessary) and casting. */
-          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-          /* Note that we cannot simply use the unqualified version of
-             class_struct_union_type here because it might be a derived
-             class. */
-          unqual_class_type = type_pointed_to(operand_1->type);
-          unqual_class_type = make_unqualified_type(unqual_class_type);
-          cast_operand(make_pointer_type(unqual_class_type),
-                       operand_1,
-                       /*is_implicit_cast=*/TRUE);
-          if (operand_1_was_rvalue) {
-            /* For the class rvalue case, produce an rvalue again. */
-            conv_object_pointer_to_lvalue(operand_1);
-            conv_glvalue_to_prvalue(operand_1);
-            is_arrow_operator = FALSE;
-          }  /* if */
-          qualifiers = TQ_NONE;
+    qualifiers = get_type_qualifiers(class_struct_union_type);
+    if (cfront_2_1_mode) {
+      /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
+      result_type = field->type;
+      if (qualifiers != TQ_NONE) {
+        a_type_ptr unqual_class_type;
+        a_boolean  operand_1_was_rvalue = (is_an_rvalue(operand_1) &&
+                                           !is_arrow_operator);
+        /* Drop the type qualifiers on the left operand to generate correct
+           IL. */
+        /* Adjust the type by turning the operand into a pointer (if
+           necessary) and casting. */
+        conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+        /* Note that we cannot simply use the unqualified version of
+           class_struct_union_type here because it might be a derived class. */
+        unqual_class_type = type_pointed_to(operand_1->type);
+        unqual_class_type = make_unqualified_type(unqual_class_type);
+        cast_operand(make_pointer_type(unqual_class_type),
+                     operand_1,
+                     /*is_implicit_cast=*/TRUE);
+        if (operand_1_was_rvalue) {
+          /* For the class rvalue case, produce an rvalue again. */
+          conv_object_pointer_to_lvalue(operand_1);
+          conv_glvalue_to_prvalue(operand_1);
+          is_arrow_operator = FALSE;
         }  /* if */
-      } else {
-        /* The result type is set to the type of the field with the union of
-           the qualifiers of the field and the qualifiers of the class, struct,
-           or union.  const is ignored if the field was declared mutable. */
-        result_type = make_field_selection_type(field, qualifiers);
+        qualifiers = TQ_NONE;
       }  /* if */
+    } else {
+      /* The result type is set to the type of the field with the union of the
+         qualifiers of the field and the qualifiers of the class, struct,
+         or union.  const is ignored if the field was declared mutable. */
+      result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
     selection_type = result_type;
     if (!result_is_a_glvalue) result_type = prvalue_type(result_type);

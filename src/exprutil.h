@@ -895,6 +895,10 @@ typedef struct an_expr_stack_entry {
 			   This is to emulate gcc, which allows expressions
 			   like a == a, even when the address of a is not
 			   constant. */
+  a_bit_field
+		uses_this_operand;
+			/* Set to TRUE when make_this_variable_operand is
+			   called.  Used to emulate a Clang/GCC bug. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
