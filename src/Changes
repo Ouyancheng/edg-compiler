@@ -13,14 +13,14 @@ constant-expression with remaining template parameters.  For example:
     typedef T type;
   };
   template <class Ret, class T>
-    typename ::E<true || !T(), T&>::type m(T&);
+    typename ::E<true || (sizeof(T)<8), T&>::type m(T&);
   void g(int i) {
     m<int&>(i);  // Previously an error in C++03 mode; now okay.
   }
 
 Here, the partial substitution for m<int&> (with T left unsubstituted)
 triggered a spurious SFINAE failure in the substitution of the constant
-expression "true || !T()", which in turn caused the front to fail to
+expression "true || (sizeof(T)<8)", which in turn caused the front to fail to
 resolve the call.  This is now fixed.
 
 
