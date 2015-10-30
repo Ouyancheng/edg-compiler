@@ -17367,6 +17367,15 @@ name lookup options.
           if (expr_copy == NULL) {
             /* The expression folds to a constant. */
             /* con_copy and constant are already set correctly. */
+          } else if (!cpp11_sfinae_enabled && !expr_copy->is_lvalue) {
+            /* The expression remains an expression.  If the expression
+               changed, make a new tpck_expression constant for it.  With
+               C++11 SFINAE, tpck_expression constants are rescanned, and
+               this isn't needed. */
+            if (expr != expr_copy) {
+              make_template_param_expr_constant(expr_copy, constant);
+              con_copy = NULL;
+            }  /* if */
           } else {
             *copy_error = TRUE;
           }  /* if */
