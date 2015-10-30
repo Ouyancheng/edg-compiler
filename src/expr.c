@@ -30790,12 +30790,12 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
           /* In the case of a variadic parameter, the symbol may not actually
              point to the variable.  Temporarily reset the link. */
           a_variable_ptr  saved_var = var_sym->variant.variable.ptr;
-	  var_sym->variant.variable.ptr = var;
+          var_sym->variant.variable.ptr = var;
           record_symbol_reference(lcp->capture_by_reference ? SRK_ADDRESS_TAKEN
                                                             : SRK_USE,
                                   var_sym, &lcp->position,
                                   /*update_il_entry=*/TRUE);
-	  var_sym->variant.variable.ptr = saved_var;
+          var_sym->variant.variable.ptr = saved_var;
         }  /* if */
       }  /* if */
       if (source_field == NULL) {
