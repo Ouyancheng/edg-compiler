@@ -896,7 +896,7 @@ typedef struct an_expr_stack_entry {
 			   like a == a, even when the address of a is not
 			   constant. */
   a_bit_field
-		uses_this_operand;
+		uses_this_operand:1;
 			/* Set to TRUE when make_this_variable_operand is
 			   called.  Used to emulate a Clang/GCC bug. */
   a_dynamic_init_dtor_fixup_ptr
