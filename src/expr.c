@@ -32258,8 +32258,8 @@ bad_start_of_primary:
     a_boolean allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
     /* For most operations, don't permit a call with an incomplete return
-       type.  If this is a call or a comma operator, the flag may have to
-       temporarily be re-enabled below. */
+       type.  If this is a call, a member access, or a comma operator, the
+       flag may have to temporarily be re-enabled below. */
     expr_stack->allow_call_with_incomplete_return_type = FALSE;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
@@ -32388,6 +32388,9 @@ bad_start_of_primary:
       case tok_period:
       case tok_arrow:
         /* Field selectors. */
+        if (allow_call_with_incomplete_return_type) {
+          expr_stack->allow_call_with_incomplete_return_type = TRUE;
+        }  /* if */
         scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
                                       /*call_rescan_case=*/FALSE,
                                       /*offsetof_case=*/FALSE, &local_result,
