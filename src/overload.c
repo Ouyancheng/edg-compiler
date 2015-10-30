@@ -8404,15 +8404,6 @@ dependent context.
    /* Some compilers don't really process things in certain decltype contexts,
       so defer all calls there to avoid errors. */
     defer = TRUE;
-  } else if (symbol_is(sym, sk_undefined) && (clang_mode || microsoft_mode) &&
-             expr_stack->uses_this_operand) {
-    /* In a template-dependent context Clang appears to treat as dependent a
-       call of the form "f(<expr-list>)" where f is not found and <expr-list>
-       is non-dependent but <expr-list> uses "this" (explicitly or implicitly).
-       We extend this behavior to Microsoft mode since it results in behavior
-       closer to that of the Microsoft compiler when parsing function template
-       definitions (which the Microsoft compiler doesn't do). */
-    defer = TRUE;
   }  /* if */
   return defer;
 }  /* is_symbol_for_which_overload_resolution_should_be_deferred */
@@ -8756,6 +8747,16 @@ and return NULL.  This routine is called only in C++ mode.
                                                  overloaded_function_symbol)) {
       /* A function for which we can't do overload resolution at this
          time. */
+      defer_overload_resolution = TRUE;
+    } else if ((clang_mode || microsoft_mode) &&
+               expr_stack->uses_this_operand) {
+        /* In a template-dependent context Clang appears to defer resolution
+           of a call of the form "f(<expr-list>)" where <expr-list> is
+           non-dependent but <expr-list> uses "this" (explicitly or
+           implicitly).  We extend this behavior to Microsoft mode since it
+           results in behavior closer to that of the Microsoft compiler when
+           parsing function template definitions (which the Microsoft compiler
+           doesn't do). */
       defer_overload_resolution = TRUE;
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
@@ -16122,6 +16123,17 @@ operand when initializer lists are enabled.
                                                  nonmember_functions_symbol)) {
               /* A symbol for which we cannot do overload resolution at
                  this time, e.g., a block extern symbol. */
+              defer_overload_resolution = TRUE;
+              break;
+            } else if ((clang_mode || microsoft_mode) &&
+                       expr_stack->uses_this_operand) {
+                /* In a template-dependent context Clang appears to defer
+                   resolution of a call of the form "f(<expr-list>)" where
+                   <expr-list> is non-dependent but <expr-list> uses "this"
+                   (explicitly or implicitly).  We extend this behavior to
+                   Microsoft mode since it results in behavior closer to that
+                   of the Microsoft compiler when parsing function template
+                   definitions (which the Microsoft compiler doesn't do). */
               defer_overload_resolution = TRUE;
               break;
             } else {
