@@ -717,26 +717,26 @@ typedef struct an_expr_stack_entry *an_expr_stack_entry_ptr;
 typedef struct an_expr_stack_entry {
   an_expr_stack_entry_ptr
 		prev;	/* Previous entry on the stack */
-  an_expression_kind
-		expression_kind;
-			/* The kind of expression. */
   a_ref_entry_ptr
 		old_ref_entries_list;
 			/* Saved copy of the global reference entries list
 			   at the time of the push of this entry. */
-  a_byte_boolean
-		evaluated;
+  an_expression_kind
+		expression_kind;
+			/* The kind of expression. */
+  a_bit_field
+		evaluated:1;
 			/* Expression is evaluated, e.g., FALSE if it's the
 			   operand of a sizeof or in a "dead" part of a
 			   short-circuiting operation. */
-  a_byte_boolean
-		potentially_evaluated;
+  a_bit_field
+		potentially_evaluated:1;
 			/* Expression is potentially evaluated, e.g., FALSE
 			   if it's the operand of a sizeof.  Always TRUE in
 			   a constant expression, even one inside a not-
 			   evaluated expression. */
-  a_byte_boolean
-		potentially_unevaluated;
+  a_bit_field
+		potentially_unevaluated:1;
 			/* Expression may be an unevaluated operand, i.e.,
 			   TRUE for operands of sizeof and similar
 			   operators and for the operand of typeid, which
@@ -744,34 +744,34 @@ typedef struct an_expr_stack_entry {
 			   unevaluated for all other operands.  Determines
 			   whether an objectless reference to a nonstatic
 			   data member is allowed. */
-  a_byte_boolean
-		objectless_nonstatic_data_ref_seen;
+  a_bit_field
+		objectless_nonstatic_data_ref_seen:1;
 			/* Initially FALSE, set to TRUE if an objectless
 			   reference to a nonstatic data member occurs in a
 			   context that permits such constructs. */
-  a_byte_boolean
-		potentially_unevaluated_lambda_seen;
+  a_bit_field
+		potentially_unevaluated_lambda_seen:1;
 			/* Initially FALSE, set to TRUE if a lambda definition
 			   occurs in a potentially unevaluated context
 			   (e.g., the operand of a typeid). */
-  a_byte_boolean
-		is_type_operator_arg_expression;
+  a_bit_field
+		is_type_operator_arg_expression:1;
 			/* TRUE if the expression is the argument for a C++11
 			   decltype construct, a GNU typeof construct, or an
 			   __underlying_type construct. */
-  a_byte_boolean
-		is_default_arg_expression;
+  a_bit_field
+		is_default_arg_expression:1;
 			/* TRUE if the expression is or is inside of a
 			   C++ default argument expression in a parameter
 			   list. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_byte_boolean
-		is_cli_attr_arg_expression;
+  a_bit_field
+		is_cli_attr_arg_expression:1;
 			/* TRUE if the expression is or is inside of a
 			   C++/CLI attribute argument expression. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_byte_boolean
-		is_template_arg_expression;
+  a_bit_field
+		is_template_arg_expression:1;
 			/* TRUE if the expression is an argument of a C++
 			   template reference.  This is TRUE only for the
 			   top level major expression for a template
@@ -779,15 +779,15 @@ typedef struct an_expr_stack_entry {
 			   inside a template argument.  This flag is mainly
 			   about recognizing ">" as a template closing
 			   bracket. */
-  a_byte_boolean
-		is_vla_dimension_expression;
+  a_bit_field
+		is_vla_dimension_expression:1;
 			/* TRUE if the expression is the dimension of a
 			   VLA (variable-length array).  This is TRUE only
 			   for the top level major expression for a VLA
 			   dimension, e.g., it's not TRUE inside a sizeof
 			   inside a VLA dimension. */
-  a_byte_boolean
-		in_cctor_elision_initializer;
+  a_bit_field
+		in_cctor_elision_initializer:1;
 			/* TRUE if the expression is or is inside of an
 			   initializer expression that is subject to
 			   the copy constructor elision optimization,
@@ -797,8 +797,8 @@ typedef struct an_expr_stack_entry {
 			   on destructor calls noted in dynamic initialization
 			   entries for temporaries.  See
 			   fix_up_dynamic_init_dtors. */
-  a_byte_boolean
-		favor_constant_result;
+  a_bit_field
+		favor_constant_result:1;
 			/* TRUE if a constant result should be produced
 			   if possible.  Always TRUE if the expression
 			   is a constant expression; sometimes TRUE for
@@ -807,53 +807,53 @@ typedef struct an_expr_stack_entry {
 			   initialization cases from others).  Among other
 			   things, this controls whether constant addressing
 			   expressions should be folded to constants. */
-  a_byte_boolean
-		inside_conditional_expression;
+  a_bit_field
+		inside_conditional_expression:1;
 			/* TRUE if inside a conditional operand of an
 			   operator like "?". */
-  a_byte_boolean
-		unevaluated_expr_will_be_kept_in_il;
+  a_bit_field
+		unevaluated_expr_will_be_kept_in_il:1;
 			/* TRUE if the expression will be kept in the IL even
 			   though it is a not-evaluated expression
 			   (specifically, one with potentially_evaluated
 			   set to FALSE).  Normally, such expressions are
 			   discarded. */
-  a_byte_boolean
-		template_deduction_context;
+  a_bit_field
+		template_deduction_context:1;
 			/* TRUE if we're currently redoing semantic analysis
 			   on an expression as part of template deduction. */
-  a_byte_boolean
-		suppress_diagnostics;
+  a_bit_field
+		suppress_diagnostics:1;
 			/* TRUE if diagnostics should be suppressed in the
 			   current context.  This is set when an expression
 			   is rescanned in a template deduction (SFINAE)
 			   context. */
-  a_byte_boolean
-		any_suppressed_error;
+  a_bit_field
+		any_suppressed_error:1;
 			/* TRUE if any error was detected and suppressed
 			   because suppress_diagnostics is TRUE.  Access
 			   errors may or may not set this flag depending on
 			   cpp11_sfinae_ignore_access. */
-  a_byte_boolean
-		possible_rescan_context;
+  a_bit_field
+		possible_rescan_context:1;
 			/* TRUE if the expression being scanned is in a context
 			   where it might have to be rescanned later, e.g.,
 			   for template deduction.  Extra information is saved
 			   that will be needed to redo the semantic analysis
 			   on the expression.  Only set when
 			   cpp11_sfinae_enabled is TRUE. */
-  a_byte_boolean
-		in_static_initializer;
+  a_bit_field
+		in_static_initializer:1;
 			/* TRUE if we're inside the initializer of an entity
 			   with static storage duration. */
-  a_byte_boolean
-		next_stack_push_considered_same_expression;
+  a_bit_field
+		next_stack_push_considered_same_expression:1;
 			/* Signal to transfer_expr_context_if_applicable that
 			   the next expression stack push should consider that
 			   we are still in the same expression even if we went
 			   into declaration processing and came back. */
-  a_byte_boolean
-		constant_expr_ruled_out;
+  a_bit_field
+		constant_expr_ruled_out:1;
 			/* TRUE if the expression contains something that
 			   rules it out as a constant expression, even
 			   if the expression is not being scanned as a
@@ -862,8 +862,8 @@ typedef struct an_expr_stack_entry {
 			   restrictions of constant expressions.  In
 			   other modes, the ruled_out_expr_kinds set in
 			   an operand is also maintained. */
-  a_byte_boolean
-		traditional_const_expr_required;
+  a_bit_field
+		traditional_const_expr_required:1;
 			/* TRUE if we're in a constant expression to be
 			   processed with the pre-C++11 rules for constant
 			   expressions.  Those are (1) disallowed operators,
@@ -872,23 +872,23 @@ typedef struct an_expr_stack_entry {
 			   subexpressions; (2) each operation/conversion must
 			   immediately fold to a constant result, except when
 			   unevaluated (e.g., 1 || 1/0 is okay). */
-  a_byte_boolean
-		in_noexcept_operand_expression;
+  a_bit_field
+		in_noexcept_operand_expression:1;
 			/* TRUE if we're in the operand of a noexcept
 			   operator. */
-  a_byte_boolean
-		suppress_constexpr_call_folding;
+  a_bit_field
+		suppress_constexpr_call_folding:1;
 			/* TRUE to suppress folding of constexpr calls and
 			   constructions.  Used for
 			   __is_trivially_constructible. */
-  a_byte_boolean
-		allow_call_with_incomplete_return_type;
+  a_bit_field
+		allow_call_with_incomplete_return_type:1;
 			/* TRUE if a call with an incomplete return type should
 			   be permitted at the top level of an expression.
 			   (This is only the case for the operand of a
 			   decltype construct.) */
-  a_byte_boolean
-		allow_array_decay_in_constant_expr;
+  a_bit_field
+		allow_array_decay_in_constant_expr:1;
 			/* TRUE if an array-to-pointer conversion involving
 			   a variable with automatic storage duration
 			   should be permitted in a constant expression.
