@@ -16125,7 +16125,8 @@ operand when initializer lists are enabled.
                  this time, e.g., a block extern symbol. */
               defer_overload_resolution = TRUE;
               break;
-            } else if ((clang_mode || microsoft_mode) &&
+            } else if (is_template_dependent_context() &&
+                       (clang_mode || microsoft_mode) &&
                        expr_stack->uses_this_operand) {
                 /* In a template-dependent context Clang appears to defer
                    resolution of a call of the form "f(<expr-list>)" where
