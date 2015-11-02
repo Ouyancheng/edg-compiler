@@ -1856,30 +1856,28 @@ created for this entity; otherwise, it is NULL.
         sym_ptr->kind == (a_symbol_kind)sk_routine) {
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
-          scope_is(&scope_stack_top(), sck_class_struct_union)) {
-        a_type_ptr     class_type = scope_stack_top().assoc_type;
-        a_routine_ptr  rp = sym_ptr->variant.routine.ptr;
-        if (!scope_stack_top().inside_local_class &&
-            !class_type->variant.class_struct_union.is_nonreal_class &&
-            !rp->is_defaulted && !rp->is_deleted &&
+          scope_stack[depth_scope_stack].kind ==
+                                    (a_scope_kind)sck_class_struct_union &&
+          !scope_stack[depth_scope_stack].inside_local_class &&
+          !sym_ptr->variant.routine.ptr->is_defaulted &&
+          !sym_ptr->variant.routine.ptr->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            !(microsoft_mode &&
-              microsoft_routine_def_is_unmovable(
-                                         rp->overridden_functions != NULL)) &&
+          !(microsoft_mode &&
+            microsoft_routine_def_is_unmovable(
+               sym_ptr->variant.routine.ptr->overridden_functions != NULL)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          class_type_can_be_named_in_namespace_scope(class_type)) {
-          /* This is a member or friend function definition inside the
-             definition of a nonlocal class that is not a prototype
-             instantiation.  When template instantiations are put out in the
-             source sequence list, it is necessary to move the member or friend
-             definition outside the class definition (i.e., just after it).
-             That means a secondary source sequence entry should be put out
-             here.  (This cannot be done with defaulted functions, since
-             out-of-class and in-class definitions are not equivalent.
-             Similarly, deleted functions must always be defined inside the
-             class definition.) */
-          is_primary_decl = FALSE;
-        }  /* if */
+          class_type_can_be_named_in_namespace_scope(
+                                 scope_stack[depth_scope_stack].assoc_type)) {
+        /* This is a member or friend function definition inside the
+           definition of a nonlocal class.  When template instantiations are
+           put out in the source sequence list, it is necessary to move the
+           member or friend definition outside the class definition (i.e.,
+           just after it).  That means a secondary-source-sequence entry
+           should be put out here.  (This cannot be done with defaulted
+           functions, since out-of-class and in-class definitions are not
+           equivalent.  Similarly, deleted functions must always be defined
+           inside the class definition.) */
+        is_primary_decl = FALSE;
       }  /* if */
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
