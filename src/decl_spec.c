@@ -5543,9 +5543,6 @@ is updated to reflect relevant positions of this definition.
   /* Check for and pass over the closing "}". */
   (void)required_token(tok_rbrace, ec_exp_rbrace);
   if (is_scoped_enum) pop_scope();
-  attach_tag_attributes(dps->tag_attributes, enum_type, dps,
-                        /*is_definition=*/TRUE, /*is_forward_decl=*/FALSE,
-                        /*ignore_gnu_attributes=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && curr_token == tok_attribute) {
     /* Check for something like "enum E { e } __attribute((packed));".
@@ -5698,6 +5695,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    unnamed = FALSE;
   a_boolean                    is_template_specialization =
                                      (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
+  a_boolean                    new_type_created = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -6129,6 +6127,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
+    new_type_created = TRUE;
     enum_type = alloc_type((a_type_kind)tk_integer);
     enum_type->incomplete = TRUE;
     if (scope_stack[effective_decl_level].in_prototype_instantiation ||
@@ -6300,21 +6299,30 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       }  /* if */
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !is_scoped_enum &&
-        explicit_base_kind == (an_integer_kind)ik_none) {
-      /* In Microsoft compatibility mode (unscoped) enum types can be declared
-         without being defined and can also be used.  The use requires that
-         the size be set. */
-      check_assertion(!enum_types_can_be_smaller_than_int);
-      set_type_size(enum_type);
-      enum_type->incomplete = FALSE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
   }  /* if */
+  /* Attach attributes, if any.  One item of note: any attributes that
+     affect the alignment of this incomplete type will be handled later
+     (once the underlying type has been determined) either in set_type_size
+     or explicitly for an opaque enum definition. */
+  attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
+                        !is_definition &&
+                        (is_opaque_enum_decl ||
+                         (curr_token == tok_semicolon && !strict_ansi_mode)),
+                        /*ignore_gnu_attributes=*/!is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (new_type_created && microsoft_mode && !is_scoped_enum &&
+      explicit_base_kind == (an_integer_kind)ik_none) {
+    /* In Microsoft compatibility mode (unscoped) enum types can be declared
+       without being defined and can also be used.  The use requires that
+       the size be set. */
+    check_assertion(!enum_types_can_be_smaller_than_int);
+    set_type_size(enum_type);
+    enum_type->incomplete = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_removed_template_body) {
     /* A scoped enum defined in a class template has its enumerator list
        replaced with a tok_removed_template_body token (it is thus treated as
@@ -6343,7 +6351,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
          point. */
       enum_type->incomplete = FALSE;
       enum_type->size = skip_typerefs(explicit_base)->size;
-      enum_type->alignment = alignment_of_type(explicit_base);
+      enum_type->alignment = check_explicit_enum_alignment(enum_type,
+                                             alignment_of_type(explicit_base));
     }  /* if */
   }  /* if */
   if (is_scoped_enum) {
@@ -6355,10 +6364,6 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                          declares_something, &local_decl_pos_block);
   } else {
     /* No brace-enclosed list follows. */
-    attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
-                          is_opaque_enum_decl ||
-                            (curr_token == tok_semicolon && !strict_ansi_mode),
-                          /*ignore_gnu_attributes=*/TRUE);
     if (is_opaque_enum_decl) {
       set_enum_representation(enum_type, &tag_position, !err,
                               explicit_base_kind,

@@ -1,5 +1,24 @@
 Version 4.11
 
+11/2/15  [EDGcpfe/16606]
+Alignment attributes on enum types
+
+A change has been made to the way attributes are applied to enum types.
+Attributes are now applied before scanning the enumeration specifiers, which
+means that attributes may be applied to an incomplete type (only opaque enum
+types are complete at this point).  This has implications for attributes
+that modify the alignment of the enum type as the underlying type (and
+therefore the natural alignment) is not known until the closing } of the
+enum-specifier.  The explicit alignment is now maintained (previously it had
+been inadvertently discarded in the process of setting the underlying type).
+Note that there seems to be some implementation divergence here and an effort
+has been made to emulate Microsoft, GNU, and Clang modes as appropriate.  For
+example (with --c++11):
+
+  enum alignas(8) E { e };
+  static_assert(alignof(E) == 8, "fail");
+
+
 11/2/15  [EDGcpfe/16615]
 GCC compatibility: Constant-valued variables and null pointer constants
 

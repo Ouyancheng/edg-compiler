@@ -1597,6 +1597,10 @@ extern void error_if_cppcx_public_global_type(
 extern a_boolean compatible_ms_bit_field_container_types(a_type_ptr tp1,
                                                          a_type_ptr tp2);
 
+extern a_targ_alignment check_explicit_enum_alignment(
+                                              a_type_ptr       type,
+                                              a_targ_alignment base_alignment);
+
 #endif /* ifndef TYPES_H */
 
 /******************************************************************************

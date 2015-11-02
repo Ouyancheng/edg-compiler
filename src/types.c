@@ -4127,6 +4127,43 @@ and a diagnostic is issued (unless suppress_error is TRUE).
 }  /* set_array_type_size */
 
 
+a_targ_alignment check_explicit_enum_alignment(a_type_ptr       type,
+                                               a_targ_alignment base_alignment)
+/*
+Verify that any explicit alignment requirements on the specified enum type are
+valid and return the resulting alignment of the type.  This is used in cases
+where the alignment has already been explicitly specified (presumably by an
+attribute) but the alignment of the underlying type had not been determined
+yet.  base_alignment is the alignment of the underlying type for the enum.
+*/
+{
+  a_targ_alignment result = base_alignment;
+
+  check_assertion(is_enum_type(type));
+  if (type->alignment_set_explicitly && !(gnu_mode && !clang_mode)) {
+    /* An explicit alignment can be set on enum types; verify that it
+       is at least as large as the alignment for the underlying type.
+       GCC (but not clang) appears not to perform this check. */
+    if (type->alignment >= base_alignment) {
+      result = type->alignment;
+    } else {
+      if (microsoft_mode) {
+        /* Microsoft seems to ignore explicit alignments in this case. */
+        result = type->alignment;
+        pos_diagnostic(es_warning,
+                       ec_invalid_alignment_reducing_attr,
+                       &type->source_corresp.decl_position);
+      } else {
+        pos_diagnostic(es_discretionary_error,
+                       ec_invalid_alignment_reducing_attr,
+                       &type->source_corresp.decl_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_explicit_enum_alignment */
+
+
 void set_type_size(a_type_ptr type_ptr)
 /*
 Compute and set the size of the type pointed to by type_ptr.  If it is already
@@ -4162,6 +4199,11 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_integer:
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
                                        &size, &alignment);
+        if (type_ptr->variant.integer.enum_type) {
+          /* Issue a diagnostic if an explicit alignment is too restrictive
+             for the underlying type. */
+          alignment = check_explicit_enum_alignment(type_ptr, alignment);
+        }  /* if */
         break;
 #if FIXED_POINT_ALLOWED
       case tk_fixed_point:

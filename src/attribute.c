@@ -3957,6 +3957,11 @@ specifier.
              alignment is recorded. */
           if (!std_specifier || !tp->alignment_set_explicitly ||
               alignment > tp->alignment || (gpp_mode && !clang_mode)) {
+            /* Set the alignment along with an indication that the alignment
+               has been explicitly set.  Note that for enum types the
+               underlying type may not yet be known (and the type is
+               incomplete at this point), so the final alignment check will
+               be done once the type becomes complete. */
             tp->alignment = alignment;
             tp->alignment_set_explicitly = TRUE;
           }  /* if */
