@@ -61,8 +61,8 @@ constant-expression with remaining template parameters.  For example:
 
 Here, the partial substitution for m<int&> (with T left unsubstituted)
 triggered a spurious SFINAE failure in the substitution of the constant
-expression "true || (sizeof(T)<8)", which in turn caused the front to fail to
-resolve the call.  This is now fixed.
+expression "true || (sizeof(T)<8)", which in turn caused the front end to fail
+to resolve the call.  This is now fixed.
 
 
 10/30/15 [EDGcpfe/16599]
