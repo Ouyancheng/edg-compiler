@@ -3791,7 +3791,11 @@ been defined.
 #endif /* GCC_BUILTIN_VARARGS */
   } else if (!entity_name_is_accessible(&type->source_corresp, iek_type,
                                         /*ignore_context=*/FALSE,
-                                        &for_all_scopes)) {
+                                        &for_all_scopes) &&
+             !(curr_name_context != NULL &&
+               curr_name_context->class_type_for_access_not_naming != NULL &&
+               parent_class_or_null(type) ==
+                        curr_name_context->class_type_for_access_not_naming)) {
     /* The typedef is an inaccessible member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template

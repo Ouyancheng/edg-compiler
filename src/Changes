@@ -1,5 +1,28 @@
 Version 4.11
 
+11/2/15  [EDGcpfe/16495]
+C++-generating back end: access of typedef used in member declaration
+
+The C++-generating back end failed to consider the fact that an
+otherwise-inaccessible member typedef can be used in the declaration of
+another member of the same class and consequently unnecessarily used the
+underlying type of the typedef in such declarations, sometimes resulting in
+errors in the generated code.  This is now fixed.  For example, in
+configurations with PROTOTYPE_INSTANTIATIONS_IN_IL se to TRUE:
+
+  template<bool B> struct C { };
+  class A {
+    template<typename T> struct B {
+      template<typename U> static char f(int);
+      typedef C<sizeof(f<const T>(0)) == 1> type;
+      static const type value;
+    };
+  };
+  // Previously used the underlying type instead of A::B<T>::type in the
+  // generated code for the following declaration:
+  template<typename T> const typename A::B<T>::type A::B<T>::value;
+
+
 11/1/15  [EDGcpfe/16457]
 C++-generating back end: precedence of left operand of subscript operator
 
