@@ -608,7 +608,7 @@ check_abbreviation()
 --c++cli
 --c++cx
 --c_to_obj_lib
---c_to_obj_options
+--c_to_obj_option
 --cfront_2.1
 --cfront_3.0
 --check_concatenations
