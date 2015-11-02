@@ -1,5 +1,29 @@
 Version 4.11
 
+11/2/15  [EDGcpfe/16615]
+GCC compatibility: Constant-valued variables and null pointer constants
+
+The changes for EDGcpfe/10791,EDGcpfe/15927 (see entry of 1/23/15) caused the
+front end to treat constant-valued variables as constant expressions in more
+contexts in GCC mode.  It inadvertently also caused the front end to treat
+zero-valued variables as null pointer constants in some cases, whereas GCC does
+not do so.  That is now fixed.  For example:
+
+  static const int zero = 0;
+  int main() {
+    int a, *p = &a;
+    *(1 ? p : (void*)zero) = 3;  // Previously accepted in GNU C mode;
+    return 0;                    // now an error.
+  }
+
+In C a conditional operator selecting between a null pointer constant and a
+pointer operand has the type of the pointer operand.  Since previously the
+expression "(void*)zero" was treated as a null pointer constant, the
+conditional operator produced an int*.  Now, "(void*)zero" is not a null
+pointer constant, and the type of the conditional operation is therefore
+void*.
+
+
 11/2/15  [EDGcpfe/16495]
 C++-generating back end: access of typedef used in member declaration
 

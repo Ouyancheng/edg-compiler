@@ -18877,6 +18877,9 @@ cases so we don't do it here.
           constant_case = TRUE;
           con_value = alloc_unshared_constant(con_value);
           con_value->expr = var_rvalue_expr(var);
+          /* The folded constant variable is never treated as a null pointer
+             constant. */
+          con_value->null_pointer_constant_ruled_out = TRUE;
         }  /* if */
       }  /* if */
       if (!constant_case) {
