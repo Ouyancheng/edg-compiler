@@ -12884,7 +12884,10 @@ gen_expr that might end up generating this expr as a temporary.
           break;
         case eok_subscript:
         case eok_vector_subscript:
-          gen_expr_with_parens(operand_1);
+          gen_expr(operand_1,
+                   parens_may_be_needed(generated_precedence[eok_subscript],
+                                        operand_1),
+                   /*obj_expr_of_mfunc_operator=*/FALSE);
           gen_array_subscript(operand_2);
           goto done_with_operation;
         case eok_cli_subscript:

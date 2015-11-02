@@ -1,5 +1,23 @@
 Version 4.11
 
+11/1/15  [EDGcpfe/16457]
+C++-generating back end: precedence of left operand of subscript operator
+
+The C++-generating back end ignored the precedence of the left operand of
+the subscript operator, always enclosing it in parentheses.  For most
+expressions the unneeded parentheses were innocuous, but in some cases the
+generated code was either erroneous or had a different meaning from that of
+the original source.  This has now been fixed, and the left operand of the
+subscript operator is parenthesized only when required by the syntactic
+precedence of the operators.  For example, in a configuration with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, with --strict --c++14:
+
+  template<typename T> void f() {
+    T()[T::f()];   // Previously generated as (T())[T::f()], which elicits
+                   // syntax errors from the front end and from clang
+  }
+
+
 10/30/15 [EDGcpfe/16578]
 Partial substitution of constant expressions in pre-C++11 SFINAE contexts
 
