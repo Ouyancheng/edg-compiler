@@ -4140,6 +4140,7 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
   a_targ_alignment result = base_alignment;
 
   check_assertion(is_enum_type(type));
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (type->alignment_set_explicitly && !(gnu_mode && !clang_mode)) {
     /* An explicit alignment can be set on enum types; verify that it
        is at least as large as the alignment for the underlying type.
@@ -4160,6 +4161,7 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return result;
 }  /* check_explicit_enum_alignment */
 
