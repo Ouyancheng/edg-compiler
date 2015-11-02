@@ -14113,6 +14113,7 @@ implicitly declared member functions.
          unnamed classes), the transformation cannot be performed because
          no valid (or equivalent) out-of-class syntax is available. */
       if (!class_type->source_corresp.is_local_to_function &&
+          !class_type->variant.class_struct_union.is_nonreal_class &&
           !rtn->is_defaulted && !rtn->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !(microsoft_mode &&

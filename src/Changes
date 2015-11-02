@@ -1,5 +1,25 @@
 Version 4.11
 
+11/2/15  [EDGcpfe/16616]
+Source sequence entries for prototype instantiations of class templates
+
+In configurations with FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+set to TRUE, the front end sometimes turns a member definition appearing in a
+class definition into a non-defining member declaration, and then moves the
+source sequence entries for the definition outside the class.  Now it no longer
+performs this transformation for prototype instantiations.  This results, for
+example, in a more faithful rendering by the C++-generating back end of the
+original form of class template definitions.  For example:
+
+  template<typename T> struct S {
+    void f() {}  // In some configurations the source sequence list of
+  };             //  S<T>::f() was as if the definition appeared outside the
+                  // class.  Now the original arrangement is preserved.
+
+Note that for real instantiations the rearrangement of source sequence entries
+still occurs.
+
+
 11/2/15  [EDGcpfe/16606]
 Alignment attributes on enum types
 
