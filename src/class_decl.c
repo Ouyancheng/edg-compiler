@@ -29809,7 +29809,12 @@ caller has already moved past the '[', and this routine leaves the trailing
         if (curr_token == tok_this) {
           /* Capture of "this" from an enclosing class.  (This is not the
              "this" of a closure class member.) */
-          if (!variable_this_exists(&var, (a_type_ptr *)NULL)) {
+          a_symbol_ptr  closure_sym = symbol_for(lambda->closure_class);
+          /* Captures are not permitted for lambdas in default argument
+             expressions. */
+          if (class_symbol_supp(closure_sym)
+                         ->lambda_immediately_inside_default_arg_expression ||
+              !variable_this_exists(&var, (a_type_ptr *)NULL)) {
             /* We should be in a nonstatic member function. */
             pos_error(ec_this_used_incorrectly, &error_position);
           } else if (var == NULL && !scope_stack_top().in_field_initializer) {

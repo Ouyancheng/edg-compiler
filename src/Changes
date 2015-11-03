@@ -1,5 +1,22 @@
 Version 4.11
 
+11/3/15  [EDGcpfe/16618]
+Lambdas capturing "this" from within a default argument
+
+A lambda is not permitted to capture any entity if that lambda appears in a
+default argument.  Previously, the front end failed to diagnose that if the
+captured entity is the "this" pointer.  The resulting IL was invalid and
+could result in internal errors later on.  For example:
+
+  struct S {
+    void g() {
+      void f(int x = [this]{ return 1; }());  // Invalid use of "this" was
+    }                                         // previously not diagnosed.
+  };                                          // Now this is an error.
+
+This is now fixed.
+
+
 11/3/15  [EDGcpfe/16607]
 Microsoft C++ compatibility: Same-type casts in decltype constructs
 
