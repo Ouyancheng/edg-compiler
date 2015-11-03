@@ -2209,32 +2209,42 @@ for any diagnostics issued.
   }  /* switch */
 
 exit:
-  /* Looks for casts that rule out use of a constant as part of a null
-     pointer constant.  In a null pointer constant, only casts from
-     arithmetic to integral types, or, in C, from integral to "void *",
-     are allowed.  This processing is to rule out things like
-     (int)(float)0, which are not valid null pointer constants.
-     Also really obscure things like (int)(float)2 - 2.  This
-     processing is more or less tracking whether a constant could
-     be an integral constant expression, even when it is scanned
-     in other modes. */
-  if (microsoft_bugs && !C_mode() && !is_implicit_cast &&
-      microsoft_version <= 1300) {
-    /* Microsoft C++ mode: any explicit cast makes a constant not a null
-       pointer constant.  In particular, (int)0 is not a null pointer
-       constant.  This was fixed in MSVC++ 7.1. */
-    new_constant->null_pointer_constant_ruled_out = TRUE;
-  } else if (is_integral_or_enum_type(new_type) &&
-             is_arithmetic_or_enum_type(constant_type)) {
-    /* Arithmetic --> integral.  Okay. */
-  } else if (C_mode() &&
-             is_void_star_type(new_type) &&
-             is_integral_or_enum_type(constant_type)) {
-    /* Integral --> void* in C mode, okay. */
-  } else {
-   /* Anything else: this constant cannot be part of a null pointer
-      constant. */
-    new_constant->null_pointer_constant_ruled_out = TRUE;
+  if (!new_constant->null_pointer_constant_ruled_out) {
+    /* Looks for casts that rule out use of a constant as part of a null
+       pointer constant.  In a null pointer constant, only casts from
+       arithmetic to integral types, or, in C, from integral to "void *",
+       are allowed.  This processing is to rule out things like
+       (int)(float)0, which are not valid null pointer constants.
+       Also really obscure things like (int)(float)2 - 2.  This
+       processing is more or less tracking whether a constant could
+       be an integral constant expression, even when it is scanned
+       in other modes. */
+    if (microsoft_bugs && !C_mode() && !is_implicit_cast &&
+        microsoft_version <= 1300) {
+      /* Microsoft C++ mode: any explicit cast makes a constant not a null
+         pointer constant.  In particular, (int)0 is not a null pointer
+         constant.  This was fixed in MSVC++ 7.1. */
+      new_constant->null_pointer_constant_ruled_out = TRUE;
+    } else if (is_integral_or_enum_type(new_type) &&
+               is_arithmetic_or_enum_type(constant_type)) {
+      /* Arithmetic --> integral.  Okay. */
+    } else if (C_mode() &&
+               is_void_star_type(new_type) &&
+               is_integral_or_enum_type(constant_type)) {
+      /* Integral --> void* in C mode, okay. */
+    } else if (gcc_mode && gnu_version < 40500 &&
+               (constant_type->kind == (a_type_kind)tk_integer ||
+                constant_type->kind == (a_type_kind)tk_pointer) &&
+               new_type->kind == (a_type_kind)tk_pointer) {
+      /* In some GNU C modes, casting to, e.g., "int*" and then to "void*"
+         produces a null pointer constant too.  We leave the flag cleared even
+         though the constant is not itself a null pointer constant if the
+         resulting constant is not a pointer to "void". */
+    } else {
+     /* Anything else: this constant cannot be part of a null pointer
+        constant. */
+      new_constant->null_pointer_constant_ruled_out = TRUE;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -2384,20 +2394,20 @@ Return TRUE if the given constant is a null pointer constant.
     /* A null pointer constant either has a nullptr type or it has the
        value zero, perhaps cast to "void *" in C.  Only certain kinds of
        casts are allowed. */
-    if (is_nullptr_type(constant->type)) {
+    a_type_ptr  tp = skip_typerefs(constant->type);
+    if (tp->kind == (a_type_kind)tk_nullptr) {
       is_null_pointer = TRUE;
-    } else if ((!constant->null_pointer_constant_ruled_out ||
+    } else if (((!constant->null_pointer_constant_ruled_out &&
+                 (tp->kind != (a_type_kind)tk_pointer || !gcc_mode ||
+                  is_void_star_type(tp))) ||
                 (gnu_mode && gnu_version < 40500 &&
                   /* g++/gcc allow (int)(int *)0 as a null pointer
                      constant.  Fixed in 4.2, but some variants of that
                      linger until eliminated in 4.5.  */
-                 (is_integral_type(constant->type) ||
-                  /* gcc allows (void*)(int *)0 as a null pointer constant.
-                     Fixed in 4.5. */
-                  (gcc_mode && is_void_star_type(constant->type))))) &&
+                 is_integral_type(tp))) &&
                cmplit_integer_constant(constant,
                                        (a_host_large_integer)0) == 0) {
-      if (!enum_type_is_integral && is_enum_type(constant->type)) {
+      if (!enum_type_is_integral && is_enum_type(tp)) {
         /* In C++ (except for cfront compatibility) an enumerator with value
            zero is not a null pointer constant. */
       } else {
