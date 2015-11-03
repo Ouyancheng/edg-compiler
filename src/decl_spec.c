@@ -5686,6 +5686,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   an_assembly_visibility       cli_visibility =
                                                (an_assembly_visibility)av_none;
   a_source_position            cli_visibility_pos;        
+  a_boolean                    new_type_created = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
@@ -5695,7 +5696,6 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    unnamed = FALSE;
   a_boolean                    is_template_specialization =
                                      (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
-  a_boolean                    new_type_created = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -6127,7 +6127,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     new_type_created = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     enum_type = alloc_type((a_type_kind)tk_integer);
     enum_type->incomplete = TRUE;
     if (scope_stack[effective_decl_level].in_prototype_instantiation ||
