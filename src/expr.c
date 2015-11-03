@@ -21134,11 +21134,14 @@ indicates which.
                                                        type_cast_to) &&
                    (value_of_constant_var_lvalue_operand(operand) == NULL ||
                     !is_integral_type(source_type)) &&
+                   !expr_stack->is_type_operator_arg_expression &&
                    !is_bit_field_operand(operand)) {
           /* In Microsoft mode, a cast of an lvalue to the same type is just
              ignored (unless that behavior is overridden by a command-line
              option), and the operand stays an lvalue.  Note that this applies
-             in C++ as well as C. */
+             in C++ as well as C.  This is not done in the operand of a type
+             operator because MSVC does produce int and not int* for
+             "decltype((int)i)" (where i is an int variable). */
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to,
