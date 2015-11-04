@@ -106,10 +106,11 @@ C++-generating back end: access of typedef used in member declaration
 
 The C++-generating back end failed to consider the fact that an
 otherwise-inaccessible member typedef can be used in the declaration of
-another member of the same class and consequently unnecessarily used the
-underlying type of the typedef in such declarations, sometimes resulting in
-errors in the generated code.  This is now fixed.  For example, in
-configurations with PROTOTYPE_INSTANTIATIONS_IN_IL se to TRUE:
+another member of the same class, and as a result it unnecessarily used the
+underlying type of the typedef in the code generated for such declarations,
+sometimes resulting in errors in the generated code.  This is now fixed.
+For example, in configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to
+TRUE:
 
   template<bool B> struct C { };
   class A {
