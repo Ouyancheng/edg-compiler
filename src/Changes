@@ -1,5 +1,14 @@
 Version 4.11
 
+11/4/15  [EDGcpfe/16622]
+Sun compatibility: Allow extended variadic macros
+
+Sun Studio 12 update 1 allows extended variadic macros, so those are now
+accepted by default in Sun emulation mode.  For example (with --sun -E):
+
+  #define DEBUG(args...) printf(##args)
+
+
 11/3/15  [EDGcpfe/16618]
 Lambdas capturing "this" from within a default argument
 

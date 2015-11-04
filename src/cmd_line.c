@@ -3967,9 +3967,10 @@ checked again here.)
   }  /* if */
   va_arg_returns_lvalue = TRUE;
   if (!(option_kind_used[(int)optk_variadic_macros])) {
-    /* The Sun compiler accepts variadic (but not extended variadic)
-       macros. */
+    /* The Sun compiler accepts variadic and (as of Studio 12 update 1)
+       extended variadic macros. */
     variadic_macros_allowed = TRUE;
+    extended_variadic_macros_allowed = TRUE;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* Recent Sun compilers accept some GNU attributes. */
