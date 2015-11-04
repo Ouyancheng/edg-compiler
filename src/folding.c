@@ -2210,7 +2210,7 @@ for any diagnostics issued.
 
 exit:
   if (!new_constant->null_pointer_constant_ruled_out) {
-    /* Look for casts that rule out use of a constant as part of a null
+    /* Looks for casts that rule out use of a constant as part of a null
        pointer constant.  In a null pointer constant, only casts from
        arithmetic to integral types, or, in C, from integral to "void *",
        are allowed.  This processing is to rule out things like
@@ -2237,9 +2237,9 @@ exit:
                 constant_type->kind == (a_type_kind)tk_pointer) &&
                new_type->kind == (a_type_kind)tk_pointer) {
       /* In some GNU C modes, casting to, e.g., "int*" and then to "void*"
-         produces a null pointer constant, too.  We leave the flag cleared
-         even though the constant is not itself a null pointer constant if
-         the resulting constant is not a pointer to "void". */
+         produces a null pointer constant too.  We leave the flag cleared even
+         though the constant is not itself a null pointer constant if the
+         resulting constant is not a pointer to "void". */
     } else {
      /* Anything else: this constant cannot be part of a null pointer
         constant. */
