@@ -52,7 +52,7 @@ original form of class template definitions.  For example:
   template<typename T> struct S {
     void f() {}  // In some configurations the source sequence list of
   };             //  S<T>::f() was as if the definition appeared outside the
-                  // class.  Now the original arrangement is preserved.
+                 // class.  Now the original arrangement is preserved.
 
 Note that for real instantiations the rearrangement of source sequence entries
 still occurs.
