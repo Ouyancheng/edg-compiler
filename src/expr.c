@@ -21140,7 +21140,7 @@ indicates which.
              ignored (unless that behavior is overridden by a command-line
              option), and the operand stays an lvalue.  Note that this applies
              in C++ as well as C.  This is not done in the operand of a type
-             operator because MSVC does produce int and not int* for
+             operator because MSVC does produce int and not int& for
              "decltype((int)i)" (where i is an int variable). */
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
