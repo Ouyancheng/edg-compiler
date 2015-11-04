@@ -35397,7 +35397,7 @@ property is found.  *result is set to an expression operand for the
                               result);
     restore_operand_details(result, selector);
     result->position = *expr_position;
-    rewrite_property_reference(result, /*put_operand=*/FALSE,
+    rewrite_property_reference(result, (an_operand *)NULL,
                                (a_rewritten_property_reference_kind)rprk_none,
                                &routine);
     passed = TRUE;
