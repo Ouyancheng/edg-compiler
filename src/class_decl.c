@@ -426,6 +426,9 @@ the entry pointed to by dps->routine_fixup.
   }  /* if */
   free_routine_fixup(rfp);
   dps->routine_fixup = NULL;
+#if NEED_NAME_MANGLING
+  set_parent_routine_for_closure_types_in_default_args(dps->type, sym);
+#endif /* NEED_NAME_MANGLING */
 }  /* scan_cached_default_args */
 
 
@@ -30217,15 +30220,16 @@ In severe error cases, *p_lambda->lambda_routine can be NULL: Set *p_lambda to
 NULL in such cases.
 */
 {
-  a_lambda_ptr  lambda = *p_lambda;
+  a_lambda_ptr   lambda = *p_lambda;
+  a_routine_ptr  rp;
 
   check_assertion(lambda != NULL);
-  if (lambda->lambda_routine != NULL) {
-    if (lambda->lambda_routine->function_def_number !=
-                                                    NULL_function_def_number) {
+  rp = lambda->lambda_routine;
+  if (rp != NULL) {
+    if (rp->function_def_number != NULL_function_def_number) {
 #if DO_IL_LOWERING
       if (is_primary_translation_unit && 
-          should_delay_lowering_on_function(lambda->lambda_routine,
+          should_delay_lowering_on_function(rp,
                                             /*at_initial_scope_pop=*/FALSE)) {
         /* Delay lowering of lambdas in some cases (e.g., a lambda could
            be referenced by a template and therefore might have to be
@@ -30233,16 +30237,22 @@ NULL in such cases.
       } else
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
-      if (!should_delay_finishing_of_function_body(lambda->lambda_routine)) {
-        /* Lowering of the lambda body function was deferred because the
-           closure class was not complete when the function was scanned.  Now
-           that the closure class is complete, do the lowering of the lambda
-           body (if needed).  In some cases involving prototype instantiations
-           the lambda body may have already been discarded.  In most cases
-           where the lambda is enclosed in another function, the finishing
-           is delayed until the enclosing function is finished. */
-        finish_function_processing_for_function_def(
-           lambda->lambda_routine->function_def_number, /*only_inline=*/FALSE);
+      {
+        a_symbol_ptr  closure_sym = symbol_for(lambda->closure_class);
+        if (!should_delay_finishing_of_function_body(rp) &&
+            !class_symbol_supp(closure_sym)
+                                      ->lambda_inside_default_arg_expression) {
+          /* Lowering of the lambda body function was deferred because the
+             closure class was not complete when the function was scanned.
+             Now that the closure class is complete, do the lowering of the
+             lambda body (if needed).  In some cases involving prototype
+             instantiations the lambda body may have already been discarded.
+             In most cases where the lambda is enclosed in another function
+             (including lambdas in default arguments), the finishing is
+             delayed until the enclosing function is finished. */
+          finish_function_processing_for_function_def(
+                              rp->function_def_number, /*only_inline=*/FALSE);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {

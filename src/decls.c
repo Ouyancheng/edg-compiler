@@ -9569,7 +9569,10 @@ skip_overloading:;
     check_udl_operator_type(locator, routine_ptr);
   }  /* if */
 #if NEED_NAME_MANGLING
-  if (func_info->any_default_args) {
+  if (func_info->any_default_args && dps->routine_fixup == NULL) {
+    /* Look for closures in any default arguments.  If default argument
+       processing has been delayed (indicated by the presence of a routine
+       fixup), this is done later in scan_cached_default_args. */
     set_parent_routine_for_closure_types_in_default_args(type_ptr, sym);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */

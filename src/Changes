@@ -1,5 +1,19 @@
 Version 4.11
 
+11/4/15  [EDGcpfe/16620]
+Abort on lambda in default argument
+
+In some cases, a lambda expression in a default argument (in C++11 mode)
+could result in an abort (in type_is_lambda_in_default_argument) during name
+mangling.  For example:
+
+  void g() {
+    extern int f(int p = ([]{ int i = 3; return [=]{return i;}; }()()));
+  }
+
+This is now fixed.
+
+
 11/4/15  [EDGcpfe/16622]
 Sun compatibility: Allow extended variadic macros
 
