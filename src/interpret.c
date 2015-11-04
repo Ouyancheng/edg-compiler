@@ -5139,7 +5139,10 @@ type.  This includes checking the value of ovfl set by the operation.
             if (con != NULL) {
               result = copy_val_from_constant(ips, con, result_storage);
             } else {
-              /* FIXME: record a diagnostic. */
+              more_info_sym_diagnostic(ec_variable_not_constant_valued,
+                                       &expr->position,
+                                       symbol_for(var),
+                                       &ips->diag_list);
               result = FALSE;
             }  /* if */
           }  /* if */
@@ -5160,7 +5163,10 @@ type.  This includes checking the value of ovfl set by the operation.
               clear_runtime_constant_address(result_storage, con);
             } else {
               release_local_constant(&con);
-              /* FIXME: record a diagnostic. */
+              more_info_sym_diagnostic(ec_variable_not_constant_addressed,
+                                       &expr->position,
+                                       symbol_for(var),
+                                       &ips->diag_list);
               result = FALSE;
             }  /* if */
           }  /* if */
@@ -5388,7 +5394,6 @@ return FALSE.
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);
-  /* FIXME check failure of alloc_stack_bytes. */
   if (result && !do_constexpr_ctor(&ips, dip, result_storage)) {
     result = FALSE;
   } else if (!copy_interpreter_object_to_constant(

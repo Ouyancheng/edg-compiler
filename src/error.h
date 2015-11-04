@@ -639,6 +639,11 @@ extern void more_info_diagnostic(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  a_diag_list_ptr   diag_list);
 
+extern void more_info_sym_diagnostic(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     struct a_symbol   *sym,
+                                     a_diag_list_ptr   diag_list);
+
 extern void add_more_info_list(a_diagnostic_ptr		dp,
 			       a_diag_list_ptr		dlp);
 
