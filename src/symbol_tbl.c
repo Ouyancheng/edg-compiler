@@ -15865,7 +15865,7 @@ Display statistics about a hash table.
     for (; htep != NULL; htep = htep->next) entries++;
     /* The count array records the number of entries with at least
        (2**N)-1 entries. */
-    for (j = 0; j < 32; j++, entries >>= 1) {
+    for (j = 0; j < 31; j++, entries >>= 1) {
       if (entries == 0) break;
     }  /* for */
     counts[j]++;
