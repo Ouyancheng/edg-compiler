@@ -5106,10 +5106,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                       : (pos < (a_byte_count)-host_int_val)) {
                       /* Out of bounds. */
                       result = FALSE;
-                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position,
-                                       (unsigned long)(pos+host_int_val),
-                                       (unsigned long)len, ips);
+                      info_with_pos_num2(
+                                      ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(pos+host_int_val),
+                                      (unsigned long)len, ips);
                     } else {
                       result_addr.address +=
                         host_int_val
