@@ -5568,25 +5568,36 @@ might turn out to be constant in the actual use.
 }  /* in_potential_constant_constexpr_context */
 
 
-a_boolean call_did_not_fold_to_constant(an_error_code     err_code,
-                                        a_routine_ptr     routine,
+a_boolean call_did_not_fold_to_constant(a_routine_ptr     routine,
                                         an_operand        *operand,
+                                        a_diag_list_ptr   diag_list,
                                         a_source_position *pos)
 /*
-A call (or call-like construct) has been allowed with the hope that it
-would fold to a constant.  It's now known that it has not, so issue the
-indicated error on the given operand.  Also called in non-constant
-expressions, so that for C++11 it can record something that rules out
-a constant expression.  routine indicates the routine that was called,
-or is NULL if we don't know the specific routine (e.g., because of
-an error, or because the call was mapped to some other nonconstant
-construct).  operand can be NULL if it's not available; in that case
-pos gives the source position to use.  Return TRUE if an error was
-issued.
+A call (or call-like construct) has been allowed with the hope that it would
+fold to a constant.  It's now known that it has not, so issue an error on the
+given operand if appropriate (this is also called in non-constant expressions,
+so that for C++11 it can record something that rules out a constant
+expression).  routine indicates the routine that was called, or is NULL if we
+don't know the specific routine (e.g., because of an error, or because the
+call was mapped to some other nonconstant construct).  operand can be NULL if
+it's not available; in that case pos gives the source position to use.
+If diag_list is non-NULL, it describes diagnostic nodes with details of why
+folding failed.  Return TRUE if an error was issued.
 */
 {
+  an_error_code  err_code;
   a_boolean err = FALSE;
 
+  if (routine == NULL ||
+      special_kind_is(routine, sfk_none) ||
+      special_kind_is(routine, sfk_udl_operator)) {
+    /* Use a more specific error code for ordinary function calls and literal
+       operator calls. */
+    err_code = constexpr_enabled ? ec_bad_cpp11_constant_function_call
+                                 : ec_bad_constant_function_call;
+  } else {
+    err_code = ec_expr_not_constant;
+  }  /* if */
   if (operand == NULL || !is_error_operand(operand)) {
     if (in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr ||
@@ -5620,28 +5631,47 @@ issued.
       } else {
         expr_pos_error(err_code, pos);
       }  /* if */
-    } else if (construct_not_allowed_in_cpp11_constant_expr(
-                                                         err_code,
-                                                         operand != NULL ?
-                                                           &operand->position :
-                                                           pos)) {
-      err = TRUE;
-      if (operand != NULL) conv_to_error_operand(operand);
+    } else {
+      /* The following is similar to a call to
+         construct_not_allowed_in_cpp11_constant_expr, except that is
+         appends the diag_list notes if necessary. */
+      /* Constant expressions allow invalid operators/constructs in unevaluated
+         subexpressions, including dead operands of "?", "&&", and "||". */
+      if (constexpr_enabled && curr_expr_is_evaluated() &&
+          !curr_expr_is_potentially_unevaluated()) {
+        expr_stack->constant_expr_ruled_out = TRUE;
+        if (curr_expr_kind_is_const()) {
+          /* We're in a constant expression, so this construct is an error. */
+          if (expr_error_should_be_issued()) {
+            a_diagnostic_ptr  dp;
+            dp = pos_start_diagnostic(es_error, err_code,
+                                      operand != NULL ? &operand->position :
+                                                        pos);
+            if (diag_list != NULL) {
+              add_more_info_list(dp, diag_list);
+            }  /* if */
+            end_diagnostic(dp);
+          }  /* if */
+          err = TRUE;
+          if (operand != NULL) conv_to_error_operand(operand);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return err;
 }  /* call_did_not_fold_to_constant */
 
 
-a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
-                                   a_source_position *pos,
-                                   an_operand        *result)
+static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
+                                          a_source_position *pos,
+                                          an_operand        *result,
+                                          a_diag_list_ptr   diag_list)
 /*
 Interface to fold_constexpr_call for use within the expression-processing
 routines.  Attempts to fold the call call_expr to a constant; if it
 can, sets result to an operand for the result and returns TRUE.  Otherwise,
-leaves result unchanged and returns FALSE.  pos is the source position
-of the call.
+leaves result unchanged and returns FALSE (potentially adds diagnostic nodes
+in *diag_list).  pos is the source position of the call.
 */
 {
   a_boolean folded = FALSE;
@@ -5649,9 +5679,8 @@ of the call.
   if (constexpr_call_folding_should_be_done()) {
     a_constant_ptr  result_con = local_constant();
     an_error_code   failure_warning = ec_no_error;
-    a_diag_list     diag_list;
     if (relaxed_constexpr_enabled) {
-      folded = interpret_constexpr_call(call_expr, result_con, &diag_list);
+      folded = interpret_constexpr_call(call_expr, result_con, diag_list);
     } else {
       a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
@@ -5674,13 +5703,8 @@ of the call.
         temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
       if (relaxed_constexpr_enabled) {
-        discard_more_info_list(&diag_list);
+        discard_more_info_list(diag_list);
       }  /* if */
-    } else if (relaxed_constexpr_enabled) {
-      a_diagnostic_ptr  dp;
-      dp = pos_start_diagnostic(es_warning, ec_constexpr_call_not_folded, pos);
-      add_more_info_list(dp, &diag_list);
-      end_diagnostic(dp);
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
     }  /* if */
@@ -14900,10 +14924,8 @@ entry is returned).
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
       check_assertion(pos != NULL);
-      if (call_did_not_fold_to_constant(ec_expr_not_constant,
-                                        ctor_routine,
-                                        (an_operand *)NULL,
-                                        pos)) {
+      if (call_did_not_fold_to_constant(ctor_routine, (an_operand *)NULL,
+                                        (a_diag_list_ptr)NULL, pos)) {
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, alloc_error_constant());
       }  /* if */
@@ -15636,6 +15658,7 @@ a function expression to which the argument list (including the implicit
 static an_expr_node_ptr func_call_expr(
                                   an_expr_node_ptr  function_node,
                                   a_type_ptr        function_type,
+                                  a_routine_ptr     rout,
                                   a_boolean         is_virtual,
                                   a_boolean         virtual_suppressed,
                                   a_boolean         selector_is_object_pointer,
@@ -15648,14 +15671,14 @@ static an_expr_node_ptr func_call_expr(
                                   a_source_position *err_pos,
                                   an_expr_node_ptr  *function_call_node)
 /*
-Make an expression for a call of the function indicated by
-function_node, whose type is function_type, and which is to be called
-virtually if is_virtual is TRUE, or a pointer-to-member-function call
-if the type of function_node is pointer-to-member-function.  The
-arguments of the call are already attached to function_node.  A
-skip_typerefs need not have been done on function_type.  function_type
-can be a template parameter type or class type in a case where the
-function to be called is not known because the call is dependent.
+Make an expression for a call of the function indicated by function_node,
+whose type is function_type, and which is to be called virtually if is_virtual
+is TRUE, or a pointer-to-member-function call if the type of function_node is
+pointer-to-member-function.  rout is the called function if it is known, or
+NULL otherwise.  The arguments of the call are already attached to
+function_node.  A skip_typerefs need not have been done on function_type.
+function_type can be a template parameter type or class type in a case where
+the function to be called is not known because the call is dependent.
 Return a pointer to the call node.  *err_pos gives an error position
 for the case where the function return type is invalid (i.e.,
 incomplete); an error node is returned for that case.  If
@@ -15690,7 +15713,6 @@ error cases.
   a_type_ptr                    return_type;
   an_expr_node_ptr              temp_init_node = NULL;
   a_dynamic_init_ptr            dip;
-  a_routine_ptr                 rp;
   a_boolean                     unknown_dependent_function = FALSE;
 
   if (function_call_node != NULL) {
@@ -15703,8 +15725,6 @@ error cases.
                      is_class_struct_union_type(function_type)));
     unknown_dependent_function = TRUE;
   }  /* if */
-  /* See if we know which function is being called. */
-  rp = routine_from_function_expr(function_node);
   /* The function return type must be void or object type and not array
      type.  Half of this check is in add_to_derived_type_list.
      The check here is necessary because it is valid to declare a
@@ -15716,18 +15736,18 @@ error cases.
                                   curr_expr_is_evaluated(),
                                   expr_stack
                                       ->allow_call_with_incomplete_return_type,
-                                  rp)) {
+                                  rout)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
     goto done;
   }  /* if */
-  if (rp != NULL) {
+  if (rout != NULL) {
     /* We know which routine is being called. */
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
-      rp->called = TRUE;
-      if (rp->is_virtual && !virtual_suppressed &&
-          call_invokes_pure_virtual(rp, function_node)) {
+      rout->called = TRUE;
+      if (rout->is_virtual && !virtual_suppressed &&
+          call_invokes_pure_virtual(rout, function_node)) {
         /* Call to pure virtual, e.g., from a constructor or destructor. */
         expr_pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
@@ -15817,7 +15837,8 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         uses_operator_syntax,
                         a_source_position *call_pos,
                         an_operand        *result,
-                        an_expr_node_ptr  *function_call_node)
+                        a_boolean         *p_folded,
+                        an_expr_node_ptr  *p_function_call_node)
 /*
 Make an operand for a call of the function indicated by function_node,
 whose type is function_type, and which is to be called virtually if
@@ -15847,18 +15868,20 @@ lookup (i.e., ordinary lookup did not yield the called function).
 uses_operator_syntax is TRUE when a call to an overloaded operator is
 the result of operator notation ("a+b") rather than an explicit
 function call.  *call_pos gives the source position of the call.  If
-non-NULL, function_call_node is the address of an expression node
+non-NULL, p_function_call_node is the address of an expression node
 pointer that will be set to point to the actual call node itself
 (which might be below the expression in the result because of
 transformations on the return value).  It is returned NULL for some
-error cases.
+error cases.  If p_folded is non-NULL, *p_folded is set to reflect
+whether the call was folded or not.
 */
 {
   an_expr_node_ptr call_node;
+  a_routine_ptr    rout = routine_from_function_expr(function_node);
+  a_boolean        folded = FALSE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && is_routine_node(function_node)) {
-    a_routine_ptr  rout = function_node->variant.routine.ptr;
+  if (gnu_mode && rout != NULL) {
     if (has_gnu_routine_supp(rout) &&
         gnu_routine_supp(rout)->inline_partner != NULL &&
         !rout->definition_for_inlining_only) {
@@ -15874,13 +15897,13 @@ error cases.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Make the function call expression node. */
-  call_node = func_call_expr(function_node, function_type, is_virtual,
+  call_node = func_call_expr(function_node, function_type, rout, is_virtual,
                              virtual_suppressed, selector_is_object_pointer,
                              compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
                              qualified_function_name, found_through_adl,
                              uses_operator_syntax, call_pos,
-                             function_call_node);
+                             p_function_call_node);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, result);
   result->position = *call_pos;
@@ -15900,6 +15923,52 @@ error cases.
     conv_class_prvalue_operand_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* Check if the call can be folded to a constant-expression.  In contexts
+     where that would be a requirement, issue a diagnostic if appropriate. */
+  if (p_function_call_node != NULL) {
+    an_expr_node_ptr  function_call_node = *p_function_call_node;
+    if (!is_error_operand(result) && function_call_node != NULL) {
+      a_boolean    call_folded_to_constant = FALSE;
+      a_diag_list  diag_list;
+      clear_diag_list(&diag_list);
+      if (constexpr_enabled && (rout == NULL || rout->is_constexpr) &&
+          expr_fold_constexpr_call(function_call_node, call_pos, result,
+                                   &diag_list)) {
+        /* The call is to a constexpr function and it has been folded to
+           a constant result. */
+        call_folded_to_constant = TRUE;
+#if BUILTIN_FUNCTIONS_ENABLED
+      } else if (rout != NULL) {
+        a_routine_ptr  rp = rout;
+#if GNU_EXTENSIONS_ALLOWED
+        if (rp->implicit_alias && gcc_mode && gnu_version < 40500) {
+          /* This is a user-defined routine that is implicitly assumed
+             equivalent to a built-in function (recorded in
+             rp->gnu_extra_info->aliased_routine).  Versions of GNU C
+             (but not GNU C++) prior to 4.5 fold calls to such routines
+             early. */
+          rp = gnu_routine_supp(rp)->aliased_routine;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        if (is_gnu_builtin_function(rp) &&
+            is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL)) {
+          /* Some __builtin_xxx functions act as constant-expressions. */
+          call_folded_to_constant = fold_gnu_call_if_possible(
+                                                  result, function_call_node);
+        }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+      }  /* if */
+      if (call_folded_to_constant) {
+        folded = TRUE;
+      } else {
+        /* If needed, diagnose the folding failure or record that a
+           constant-expression is now ruled out. */
+        (void)call_did_not_fold_to_constant(rout, result, &diag_list,
+                                            (a_source_position*)NULL);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (p_folded != NULL) *p_folded = folded;
 }  /* make_function_call */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15940,6 +16009,7 @@ void assemble_function_call(an_operand        *function_operand,
                             a_boolean         uses_operator_syntax,
                             a_source_position *call_position,
                             an_operand        *result,
+                            a_boolean         *p_folded,
                             an_expr_node_ptr  *function_call_node)
 /*
 Assemble a function call from the various pieces.  *function_operand
@@ -15963,7 +16033,8 @@ If non-NULL, function_call_node is the address of an expression node
 pointer that will be set to point to the actual call node itself
 (which might be below the expression in the result because of
 transformations on the return value).  It is returned NULL for some
-error cases.
+error cases.  If p_folded is non-NULL, *p_folded is set to reflect
+whether the call was folded or not.
 */
 {
   an_expr_node_ptr function_node;
@@ -16088,7 +16159,7 @@ dependent_case:;
                        compiler_generated, /*is_conversion=*/FALSE,
                        arg_dep_lookup_suppressed, qualified_function_name,
                        found_through_adl, uses_operator_syntax,
-                       call_position, result, function_call_node);
+                       call_position, result, p_folded, function_call_node);
   }  /* if */
   result->position = *call_position;
 }  /* assemble_function_call */
@@ -16148,7 +16219,7 @@ intended to be called from outside of the expression routines.
   func_addr_node->next = dest;
   dest->next = source;
   /* Make the call node. */
-  node = func_call_expr(func_addr_node, rout->type,
+  node = func_call_expr(func_addr_node, rout->type, rout,
                         rout->is_virtual && !suppress_virtual,
                         rout->is_virtual && suppress_virtual,
                         /*selector_is_object_pointer=*/TRUE,
@@ -19761,6 +19832,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
                              &operand_position, operand,
+                             /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);
       if (func_call_node != NULL) {
         an_expr_node_ptr              routine_expr;
@@ -19956,7 +20028,8 @@ to TRUE and *result becomes an error operand.
                                /*qualified_function_name=*/FALSE,
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
-                               operator_pos, result, &func_call_node);
+                               operator_pos, result,
+                               /*p_folded=*/(a_boolean*)NULL, &func_call_node);
 #if !DO_IL_LOWERING
         if (func_call_node != NULL) {
           an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
@@ -20185,6 +20258,7 @@ Currently, the call must be to a nonstatic member function.
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
                              &selector_operand->position, result,
+                             /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);
       if (nonreal_case && func_call_node != NULL &&
           node_operator_is(func_call_node, eok_call)) {
@@ -20290,6 +20364,7 @@ call.
                            /*uses_operator_syntax=*/FALSE,
                            pos,
                            result,
+                           /*p_folded=*/(a_boolean*)NULL,
                            call_node);
   } else {
     make_error_operand(result);

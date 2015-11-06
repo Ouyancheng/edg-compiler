@@ -2095,6 +2095,7 @@ extern void make_function_call(an_expr_node_ptr  function_node,
                                a_boolean         uses_operator_syntax,
                                a_source_position *call_pos,
                                an_operand        *result,
+                               a_boolean         *p_folded,
                                an_expr_node_ptr  *function_call_node);
 
 extern void assemble_function_call(an_operand        *function_operand,
@@ -2107,6 +2108,7 @@ extern void assemble_function_call(an_operand        *function_operand,
                                    a_boolean         uses_operator_syntax,
                                    a_source_position *call_position,
                                    an_operand        *result,
+                                   a_boolean         *p_folded,
                                    an_expr_node_ptr  *function_call_node);
 
 extern a_statement_ptr make_call_assignment_statement(
@@ -2343,14 +2345,10 @@ extern void discard_operand(an_operand *operand);
 
 extern a_boolean in_potential_constant_constexpr_context(void);
 
-extern a_boolean call_did_not_fold_to_constant(an_error_code     err_code,
-                                               a_routine_ptr     routine,
+extern a_boolean call_did_not_fold_to_constant(a_routine_ptr     routine,
                                                an_operand        *operand,
+                                               a_diag_list_ptr   diag_list,
                                                a_source_position *pos);
-extern
-a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
-                                   a_source_position *pos,
-                                   an_operand        *result);
 
 extern void prep_generic_nontype_template_argument(an_operand *operand);
 

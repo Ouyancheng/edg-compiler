@@ -655,16 +655,6 @@ Initialize the fields of the source-info-for-pos entry sifpp.
 }  /* clear_source_info_for_pos */
 
 
-static void clear_diag_list(a_diag_list_ptr	dlp)
-/*
-Initialize the fields of the diagnostic list entry dlp.
-*/
-{
-  dlp->head = NULL;
-  dlp->tail = NULL;
-}  /* clear_diag_list */
-
-
 static a_diagnostic_ptr alloc_diagnostic(void)
 /*
 Allocate and initialize a diagnostic entry.  Reuse an entry from a list
@@ -6046,7 +6036,8 @@ void more_info_sym_diagnostic(an_error_code     error_code,
                               a_diag_list_ptr   diag_list)
 /*
 Add the indicated diagnostic with the associated position to the list of
-diagnostics pointed to by diag_list.
+diagnostics pointed to by diag_list.  The given symbol is used to replace
+a %n placeholder in the diagnostic string.
 */
 {
   general_diagnostic(es_more_info, error_code, error_pos,
@@ -6055,6 +6046,29 @@ diagnostics pointed to by diag_list.
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_sym_diagnostic */
+
+
+void more_info_num2_diagnostic(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               unsigned long     num1,
+                               unsigned long     num2,
+                               a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The two given integers are turned into
+strings to replace %s1 and %s2 placeholders in the diagnostic string.
+*/
+{
+  char  str1[25], str2[25];
+
+  (void)sprintf(str1, "%lu", num1);
+  (void)sprintf(str2, "%lu", num2);
+  general_diagnostic(es_more_info, error_code, error_pos,
+                     (a_const_char*)str1, (a_const_char*)str2,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL, diag_list);
+}  /* more_info_num2_diagnostic */
 
 
 void pch_message(an_error_code error_code,

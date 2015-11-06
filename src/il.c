@@ -8361,7 +8361,7 @@ the given parameter types (which may be NULL).
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_routine_ptr routine_and_node_from_function_expr(an_expr_node_ptr expr,
-                                                  an_expr_node_ptr *node)
+                                                  an_expr_node_ptr *p_node)
 /*
 expr is the expression identifying the function to call in a normal call
 (including a virtual call), or some other operand that might identify
@@ -8369,13 +8369,13 @@ a function.  If it is possible to determine the specific function named,
 return a pointer to its routine entry.  Otherwise, return NULL.  The
 expression can be an lvalue or rvalue for the function, even though
 calls actually always use the rvalue form.  If the routine entry was
-identified via an enk_routine node, *node is set to point to that node;
-it is set to NULL in all other cases.
+identified via an enk_routine node and p_node is non-NULL, *p_node is set
+to point to that node; it is set to NULL in all other cases.
 */
 {
-  a_routine_ptr routine = NULL;
+  a_routine_ptr     routine = NULL;
+  an_expr_node_ptr  node = NULL;
 
-  *node = NULL;
   expr = skip_parens(expr);
   if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
@@ -8399,28 +8399,13 @@ it is set to NULL in all other cases.
       expr = skip_parens(expr->variant.operation.operands);
     }  /* if */
     if (is_routine_node(expr)) {
-      *node = expr;
+      node = expr;
       routine = node_routine(expr);
     }  /* if */
   }  /* if */
+  if (p_node != NULL) *p_node = node;
   return routine;
 }  /* routine_and_node_from_function_expr */
-
-
-a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
-/*
-expr is the expression identifying the function to call in a normal call
-(including a virtual call), or some other operand that might identify
-a function.  If it is possible to determine the specific function named,
-return a pointer to its routine entry.  Otherwise, return NULL.  The
-expression can be an lvalue or rvalue for the function, even though
-calls actually always use the rvalue form.
-*/
-{
-  an_expr_node_ptr dummy_node;
-
-  return routine_and_node_from_function_expr(expr, &dummy_node);
-}  /* routine_from_function_expr */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

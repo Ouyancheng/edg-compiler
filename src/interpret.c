@@ -315,6 +315,9 @@ typedef struct a_call_frame {
 			/* The frame in which this frame was created. */
   a_routine_ptr	routine;
 			/* The routine being called. */
+  a_source_position
+		*position;
+			/* The source position of the call. */
   a_byte	*result_storage;
 			/* The storage in which returned expression results
 			   should be placed. */
@@ -652,8 +655,8 @@ Initialize the given interpreter state.
   init_constexpr_stack(&ips->storage_stack);
   init_live_set(&ips->live_set);
   ips->curr_alloc_seq_number = 1;
-  ips->diag_list.head = NULL;
-  ips->diag_list.tail = NULL;
+  ips->curr_call_frame = NULL;
+  clear_diag_list(&ips->diag_list);
   ips->position = null_source_position;
   ips->cost = 0;
 }  /* init_interpreter_state */
@@ -797,10 +800,11 @@ large integer.
 /*
 Macros to push and pop call frames.
 */
-#define push_call_frame(ips, p_frame, rp, p_result)                          \
+#define push_call_frame(ips, p_frame, rp, pos, p_result)                     \
   {                                                                          \
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
+    (p_frame)->position = (pos);                                             \
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->break_active = FALSE;                                         \
@@ -1878,10 +1882,68 @@ expose an_interpreter_state in outside this source file).
   while (frame != NULL) {
     (void)fprintf(f_debug, "%4u: ", num++);
     db_scp((char*)frame->routine);
+    frame = frame->parent;
   }  /* while */
 }  /* db_call_stack */
 
 #endif /* DEBUG */
+
+static void info_call_stack(an_interpreter_state  *ips)
+/*
+*/
+{
+  a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
+
+  for (; frame->parent != NULL; frame = frame->parent) {
+    more_info_diagnostic(ec_constexpr_called_from, frame->position,
+                         &ips->diag_list);
+  }  /* for */
+}  /* info_call_stack */
+
+
+static void info_with_pos(an_error_code         err_code,
+                          a_source_position     *pos,
+                          an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_diagnostic(err_code, pos, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos */
+
+
+static void info_with_pos_num2(an_error_code         err_code,
+                               a_source_position     *pos,
+                               unsigned long         num1,
+                               unsigned long         num2,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_num2 */
+
+
+static void info_with_pos_sym(an_error_code         err_code,
+                              a_source_position     *pos,
+                              a_symbol_ptr          sym,
+                              an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym for placeholder substitution in the
+diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym */
 
 
 #define release_variant_path_if_needed(value)                                 \
@@ -1930,6 +1992,7 @@ address they were shallowly copied from.
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
+                                        a_source_position     *pos,
                                         a_byte                *result_storage);
 
 
@@ -1982,6 +2045,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     case ck_dynamic_init:
       {
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
+                                           &con->source_corresp.decl_position,
                                            value);
       }
       break;
@@ -2108,12 +2172,14 @@ static a_boolean do_constexpr_expression(
 
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
+                                   a_source_position     *pos,
                                    a_byte                *result_storage);
 
 
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
+                                        a_source_position     *pos,
                                         a_byte                *result_storage)
 /*
 Evaluate the given dynamic initialization for the given storage.
@@ -2132,7 +2198,7 @@ Evaluate the given dynamic initialization for the given storage.
                                        result_storage);
       break;
     case dik_constructor:
-      result = do_constexpr_ctor(ips, dip, result_storage);
+      result = do_constexpr_ctor(ips, dip, pos, result_storage);
       break;
     case dik_class_result_via_ctor:
     case dik_bitwise_copy:
@@ -2401,7 +2467,8 @@ Interpret the given range-based for-statement.
   /* Initialize the range and its delimiters: */
   for (k = 1; k<4; ++k) {
     dip = vp[k]->initializer.dynamic;
-    if (!do_constexpr_dynamic_init(ips, dip, var_storage[k])) {
+    if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
+                                   var_storage[k])) {
       result = FALSE;
       break;
     }  /* if */
@@ -2450,7 +2517,8 @@ Interpret the given range-based for-statement.
         }  /* if */
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
-          if (!do_constexpr_dynamic_init(ips, dip, var_storage[0])) {
+          if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
+                                         var_storage[0])) {
             result = FALSE;
             break;
           }  /* if */
@@ -2808,7 +2876,8 @@ done_with_switch:
           /* Evaluate the initializer. */
           a_storage_stack_state  saved_stack_for_full_expr;
           save_storage_stack((ips), saved_stack_for_full_expr);
-          result = do_constexpr_dynamic_init(ips, dip, var_storage);
+          result = do_constexpr_dynamic_init(ips, dip, &stmt->position,
+                                             var_storage);
           restore_storage_stack(ips, saved_stack_for_full_expr);
         }  /* if */
       }
@@ -2851,9 +2920,8 @@ accordingly.
   /* Retrieve the routine scope, or issue an error. */
   if (callee->function_def_number == NULL_function_def_number) {
     /* FIXME: error. */
-    more_info_diagnostic(ec_constexpr_function_undefined,
-                         &callee->source_corresp.decl_position,
-                         &ips->diag_list);
+    info_with_pos(ec_constexpr_function_undefined,
+                  &callee->source_corresp.decl_position, ips);
     result = FALSE;
 #if /*FIXME*/0
   } else if (ellipsis_case) {
@@ -2924,7 +2992,7 @@ accordingly.
                      ips->curr_alloc_seq_number);
     }  /* for */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, result_storage);
+    push_call_frame(ips, &frame, callee, &call_node->position, result_storage);
     /* Run the function's top-level block statement. */
     if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
@@ -2951,11 +3019,12 @@ done:
 
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
+                                   a_source_position     *pos,
                                    a_byte                *result_storage)
 /*
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
-*ips accordingly.
+*ips accordingly.  pos is the position of the call.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreter prior to interpreting
@@ -3032,7 +3101,7 @@ the body of the (constructor) function proper.
                      ips->curr_alloc_seq_number);
     }  /* for */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, result_storage);
+    push_call_frame(ips, &frame, callee, pos, result_storage);
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
@@ -3045,6 +3114,7 @@ the body of the (constructor) function proper.
         get_mapped_byte_count(&persistent_map, bcp, offset);
       }  /* if */
       if (!do_constexpr_dynamic_init(ips, ctor_init->initializer,
+                                     &callee->source_corresp.decl_position,
                                      result_storage+offset)) {
         result = FALSE;
         break;
@@ -3141,8 +3211,8 @@ of the prvalue result.
         a_byte_count     opnd_n_bytes;
 
         if (is_call_node(expr)) {
-          /* Call nodes are handled separately.  FIXME: Maybe this should not
-             be the case. */
+          /* Call nodes are handled separately because their operands are set
+             up a little differently. */
           result = do_constexpr_call(ips, expr, result_storage);
           goto done;
         } else if (node_operator_is(expr, eok_parens) ||
@@ -5012,13 +5082,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 }  /* if */
                 /* Carefully add the two, if appropriate. */
                 if (ovfl) {
-                  result = FALSE;  /* FIXME: diagnostic */
+                  result = FALSE;
+                  info_with_pos(ec_integer_overflow, &expr->position, ips);
                 } else {
                   if (host_int_val == 0) {
                     /* Leave the address unchanged. */
                     set_result_val_from_operand_address(&result_addr);
                   } else if (!is_array_element(&result_addr)) {
-                    result = FALSE;  /* FIXME: diagnostic */
+                    result = FALSE;
+                    info_with_pos(ec_constexpr_non_array_subscript,
+                                  &expr->position, ips);
                   } else {
                     a_byte_count  elem_size, pos, len;
                     a_byte        *base_address;
@@ -5032,7 +5105,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                         (len-pos < (a_byte_count)host_int_val)
                                       : (pos < (a_byte_count)-host_int_val)) {
                       /* Out of bounds. */
-                      result = FALSE;  /* FIXME: diagnostic */
+                      result = FALSE;
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position,
+                                       (unsigned long)(pos+host_int_val),
+                                       (unsigned long)len, ips);
                     } else {
                       result_addr.address +=
                         host_int_val
@@ -5058,8 +5135,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (opnd1_type->kind == (a_type_kind)tk_union &&
                     !is_runtime_data_address(&result_addr) &&
                     !add_to_variant_path(&result_addr, field)) {
-                  /* FIXME: out-of-resources diagnostic, maybe? */
-                  result = FALSE;
+                  /* We should not return from the failure of adding a variant
+                     path entry. */
+                  unexpected_condition();
                 } else {
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
@@ -5103,13 +5181,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 result = do_constexpr_expression(ips, opnd2, result_storage);
               }
               break;
-#if /* FIXME: Handled separately above, for now. */0
             case eok_call:
-              result = do_constexpr_call(ips, expr, result_storage);
-              break;
-#endif /* 0 */
+              /* Calls are handled separately.  We should not get here. */
+              /*FALLTHROUGH*/
             default:
-              unexpected_condition();  /* FIXME: handle errors. */
+              unexpected_condition();
           }  /* switch */
         }  /* if */
       }
@@ -5139,10 +5215,8 @@ type.  This includes checking the value of ovfl set by the operation.
             if (con != NULL) {
               result = copy_val_from_constant(ips, con, result_storage);
             } else {
-              more_info_sym_diagnostic(ec_variable_not_constant_valued,
-                                       &expr->position,
-                                       symbol_for(var),
-                                       &ips->diag_list);
+              info_with_pos_sym(ec_variable_not_constant_valued,
+                                &expr->position, symbol_for(var), ips);
               result = FALSE;
             }  /* if */
           }  /* if */
@@ -5163,10 +5237,8 @@ type.  This includes checking the value of ovfl set by the operation.
               clear_runtime_constant_address(result_storage, con);
             } else {
               release_local_constant(&con);
-              more_info_sym_diagnostic(ec_variable_not_constant_addressed,
-                                       &expr->position,
-                                       symbol_for(var),
-                                       &ips->diag_list);
+              info_with_pos_sym(ec_variable_not_constant_addressed,
+                                &expr->position, symbol_for(var), ips);
               result = FALSE;
             }  /* if */
           }  /* if */
@@ -5394,7 +5466,8 @@ return FALSE.
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_stack_bytes(&ips, n_bytes, result_storage);
-  if (result && !do_constexpr_ctor(&ips, dip, result_storage)) {
+  if (result &&
+      !do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
     result = FALSE;
   } else if (!copy_interpreter_object_to_constant(
                                    result_storage, result_type, result_con)) {

@@ -51,6 +51,13 @@ typedef struct a_diag_list {
 
 
 /*
+Initialize the fields of the given diagnostic list entry.
+*/
+#define clear_diag_list(dlp) \
+  { (dlp)->head = NULL; (dlp)->tail = NULL; }
+
+
+/*
 Structure used to map error tags into error codes.  An array of these
 entries is used.  The array is sorted by tag so that a binary search
 may be used to look up a given tag.
@@ -643,6 +650,12 @@ extern void more_info_sym_diagnostic(an_error_code     error_code,
                                      a_source_position *error_pos,
                                      struct a_symbol   *sym,
                                      a_diag_list_ptr   diag_list);
+
+extern void more_info_num2_diagnostic(an_error_code     error_code,
+                                      a_source_position *error_pos,
+                                      unsigned long     num1,
+                                      unsigned long     num2,
+                                      a_diag_list_ptr   diag_list);
 
 extern void add_more_info_list(a_diagnostic_ptr		dp,
 			       a_diag_list_ptr		dlp);

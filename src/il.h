@@ -876,6 +876,12 @@ extern a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr);
 extern a_routine_ptr routine_and_node_from_function_expr(
                                                        an_expr_node_ptr expr,
                                                        an_expr_node_ptr *node);
+/*
+Convenience macro to call routine_and_node_from_function_expr when the call
+node is not needed.
+*/
+#define routine_from_function_expr(expr) \
+  (routine_and_node_from_function_expr(expr, (an_expr_node_ptr*)NULL))
 
 extern a_type_ptr add_param_type(a_type_ptr  rout_type,
                                  a_type_ptr  param_type);

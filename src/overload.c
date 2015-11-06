@@ -16651,22 +16651,8 @@ no_applicable_operator_function:
                                      found_through_adl,
                                      /*uses_operator_syntax=*/TRUE,
                                      operator_position, result,
+                                     &folded_to_constant,
                                      &func_call_node);
-              if (constexpr_enabled &&
-                  func_call_node != NULL &&
-                  expr_fold_constexpr_call(func_call_node,
-                                           operator_position,
-                                           result)) {
-                /* The operator function is constexpr and the call was folded
-                   to a constant result. */
-                folded_to_constant = TRUE;
-              } else {
-                a_routine_ptr rp =
-                              routine_from_function_operand(&function_operand);
-                (void)call_did_not_fold_to_constant(ec_expr_not_constant,
-                                                    rp, result,
-                                                    (a_source_position *)NULL);
-              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -18530,19 +18516,8 @@ the temporary.
                        /*found_through_adl=*/FALSE,
                        /*uses_operator_syntax=*/FALSE,
                        &orig_operand.position, operand,
+                       /*p_folded=*/(a_boolean*)NULL,
                        &conv_function_call_node);
-    if (conversion_routine->is_constexpr &&
-        conv_function_call_node != NULL &&
-        expr_fold_constexpr_call(conv_function_call_node,
-                                 &orig_operand.position, operand)) {
-      /* The conversion function is constexpr and the call was folded to a
-         constant result. */
-    } else {
-      (void)call_did_not_fold_to_constant(ec_expr_not_constant,
-                                          conversion_routine,
-                                          operand,
-                                          (a_source_position *)NULL);
-    }  /* if */
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
          function is what we want. */

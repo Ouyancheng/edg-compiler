@@ -3223,8 +3223,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    folded_con->is_result_of_constexpr_call) {
           /* The construction was folded to a constant result. */
         } else {
-          (void)call_did_not_fold_to_constant(ec_expr_not_constant, routine,
-                                              (an_operand *)NULL, source_pos);
+          (void)call_did_not_fold_to_constant(routine, (an_operand *)NULL,
+                                              (a_diag_list_ptr)NULL,
+                                              source_pos);
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {
@@ -3984,8 +3985,8 @@ of gcc and g++ return slightly different values for some expression types.
 #if !BUILTIN_FUNCTIONS_ENABLED
 /*ARGSUSED*/  /* <-- arguments not used in that case. */
 #endif /* !BUILTIN_FUNCTIONS_ENABLED */
-static a_boolean fold_gnu_call_if_possible(an_operand       *op,
-                                           an_expr_node_ptr call)
+a_boolean fold_gnu_call_if_possible(an_operand_ptr   op,
+                                    an_expr_node_ptr call)
 /*
 The given operand must represent a function call, and call is the
 function call node from that call.  Some GNU-style __builtin_xxx
@@ -4284,6 +4285,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
                                &operand->position, result_op,
+                               /*p_folded=*/(a_boolean*)NULL,
                                (an_expr_node_ptr *)NULL);
         if (is_constant_operand(&arg) || in_constant_expression ||
             bfk == (a_builtin_function_kind)bfk_classify_type) {
@@ -4337,6 +4339,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                    /*found_through_adl=*/FALSE,
                                    /*uses_operator_syntax=*/FALSE,
                                    &operand->position, result_op,
+                                   /*p_folded=*/(a_boolean*)NULL,
                                    (an_expr_node_ptr *)NULL);
           }  /* if */
         }
@@ -5556,32 +5559,9 @@ are expected to be NULL in that case.
                            arg_dep_lookup_suppressed,
                            adl_suppressed_by_qualification,
                            found_through_adl, uses_operator_syntax,
-                           &call_position, result, &function_call_node);
+                           &call_position, result, &call_folded_to_constant,
+                           &function_call_node);
     result_operand_is_call = TRUE;
-    if (!is_error_operand(result) && function_call_node != NULL) {
-      if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
-          expr_fold_constexpr_call(function_call_node, &call_position,
-                                   result)) {
-        /* The call is to a constexpr function and it has been folded to
-           a constant result. */
-        call_folded_to_constant = TRUE;
-      } else if (call_may_be_folded) {
-        /* Some __builtin_xxx functions act as constant-expressions. */
-        call_folded_to_constant = fold_gnu_call_if_possible(
-                                                           result,
-                                                           function_call_node);
-      }  /* if */
-      if (!call_folded_to_constant) {
-        /* Unfolded routine calls are not allowed in constant expressions. */
-        (void)call_did_not_fold_to_constant(
-                                      constexpr_enabled ?
-                                        ec_bad_cpp11_constant_function_call :
-                                        ec_bad_constant_function_call,
-                                      routine,
-                                      result,
-                                      (a_source_position *)NULL);
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (saved_uses_this_operand && !expr_stack->uses_this_operand) {
     /* If the surrounding expression used "this", restore that information for
@@ -31286,7 +31266,7 @@ Scan a user-defined literal and return an operand for it in *operand.
   if (make_func_operand_for_literal_operator_call(&func_operand)) {
     an_expr_node_ptr arg_list;
     an_expr_node_ptr function_call_node;
-    a_routine_ptr    routine = routine_from_function_operand(&func_operand);
+    a_boolean        folded;
     arg_list = make_implicit_operands_for_literal_operator_call();
     check_assertion(!func_operand.bound_function);
 #ifdef _lint
@@ -31302,20 +31282,8 @@ Scan a user-defined literal and return an operand for it in *operand.
                            /*found_through_adl=*/FALSE,
                            /*uses_operator_syntax=*/TRUE,
                            &pos_curr_token,
-                           result, &function_call_node);
-    if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
-        expr_fold_constexpr_call(function_call_node, &pos_curr_token,
-                                 result)) {
-      /* The call is to a constexpr function and it has been folded to
-         a constant result. */
-    } else {
-      /* Unfolded routine calls are not allowed in constant expressions;
-         report an error if necessary. */
-      (void)call_did_not_fold_to_constant(constexpr_enabled
-                                          ? ec_bad_cpp11_constant_function_call
-                                          : ec_bad_constant_function_call,
-                                          routine, result,
-                                          (a_source_position *)NULL);
+                           result, &folded, &function_call_node);
+    if (!folded) {
       rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
   } else {
@@ -34323,6 +34291,7 @@ for-each (otherwise it's a range-based-for).
                            /*uses_operator_syntax=*/FALSE,
                            expr_position,
                            result,
+                           /*p_folded=*/(a_boolean*)NULL,
                            &func_call_node);
     if (func_call_node != NULL) {
       member_function_found = TRUE;
@@ -36199,6 +36168,7 @@ This function is largely based on check_range_based_for_default_case.
                              /*uses_operator_syntax=*/FALSE,
                              pos, 
                              &result,
+                             /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);
       result.position = *pos;
       if (func_call_node != NULL) {
