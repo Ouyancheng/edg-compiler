@@ -871,8 +871,6 @@ extern a_type_ptr make_routine_type(a_type_ptr        return_type,
                                     a_type_ptr        param3_type,
                                     a_type_ptr        param4_type);
 
-extern a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr);
-
 extern a_routine_ptr routine_and_node_from_function_expr(
                                                        an_expr_node_ptr expr,
                                                        an_expr_node_ptr *node);
