@@ -402,7 +402,7 @@ recorded in the stmk_init statement.
                                           stmt_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (stmt_end_pos != NULL) {
-      set_stmt_source_position(init_stmt->end_position, *stmt_end_pos);
+      init_stmt->end_position = *stmt_end_pos;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (p_init_stmt != NULL) {

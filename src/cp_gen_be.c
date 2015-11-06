@@ -13526,18 +13526,6 @@ This can be a condition declaration or simply an expression.
 }  /* gen_condition */  
 
 
-static void set_output_position_for_stmt(a_stmt_source_position *spos)
-/*
-Set the output position to match the statement position given by *spos.
-*/
-{
-  a_source_position pos;
-
-  set_position_from_stmt_source_position(pos, *spos);
-  set_output_position(&pos);
-}  /* set_output_position_for_stmt */
-
-
 static void gen_for_statement(a_statement_ptr statement)
 /*
 Generate code for the indicated "for" statement.
@@ -13780,7 +13768,7 @@ exception-handling "try" block.
        handler != NULL;
        handler = handler->next) {
     a_variable_ptr handler_var = handler->parameter;
-    set_output_position_for_stmt(&handler->catch_position);
+    set_output_position(&handler->catch_position);
     write_tok_str("catch (");
     if (handler_var == NULL) {
       /* A NULL parameter means the handler can catch anything. */
@@ -15035,7 +15023,7 @@ TRUE, the block is the body of a GNU statement expression.
       adv_curr_source_sequence_entry();
     }  /* if */
   }  /* if */
-  set_output_position_for_stmt(&block->final_position);
+  set_output_position(&block->final_position);
   write_tok_ch('}');
 }  /* gen_block_statement */
 
@@ -15377,7 +15365,7 @@ one that yields the value) of a statement expression.
       check_for_and_take_source_seq_entry(statement->source_sequence_entry);
     }  /* if */
     /* Adjust the output position to match the statement position. */
-    set_output_position_for_stmt(&statement->position);
+    set_output_position(&statement->position);
   }  /* if */
   gen_attributes(statement->attributes, al_prefix, /*primary_only=*/FALSE);
   switch (kind) {

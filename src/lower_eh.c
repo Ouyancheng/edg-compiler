@@ -4796,8 +4796,7 @@ statement if necessary.
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
   /* Set the current position to the opening brace of the function. */
-  set_position_from_stmt_source_position(code_pos_for_lowering,
-                                         scope->assoc_block->position);
+  code_pos_for_lowering = scope->assoc_block->position;
   error_position = code_pos_for_lowering;
   /* The insert location for the statements is the start of the top block of
      the routine. */

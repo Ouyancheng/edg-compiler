@@ -660,15 +660,15 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #define set_stmt_pos_to_code_pos_for_lowering(stmt)                       \
 { if ((stmt) != NULL) {                                                   \
-    set_stmt_source_position((stmt)->position, code_pos_for_lowering);    \
-    set_stmt_source_position((stmt)->end_position, code_pos_for_lowering);\
+    (stmt)->position = code_pos_for_lowering;                             \
+    (stmt)->end_position = code_pos_for_lowering;                         \
   }  /* if */                                                             \
 }  /* set_stmt_pos_to_code_pos_for_lowering */
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define set_stmt_pos_to_code_pos_for_lowering(stmt)                   \
-{ if ((stmt) != NULL) {                                               \
-    set_stmt_source_position((stmt)->position, code_pos_for_lowering);\
-  }  /* if */                                                         \
+#define set_stmt_pos_to_code_pos_for_lowering(stmt)                       \
+{ if ((stmt) != NULL) {                                                   \
+    (stmt)->position = code_pos_for_lowering;                             \
+  }  /* if */                                                             \
 }  /* set_stmt_pos_to_code_pos_for_lowering */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 

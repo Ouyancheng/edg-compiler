@@ -260,34 +260,6 @@ typedef struct a_seq_number_lookup_entry {
 			/* The source file containing this sequence number. */ 
 } a_seq_number_lookup_entry;
 
-/*
-A source position as stored in an IL statement.  Depending on conditional
-compilation, it is either just a sequence number or a full source position.
-seq_number_from_stmt_source_position is a macro that extracts the
-sequence number part of a statement source position.
-set_stmt_source_position sets a statement source position from a
-(full) source position.
-set_position_from_stmt_source_position sets a (full) source position
-from a statement source position.
-clear_stmt_source_position clears a statement source position to a
-value indicating an unknown position.
-*/
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-typedef a_source_position a_stmt_source_position;
-#define seq_number_from_stmt_source_position(stmt_pos) ((stmt_pos).seq)
-#define set_stmt_source_position(stmt_pos, pos) ((stmt_pos) = (pos))
-#define set_position_from_stmt_source_position(pos, stmt_pos) \
-  ((pos) = (stmt_pos))
-#define clear_stmt_source_position(stmt_pos) \
-{ (stmt_pos) = null_source_position; }
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-typedef a_seq_number a_stmt_source_position;
-#define seq_number_from_stmt_source_position(stmt_pos) (stmt_pos)
-#define set_stmt_source_position(stmt_pos, pos) ((stmt_pos) = (pos).seq)
-#define set_position_from_stmt_source_position(pos, stmt_pos) \
-{ set_position_to((pos), (stmt_pos), SP_COL_UNKNOWN); }
-#define clear_stmt_source_position(stmt_pos) ((stmt_pos) = 0)
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
@@ -16273,7 +16245,7 @@ typedef a_byte  a_statement_kind;
 /* Extra information about a statement of kind stmk_block (block statement). */
 typedef struct a_block *a_block_ptr;
 typedef struct a_block {
-  a_stmt_source_position
+  a_source_position
 		final_position;
                         /* Source position of the end of the block, for
 			   symbolic debug purposes. */
@@ -16732,7 +16704,7 @@ typedef struct a_handler {
 			/* Pointer to the next in the linked list of handlers
 			   defined for a given try block; NULL for the last
 			   in the list. */
-  a_stmt_source_position
+  a_source_position
 		catch_position;
                         /* Source position of the catch clause, for symbolic
 			   debug purposes. */
@@ -16859,12 +16831,12 @@ typedef struct a_coroutine_descr {
 
 typedef struct a_statement {
   /* Definition of an executable statement. */
-  a_stmt_source_position
+  a_source_position
 		position;
 			/* Source position from which this statement came.
 			   0 if no direct correspondence. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_stmt_source_position
+  a_source_position
 		end_position;
 			/* Source position of the end of this statement.
 			   0 if no direct correspondence. */
@@ -16955,7 +16927,7 @@ typedef struct a_statement {
                            statement if there are several dependent
                            statements. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      a_stmt_source_position
+      a_source_position
 		else_position;
                         /* The position of the "else" keyword (if any). */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

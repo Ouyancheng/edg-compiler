@@ -3126,12 +3126,7 @@ including (a) the string descr, (b) a rendering of the given attribute, and
             break;
           case iek_statement:
             (void)fprintf(f_debug, "at ");
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
             db_source_position(&((a_statement*)entity)->position);
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-            (void)fprintf(f_debug, "line %lu",
-                          (unsigned long)((a_statement*)entity)->position);
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
             break;
           default:
             (void)fprintf(f_debug, "(no extra info)");

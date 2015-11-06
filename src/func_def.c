@@ -132,7 +132,7 @@ returned to the caller.
 
   db_enter(3, "scan_asm_function_body");
   stmt = alloc_statement((a_statement_kind)stmk_asm_func_body);
-  set_stmt_source_position(stmt->position, pos_curr_token);
+  stmt->position = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char *)stmt, (an_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

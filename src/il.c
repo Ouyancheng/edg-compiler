@@ -2551,17 +2551,14 @@ Dump a statement, for debug purposes.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:;
     }  /* switch */
-    fprintf(f_debug, ", at %lu",
-            (unsigned long)seq_number_from_stmt_source_position(sp->position));
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    fprintf(f_debug, "/%lu", (unsigned long)sp->position.column);
+    fprintf(f_debug, ", at %lu/%lu", (unsigned long)sp->position.seq,
+                                     (unsigned long)sp->position.column);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (sp->end_position.seq != 0) {
       fprintf(f_debug, " -- %lu/%lu", (unsigned long)sp->end_position.seq,
               (unsigned long)sp->end_position.column);
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
     fputc('\n', f_debug);
   }  /* if */
 }  /* db_statement */
@@ -2641,8 +2638,7 @@ the dump (this one counts as the first).
                 for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
                 fprintf(f_debug, "catch%s, at %lu:",
                         hp->parameter == NULL ? " (...)" : "",
-                        (unsigned long)seq_number_from_stmt_source_position(
-                                                         hp->catch_position));
+                        (unsigned long)hp->catch_position.seq);
                 if (hp->statement->kind == (a_statement_kind)stmk_block) {
                   fputs(" ", f_debug);
                   db_statement(hp->statement);
@@ -21490,9 +21486,9 @@ statement that returns a value).  See change_block_into_statement_expression.
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = stmt_copy;
   stmt_copy->parent = statement;
-  clear_stmt_source_position(statement->position);
+  statement->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  clear_stmt_source_position(statement->end_position);
+  statement->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* change_statement_into_block */
 

@@ -49,7 +49,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   } else {
     if (kind == (an_il_entry_kind)iek_statement) {
       sp = (a_statement_ptr)ssep->entity.ptr;
-      seq = seq_number_from_stmt_source_position(sp->position);
+      seq = sp->position.seq;
       if (seq != 0) fprintf(f_debug, " (at %lu)", (unsigned long)seq);
       fputs(": ", f_debug);
       if (sp->kind == (a_statement_kind)stmk_init) {
@@ -84,7 +84,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           sp = (a_statement_ptr)sseocp->entity.ptr;
           db_statement_kind(sp->kind);
           fputs(" statement", f_debug);
-          seq = seq_number_from_stmt_source_position(sp->position);
+          seq = sp->position.seq;
           if (seq != 0) {
             fprintf(f_debug, " (at %lu)", (unsigned long)seq);
           }  /* if */
@@ -1035,8 +1035,7 @@ sequence list.
     sseocp->position = pos_curr_token;
     if (kind == (a_byte_il_entry_kind)iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)ptr;
-      if (sp->kind == (a_statement_kind)stmk_block &&
-          seq_number_from_stmt_source_position(sp->position) == 0) {
+      if (sp->kind == (a_statement_kind)stmk_block && sp->position.seq == 0) {
         /* This construct is a compiler-generated block surrounding a
            dependent statement.  Since no source position is put out on the
            original entity, suppress it on the end-of-construct entry, too. */

@@ -16622,8 +16622,7 @@ and it was replaced by something else; see turn_statement_into_noop).
 #define is_noop_statement(statement)                                  \
   ((statement)->kind == (a_statement_kind)stmk_block &&               \
    (statement)->variant.block.statements == NULL &&                   \
-   seq_number_from_stmt_source_position((statement)->                 \
-                 variant.block.extra_info->final_position) == 0)
+   (statement)->variant.block.extra_info->final_position.seq == 0)
 
 
 void lower_statement_list(a_statement_ptr statement_list,
@@ -16649,8 +16648,7 @@ there are no statements on the list.
        stmk_vla_decl statements). */
     statement_next = statement->next;
     eff_statement = statement;
-    set_position_from_stmt_source_position(code_pos_for_lowering,
-                                           statement->position);
+    code_pos_for_lowering = statement->position;
     error_position = code_pos_for_lowering;
     /* See if a new object lifetime begins at this statement because
        it is a label or switch case statement. */
@@ -16879,8 +16877,8 @@ position on a function whose top statement is a function-try-block once
 the try-block has been rewritten).
 */
 {
-  a_statement_ptr        orig_stmt;
-  a_stmt_source_position final_position;
+  a_statement_ptr    orig_stmt;
+  a_source_position  final_position;
 
   check_assertion(statement->kind == (a_statement_kind)stmk_try_block);
   turn_statement_into_block(statement, insert_location, orig_statement);
@@ -16897,8 +16895,8 @@ the try-block has been rewritten).
     for (handler = tsp->handlers;
          handler->next != NULL;
          handler = handler->next) {}
-    final_position = handler->statement->variant.block.extra_info->
-                                                                final_position;
+    final_position = handler->statement->variant.block.extra_info
+                                       ->final_position;
   }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   statement->variant.block.extra_info->final_position = final_position;
@@ -17490,9 +17488,8 @@ curr_context->curr_cleanup_state had at the start of the block.
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
     if (block->end_of_block_reachable) {
-      if (seq_number_from_stmt_source_position(block->final_position) != 0) {
-        set_position_from_stmt_source_position(code_pos_for_lowering,
-                                               block->final_position);
+      if (block->final_position.seq != 0) {
+        code_pos_for_lowering = block->final_position;
       }  /* if */
       gen_cleanup_actions(lifetime, &insert_location);
     } else {
@@ -17547,8 +17544,7 @@ statement in the block, or NULL if there are no statements in the block.
   a_context          context;
   a_scope_ptr        scope;
 
-  set_position_from_stmt_source_position(code_pos_for_lowering,
-                                         statement->position);
+  code_pos_for_lowering = statement->position;
   error_position = code_pos_for_lowering;
   /* Save the statement list pointer early in case code is inserted
      to initialize conditional flags or the catch handler parameter. */
@@ -18544,8 +18540,7 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* DEBUG */
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
-    set_position_from_stmt_source_position(code_pos_for_lowering,
-                                           statement->position);
+    code_pos_for_lowering = statement->position;
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
     stmt_expr = statement->expr;

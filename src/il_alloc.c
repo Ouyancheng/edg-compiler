@@ -3739,7 +3739,7 @@ Allocate a handler, clear it to default values, and return a pointer to it.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   hp->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-  clear_stmt_source_position(hp->catch_position);
+  hp->catch_position = null_source_position;
 
   return hp;
 }  /* alloc_handler */
@@ -3811,7 +3811,7 @@ fields to default values.
       sp->variant.if_stmt.then_statement =
           sp->variant.if_stmt.else_statement = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      clear_stmt_source_position(sp->variant.if_stmt.else_position);
+      sp->variant.if_stmt.else_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       break;
     case stmk_while:
@@ -3877,7 +3877,7 @@ fields to default values.
 #if DEBUG
       num_blocks_allocated++;
 #endif /* DEBUG */
-      clear_stmt_source_position(bp->final_position);
+      bp->final_position = null_source_position;
       bp->assoc_scope            = NULL;
       bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
@@ -3966,9 +3966,9 @@ to it.  The statement kind is set as indicated.
 #if DEBUG
   num_statements_allocated++;
 #endif /* DEBUG */
-  clear_stmt_source_position(sp->position);
+  sp->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  clear_stmt_source_position(sp->end_position);
+  sp->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sp->next                    = NULL;
   sp->parent                  = NULL;

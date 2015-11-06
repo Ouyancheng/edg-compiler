@@ -814,7 +814,6 @@ command-line when compiling system headers.
 /* Unless specified otherwise, Cygwin version will have full macro position
    and tracing facilities. */
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
-#define FULL_SOURCE_POS_IN_IL_STATEMENT 1
 #ifndef FULLY_RESOLVED_MACRO_POSITIONS
 #define FULLY_RESOLVED_MACRO_POSITIONS 1
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */

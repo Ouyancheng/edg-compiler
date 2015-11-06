@@ -4120,8 +4120,7 @@ Do C99 lowering on the indicated statement.
     pending_stmk_init_statements = NULL;
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
-    set_position_from_stmt_source_position(code_pos_for_lowering,
-                                           statement->position);
+    code_pos_for_lowering = statement->position;
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
     if (statement->expr != NULL) {

@@ -1183,18 +1183,15 @@ enable this only if you really need it.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
-Flag that is TRUE to cause the IL entry for a statement to contain a full
-source position (sequence number, column number) instead of just a
-sequence number.  It should always be TRUE if EXTRA_SOURCE_POSITIONS_IN_IL
-is TRUE.
+Earlier versions of the front end could be configured to record just a
+sequence number instead of a full position in IL entries representing
+statements.  That option is no longer supported.
 */
-#ifndef FULL_SOURCE_POS_IN_IL_STATEMENT
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
+#ifdef FULL_SOURCE_POS_IN_IL_STATEMENT
+#if !FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+ #error -- FULL_SOURCE_POS_IN_IL_STATEMENT set to FALSE is no longer supported
+#endif /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
+#endif /* ifdef FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
 Flag that is TRUE if IL lowering should normalize boolean controlling

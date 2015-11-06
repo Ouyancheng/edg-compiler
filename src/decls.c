@@ -12882,7 +12882,7 @@ a normal try.
   handler = alloc_handler();
   /* Set the assoc_handler field of the IL scope entry. */
   set_block_scope_handler(handler);
-  set_stmt_source_position(handler->catch_position, *catch_pos);
+  handler->catch_position = *catch_pos;
   if (required_token(tok_lparen, ec_exp_lparen)) {
     a_decl_parse_state  state;
     init_decl_parse_state(&state);

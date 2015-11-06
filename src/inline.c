@@ -1780,10 +1780,10 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
             /* Replace the original call statement by overwriting it with
                the block statement containing the inlined code.  But keep
                the original statement source position. */
-            { a_stmt_source_position saved_position;
-              a_statement_ptr        saved_parent = statement->parent;
+            { a_source_position  saved_position;
+              a_statement_ptr    saved_parent = statement->parent;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-              a_stmt_source_position saved_end_position;
+              a_source_position  saved_end_position;
               saved_end_position = statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               saved_position = statement->position;

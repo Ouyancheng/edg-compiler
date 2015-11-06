@@ -6270,11 +6270,6 @@ file.
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */
   comment_undefined_macro_name(FULLY_RESOLVED_MACRO_POSITIONS);
 #endif /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
-#if defined(FULL_SOURCE_POS_IN_IL_STATEMENT)
-  define_numeric_valued_macro(FULL_SOURCE_POS_IN_IL_STATEMENT);
-#else /* !defined(FULL_SOURCE_POS_IN_IL_STATEMENT) */
-  comment_undefined_macro_name(FULL_SOURCE_POS_IN_IL_STATEMENT);
-#endif /* defined(FULL_SOURCE_POS_IN_IL_STATEMENT) */
 #if defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED)
   define_numeric_valued_macro(
                             FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);

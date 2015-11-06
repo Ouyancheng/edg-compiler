@@ -12140,7 +12140,7 @@ Add the indicated statement to the end of the pending_stmk_init_statements
 list.
 */
 {
-  check_assertion(seq_number_from_stmt_source_position(stmt->position) == 0);
+  check_assertion(stmt->position.seq == 0);
   /* Set the statement's position to the current position (otherwise
      this statement might be mistaken by a back end as being part of the
      previous statement).  Applies to both compound literals and VLAs (when
@@ -14828,8 +14828,7 @@ constructors are handled separately.
   */
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
-  set_position_from_stmt_source_position(code_pos_for_lowering,
-                                         scope->assoc_block->position);
+  code_pos_for_lowering = scope->assoc_block->position;
   error_position = code_pos_for_lowering;
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
@@ -15130,8 +15129,7 @@ constructor scope, and also lower the user code.
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
-  set_position_from_stmt_source_position(code_pos_for_lowering,
-                                         top_stmt->position);
+  code_pos_for_lowering = top_stmt->position;
   error_position = code_pos_for_lowering;
   if (top_stmt->kind == (a_statement_kind)stmk_try_block) {
     /* This constructor has a function-try-block as the top statement. */
@@ -15606,10 +15604,9 @@ insert_dtor_member_and_base_destructions.
   /* Get the position of the closing brace of the destructor.  Note that
      if the top statement was a try-block it has been rewritten as a
      block, and the source position was preserved. */
-  set_position_from_stmt_source_position(
-                           closing_brace_pos,
-                           innermost_function_scope->assoc_block->variant.
-                                             block.extra_info->final_position);
+  closing_brace_pos = innermost_function_scope->assoc_block
+                                              ->variant.block.extra_info
+                                              ->final_position;
   /* Set the current position to the closing brace of the destructor. */
   code_pos_for_lowering = error_position = closing_brace_pos;
   if (exceptions_enabled) {
@@ -15749,9 +15746,7 @@ insert_dtor_member_and_base_destructions.
                               (a_constructor_init_kind)cik_virtual_base_class);
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
   /* Set the current position to the opening brace of the destructor. */
-  set_position_from_stmt_source_position(opening_brace_pos,
-                                         innermost_function_scope->
-                                                        assoc_block->position);
+  opening_brace_pos = innermost_function_scope->assoc_block->position;
   error_position = code_pos_for_lowering = opening_brace_pos;
   /* Insert the region table and initial cleanup state. */
   insert_epilogue_cleanup_state(first_epilogue_destruction,
@@ -16097,8 +16092,7 @@ destructor scope, and also lower the user code.
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
   /* Set the current position to the opening brace of the destructor. */
-  set_position_from_stmt_source_position(opening_brace_pos,
-                                         top_stmt->position);
+  opening_brace_pos = top_stmt->position;
   error_position = code_pos_for_lowering = opening_brace_pos;
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
@@ -16124,9 +16118,7 @@ destructor scope, and also lower the user code.
   /* Get the position of the closing brace of the destructor.  Note that
      if the top statement was a try-block it has been rewritten as a
      block, and the source position was preserved. */
-  set_position_from_stmt_source_position(
-                           closing_brace_pos,
-                           top_stmt->variant.block.extra_info->final_position);
+  closing_brace_pos = top_stmt->variant.block.extra_info->final_position;
 #endif /* !IA64_ABI */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   if (class_type->variant.class_struct_union.any_virtual_base_classes &&

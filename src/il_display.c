@@ -4528,19 +4528,6 @@ cleanup_state_common:
 }  /* disp_expr_node */
 
 
-/*
-Macro to display a statement source position, which may be a full source
-position or (to save space) just a sequence number.  str is the output label.
-*/
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-#define disp_stmt_source_position(str, stmt_pos)                      \
-  disp_source_position((str), &(stmt_pos));
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-#define disp_stmt_source_position(str, stmt_pos)                      \
-  disp_unsigned_long((str), (unsigned long)(stmt_pos));
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-
-
 static void disp_switch_case_entry(a_switch_case_entry_ptr ptr)
 /*
 Display the indicated switch case entry.
@@ -4623,7 +4610,7 @@ Display the indicated handler.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_handler);
-  disp_stmt_source_position("catch_position", ptr->catch_position);
+  disp_source_position("catch_position", &ptr->catch_position);
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
@@ -4696,7 +4683,7 @@ static void disp_block(a_block_ptr ptr)
 Display the indicated block.
 */
 {
-  disp_stmt_source_position("final_position", ptr->final_position);
+  disp_source_position("final_position", &ptr->final_position);
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_boolean("end_of_block_reachable",
@@ -4836,9 +4823,9 @@ static void disp_statement(a_statement_ptr ptr)
 Display the indicated statement.
 */
 {
-  disp_stmt_source_position("position", ptr->position);
+  disp_source_position("position", &ptr->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_stmt_source_position("end_position", ptr->end_position);
+  disp_source_position("end_position", &ptr->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("next", (char *)ptr->next, iek_statement);
   disp_ptr("parent", (char *)ptr->parent, iek_statement);
@@ -4901,8 +4888,8 @@ Display the indicated statement.
       if (ptr->variant.if_stmt.else_statement == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       } else {
-        disp_stmt_source_position("else_position",
-                                  ptr->variant.if_stmt.else_position);
+        disp_source_position("else_position",
+                             &ptr->variant.if_stmt.else_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
       break;

@@ -8478,18 +8478,6 @@ Dump all constants in the indicated scope.
   }  /* for */
 }  /* dump_scope_constants */
 
-
-static void set_output_position_for_stmt(a_stmt_source_position *spos)
-/*
-Set the output position to match the statement position given by *spos.
-*/
-{
-  a_source_position pos;
-
-  set_position_from_stmt_source_position(pos, *spos);
-  set_output_position(&pos);
-}  /* set_output_position_for_stmt */
-
 #if GNU_EXTENSIONS_ALLOWED
 
 static void dump_local_label_declarations(a_scope_ptr  scope)
@@ -8554,9 +8542,8 @@ Dump out the declarations (if any) for a block.
     /* If the first statement in the block has no source position, set the
        output position to the beginning of the block. */
     if (statement->variant.block.statements != NULL &&
-        seq_number_from_stmt_source_position(
-                         statement->variant.block.statements->position) == 0) {
-      set_output_position_for_stmt(&statement->position);
+        statement->variant.block.statements->position.seq == 0) {
+      set_output_position(&statement->position);
     }  /* if */
   }  /* if */
 }  /* dump_block_declarations */
@@ -8797,7 +8784,7 @@ statement which therefore should not be put out.
   a_boolean is_implicit;
 
   if (statement->expr != NULL ||
-      seq_number_from_stmt_source_position(statement->position) != 0 ||
+      statement->position.seq != 0 ||
       statement->next != NULL) {
     /* A return with a source position, with an expression, or that
        is not the last in its statement list -- not implicit. */
@@ -8845,7 +8832,7 @@ Generate C for a statement.
       kind != (a_statement_kind)stmk_init &&
       kind != (a_statement_kind)stmk_asm &&
       kind != (a_statement_kind)stmk_decl) {
-    set_output_position_for_stmt(&statement->position);
+    set_output_position(&statement->position);
   }  /* if */
   switch (kind) {
     case stmk_empty:
@@ -8879,7 +8866,7 @@ Generate C for a statement.
       indent -= 2;
       if (else_stmt != NULL) {
         /* Use the position from the "else" statement for the keyword. */
-        set_output_position_for_stmt(&else_stmt->position);
+        set_output_position(&else_stmt->position);
 	write_tok_str("else ");
 	indent += 2;
 	dump_statement(else_stmt);
@@ -8915,7 +8902,7 @@ Generate C for a statement.
         /* Simple C89-like initialization expression. */
         init_expr = init_stmt->expr;
       }  /* if */
-      set_output_position_for_stmt(&statement->position);
+      set_output_position(&statement->position);
 #if UPC_EXTENSIONS_ALLOWED
       write_tok_str(kind == (a_statement_kind)stmk_for ?
                                                        (char *)"for (" :
@@ -8983,7 +8970,7 @@ Generate C for a statement.
       if (start_unreferenced_bracket(
                                  &statement->variant.label.ptr->source_corresp,
                                  (a_boolean *)NULL)) {
-        set_output_position_for_stmt(&statement->position);
+        set_output_position(&statement->position);
         dump_label_name(statement->variant.label.ptr);
         write_tok_ch(':');
 #if GNU_EXTENSIONS_ALLOWED
@@ -9042,7 +9029,7 @@ Generate C for a statement.
       indent += 2;
       dump_block(statement);
       indent -= 2;
-      set_output_position_for_stmt(
+      set_output_position(
                          &statement->variant.block.extra_info->final_position);
       write_tok_ch('}');
       break;
@@ -9097,7 +9084,7 @@ Generate C for a statement.
              handler != NULL;
              handler = handler->next) {
           a_variable_ptr param = handler->parameter;
-          set_output_position_for_stmt(&handler->catch_position);
+          set_output_position(&handler->catch_position);
           write_tok_str("catch (");
           if (param == NULL) {
             write_tok_str("...");
