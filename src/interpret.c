@@ -1894,10 +1894,12 @@ static void info_call_stack(an_interpreter_state  *ips)
 {
   a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
 
-  for (; frame->parent != NULL; frame = frame->parent) {
-    more_info_diagnostic(ec_constexpr_called_from, frame->position,
-                         &ips->diag_list);
-  }  /* for */
+  if (frame != NULL) {
+    for (; frame->parent != NULL; frame = frame->parent) {
+      more_info_diagnostic(ec_constexpr_called_from, frame->position,
+                           &ips->diag_list);
+    }  /* for */
+  }  /* if */
 }  /* info_call_stack */
 
 
