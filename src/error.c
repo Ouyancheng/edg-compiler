@@ -3734,9 +3734,11 @@ diagnostic to be provided.
   if (severity == es_command_line_error ||
       severity == es_command_line_warning ||
       severity == es_internal_error ||
-      severity == es_catastrophe) {
+      severity == es_catastrophe ||
+      !in_front_end) {
     /* For these error severities it may not be possible to allocate
-       memory in IL memory yet, so allocate it in general memory. */
+       memory in IL memory yet, so allocate it in general memory.  Also, use
+       general memory when not executing as part of the front end. */
     diag_memory_region = NO_MEMORY_REGION_NUMBER;
   } else {
     diag_memory_region = FRONT_END_REGION_NUMBER;

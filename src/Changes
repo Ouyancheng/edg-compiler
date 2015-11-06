@@ -1,5 +1,16 @@
 Version 4.11
 
+11/6/15  [EDGcpfe/16633]
+Memory region used for diagnostics
+
+Typically the front end uses FRONT_END_REGION_NUMBER when allocating
+diagnostic messages, except for severe errors or when running in a standalone
+utility, in which case the general memory pool (NO_MEMORY_REGION_NUMBER) is
+used.  A change has been made to also allocate the diagnostic in the
+general memory pool when in_front_end is FALSE in order to allow the error
+routines to be used by back ends.
+
+
 11/6/15  [EDGcpfe/16532]
 Friend declarations that could refer to member or member template
 
