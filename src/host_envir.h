@@ -1188,7 +1188,7 @@ sequence number instead of a full position in IL entries representing
 statements.  That option is no longer supported.
 */
 #ifdef FULL_SOURCE_POS_IN_IL_STATEMENT
-#if !FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#if !FULL_SOURCE_POS_IN_IL_STATEMENT
  #error -- FULL_SOURCE_POS_IN_IL_STATEMENT set to FALSE is no longer supported
 #endif /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
 #endif /* ifdef FULL_SOURCE_POS_IN_IL_STATEMENT */
