@@ -1891,13 +1891,15 @@ of GNU.
 #endif /* 0 */
     enter_gnu_builtin_func2(_ia32_rorqi, unsigned_char, unsigned_char, int);
     enter_gnu_builtin_func2(_ia32_rorhi, unsigned_short, unsigned_short, int);
+    if (gnu_version >= 40700) {
+      enter_gnu_builtin_func0(_ia32_pause, no_return);
+    }  /* if */
     if (gnu_version >= 40800) {
 #if 0
       /* These don't seem to be defined in any GNU version. */
       enter_gnu_builtin_func2(_ia32_rorsi, si, di, int);
       enter_gnu_builtin_func2(_ia32_rordi, di, di, int);
 #endif /* 0 */
-      enter_gnu_builtin_func0(_ia32_pause, no_return);
       enter_gnu_builtin_func4(_ia32_addcarryx_u32, unsigned_char,
                               unsigned_char, unsigned_int, unsigned_int,
                               unsigned_int_star);

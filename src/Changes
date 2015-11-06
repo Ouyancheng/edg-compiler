@@ -1,5 +1,12 @@
 Version 4.11
 
+11/6/15  [EDGcpfe/16630]
+GNU compatibility: __builtin_ia32_pause
+
+Previously the GNU builtin __builtin_ia32_pause had only been defined when
+gnu_version >= 40800; it is now defined when gnu_version >= 40700.
+
+
 11/6/15  [EDGcpfe/16633]
 Memory region used for diagnostics
 
