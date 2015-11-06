@@ -653,8 +653,8 @@ extern void more_info_sym_diagnostic(an_error_code     error_code,
 
 extern void more_info_num2_diagnostic(an_error_code     error_code,
                                       a_source_position *error_pos,
-                                      unsigned long     num1,
-                                      unsigned long     num2,
+                                      int32_t           num1,
+                                      int32_t           num2,
                                       a_diag_list_ptr   diag_list);
 
 extern void add_more_info_list(a_diagnostic_ptr		dp,

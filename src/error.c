@@ -6052,24 +6052,28 @@ a %n placeholder in the diagnostic string.
 
 void more_info_num2_diagnostic(an_error_code     error_code,
                                a_source_position *error_pos,
-                               unsigned long     num1,
-                               unsigned long     num2,
+                               int32_t           num1,
+                               int32_t           num2,
                                a_diag_list_ptr   diag_list)
 /*
 Add the indicated diagnostic with the associated position to the list of
-diagnostics pointed to by diag_list.  The two given integers are turned into
-strings to replace %s1 and %s2 placeholders in the diagnostic string.
+diagnostics pointed to by diag_list.  The given numbers are used for fill-ins
+%d1 and %d2.
 */
 {
-  char  str1[25], str2[25];
+  a_diagnostic_ptr	dp;
 
-  (void)sprintf(str1, "%lu", num1);
-  (void)sprintf(str2, "%lu", num2);
-  general_diagnostic(es_more_info, error_code, error_pos,
-                     (a_const_char*)str1, (a_const_char*)str2,
-                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                     (a_type_ptr)NULL, (a_type_ptr)NULL,
-                     (a_source_position*)NULL, diag_list);
+  dp = create_primary_diagnostic(error_code, error_pos, es_more_info);
+  add_number_fill_in(dp, num1);
+  add_number_fill_in(dp, num2);
+  check_assertion(diag_list != NULL);
+  /* Add the diagnostic to the given list. */
+  if (diag_list->head == NULL) {
+    diag_list->head = dp;
+  } else {
+    diag_list->tail->next = dp;
+  }  /* if */
+  diag_list->tail = dp;
 }  /* more_info_num2_diagnostic */
 
 

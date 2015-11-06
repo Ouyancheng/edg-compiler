@@ -1919,8 +1919,8 @@ stack.
 
 static void info_with_pos_num2(an_error_code         err_code,
                                a_source_position     *pos,
-                               unsigned long         num1,
-                               unsigned long         num2,
+                               uint32_t              num1,
+                               uint32_t              num2,
                                an_interpreter_state  *ips)
 /*
 Record the given error code at the given position as a diagnostic annotation
