@@ -3980,11 +3980,7 @@ of gcc and g++ return slightly different values for some expression types.
   return tck;
 }  /* gnu_type_class_for_type */
 
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-#if !BUILTIN_FUNCTIONS_ENABLED
-/*ARGSUSED*/  /* <-- arguments not used in that case. */
-#endif /* !BUILTIN_FUNCTIONS_ENABLED */
 a_boolean fold_gnu_call_if_possible(an_operand_ptr   op,
                                     an_expr_node_ptr call)
 /*
@@ -4001,7 +3997,6 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
   check_assertion(is_expression_operand(op));
   check_assertion(call != NULL &&
                   call->kind == (an_expr_node_kind)enk_operation);
-#if BUILTIN_FUNCTIONS_ENABLED
   if (builtin_functions_enabled &&
       call->variant.operation.kind == (an_expr_operator_kind)eok_call) {
     an_expr_node_ptr args = call->variant.operation.operands;
@@ -4034,11 +4029,9 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
       release_local_constant(&result);
     }  /* if */
   }  /* if */
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
   return folded;
 }  /* fold_gnu_call_if_possible */
 
-#if BUILTIN_FUNCTIONS_ENABLED
 
 static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
                                               a_boolean   is_evaluated,
