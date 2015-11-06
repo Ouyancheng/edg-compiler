@@ -1,37 +1,5 @@
 Version 4.11
 
-11/6/15  [EDGcpfe/16532]
-Friend declarations that could refer to member or member template
-
-A change made in version 4.5 (see EDGcpfe/12244 on 1/18/12) changed
-the way in which a friend declaration was treated when it referred
-to an overload set that included both a member template and member
-function declaration that could match.  This issue is being considered
-by the standards committee (core issue 1665).   Our new behavior matches
-the direction that we currently expect the committee to follow.  In a friend
-declaration, we now (in all modes) prefer a non-template member unless an
-explicit template argument list (even if empty) was specified.  This
-changes does not affect other declarative contexts (explicit specializations
-and explicit instantiations) that may or may not eventually be affected by
-core issue 1665.
-
-  template <class T> struct A;
-  struct X {
-    template <class T> int f(A<T>* pat);
-    int f(A<int>* pai) ;
-  };
-  template <class T> struct A {
-    A() : t(0) { }
-  private:
-    T t;
-    // Should refer to f(A<int*>) when T is int
-    friend int X::f(A<T>* pat);
-  };
-  template <class T> int X::f(A<T>* pat) { return pat->t; }
-  int X::f(A<int>* pai) { return pai->t; }
-  A<float> af;
-
-
 11/5/15  [EDGcpfe/16628]
 a_stmt_source_position removed
 

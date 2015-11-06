@@ -10614,8 +10614,8 @@ possibility.
                                sym, state, locator->template_arg_list,
                                (a_boolean)locator->is_template_id,
                                /*in_class_specialization=*/FALSE,
-                               /*prefer_template=*/
-                                            (a_boolean)locator->is_template_id,
+                               /*prefer_template=*/!gpp_mode &&
+                                                   !microsoft_mode,
                                NO_NESTING_DEPTH,
                                es_error, &is_new_template_instance);
       if (sym == NULL) {
