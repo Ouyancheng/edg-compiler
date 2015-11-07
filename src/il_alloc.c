@@ -2922,6 +2922,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_coroutine                = FALSE;
 #endif /* COROUTINES_ALLOWED */
   rp->is_top_level_in_mem_region  = FALSE;
+  rp->friend_defined_in_instantiation = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

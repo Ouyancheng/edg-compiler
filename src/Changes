@@ -1,5 +1,20 @@
 Version 4.11
 
+11/7/15  [EDGcpfe/16629]
+Mechanism to identify friend functions defined in class instantiations
+
+Customers have requested a simple mechanism to determine whether a
+function defined in a friend declaration resulted from an instantiation
+of what was originally a definition in a dependent context.  The flag
+friend_defined_in_instantiation has been added to a_routine to provide
+this information.
+
+  template <typename T> struct A {
+    friend void f(A*) { /* Could make use of template parameters. */ }
+  };
+  A<int> a;  // f(A<int>*) has the new flag set
+
+
 11/6/15  [EDGcpfe/15972]
 Array to pointer decay in dependent constant expressions
 

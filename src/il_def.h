@@ -14026,6 +14026,14 @@ typedef struct a_routine {
 			   memory region.  The memory region can be
 			   freed when the processing of this routine is
 			   finished. */
+  a_bit_field	friend_defined_in_instantiation:1;
+			/* TRUE if this routine was defined in a friend
+			   declaration in an instantiated class.  This
+			   is primarily intended to identify functions
+			   defined in class templates, but will also be
+			   TRUE for friends of local classes where the classes
+			   are defined in some kind of instantiation
+			   context. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

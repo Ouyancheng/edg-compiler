@@ -10739,6 +10739,12 @@ decl_processed:
       /* Check uses of "= default" (always an error) and "= delete". */
       check_defaulted_or_deleted_function(state, func_info, &pos_curr_token);
     }  /* if */
+    if (is_real_instantiation_context()) {
+      /* If this is a definition of a friend that is defined in the
+         instantiation of a class, set the appropriate flag in the
+         routine entry. */
+      sym->variant.routine.ptr->friend_defined_in_instantiation = TRUE;
+    }  /* if */
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
