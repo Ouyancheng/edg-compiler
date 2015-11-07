@@ -5980,10 +5980,15 @@ a constexpr expansion, and the block provides context information.
           is_constant_addr = TRUE;
           set_constant_address_constant(econ, con);
         } else if (econ->kind == (a_constant_repr_kind)ck_template_param) {
-          /* A dependent constant.  Just cast it to give it the appropriate
-             pointer type. */
-          make_template_param_cast_constant(econ, con,
-                                            make_pointer_type(expr->type),
+          /* A dependent constant lvalue.  Just cast it to give it the
+             appropriate pointer type to simulate the lvalue-to-rvalue
+             conversion. */
+          a_type_ptr tp = expr->type;
+          if (is_array_type(tp)) {
+            /* An array lvalue decays to a pointer to its element type. */
+            tp = array_element_type(tp);
+          }  /* if */
+          make_template_param_cast_constant(econ, con, make_pointer_type(tp),
                                             /*is_explicit=*/FALSE);
           *template_constant = TRUE;
           is_constant_addr = TRUE;
