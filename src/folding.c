@@ -5974,11 +5974,19 @@ a constexpr expansion, and the block provides context information.
       is_constant_addr = TRUE;
       break;
     case enk_constant:
-      /* The address of a string is a constant. */
       { a_constant_ptr econ = node_constant(expr);
         if (econ->kind == (a_constant_repr_kind)ck_string) {
+          /* The address of a string is a constant. */
           is_constant_addr = TRUE;
           set_constant_address_constant(econ, con);
+        } else if (econ->kind == (a_constant_repr_kind)ck_template_param) {
+          /* A dependent constant.  Just cast it to give it the appropriate
+             pointer type. */
+          make_template_param_cast_constant(econ, con,
+                                            make_pointer_type(expr->type),
+                                            /*is_explicit=*/FALSE);
+          *template_constant = TRUE;
+          is_constant_addr = TRUE;
         }  /* if */
       }
       break;
