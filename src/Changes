@@ -1,5 +1,19 @@
 Version 4.11
 
+11/8/15  [EDGcpfe/16257]
+Macros with extended characters and mixed UTF-8 and Latin-1 files
+
+In configurations with UNICODE_SOURCE_SUPPORTED set to TRUE, the front end
+could report spurious "unrecognized token" errors if a macro defined in a
+file with one encoding and used in a file with a different encoding
+contains an identifier with an extended (non-ASCII) character.  This
+problem has been addressed by using a canonical form for identifiers
+appearing in a macro definition in such configurations; the canonical form
+replaces each extended character with a universal-character-name so that
+the identifier will be scanned identically regardless of the encoding in
+effect at the time.
+
+
 11/7/15  [EDGcpfe/16629]
 Mechanism to identify friend functions defined in class instantiations
 

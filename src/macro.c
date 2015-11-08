@@ -7263,7 +7263,8 @@ Scan and process a #define directive.
     a_const_char *id_ptr = start_of_curr_token;
     sizeof_t     id_len = len_of_curr_token;
     if (id_contains_ucn_or_multibyte_char) {
-      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len,
+                                         /*force_ucn=*/FALSE);
     }  /* if */
     /* The macro name __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
@@ -7681,6 +7682,8 @@ Scan and process a #define directive.
         } else {
           /* Any other tokens -- not special, just put into macro buffer
              as raw text. */
+          a_const_char *str = start_of_curr_token;
+          sizeof_t     len = len_of_curr_token;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           if (curr_cmd_line_or_predef_macro_def == NULL &&
               assoc_symbol != NULL) {
@@ -7697,7 +7700,18 @@ Scan and process a #define directive.
             add_token_to_macro_text_map(&tracker, next_targ_offset);
           }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-          put_text_to_macro_buffer(start_of_curr_token, len_of_curr_token);
+#if UNICODE_SOURCE_SUPPORTED
+          if (curr_token == tok_identifier &&
+              id_contains_ucn_or_multibyte_char) {
+            /* Translate any extended characters in the identifier to UCNs
+               so that the text of the macro can be scanned successfully
+               regardless of the encoding of the file in which the macro is
+               expanded. */
+            str = make_canonical_identifier(start_of_curr_token, &len,
+                                            /*force_ucn=*/TRUE);
+          }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+          put_text_to_macro_buffer(str, len);
           /* Request an end-of_token marker after this token.  This will be
              put out later unless the next thing is "##" or the end of the
              replacement text. */

@@ -9412,7 +9412,8 @@ fixed_point_suffix:
       sizeof_t     id_len;
       a_type_ptr   literal_type;
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
-      canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len);
+      canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len,
+                                               /*force_ucn=*/FALSE);
       if (is_error_constant(&const_for_curr_token)) {
         /* The literal overflowed/underflowed, which is not an error for
            raw literal operators and literal operator templates.
@@ -9752,18 +9753,25 @@ are the prefix characters to be used for 4-digit and 8-digit output.
 #endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
 char *make_canonical_identifier(a_const_char *identifier,
-                                sizeof_t     *length)
+                                sizeof_t     *length,
+                                a_boolean    force_ucn)
 /*
-"identifier" points to the characters of an identifier containing
-universal character names or multibyte characters.  Make a copy of the
-identifier in which any upper case characters in the UCN are converted to
-lower case and any multibyte characters are converted to canonical form.
+"identifier" points to the characters of an identifier containing universal
+character names or multibyte characters.  Make a copy of the identifier in
+which any upper case characters in the UCN are converted to lower case and
+any multibyte characters are converted to canonical form.  If force_ucn is
+TRUE, UNICODE_SOURCE_SUPPORTED must be TRUE and the result will use UCNs
+for any extended characters; otherwise, the result depends on the value of
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
 "length" is updated to the actual length of the new identifier.
 */
 {
   a_const_char *src;
   a_const_char *end_pos = identifier + *length - 1;
 
+#if !UNICODE_SOURCE_SUPPORTED
+  check_assertion(!force_ucn);
+#endif /* !UNICODE_SOURCE_SUPPORTED *.
   /* Allocate a text buffer to be used for the copy if one has not
      yet been created. */
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
@@ -9777,15 +9785,19 @@ lower case and any multibyte characters are converted to canonical form.
                                            /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/FALSE);
 #if UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
-      /* We can put the UTF-8 for the character directly into the
-         identifier string. */
-      { char arr[4];
+      if (!force_ucn) {
+        /* We can put the UTF-8 for the character directly into the
+           identifier string. */
+        char arr[4];
         int  numch = unicode_to_utf8(ucn_value, arr);
         int  i;
         for (i = 0; i < numch; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
         }  /* for */
-      }
+      } else {
+        /* Use a canonicalized UCN for the character. */
+        output_ucn_value(ucn_value, 'u', 'U');
+      }  /* if */
 #else /* !(UNICODE_SOURCE_SUPPORTED && ...) */
       /* Add the UCN to the buffer as \uxxxx or the like. */
       output_ucn_value(ucn_value, 'u', 'U');
@@ -9818,14 +9830,18 @@ lower case and any multibyte characters are converted to canonical form.
 #endif /* UNICODE_SOURCE_SUPPORTED */
 #if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
 #if UNICODE_SOURCE_SUPPORTED
-      /* Put the UTF-8 version of the character into the identifier. */
-      { char arr[4];
+      if (!force_ucn) {
+        /* Put the UTF-8 version of the character into the identifier. */
+        char arr[4];
         int  utflen = unicode_to_utf8(wc, arr);
         int  i;
         for (i = 0; i < utflen; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
         }  /* for */
-      }
+      } else {
+        /* Use a UCN for the character. */
+        output_ucn_value(wc, 'u', 'U');
+      }  /* if */
 #else /* !UNICODE_SOURCE_SUPPORTED */
       check_assertion(!err);
       /* Put the multibyte character into the identifier. */
@@ -10423,7 +10439,8 @@ kind or tok_error.  The token can be a normal or wide character constant.
         } else {
           sizeof_t     id_len = (sizeof_t)(curr_char_loc - id_start);
           a_const_char *canonical_id =
-                                  make_canonical_identifier(id_start, &id_len);
+                                make_canonical_identifier(id_start, &id_len,
+                                                          /*force_ucn=*/FALSE);
           ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
@@ -11821,7 +11838,8 @@ tok_ud_literal; otherwise, return tok_string_literal.
         /* Found a ud-suffix. */
         sizeof_t     suffix_len = (sizeof_t)(curr_char_loc - id_start);
         a_const_char *canonical_id =
-                              make_canonical_identifier(id_start, &suffix_len);
+                               make_canonical_identifier(id_start, &suffix_len,
+                                                         /* force_ucn=*/FALSE);
         if (macro_preempts_udl_suffix &&
             id_is_macro_name(canonical_id, suffix_len)) {
           /* In some programming styles the C99 format macros are placed
@@ -13431,7 +13449,8 @@ id_scan:
           /* If the identifier contains a universal character name or
              a multibyte character, the string must be processed to make
              it canonical. */
-          id_ptr = make_canonical_identifier(id_ptr, &id_length);
+          id_ptr = make_canonical_identifier(id_ptr, &id_length,
+                                             /*force_ucn=*/FALSE);
         }  /* if */
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
@@ -13891,8 +13910,10 @@ concatenate_adjacent_string_literals:
         /* Check to see if the putative literal suffix should be considered
            a macro instead. */
         sizeof_t suffix_len = (sizeof_t)(curr_char_loc - after_string);
-        a_const_char *canonical_id = make_canonical_identifier(after_string,
-                                                               &suffix_len);
+        a_const_char *canonical_id =
+                                make_canonical_identifier(after_string,
+                                                          &suffix_len,
+                                                          /*force_ucn=*/FALSE);
         if (id_is_macro_name(canonical_id, suffix_len)) {
           create_ud_literal = FALSE;
         }  /* if */

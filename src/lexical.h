@@ -2356,13 +2356,14 @@ extern unsigned long scan_universal_character(
 
 #if ABI_COMPATIBILITY_VERSION >= 302
 extern char *make_canonical_identifier(a_const_char *identifier,
-                                       sizeof_t     *length);
+                                       sizeof_t     *length,
+                                       a_boolean    force_ucn);
 #else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
 /*
 No translation of identifiers was done for older ABIs.  Simply
 return the original identifier pointer.
 */
-#define make_canonical_identifier(identifier, length) (identifier)
+#define make_canonical_identifier(identifier, length, force_ucn) (identifier)
 #endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
 /*

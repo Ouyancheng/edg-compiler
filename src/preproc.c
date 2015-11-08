@@ -873,7 +873,8 @@ FALSE, respectively).
     sizeof_t     id_len = len_of_curr_token;
     /* Get the canonical spelling of the identifier. */
     if (id_contains_ucn_or_multibyte_char) {
-      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len,
+                                         /*force_ucn=*/FALSE);
     }  /* if */
     if (ifg_state == IFG_STATE_START) {
       /* If we are at the start of an include file then record 
@@ -964,7 +965,8 @@ Scan and process an #undef directive.
     a_const_char *id_ptr = start_of_curr_token;
     sizeof_t     id_len = len_of_curr_token;
     if (id_contains_ucn_or_multibyte_char) {
-      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len,
+                                         /*force_ucn=*/FALSE);
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
