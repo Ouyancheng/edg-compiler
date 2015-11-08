@@ -9771,7 +9771,7 @@ IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
 
 #if !UNICODE_SOURCE_SUPPORTED
   check_assertion(!force_ucn);
-#endif /* !UNICODE_SOURCE_SUPPORTED *.
+#endif /* !UNICODE_SOURCE_SUPPORTED */
   /* Allocate a text buffer to be used for the copy if one has not
      yet been created. */
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
