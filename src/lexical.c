@@ -9752,9 +9752,9 @@ are the prefix characters to be used for 4-digit and 8-digit output.
 
 #endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
-#if !UNICODE_SOURCE_SUPPORTED
+#if !(UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
 /*ARGSUSED*/ /* <-- force_ucn not used in this case. */
-#endif /* !UNICODE_SOURCE_SUPPORTED */
+#endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 char *make_canonical_identifier(a_const_char *identifier,
                                 sizeof_t     *length,
                                 a_boolean    force_ucn)
