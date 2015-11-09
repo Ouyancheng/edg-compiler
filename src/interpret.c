@@ -2369,8 +2369,9 @@ Interpret the given for-statement.
     do {
       /* Evaluate the test expression. */
       if (cost_exceeded(ips)) {
+        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                             &ips->diag_list);
         result = FALSE;
-        /* FIXME: record a diagnostic. */
       } else if (expr != NULL) {
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
@@ -2501,8 +2502,9 @@ Interpret the given range-based for-statement.
     do {
       /* Evaluate the test expression. */
       if (cost_exceeded(ips)) {
+        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                             &ips->diag_list);
         result = FALSE;
-        /* FIXME: record a diagnostic. */
       } else {
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
@@ -2643,8 +2645,9 @@ successfully interpreted, FALSE otherwise.
         do {
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
+            more_info_diagnostic(ec_excessive_constexpr_complexity,
+                                 &ips->position, &ips->diag_list);
             result = FALSE;
-            /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_address_structures(expr, tp, expr_value);
@@ -2748,8 +2751,9 @@ successfully interpreted, FALSE otherwise.
           }  /* if */
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
+            more_info_diagnostic(ec_excessive_constexpr_complexity,
+                                 &ips->position, &ips->diag_list);
             result = FALSE;
-            /* FIXME: record a diagnostic. */
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_address_structures(expr, tp, expr_value);
@@ -2922,8 +2926,9 @@ accordingly.
   /* Retrieve the routine scope, or issue an error. */
   if (callee->function_def_number == NULL_function_def_number) {
     /* FIXME: error. */
-    info_with_pos(ec_constexpr_function_undefined,
-                  &callee->source_corresp.decl_position, ips);
+    info_with_pos_sym(ec_constexpr_function_undefined,
+                      &callee->source_corresp.decl_position,
+                      symbol_for(callee), ips);
     result = FALSE;
 #if /*FIXME*/0
   } else if (ellipsis_case) {
@@ -2931,7 +2936,6 @@ accordingly.
     result = FALSE;
 #endif /* 0 */
   } else if (cost_exceeded(ips)) {
-    /* FIXME: record an error. */
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
     result = FALSE;
@@ -2950,7 +2954,8 @@ accordingly.
        constexpr function). */
     if (!callee_scope->is_constexpr_routine) {
       result = FALSE;
-      /* FIXME: record an error. */
+      info_with_pos_sym(ec_constexpr_call_not_interpretable,
+                        &call_node->position, symbol_for(callee), ips);
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
@@ -3046,7 +3051,8 @@ the body of the (constructor) function proper.
     result = FALSE;
 #endif /* 0 */
   } else if (cost_exceeded(ips)) {
-    /* FIXME: record an error. */
+    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                         &ips->diag_list);
     result = FALSE;
   } else {
     a_scope_ptr       callee_scope = scope_for_routine(callee);
