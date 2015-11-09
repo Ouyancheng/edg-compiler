@@ -1,7 +1,7 @@
 Version 4.11
 
 11/8/15  [EDGcpfe/16257]
-Macros with extended characters and mixed UTF-8 and Latin-1 files
+Macros with extended characters and mixed UTF-8 and non-Unicode files
 
 In configurations with UNICODE_SOURCE_SUPPORTED set to TRUE, the front end
 could report spurious "unrecognized token" errors if a macro defined in a
