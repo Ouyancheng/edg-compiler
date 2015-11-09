@@ -75,7 +75,7 @@ A change made in version 4.5 (see EDGcpfe/12244 on 1/18/12) changed
 the way in which a friend declaration was treated when it referred
 to an overload set that included both a member template and member
 function declaration that could match.  This issue is being considered
-by the standards committee (core issue 1665).   Our new behavior matches
+by the standards committee (core issue 1665).  Our new behavior matches
 the direction that we currently expect the committee to follow.  In a friend
 declaration, we now (in all modes) prefer a non-template member unless an
 explicit template argument list (even if empty) was specified.  This
