@@ -3493,12 +3493,18 @@ the type pointed to is opaque to declaration processing.
     case tk_class:
     case tk_struct:
     case tk_union:
-      check_assertion(is_aggregate_type(dtype));
-      if (fill_in_dtor) {
-        dtor_rp = get_init_destructor(dtype, is, diag_pos);
+      if (dtype->variant.class_struct_union.is_nonreal_class) {
+        /* A nonreal class: Treat it like a template parameter since we don't
+           really know its structure.. */
+        aggr_init_generic_element(icp, dtype, is, &is->init_con);
+      } else {
+        check_assertion(is_aggregate_type(dtype));
+        if (fill_in_dtor) {
+          dtor_rp = get_init_destructor(dtype, is, diag_pos);
+        }  /* if */
+        aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+        if (arg_match != NULL) record_aggr_init_match(arg_match);
       }  /* if */
-      aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
-      if (arg_match != NULL) record_aggr_init_match(arg_match);
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:

@@ -22325,13 +22325,16 @@ will be an lvalue instead of the usual prvalue.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (is_aggregate_type(dest_type) ||
-        (icp->contains_designator &&
-         (is_error_type(dest_type) ||
-          could_be_dependent_class_type(dest_type)))) {
+        ((is_error_type(dest_type) ||
+          could_be_dependent_class_type(dest_type)) &&
+        (icp->contains_designator || curr_expr_kind_is_const()))) {
       /* This is the initialization of an aggregate type from a
-         braced-init-list.  We also go that way for cases that have
-         designators, when the destination type is not known but might be an
-         aggregate. */
+         braced-init-list.  We also go that way when the destination type is
+         not known but might be an aggregate, and either designators are
+         present or a constant result is required.  (We cannot always go this
+         way for unknown types because, e.g., the processing of "gcnew T{1}"
+         (where T is a template parameter) expects a constructor call
+         representation when re-scanned.) */
       aggregate_case = TRUE;
     }  /* if */
   }  /* if */
