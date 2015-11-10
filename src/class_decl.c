@@ -22066,6 +22066,9 @@ is the access specifier applicable to the new declaration.
                                      /*ambiguous=*/FALSE);
     new_sym->variant.projection.is_using_decl = TRUE;
     new_sym->variant.projection.access = access;
+    if (is_nontype_template_param_symbol(fund_sym)) {
+      new_sym->variant.projection.fund_sym_is_nonreal_member = TRUE;
+    }  /* if */
     /* Note that projection symbols for using-declarations have the
        source position of the using-declaration itself, whereas
        other projection symbols take on the source position of the

@@ -1,5 +1,30 @@
 Version 4.11
 
+11/10/15 [EDGcpfe/16639]
+Using-declarations and member templates in dependent base classes
+
+Previously, the front end erroneously assumed that a using-declaration
+importing a name from a dependent base class did not import a template.
+This sometimes triggered spurious errors.  For example:
+
+  struct I;
+  template<typename> struct B {
+    template<typename> void b();
+  };
+  template<typename T> struct D: B<T> {
+    void d() {
+      this->template b<T>();  // Previously triggered an error because
+    }                         // b was assumed not to name a template.
+    using B<T>::b;            // Now okay.
+  };
+  void g() {
+    D<I> di;
+    di.d();
+  }
+
+This is now fixed.
+
+
 11/9/15  [EDGcpfe/16626]
 Spurious error on template-dependent functional-notation cast with braces
 
