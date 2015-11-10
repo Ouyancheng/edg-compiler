@@ -5,9 +5,8 @@ Using-declarations and member templates in dependent base classes
 
 Previously, the front end erroneously assumed that a using-declaration
 importing a name from a dependent base class did not import a template.
-This sometimes triggered spurious errors.  For example:
+This sometimes triggered spurious errors.  For example, in strict C++ mode:
 
-  struct I;
   template<typename> struct B {
     template<typename> void b();
   };
@@ -17,10 +16,6 @@ This sometimes triggered spurious errors.  For example:
     }                         // b was assumed not to name a template.
     using B<T>::b;            // Now okay.
   };
-  void g() {
-    D<I> di;
-    di.d();
-  }
 
 This is now fixed.
 
