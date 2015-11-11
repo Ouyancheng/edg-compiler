@@ -1,5 +1,26 @@
 Version 4.11
 
+11/11/15 [EDGcpfe/16641]
+Abort on friend function defined in variadic class template
+
+An abort could occur (in increment_variadic_rescans_for_reusable_cache)
+on a pack expansion in a friend function defined in a variadic class
+template.  Now fixed.
+
+  template <class T> struct A {};
+  int g(...) { return 0; }
+  int f(...);
+  template <class ... T> struct B {
+    friend int f(...) {
+      return g(A<int(T...)>());
+    }
+  };
+  int main() {
+    B<int&> b;
+    f(0);
+  }
+
+
 11/10/15 [EDGcpfe/16639]
 Using-declarations and member templates in dependent base classes
 

@@ -2740,7 +2740,7 @@ specializations.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Let get_token know about the cache. */
-  rescan_cached_tokens(&rfp->function_body_token_cache);
+  rescan_reusable_cache(&rfp->function_body_token_cache);
   /* Scan the function body. */
   scan_function_body(rp, &rfp->func_info,
                      (SFB_NO_CLASS_REACTIVATION |
