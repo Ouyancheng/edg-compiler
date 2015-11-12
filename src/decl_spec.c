@@ -874,7 +874,7 @@ normal case, and tok_end_of_source during template prescanning.
            transformed cache. */
         valid = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode &&
+      } else if (ms_extensions &&
                  (microsoft_version >= 1400 || cli_or_cx_enabled) &&
                  (check_context_sensitive_keyword(tok_abstract, "abstract") ||
                   check_context_sensitive_keyword(tok_sealed, "sealed"))) {
@@ -3285,7 +3285,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     (void)get_token();
     dps->tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (microsoft_mode or_near_and_far_enabled()) {
+    if (ms_extensions or_near_and_far_enabled()) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_class_definition and applied to each member
          declaration, where appropriate. */
@@ -3334,7 +3334,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-    if ((gpp_mode || (microsoft_mode && !C_mode())) &&
+    if ((gpp_mode || (ms_extensions && !C_mode())) &&
         innermost_function_scope == NULL && !is_explicit_instantiation &&
         curr_deferred_access_scope != NO_SCOPE_DEPTH &&
         !scope_stack[curr_deferred_access_scope].defer_access_checks) {
@@ -4283,7 +4283,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   /* Now that we have a type, we can apply any attributes attached to it. */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     preapply_microsoft_class_align_attribute(dps, is_class_definition ||
                                                   definition_removed);
   }  /* if */
@@ -4345,7 +4345,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
      special token. */
   if (definition_removed) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if ((microsoft_mode or_near_and_far_enabled()) &&
+  if ((ms_extensions or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         is_explicit_instantiation,
@@ -4356,7 +4356,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     apply_class_modifiers(class_type, is_final, is_abstract, is_sealed);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && is_immediate_class_type(class_type)) {
+  if (ms_extensions && is_immediate_class_type(class_type)) {
     if (dps->ms_attributes != NULL && !is_local_class) {
       if (!is_class_definition && curr_token != tok_semicolon) {
         /* This is a non-autonomous declaration of the class: The attributes
@@ -5754,7 +5754,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
   dps->tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
        __declspec(uuid(...)) will be recorded in C++ mode. */
     clear_extended_decl_info_block(extended_decl_info);
@@ -5815,7 +5815,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
         /* C++11 enabled out-of-class definitions of enum type when it added
            opaque enum declarations.  Microsoft compilers have allowed this for
            a long time. */
-        if ((opaque_enum_decls_enabled || microsoft_mode) &&
+        if ((opaque_enum_decls_enabled || ms_extensions) &&
             class_of_which_a_member == NULL) {
           a_type_ptr  qualifier_class = qualifier_class_type(locator);
           /* An out-of-class definition of a class member enum: Reactivate the
@@ -7159,7 +7159,7 @@ _Sat was specified.
         /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
            synonym for a char type). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version == 1200 &&
+        if (ms_extensions && microsoft_version == 1200 &&
             size == size_int8) {
           if (ikind == (an_integer_kind)ik_unsigned_char) {
             ikind = targ_unsigned_int8_int_kind;
@@ -7300,7 +7300,7 @@ _Sat was specified.
            they may mean different things as bit-field types.  The same
            applies to explicitly signed short, long, and long long. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version == 1200 &&
+        if (ms_extensions && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
           dps->specifiers_type = microsoft_sized_signed_integer_type(
@@ -7313,7 +7313,7 @@ _Sat was specified.
         }  /* if */
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version == 1200 &&
+        if (ms_extensions && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
           dps->specifiers_type =
@@ -8953,7 +8953,7 @@ dps->specifier_attributes list.
                              (void*)dps);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && dps->prefix_attributes != NULL) {
+    if (ms_extensions && dps->prefix_attributes != NULL) {
       /* Perform some early checking for dllimport/dllexport attributes. */
       preapply_declspec_attributes(dps);
     }  /* if */
@@ -9337,7 +9337,7 @@ storage_class_specifier:
         if (next_token() == tok_lbracket) {
           /* A C++11 standard attribute. */
           if (!std_attributes_enabled) goto something_unexpected;
-        } else if (!microsoft_mode ||
+        } else if (!ms_extensions ||
                    (microsoft_version < 1700 ?
                               any_decl_specifiers_seen :
                               (decl_specifiers_seen & (DS_VOID | DS_TYPE))) || 
@@ -9754,15 +9754,15 @@ storage_class_specifier:
           /* Only one "inline" specifier at a time.  C99 and Microsoft C++
              allow multiple "inline" specifiers, but that is unlikely the
              intent of a programmer. */
-          diagnostic((c99_mode || microsoft_mode) ? es_warning : es_error,
+          diagnostic((c99_mode || ms_extensions) ? es_warning : es_error,
                      ec_dupl_decl_specifier);
-          if (!(c99_mode || microsoft_mode)) {
+          if (!(c99_mode || ms_extensions)) {
             err = TRUE;
           }  /* if */
         } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
           /* The keyword "inline" was seen as a qualifier.  This is only
              possible in Microsoft mode and that qualifier is ignored. */
-          check_assertion(microsoft_mode);
+          check_assertion(ms_extensions);
           pos_warning(ec_inline_qualifier_ignored, &error_position);
         } else {
           decl_specifiers_seen |= DS_INLINE;

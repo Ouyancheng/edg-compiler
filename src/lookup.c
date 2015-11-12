@@ -3284,7 +3284,7 @@ that do normal id lookup processing.
            !((lookup_state->must_be_tag ||
               lookup_state->treat_as_template_id) &&
              ((gpp_mode && gnu_version < 40000) ||
-              sun_mode || microsoft_mode))) ||
+              sun_mode || ms_extensions))) ||
           (!any_cfront_mode() && (kind == (a_scope_kind)sck_function ||
                                   kind == (a_scope_kind)sck_block))) {
         break;

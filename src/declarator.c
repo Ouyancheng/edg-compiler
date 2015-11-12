@@ -98,7 +98,7 @@ standard-attribute syntax).
     do {
       ap = *p_from;
       if ((is_gcc_attribute(ap) ||
-           ((gnu_mode || microsoft_mode) &&
+           ((gnu_mode || ms_extensions) &&
             ap->family == (a_byte_attribute_family)af_alignas)) &&
           !is_type_transforming_attribute(ap)) {
         *p_from = ap->next;
@@ -290,7 +290,7 @@ block size is returned through upc_block_size (when non-NULL).
   init_decl_parse_state(&state);
   clear_decl_pos_block(&local_decl_pos_block);
   dsi_flags = DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS;
-  if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
+  if (ms_extensions) { dsi_flags |= DSI_INLINE_ALLOWED; }
   decl_specifiers(dsi_flags, &state, &local_decl_pos_block);
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_block_size != NULL) {
@@ -1318,7 +1318,7 @@ given position.
        not to enforce this. */
     pos_diagnostic(strict_ansi_discretionary_severity,
                    ec_rvalue_reference_in_exception_specification, diag_pos);
-  }  else if (exceptions_enabled && !microsoft_mode &&
+  }  else if (exceptions_enabled && !ms_extensions &&
               !ignoring_exception_spec) {
     /* Check the type to be sure it's not an incomplete type or a pointer
        to an incomplete type.  Microsoft compilers do not use the type
@@ -1592,7 +1592,7 @@ actually declares a function, member function, or function template).
          this routine." */
       goto finish_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && microsoft_version >= 1300 &&
+    } else if (ms_extensions && microsoft_version >= 1300 &&
                curr_token == tok_ellipsis) {
       /* Some microsoft compilers treat function with "C" linkage as having an
          implicit "throw()" specification.  For those functions with "C"
@@ -1808,7 +1808,7 @@ accepted by some Microsoft compilers in their non-CLI modes; "new" is only
 accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
 */
 {
-  a_boolean  accept_ms_modifiers = microsoft_mode &&
+  a_boolean  accept_ms_modifiers = ms_extensions &&
                                    (cli_or_cx_enabled ||
                                     microsoft_version >= 1400);
   a_boolean  accept_ms_final_modifier = (microsoft_mode &&
@@ -2760,7 +2760,7 @@ an error if a default argument expression is encountered.
         if (pesep && !any_variadic_params) continue;
         if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
         if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
-        if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
+        if (ms_extensions) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
         param_state.is_param_decl = TRUE;
@@ -3206,7 +3206,7 @@ an error if a default argument expression is encountered.
                      cached. */
                   cache_default_arg = TRUE;
                 } else {
-                  pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                  pos_diagnostic(ms_extensions ? es_warning : es_error,
                                  ec_default_arg_expr_not_allowed,
                                  &pos_curr_token);
                   ignore_default_arg_expr = TRUE;
@@ -3611,7 +3611,7 @@ an error if a default argument expression is encountered.
   remove_stop_token(tok_rparen);
   scope_stack_top().outside_parameter_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     a_boolean  managed_member = cli_or_cx_enabled && parent_type != NULL &&
                                 is_managed_class_type(parent_type);
     if (extra_info->has_ellipsis) {
@@ -4550,7 +4550,7 @@ Additional position information is recorded in *decl_pos_block.
       }  /* if */
       ptr_mods->qualifiers |= new_qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode) {
+    } else if (ms_extensions) {
       if (is_microsoft_calling_convention(curr_token)) {
         /* Calling conventions like __cdecl. */
         ptr_mods->cc_descr.position = pos_curr_token;
@@ -4848,7 +4848,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   db_enter(3, "pointer_declarator");
   *ptr_to_member_scanned = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (microsoft_mode or_near_and_far_enabled()) {
+  if (ms_extensions or_near_and_far_enabled()) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Clear parameters used to return left/unbound qualifiers. */
     if (left_calling_convention != NULL) {
@@ -4946,7 +4946,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* NEAR_AND_FAR_ALLOWED */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (pending_ptr_mods.cc_descr.call_conv !=
                                            (a_calling_convention)cc_default) {
         /* A calling convention was specified.  Apply it to the complete
@@ -5207,7 +5207,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int * const x;
     */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (microsoft_mode or_near_and_far_enabled()) {
+    if (ms_extensions or_near_and_far_enabled()) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_variable_ptr     based_var = pending_ptr_mods.based_var;
       a_source_position  based_pos = pending_ptr_mods.based_pos;
@@ -5325,7 +5325,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (pending_ptr_mods.cc_descr.call_conv !=
                                            (a_calling_convention)cc_default) {
       /* Calling convention like __cdecl. */
@@ -6453,7 +6453,7 @@ etc.).
   derived_type = NULL;
   bottom_derived_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) clear_call_conv_descr(&inner_left_call_conv);
+  if (ms_extensions) clear_call_conv_descr(&inner_left_call_conv);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) inner_left_qualifiers = TQ_NONE;
@@ -6535,7 +6535,7 @@ etc.).
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
         /* Constructs such as
              int __cdecl (*fp)();
@@ -6546,7 +6546,7 @@ etc.).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (microsoft_mode or_near_and_far_enabled()) {
+    if (ms_extensions or_near_and_far_enabled()) {
       if (unbound_qualifiers != TQ_NONE) {
         /* Constructs such as
              int far (*p);
@@ -7110,7 +7110,7 @@ function_lparen:
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       /* Apply left-side qualifiers that were hanging:
            int (__cdecl *f)();
                              ^ We're here now.
@@ -7188,7 +7188,7 @@ function_lparen:
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Apply left-side qualifiers that were hanging, for the case where
        there were no function or array declarators:
          typedef void F(int);
@@ -7352,7 +7352,7 @@ function_lparen:
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
       /* If there is an unbound calling convention, attempt to apply it to
          the complete type (if one exists).  If none exists, return the unbound
@@ -7367,7 +7367,7 @@ function_lparen:
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (microsoft_mode or_near_and_far_enabled()) {
+  if (ms_extensions or_near_and_far_enabled()) {
     if (unbound_qualifiers != TQ_NONE) {
       /* If there are unbound type qualifiers, apply them to the complete
          type (if it exists).  If it does not exist, return the unbound

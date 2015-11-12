@@ -115,6 +115,8 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_version,
   optk_microsoft_build_number,
   optk_microsoft_bugs,
+  optk_microsoft_compatibility,
+  optk_microsoft_extensions,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1449,6 +1451,11 @@ EXTERN a_boolean
 		c99_bool_is_keyword;
 			/* Indicates whether the C99 _Bool keyword is
 			   enabled. */
+
+EXTERN a_boolean
+		allow_decl_after_stmt;
+			/* Indicates whether a declaration can appear after a
+			   statement in C mode. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment

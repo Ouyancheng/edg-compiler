@@ -7432,11 +7432,7 @@ through *p_result_type.
            the beginning of the block.   GCC has always been permissive about
            this (even in its non-C99 mode).  Newer versions of the Microsoft
            compiler also implement the C99 rule. */
-        a_boolean  alloc_decl_after_stmt = c99_mode;
-        if (gcc_mode || (microsoft_mode && microsoft_version >= 1800)) {
-          alloc_decl_after_stmt = TRUE;
-        }  /* if */
-        if (!alloc_decl_after_stmt && any_statements) {
+        if (!allow_decl_after_stmt && any_statements) {
           pos_error(ec_declaration_after_statements, &error_position);
           /* Special error-recovery trick: this tries to deal with mismatched
              braces, in the case where a "}" is missing and thus there appears

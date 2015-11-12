@@ -5576,7 +5576,7 @@ restrictive.  Issue an appropriate diagnostic at the given position.
   } else {
     /* Microsoft compilers don't diagnose this (and in fact, they don't do
        much with exception specifications at all). */
-    pos_sy2_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+    pos_sy2_diagnostic(ms_extensions ? es_warning : es_discretionary_error,
                        ec_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
   }  /* if */
@@ -13763,7 +13763,7 @@ implicitly declared member functions.
   if (is_static_member) {
     /* A static member function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (class_type->variant.class_struct_union.is_interface) {
         /* Static member functions cannot appear in interface types. */
         pos_error(ec_interface_cannot_have_static_members,
@@ -17099,7 +17099,8 @@ context.)
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
-  } else if ((!C_mode() || (gcc_mode && gnu_version >= 30300)) &&
+  } else if ((!C_mode() ||
+              ((gcc_mode && gnu_version >= 30300) && !ms_extensions)) &&
              ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
               !(skip_typerefs(member_type))->
                             variant.class_struct_union.originally_unnamed)) {
@@ -17561,7 +17562,7 @@ declarations.
               &prev_field->source_corresp.decl_position);
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
-  } else if (microsoft_mode || (c99_mode && !gcc_mode)) {
+  } else if (ms_extensions || (c99_mode && !gcc_mode)) {
     /* In Microsoft mode a class or struct may include a member whose type
        contains a final field that is an unknown-size array (in nonstrict C99
        mode, we accept this as an extension).  Such a member must be the last
@@ -17604,7 +17605,7 @@ declarations.
        extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
        long as the class has no virtual base classes. */
     if (C_mode() ||
-        ((microsoft_mode || gpp_mode) &&
+        ((ms_extensions || gpp_mode) &&
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
@@ -17613,7 +17614,7 @@ declarations.
         if (is_union_type(class_type)) {
           /* Incomplete member in a union; not usually allowed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode) {
+          if (ms_extensions) {
             /* In Microsoft mode, any member of a union can have such an
                array type.  The problem of a zero-sized union is dealt with
                in the layout code. */
@@ -17632,7 +17633,7 @@ declarations.
              supported in other C modes (except in strict C89 mode). */
           if ((!class_state->is_first_field &&
                class_state->any_fields_other_than_unnamed_bitfields) ||
-              microsoft_mode) {
+              ms_extensions) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
                determined simply by looking at the next token, so set a flag
@@ -17675,7 +17676,7 @@ declarations.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !class_type->variant.class_struct_union.is_generic_definition &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          (microsoft_mode ||
+          (ms_extensions ||
            (gpp_mode &&
             (gnu_version < 30400 ||
              is_template_param_or_nonreal_class_type(el_type))))) {
@@ -17709,7 +17710,7 @@ declarations.
          use in C99 mode. */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
-    } else if (microsoft_mode || gnu_mode || (c99_mode && !strict_ansi_mode)) {
+    } else if (ms_extensions || gnu_mode || (c99_mode && !strict_ansi_mode)) {
       /* In Microsoft and GNU modes the error is issued only if the struct
          containing a flexible array member is not the last member.  Just
          set the flag for now and do the check later.  (This is also supported
@@ -17725,7 +17726,7 @@ declarations.
                 &locator->source_position);
       err = TRUE;
     }  /* if */
-  } else if (microsoft_mode && class_type->kind == (a_type_kind)tk_union) {
+  } else if (ms_extensions && class_type->kind == (a_type_kind)tk_union) {
     /* Microsoft doesn't treat a union with a flexible array member that is not
        the last member as having a flexible array member at all.  For example:
          union X1 { float f[]; int x; };
@@ -18189,7 +18190,7 @@ be entered.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (!decl_state->is_property_or_event_field) {
         /* Disallow real data members in __interface types (declspec property
            fields are fine; C++/CLI properties and events will already have
@@ -23628,7 +23629,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
           continue;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && field_is_property_or_event(field)) {
+        if (ms_extensions && field_is_property_or_event(field)) {
           /* A property or event field in Microsoft C++ mode.  This is not a
              real field and therefore the check does not apply. */
           continue;
@@ -28289,7 +28290,7 @@ wrap_up_class_definition.
        are constraints on how it can be used.  (E.g., it can't be the element
        type of an array, and in Microsoft and GNU C++ modes it can't be used
        as a base class.) */
-    check_assertion((C_mode() || microsoft_mode || gpp_mode) &&
+    check_assertion((C_mode() || ms_extensions || gpp_mode) &&
                     !is_union_type(class_state->class_type));
     class_type->variant.class_struct_union.
                                     contains_flexible_array_member = TRUE;
@@ -29255,7 +29256,7 @@ classes.
         if (C_dialect == C_dialect_cplusplus) {
           a_boolean	is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode) {
+          if (ms_extensions) {
             a_boolean  complete_decl;
             if (curr_token == tok_implements &&
                 class_state.interfaces_pending) {

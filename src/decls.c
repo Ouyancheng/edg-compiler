@@ -1025,7 +1025,7 @@ of declarations that are permitted.
       /* A standard attribute. */
       is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0 &&
+    } else if (ms_extensions && (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0 &&
                !is_lambda()) {
       /* A Microsoft attribute. */
       is_start = TRUE;
@@ -2105,7 +2105,7 @@ consistent with that of the previous declaration.
   }  /* if */
   if (exceptions_enabled) {
     an_error_severity  severity = es_error;
-    if (microsoft_mode && microsoft_version >= 1300) {
+    if (ms_extensions && microsoft_version >= 1300) {
       /* Recent Microsoft compilers do not require exception specifications
          on multiple declarations to match.  We issue a warning in case of
          a mismatch.  Note that calls to composite_type will ensure that
@@ -5128,7 +5128,7 @@ redeclaration).
   if (redecl_error) {
     an_error_severity	severity = es_error;
     if (((gpp_mode && is_function_template) ||
-         (microsoft_mode && microsoft_version >= 1300 &&
+         (ms_extensions && microsoft_version >= 1300 &&
           !is_function_template))  &&
         scope_is(&scope_stack_top(), sck_template_declaration)) {
       /* g++ ignores redeclared default arguments in function template

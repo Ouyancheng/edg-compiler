@@ -10130,7 +10130,7 @@ Create a symbol and type entry for std::nullptr_t (only in Microsoft mode).
   a_symbol_ptr    nullptr_t_sym;
 
   db_enter(5, "make_predeclared_nullptr_t_symbol");
-  check_assertion(microsoft_mode && symbol_for_namespace_std != NULL);
+  check_assertion(ms_extensions && symbol_for_namespace_std != NULL);
   std_namespace = symbol_for_namespace_std->variant.namespace_info.ptr;
   (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                              std_namespace);

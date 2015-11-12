@@ -519,7 +519,7 @@ C++11 attributes (i.e., not a lambda), scan over them.
   while (curr_token == tok_lbracket && !C_mode()) {
     a_boolean  attr_next = std_attribute_tokens_next();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!attr_next && microsoft_mode && !is_lambda()) {
+    if (!attr_next && ms_extensions && !is_lambda()) {
       attr_next = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -835,7 +835,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
                                                          : GID_NO_OPTIONS);
         } while ((sun_mode || microsoft_bugs) && curr_token == tok_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-        if (microsoft_mode or_near_and_far_enabled()) {
+        if (ms_extensions or_near_and_far_enabled()) {
           /* Check for near/far and a Microsoft decl modifier, such as
              __single_inheritance. */
           prescan_extended_decl_modifiers(flags);

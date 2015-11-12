@@ -99,7 +99,7 @@ Microsoft extensions.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_microsoft_type_keyword(tok)                             \
-  || (microsoft_mode &&                                               \
+  || (ms_extensions &&                                               \
       ((tok) == tok_int8  || (tok) == tok_int16 ||                    \
        (tok) == tok_int32 || (tok) == tok_int64))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */

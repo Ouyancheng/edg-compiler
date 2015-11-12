@@ -502,6 +502,18 @@ Initialize the option information table.
   add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_compatibility, "ms_compat",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_compatibility, "no_ms_compat",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_extensions, "ms_extensions",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_extensions, "no_ms_extensions",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2076,6 +2088,8 @@ is enabled.  Only set the option values if they were not already set
 by a command line option.
 */
 {
+  ms_extensions = TRUE;
+  ms_compat = TRUE;
   enum_types_can_be_smaller_than_int = FALSE;
   enum_types_can_be_larger_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
@@ -2132,6 +2146,7 @@ by a command line option.
       }  /* if */
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
       c99_bool_is_keyword = TRUE;
+      allow_decl_after_stmt = TRUE;
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
@@ -2685,6 +2700,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
   std_c99_inlining = TRUE;
   gnu_c89_inlining = FALSE;
   c99_bool_is_keyword = TRUE;
+  allow_decl_after_stmt = TRUE;
   if (c11_mode) {
     static_assert_enabled = !clang_mode;
     allow_c11_anonymous_unions = TRUE;
@@ -4151,6 +4167,7 @@ This function is also called in clang mode.
   /* Allow nonconstant expressions in aggregate initializers for automatic
      variables. */
   allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
+  allow_decl_after_stmt = TRUE;
   /* GNU's C89 conventions for the inline keyword are the opposite of those
      later standardized in C99.  GCC held onto its conventions in C99 mode also
      until GCC 4.3 (where an option exists to revert to the GNU C89 rules). */
@@ -5678,6 +5695,16 @@ file.
 #else /* !defined(DEFAULT_MICROSOFT_BUGS) */
   comment_undefined_macro_name(DEFAULT_MICROSOFT_BUGS);
 #endif /* defined(DEFAULT_MICROSOFT_BUGS) */
+#if defined(DEFAULT_MICROSOFT_COMPATIBILITY)
+  define_numeric_valued_macro(DEFAULT_MICROSOFT_COMPATIBILITY);
+#else /* !defined(DEFAULT_MICROSOFT_COMPATIBILITY) */
+  comment_undefined_macro_name(DEFAULT_MICROSOFT_COMPATIBILITY);
+#endif /* defined(DEFAULT_MICROSOFT_COMPATIBILITY) */
+#if defined(DEFAULT_MICROSOFT_EXTENSIONS)
+  define_numeric_valued_macro(DEFAULT_MICROSOFT_EXTENSIONS);
+#else /* !defined(DEFAULT_MICROSOFT_EXTENSIONS) */
+  comment_undefined_macro_name(DEFAULT_MICROSOFT_EXTENSIONS);
+#endif /* defined(DEFAULT_MICROSOFT_EXTENSIONS) */
 #if defined(DEFAULT_MICROSOFT_MODE)
   define_numeric_valued_macro(DEFAULT_MICROSOFT_MODE);
 #else /* !defined(DEFAULT_MICROSOFT_MODE) */
@@ -9058,6 +9085,16 @@ enable_microsoft_mode:
                                              &assembly_search_path,
                                              &end_assembly_search_path);
         break;
+      case optk_microsoft_compatibility:
+        /* Enable Clang's idea of Microsoft "compatibility" (also implies
+           setting "extensions"). */
+        ms_compat = TRUE;
+        ms_extensions = TRUE;
+        break;
+      case optk_microsoft_extensions:
+        /* Enable Clang's idea of Microsoft "extensions". */
+        ms_extensions = TRUE;
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -10057,6 +10094,29 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  if (!microsoft_mode) {
+    /* FIXME: Will probably rework this later. */
+    /* FIXME: Reminder to do documentation for new options. */
+    /* FIXME: Changes entry. */
+    if (ms_extensions) {
+      ms_declspec_attributes_enabled = TRUE;
+      allow_nonstandard_anonymous_unions = TRUE;
+      explicit_enum_base_enabled = TRUE;
+      allow_in_class_specializations = TRUE;
+      flexible_array_members_allowed = TRUE;
+      nullptr_enabled = TRUE;
+      if (C_mode()) {
+        designators_allowed = TRUE;
+        c99_bool_is_keyword = TRUE;
+        allow_decl_after_stmt = TRUE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_microsoft_version]) {
+        /* If no version was explicitly specified, use 1700 (to match
+           Clang). */
+        microsoft_version = 1700;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (uliterals_enabled && !C_mode()) {
     /* U-literal enabling implies enabling char16_t and char32_t keywords
        (except in C mode). */
@@ -10850,6 +10910,7 @@ variables declared in cmd_line.h.
                     FALSE;
 #endif /* BOOL_ENABLING_POSSIBLE */
   c99_bool_is_keyword = FALSE;
+  allow_decl_after_stmt = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   default_max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -11027,6 +11088,8 @@ variables declared in cmd_line.h.
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
   cppcx_enabled = DEFAULT_CPPCX_ENABLED && microsoft_mode;  /*lint !e506*/
+  ms_extensions = DEFAULT_MICROSOFT_EXTENSIONS;
+  ms_compat = DEFAULT_MICROSOFT_COMPATIBILITY;
   cli_or_cx_enabled = cppcli_enabled || cppcx_enabled;
   mscorlib_file_name = NULL;
   /* using_framework_directory defaults to TRUE, but has no effect unless

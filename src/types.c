@@ -6193,7 +6193,7 @@ check_typerefs:
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-            if (identical && (microsoft_mode || gnu_mode) &&
+            if (identical && (ms_extensions || gnu_mode) &&
                 !ignore_ms_calling_convention) {
               /* The types are identical so far.  Check the calling
                  conventions. */
@@ -6563,7 +6563,7 @@ of Microsoft-mode member functions).
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
-  if (microsoft_mode && targ_supports_x86_64) {
+  if (ms_extensions && targ_supports_x86_64) {
     /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
        from other conventions.  All other conventions (__cdecl, __fastcall,
        etc.) are accepted but have no effect. */
@@ -6579,14 +6579,14 @@ of Microsoft-mode member functions).
   if (cc1 == cc2) {
     compatible = TRUE;
   } else if (cc1 == (a_calling_convention)cc_default) {
-    if (microsoft_mode && rtsp1->this_class != NULL) {
+    if (ms_extensions && rtsp1->this_class != NULL) {
       /* The default calling convention for member functions is cc_thiscall. */
       compatible = (cc2 == (a_calling_convention)cc_thiscall);
     } else {
       compatible = (cc2 ==  default_calling_convention);
     }  /* if */
   } else if (cc2 == (a_calling_convention)cc_default) {
-    if (microsoft_mode && rtsp2->this_class != NULL) {
+    if (ms_extensions && rtsp2->this_class != NULL) {
       /* The default calling convention for member functions is cc_thiscall. */
       compatible = (cc1 == (a_calling_convention)cc_thiscall);
     } else {
@@ -6949,7 +6949,7 @@ check_typerefs:
                              is_impl_conv))) {
               a_boolean  result = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-              if ((microsoft_mode || gnu_mode) &&
+              if ((ms_extensions || gnu_mode) &&
                   (!ignore_calling_conventions ||
                    ((flags & TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS) &&
                     diffs != NULL))) {
@@ -8618,7 +8618,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           std_conv->warning_suggested = default_warning_code;
         } else if (C_mode() && !suppress_extensions &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
-                    microsoft_mode)) {
+                    ms_extensions)) {
           /* In pcc mode, SVR4 C, gcc, and Microsoft C modes, allow conversion
              between incompatible pointer types, with a warning. */
           okay = TRUE;
@@ -10492,7 +10492,7 @@ well as C++ mode.
                                                                ) ||
               (is_nullptr(source_type) && !source_type->incomplete)) &&
              is_integral(dest_type) &&
-             (C_mode() || microsoft_mode || gpp_mode ||
+             (C_mode() || ms_extensions || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer or std::nullptr_t (but not the managed nullptr type,
        identified by being incomplete) --> integral is okay
@@ -11383,7 +11383,7 @@ unique to each type (e.g., by calling disentangle_default_args).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Compute the composite calling convention if we're in Microsoft mode.
      In GNU mode, this is done by copy_gnu_type_properties. */
-  if (microsoft_mode) {
+  if (ms_extensions) {
     comp_calling_convention = rtsp1->calling_convention;
     if (comp_calling_convention == (a_calling_convention)cc_default) {
       comp_calling_convention = rtsp2->calling_convention;
@@ -11624,7 +11624,7 @@ make_new_comp_type:
     rtsp->prototyped = comp_prototyped;
     rtsp->has_ellipsis = rtsp1->has_ellipsis;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       rtsp->calling_convention = comp_calling_convention;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

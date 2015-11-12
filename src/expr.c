@@ -1397,7 +1397,7 @@ constructs, in which case offsetof_case is TRUE.
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (cli_or_cx_enabled) {
       a_type_ptr op1_type = operand_1->type;
       cli_array_case = is_handle_to_cli_array_type(op1_type);
@@ -5756,7 +5756,7 @@ accepts the case where the first operand is a C++/CLI handle.
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && field_is_property_or_event(field)) {
+  } else if (ms_extensions && field_is_property_or_event(field)) {
     if (property_or_event_kind_is(field, pek_declspec_property)) {
       /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
          operand, which will be rewritten later as a function call. */
@@ -30127,7 +30127,7 @@ Used for the Microsoft __FUNCDNAME__ keyword.
 {
   char *str;
 
-  check_assertion(microsoft_mode);
+  check_assertion(ms_extensions);
   if (C_mode()) {
     /* The name in C mode is the simple routine name with a "_" prefix. */
     pos_in_temp_text_buffer = 0;

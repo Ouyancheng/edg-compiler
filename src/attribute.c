@@ -1135,7 +1135,7 @@ modes encoded in that string.
 {
   a_boolean  match = FALSE;
 
-  if (cond[0] == 'm' && microsoft_mode) {
+  if (cond[0] == 'm' && ms_extensions) {
     match = cond[1] == 'x' ||
             (cond[1] == 'c' && C_mode()) ||
             (cond[1] == '+' && !C_mode());

@@ -2819,7 +2819,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     enter_microsoft_predeclared_functions();
     if (microsoft_version >= 1900 || cppcli_enabled) {
       builtin_functions_enabled = TRUE;

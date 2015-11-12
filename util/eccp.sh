@@ -710,6 +710,8 @@ check_abbreviation()
 --microsoft_version
 --mmap_address
 --module_init
+--ms_compatibility
+--ms_extensions
 --mscorlib_file_name
 --multibyte_chars
 --multi_trans_unit
@@ -784,6 +786,8 @@ check_abbreviation()
 --no_macro_positions_in_diagnostics
 --no_microsoft
 --no_microsoft_bugs
+--no_ms_compatibility
+--no_ms_extensions
 --no_multibyte_chars
 --no_named_address_spaces
 --no_named_registers
@@ -1300,6 +1304,10 @@ process_option()
 	 --microsoft_bugs | \
 	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
+         --ms_compatibility | \
+         --no_ms_compatibility | \
+         --ms_extensions | \
+         --no_ms_extensions | \
 	 --cppcli | \
 	 --no_cppcli | \
 	 --c++cli | \

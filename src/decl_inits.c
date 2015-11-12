@@ -6131,7 +6131,7 @@ underlying element type and the array type itself is returned through
       pos_error(ec_qualified_name_not_allowed,
                 &locator_for_curr_id.source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && field_is_property_or_event(field)) {
+    } else if (ms_extensions && field_is_property_or_event(field)) {
       /* Property and event fields cannot be mentioned in a constructor
          initializer list. */
       pos_error(property_or_event_kind_is(field, pek_cli_event) ?
@@ -7464,7 +7464,7 @@ initialized.  These are addressed in the course of the processing.
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
       a_field_ptr field = sym->variant.field.ptr;
-      if (microsoft_mode && field_is_property_or_event(field)) {
+      if (ms_extensions && field_is_property_or_event(field)) {
         /* Property and event fields are not really data members and should
            not be explicitly initialized. */
         continue;
@@ -8362,7 +8362,7 @@ though neither constructors nor initialization is involved here.)
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
       a_field_ptr field = sym->variant.field.ptr;
-      if (microsoft_mode && field_is_property_or_event(field)) {
+      if (ms_extensions && field_is_property_or_event(field)) {
         /* Property and event fields are not really data members and should
            not be destroyed. */
         continue;

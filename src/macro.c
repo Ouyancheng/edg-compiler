@@ -7613,7 +7613,7 @@ Scan and process a #define directive.
         }  /* if */
         if ((curr_token == tok_sharp 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-             || (microsoft_mode && curr_token == tok_charize)
+             || (ms_extensions && curr_token == tok_charize)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             ) && !object_like && end_of_cpp_string == NULL) {
           /* "#" -- Must be followed by a parameter name.  Note that this is

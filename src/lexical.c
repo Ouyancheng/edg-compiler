@@ -13573,7 +13573,7 @@ id_scan:
                      (cppcx_enabled && ctoken == tok_prefix_partial))) {
                   ctoken = tok_identifier;
                 }  /* if */
-                if (microsoft_mode) {
+                if (ms_extensions) {
                   if (ctoken == tok_microsoft_asm && !scanning_microsoft_asm) {
                     /* Build a string representation of a Microsoft asm
                        and attach it to the current token. */
@@ -13680,7 +13680,7 @@ check_start_of_pp_directive:
 	    ctoken = tok_paste;
 	    curr_char_loc += 2;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (microsoft_mode &&
+          } else if (ms_extensions &&
                      *curr_char_loc == '@' && !first_char_is_digraph) {
             /* In Microsoft mode, a macro definition "#define M(x) #@x" causes
                "M(a)" to be expanded to 'a'. */
@@ -14325,7 +14325,7 @@ skipping too far in error cases.
       closing_token = tok_rbracket;
       /* In Microsoft mode this could be the start of an attribute, so
          allow a longer flush. */
-      if (microsoft_mode) max_lines = 10;
+      if (ms_extensions) max_lines = 10;
       break;
     case tok_lbrace:    closing_token = tok_rbrace; max_lines = 20; break;
     case tok_lt:        closing_token = tok_gt;       break;

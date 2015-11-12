@@ -7178,7 +7178,7 @@ such classes.
                           /*ignore_gnu_attributes=*/FALSE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (microsoft_mode or_near_and_far_enabled()) {
+  if (ms_extensions or_near_and_far_enabled()) {
     /* Update the Microsoft decl modifier information for this class based
        on the information stored in the prototype instantiation.  If this
        is an instance of a subordinate template, use the prototype
@@ -22553,7 +22553,7 @@ in which case the is_delegate flag of decl_state is updated.
     a_token_kind  next_tok;
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (microsoft_mode or_near_and_far_enabled()) {
+    if (ms_extensions or_near_and_far_enabled()) {
       /* Skip over any extended decl modifiers that may be present such as
          near/far or __single_inheritance. */
       prescan_decl_modifiers();
@@ -23436,7 +23436,7 @@ any non-empty template parameter lists that were scanned.
 
   db_enter(3, "template_declaration");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && dps->ms_attributes != NULL) {
+  if (ms_extensions && dps->ms_attributes != NULL) {
     /* Dispose of any Microsoft attributes that appeared before the template
        param clauses or generic constraint clauses. */
     dispose_of_unapplied_attributes(&dps->ms_attributes,
@@ -24223,7 +24223,7 @@ that follows.
 
   db_enter(3, "full_specialization");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && dps->ms_attributes != NULL) {
+  if (ms_extensions && dps->ms_attributes != NULL) {
     /* Dispose of any Microsoft attributes that appeared before the template
        param clause. */
     dispose_of_unapplied_attributes(&dps->ms_attributes,

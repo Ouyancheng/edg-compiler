@@ -776,6 +776,39 @@ by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE to enable Microsoft "compatibility", i.e., the default value
+of the ms_compat global variable.  The ms_compat variable controls "Microsoft
+compatibility" as generally defined by Clang's -fms-compatibility command-line
+option.  Note that this doesn't enable full Microsoft emulation (see
+DEFAULT_MICROSOFT_MODE and microsoft_mode), but rather just Clang's notion of
+it.  It is typically combined with Clang emulation mode, but could conceivably
+be paired with other modes.  Always enabled in Microsoft emulation mode.
+*/
+#ifndef DEFAULT_MICROSOFT_COMPATIBILITY
+#define DEFAULT_MICROSOFT_COMPATIBILITY FALSE
+#endif /* ifndef DEFAULT_MICROSOFT_COMPATIBILITY */
+#if DEFAULT_MICROSOFT_COMPATIBILITY && !MICROSOFT_EXTENSIONS_ALLOWED
+ #error DEFAULT_MICROSOFT_COMPATIBILITY requires MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* DEFAULT_MICROSOFT_COMPATIBILITY && !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE to enable Microsoft "extensions", i.e., the default value
+of the ms_extensions global variable.  The ms_extensions variable controls
+which extensions to the language should be accepted by the front end and is
+generally defined by Clang's -fms-extensions command-line option.  Note that
+this doesn't enable full Microsoft emulation (see DEFAULT_MICROSOFT_MODE and
+microsoft_mode).  It is typically combined with Clang emulation mode, but could
+conceivably be paired with other modes.  Always enabled in Microsoft emulation
+mode.
+*/
+#ifndef DEFAULT_MICROSOFT_EXTENSIONS
+#define DEFAULT_MICROSOFT_EXTENSIONS FALSE
+#endif /* ifndef DEFAULT_MICROSOFT_EXTENSIONS */
+#if DEFAULT_MICROSOFT_EXTENSIONS && !MICROSOFT_EXTENSIONS_ALLOWED
+ #error DEFAULT_MICROSOFT_EXTENSIONS requires MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* DEFAULT_MICROSOFT_EXTENSIONS && !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE if C++/CLI extensions (ECMA-372) can be accepted.  (Setting
 the flag to TRUE enables the command-line options --cppcli and --no_cppcli.)
 If the flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be TRUE as well.
@@ -1152,7 +1185,23 @@ utilities.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		microsoft_mode;
-			/* TRUE if Microsoft extensions are to be accepted. */
+			/* TRUE if a particular version (as given by
+			   microsoft_version) of the Microsoft compiler is
+			   being emulated.  When this is TRUE, ms_compat and
+			   ms_extensions will also be TRUE. */
+
+EXTERN a_boolean
+		ms_extensions;
+			/* TRUE if Microsoft extensions (as defined by Clang's
+			   -fms-extensions command-line option) are allowed.
+			   Always TRUE when microsoft_mode is TRUE. */
+
+EXTERN a_boolean
+		ms_compat;
+			/* TRUE if Microsoft "compatibility" (as defined by
+			   Clang's -fms-compatibility command-line option) is
+			   enabled.  Always TRUE when microsoft_mode is
+			   TRUE. */
 
 EXTERN a_boolean
 		microsoft_bugs;
@@ -1185,6 +1234,10 @@ EXTERN a_boolean
 EXTERN a_boolean
 		microsoft_mode;
 EXTERN a_boolean
+		ms_extensions;
+EXTERN a_boolean
+		ms_compat;
+EXTERN a_boolean
 		microsoft_bugs;
 EXTERN a_boolean
 		cppcli_enabled;
@@ -1196,6 +1249,8 @@ EXTERN a_boolean
 		scanning_generated_code_from_metadata;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
+#define ms_extensions FALSE
+#define ms_compat FALSE
 #define microsoft_bugs FALSE
 #define cppcli_enabled FALSE
 #define cppcx_enabled FALSE

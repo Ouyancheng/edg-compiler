@@ -28,7 +28,7 @@ calling convention.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_calling_convention(tok)                          \
-  (microsoft_mode &&                                                  \
+  (ms_extensions &&                                                   \
    ((tok) == tok_cdecl ||                                             \
     (tok) == tok_fastcall ||                                          \
     (tok) == tok_stdcall ||                                           \
