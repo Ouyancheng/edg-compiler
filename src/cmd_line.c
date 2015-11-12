@@ -11109,6 +11109,8 @@ variables declared in cmd_line.h.
 #ifdef _lint
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
+  ms_extensions = FALSE;
+  ms_compat = FALSE;
   cppcli_enabled = FALSE;
   cppcx_enabled = FALSE;
   cli_or_cx_enabled = FALSE;

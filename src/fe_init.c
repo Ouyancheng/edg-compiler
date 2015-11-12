@@ -945,6 +945,7 @@ Install the keywords in the symbol table.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ms_compat) {
     /* FIXME: To make lint happy until ms_compat is really used. */
+    ms_compat = ms_extensions;
   }  /* if */
   if (type_traits_helpers_enabled ||
       (microsoft_mode && microsoft_version >= 1400)) {
