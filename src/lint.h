@@ -1251,6 +1251,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_await_not_allowed_in_catch_clause)*/
 /*lint -esym(769,ec_coroutine_with_ellipsis_parameter)*/
 #endif /* !COROUTINES_ALLOWED */
+/*lint -esym(759,ms_compat)*/
+/*lint -esym(765,ms_compat)*/
 
 #endif /* ifndef LINT_H */
 
