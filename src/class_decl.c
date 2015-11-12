@@ -3453,93 +3453,111 @@ type must be complete.
 done:;
 }  /* inclass_initializer_fixup_for_class */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void ensure_inclass_static_member_constant_initializer_is_scanned(
                                                           a_variable_ptr  var)
 /*
-The given variable entry is for a static member of a managed class type.
-The declaration of that member may have an in-class initializer, but if so
-scanning of that initializer was delayed until completion of the definition of
-the enclosing class.  Do this scanning now instead, so that the static data
-member can be used as a constant-expression.
-This is similar to inclass_initializer_fixup_for_class, except only a specific
-fixup entry is processed, and the initializer is scanned with the constraints
-of a constant-expression.
+The given variable entry is for a static member of a managed class type or of
+a GNU C++ class template instantiation (non-prototype).  The declaration of
+that member may have an in-class initializer, but if so scanning of that
+initializer was delayed.  Do this scanning now, so that the static data member
+can be used as a constant-expression.
+
+For the managed class case, this is similar to
+inclass_initializer_fixup_for_class, except only a specific fixup entry is
+processed, and the initializer is scanned with the constraints of a
+constant-expression.
 */
 {
-  a_symbol_ptr  var_sym = symbol_for(var);
-  a_type_ptr    class_type = sym_parent_class(var_sym);
+  a_symbol_ptr   var_sym = symbol_for(var);
+  a_type_ptr     class_type = sym_parent_class(var_sym);
+  a_token_cache  *token_cache = NULL;
 
   check_assertion(symbol_is(var_sym, sk_static_data_member));
-  if (!class_type->incomplete ||
-      (scope_is(&scope_stack_top(), sck_class_struct_union) &&
-       same_entities(scope_stack_top().assoc_type, class_type))) {
-    a_class_symbol_supplement_ptr  cssp;
-    an_initializer_fixup_ptr       *p_ifp, ifp;
-    cssp = symbol_supplement_for_class(class_type);
-    p_ifp = &cssp->initializer_fixup_list;
-    for (;*p_ifp != NULL; p_ifp = &(*p_ifp)->next) {
-      if ((*p_ifp)->symbol == var_sym) break;
-    }  /* for */
-    if (*p_ifp != NULL) {
-      a_decl_parse_state           dps;
-      a_constant_ptr               constant = local_constant();
+  if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
+      var->is_template_static_data_member) {
+    /* For GNU static data members, we record a cache in the static data
+       member supplement. */
+    a_static_data_member_supplement_ptr
+               sdmsp = sdm_supp(var_sym);
+    if (sdmsp != NULL) token_cache = sdmsp->token_cache;
+  } else if (cli_or_cx_enabled) {
+    if (!class_type->incomplete ||
+        (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+         same_entities(scope_stack_top().assoc_type, class_type))) {
+      /* For managed classes, the token cache is recorded in a fixup entry. */
+      a_class_symbol_supplement_ptr  cssp;
+      an_initializer_fixup_ptr       *p_ifp, ifp;
+      cssp = symbol_supplement_for_class(class_type);
+      if (cssp->initializer_fixup_list != NULL) {
+        p_ifp = &cssp->initializer_fixup_list;
+        for (;*p_ifp != NULL; p_ifp = &ifp->next) {
+          ifp = *p_ifp;
+          if (ifp->symbol == var_sym) {
+            /* Extract the token cache from the fixup entry. */
+            token_cache = ifp->token_cache;
+            ifp->token_cache = NULL;
+            /* Unlink the fixup entry and free it for reuse. */
+            *p_ifp = ifp->next;
+            ifp->next = NULL;
+            free_initializer_fixup(ifp);
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (token_cache != NULL) {
+    a_decl_parse_state           dps;
+    a_constant_ptr               constant = local_constant();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_source_sequence_entry_ptr  last_ssep =
+    a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      ifp = *p_ifp;
-      push_lexical_state_stack();
-      /* Re-create a declaration parsing state before parsing the
-         initializer. */
-      init_decl_parse_state(&dps);
-      dps.sym = var_sym;
-      var = dps.sym->variant.static_data_member.variable;
-      dps.type = dps.declared_type = var->type;
-      /* Reactivate the class scope and parse the initializer. */
-      push_class_and_template_reactivation_scope(class_type,
-                                                 /*is_template_based=*/FALSE,
-                                                 /*extend_namespace=*/TRUE);
-      rescan_reusable_cache(ifp->token_cache);
-      scan_member_constant_initializer_expression(&dps, constant);
-      var->init_kind = (an_init_kind)initk_static;
-      var->initializer.constant = move_local_constant_to_il(&constant);
+    push_lexical_state_stack();
+    /* Re-create a declaration parsing state before parsing the
+       initializer. */
+    init_decl_parse_state(&dps);
+    dps.sym = var_sym;
+    var = dps.sym->variant.static_data_member.variable;
+    dps.type = dps.declared_type = var->type;
+    /* Reactivate the class scope and parse the initializer. */
+    push_class_and_template_reactivation_scope(
+          class_type, /*is_template_based=*/gpp_mode,
+          /*extend_namespace=*/TRUE);
+    rescan_reusable_cache(token_cache);
+    scan_member_constant_initializer_expression(&dps, constant);
+    var->init_kind = (an_init_kind)initk_static;
+    var->initializer.constant = move_local_constant_to_il(&constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      var->initializer_range.end = curr_construct_end_position;
+    var->initializer_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      check_constant_valued_variable(&dps);
-      /* We should now be at the end-of-source terminator inserted when we
-         cached the initializer.  If we aren't, it means something other than a
-         semicolon (or a comma) followed the initializer expression. */
-      if (curr_token != tok_end_of_source) {
-        pos_error(ec_exp_semicolon, &pos_curr_token);
-      }  /* if */
-      flush_past_token_cache_terminator();
-      pop_class_reactivation_scope();
-      pop_lexical_state_stack();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
-        /* The initializer created source sequence entries.  Move them to
-           follow the entry for the variable. */
-        a_source_sequence_entry_ptr  var_next;
-        check_assertion(last_ssep != NULL);
-        var_next = var->source_corresp.source_sequence_entry->next;
-        var->source_corresp.source_sequence_entry->next = last_ssep->next;
-        scope_stack_top().end_of_source_sequence_list->next = var_next;
-        scope_stack_top().end_of_source_sequence_list = last_ssep;
-        last_ssep->next = NULL;
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Unlink the fixup entry and free it for reuse. */
-      *p_ifp = ifp->next;
-      ifp->next = NULL;
-      free_initializer_fixup(ifp);
+    check_constant_valued_variable(&dps);
+    /* We should now be at the end-of-source terminator inserted when we
+       cached the initializer.  If we aren't, it means something other than a
+       semicolon (or a comma) followed the initializer expression. */
+    if (curr_token != tok_end_of_source) {
+      pos_error(ec_exp_semicolon, &pos_curr_token);
     }  /* if */
+    flush_past_token_cache_terminator();
+    pop_class_reactivation_scope();
+    pop_lexical_state_stack();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
+      /* The initializer created source sequence entries.  Move them to
+         follow the entry for the variable. */
+      a_source_sequence_entry_ptr  var_next;
+      check_assertion(last_ssep != NULL);
+      var_next = var->source_corresp.source_sequence_entry->next;
+      var->source_corresp.source_sequence_entry->next = last_ssep->next;
+      scope_stack_top().end_of_source_sequence_list->next = var_next;
+      scope_stack_top().end_of_source_sequence_list = last_ssep;
+      last_ssep->next = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* ensure_inclass_static_member_constant_initializer_is_scanned */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_trans_unit_for_class(a_type_ptr  class_type,
 				       a_boolean   *trans_unit_pushed)
@@ -15584,8 +15602,10 @@ general information about the class.
 static a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr	sym)
 /*
 Cache the tokens that make up an in-class initializer for the static or
-nonstatic data member specified by sym.  Return a pointer to the
-token cache that was created.
+nonstatic data member specified by sym.  Return a pointer to the token cache
+that was created.  This used for C++11-style field initializers, but also for
+static data members of class templates in GNU C++ mode and static data members
+of managed class types in some Microsoft modes.
 */
 {
   a_token_cache_ptr		token_cache = alloc_token_cache();
@@ -15617,14 +15637,14 @@ token cache that was created.
   if (is_field) {
     scope_stack_top().in_field_initializer = saved_in_field_initializer;
   }  /* if */
-  if (is_prototype_instantiation_context() &&
-      symbol_is(sym, sk_field)) {
+  if (is_prototype_instantiation_context() &&  (is_field || gpp_mode)) {
     /* This is an initializer in the prototype instantiation of a class
        template or nested class of a class template.  Save the token numbers
        associated with this default initializer so that it can be removed
-       from the cache later. */
-    a_template_cache_segment_ptr	tcsp;
-    a_field_symbol_supplement_ptr	fssp;
+       from the cache later.  This is done for all C++11-style field
+       initializers as well as GNU C++ mode static data member initializers
+       (which are instantiated on demand). */
+    a_template_cache_segment_ptr   tcsp;
     tcsp = alloc_template_cache_segment(
                                   sym, (a_template_symbol_supplement_ptr)NULL);
     tcsp->first_token_number = first_tsn;
@@ -15634,8 +15654,11 @@ token cache that was created.
     tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
     /* Check for the case where the cache is empty. */
     tcsp->expression_missing = token_cache->first_token == NULL;
-    fssp = sym->variant.field.extra_info;
-    fssp->token_cache = token_cache;
+    if (is_field) {
+      sym->variant.field.extra_info->token_cache = token_cache;
+    } else {
+      get_sdm_supp(sym)->token_cache = token_cache;
+    }  /* if */
   }  /* if */
   return token_cache;
 }  /* cache_inclass_initializer */
@@ -15936,6 +15959,8 @@ specific information about the member declaration, respectively.
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
+    a_boolean          skip_cache_terminator = FALSE;
+    a_boolean          constant_member = is_const_qualified_type(member_type);
     var->initializer_in_class = TRUE;
     decl_state->init_state.decl_parse_state = decl_state;
     decl_state->has_initializer = TRUE;
@@ -15966,7 +15991,21 @@ specific information about the member declaration, respectively.
         prescan_initializer_for_auto_type_deduction(decl_state,
                                                  /*parenthesized_init=*/FALSE);
         member_type = decl_state->type;
+        constant_member = is_const_qualified_type(member_type);
       }  /* if */
+    } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
+               constant_member && in_class_template_definition(class_state)) {
+      /* GCC appears to instantiate the initializer on demand.  Cache and
+         extract the initializer during the prototype instantiation.  The
+         cache will be scanned on-demand for real instantiations (see
+         ensure_inclass_static_member_constant_initializer_is_scanned). */
+      a_token_cache  *token_cache;
+      a_static_data_member_supplement_ptr
+                     sdmsp = get_sdm_supp(sym);
+      sdmsp->token_sequence_number = curr_token_sequence_number;
+      token_cache = cache_inclass_initializer(sym);
+      rescan_reusable_cache(token_cache);
+      skip_cache_terminator = TRUE;
     }  /* if */
     if ((microsoft_bugs || gpp_mode) && decl_state->sym != NULL) {
       /* In Microsoft bugs and GNU mode, the static data member being
@@ -15975,14 +16014,10 @@ specific information about the member declaration, respectively.
       restore_member_visibility = TRUE;
     }  /* if */
     if (delay_initializer_scan) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
       record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
       srk_flags |= SRK_DEFINITION;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      unexpected_condition();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if ((is_const_qualified_type(member_type) &&
+    } else if ((constant_member &&
                 (is_integral_or_enum_type(member_type) ||
                  (gpp_mode &&
                   (is_floating_type(member_type) ||
@@ -16061,6 +16096,25 @@ specific information about the member declaration, respectively.
       /* If the constant was not moved to the IL above, release it now. */
       release_local_constant(&constant);
     }  /* if */
+    if (skip_cache_terminator && curr_token == tok_end_of_source) {
+      (void)get_token();
+    }  /* if */
+  } else if (gpp_mode &&
+             (curr_token == tok_removed_expr ||
+              (curr_token == tok_assign &&
+               next_token() == tok_removed_expr))) {
+    /* The initializer was extracted for "on-demand" instantiation. */
+    var->initializer_in_class = TRUE;
+    /* The "=" token is not part of the initializer, so it may still be
+       present. */
+    if (curr_token == tok_assign) {
+      (void)get_token();
+    }  /* if */
+    /* Retrieve the initializer tokens from the prototype instantiation. */
+    find_inclass_sdm_initializer_for_instance(
+                                 sym, class_state->corresp_prototype_tag_sym);
+    /* Skip over the cache terminator. */
+    (void)get_token();
   } else if (var->is_constexpr) {
     /* A constexpr static data member declaration must have an initializer:
        Issue an error. */
@@ -18514,7 +18568,7 @@ information about the member declaration, respectively.
           } else {
             /* During a real instantiation, the token cache information is
                copied from the field of the prototype instantiation. */
-            find_inclass_initializer_for_instance(
+            find_inclass_field_initializer_for_instance(
                              dps->sym, class_state->corresp_prototype_tag_sym);
             /* No fixup is done because field initializers in templates are
                only instantiated if used. */

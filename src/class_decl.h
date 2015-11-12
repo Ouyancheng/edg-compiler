@@ -75,9 +75,6 @@ extern a_boolean in_static_cli_property_or_event_definition(void);
 extern void check_initonly_members(a_type_ptr  class_type,
                                    a_boolean   static_ctor_def_seen);
 
-extern void ensure_inclass_static_member_constant_initializer_is_scanned(
-                                                         a_variable_ptr  var);
-
 extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
                                               a_decl_parse_state  *dps);
 
@@ -85,6 +82,9 @@ extern a_symbol_ptr make_and_enter_abi_member_function_symbol(
                                                 a_symbol_locator  *loc,
                                                 a_type_ptr        class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern void ensure_inclass_static_member_constant_initializer_is_scanned(
+                                                         a_variable_ptr  var);
 
 extern void resolve_indeterminate_exception_specification(a_routine_ptr  rp);
 

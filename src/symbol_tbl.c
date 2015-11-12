@@ -104,6 +104,7 @@ static unsigned long
 		symbol_name_string_space,
 		num_symbol_header_lookup_entries_allocated,
 		num_field_symbol_supplements_allocated,
+		num_static_data_member_supplements_allocated,
 		num_enum_symbol_supplements_allocated,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
@@ -3563,6 +3564,27 @@ null.  (Used for C++/CLI properties.)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+a_static_data_member_supplement_ptr alloc_static_data_member_supplement(
+                                                        a_symbol_ptr  sdm_sym)
+/*
+Allocate a static data member supplement entry and return a pointer to it.
+This function should normally only be called through the macro get_sdm_supp.
+*/
+{
+  a_static_data_member_supplement_ptr
+                    sdmsp = alloc_fe_of_type(a_static_data_member_supplement);
+  sdmsp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  sdmsp->token_cache = NULL;
+  sdmsp->prototype_member = NULL;
+#if DEBUG
+  num_static_data_member_supplements_allocated++;
+#endif /* DEBUG */
+  sdm_sym->variant.static_data_member.extra_info = sdmsp;
+  return sdmsp;
+}  /* alloc_static_data_member_supplement */
+
+
 void set_symbol_kind(register a_symbol_ptr sym_ptr,
 		     a_symbol_kind         sym_kind)
 /*
@@ -3761,6 +3783,7 @@ state.
     case sk_static_data_member:
       sym_ptr->variant.static_data_member.variable = NULL;
       sym_ptr->variant.static_data_member.instance_ptr = NULL;
+      sym_ptr->variant.static_data_member.extra_info = NULL;
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
@@ -3769,9 +3792,9 @@ state.
         fssp = alloc_fe_of_type(a_field_symbol_supplement);
         fssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         fssp->token_cache = NULL;
-        fssp->being_instantiated = FALSE;
-        fssp->prototype_field = 0;
+        fssp->prototype_field = NULL;
         fssp->pending_instantiations = 0;
+        fssp->being_instantiated = FALSE;
         fssp->is_variant_member = FALSE;
         fssp->is_first_variant_member = FALSE;
         fssp->is_last_variant_member = FALSE;
@@ -15949,6 +15972,9 @@ for space tracking purposes.
   db_space_used("field symbol supplement",
                 num_field_symbol_supplements_allocated,
                 a_field_symbol_supplement);
+  db_space_used("static data member supplement",
+                num_static_data_member_supplements_allocated,
+                a_static_data_member_supplement);
   db_space_used("enum symbol supplement",
                 num_enum_symbol_supplements_allocated,
                 an_enum_symbol_supplement);
@@ -16326,6 +16352,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_active_using_directives_allocated),
       pch_saved_var_array_elem(num_generated_entity_blocks_allocated),
       pch_saved_var_array_elem(num_field_symbol_supplements_allocated),
+      pch_saved_var_array_elem(num_static_data_member_supplements_allocated),
       pch_saved_var_array_elem(num_enum_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_compares_for_symbols),
@@ -16522,6 +16549,7 @@ of the front end.
   symbol_name_string_space                      = 0;
   num_symbol_header_lookup_entries_allocated    = 0;
   num_field_symbol_supplements_allocated        = 0;
+  num_static_data_member_supplements_allocated  = 0;
   num_enum_symbol_supplements_allocated         = 0;
   num_class_symbol_supplements_allocated        = 0;
   num_template_symbol_supplements_allocated     = 0;

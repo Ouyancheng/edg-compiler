@@ -1533,7 +1533,7 @@ is the token sequence number to be used as the identifier for this template.
 }  /* find_class_template_member */
 
 
-void find_inclass_initializer_for_instance(
+void find_inclass_field_initializer_for_instance(
 				a_symbol_ptr	field_sym,
 				a_symbol_ptr	corresp_prototype_tag_sym)
 /*
@@ -1551,8 +1551,8 @@ corresponds to field_sym in an actual instantiation.
   check_assertion(corresp_prototype_tag_sym != NULL);
   /* Skip over any anonymous union parent types. */
   parent_type = corresp_prototype_tag_sym->variant.class_struct_union.type;
-  while (parent_type->variant.class_struct_union.extra_info->
-                   anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+  while (class_type_supp(parent_type)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
     parent_type = parent_class_of(parent_type);
     check_assertion(parent_type != NULL);
   }  /* while */
@@ -1583,7 +1583,51 @@ corresponds to field_sym in an actual instantiation.
       field->initializer->variant.constant = alloc_error_constant();
     }  /* if */
   }  /* if */
-}  /* find_inclass_initializer_for_instance */
+}  /* find_inclass_field_initializer_for_instance */
+
+
+void find_inclass_sdm_initializer_for_instance(
+                                      a_symbol_ptr  sdm_sym,
+                                      a_symbol_ptr  corresp_prototype_tag_sym)
+/*
+Find the static data member in the class specified by corresp_prototype_tag_sym
+that corresponds to sdm_sym in an actual instantiation and copy its associated
+token cache pointer to the token cache pointer for sdm_sym.  In error cases,
+record an error constant initializer for the static data member represented by
+sdm_sym.  This is currently only used in GNU mode.
+*/
+{
+  a_symbol_ptr                    sym;
+  a_static_data_member_supplement_ptr
+                 proto_sdmsp, sdmsp = get_sdm_supp(sdm_sym);
+  a_class_symbol_supplement_ptr   cssp;
+
+  check_assertion(corresp_prototype_tag_sym != NULL);
+  cssp = class_symbol_supp(corresp_prototype_tag_sym);
+  for (sym = find_symbol_list_in_table(&cssp->pointers_block, sdm_sym->header);
+       sym != NULL;
+       sym = sym->next_in_lookup_table) {
+    if (symbol_is(sym, sk_static_data_member)) {
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion_or_expect_error(sym != NULL);
+  if (sym != NULL) {
+    proto_sdmsp = sdm_supp(sym);
+    check_assertion(proto_sdmsp != NULL);
+    if (proto_sdmsp->token_sequence_number == curr_token_sequence_number) {
+      sdmsp->token_cache = proto_sdmsp->token_cache;
+      check_assertion(proto_sdmsp->token_cache != NULL);
+      sdmsp->prototype_member = sym;
+    } else {
+      /* Some error occurred that caused us to be in an unexpected location.
+         Set the member initializer to an error constant. */
+      a_variable_ptr  var = sdm_sym->variant.static_data_member.variable;
+      var->initializer.constant = alloc_error_constant();
+      expect_error();
+    }  /* if */
+  }  /* if */
+}  /* find_inclass_sdm_initializer_for_instance */
 
 
 static a_boolean template_arg_has_value(a_template_arg_ptr	tap)
@@ -4547,6 +4591,7 @@ and a list of the unprocessed entries is returned to the caller.
           }  /* if */
           break;
         case sk_field:
+        case sk_static_data_member:
           /* Remove the field initializer expression. */
           remove_expression_from_cache(tcsp);
 #if DEBUG
@@ -5774,6 +5819,13 @@ and the class instantiation will detect the runaway case.
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
   var_ptr = tip->instance_sym->variant.static_data_member.variable;
+  if (var_ptr->initializer_in_class &&
+      gpp_mode && gnu_version >= 40100 && !clang_mode) {
+    /* In GNU C++ mode, in-class initializers are instantiated only when
+       needed.  Since we're about to instantiate the definition, ensure it
+       will have an associated initializer. */
+    ensure_inclass_static_member_constant_initializer_is_scanned(var_ptr);
+  }  /* if */
   complete_type_is_needed(var_ptr->type);
   if (instantiation_mode == tim_local) {
     /* In -tlocal mode, put out the static data member with internal

@@ -14360,19 +14360,27 @@ be returned for a C mode const variable.
   an_init_kind       init_kind;
   an_initializer_ptr init;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled && var->source_corresp.is_class_member &&
+  if (var->source_corresp.is_class_member &&
       var->init_kind == (an_init_kind)initk_none &&
-      is_immediate_managed_class_type(parent_class_of(var)) &&
       is_potentially_constant_valued_variable(var)) {
-    /* A static data member of a managed class type.  The scanning of its
-       in-class initializer (if any) is delayed by default until the complete
-       class definition has been seen.  However, if the member is used in the
-       context of a constant-expression, its initializer is scanned as such at
-       that point.  */
-    ensure_inclass_static_member_constant_initializer_is_scanned(var);
-  }  /* if */
+    /* In some modes, in-class initializers for static data members are not
+       scanned immediately. */
+    if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
+        var->is_template_static_data_member &&
+        !var->is_prototype_instantiation) {
+      ensure_inclass_static_member_constant_initializer_is_scanned(var);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_or_cx_enabled && 
+               is_immediate_managed_class_type(parent_class_of(var))) {
+      /* A static data member of a managed class type.  The scanning of its
+         in-class initializer (if any) is delayed by default until the complete
+         class definition has been seen.  However, if the member is used in the
+         context of a constant-expression, its initializer is scanned as such
+         at that point.  */
+      ensure_inclass_static_member_constant_initializer_is_scanned(var);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
   /* See if the variable has a known constant value. */
   if (gnu_mode && var->is_compound_literal) {
     /* In GNU C and C++, a variable representing an lvalue for a compound

@@ -1,5 +1,19 @@
 Version 4.11
 
+11/12/15 [EDGcpfe/16403,EDGcpfe/16644]
+GNU C++ compatibility: In-class initializers for template static data members
+
+In GNU C++ mode, in-class initializers for static data members of class
+template instantiations are now only instantiated when the associated
+value is needed or the associated definition is instantiated.  For example:
+
+  template<typename T> struct S {
+    static unsigned const N = sizeof(T());
+  };
+  S<void> s;  // Now accepted in GNU C++ mode, because the initializer of
+              // S<void>::N is not instantiated at this point.
+
+
 11/11/15 [EDGcpfe/15312,EDGcpfe/16641]
 Abort on friend function defined in variadic class template
 

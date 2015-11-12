@@ -1470,7 +1470,7 @@ typedef short an_unused_instantiation_count;
 typedef struct a_field_symbol_supplement *a_field_symbol_supplement_ptr;
 typedef struct a_field_symbol_supplement {
   /* Additional information about a field, supplementing the information
-     residing in the type's symbol entry. */
+     residing in the field's symbol entry. */
   a_token_sequence_number
 		token_sequence_number;
 			/* This is used to match find the initializer from
@@ -1518,6 +1518,37 @@ typedef struct a_field_symbol_supplement {
 			/* TRUE if this is the last variant member introduced
 			   by an anonymous union in the surrounding class. */
 } a_field_symbol_supplement;
+
+
+typedef struct a_static_data_member_supplement
+                                         *a_static_data_member_supplement_ptr;
+typedef struct a_static_data_member_supplement {
+  /* Additional information about a static data member, supplementing the
+     information residing in the member's symbol entry. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* This is used to match find the initializer from
+			   a prototype instantiation for a member in a real
+			   instantiation. */
+  a_token_cache_ptr
+		token_cache;
+			/* For a a member of a template class (including
+			   prototype and real instantiations) this points to
+			   the cache containing the initializer, if any.  For
+			   real instantiations, this is copied from the entry
+			   from the prototype instantiation to the entry for
+			   the real instantiation when the real instantiation
+			   of the enclosing class is done.  NULL if there is no
+			   initializer, for members of non-template classes,
+			   and for members of template classes if an
+			   instantiation has been done. */
+  a_symbol_ptr
+		prototype_member;
+			/* For member of an instance of a class template or
+			   nested class of a class template, this points to
+			   the static data member symbol of the corresponding
+			   member from the prototype instantiation. */
+} a_static_data_member_supplement;
 
 
 /*
@@ -3458,6 +3489,10 @@ typedef struct a_symbol {
 			   template, a pointer to an entry providing
 			   additional information about whether and how to
 			   define the static data member.  NULL otherwise. */
+      a_static_data_member_supplement_ptr
+		extra_info;
+			/* Pointer to an entry providing additional info about
+			   a static data member. */
     } static_data_member;
     /* When kind == sk_field: */
     struct {
@@ -6222,7 +6257,25 @@ or sk_member_function symbol.
   (skip_typerefs((sym)->variant.routine.ptr->type))
 
 /*
-Extract a pointer to the class symbol supplement for a given class_type_symbol.
+Extract a pointer to the symbol supplement for a static data member.  The
+result may be NULL.
+*/
+#define sdm_supp(sdm_sym)                                             \
+  ((sdm_sym)->variant.static_data_member.extra_info)
+
+/*
+Get a pointer to the symbol supplement for a static data member.  If there
+is no such supplement yet, allocate one.
+*/
+#define get_sdm_supp(sdm_sym)                                                \
+  (sdm_supp(sdm_sym) != NULL ? sdm_supp(sdm_sym)                             \
+                             : alloc_static_data_member_supplement(sdm_sym))
+
+extern a_static_data_member_supplement_ptr
+                   alloc_static_data_member_supplement(a_symbol_ptr  sdm_sym);
+
+/*
+Extract a pointer to the class symbol supplement for a given class type_symbol.
 */
 #define class_symbol_supp(class_sym)                                  \
   ((class_sym)->variant.class_struct_union.extra_info)
