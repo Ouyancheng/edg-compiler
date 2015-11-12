@@ -5240,7 +5240,15 @@ precedence confusion.  Do the output in the way described by octl.
       if (need_cast) {
         /* Prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
-        form_general_cast(orig_type, need_reinterpret_cast, octl);
+        if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
+            !constant->is_compound_literal) {
+          /* This must have been a cast like T{}, so just put out the type
+             name here; the ck_aggregate output will provide the braces. */
+          form_type(orig_type, octl);
+        } else {
+          /* Put out either a reintepret_cast or a C-style cast. */
+          form_general_cast(orig_type, need_reinterpret_cast, octl);
+        }  /* if */
         cast_already_put_out = TRUE;
       }  /* if */
     }  /* if */

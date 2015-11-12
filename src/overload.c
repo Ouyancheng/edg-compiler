@@ -23135,6 +23135,9 @@ will be an lvalue instead of the usual prvalue.
       make_lvalue_or_rvalue_expression_operand(expr, result);
     } else if (constant != NULL) {
       check_assertion(!force_temp);
+      if (is_cast) {
+        constant->explicit_cast_applied = TRUE;
+      }  /* if */
       make_constant_operand(constant, result);
     } else {
       /* We want an operand, and we have an operand. */
