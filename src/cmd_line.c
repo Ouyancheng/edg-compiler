@@ -10094,6 +10094,7 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!microsoft_mode) {
     /* FIXME: Will probably rework this later. */
     /* FIXME: Reminder to do documentation for new options. */
@@ -10117,6 +10118,7 @@ enable_microsoft_mode:
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (uliterals_enabled && !C_mode()) {
     /* U-literal enabling implies enabling char16_t and char32_t keywords
        (except in C mode). */
