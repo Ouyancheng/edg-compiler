@@ -1253,6 +1253,7 @@ extern int fileno(FILE *);
 #endif /* !COROUTINES_ALLOWED */
 /*lint -esym(759,ms_compat)*/
 /*lint -esym(765,ms_compat)*/
+/*lint -esym(552,ms_compat)*/
 
 #endif /* ifndef LINT_H */
 
