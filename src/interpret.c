@@ -2710,7 +2710,7 @@ successfully interpreted, FALSE otherwise.
       } else if (stmt->variant.label.ptr->continue_label) {
         ips->curr_call_frame->continue_active = TRUE;
       } else {
-        /* FIXME: record interpretation error. */
+        info_with_pos(ec_constexpr_goto, &stmt->position, ips);
         result = FALSE;
       }  /* if */
       break;
@@ -2730,7 +2730,8 @@ successfully interpreted, FALSE otherwise.
         a_type_ptr  fn_type = ips->curr_call_frame->routine->type;
         fn_type = skip_typerefs(fn_type);
         if (!is_void_type(fn_type->variant.routine.return_type)) {
-          /* FIXME: record interpretation error. */
+          info_with_pos(ec_constexpr_missing_return_value, &stmt->position,
+                        ips);
           result = FALSE;
         }  /* if */
       }  /* if */
