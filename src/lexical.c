@@ -9428,7 +9428,7 @@ fixed_point_suffix:
       ud_lit_op_sym_for_curr_token =
                                find_literal_operator(canonical_id, id_len,
                                                      &start_pos, literal_type,
-                                                     /*display_errors=*/FALSE);
+                                                     (a_diagnostic_ptr)NULL);
       if (err_code != ec_no_error &&
           ud_lit_op_sym_for_curr_token != NULL) {
         /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
@@ -10447,7 +10447,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
           ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
-                                             /*display_errors=*/FALSE);
+                                             (a_diagnostic_ptr)NULL);
         }  /* if */
       }  /* if */
       if (err_code == ec_no_error) {
@@ -12027,7 +12027,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
                                              ud_lit_suffix_buffer->size - 1,
                                              &pos_curr_token,
                                              const_for_curr_token.type,
-                                             /*display_errors=*/FALSE);
+                                             (a_diagnostic_ptr)NULL);
       ctoken = tok_ud_literal;
     }  /* if */
   }  /* if */
