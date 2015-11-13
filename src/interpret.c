@@ -1117,7 +1117,7 @@ variant (from outer selection to inner selection).  For example:
     } u[4];
   } s;
 
-The a_constexpr_address entry representing &s.u[2].x.v.y[1] with have both the
+The a_constexpr_address entry representing &s.u[2].x.v.y[1] will have both the
 CA_VARIANT_PATH and CA_ARRAY_ELEMENT flags set (the latter flag is for the y[1]
 part; not the u[2] part since the address is not of the s.u[2] element
 specifically).  The address entry will point to a list of three variant path
@@ -1134,10 +1134,10 @@ typedef struct a_variant_path_entry {
 		next;
 			/* Next entry on this path (or NULL if there is
 			   none. */
-  a_field_ptr	active_field;
-			/* The first assumed active for this variable path,
-			   or NULL if this entry represents the base address
-			   of an indexed array. */
+  a_field_ptr	field;
+			/* The field selected for this variant path, or NULL
+			   if this entry represents the base address of an
+			   indexed array. */
   a_byte	*base_address;
 			/* The address of the variant (i.e., union) subobject
 			   in interpreter storage, or, if active_field is NULL,
@@ -1370,113 +1370,6 @@ Macro to initialize a constant address at addr referring to the
   memzero((char *)(addr), sizeof(a_constexpr_address));             \
   ((a_constexpr_address *)(addr))->flags = CA_RUNTIME_DATA_ADDRESS; \
   ((a_constexpr_address *)(addr))->variant.addr_con = (con);
-
-
-static a_boolean add_to_variant_path(a_constexpr_address  *addr,
-                                     a_field_ptr          union_field)
-/*
-The given field of a union object or subobject pointed to by addr is being
-selected.  Add that field to the variant path associated with addr (and, if
-this is the first field added to the path, also add a prefix field for
-array element selections).
-*/
-{
-  a_variant_path_entry_ptr  *p_path_ptr;
-
-  if (addr->flags & CA_VARIANT_PATH) {
-    /* This entry already has a variant path: Find its end. */
-    p_path_ptr = &addr->variant.variant_path->next;
-    while (*p_path_ptr) {
-      p_path_ptr = &(*p_path_ptr)->next;
-    }  /* while */
-  } else {
-    /* No entries yet: Create a first entry to record an array base address if
-       needed. */
-    addr->variant.variant_path = alloc_variant_path_entry();
-    p_path_ptr = &addr->variant.variant_path->next;
-    addr->flags |= CA_VARIANT_PATH;
-  }  /* if */
-  /* Add the new entry. */
-  *p_path_ptr = alloc_variant_path_entry();
-  (*p_path_ptr)->next = NULL;
-  (*p_path_ptr)->active_field = union_field;
-  (*p_path_ptr)->base_address = addr->address;
-  return TRUE;
-}  /* add_to_variant_path */
-
-
-static void copy_variant_path(a_constexpr_address  *addr)
-/*
-Replace the variant path pointed to by addr by a copy of that same path.
-(This is used to avoid sharing paths in cases where one will be cleaned up
-soon but the other must persist.  E.g., this happens after copying a variable
-(whose variant path must persist) to temporary expression storage.
-*/
-{
-  a_variant_path_entry_ptr  vpep, *p_vpep;
-
-  p_vpep = &addr->variant.variant_path;
-  vpep = *p_vpep;
-  do {
-    *p_vpep = alloc_variant_path_entry();
-    **p_vpep = *vpep;
-    p_vpep = &(*p_vpep)->next;
-    vpep = vpep->next;
-  } while (vpep != NULL);
-}  /* copy_variant_path */
-
-
-static void release_variant_path(a_constexpr_address  *addr)
-/*
-Release the variant path entries associated with the given address.  The caller
-is responsible for ensuring that there are such entries.
-*/
-{
-  a_variant_path_entry_ptr  entries, vpep;
-
-  entries = addr->variant.variant_path;
-  vpep = entries->next;
-  while (vpep->next != NULL) {
-    vpep = vpep->next;
-  }  /* while */
-  vpep->next = free_variant_path_entries;
-  free_variant_path_entries = entries;
-  addr->flags &= ~CA_VARIANT_PATH;
-  addr->variant.base_address = entries->base_address;
-}  /* release_variant_path */
-
-
-/*ARGSUSED*/  /* ips is not currently used.  FIXME */
-static a_boolean check_variant_path(an_interpreter_state  *ips,
-                                    a_constexpr_address   *addr,
-                                    a_boolean             release)
-/*
-The given address entry has its CA_VARIANT_PATH flag set.  Check that it points
-to an object whose active variant subobjects match the recorded variant path
-and return TRUE if that's the case.  Otherwise, return FALSE and record an
-appropriate diagnostic.
-
-If release is TRUE, release the variant path structures when the check is
-completed.
-*/
-{
-  a_boolean  result = TRUE;
-  a_variant_path_entry_ptr
-             vpep = addr->variant.variant_path->next;
-
-  do {
-    if (*(a_field_ptr*)vpep->base_address != vpep->active_field) {
-      /* FIXME: record diagnostic */
-      result = FALSE;
-      break;
-    }  /* if */
-    vpep = vpep->next;
-  } while (vpep != NULL);
-  if (release) {
-    release_variant_path(addr);
-  }  /* if */
-  return result;
-}  /* check_variant_path */
 
 
 typedef struct a_constexpr_ptr_to_mem_function {
@@ -1946,6 +1839,133 @@ diagnostic string.  Also record annotations describing the call stack.
   more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
   info_call_stack(ips);
 }  /* info_with_pos_sym */
+
+
+static void info_with_pos_sym2(an_error_code         err_code,
+                               a_source_position     *pos,
+                               a_symbol_ptr          sym1,
+                               a_symbol_ptr          sym2,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym1 and sym2 for placeholder substitution in
+the diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym */
+
+
+static a_boolean add_to_variant_path(a_constexpr_address  *addr,
+                                     a_field_ptr          union_field)
+/*
+The given field of a union object or subobject pointed to by addr is being
+selected.  Add that field to the variant path associated with addr (and, if
+this is the first field added to the path, also add a prefix field for
+array element selections).
+*/
+{
+  a_variant_path_entry_ptr  *p_path_ptr;
+
+  if (addr->flags & CA_VARIANT_PATH) {
+    /* This entry already has a variant path: Find its end. */
+    p_path_ptr = &addr->variant.variant_path->next;
+    while (*p_path_ptr) {
+      p_path_ptr = &(*p_path_ptr)->next;
+    }  /* while */
+  } else {
+    /* No entries yet: Create a first entry to record an array base address if
+       needed. */
+    addr->variant.variant_path = alloc_variant_path_entry();
+    p_path_ptr = &addr->variant.variant_path->next;
+    addr->flags |= CA_VARIANT_PATH;
+  }  /* if */
+  /* Add the new entry. */
+  *p_path_ptr = alloc_variant_path_entry();
+  (*p_path_ptr)->next = NULL;
+  (*p_path_ptr)->field = union_field;
+  (*p_path_ptr)->base_address = addr->address;
+  return TRUE;
+}  /* add_to_variant_path */
+
+
+static void copy_variant_path(a_constexpr_address  *addr)
+/*
+Replace the variant path pointed to by addr by a copy of that same path.
+(This is used to avoid sharing paths in cases where one will be cleaned up
+soon but the other must persist.  E.g., this happens after copying a variable
+(whose variant path must persist) to temporary expression storage.
+*/
+{
+  a_variant_path_entry_ptr  vpep, *p_vpep;
+
+  p_vpep = &addr->variant.variant_path;
+  vpep = *p_vpep;
+  do {
+    *p_vpep = alloc_variant_path_entry();
+    **p_vpep = *vpep;
+    p_vpep = &(*p_vpep)->next;
+    vpep = vpep->next;
+  } while (vpep != NULL);
+}  /* copy_variant_path */
+
+
+static void release_variant_path(a_constexpr_address  *addr)
+/*
+Release the variant path entries associated with the given address.  The caller
+is responsible for ensuring that there are such entries.
+*/
+{
+  a_variant_path_entry_ptr  entries, vpep;
+
+  entries = addr->variant.variant_path;
+  vpep = entries->next;
+  while (vpep->next != NULL) {
+    vpep = vpep->next;
+  }  /* while */
+  vpep->next = free_variant_path_entries;
+  free_variant_path_entries = entries;
+  addr->flags &= ~CA_VARIANT_PATH;
+  addr->variant.base_address = entries->base_address;
+}  /* release_variant_path */
+
+
+static a_boolean check_variant_path(an_interpreter_state  *ips,
+                                    a_constexpr_address   *addr,
+                                    a_boolean             release,
+                                    a_source_position     *pos)
+/*
+The given address entry has its CA_VARIANT_PATH flag set.  Check that it points
+to an object whose active variant subobjects match the recorded variant path
+and return TRUE if that's the case.  Otherwise, return FALSE and record an
+appropriate diagnostic.
+
+If release is TRUE, release the variant path structures when the check is
+completed.
+*/
+{
+  a_boolean  result = TRUE;
+  a_variant_path_entry_ptr
+             vpep = addr->variant.variant_path->next;
+
+  do {
+    a_field_ptr  active_field = *(a_field_ptr*)vpep->base_address;
+    a_field_ptr  selected_field = vpep->field;
+    if (selected_field != active_field) {
+      result = FALSE;
+      info_with_pos_sym2(ec_constexpr_union_field_inactive, pos,
+                         symbol_for(selected_field), symbol_for(active_field),
+                         ips);
+      break;
+    }  /* if */
+    vpep = vpep->next;
+  } while (vpep != NULL);
+  if (release) {
+    release_variant_path(addr);
+  }  /* if */
+  return result;
+}  /* check_variant_path */
 
 
 #define release_variant_path_if_needed(value)                                 \
@@ -3271,7 +3291,7 @@ nodes.
         /* FIXME: record a diagnostic. */                                     \
       } else if (is_variant_path(opnd) &&                                     \
                  !check_variant_path(ips, (a_constexpr_address *)opnd,        \
-                                     /*release=*/TRUE)) {                     \
+                                     /*release=*/TRUE, &expr->position)) {    \
         /* An attempt to dereference an inactive variant path. */             \
         result = FALSE;                                                       \
       } else {                                                                \
@@ -4483,7 +4503,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4520,7 +4541,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4574,7 +4596,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4628,7 +4651,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4683,7 +4707,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4737,7 +4762,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else if (expr->variant.operation.type_kind ==
@@ -4780,7 +4806,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4829,7 +4856,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4879,7 +4907,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4909,7 +4938,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {
@@ -4939,7 +4969,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   result = FALSE;
                   /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
-                           !check_variant_path(ips, dst, /*release=*/TRUE)) {
+                           !check_variant_path(ips, dst, /*release=*/TRUE,
+                                               &expr->position)) {
                   /* Attempting to store into a non-active variant field. */
                   result = FALSE;
                 } else {

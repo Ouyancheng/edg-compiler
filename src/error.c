@@ -6050,6 +6050,25 @@ a %n placeholder in the diagnostic string.
 }  /* more_info_sym_diagnostic */
 
 
+void more_info_sym2_diagnostic(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              a_symbol_ptr      sym1,
+                              a_symbol_ptr      sym2,
+                              a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given symbols are used to replace
+%n1 and %n2 placeholders in the diagnostic string.
+*/
+{
+  general_diagnostic(es_more_info, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     sym1, sym2,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_source_position*)NULL, diag_list);
+}  /* more_info_sym_diagnostic */
+
+
 void more_info_num2_diagnostic(an_error_code     error_code,
                                a_source_position *error_pos,
                                int32_t           num1,
