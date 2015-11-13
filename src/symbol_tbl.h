@@ -1527,12 +1527,12 @@ typedef struct a_static_data_member_supplement {
      information residing in the member's symbol entry. */
   a_token_sequence_number
 		token_sequence_number;
-			/* This is used to match find the initializer from
-			   a prototype instantiation for a member in a real
+			/* This is used to find the initializer from a
+			   prototype instantiation for a member in a real
 			   instantiation. */
   a_token_cache_ptr
 		token_cache;
-			/* For a a member of a template class (including
+			/* For a member of a template class (including
 			   prototype and real instantiations) this points to
 			   the cache containing the initializer, if any.  For
 			   real instantiations, this is copied from the entry
@@ -1544,7 +1544,7 @@ typedef struct a_static_data_member_supplement {
 			   instantiation has been done. */
   a_symbol_ptr
 		prototype_member;
-			/* For member of an instance of a class template or
+			/* For a member of an instance of a class template or
 			   nested class of a class template, this points to
 			   the static data member symbol of the corresponding
 			   member from the prototype instantiation. */
