@@ -15225,22 +15225,34 @@ cast.  See lower_expr for typical invocation.
              operator() routine.  Replace the variable with a local static
              temporary that is initialized with a copy of the original
              variable's constant initializer. */
-          a_variable_ptr new_var;
           a_constant_ptr new_con, old_con = initializer_constant(var);
-          check_assertion(is_array_type(var->type) && old_con != NULL);
-          /* Copy the constant into the current scope. */
-          new_con = copy_unshared_constant(old_con);
-          new_con->expr = NULL;
-          new_var = make_unnamed_local_static_variable(var->type,
+          if (is_array_type(var->type) && old_con != NULL) {
+            a_variable_ptr new_var;
+            /* Copy the constant into the current scope. */
+            new_con = copy_unshared_constant(old_con);
+            new_con->expr = NULL;
+            new_var = make_unnamed_local_static_variable(var->type,
                                                    /*in_function_scope=*/TRUE);
-          /* To initialize a local static variable to an aggregate we use
-             a local-static-variable-init entry. */
-          (void)make_local_static_variable_init(new_var,
-                                                innermost_function_scope,
-                                                (an_init_kind)initk_static,
-                                                new_con,
-                                                (a_dynamic_init_ptr)NULL);
-          node_variable(expr) = new_var;
+            /* To initialize a local static variable to an aggregate we use
+               a local-static-variable-init entry. */
+            (void)make_local_static_variable_init(new_var,
+                                                  innermost_function_scope,
+                                                  (an_init_kind)initk_static,
+                                                  new_con,
+                                                  (a_dynamic_init_ptr)NULL);
+            node_variable(expr) = new_var;
+          } else {
+            /* It is possible for lambdas to refer to variables in the
+               enclosing context when they appear in unevaluated contexts.
+               For example:
+                 void f(int n) { auto lm = []{ __assume(n); }; }
+               Verify that the variable and enclosing routine are in the
+               same memory region. */
+            check_assertion(var->source_corresp.enclosing_routine->
+                                                              memory_region ==
+                            innermost_function_scope->variant.routine.ptr->
+                                                              memory_region);
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
