@@ -5037,8 +5037,7 @@ the point of call.  conv_context describes the context of the conversion.
       }  /* if */
     }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
-    function_template_case = (function_symbol->kind ==
-                                          (a_symbol_kind)sk_function_template);
+    function_template_case = symbol_is(function_symbol, sk_function_template);
     if (is_ambiguous_by_inheritance(proj_function_symbol)) {
       /* The symbol is ambiguous, and as such is an arbitrary
          representative of a set of functions that collided due
@@ -5056,6 +5055,8 @@ the point of call.  conv_context describes the context of the conversion.
       routine_type = routine->type;
     } else {
       /* The symbol is a function template. */
+      a_template_symbol_supplement_ptr
+              tssp = function_symbol->variant.template_info;
       routine = tssp->variant.function.routine;
       routine_type = routine->type;
       if (template_arg_list != NULL) {
@@ -5064,8 +5065,6 @@ the point of call.  conv_context describes the context of the conversion.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
-        a_template_symbol_supplement_ptr tssp =
-                               template_supplement_for_symbol(function_symbol);
         if (!tssp->is_variadic && !(gpp_mode && !clang_mode)) {
           /* In non-variadic cases, we can filter out candidates that can not
              match the number of arguments we have early and avoid a partial
