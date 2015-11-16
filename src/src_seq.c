@@ -2816,33 +2816,46 @@ for an out-of-class definition of a static data member).
 
   ssep = vp->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
-    check_assertion(ss_entry_kind(ssep) == iek_variable);
-    if (vp->source_corresp.is_class_member) {
-      /* Out-of-class definitions of static data members cannot validly be
-         replaced by non-defining declarations.  We therefore eliminate the
-         entry altogether and replace the record in the variable entry by
-         the declaration in the class definition. */
-      remove_src_seq_entry(ssep);
-      ssep = parent_class_of(vp)->source_corresp.source_sequence_entry;
-      ssep = find_src_seq_secondary_decl_entry(ssep, (char *)vp);
-      vp->source_corresp.source_sequence_entry = ssep;
-    } else {
-      /* Turn the associated source sequence entry into a secondary-decl
-         source sequence entry. */
-      check_assertion(!vp->source_corresp.is_local_to_function);
-      sssdp = alloc_src_seq_secondary_decl();
-      sssdp->entity = ssep->entity;
-      ssep->entity.ptr = (char *)sssdp;
-      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-      sssdp->decl_position = vp->source_corresp.decl_position;
-      /* Move the declared type pointer from the variable into the source
-         sequence entry, clearing the variable's pointer (since vp no longer
-         represents a definition). */
-      sssdp->declared_type = vp->declared_type;
-      vp->declared_type = NULL;
-      /* Do the same with the declared storage class. */
-      sssdp->declared_storage_class = vp->declared_storage_class;
-      vp->declared_storage_class = (a_storage_class)sc_unspecified;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+    !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      check_assertion(vp->is_template_static_data_member);
+      /* In this configuration a secondary source sequence entry was created
+         for the static data member in the class (instance) definition, but
+         none for the instantiated definition.  In such cases there is nothing
+         left to do. */
+    } else
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
+    /* Do not insert code here. */
+    {
+      check_assertion(ss_entry_kind(ssep) == iek_variable);
+      if (vp->source_corresp.is_class_member) {
+        /* Out-of-class definitions of static data members cannot validly be
+           replaced by non-defining declarations.  We therefore eliminate the
+           entry altogether and replace the record in the variable entry by
+           the declaration in the class definition. */
+        remove_src_seq_entry(ssep);
+        ssep = parent_class_of(vp)->source_corresp.source_sequence_entry;
+        ssep = find_src_seq_secondary_decl_entry(ssep, (char *)vp);
+        vp->source_corresp.source_sequence_entry = ssep;
+      } else {
+        /* Turn the associated source sequence entry into a secondary-decl
+           source sequence entry. */
+        check_assertion(!vp->source_corresp.is_local_to_function);
+        sssdp = alloc_src_seq_secondary_decl();
+        sssdp->entity = ssep->entity;
+        ssep->entity.ptr = (char *)sssdp;
+        ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+        sssdp->decl_position = vp->source_corresp.decl_position;
+        /* Move the declared type pointer from the variable into the source
+           sequence entry, clearing the variable's pointer (since vp no longer
+           represents a definition). */
+        sssdp->declared_type = vp->declared_type;
+        vp->declared_type = NULL;
+        /* Do the same with the declared storage class. */
+        sssdp->declared_storage_class = vp->declared_storage_class;
+        vp->declared_storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* eliminate_variable_definition_source_sequence_entry */

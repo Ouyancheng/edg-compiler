@@ -1,5 +1,28 @@
 Version 4.11
 
+11/16/15 [EDGcpfe/16648]
+Template static data members and source sequence entry elimination
+
+If configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE but NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to FALSE, the front end sometimes aborted with an internal error in
+eliminate_variable_definition_source_sequence_entry when eliminating the
+instantiation of a template static data member that was needed only to
+determine the constant-valued initializer of that static data member.
+For example:
+
+  template<typename T> struct S {
+     static int const N;
+  };
+  template<typename T> int const S<T>::N = 3;
+  void f() {
+    int const x = S<int>::N;  // S<int>::N instantiated only for its value.
+  }                           // The subsequent elimination of the definition
+                              // previously triggered an internal error.
+
+This is now fixed.
+
+
 11/16/15 [EDGcpfe/16651]
 Lambdas and VLAs
 
