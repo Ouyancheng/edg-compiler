@@ -2777,7 +2777,6 @@ ec_constexpr_union_field_inactive;;"invalid access to inactive union %n1 (%n2 is
 ec_constexpr_goto;;"'goto' cannot be executed in constexpr contexts"
 ec_constexpr_missing_return_value;;"missing return value"
 ec_constexpr_null_callee;;"callee is null"
-ec_vla_capture;;"cannot capture a variable involving a variable-length array type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

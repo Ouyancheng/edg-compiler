@@ -2021,12 +2021,6 @@ be done because the intermediate lambda does not allow implicit captures.
        scope of the capture. */
     depth = depth_scope_stack;
   }  /* if */
-  if (vp->has_variably_modified_type) {
-    /* Capturing a VLA or a variable based on a VLA type is not permitted
-       because the variable length cannot be computed in the capturing
-       environment. */
-    pos_error(ec_vla_capture, pos);
-  }  /* if */
   lcp = r_add_lambda_capture(lambda, vp, fp, depth, is_implicit, by_reference,
                              pos, no_impl_capture);
   return lcp;

@@ -3,17 +3,19 @@ Version 4.11
 11/16/15 [EDGcpfe/16651]
 Lambdas and VLAs
 
-The front end now issues an error when attempting to capture a variable-length
-array (VLA), or a variable whose type involves a variable-length array type.
-Furthermore, unevaluated contexts (such as the operand of a sizeof operator) do
-not allow the use of a VLA-based variable outside the lambda body either.
-Previously, such cases produced invalid IL and possibly an internal error
-during IL lowering.  For example:
+A variable-length array (VLA) cannot be captured by a lambda.  However, the
+front end previously allowed referencing a variable-length array in a lambda
+when the array was declared outside the lambda if the reference appeared
+in an unevaluated context (like the operand of a sizeof operator).  Such
+references are now diagnosed as errors (previously, they produced invalid IL,
+and sometimes triggered internal errors during IL lowering).  For example
+(with "--c++11 --vla"):
 
   void f(int x) {
     int n[x];
-    auto lm = []{ return sizeof(n); };  // Now an error.
-  }
+    auto lm = []{ return sizeof(n); };  // Now an error.  Previously
+  }                                     // triggered an internal error in
+                                        // some configurations.
 
 
 11/15/15 [EDGcpfe/16608]
