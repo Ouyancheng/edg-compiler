@@ -4808,6 +4808,10 @@ functions list.
 }  /* already_on_candidates_list */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* param_array_expanded_case is not used in some
+                configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean arg_count_mismatch(
                              a_type_ptr            routine_type,
                              an_arg_list_elem_ptr  arg_list,
