@@ -4808,6 +4808,93 @@ functions list.
 }  /* already_on_candidates_list */
 
 
+static a_boolean arg_count_mismatch(
+                             a_type_ptr            routine_type,
+                             an_arg_list_elem_ptr  arg_list,
+                             a_boolean             *param_array_expanded_case)
+/*
+Return TRUE if the given function call argument list cannot match the given
+routine type (that type may be the type of a non-variadic function template).
+
+In C++/CLI and C++/CX modes set *param_array_expanded_case if the last
+parameter is a param array and the number of arguments and parameters don't
+match.
+*/
+{
+  a_boolean                result = TRUE;
+  an_arg_list_elem_ptr     arg_list_elem;
+  a_routine_type_supplement_ptr
+                           rtsp;
+  a_param_type_ptr         param;
+
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  param = rtsp->param_type_list;
+  for (arg_list_elem = arg_list;
+       arg_list_elem != NULL;
+       arg_list_elem = next_elem(arg_list_elem)) {
+    /* See if the parameter list is exhausted. */
+    if (param == NULL) {
+      /* More arguments than required.  No match unless there is an
+         ellipsis. */
+      if (rtsp->has_ellipsis) break;
+      goto done;
+    } else if (param->is_parameter_pack) {
+      /* A parameter pack can match all the remaining arguments. */
+      param = NULL;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_or_cx_enabled && param->is_cli_param_array) {
+      /* A C++/CLI parameter array can match all the remaining arguments. */
+      if (!is_last_elem(arg_list_elem)) {
+        /* There are more arguments after the one that lines up with the
+           parameter array parameter, so this is an expanded case where
+           several arguments will be wrapped into one parameter array. */
+        *param_array_expanded_case = TRUE;
+      }  /* if */
+      param = NULL;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    param = param->next;
+  }  /* for */
+  /* Check that the argument and parameter lists ended at the same place. */
+  if (param != NULL) {
+    /* Fewer arguments than required.  No match unless there are default
+       argument values.  Note that has_default_arg is not used here,
+       because there are cases where has_default_arg is set and
+       default_arg_expr is not set yet.  A default argument with a NULL
+       default_arg_expr is accepted if it has an unevaluated template
+       value, because we know this value can be produced when the call
+       is generated. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If we ran out of arguments but the next parameter is a C++/CLI param
+       array, then we can accept this function by creating a zero-length
+       parameter array. */
+    if (param->is_cli_param_array) {
+      check_assertion(cli_or_cx_enabled);
+      *param_array_expanded_case = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
+    /* A parameter pack can also make the call okay, because it can be
+       matched with zero arguments. */
+    if (!param->has_unevaluated_template_default &&
+        param->default_arg_expr == NULL &&
+        !param->is_parameter_pack) goto done;
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
+      fprintf(f_debug, "determine_function_viability: default arg match\n");
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  result = FALSE;
+done:
+  return result;
+}  /* arg_count_mismatch */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_symbol_ptr             overloaded_function_symbol,
@@ -4909,6 +4996,7 @@ the point of call.  conv_context describes the context of the conversion.
   a_type_ptr               param_array_element_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                enum_param_still_needed = FALSE;
+  a_boolean                check_arg_count_mismatch = TRUE;
 
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
@@ -4968,7 +5056,7 @@ the point of call.  conv_context describes the context of the conversion.
       routine_type = routine->type;
     } else {
       /* The symbol is a function template. */
-      routine=function_symbol->variant.template_info->variant.function.routine;
+      routine = tssp->variant.function.routine;
       routine_type = routine->type;
       if (template_arg_list != NULL) {
         /* Substitute the explicitly-specified template arguments into the
@@ -4978,6 +5066,18 @@ the point of call.  conv_context describes the context of the conversion.
            each template considered. */
         a_template_symbol_supplement_ptr tssp =
                                template_supplement_for_symbol(function_symbol);
+        if (!tssp->is_variadic && !(gpp_mode && !clang_mode)) {
+          /* In non-variadic cases, we can filter out candidates that can not
+             match the number of arguments we have early and avoid a partial
+             substitution process that could trigger hard errors.  GCC doesn't
+             appear to do this, so we perform that check after the
+             substitution is completed. */
+          check_arg_count_mismatch = FALSE;
+          if (arg_count_mismatch(routine_type, arg_list,
+                                 &param_array_expanded_case)) {
+            goto reject_function;
+          }  /* if */
+        }  /* if */
         /* Avoid infinite recursion. */
         if (tssp->variant.function.pending_deductions >
                               max_pending_instantiations) goto reject_function;
@@ -5064,71 +5164,9 @@ the point of call.  conv_context describes the context of the conversion.
      that look like
        struct A { A(A, xxx, yyy); }
      which look viable as copy constructors on the first argument. */
-  param = rtsp->param_type_list;
-  /* Save the pointer to the first parameter in the template version
-     (i.e., before deduction) for later use.  Note that this is after
-     substitution of explicitly-specified template arguments. */
-  first_param_before_deduction = param;
-  for (arg_list_elem = arg_list;
-       arg_list_elem != NULL;
-       arg_list_elem = next_elem(arg_list_elem)) {
-    /* See if the parameter list is exhausted. */
-    if (param == NULL) {
-      /* More arguments than required.  No match unless there is an
-         ellipsis. */
-      if (rtsp->has_ellipsis) break;
-      goto reject_function;
-    } else if (param->is_parameter_pack) {
-      /* A parameter pack can match all the remaining arguments. */
-      param = NULL;
-      arg_list_elem = NULL;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cli_or_cx_enabled && param->is_cli_param_array) {
-      /* A C++/CLI parameter array can match all the remaining arguments. */
-      if (!is_last_elem(arg_list_elem)) {
-        /* There are more arguments after the one that lines up with the
-           parameter array parameter, so this is an expanded case where
-           several arguments will be wrapped into one parameter array. */
-        param_array_expanded_case = TRUE;
-      }  /* if */
-      param = NULL;
-      arg_list_elem = NULL;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
-    param = param->next;
-  }  /* for */
-  /* Check that the argument and parameter lists ended at the same place. */
-  if (param != NULL) {
-    /* Fewer arguments than required.  No match unless there are default
-       argument values.  Note that has_default_arg is not used here,
-       because there are cases where has_default_arg is set and
-       default_arg_expr is not set yet.  A default argument with a NULL
-       default_arg_expr is accepted if it has an unevaluated template
-       value, because we know this value can be produced when the call
-       is generated. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* If we ran out of arguments but the next parameter is a C++/CLI param
-       array, then we can accept this function by creating a zero-length
-       parameter array. */
-    if (param->is_cli_param_array) {
-      check_assertion(cli_or_cx_enabled);
-      param_array_expanded_case = TRUE;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not add code here. */
-    /* A parameter pack can also make the call okay, because it can be
-       matched with zero arguments. */
-    if (!param->has_unevaluated_template_default &&
-        param->default_arg_expr == NULL &&
-        !param->is_parameter_pack) goto reject_function;
-#if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("overload")) {
-      db_display_overload_level();
-      fprintf(f_debug, "determine_function_viability: default arg match\n");
-    }  /* if */
-#endif /* DEBUG */
+  if (check_arg_count_mismatch &&
+      arg_count_mismatch(routine_type, arg_list, &param_array_expanded_case)) {
+    goto reject_function;
   }  /* if */
   /* The function looks okay from the standpoint of argument count. */
   /* At this point when processing a routine with a C++/CLI parameter array,
@@ -5137,6 +5175,11 @@ the point of call.  conv_context describes the context of the conversion.
      parameter), but if it's FALSE, we still might discover we have the
      expanded case if the last argument does not match the array parameter
      type. */
+  /* Save the pointer to the first parameter in the template version
+     (i.e., before deduction) for later use.  Note that this is after
+     substitution of explicitly-specified template arguments. */
+  param = rtsp->param_type_list;
+  first_param_before_deduction = param;
   /* Look at each argument and see whether or not it can match the formal
      parameter, and if so, how well.  For a template, we match the
      nondependent parameters on the first pass, and only if they all
