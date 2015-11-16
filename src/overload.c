@@ -5065,7 +5065,8 @@ the point of call.  conv_context describes the context of the conversion.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
-        if (!tssp->is_variadic && !(gpp_mode && !clang_mode)) {
+        if (!tssp->has_variadic_template_params &&
+            !(gpp_mode && !clang_mode)) {
           /* In non-variadic cases, we can filter out candidates that can not
              match the number of arguments we have early and avoid a partial
              substitution process that could trigger hard errors.  GCC doesn't
