@@ -4095,7 +4095,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     ctsp = class_type_supp(class_type);
     is_local_class = class_type->source_corresp.is_local_to_function;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (is_interface !=
                         class_type->variant.class_struct_union.is_interface) {
         /* Diagnose inconsistent use of the "__interface" keyword. */
@@ -4457,7 +4457,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
+  if (ms_extensions && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
     /* If the class has been defined, issue an error if the inheritance kind
        (if any) for the class is too restrictive. */
     a_class_type_supplement_ptr ctsp = class_type_supp(class_type);

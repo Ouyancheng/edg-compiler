@@ -8427,7 +8427,7 @@ issue an error and return FALSE.
   } else {
     /* Force instantiation if the base class is a template class. */
     check_assertion(is_class_struct_union_type(base_class_type));
-    if (microsoft_mode && is_immediate_class_type(type) &&
+    if (ms_extensions && is_immediate_class_type(type) &&
         type->variant.class_struct_union.is_ms_instantiated_nonreal_class &&
         !base_class_type->variant.class_struct_union.is_nonreal_class) {
       /* Don't force the instantiation of base classes of Microsoft
@@ -8436,7 +8436,7 @@ issue an error and return FALSE.
       complete_class_type_is_needed(base_class_type);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (is_immediate_managed_class_type(type)) {
         check_base_class_type_of_managed_class(type, base_class_type);
       } else {
@@ -8972,7 +8972,7 @@ can only contain CLI interfaces.
   a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     interface_definition =
-                                   microsoft_mode &&
+                                   ms_extensions &&
                                    type_ptr->kind == (a_type_kind)tk_struct &&
                                    type_ptr->variant.class_struct_union
                                                                 .is_interface;
@@ -9274,7 +9274,7 @@ can only contain CLI interfaces.
           }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
+        if (ms_extensions) {
           if (interface_definition && !is_interface_like(base_class_type)) {
             pos_error(ec_interface_must_derive_from_interface,
                       &error_position);
@@ -10427,7 +10427,7 @@ possibility.
   }  /* if */
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
         /* Friend declarations cannot appear in C++/CLI managed classes. */
         pos_error(ec_managed_class_cannot_have_friend, &state->start_pos);
@@ -14520,7 +14520,7 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If decl-modifiers were declared for the class and/or for the member,
        check for consistency and use the union of the two. */
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (decl_state->prefix_attributes != NULL) {
         add_flags_from_dll_attributes(&decl_state->decl_modifiers.flags,
                                       decl_state->prefix_attributes);
@@ -16214,7 +16214,7 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Disallow data members in interface types. */
     if (class_type->variant.class_struct_union.is_interface) {
       pos_error(ec_interface_cannot_have_data_member,
@@ -23079,7 +23079,7 @@ Check that this is a valid type and if so make member_type a friend.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
     pos_error(ec_managed_class_cannot_have_friend, &state->start_pos);
-  } else if (microsoft_mode &&
+  } else if (ms_extensions &&
              class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_friend, &state->start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
