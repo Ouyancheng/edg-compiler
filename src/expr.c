@@ -28567,7 +28567,8 @@ indicates that the symbol is an anonymous union and cannot be captured.
       } else if (in_lambda_body()) {
         /* This reference is in the body of a lambda, so it may be okay if the
            variable has been captured or (for variables whose type is not
-           "variably modified") if this not a potentially-evaluated context. */
+           "variably modified") if this is not a potentially-evaluated
+           context. */
         if (!expr_stack->potentially_evaluated &&
             !var->has_variably_modified_type) {
           /* The reference is acceptable. */
