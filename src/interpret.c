@@ -1196,6 +1196,9 @@ A set of flags to describe special kinds of interpreter addresses.
 		/* This flag indicates that the address is that of a signed bit
 		   field.  This flag is never set if the CA_BIT_FLAG is not
 		   set. */
+#define CA_FUNCTION ((unsigned int)0x40)
+		/* This flag indicates that the address is that of a
+		   function. */
 
 /*
 Structure describing the representation of an address in the interpreter.
@@ -1228,13 +1231,10 @@ typedef struct a_constexpr_address {
     a_byte
 		*base_address;
 			/* For an array element, the address of element #0. */
-#if 0    
-    /* FIXME -- Not needed yet: disabled to placate lint. */
-    /* When is_function_address is TRUE: */
+    /* When (flags & CA_FUNCTION) != 0: */
     a_routine_ptr
 		routine;
     			/* For addresses of functions. */
-#endif /* 0 */
     /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
     a_constant_ptr
 		addr_con;
@@ -1265,6 +1265,10 @@ typedef struct a_constexpr_address {
 
 #define is_array_element(cap)                                                \
   ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
+
+#define is_function_address(cap)                                             \
+  ((((a_constexpr_address*)(cap))->flags & CA_FUNCTION) != 0)
+
 
 #define get_base_address(cap)                                                \
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
@@ -1349,17 +1353,17 @@ elements starting at base.
   ((a_constexpr_address *)(addr))->is_array = TRUE;               \
   ((a_constexpr_address *)(addr))->length = (len);                \
   ((a_constexpr_address *)(addr))->variant.base_address = (base);
+#endif /* 0 */
 
 
 /*
 Macro to initialize a constant address at addr referring to the function
 denoted by the IL a_routine entry rout.
 */
-#define clear_function_address(addr, rout)                     \
+#define make_function_address(addr, rout)                      \
   memzero((char *)(addr), sizeof(a_constexpr_address));        \
-  ((a_constexpr_address *)(addr))->is_function_address = TRUE; \
+  ((a_constexpr_address *)(addr))->flags = CA_FUNCTION;        \
   ((a_constexpr_address *)(addr))->variant.routine = (rout);
-#endif /* 0 */
 
 
 /*
@@ -2056,13 +2060,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       *fp_value(value) = con->variant.float_value;
       break;
     case ck_address:
-      {
-        /* Create an a_constexpr_address for the runtime constant, which
-           requires a local constant. */
-        a_constant_ptr addr_con = local_constant();
-        copy_constant(con, addr_con);
-        clear_runtime_constant_address(value, addr_con);
-      }
+      switch (con->variant.address.kind) {
+        case abk_routine:
+          make_function_address(value, con->variant.address.variant.routine);
+          break;
+        default:
+          { /* Create an a_constexpr_address for the runtime constant, which
+               requires a local constant. */
+            a_constant_ptr addr_con = local_constant();
+            copy_constant(con, addr_con);
+            clear_runtime_constant_address(value, addr_con);
+          }
+          break;
+      }  /* switch */
       break;
     case ck_dynamic_init:
       {
@@ -2932,21 +2942,37 @@ Return TRUE if no error occurred; otherwise, return FALSE and update *ips
 accordingly.
 */
 {
-  an_expr_node_ptr  callee_node, routine_node, arg;
+  an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee;
   a_boolean         result = TRUE;
 
   callee_node = call_node->variant.operation.operands;
-  /* FIXME: eok_dot_static case may not be handled correctly by the following
-     call. */
-  callee = routine_and_node_from_function_expr(callee_node, &routine_node);
-  if (callee == NULL) {
-    /* FIXME: Interpret callee_node to get the callee. */
-    unexpected_condition();
+  if (is_routine_node(callee_node)) {
+    callee = node_routine(callee_node);
+  } else {
+    a_constexpr_address  addr;
+    if (do_constexpr_expression(ips, callee_node, (a_byte*)&addr)) {
+      if (is_function_address(&addr)) {
+        callee = addr.variant.routine;
+        if (callee == NULL) {
+          info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else if (addr.address == NULL) {
+        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+        result = FALSE;
+        goto done;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    } else {
+      result = FALSE;
+      goto done;
+    }  /* if */
   }  /* if */
   /* Retrieve the routine scope, or issue an error. */
   if (callee->function_def_number == NULL_function_def_number) {
-    /* FIXME: error. */
     info_with_pos_sym(ec_constexpr_function_undefined,
                       &callee->source_corresp.decl_position,
                       symbol_for(callee), ips);
@@ -3262,7 +3288,7 @@ nodes.
 */
 #define set_result_val_from_operand_address(opnd)                             \
   {                                                                           \
-    if (expr->is_lvalue || expr->is_xvalue) {                                 \
+    if (expr->is_lvalue || expr->is_xvalue || is_function_address(opnd)) {    \
       /* Copy the address. */                                                 \
       *(a_constexpr_address *)result_storage = *(a_constexpr_address *)(opnd);\
     } else {                                                                  \
@@ -3353,12 +3379,15 @@ type.  This includes checking the value of ovfl set by the operation.
             !node_operator_is(expr, eok_land) &&
             !node_operator_is(expr, eok_lor) &&
             !node_operator_is(expr, eok_question) &&
-            !node_operator_is(expr, eok_comma)) {
+            !node_operator_is(expr, eok_comma) &&
+            !node_operator_is(expr, eok_dot_static) &&
+            !node_operator_is(expr, eok_points_to_static)) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
              be handled similarly (although the evaluation is unconditional in
-             that case). */
+             that case); eok_dot_static and eok_points_to_static are equivalent
+             to the comma operator in this respect. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
           if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
@@ -5203,8 +5232,7 @@ type.  This includes checking the value of ovfl set by the operation.
               break;
             case eok_dot_static:
             case eok_points_to_static:
-              /* FIXME: NYI. */
-              unexpected_condition();
+              result = do_constexpr_expression(ips, opnd2, result_storage);
               break;
             case eok_question:
               { a_host_large_integer  bool_val;
@@ -5289,6 +5317,9 @@ type.  This includes checking the value of ovfl set by the operation.
     case enk_field:
       /* Nothing to do at this point.  Specific parent operators (like
          eok_dot_field) know what to do with this kind of node. */
+      break;
+    case enk_routine:
+      make_function_address(result_storage, node_routine(expr));
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */

@@ -2776,6 +2776,7 @@ ec_constexpr_called_from;;"called from:"
 ec_constexpr_union_field_inactive;;"invalid access to inactive union %n1 (%n2 is active)"
 ec_constexpr_goto;;"'goto' cannot be executed in constexpr contexts"
 ec_constexpr_missing_return_value;;"missing return value"
+ec_constexpr_null_callee;;"callee is null"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
