@@ -4991,8 +4991,8 @@ the point of call.  conv_context describes the context of the conversion.
   a_template_arg_ptr       local_template_arg_list = NULL;
   a_boolean                microsoft_explicit_constructor_case = FALSE;
   a_boolean                allow_expl_conv_funcs = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                param_array_expanded_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_ptr               param_array_element_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                enum_param_still_needed = FALSE;
