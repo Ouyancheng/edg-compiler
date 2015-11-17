@@ -26,7 +26,7 @@ in the call.
 11/16/15 [EDGcpfe/16648]
 Template static data members and source sequence entry elimination
 
-If configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 set to TRUE but NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
 to FALSE, the front end sometimes aborted with an internal error in
 eliminate_variable_definition_source_sequence_entry when eliminating the
