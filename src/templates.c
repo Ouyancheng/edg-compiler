@@ -32607,10 +32607,15 @@ the function template, and decl_state tracks its declaration.
 
   def_pos = pos_curr_token;
 #endif /* RECORD_TEMPLATE_STRINGS */
-  /* Don't consider any current default arguments to be associated with the
-     generated member template. */
+  check_assertion(symbol_is(sym, sk_function_template));
+  tssp = sym->variant.template_info;
+  /* Don't consider any current default arguments to be associated with
+     generated member templates, except for the case of a generic lambda
+     call operator (which has an associated declarator in the source code). */
   saved_curr_default_args = curr_default_args;
-  curr_default_args = NULL;
+  if (tssp->variant.function.func_info.lambda == NULL) {
+    curr_default_args = NULL;
+  }  /* if */
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
   if (all_template_info_in_il) {

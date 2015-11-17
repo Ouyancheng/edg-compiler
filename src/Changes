@@ -1,5 +1,22 @@
 Version 4.11
 
+11/17/15 [EDGcpfe/16660]
+Generic lambdas and default arguments
+
+The processing of default arguments in generic lambdas was previously
+incomplete, leading to invalid IL and, in some configurations, internal
+errors (e.g., in inline.c).  For example:
+
+  void g() {
+    auto lm = [](auto p, int = 0) {};
+    lm(1);
+  }
+
+In some configurations, the example above triggered an abort in the front end
+in some configurations.  In other configurations, the IL for the call did not
+make the default argument explicit.  This is now fixed.
+
+
 11/17/15 [EDGcpfe/16625]
 Segfault in set_local_static_guard_var
 
