@@ -4309,6 +4309,7 @@ returned set to TRUE.
   a_token_kind                      first_token;
   a_source_position                 pos_first_token;
   a_boolean                         reactivation_pushed = FALSE;
+  a_decl_parse_state                *saved_decl_parse_state;
 
   db_enter(3, "initializer");
   dps->has_initializer = TRUE;
@@ -4480,6 +4481,10 @@ returned set to TRUE.
       local_static_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
+  /* Record the parse state in the scope stack.  It may be needed to
+     set lambda parent entities and/or lambda discriminator values. */
+  saved_decl_parse_state = scope_stack_top().decl_parse_state;
+  scope_stack_top().decl_parse_state = dps;
   /* In variable initializations, the initializer elements should each be
      treated as full expressions.  E.g., in "T x = { f(), g() };" both "f()"
      and "g()" are full expressions. */
@@ -4865,20 +4870,8 @@ returned set to TRUE.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  scope_stack_top().decl_parse_state = saved_decl_parse_state;
   if (symbol_ptr->is_class_member) {
-#if NEED_NAME_MANGLING
-    if (symbol_is(symbol_ptr, sk_static_data_member)) {
-      /* A static data member initializer.  If the initializer defines closure
-         types (i.e., contains lambda expressions), assign unique numbers
-         ("discriminators") to each one; this numbers will be used by name
-         mangling.  Also record the data member as a "parent entity" for such
-         closure types (this is also used in the mangled encoding). */
-      compute_data_member_name_collision_discriminators(symbol_ptr);
-      set_parent_entity_for_closure_types(
-                vp->entities_defined_in_initializer, symbol_ptr,
-                symbol_ptr->variant.static_data_member.instance_ptr != NULL);
-    }  /* if */
-#endif /* NEED_NAME_MANGLING */
     /* The initializer of a static data member was scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was
        done elsewhere).  Restore the scope to what it was before.  An exception
@@ -5129,8 +5122,8 @@ actual field).
   return field_for_curr_field_initializer;
 }  /* curr_initializer_field */
 
-
 #if NEED_NAME_MANGLING
+
 a_discriminator get_discriminator_for_field_initializer(void)
 /*
 Increment last_discriminator_for_curr_field_initializer and return the
@@ -5140,8 +5133,8 @@ defined in a field initializer.
 {
   return ++last_discriminator_for_curr_field_initializer;
 }  /* get_discriminator_for_field_initializer */
-#endif /* NEED_NAME_MANGLING */
 
+#endif /* NEED_NAME_MANGLING */
 
 void init_capture_initializer(a_lambda_capture    *lcp,
                               a_decl_parse_state  *dps)

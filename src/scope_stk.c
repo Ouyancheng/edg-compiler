@@ -711,11 +711,10 @@ unnamed type ends up being an "anonymous union".
                             cssp = sym->variant.class_struct_union.extra_info;
     if (entities_are_recorded_for_current_expression()) {
       /* The discriminator is determined elsewhere (e.g., in
-         compute_default_arg_name_collision_discriminators or
-         compute_data_member_name_collision_discriminators). */
+         compute_default_arg_name_collision_discriminators). */
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;
-    } 
+    }  /* if */
   } else if (is_unnamed_tag_symbol(sym)) {
     /* An unnamed enum/class type in file, namespace, or class scope. */
     if (is_real_class_symbol(sym)) {
@@ -862,25 +861,6 @@ discriminators now.  (Currently, this only applies to closure types.)
   assign_discriminators_to_entities_list(ptp->entities_defined_in_default_arg,
                                          (a_symbol_ptr)NULL);
 }  /* compute_default_arg_name_collision_discriminators */
-
-
-void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym)
-/*
-If the given data member defines entities that require discriminators for name
-mangling purposes, assign those discriminators now.  (Currently, this only
-applies to closure types and only static data member initializers are
-possible.  Closure types in nonstatic data members are numbered early in
-make_closure_class.)
-*/
-{
-  if (symbol_is(sym, sk_static_data_member)) {
-    a_variable_ptr  sdm_var = sym->variant.static_data_member.variable;
-    assign_discriminators_to_entities_list(
-                               sdm_var->entities_defined_in_initializer, sym);
-  } else {
-    unexpected_condition();
-  }  /* if */
-}  /* compute_data_member_name_collision_discriminators */
 
 
 void set_parent_entity_for_closure_types(

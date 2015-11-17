@@ -1416,7 +1416,9 @@ typedef struct a_scope_stack_entry {
 			   file/namespace scope, this may point to the entry
 			   created for a linkage specification while parsing
 			   the embedded declaration (which has its own state).
-			   Otherwise, NULL. */
+			   While parsing an initializer, this points to the
+			   state block for the initialized entity.  Otherwise,
+			   NULL. */
   unsigned long
 		pending_templ_arg_lists;
 			/* The number of opening "<" delimiters that have been

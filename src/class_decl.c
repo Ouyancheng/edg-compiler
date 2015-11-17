@@ -2174,6 +2174,23 @@ the fields implied by the lambda's capture list).
     cssp->discriminator = get_discriminator_for_field_initializer();
 #endif /* NEED_NAME_MANGLING */
     cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+  } else {
+    /* Check if we are in the initializer for a static data member. */
+    a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
+    if (dps != NULL) {
+      a_symbol_ptr  parent_sym = dps->sym;
+      if (parent_sym != NULL && symbol_is(parent_sym, sk_static_data_member)) {
+#if NEED_NAME_MANGLING
+        ctsp->defined_in_static_data_member_initializer = TRUE;
+        ctsp->lambda_parent.variable =
+                              parent_sym->variant.static_data_member.variable;
+        cssp->discriminator = ++scope_stack_top().last_closure_type_number;
+#endif /* NEED_NAME_MANGLING */
+        if (parent_sym->variant.static_data_member.instance_ptr != NULL) {
+          cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;

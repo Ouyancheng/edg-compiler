@@ -1,5 +1,22 @@
 Version 4.11
 
+11/17/15 [EDGcpfe/16634]
+Abort on lowering of lambda defined in static data member initializer
+
+In some cases where a lambda in a static data member initializer triggered the
+instantiation of templates, name mangling aborted with an internal error in
+add_discriminator.  For example:
+
+  typedef int (*PF)();
+  template<typename> struct F {
+    template<typename T> constexpr F(T &&) {}
+  };
+  struct X { X(F<PF>); };
+  struct S { static X sdm; };
+  X S::sdm = { []() { return 0; } };
+
+
+
 11/17/15 [EDGcpfe/16637]
 Invalid C11 _Generic representation
 
