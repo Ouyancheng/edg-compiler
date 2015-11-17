@@ -4818,7 +4818,9 @@ static a_boolean arg_count_mismatch(
                              a_boolean             *param_array_expanded_case)
 /*
 Return TRUE if the given function call argument list cannot match the given
-routine type (that type may be the type of a non-variadic function template).
+routine type (in the case of a variadic function template, explicit template
+arguments must have been substituted for this function to produce a reliable
+answer).
 
 In C++/CLI and C++/CX modes set *param_array_expanded_case if the last
 parameter is a param array and the number of arguments and parameters don't
