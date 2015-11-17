@@ -13,8 +13,9 @@ add_discriminator.  For example:
   };
   struct X { X(F<PF>); };
   struct S { static X sdm; };
-  X S::sdm = { []() { return 0; } };
+  X S::sdm = { []() { return 0; } };  // Previously triggered an abort.
 
+This is now fixed.
 
 
 11/17/15 [EDGcpfe/16637]
