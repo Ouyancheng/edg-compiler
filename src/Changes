@@ -1,5 +1,18 @@
 Version 4.11
 
+11/17/15 [EDGcpfe/16637]
+Invalid C11 _Generic representation
+
+In configurations with REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL set to TRUE, the
+front end often produced invalid IL.  First, if the selected expression was
+one immediately following the "default:" expression, the expressions were not
+correctly recorded under the enk_c11_generic node.  This could, e.g., lead to
+internal errors in the C++-generating back end.  Second, the value category
+of the enk_c11_generic node was always set to "rvalue", which resulted in
+invalid diagnostics when the selected expression is an lvalue or a function
+designator.  This is now fixed.
+
+
 11/16/15 [EDGcpfe/16642]
 Discarding function template candidates early
 

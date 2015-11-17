@@ -19597,6 +19597,11 @@ already indicates the load.
         }  /* switch */
       }  /* if */
       break;
+#if REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL
+      case enk_c11_generic:
+        rvalueable = is_rvalueable_node(node->variant.c11_generic.result);
+        break;
+#endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
     default:
       break;
   }  /* switch */

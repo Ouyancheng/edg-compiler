@@ -20668,8 +20668,7 @@ transformations.
                                                   allow_ctor,
                                                   will_call);
     }  /* if */
-  }  /* if */
-  if (is_braced_init_list_operand(operand)) {
+  } else if (is_braced_init_list_operand(operand)) {
     /* Issue an error for a braced-init-list not handled explicitly.  There
        is no option to suppress this. */
     check_arg_list_elem_is_expression(operand->variant.braced_init_list);

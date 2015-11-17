@@ -14152,12 +14152,17 @@ insert the resulting node after the type_arg node.
   an_expr_node_ptr  expr_arg;
 
   check_assertion(type_arg->kind == (an_expr_node_kind)enk_type_operand);
+  terminate_token_cache(cache);
   rescan_cached_tokens(cache);
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   eliminate_unusual_operand_kinds(&operand);
   expr_arg = make_node_from_operand(&operand);
   expr_arg->next = type_arg->next;
   type_arg->next = expr_arg;
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_rparen, &pos_curr_token);
+  }  /* if */
+  flush_past_token_cache_terminator();
 }  /* process_cached_generic_selection_arg */
 
 
@@ -14277,6 +14282,11 @@ where <typename-or-default> is either a type name or the keyword "default".
                previously cached tokens as an unevaluated expression. */
             check_assertion(default_seen);
             process_cached_generic_selection_arg(&cache, match_type_arg);
+            if (*p_end != NULL) {
+              /* If the default case was the previous case, an element has
+                 been appended to the list. */
+              p_end = &(*p_end)->next;
+            }  /* if */
             match_type_arg = NULL;
           }  /* if */
           cache_expr = TRUE;
@@ -14343,7 +14353,9 @@ where <typename-or-default> is either a type name or the keyword "default".
     result_expr->type = match_type_arg->next->type;
     result_expr->variant.c11_generic.operands = arg_list;
     result_expr->variant.c11_generic.result = match_type_arg->next;
-#else /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
+    result_expr->is_lvalue =
+                           result_expr->variant.c11_generic.result->is_lvalue;
+#else /* !REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
     result_expr = match_type_arg->next;
     result_expr->next = NULL;
 #endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
@@ -14353,7 +14365,7 @@ where <typename-or-default> is either a type name or the keyword "default".
       make_constant_operand(node_constant(match_type_arg->next), result);
       result->variant.constant.expr = result_expr;
     } else {
-      make_expression_operand(result_expr, result);
+      make_lvalue_or_rvalue_expression_operand(result_expr, result);
     }  /* if */
   } else {
     make_error_operand(result);
