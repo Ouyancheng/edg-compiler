@@ -4463,19 +4463,30 @@ template arguments, or NULL if deduction failed.
     check_assertion_str(rtsp->has_ellipsis,
                 "function_template_call_argument_deduction: missing ellipsis");
   } else if (ptp != NULL) {
-    /* We ran out of arguments, but we still have parameters.  The parameter
-       should have a default argument expression, a C++/CLI param array, or
-       a parameter pack. */
-#if CHECKING
+    /* We ran out of arguments, but we still have parameters.  Since overload
+       resolution usually discards candidates with the wrong parameter count
+       early (by checking a call to arg_count_mismatch), the parameter probably
+       has a default argument expression, a C++/CLI param array, or it is a
+       parameter pack.  An exception can occur with explicit arguments
+       specified on a variadic template.  E.g.:
+           template <class ... T> void f(T ... args);
+           int main() {
+             f<int>();  // An early check for a mismatch in number of
+           }            // arguments does not detect this mismatch.
+    */
     if (!(ptp->has_default_arg ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
           ptp->is_cli_param_array ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           ptp->is_parameter_pack)) {
-      unexpected_condition_str(
-        "function_template_call_argument_deduction: missing default arg expr");
+      if (ptp->is_pack_element) {
+        /* Deduction failed. */
+        goto done;
+      } else {
+        unexpected_condition_str2("function_template_call_argument_deduction:",
+                                  " arguments/parameters count mismatch");
+      }  /* if */
     }  /* if */
-#endif /* CHECKING */
     if (ptp->is_parameter_pack && ptp->next != NULL) {
       /* A parameter pack can be deduced only if there are no other parameters
          following it. */
@@ -4832,23 +4843,31 @@ match.
   a_routine_type_supplement_ptr
                            rtsp;
   a_param_type_ptr         param;
+  a_boolean                param_pack_seen = FALSE;
 
   routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
   param = rtsp->param_type_list;
-  for (arg_list_elem = arg_list;
-       arg_list_elem != NULL;
-       arg_list_elem = next_elem(arg_list_elem)) {
+  arg_list_elem = arg_list;
+  while (arg_list_elem != NULL) {
     /* See if the parameter list is exhausted. */
     if (param == NULL) {
       /* More arguments than required.  No match unless there is an
-         ellipsis. */
-      if (rtsp->has_ellipsis) break;
+         ellipsis or parameter pack. */
+      if (rtsp->has_ellipsis || param_pack_seen) break;
       goto done;
     } else if (param->is_parameter_pack) {
-      /* A parameter pack can match all the remaining arguments. */
-      param = NULL;
-      break;
+      if (param->next != NULL) {
+        /* A final parameter pack can match all the remaining arguments. */
+        param = NULL;
+        break;
+      } else {
+        /* A non-final parameter pack matches zero or more arguments.
+           Make note that one was seen, so we'll know that it's okay to
+           have more arguments than parameters, but do not step to the
+           next argument. */
+        param_pack_seen = TRUE;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled && param->is_cli_param_array) {
       /* A C++/CLI parameter array can match all the remaining arguments. */
@@ -4861,9 +4880,12 @@ match.
       param = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* Step to the next argument. */
+      arg_list_elem = next_elem(arg_list_elem);
     }  /* if */
     param = param->next;
-  }  /* for */
+  }  /* while */
   /* Check that the argument and parameter lists ended at the same place. */
   if (param != NULL) {
     /* Fewer arguments than required.  No match unless there are default
@@ -4883,11 +4905,11 @@ match.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not add code here. */
-    /* A parameter pack can also make the call okay, because it can be
-       matched with zero arguments. */
+    /* A final parameter pack can also make the call okay, because it can
+       be matched with zero arguments. */
     if (!param->has_unevaluated_template_default &&
         param->default_arg_expr == NULL &&
-        !param->is_parameter_pack) goto done;
+        (!param->is_parameter_pack || param->next != NULL)) goto done;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -5071,13 +5093,12 @@ the point of call.  conv_context describes the context of the conversion.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
-        if (!tssp->has_variadic_template_params &&
-            !(gpp_mode && !clang_mode)) {
-          /* In non-variadic cases, we can filter out candidates that can not
-             match the number of arguments we have early and avoid a partial
-             substitution process that could trigger hard errors.  GCC doesn't
-             appear to do this, so we perform that check after the
-             substitution is completed. */
+        if (!(gpp_mode && !clang_mode)) {
+          /* Filter out candidates that can not match the number of
+             arguments we have early, avoiding a partial substitution
+             process that could trigger hard errors.  GCC doesn't appear to
+             do this, so we perform that check after the substitution is
+             completed. */
           check_arg_count_mismatch = FALSE;
           if (arg_count_mismatch(routine_type, arg_list,
                                  &param_array_expanded_case)) {

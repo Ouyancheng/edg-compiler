@@ -83,9 +83,9 @@ designator.  This is now fixed.
 11/16/15 [EDGcpfe/16642]
 Discarding function template candidates early
 
-When performing overload resolution, the front end now discards non-variadic
-function templates earlier if it can do so based on just comparing the number
-of call arguments with the parameter list.  For example:
+When performing overload resolution, the front end now discards function
+templates earlier if it can do so based on just comparing the number of call
+arguments with the parameter list.  For example:
 
   template<typename T> struct S {
     typedef decltype(*T()) type;
