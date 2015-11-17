@@ -12926,7 +12926,14 @@ function memory region.  For example:
   } else if (inside_local_class) {
     while (scope_stack[result].depth_innermost_function_scope ==
                                                              NO_SCOPE_DEPTH) {
-      result = scope_stack[result].previous_scope;
+      if (scope_is(&scope_stack[result], sck_template_instantiation)) {
+        /* This is presumably a generic lambda instantiation: Skip the whole
+           instantiation (including an sck_instantiation entry and any
+           reactivations on top of that). */
+        result = scope_stack[result].orig_depth;
+      } else {
+        result = scope_stack[result].previous_scope;
+      }  /* if */
     }  /* while */
     result = scope_stack[result].depth_innermost_function_scope;
   }  /* if */

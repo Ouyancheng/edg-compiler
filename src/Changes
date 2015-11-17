@@ -1,5 +1,21 @@
 Version 4.11
 
+11/17/15 [EDGcpfe/16653]
+Abort in switch_to_scope_region on decltype in generic lambda
+
+In some cases involving a decltype construct in a generic nested lambda, the
+front end aborted in switch_to_scope_region.  For example:
+
+  void g() {
+    auto lm = []() {
+      return [](auto p) ->decltype(p) { return p; };
+    };
+    int (*fp)(int) = lm();  // The instantiation of the inner lambda
+  }                         // previously triggered an abort.
+
+This is now fixed.
+
+
 11/17/15 [EDGcpfe/16634]
 Abort on lowering of lambda defined in static data member initializer
 
