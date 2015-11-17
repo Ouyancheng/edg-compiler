@@ -1927,9 +1927,6 @@ extern void cancel_name_collision_discriminator(a_symbol_ptr   sym,
 extern
 void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp);
 
-extern
-void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym);
-
 extern void set_parent_entity_for_closure_types(
                    an_il_entity_list_entry_ptr  elp,
                    a_symbol_ptr                 parent_sym,
