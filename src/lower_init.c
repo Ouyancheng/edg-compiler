@@ -9601,7 +9601,7 @@ do_assignment:;
     pop_context();
   }  /* if */
 #if IA64_ABI
-  if (lsvip != NULL) {
+  if (local_static_guard_var != NULL) {
     /* Set the guard variable to indicate the local static is initialized
        after the initialization is completed. */
     set_local_static_guard_var(local_static_guard_var, insert_location);

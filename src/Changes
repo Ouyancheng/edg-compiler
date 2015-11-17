@@ -1,5 +1,21 @@
 Version 4.11
 
+11/17/15 [EDGcpfe/16625]
+Segfault in set_local_static_guard_var
+
+In certain configurations that do lowering but don't promote local statics,
+a segfault could occur (in set_local_static_guard_var) during the lowering
+of a dynamic initialization of a local static.  Now fixed.  For example
+(with --c++11):
+
+  struct A {
+    int m = 0;
+  };
+  void f() {
+    static A a;
+  }
+
+
 11/17/15 [EDGcpfe/16653]
 Abort in switch_to_scope_region on decltype in generic lambda
 
