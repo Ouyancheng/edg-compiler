@@ -2943,7 +2943,7 @@ accordingly.
 */
 {
   an_expr_node_ptr  callee_node, arg;
-  a_routine_ptr     callee;
+  a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE;
 
   callee_node = call_node->variant.operation.operands;
