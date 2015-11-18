@@ -928,9 +928,10 @@ extern void update_instantiation_flags_for_class(
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
 
-EXTERN a_def_arg_expr_fixup_ptr	curr_default_args /* = NULL */;
+EXTERN a_def_arg_expr_fixup_ptr
+		curr_default_args /* = NULL */;
 			/* Pointer to the default argument entries for
-                           the function template being scanned. */
+			   the function template being scanned. */
 
 EXTERN a_type_ptr
 		type_of_unknown_templ_param_nontype /* = NULL */;

@@ -12,9 +12,9 @@ errors (e.g., in inline.c).  For example:
     lm(1);
   }
 
-In some configurations, the example above triggered an abort in the front end
-in some configurations.  In other configurations, the IL for the call did not
-make the default argument explicit.  This is now fixed.
+In some configurations, the example above triggered an abort in the front end.
+In other configurations, the IL for the call did not make the default argument
+explicit.  This is now fixed.
 
 
 11/17/15 [EDGcpfe/16625]
