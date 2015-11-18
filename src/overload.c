@@ -5094,7 +5094,7 @@ the point of call.  conv_context describes the context of the conversion.
            the types of the template parameters), which may be different for
            each template considered. */
         if (!(gpp_mode && !clang_mode)) {
-          /* Filter out candidates that can not match the number of
+          /* Filter out candidates that cannot match the number of
              arguments we have early, avoiding a partial substitution
              process that could trigger hard errors.  GCC doesn't appear to
              do this, so we perform that check after the substitution is
