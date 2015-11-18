@@ -331,10 +331,6 @@ static a_template_lookup_entry_ptr
 
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 
-static a_def_arg_expr_fixup_ptr	curr_default_args;
-			/* Pointer to the default argument entries for
-                           the function template being scanned. */
-
 static a_master_instance_ptr
 		master_instantiations_list;
 			/* List of master instance entries for external
