@@ -1176,9 +1176,8 @@ A set of flags to describe special kinds of interpreter addresses.
 		   entity (not a value known to the interpreter). */
 #define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
 		/* This flag indicates that the address cannot be dereferenced.
-		   entity (not a value known to the interpreter).  It is set
-		   in particular for pointers "on position past" the end of an
-		   array. */
+		   It is set in particular for pointers "on position past" the
+		   end of an array. */
 #define CA_VARIANT_PATH ((unsigned int)0x4)
 		/* This flag indicates that the formation of the address
 		   included the selection of at least one union field.  Such
@@ -1386,7 +1385,6 @@ typedef struct a_constexpr_ptr_to_mem_function {
 
 
 /*FIXME: delete when fields are used*/
-/*lint -esym(754,a_constexpr_address::address)*/
 /*lint -esym(754,a_constexpr_ptr_to_mem_function::member_function)*/
 /*lint -esym(754,a_constexpr_ptr_to_mem_function::this_class_adjustment)*/
 
@@ -3296,7 +3294,8 @@ nodes.
       if (cannot_dereference(opnd)) {                                         \
         /* This address cannot be dereferenced. */                            \
         result = FALSE;                                                       \
-        /* FIXME: record a diagnostic. */                                     \
+        info_with_pos(ec_constexpr_access_one_past_array_end, &expr->position,\
+                      ips);                                                   \
       } else if (is_runtime_data_address(opnd)) {                             \
         if (!get_value_from_address_constant(                                 \
                    ips,                                                       \
@@ -3304,7 +3303,8 @@ nodes.
                    result_storage)) {                                         \
           /* Not a compile-time constant value. */                            \
           result = FALSE;                                                     \
-          /* FIXME: record a diagnostic. */                                   \
+          info_with_pos(ec_constexpr_access_to_runtime_storage,               \
+                        &expr->position, ips);                                \
         }  /* if */                                                           \
         /* Release the local constant acquired when this a_constexpr_address  \
            was created. */                                                    \
@@ -3315,12 +3315,16 @@ nodes.
                                                       ->alloc_seq_number)) {  \
         /* An attempt to access storage that has expired. */                  \
         result = FALSE;                                                       \
-        /* FIXME: record a diagnostic. */                                     \
+        info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,\
+                      ips);                                                   \
       } else if (is_variant_path(opnd) &&                                     \
                  !check_variant_path(ips, (a_constexpr_address *)opnd,        \
                                      /*release=*/TRUE, &expr->position)) {    \
         /* An attempt to dereference an inactive variant path. */             \
         result = FALSE;                                                       \
+      } else if (((a_constexpr_address*)(opnd))->address == NULL) {           \
+        result = FALSE;                                                       \
+        info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);   \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
