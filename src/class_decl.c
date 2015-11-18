@@ -30711,6 +30711,11 @@ For example:
   a_def_arg_expr_fixup_ptr
                        saved_curr_default_args = curr_default_args;
 
+  /* Temporarily stash away default argument fixups to keep them separate
+     from any additional fixups that might be generated for the lambda
+     declarator.  (E.g., this lambda expression could itself appear in a
+     default argument.) */
+  curr_default_args = NULL;
   /* Start a new stop token context. */
   push_stop_token_stack();
   check_assertion(curr_token == tok_lbracket);
@@ -30723,10 +30728,6 @@ For example:
   lambda->closure_class = closure_class =
                  make_closure_class(decl_level, &lambda->start_position,
                                     bad_scope);
-  /* Temporarily stash away default argument fixups to keep them separate
-     from any additional fixups that might be generated for the lambda
-     declarator. */
-  curr_default_args = NULL;
   record_start_of_lambda_header(lambda);
   /* Scan the lambda capture list. */
   (void)get_token();
@@ -30748,8 +30749,6 @@ For example:
   /* Declare the call operator for the closure class. */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info,
                                 &templ_state);
-  /* Restore default argument fixups. */
-  curr_default_args = saved_curr_default_args;
 #if NEED_NAME_MANGLING
   /* When multiple closure types appear in the same scope or context, their
      mangled names are distinguished using a unique number ("discriminator").
@@ -30801,6 +30800,8 @@ For example:
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
   pop_stop_token_stack();
+  /* Restore default argument fixups. */
+  curr_default_args = saved_curr_default_args;
   return lambda;
 }  /* scan_lambda */
 
