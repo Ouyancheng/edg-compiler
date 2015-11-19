@@ -17114,7 +17114,7 @@ enough to cause the back end to invoke the routine at initialization.
       /* Mark this routine as needed because it is only accessed through
          aliases. */
 #if ONE_INSTANTIATION_PER_OBJECT
-      init_rout->instantiation_needed_bit_number = needed_bit_number;
+      init_rout->instantiation_needed_bit_number = eff_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS
       set_routine_definition_needed(init_rout);
