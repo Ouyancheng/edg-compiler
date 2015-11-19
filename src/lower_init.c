@@ -10029,7 +10029,7 @@ the position to insert the necessary code.
                                      "__throw_bad_array_new_length",
 #endif /* IA64_ABI */
                                      &throw_bad_array_new_length_routine,
-                                     void_star_type(),
+                                     void_type(),
                                      (an_expr_node_ptr)NULL);
   insert_expr(call_node, &then_insert_location);
   release_local_constant(&zero_constant);
