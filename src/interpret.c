@@ -1812,6 +1812,21 @@ stack.
 }  /* info_with_pos */
 
 
+static void info_with_pos_num(an_error_code         err_code,
+                              a_source_position     *pos,
+                              uint32_t              num,
+                              an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_num2 */
+
+
 static void info_with_pos_num2(an_error_code         err_code,
                                a_source_position     *pos,
                                uint32_t              num1,
@@ -1857,6 +1872,28 @@ the diagnostic string.  Also record annotations describing the call stack.
   more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
   info_call_stack(ips);
 }  /* info_with_pos_sym */
+
+
+static void info_one_past_end_of_array(a_constexpr_address   *addr,
+                                       an_expr_node_ptr      expr,
+                                       an_interpreter_state  *ips)
+/*
+expr is an rvalue whose evaluation requires the indirection of addr, but it
+turns out addr is pointing one position past an array.  Record diagnostic
+information describing the problem.
+*/
+{
+  a_byte_count  elem_size, pos;
+  a_byte        *base_address;
+  a_boolean     local_result = TRUE;
+
+  elem_size = value_bytes_for_type(ips, expr->type, &local_result);
+  check_assertion(local_result);
+  base_address = get_base_address(addr);
+  pos = (a_byte_count)(addr->address - base_address) / elem_size;
+  info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
+                    pos, ips);
+}  /* info_one_past_end_of_array */
 
 
 static a_boolean add_to_variant_path(a_constexpr_address  *addr,
@@ -2991,7 +3028,12 @@ accordingly.
     a_statement_ptr
                     block_stmt = callee_scope->assoc_block;
     a_call_frame    frame;
-    a_variable_ptr  param = callee_scope->variant.routine.parameters, this_var;
+    a_variable_ptr  params = callee_scope->variant.routine.parameters,
+                    param, this_var;
+    a_byte_count    n_args = 0;
+    a_byte          *arg_ptrs, **p_arg_ptr;
+    an_alloc_seq_number
+                    alloc_seq_number;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -3004,57 +3046,78 @@ accordingly.
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
-    arg = callee_node->next;
     save_storage_stack(ips, saved_stack);
+    alloc_seq_number = ips->curr_alloc_seq_number;
+    /* This process must happen in two phases.  First, the arguments must be
+       allocated and evaluated.  Only then can we map parameter variables onto
+       the allocated arguments.  We cannot do the two in a single loop because
+       of recursive calls.  E.g.:
+          constexpr void f(int p, int q) {
+            ...
+            f(x, p+q);
+          }
+       Here, if we remap p to the evaluation of "x" early, the subsequent
+       evaluation of "p+q" will likely be wrong.  In support of the two-phase
+       approach, we first allocate a buffer to keep pointers to each argument
+       location determined in the first phase, so that we can remap them in
+       the second phase. */
+    for (arg = callee_node; arg != NULL; arg = arg->next) {
+      n_args += 1;
+    }  /* for */
+    alloc_stack_bytes(ips, sizeof(a_byte*[n_args]), arg_ptrs);
+    /* Phase 1: Allocate and evaluate the arguments. */
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    arg = callee_node->next;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result); 
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
+      *p_arg_ptr = arg_bytes;
+      p_arg_ptr += 1;
       if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
         result = FALSE;
         goto reclaim_arg_storage;
       }  /* if */
-      map_stack_bytes(ips, this_var, arg_bytes);
-      map_byte_count(&ips->map, &this_var->storage_class,
-                     ips->curr_alloc_seq_number);
       arg = arg->next;
     }  /* if */
-    for (; arg != NULL; arg = arg->next, param = param->next) {
+    for (param = params; arg != NULL; arg = arg->next, param = param->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
       alloc_stack_bytes(ips, n_bytes, arg_bytes);
+      *p_arg_ptr = arg_bytes;
+      p_arg_ptr += 1;
       if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
-        /* Undo the mappings so far. */
-        a_variable_ptr  up = callee_scope->variant.routine.parameters;
-        for (; up != param; up = up->next) {
-          unmap_stack_bytes(ips, up);
-          unmap_ptr(&ips->map, &up->storage_class);
-        }  /* for */
         result = FALSE;
         goto reclaim_arg_storage;
       }  /* if */
-/* FIXME!  This mapping must be done after all the arguments have been
-   evaluated because other arguments might refer to the same parameters in
-   recursive calls. */
-      map_stack_bytes(ips, param, arg_bytes);
-      map_byte_count(&ips->map, &param->storage_class,
-                     ips->curr_alloc_seq_number);
+    }  /* for */
+    /* Phase 2: Map the parameters to the arguments. */
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    if (this_var != NULL) {
+      map_stack_bytes(ips, this_var, *p_arg_ptr);
+      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
+      p_arg_ptr += 1;
+    }  /* if */
+    for (param = params; param != NULL; param = param->next) {
+      map_stack_bytes(ips, param, *p_arg_ptr);
+      map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
+      p_arg_ptr += 1;
     }  /* for */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, &call_node->position, result_storage);
     /* Run the function's top-level block statement. */
     if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
-      /* FIXME: should be an ordinary failure */
-      unexpected_condition();
+      info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
+      result = FALSE;
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
     pop_call_frame(ips);
-    /* Release the storage and mappings of the parameters. */
+    /* Release mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
     for (; param != NULL; param = param->next) {
       unmap_stack_bytes(ips, param);
@@ -3288,18 +3351,17 @@ nodes.
   {                                                                           \
     if (expr->is_lvalue || expr->is_xvalue || is_function_address(opnd)) {    \
       /* Copy the address. */                                                 \
-      *(a_constexpr_address *)result_storage = *(a_constexpr_address *)(opnd);\
+      *(a_constexpr_address*)result_storage = *(a_constexpr_address*)(opnd);  \
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
       if (cannot_dereference(opnd)) {                                         \
         /* This address cannot be dereferenced. */                            \
         result = FALSE;                                                       \
-        info_with_pos(ec_constexpr_access_one_past_array_end, &expr->position,\
-                      ips);                                                   \
+        info_one_past_end_of_array((a_constexpr_address*)opnd, expr, ips);    \
       } else if (is_runtime_data_address(opnd)) {                             \
         if (!get_value_from_address_constant(                                 \
                    ips,                                                       \
-                   ((a_constexpr_address *)(opnd))->variant.addr_con,         \
+                   ((a_constexpr_address*)(opnd))->variant.addr_con,          \
                    result_storage)) {                                         \
           /* Not a compile-time constant value. */                            \
           result = FALSE;                                                     \
@@ -3308,17 +3370,17 @@ nodes.
         }  /* if */                                                           \
         /* Release the local constant acquired when this a_constexpr_address  \
            was created. */                                                    \
-        release_local_constant(&((a_constexpr_address *)(opnd))->             \
-                                                           variant.addr_con); \
+        release_local_constant(&((a_constexpr_address*)(opnd))                \
+                                                         ->variant.addr_con); \
       } else if (!in_live_set(&ips->live_set,                                 \
-                              ((a_constexpr_address *)(opnd))                 \
+                              ((a_constexpr_address*)(opnd))                  \
                                                       ->alloc_seq_number)) {  \
         /* An attempt to access storage that has expired. */                  \
         result = FALSE;                                                       \
         info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,\
                       ips);                                                   \
       } else if (is_variant_path(opnd) &&                                     \
-                 !check_variant_path(ips, (a_constexpr_address *)opnd,        \
+                 !check_variant_path(ips, (a_constexpr_address*)opnd,         \
                                      /*release=*/TRUE, &expr->position)) {    \
         /* An attempt to dereference an inactive variant path. */             \
         result = FALSE;                                                       \

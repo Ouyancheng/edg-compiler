@@ -657,6 +657,11 @@ extern void more_info_sym2_diagnostic(an_error_code     error_code,
                                       struct a_symbol   *sym2,
                                       a_diag_list_ptr   diag_list);
 
+extern void more_info_num_diagnostic(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     int32_t           num,
+                                     a_diag_list_ptr   diag_list);
+
 extern void more_info_num2_diagnostic(an_error_code     error_code,
                                       a_source_position *error_pos,
                                       int32_t           num1,

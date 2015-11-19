@@ -6069,6 +6069,31 @@ diagnostics pointed to by diag_list.  The given symbols are used to replace
 }  /* more_info_sym_diagnostic */
 
 
+void more_info_num_diagnostic(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              int32_t           num,
+                              a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given number is used for the %d
+fill-in.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_more_info);
+  add_number_fill_in(dp, num);
+  check_assertion(diag_list != NULL);
+  /* Add the diagnostic to the given list. */
+  if (diag_list->head == NULL) {
+    diag_list->head = dp;
+  } else {
+    diag_list->tail->next = dp;
+  }  /* if */
+  diag_list->tail = dp;
+}  /* more_info_num_diagnostic */
+
+
 void more_info_num2_diagnostic(an_error_code     error_code,
                                a_source_position *error_pos,
                                int32_t           num1,

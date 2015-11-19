@@ -2778,9 +2778,10 @@ ec_constexpr_goto;;"'goto' cannot be executed in constexpr contexts"
 ec_constexpr_missing_return_value;;"missing return value"
 ec_constexpr_null_callee;;"callee is null"
 ec_constexpr_null_dereference;;"attempt to dereference a null pointer"
-ec_constexpr_access_one_past_array_end;;"attempt to access storage one position past the end of an array"
+ec_constexpr_access_one_past_array_end;;"attempt to access storage one position past the end of an array of %d elements"
 ec_constexpr_access_to_expired_storage;;"attempt to access expired storage"
 ec_constexpr_access_to_runtime_storage;;"attempt to access run-time storage"
+ec_constexpr_try_block;;"cannot execute a try-block"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
