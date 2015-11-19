@@ -3064,7 +3064,7 @@ accordingly.
     for (arg = callee_node; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
-    alloc_stack_bytes(ips, sizeof(a_byte*[n_args]), arg_ptrs);
+    alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg = callee_node->next;
