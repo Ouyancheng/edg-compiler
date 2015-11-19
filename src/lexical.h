@@ -2716,6 +2716,8 @@ and all entities declared in functions.
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);
 
+extern void db_rescan_list(void);
+
 extern void db_token_cache(a_token_cache *cache,
                            a_const_char	 *cache_name);
 

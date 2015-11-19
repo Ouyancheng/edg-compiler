@@ -21776,6 +21776,64 @@ the caller should copy the contents as needed.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
+
+static void db_cached_token(a_cached_token_ptr	ctp)
+/*
+Display a single cached token.
+*/
+{
+  fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
+  if ((a_token_kind)ctp->token == (a_token_kind)tok_identifier &&
+      ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+    fprintf(f_debug, " %s", ctp->variant.locator.symbol_header->identifier);
+  }  /* if */
+  fprintf(f_debug, "\n");
+  fprintf(f_debug, "  sequence_number: %lu\n",
+          (unsigned long)ctp->token_sequence_number);
+  if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
+      ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
+    a_const_char *s = NULL;
+    switch (ctp->extra_info_kind) {
+      case teik_identifier:     s = "identifier"; break; /* not used */
+      case teik_constant:       s = "constant"; break;
+      case teik_pragma:         s = "pragma"; break;
+      case teik_pp_token:       s = "pp_token"; break;
+      case teik_extracted_body: s = "extracted_body"; break;
+      case teik_asm_string:     s = "asm_string"; break;
+      default:                  unexpected_condition();
+    }  /* switch */
+    fprintf(f_debug, "  extra_info_kind: %s\n", s);
+  }  /* if */
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+    a_pending_pragma_ptr	ppp;
+    for (ppp = ctp->variant.pragmas; ppp != NULL; ppp = ppp->next) {
+      fprintf(f_debug, "  Pragma: %s\n",
+              pragma_ids[(int)ppp->descr_ptr->kind]);
+    }  /* for */
+  } else if (ctp->ud_lit_op_sym != NULL) {
+    db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
+  } else if (ctp->ud_suffix != NULL) {
+    fprintf(f_debug, "  Literal operator suffix: %s\n", ctp->ud_suffix);
+  }  /* if */
+}  /* db_cached_token */
+
+
+void db_rescan_list(void)
+/*
+Display the tokens on the cached_token_rescan_list.
+*/
+{
+  a_cached_token_ptr	ctp;
+  unsigned long		count = 0;
+
+  for (ctp = cached_token_rescan_list; ctp != NULL; ctp = ctp->next) {
+    if (count != 0) fprintf(f_debug, "\n");
+    fprintf(f_debug, "Token %lu:\n", count++);
+    db_cached_token(ctp);
+  }  /* for */
+}  /* db_rescan_list */
+
+
 void db_token_cache(a_token_cache *cache,
                     a_const_char  *cache_name)
 /*
@@ -21794,40 +21852,7 @@ Display the contents of a token cache.
     for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
       if (count != 0) fprintf(f_debug, "\n");
       fprintf(f_debug, "Token %lu:\n", count++);
-      fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
-      if ((a_token_kind)ctp->token == (a_token_kind)tok_identifier &&
-          ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
-        fprintf(f_debug, " %s",
-                ctp->variant.locator.symbol_header->identifier);
-      }  /* if */
-      fprintf(f_debug, "\n");
-      fprintf(f_debug, "  sequence_number: %lu\n",
-              (unsigned long)ctp->token_sequence_number);
-      if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
-          ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
-        a_const_char *s = NULL;
-        switch (ctp->extra_info_kind) {
-          case teik_identifier:     s = "identifier"; break; /* not used */
-          case teik_constant:       s = "constant"; break;
-          case teik_pragma:         s = "pragma"; break;
-          case teik_pp_token:       s = "pp_token"; break;
-          case teik_extracted_body: s = "extracted_body"; break;
-          case teik_asm_string:     s = "asm_string"; break;
-          default:                  unexpected_condition();
-        }  /* switch */
-        fprintf(f_debug, "  extra_info_kind: %s\n", s);
-      }  /* if */
-      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-        a_pending_pragma_ptr	ppp;
-        for (ppp = ctp->variant.pragmas; ppp != NULL; ppp = ppp->next) {
-          fprintf(f_debug, "  Pragma: %s\n",
-                                     pragma_ids[(int)ppp->descr_ptr->kind]);
-        }  /* for */
-      } else if (ctp->ud_lit_op_sym != NULL) {
-        db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
-      } else if (ctp->ud_suffix != NULL) {
-        fprintf(f_debug, "  Literal operator suffix: %s\n", ctp->ud_suffix);
-      }  /* if */
+      db_cached_token(ctp);
     }  /* for */
   }  /* if */
 }  /* db_token_cache */
