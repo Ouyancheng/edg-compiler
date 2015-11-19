@@ -531,6 +531,14 @@ duplication.
       dnep2 = sys_includes_only ? incl_search_path : dnep1->next;
       for (; dnep2 != NULL; dnep2 = next_dnep2) {
         next_dnep2 = dnep2->next;
+        if (!sys_includes_only && !dnep1->system_include_dir &&
+            *include_path_boundary != NULL &&
+            dnep2 == (*include_path_boundary)->next) {
+          /* If a -Ixxx is specified on both sides of the boundary, don't
+             remove it.  Note the include_file_boundary points to the last
+             include directory before the -I-. */
+          break;
+        }  /* if */
         /* Look for another include directory with the same name. */
         if (dnep1 != dnep2 &&
             (!sys_includes_only || !dnep2->system_include_dir) &&
