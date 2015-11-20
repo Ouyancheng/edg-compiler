@@ -15632,6 +15632,11 @@ of managed class types in some Microsoft modes.
   a_boolean			saved_in_field_initializer = FALSE;
   a_boolean			is_field = symbol_is(sym, sk_field);
 
+  if (is_field) {
+    /* Set the in_field_initializer flag while caching a field initializer. */
+    saved_in_field_initializer = scope_stack_top().in_field_initializer;
+    scope_stack_top().in_field_initializer = TRUE;
+  }  /* if */
   /* Initialize a local stop token set to cache everything up to a semicolon
      or a comma (outside braces, etc.). */
   clear_token_cache(token_cache, /*reusable=*/TRUE);
@@ -15643,13 +15648,8 @@ of managed class types in some Microsoft modes.
   /* We'll create a cache of uncoalesced tokens by creating the cache from the
      background cache.  (Finding the end of the cache is done by coalescing,
      however, because we shouldn't stop on a comma in a template argument
-     list. */
+     list.) */
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  /* Set the in_field_initializer flag while caching the initializer. */
-  if (is_field) {
-    saved_in_field_initializer = scope_stack_top().in_field_initializer;
-    scope_stack_top().in_field_initializer = TRUE;
-  }  /* if */
   /* Skip to the end of the initializer tokens (by passing a NULL cache, the
      no additional caching is done besides background caching). */
   cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
@@ -15667,8 +15667,8 @@ of managed class types in some Microsoft modes.
   adjust_token_handles(token_cache);
   terminate_token_cache(token_cache);
   end_caching_fetched_tokens();
-  /* Restore the in_field_initializer flag. */
   if (is_field) {
+    /* Restore the in_field_initializer flag. */
     scope_stack_top().in_field_initializer = saved_in_field_initializer;
   }  /* if */
   if (is_prototype_instantiation_context() &&  (is_field || gpp_mode)) {
