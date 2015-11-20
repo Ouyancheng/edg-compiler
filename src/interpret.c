@@ -2640,11 +2640,11 @@ successfully interpreted, FALSE otherwise.
   a_host_large_integer  bool_val;
   a_type_ptr            tp;
   a_boolean             ovfl;
-  a_byte_count          n_bytes;
 
   switch (stmt->kind) {
     case stmk_expr:
       {
+        a_byte_count  n_bytes;
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
@@ -5412,8 +5412,7 @@ type.  This includes checking the value of ovfl set by the operation.
           /* An glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
-          a_byte_count n_bytes = value_bytes_for_type(ips, expr->type,
-                                                      &result);
+          n_bytes = value_bytes_for_type(ips, expr->type, &result);
           if (!result) break;
           if (!dip->has_temporary_lifetime) {
             /* A life-time extended temporary.  Switch to the storage stack
@@ -5431,7 +5430,9 @@ type.  This includes checking the value of ovfl set by the operation.
              evaluate the initialization directly into result_storage. */
           tmp_bytes = result_storage;
         }  /* if */
-        do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes);
+        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes)) {
+          result = FALSE;
+        }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           a_constexpr_address
                             *p_address = (a_constexpr_address*)result_storage;
