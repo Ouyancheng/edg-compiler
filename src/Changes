@@ -8,11 +8,11 @@ some include directories after a "-I-" option to be removed that were
 not removed by the GNU compiler.  It appears that if a directory is
 specified more than once using the -I option, and those options span the
 -I boundary, the duplicate entry is not removed.  But if there are
-redundant include options (either both -I or both --sys_include) on
-either side of the boundary, the later one is removed.  In addition,
-as before, in any case (i.e., even when they span the -I- boundary),
-if one is specified with --sys_include and the other with -I, the -I
-option is removed.
+redundant include options (either both -I or both --sys_include) that
+are both on the same side of the boundary, the later one is removed.  In
+addition, as before, in any case (i.e., even when they span the -I-
+boundary), if one is specified with --sys_include and the other with -I,
+the -I option is removed.
 
 
 11/19/15 [EDGcpfe/16667]
