@@ -19,10 +19,10 @@ the -I option is removed.
 Incorrect value for __tls_init instantiation_needed_bit_number flag in
 --one_instantiation_per_object mode
 
-In cases where --one_instantiation_per_object is used, and thread_local
+In cases where --one_instantiation_per_object is used and thread_local
 variables required initialization, the instantiation_needed_bit_number
 flag for the generated __tls_init routine that is used to perform the
-initialization has inadvertently been set to 1 (it should be 0).  Now
+initialization had inadvertently been set to 1 (it should be 0).  Now
 fixed.  For example (with --c++11 --one_instantiation_per_object):
 
   int f(int i) { return i; }
