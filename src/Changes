@@ -7,7 +7,7 @@ A change made in version 4.10.1 (see EDGcpfe/15809 on 3/17/15) caused
 some include directories after a "-I-" option to be removed that were
 not removed by the GNU compiler.  It appears that if a directory is
 specified more than once using the -I option, and those options span the
--I boundary, the duplicate entry is not removed.  But if there are
+-I- boundary, the duplicate entry is not removed.  But if there are
 redundant include options (either both -I or both --sys_include) that
 are both on the same side of the boundary, the later one is removed.  In
 addition, as before, in any case (i.e., even when they span the -I-
