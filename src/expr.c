@@ -38101,7 +38101,7 @@ handle_deduced_return_type:
     expression = wrap_up_full_expression(expression);
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
-  if (curr_routine->is_constexpr &&
+  if (curr_routine->is_constexpr && !relaxed_constexpr_enabled &&
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */

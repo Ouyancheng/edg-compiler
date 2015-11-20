@@ -20152,7 +20152,14 @@ the lifetime of the temporary is extended to match that of the reference.
 */
 {
   an_object_lifetime_ptr lifetime = dip->lifetime;
+  a_decl_parse_state     *dps = scope_stack_top().decl_parse_state;
 
+  /* Mark the reference variable (if any) extending the temporary object's
+     lifetime. */
+  if (dps != NULL && dps->sym != NULL) {
+    a_variable_ptr  vp = var_for_symbol(dps->sym);
+    if (vp != NULL) vp->extends_lifetime = TRUE;
+  }  /* if */
   if (dip->is_creation_of_initializer_list_object) {
     /* If the lifetime of an initializer_list temporary is extended, the
        lifetime of the array used to create it is extended also (see core

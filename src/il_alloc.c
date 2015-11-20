@@ -2419,6 +2419,7 @@ Clear the fields of the given variable to default values.
   vp->initializer_in_class        = FALSE;
   vp->constant_valued             = FALSE;
   vp->is_thread_local             = FALSE;
+  vp->extends_lifetime            = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;

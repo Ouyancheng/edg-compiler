@@ -9952,6 +9952,11 @@ typedef struct a_variable {
 			   variables declared with "__thread" (see DM_THREAD).
 			   Only set when
 			   IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is TRUE. */
+  a_bit_field
+		extends_lifetime:1;
+			/* TRUE if this is a reference variable bound to a
+			   temporary causing that temporary to have its
+			   lifetime extended. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local

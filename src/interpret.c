@@ -564,6 +564,11 @@ typedef struct an_interpreter_state {
   a_call_frame_ptr
 		curr_call_frame;
 			/* The currently active call. */
+  a_storage_stack_state
+		*extension_state;
+			/* Pointer to the storage stack state from which a
+			   temporary with extended lifetime should be
+			   allocated. */
   a_diag_list
 		diag_list;
 			/* A representation of a pending diagnostics
@@ -656,6 +661,7 @@ Initialize the given interpreter state.
   init_live_set(&ips->live_set);
   ips->curr_alloc_seq_number = 1;
   ips->curr_call_frame = NULL;
+  ips->extension_state = NULL;
   clear_diag_list(&ips->diag_list);
   ips->position = null_source_position;
   ips->cost = 0;
@@ -1009,8 +1015,8 @@ static void unmap_overflow_entry(a_data_map   *map,
                                  a_byte       *ptr,
                                  a_map_index  idx)
 /*
-Find ptr in the overflow section of the given map and remove the associated
-entry.
+Search for ptr in the overflow section of the given map and, if found, remove
+the associated entry.
 */
 {
   a_data_map_entry  *table = map->table;
@@ -2298,27 +2304,14 @@ Interpret the given block statement and its associated scope (if any).
 
   init_storage_stack_state_to_silence_GCC(saved_stack);
   if (scope != NULL) {
-    /* Allocate storage for variables, and map the variables to that
-       storage.  Don't do this for parameter variables since they're
-       already allocated and mapped. */
+    /* If local variables are going to be allocated (which will be done when
+       their corresponding stmk_init statement is interpreter), save the
+       current allocation state so we can efficiently deallocate those
+       variables below. */
     a_variable_ptr  vp = scope->nonstatic_variables;
     if (vp != NULL) {
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
-      do {
-        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type, &result);
-        a_byte        *var_storage;
-        alloc_stack_bytes(ips, n_bytes, var_storage);
-        /* Associate with the variable its value storage. */
-        map_stack_bytes(ips, vp, var_storage);
-        /* Also associate with the variable (somewhat arbitrarily, with its
-           "storage_class" field) an allocation sequence number that may be
-           used to detect leaks. */
-        map_byte_count(&ips->map, &vp->storage_class,
-                       ips->curr_alloc_seq_number);
-        vp = vp->next;
-      } while (vp != NULL);
-      if (!result) goto unmap_storage;
     }  /* if */
   }  /* if */
   if (result) {
@@ -2333,7 +2326,6 @@ Interpret the given block statement and its associated scope (if any).
       }  /* if */
     }  /* for */
   }  /* if */
-unmap_storage:
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
@@ -2631,7 +2623,6 @@ unmap_storage:
   restore_storage_stack(ips, saved_stack);
   return result;
 }  /* do_constexpr_range_based_for_statement */
-
 
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
@@ -2940,18 +2931,41 @@ successfully interpreted, FALSE otherwise.
 done_with_switch:
       break;
     case stmk_init:
-      { a_dynamic_init_ptr  dip = stmt->variant.dynamic_init;
-        a_variable_ptr      vp = dip->variable;
-        a_byte              *var_storage;
-        get_stack_bytes(ips, vp, var_storage);
-        if (var_storage != NULL) {
-          /* Evaluate the initializer. */
-          a_storage_stack_state  saved_stack_for_full_expr;
-          save_storage_stack((ips), saved_stack_for_full_expr);
-          result = do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                             var_storage);
-          restore_storage_stack(ips, saved_stack_for_full_expr);
+      { a_dynamic_init_ptr     dip = stmt->variant.dynamic_init;
+        a_variable_ptr         vp = dip->variable;
+        a_type_ptr             vtp = skip_typerefs(vp->type);
+        a_byte                 *var_storage;
+        a_byte_count           n_bytes;
+        a_storage_stack_state  saved_stack_for_full_expr;
+        /* Allocate storage for the variable. */
+        n_bytes = value_bytes_for_type(ips, vtp, &result);
+        alloc_stack_bytes(ips, n_bytes, var_storage);
+        /* Associate with the variable its value storage. */
+        map_stack_bytes(ips, vp, var_storage);
+        /* Also associate with the variable (somewhat arbitrarily, with its
+           "storage_class" field) an allocation sequence number that may be
+           used to detect leaks. */
+        map_byte_count(&ips->map, &vp->storage_class,
+                       ips->curr_alloc_seq_number);
+        /* Evaluate the initializer. */
+        save_storage_stack((ips), saved_stack_for_full_expr);
+        if (vp->extends_lifetime) {
+          /* Start a new stack for temporaries in this expression, but keep a
+             pointer to the original stack to allocate the lifetime-extended
+             temporary. */
+          init_constexpr_stack(&ips->storage_stack);
+          ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
+          ips->extension_state = &saved_stack_for_full_expr;
         }  /* if */
+        result = do_constexpr_dynamic_init(ips, dip, &stmt->position,
+                                           var_storage);
+        if (vp->extends_lifetime) {
+          /* Release the ordinary storage stack blocks for this expression.
+             The large blocks will be release by the call to
+             restore_storage_stack below. */
+          release_constexpr_stack(&ips->storage_stack);
+        }  /* if */
+        restore_storage_stack(ips, saved_stack_for_full_expr);
       }
       break;
     case stmk_decl:
@@ -3007,9 +3021,12 @@ accordingly.
     }  /* if */
   }  /* if */
   /* Retrieve the routine scope, or issue an error. */
-  if (callee->function_def_number == NULL_function_def_number) {
-    info_with_pos_sym(ec_constexpr_function_undefined,
-                      &callee->source_corresp.decl_position,
+  if (!callee->is_constexpr) {
+    info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
+                      &callee_node->position, symbol_for(callee), ips);
+    result = FALSE;
+  } else if (callee->function_def_number == NULL_function_def_number) {
+    info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
     result = FALSE;
 #if /*FIXME*/0
@@ -5386,6 +5403,44 @@ type.  This includes checking the value of ovfl set by the operation.
       break;
     case enk_routine:
       make_function_address(result_storage, node_routine(expr));
+      break;
+    case enk_temp_init:
+      { a_dynamic_init_ptr     dip = expr->variant.init.dynamic_init;
+        a_byte                 *tmp_bytes;
+        an_alloc_seq_number    alloc_seq_number;
+        if (expr->is_lvalue || expr->is_xvalue) {
+          /* An glvalue temporary is expected.  I.e., the caller expects an
+             interpreter address for the temporary object.  Allocate the
+             storage for that object here. */
+          a_byte_count n_bytes = value_bytes_for_type(ips, expr->type,
+                                                      &result);
+          if (!result) break;
+          if (!dip->has_temporary_lifetime) {
+            /* A life-time extended temporary.  Switch to the storage stack
+               state was saved at the time the stmk_init statement was
+               started. */
+            alloc_bytes(ips->extension_state, n_bytes, tmp_bytes);
+            alloc_seq_number = ips->extension_state->alloc_seq_number;
+            ips->extension_state = NULL;
+          } else {
+            alloc_stack_bytes(ips, n_bytes, tmp_bytes);
+            alloc_seq_number = ips->storage_stack.alloc_seq_number;
+          }  /* if */
+        } else {
+          /* The consumer of the temporary expects an rvalue.  So we can
+             evaluate the initialization directly into result_storage. */
+          tmp_bytes = result_storage;
+        }  /* if */
+        do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes);
+        if (expr->is_lvalue || expr->is_xvalue) {
+          a_constexpr_address
+                            *p_address = (a_constexpr_address*)result_storage;
+          clear_address(p_address, tmp_bytes);
+          /* Record the allocation sequence number for this temporary in the
+             address record. */ 
+          p_address->alloc_seq_number = alloc_seq_number;
+        }  /* if */
+      }
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */
