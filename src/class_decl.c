@@ -15650,8 +15650,8 @@ of managed class types in some Microsoft modes.
      however, because we shouldn't stop on a comma in a template argument
      list.) */
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  /* Skip to the end of the initializer tokens (by passing a NULL cache, the
-     no additional caching is done besides background caching). */
+  /* Skip to the end of the initializer tokens (by passing a NULL cache, no
+     additional caching is done besides background caching). */
   cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
                                           stop_tokens);
   /* The -1 is to exclude the final token from the cache that is created. */
