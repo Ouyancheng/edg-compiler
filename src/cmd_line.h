@@ -1937,6 +1937,13 @@ EXTERN a_boolean
 			   generation of checking pragmas should be
 			   suppressed. */
 
+EXTERN a_boolean
+		no_very_expensive_checking;
+			/* Disable certain EXPENSIVE_CHECKING tests that
+			   can take a prohibitive amount of time on large
+			   test cases. */
+
+
 #if DEBUG
 EXTERN a_boolean
 		display_space_used;

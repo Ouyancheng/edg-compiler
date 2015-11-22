@@ -8628,7 +8628,9 @@ being popped.
       generate_required_virtual_destructor_bodies(il_scope);
     }  /* if */
 #if EXPENSIVE_CHECKING
-    check_parent_scope_of_member_entities(il_scope);
+    if (!no_very_expensive_checking) {
+      check_parent_scope_of_member_entities(il_scope);
+    }  /* if */
 #endif /* EXPENSIVE_CHECKING */
   }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

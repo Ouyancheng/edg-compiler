@@ -6937,30 +6937,32 @@ hashes template argument lists works properly.
 
 */
 {
-  a_symbol_list_entry_ptr		slep;
-  an_equiv_templ_arg_options_set	eta_options;
+  if (!no_very_expensive_checking) {
+    a_symbol_list_entry_ptr		slep;
+    an_equiv_templ_arg_options_set	eta_options;
 
-  eta_options = eta_options_for_template(template_sym, tssp);
-  for (slep = tssp->variant.class_template.instantiations;
-       slep != NULL; slep = slep->next) {
-    a_template_arg_ptr	old_list;
-    a_symbol_ptr	sym;
-    sym = slep->symbol;
-    old_list = template_arg_list_for_symbol(sym);
-    if (equiv_template_arg_lists(old_list, template_arg_list,
-                                 eta_options | ETA_EXACT_MATCH_REQUIRED)) {
-      /* We've found a match. */
+    eta_options = eta_options_for_template(template_sym, tssp);
+    for (slep = tssp->variant.class_template.instantiations;
+         slep != NULL; slep = slep->next) {
+      a_template_arg_ptr	old_list;
+      a_symbol_ptr	sym;
+      sym = slep->symbol;
+      old_list = template_arg_list_for_symbol(sym);
+      if (equiv_template_arg_lists(old_list, template_arg_list,
+                                   eta_options | ETA_EXACT_MATCH_REQUIRED)) {
+        /* We've found a match. */
 #if DEBUG
-      fprintf(f_debug, "check_new_class_instantiation:\n");
-      fprintf(f_debug, "  existing list: ");
-      db_template_arg_list(old_list);
-      fprintf(f_debug, "\n  new list: ");
-      db_template_arg_list(template_arg_list);
-      fprintf(f_debug, "\n");
+        fprintf(f_debug, "check_new_class_instantiation:\n");
+        fprintf(f_debug, "  existing list: ");
+        db_template_arg_list(old_list);
+        fprintf(f_debug, "\n  new list: ");
+        db_template_arg_list(template_arg_list);
+        fprintf(f_debug, "\n");
 #endif /* DEBUG */
-      unexpected_condition();
-    }  /* if */
-  }  /* for */
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* check_new_class_instantiation */
 
 #endif /* EXPENSIVE_CHECKING */

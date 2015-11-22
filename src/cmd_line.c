@@ -2036,6 +2036,7 @@ static a_flag_name
 #endif /* COROUTINES_ALLOWED */
   { "suppress_deferral_on_partial_spec_members",
     &suppress_deferral_on_partial_spec_members },
+  { "no_very_expensive_checking", &no_very_expensive_checking },
   { NULL, NULL }  /* must be last */
 };
 

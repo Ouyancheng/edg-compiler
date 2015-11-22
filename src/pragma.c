@@ -773,7 +773,8 @@ otherwise return FALSE.
     ppp = next_ppp;
   }  /* while */
 #if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
-  if (list_start == NULL && !no_checking_pragmas) {
+  if (list_start == NULL && !no_checking_pragmas &&
+      !no_very_expensive_checking) {
     list_start = alloc_pending_pragma
                  (pragma_description_for_pragma_kind[(int)pk_checking_pragma]);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
