@@ -1787,13 +1787,16 @@ be recorded.
 /*
 Return a pointer to the class fixup header entry to be used for the
 current context.  This is either the one for the current function scope
-or the global list.  The global list is also used if the fixup is being done
-after an instantiation.
+or the scope depth used for non-local fixups (usually the file scope
+depth).  The non-local list is also used if the fixup is being done after
+an instantiation.  A different scope for non-local fixups is used when
+get_definition_of_class_is_used.  See the description of
+non_local_class_fixup_depth for more information.
 */
 #define curr_class_fixup_header(for_instantiation)			\
   (&scope_stack[((for_instantiation) /*lint --e(506)*/ ||		\
                  depth_innermost_function_scope == NO_SCOPE_DEPTH)	\
-                         ? DEPTH_OF_FILE_SCOPE				\
+                         ? non_local_class_fixup_depth			\
                          : depth_innermost_function_scope].class_fixup_header)
 
 
@@ -1906,6 +1909,21 @@ EXTERN a_scope_depth
 			   When non-zero, we are inside a class or
 			   reactivation of the scope of a class, and name
 			   lookup is more complicated. */
+
+EXTERN a_scope_depth
+		non_local_class_fixup_depth;
+			/* The fixup of classes is delayed until any pending
+			   class definitions has completed, except that
+			   local classes are fixed up when any pending
+			   local class definitions are complete, even if
+			   some namespace scope classes (including possibly
+			   class template instantiations) are still pending.
+			   This variable is the scope depth at which non-local
+			   class fixups should be recorded.  This is the file
+			   scope depth unless get_definition_of_class is
+			   being used, in which case it is the depth of the
+			   special context scope that get_definition_of_class
+			   pushes. */
 
 EXTERN a_boolean
 		function_body_processing_delayed_on_some_func_in_primary_il;

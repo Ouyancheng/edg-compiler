@@ -12387,6 +12387,7 @@ are handled in scope_stk_init.)
   register_trans_unit_variable(depth_template_declaration_scope);
   register_trans_unit_variable(curr_deferred_access_scope);
   register_trans_unit_variable(inside_local_class);
+  register_trans_unit_variable(non_local_class_fixup_depth);
   register_trans_unit_variable(depth_innermost_namespace_scope);
   register_trans_unit_variable(
                          depth_of_innermost_scope_that_affects_access_control);
@@ -12446,6 +12447,7 @@ of the front end.
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   depth_of_initial_lookup_scope = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
+  non_local_class_fixup_depth = DEPTH_OF_FILE_SCOPE;
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;

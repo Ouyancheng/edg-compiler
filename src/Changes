@@ -1,5 +1,19 @@
 Version 4.11
 
+11/22/15 [EDGcpfe/16672]
+get_definition_of_class and class fixups
+
+When GET_DEFINITION_OF_CLASS_NEEDED is TRUE the get_definition_of_class
+function is provided to allow a class to be defined on-demand.  This is
+used in C++/CLI mode to load classes from assemblies, but can be used
+by customers for other purposes.  If the call to get_definition_of_class
+was done while some other class was in the process of being defined,
+the fixup of things such as inline function bodies and default arguments
+would not be done until all pending class definitions completed.  Now
+the fixups for any classes loaded by get_definition_of_class are done
+before get_definition_of_class_returns.
+
+
 11/19/15 [EDGcpfe/16387]
 GNU compatibility: refinement of duplicate include directories
 
