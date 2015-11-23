@@ -1,5 +1,19 @@
 Version 4.11
 
+11/23/15 [EDGcpfe/16661]
+Floating-point literals in strict C-mode array bounds
+
+The C standard only allows floating-point literals in integer constant
+expressions if they are the immediate operands of a cast to an integer type.
+That does not allow for a unary plus or minus operator on the literal.  The
+front end now takes this rule into account in strict C modes.  For example:
+
+  void g() {
+    int x[(int)+2.0] = { 1, 2 };  // Now an error because x is treated as a
+  }                               // as a variable-length array, and may
+                                  // therefore not have an initializer.
+
+
 11/22/15 [EDGcpfe/16672]
 get_definition_of_class and class fixups
 

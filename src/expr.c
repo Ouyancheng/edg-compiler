@@ -10124,6 +10124,14 @@ analysis on a previously-scanned expression, and return the result in
     /* Build the IL for the operation. */
     do_unary_operation(op, &operand, result_type, result,
                        &operator_position, operator_tok_seq_number);
+    if (strict_ansi_mode && (C_mode() || !constexpr_enabled) &&
+        is_floating_type(result_type) && is_constant_operand(result)) {
+      /* Floating-point literals can appear in C-style (and pre-C++11-style)
+         constant-expressions, provided they are the immediate operand of a
+         cast.  That does not allow for a "+" or "-" prefix. */
+      rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+      expr_stack->constant_expr_ruled_out = TRUE;
+    }  /* if */
   }  /* if */
 
   set_operand_position(result, &operator_position, &operand.end_position,
@@ -38519,12 +38527,16 @@ expression context.  Return either *is_constant TRUE and a constant value in
          be positive. */
       copy_constant(&result.variant.constant, constant);
       discard_constant_expr_object_lifetime();
-      if (constant->kind != (a_constant_repr_kind)ck_integer) {
+      if (constant->kind != (a_constant_repr_kind)ck_integer ||
+          has_nonconstant_form) {
         /* If the constant is not a ck_integer, we cannot check its sign. */
         if (!is_error_constant(constant) &&
             constant->kind != (a_constant_repr_kind)ck_template_param) {
          /* This case can occur with expressions like (int)&x which are
-             represented as constants but aren't known until link time. */
+             represented as constants but aren't known until link time.
+             Another case is "(int)+2.0" in strict mode, which must be treated
+             as a nonconstant expression according to the C standard (and the
+             C++03 standard). */
           *expression = alloc_node_for_constant_operand(&result);
           *is_constant = FALSE;
         }  /* if */
