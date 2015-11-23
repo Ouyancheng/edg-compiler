@@ -5429,6 +5429,7 @@ type.  This includes checking the value of ovfl set by the operation.
           /* The consumer of the temporary expects an rvalue.  So we can
              evaluate the initialization directly into result_storage. */
           tmp_bytes = result_storage;
+          alloc_seq_number = 0;
         }  /* if */
         if (!do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes)) {
           result = FALSE;
