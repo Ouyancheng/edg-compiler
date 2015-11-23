@@ -1790,7 +1790,7 @@ current context.  This is either the one for the current function scope
 or the scope depth used for non-local fixups (usually the file scope
 depth).  The non-local list is also used if the fixup is being done after
 an instantiation.  A different scope for non-local fixups is used when
-get_definition_of_class_is_used.  See the description of
+get_definition_of_class is used.  See the description of
 non_local_class_fixup_depth for more information.
 */
 #define curr_class_fixup_header(for_instantiation)			\
@@ -1913,7 +1913,7 @@ EXTERN a_scope_depth
 EXTERN a_scope_depth
 		non_local_class_fixup_depth;
 			/* The fixup of classes is delayed until any pending
-			   class definitions has completed, except that
+			   class definitions have completed, except that
 			   local classes are fixed up when any pending
 			   local class definitions are complete, even if
 			   some namespace scope classes (including possibly

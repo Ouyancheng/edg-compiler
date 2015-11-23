@@ -21522,8 +21522,8 @@ C++/CLI delegate class types.)
   a_cpp_cli_token		metadata_type_def_token = 0;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
-  a_source_position             position_for_tokens;
-  a_scope_depth                 saved_non_local_class_fixup_depth =
+  a_source_position		position_for_tokens;
+  a_scope_depth			saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean			saved_source_sequence_entries_disallowed;
@@ -21610,7 +21610,7 @@ C++/CLI delegate class types.)
                               PS_CLASS_DEFINITION_CONTEXT);
   /* Set the fixup depth for non-local classes to the context scope pushed
      above so that classes created by this routine will be fixed up by
-    process_deferred_class_fixups_and_instantiations below. */
+     process_deferred_class_fixups_and_instantiations below. */
   non_local_class_fixup_depth = depth_scope_stack;
   /* By default, the instantiation scope context pushed by the call to
      push_template_instantiation_scope just copies the name linkage from the

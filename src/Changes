@@ -11,7 +11,7 @@ was done while some other class was in the process of being defined,
 the fixup of things such as inline function bodies and default arguments
 would not be done until all pending class definitions completed.  Now
 the fixups for any classes loaded by get_definition_of_class are done
-before get_definition_of_class_returns.
+before get_definition_of_class returns.
 
 
 11/19/15 [EDGcpfe/16387]
