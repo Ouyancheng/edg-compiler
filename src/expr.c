@@ -10130,7 +10130,6 @@ analysis on a previously-scanned expression, and return the result in
          constant-expressions, provided they are the immediate operand of a
          cast.  That does not allow for a "+" or "-" prefix. */
       rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
-      expr_stack->constant_expr_ruled_out = TRUE;
     }  /* if */
   }  /* if */
 
@@ -25616,8 +25615,14 @@ that case.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
-                                  operand_2.ruled_out_expr_kinds);
+  if (gnu_mode && !expr2_evaluated) {
+    /* In GNU modes, "1 || f()" is treated as an integral
+       constant-expression. */
+    result->ruled_out_expr_kinds = operand_1->ruled_out_expr_kinds;
+  } else {
+    result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
+                                    operand_2.ruled_out_expr_kinds);
+  }  /* if */
   db_exit();
 }  /* scan_logical_operator */
 
@@ -38528,15 +38533,16 @@ expression context.  Return either *is_constant TRUE and a constant value in
       copy_constant(&result.variant.constant, constant);
       discard_constant_expr_object_lifetime();
       if (constant->kind != (a_constant_repr_kind)ck_integer ||
-          has_nonconstant_form) {
+          ((C_mode() || !constexpr_enabled) &&
+           (result.ruled_out_expr_kinds & ROEK_INTEGRAL_CONSTANT) != 0)) {
         /* If the constant is not a ck_integer, we cannot check its sign. */
         if (!is_error_constant(constant) &&
             constant->kind != (a_constant_repr_kind)ck_template_param) {
          /* This case can occur with expressions like (int)&x which are
-             represented as constants but aren't known until link time.
-             Another case is "(int)+2.0" in strict mode, which must be treated
-             as a nonconstant expression according to the C standard (and the
-             C++03 standard). */
+            represented as constants but aren't known until link time.
+            Another case is "(int)+2.0" in strict mode, which must be treated
+            as a nonconstant expression according to the C standard (and the
+            C++03 standard). */
           *expression = alloc_node_for_constant_operand(&result);
           *is_constant = FALSE;
         }  /* if */

@@ -10,7 +10,7 @@ front end now takes this rule into account in strict C modes.  For example:
 
   void g() {
     int x[(int)+2.0] = { 1, 2 };  // Now an error because x is treated as a
-  }                               // as a variable-length array, and may
+  }                               // as a variable-length array and may
                                   // therefore not have an initializer.
 
 
