@@ -1818,6 +1818,21 @@ stack.
 }  /* info_with_pos */
 
 
+static void info_with_pos_type(an_error_code         err_code,
+                               a_source_position     *pos,
+                               a_type_ptr            tp,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_type */
+
+
 static void info_with_pos_num(an_error_code         err_code,
                               a_source_position     *pos,
                               uint32_t              num,
@@ -1830,7 +1845,7 @@ stack.
 {
   more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
   info_call_stack(ips);
-}  /* info_with_pos_num2 */
+}  /* info_with_pos_num */
 
 
 static void info_with_pos_num2(an_error_code         err_code,
@@ -3406,7 +3421,7 @@ result of an operation (in val) is within the range representable by its
 type.  This includes checking the value of ovfl set by the operation.
 */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-#define check_int_range(val, tp, result, ovfl)                                \
+#define check_int_range(val, tp, result, ovfl, pos, ips)                      \
 {                                                                             \
   if (!ovfl) {                                                                \
     get_int_val_from((val), (tp), host_int_val, ovfl);                        \
@@ -3418,18 +3433,26 @@ type.  This includes checking the value of ovfl set by the operation.
                  (a_host_large_integer)min_integer_value_of_kind[int_kind])); \
   } else {                                                                    \
     (result) = FALSE;                                                         \
-  } /* if */                                                                  \
+  }  /* if */                                                                 \
+  if (!(result)) {                                                            \
+    info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
+  }  /* if */                                                                 \
 }  /* check_int_range */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#define check_int_range(val, tp, result, ovfl)                     \
-  ((result) = (!ovfl &&                                            \
-         cmp_integer_values((an_integer_value *)(val), is_signed,  \
-                            &max_integer_value_of_kind[int_kind],  \
-                            is_signed) <= 0 &&                     \
-         (!is_signed ||                                            \
-          cmp_integer_values((an_integer_value *)(val), is_signed, \
-                             &min_integer_value_of_kind[int_kind], \
-                             is_signed) >= 0)))
+#define check_int_range(val, tp, result, ovfl, pos, ips)                      \
+{                                                                             \
+  ((result) = (!ovfl &&                                                       \
+         cmp_integer_values((an_integer_value *)(val), is_signed,             \
+                            &max_integer_value_of_kind[int_kind],             \
+                            is_signed) <= 0 &&                                \
+         (!is_signed ||                                                       \
+          cmp_integer_values((an_integer_value *)(val), is_signed,            \
+                             &min_integer_value_of_kind[int_kind],            \
+                             is_signed) >= 0)));                              \
+  if (!(result)) {                                                            \
+    info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
+  }  /* if */                                                                 \
+}  /* check_int_range */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
         opnd1 = expr->variant.operation.operands;
@@ -3620,10 +3643,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 negate_integer_value((an_integer_value *)result_storage,
                                      &ovfl);
                 check_int_range((an_integer_value *)result_storage, tp, result,
-                                ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                ovfl, &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 fp_negate(opnd1_type->variant.float_kind,
                           fp_value(opnd1_value), fp_value(result_storage),
@@ -3644,10 +3664,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 is_signed = int_kind_is_signed[int_kind];
                 ovfl = FALSE;
                 check_int_range((an_integer_value *)result_storage, tp, result,
-                                ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                ovfl, &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 *fp_value(result_storage) = *fp_value(opnd1_value);
               } else {
@@ -3663,10 +3680,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 ovfl = FALSE;
                 complement_integer_value((an_integer_value *)result_storage);
                 check_int_range((an_integer_value *)result_storage, tp, result,
-                                ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                ovfl, &expr->position, ips);
               } else {
                 /* The complement operator only applies to integer types. */
                 unexpected_condition();
@@ -3710,10 +3724,8 @@ type.  This includes checking the value of ovfl set by the operation.
                     int_kind = tp->variant.integer.int_kind;
                     is_signed = int_kind_is_signed[int_kind];
                     add_integer_values(ival, &one_int, is_signed, &ovfl);
-                    check_int_range(ival, tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(ival, tp, result, ovfl, &expr->position,
+                                    ips);
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_float) {
                   /* A floating-point type. */
@@ -3773,10 +3785,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   is_signed = int_kind_is_signed[int_kind];
                   subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
-                  check_int_range(ival, tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
-                  }  /* if */
+                  check_int_range(ival, tp, result, ovfl, &expr->position,
+                                  ips);
                 } else if (tp->kind == (a_type_kind)tk_float) {
                   /* A floating-point type. */
                   fp_subtract(tp->variant.float_kind,
@@ -3841,10 +3851,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(ival, &one_int, is_signed, &ovfl);
-                  check_int_range(ival, tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
-                  }  /* if */
+                  check_int_range(ival, tp, result, ovfl, &expr->position,
+                                  ips);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
@@ -3901,10 +3909,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 is_signed = int_kind_is_signed[int_kind];
                 subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
-                check_int_range(ival, tp, result, ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                check_int_range(ival, tp, result, ovfl, &expr->position, ips);
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
@@ -3966,10 +3971,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                    (an_integer_value*)opnd2_value,
                                    is_signed, &ovfl);
                 check_int_range((an_integer_value*)(result_storage), tp,
-                                result, ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                result, ovfl, &expr->position, ips);
               } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                 fp_add(tp->variant.float_kind,
@@ -3995,10 +3997,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
                 check_int_range((an_integer_value*)(result_storage), tp,
-                                result, ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                result, ovfl, &expr->position, ips);
               } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                 fp_subtract(tp->variant.float_kind,
@@ -4024,10 +4023,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
                 check_int_range((an_integer_value*)(result_storage), tp,
-                                result, ovfl);
-                if (!result) {
-                  /* FIXME: record a diagnostic. */
-                }  /* if */
+                                result, ovfl, &expr->position, ips);
               } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                 fp_multiply(tp->variant.float_kind,
@@ -4210,7 +4206,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     is_signed = int_kind_is_signed[int_kind];
                     ovfl = FALSE;
                     check_int_range((an_integer_value*)result_storage, tp,
-                                    result, ovfl);
+                                    result, ovfl, &expr->position, ips);
                   }  /* if */
                 } else {
                   result = FALSE;  /* FIXME: diagnostic */
@@ -4234,12 +4230,11 @@ type.  This includes checking the value of ovfl set by the operation.
               if (result) {
                 shift_left_integer_value((an_integer_value *)opnd1_value,
                                          (int)host_int_val, &ovfl);
-                check_int_range(opnd1_value, opnd1_type, result, ovfl);
+                check_int_range(opnd1_value, opnd1_type, result, ovfl,
+                                &expr->position, ips);
                 if (result) {
                   *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
-                } else {
-                  /* FIXME: record a diagnostic for invalid result. */
                 }  /* if */
               } else {
                 /* FIXME: record a diagnostic for invalid opnd2. */
@@ -4262,12 +4257,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 shift_right_integer_value((an_integer_value *)opnd1_value,
                                           (int)host_int_val, is_signed,
                                           targ_right_shift_is_arithmetic);
-                check_int_range(opnd1_value, opnd1_type, result, ovfl);
+                check_int_range(opnd1_value, opnd1_type, result, ovfl,
+                                &expr->position, ips);
                 if (result) {
                   *(an_integer_value *)result_storage =
                                               *(an_integer_value *)opnd1_value;
-                } else {
-                  /* FIXME: record a diagnostic for invalid result. */
                 }  /* if */
               } else {
                 /* FIXME: record a diagnostic for invalid opnd2. */
@@ -4591,19 +4585,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4629,19 +4625,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_add_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4659,10 +4657,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                        (an_integer_value*)opnd2_value,
                                        is_signed, &ovfl);
                     trim_bit_field_if_needed(dst);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4671,7 +4667,8 @@ type.  This includes checking the value of ovfl set by the operation.
                            &depends_on_fp_mode);
                     if (err) {
                       result = FALSE;
-                      /* FIXME: record a diagnostic. */
+                      info_with_pos(ec_constexpr_fp_error,
+                                    &expr->position, ips);
                     }  /* if */
                   } else {
                     /* FIXME: Other type kinds NYI. */
@@ -4684,19 +4681,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_subtract_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4714,10 +4713,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                             (an_integer_value*)opnd2_value,
                                             is_signed, &ovfl);
                     trim_bit_field_if_needed(dst);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4726,7 +4723,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                 &depends_on_fp_mode);
                     if (err) {
                       result = FALSE;
-                      /* FIXME: record a diagnostic. */
+                      info_with_pos(ec_constexpr_fp_error,
+                                    &expr->position, ips);
                     }  /* if */
                   } else {
                     /* FIXME: Other type kinds NYI. */
@@ -4739,19 +4737,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_multiply_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4769,10 +4769,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                             (an_integer_value*)opnd2_value,
                                             is_signed, &ovfl);
                     trim_bit_field_if_needed(dst);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4781,7 +4779,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                 &depends_on_fp_mode);
                     if (err) {
                       result = FALSE;
-                      /* FIXME: record a diagnostic. */
+                      info_with_pos(ec_constexpr_fp_error,
+                                    &expr->position, ips);
                     }  /* if */
                   } else {
                     /* FIXME: Other type kinds NYI. */
@@ -4794,19 +4793,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_divide_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4824,10 +4825,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
                     trim_bit_field_if_needed(dst);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4836,7 +4835,8 @@ type.  This includes checking the value of ovfl set by the operation.
                               &depends_on_fp_mode);
                     if (err) {
                       result = FALSE;
-                      /* FIXME: record a diagnostic. */
+                      info_with_pos(ec_constexpr_fp_error,
+                                    &expr->position, ips);
                     }  /* if */
                   } else {
                     /* FIXME: Other type kinds NYI. */
@@ -4849,19 +4849,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_remainder_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4879,10 +4881,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                            (an_integer_value*)opnd2_value,
                                            is_signed, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl);
-                  if (!result) {
-                    /* FIXME: record a diagnostic. */
-                  }  /* if */
+                  check_int_range(int_value_at(dst), tp, result, ovfl,
+                                  &expr->position, ips);
                   *(a_constexpr_address *)result_storage = *dst;
                 } else {
                   /* FIXME: Other type kinds NYI. */
@@ -4893,19 +4893,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_shiftl_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4924,17 +4926,22 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else if (host_int_val < 0 ||
                              host_int_val >=
                             (a_host_large_integer)(tp->size * targ_char_bit)) {
-                    /* FIXME: record a diagnostic for invalid result. */
                     result = FALSE;
+                    if (host_int_val < 0) {
+                      info_with_pos(ec_constexpr_negative_shift,
+                                    &expr->position, ips);
+                    } else {
+                      info_with_pos_num(ec_constexpr_shift_excess,
+                                        &expr->position,
+                                        (uint32_t)host_int_val, ips);
+                    }  /* if */
                   }  /* if */
                   if (result) {
                     shift_left_integer_value(int_value_at(dst),
                                              (int)host_int_val, &ovfl);
                     trim_bit_field_if_needed(dst);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                     *(a_constexpr_address *)result_storage = *dst;
                   }  /* if */
                 }  /* if */
@@ -4943,19 +4950,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_shiftr_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -4974,18 +4983,23 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else if (host_int_val < 0 ||
                              host_int_val >=
                             (a_host_large_integer)(tp->size * targ_char_bit)) {
-                    /* FIXME: record a diagnostic for invalid result. */
                     result = FALSE;
+                    if (host_int_val < 0) {
+                      info_with_pos(ec_constexpr_negative_shift,
+                                    &expr->position, ips);
+                    } else {
+                      info_with_pos_num(ec_constexpr_shift_excess,
+                                        &expr->position,
+                                        (uint32_t)host_int_val, ips);
+                    }  /* if */
                   }  /* if */
                   if (result) {
                     shift_right_integer_value(int_value_at(dst),
                                               (int)host_int_val, is_signed,
                                               targ_right_shift_is_arithmetic);
-                    check_int_range(int_value_at(dst), tp, result, ovfl);
+                    check_int_range(int_value_at(dst), tp, result, ovfl,
+                                    &expr->position, ips);
                     trim_bit_field_if_needed(dst);
-                    if (!result) {
-                      /* FIXME: record a diagnostic. */
-                    }  /* if */
                     *(a_constexpr_address *)result_storage = *dst;
                   }  /* if */
                 }  /* if */
@@ -4994,19 +5008,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_and_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -5025,19 +5041,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_or_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {
@@ -5056,19 +5074,21 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_xor_assign:
               { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
                 if (cannot_dereference(dst)) {
-                  /* E.g., storing one position past the end of an array. */
+                  /* Storing one position past the end of an array. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_one_past_end_of_array(dst, expr, ips);
                 } else if (is_runtime_data_address(dst)) {
                   /* Cannot modify the value of an object whose lifetime began
                      outside the current evaluation. */
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 } else if (!in_live_set(&ips->live_set,
                                         dst->alloc_seq_number)) {
                   /* Attempting to store into expired storage. */
+                  info_with_pos(ec_constexpr_access_to_expired_storage,
+                                &expr->position, ips);
                   result = FALSE;
-                  /* FIXME: record a diagnostic. */
                 } else if (is_variant_path(dst) &&
                            !check_variant_path(ips, dst, /*release=*/TRUE,
                                                &expr->position)) {

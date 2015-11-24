@@ -2784,6 +2784,10 @@ ec_constexpr_access_to_runtime_storage;;"attempt to access run-time storage"
 ec_constexpr_try_block;;"cannot execute a try-block"
 ec_constexpr_call_to_nonconstexpr_function;;"cannot call non-constexpr %nd"
 ec_constexpr_vla;;"cannot use variable-length array during constexpr evaluation"
+ec_constexpr_negative_shift;;"cannot perform a negative shift"
+ec_constexpr_shift_excess;;"shift amount (%d) too large"
+ec_constexpr_integer_overflow;;"value exceeds range of %t"
+ec_constexpr_fp_error;;"floating-point error"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
