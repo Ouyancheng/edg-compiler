@@ -2783,6 +2783,7 @@ ec_constexpr_access_to_expired_storage;;"attempt to access expired storage"
 ec_constexpr_access_to_runtime_storage;;"attempt to access run-time storage"
 ec_constexpr_try_block;;"cannot execute a try-block"
 ec_constexpr_call_to_nonconstexpr_function;;"cannot call non-constexpr %nd"
+ec_constexpr_vla;;"cannot use variable-length array during constexpr evaluation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

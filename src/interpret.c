@@ -2351,35 +2351,15 @@ static a_boolean do_constexpr_for_statement(an_interpreter_state  *ips,
 Interpret the given for-statement.
 */
 {
-  a_boolean              result = TRUE, local_storage = FALSE;
+  a_boolean              result = TRUE;
   a_storage_stack_state  saved_stack;
   a_for_loop_ptr         loop_info = stmt->variant.for_loop.extra_info;
-  a_scope_ptr            init_scope = loop_info->for_init_scope;
   a_statement_ptr        init = loop_info->initialization;
 
+  /* We may have to allocate storage for the increment expression result and/or
+     variables declared in the for-init declaration.  Save the current storage
+     state to enable deallocation when we're done. */
   save_storage_stack(ips, saved_stack);
-  if (init_scope != NULL) {
-    /* Allocate storage for variables, and map the variables to that
-       storage. */
-    a_variable_ptr  vp = init_scope->nonstatic_variables;
-    if (vp != NULL) {
-      local_storage = TRUE;
-      do {
-        a_byte_count  n_bytes = value_bytes_for_type(ips, vp->type, &result);
-        a_byte        *var_storage;
-        alloc_stack_bytes(ips, n_bytes, var_storage);
-        /* Associate with the variable its value storage. */
-        map_stack_bytes(ips, vp, var_storage);
-        /* Also associate with the variable (somewhat arbitrarily, with its
-           "storage_class" field) an allocation sequence number that may be
-           used to detect leaks. */
-        map_byte_count(&ips->map, &vp->storage_class,
-                       ips->curr_alloc_seq_number);
-        vp = vp->next;
-      } while (vp != NULL);
-      if (!result) goto unmap_storage;
-    }  /* if */
-  }  /* if */
   /* Run the initialization statement (if any). */
   if (init != NULL && !do_constexpr_statement(ips, init)) {
     result = FALSE;
@@ -2476,15 +2456,19 @@ Interpret the given for-statement.
     } while (result && bool_val);
   }  /* if */
 unmap_storage:
-  /* Release and unmap the local storage if necessary. */
-  if (local_storage) {
-    a_variable_ptr  vp = init_scope->nonstatic_variables;
-    do {
-      unmap_stack_bytes(ips, vp);
-      unmap_ptr(&ips->map, &vp->storage_class);
-      vp = vp->next;
-    } while (vp != NULL);
-  }  /* if */
+  { /* Unmap the local storage if necessary. */
+    a_scope_ptr  init_scope = loop_info->for_init_scope;
+    if (init_scope != NULL) {
+      a_variable_ptr  vp = init_scope->nonstatic_variables;
+      if (vp != NULL) {
+        do {
+          unmap_stack_bytes(ips, vp);
+          unmap_ptr(&ips->map, &vp->storage_class);
+          vp = vp->next;
+        } while (vp != NULL);
+      }  /* if */
+    }  /* if */
+  }
   restore_storage_stack(ips, saved_stack);
   return result;
 }  /* do_constexpr_for_statement */
@@ -2974,6 +2958,11 @@ done_with_switch:
       break;
     case stmk_empty:
       /* Nothing to do. */
+      break;
+    case stmk_set_vla_size:
+    case stmk_vla_decl:
+      info_with_pos(ec_constexpr_vla, &stmt->position, ips);
+      result = FALSE;
       break;
     default:
       unexpected_condition();  /* FIXME: handle errors. */
