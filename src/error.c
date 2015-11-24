@@ -6032,10 +6032,10 @@ diagnostics pointed to by diag_list.
 }  /* more_info_diagnostic */
 
 
-extern void more_info_type_diagnostic(an_error_code     error_code,
-                                      a_source_position *error_pos,
-                                      struct a_type     *tp,
-                                      a_diag_list_ptr   diag_list)
+void more_info_type_diagnostic(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_type     *tp,
+                               a_diag_list_ptr   diag_list)
 /*
 Add the indicated diagnostic with the associated position to the list of
 diagnostics pointed to by diag_list.  The given type is used to replace
