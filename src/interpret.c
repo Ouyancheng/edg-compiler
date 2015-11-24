@@ -2946,7 +2946,7 @@ done_with_switch:
            "storage_class" field) an allocation sequence number that may be
            used to detect leaks. */
         map_byte_count(&ips->map, &vp->storage_class,
-                       ips->curr_alloc_seq_number);
+                       ips->storage_stack.alloc_seq_number);
         /* Evaluate the initializer. */
         save_storage_stack((ips), saved_stack_for_full_expr);
         if (vp->extends_lifetime) {
