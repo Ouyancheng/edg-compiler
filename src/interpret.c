@@ -1395,6 +1395,12 @@ typedef struct a_constexpr_ptr_to_mem_function {
 /*lint -esym(754,a_constexpr_ptr_to_mem_function::this_class_adjustment)*/
 
 
+typedef struct a_constexpr_ptr_to_mem_data {
+  a_field_ptr
+		field;
+			/* Field referred to by the pointer-to-member. */
+} a_constexpr_ptr_to_mem_data;
+
 
 /*
 Macro defining the largest allowed size of a type in the interpreter.
@@ -1521,9 +1527,7 @@ redo:
       if (ptr_to_mem_is_to_function(tp)) {
         result = sizeof(a_constexpr_ptr_to_mem_function);
       } else {
-        /* Pointer-to-data-member objects are represented as an "offset+1"
-           value. */
-        result = sizeof(a_byte_count);
+        result = sizeof(a_constexpr_ptr_to_mem_data);
       }  /* if */
       break;
     case tk_nullptr:
@@ -1742,8 +1746,8 @@ Output the contents of the interpreted object of type tp stored at addr.
           db_indent(indent);
           (void)fprintf(f_debug, "field ");
           db_name(&fp->source_corresp);
-          (void)fprintf(f_debug, "= \n");
           get_mapped_byte_count(&persistent_map, fp, offset);
+          (void)fprintf(f_debug, " (offset %u)= \n", offset);
           db_object(addr+offset, fp->type);
         }  /* for */
         /* Output the base class values. */
@@ -1752,12 +1756,13 @@ Output the contents of the interpreted object of type tp stored at addr.
             db_indent(indent);
             (void)fprintf(f_debug, "base ");
             db_type_name(bcp->type);
-            (void)fprintf(f_debug, "= \n");
             get_mapped_byte_count(&persistent_map, bcp, offset);
+            (void)fprintf(f_debug, " (offset %u)= \n", offset);
             db_object(addr+offset, bcp->type);
           }  /* if */
         }  /* for */
         indent -= 2;
+        db_indent(indent);
         (void)fprintf(f_debug, "}\n");
       }
       break;
@@ -2130,6 +2135,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           break;
       }  /* switch */
       break;
+    case ck_ptr_to_member:
+      if (con->variant.ptr_to_member.is_function_ptr) {
+        /* PMF NYI FIXME */
+        unexpected_condition();
+      } else {
+        a_field_ptr  field = con->variant.ptr_to_member.variant.field;
+        ((a_constexpr_ptr_to_mem_data*)value)->field = field;
+      }  /* if */
+      break;
     case ck_dynamic_init:
       {
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
@@ -2167,11 +2181,32 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
-          a_field_ptr     fp = tp->variant.class_struct_union.field_list;
-          a_constant_ptr  elem_con;
+          a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+          a_base_class_ptr  bcp = base_classes_of(tp);
+          a_constant_ptr    elem_con;
           elem_con = con->variant.aggregate.first_constant;
+          if (bcp != NULL &&
+              elem_con->constant_for_base_class_from_constexpr_folding) {
+            for (;;) {
+              a_byte_count  offset;
+              while (!bcp->direct) {
+                bcp = bcp->next;
+              }  /* while */
+              get_mapped_byte_count(&persistent_map, bcp, offset);
+              if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+                result = FALSE;
+                break;
+              }  /* if */
+              bcp = bcp->next;
+              elem_con = elem_con->next;
+              if (bcp == NULL ||
+                  !elem_con->constant_for_base_class_from_constexpr_folding) {
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
           for (;;) {
-            a_byte_count    offset;
+            a_byte_count  offset;
             fp = next_initializable_field(fp);
             if (fp == NULL) {
               /* All fields are initialized: We're done. */
@@ -5318,8 +5353,40 @@ type.  This includes checking the value of ovfl set by the operation.
               break;
             case eok_pm_field:
             case eok_pm_points_to_field:
-              /* FIXME: NYI. */
-              unexpected_condition();
+              { /* Accessing a field through a pointer-to-member is almost
+                  identical to accessing it directly (see above), except for
+                  the possibility of a null pointer-to-member. */
+                a_constexpr_address  result_addr;
+                a_field_ptr          field;
+                a_byte_count         offset;
+                result_addr = *(a_constexpr_address*)opnd1_value;
+                field = ((a_constexpr_ptr_to_mem_data*)opnd2_value)->field;
+                if (field == NULL) {
+                  result = FALSE;
+                  info_with_pos(ec_constexpr_null_ptr_to_member_data,
+                                &expr->position, ips);
+                } else if (opnd1_type->kind == (a_type_kind)tk_union &&
+                           !is_runtime_data_address(&result_addr) &&
+                           !add_to_variant_path(&result_addr, field)) {
+                  /* We should not return from the failure of adding a variant
+                     path entry. */
+                  unexpected_condition();
+                } else {
+                  get_mapped_byte_count(&persistent_map, field, offset);
+                  result_addr.address += offset;
+                  result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                  if (field->is_bit_field) {
+                    if (field->bit_field_is_signed) {
+                      result_addr.flags |= (CA_BIT_FIELD |
+                                            CA_SIGNED_BIT_FIELD);
+                    } else {
+                      result_addr.flags |= CA_BIT_FIELD;
+                    }  /* if */
+                    result_addr.length = field->bit_size;
+                  }  /* if */
+                  set_result_val_from_operand_address(&result_addr);
+                }  /* if */
+              }
               break;
             case eok_dot_static:
             case eok_points_to_static:

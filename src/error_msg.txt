@@ -2788,6 +2788,7 @@ ec_constexpr_negative_shift;;"cannot perform a negative shift"
 ec_constexpr_shift_excess;;"shift amount (%d) too large"
 ec_constexpr_integer_overflow;;"value exceeds range of %t"
 ec_constexpr_fp_error;;"floating-point error"
+ec_constexpr_null_ptr_to_member_data;;"attempt to dereference a null pointer-to-member (data member)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
