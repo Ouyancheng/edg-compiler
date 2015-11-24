@@ -4674,7 +4674,6 @@ type.  This includes checking the value of ovfl set by the operation.
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
-                    *(a_constexpr_address *)result_storage = *dst;
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4689,6 +4688,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* FIXME: Other type kinds NYI. */
                     unexpected_condition();
                   }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
               break;
@@ -4729,7 +4729,6 @@ type.  This includes checking the value of ovfl set by the operation.
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
-                    *(a_constexpr_address *)result_storage = *dst;
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4744,6 +4743,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* FIXME: Other type kinds NYI. */
                     unexpected_condition();
                   }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
               break;
@@ -4784,7 +4784,6 @@ type.  This includes checking the value of ovfl set by the operation.
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
-                    *(a_constexpr_address *)result_storage = *dst;
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4795,11 +4794,11 @@ type.  This includes checking the value of ovfl set by the operation.
                       result = FALSE;
                       /* FIXME: record a diagnostic. */
                     }  /* if */
-
                   } else {
                     /* FIXME: Other type kinds NYI. */
                     unexpected_condition();
                   }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
               break;
@@ -4840,7 +4839,6 @@ type.  This includes checking the value of ovfl set by the operation.
                     if (!result) {
                       /* FIXME: record a diagnostic. */
                     }  /* if */
-                    *(a_constexpr_address *)result_storage = *dst;
                   } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                     an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -4855,6 +4853,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* FIXME: Other type kinds NYI. */
                     unexpected_condition();
                   }  /* if */
+                  *(a_constexpr_address *)result_storage = *dst;
                 }  /* if */
               }
               break;
