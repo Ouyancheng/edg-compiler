@@ -3581,7 +3581,7 @@ position after the end of the function-name keyword.
 {
   a_boolean result = FALSE;
 
-  check_assertion(microsoft_mode);
+  check_assertion(ms_extensions);
   /* MSVC++ 7.0 and 7.1 do this special pasting. */
   if (microsoft_version >= 1300 &&
       prev_len >= 1 && prev_text[prev_len-1] == 'L') {
@@ -3772,7 +3772,7 @@ hence its name should not be changed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { a_const_char *post_end;
             /* coverity[var_deref_model] */
-            if (microsoft_mode && prev_section_is_paste &&
+            if (ms_extensions && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
                                                  prev_text,
                                                  prev_len,
@@ -6141,7 +6141,7 @@ end_arg_expansion:;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             { a_const_char *post_end;
-              if (microsoft_mode && prev_section_is_paste &&
+              if (ms_extensions && prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
                                                    (sizeof_t)(src_loc-
@@ -7798,7 +7798,7 @@ Scan and process a #define directive.
             curr_cmd_line_or_predef_macro_def == NULL) {
           /* Even benign redefinitions of predefined symbols from the
              program text are diagnosed. */
-          severity = microsoft_mode ? es_warning : es_discretionary_error;
+          severity = ms_extensions ? es_warning : es_discretionary_error;
           code = ec_cannot_redef_predef_macro;
         } else {
           /* No diagnostics for other redefinitions (including command-line
@@ -8915,7 +8915,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
                                &locator)) {
         err = TRUE;
         /* The Microsoft compiler ignores invalid definitions. */
-        if (microsoft_mode) suppress_error = TRUE;
+        if (ms_extensions) suppress_error = TRUE;
       } else {
         if (assoc_symbol != NULL) {
           if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
@@ -9587,7 +9587,7 @@ command line -D options.
     a_const_char *cpp11_date = "201103L";
     a_const_char *gnu_cpp14_date = "201300L";
     a_const_char *cpp14_date = "201402L";
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (microsoft_version < 1310) {
         val = "1";
       } else {
@@ -9819,7 +9819,7 @@ command line -D options.
   }
 #endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
     enter_predef_num_macro(microsoft_version, "_MSC_VER");
@@ -9992,7 +9992,7 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* __pragma is like the C99-style _Pragma operator except the argument is a
        series of tokens, not a string literal.  Like _Pragma, it receives
        special treatment during replacement. */
@@ -10001,7 +10001,7 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  if (microsoft_mode || gnu_mode) {
+  if (ms_extensions || gnu_mode) {
     counter_macro_symbol = enter_predef_macro(
                                             (char *)NULL, "__COUNTER__",
                                             /*cannot_be_redefined=*/TRUE,

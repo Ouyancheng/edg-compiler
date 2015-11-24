@@ -424,7 +424,7 @@ end of the directive.
      previous error (or a warning in Microsoft mode). */
   if (curr_token != tok_newline) {
     if (!some_error_in_curr_directive) {
-      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+      pos_diagnostic(ms_extensions ? es_warning : es_discretionary_error,
                      ec_extra_text_in_pp_directive, &pos_curr_token);
     }  /* if */
     flush_to_newline();

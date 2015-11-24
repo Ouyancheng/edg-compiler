@@ -3349,7 +3349,7 @@ setting is used, and to set various unmentioned settings as needed.
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
   if (!option_kind_used[(int)optk_variadic_templates] && !gpp_mode &&
-      !microsoft_mode && !sun_mode) {
+      !ms_extensions && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
   if (cpp11_mode) {
@@ -3362,7 +3362,7 @@ setting is used, and to set various unmentioned settings as needed.
     /* Set default C++11 extensions. */
     check_and_set_default_cpp11_extensions();
   }  /* if */
-  if (lambdas_enabled && !microsoft_mode) {
+  if (lambdas_enabled && !ms_extensions) {
     /* Originally, the C++11 standard did not permit lambda expressions with
        default arguments.  The resolution for Core issue 974 changed that.
        Enable the feature in all modes that accept lambdas, except certain
@@ -4585,6 +4585,8 @@ command line switches.
     C++17               std_version >= 201701 (?)        --c++17
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
+
+FIXME: add something here.
 
 The major C dialect (K&R, ANSI, or C++) is determined by a command line option
 (if any) that selects a major dialect, either implicitly (e.g., --g++ or
@@ -9021,7 +9023,14 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
         }  /* if */
         opt_value = TRUE;
-        goto enable_microsoft_mode;
+        if (!option_kind_used[(int)optk_microsoft_extensions] &&
+            !option_kind_used[(int)optk_microsoft_compatibility]) {
+          /* By itself, specifying --microsoft_version implies enabling
+             Microsoft emulation mode, but not if using --ms_extensions or
+             --ms_compatibility. */
+          goto enable_microsoft_mode;
+        }  /* if */
+        break;
       case optk_microsoft_build_number:
         /* The build number of the Microsoft compiler being emulated. */
         microsoft_build_number = scan_opt_arg_number(opt_arg);
@@ -10101,21 +10110,19 @@ enable_microsoft_mode:
     /* FIXME: Reminder to do documentation for new options. */
     /* FIXME: Changes entry. */
     if (ms_extensions) {
-      ms_declspec_attributes_enabled = TRUE;
-      allow_nonstandard_anonymous_unions = TRUE;
-      explicit_enum_base_enabled = TRUE;
-      allow_in_class_specializations = TRUE;
-      flexible_array_members_allowed = TRUE;
-      nullptr_enabled = TRUE;
-      if (C_mode()) {
-        designators_allowed = TRUE;
-        c99_bool_is_keyword = TRUE;
-        allow_decl_after_stmt = TRUE;
+      if (!option_kind_used[(int)optk_microsoft_bugs]) {
+        microsoft_bugs = TRUE;
       }  /* if */
       if (!option_kind_used[(int)optk_microsoft_version]) {
         /* If no version was explicitly specified, use 1700 (to match
            Clang). */
-        microsoft_version = 1700;
+        microsoft_version = 1900; /* FIXME: doc says 1700. */
+      }  /* if */
+      set_microsoft_mode_flags();
+      if (!C_mode()) {
+        /* Reset flags that were set in check_and_set_default_cpp11_extensions
+           as appropriate. */
+        pragma_operator_allowed = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10125,7 +10132,7 @@ enable_microsoft_mode:
        (except in C mode). */
     char16_t_and_char32_t_are_keywords = TRUE;
   }  /* if */
-  if (nonclass_prototype_instantiations && !microsoft_mode &&
+  if (nonclass_prototype_instantiations && !ms_extensions &&
       !option_kind_used[(int)optk_implicit_typename]) {
     /* When doing nonclass prototype instantiations, disable implicit typename
        unless it was explicitly enabled.  In Microsoft mode implicit typename
@@ -10567,7 +10574,7 @@ enable_microsoft_mode:
   set_predef_macro_mode(pmm_clang_c, clang_mode && C_mode());
   set_predef_macro_mode(pmm_clang_cpp, clang_mode && !C_mode());
   set_predef_macro_mode(pmm_gnu_or_clang, gnu_mode || clang_mode);
-  set_predef_macro_mode(pmm_microsoft, microsoft_mode);
+  set_predef_macro_mode(pmm_microsoft, ms_extensions);
   set_predef_macro_mode(pmm_cpp, !C_mode());
   set_predef_macro_mode(pmm_strict, strict_ansi_mode);
   set_predef_macro_mode(pmm_all, TRUE);

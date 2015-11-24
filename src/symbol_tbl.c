@@ -5136,7 +5136,7 @@ symbol must be added to the inactive list.
             sym_ptr->kind != (a_symbol_kind)sk_undefined) {
           an_error_severity severity;
           if (!suppress_error &&
-              !microsoft_mode &&
+              !ms_extensions &&
               !is_injected_class_symbol(sym_ptr) &&
               is_redeclared_template_param(sym_ptr, &severity)) {
             if (severity == es_error) {
@@ -9442,8 +9442,8 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
       } else {
         /* Issue a diagnostic of a severity that depends on the context. */
         an_error_severity severity;
-        severity = (strict_ansi_mode | gpp_mode) ? es_warning
-                                                 : es_remark;
+        severity = (strict_ansi_mode || gpp_mode) ? es_warning
+                                                  : es_remark;
         pos_diagnostic(severity, ec_lit_suffix_no_underscore, pos);
       }  /* if */
     }  /* if */
@@ -9999,14 +9999,14 @@ compiler-generated flag should be cleared.
      predeclared.  Instead, alias symbols for the array versions are sometimes
      implicitly created (see below) when the non-array versions are
      predeclared. */
-  check_assertion(!(microsoft_mode &&
+  check_assertion(!(ms_extensions &&
                     (opname == (an_opname_kind)onk_array_new ||
                      opname == (an_opname_kind)onk_array_delete)));
   sym = make_predeclared_function_symbol(
                  &locator,
                  make_routine_type(return_type, param1_type, param2_type,
                                    (a_type_ptr)NULL, (a_type_ptr)NULL));
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (microsoft_version >= 1400 && !sized_version) {
       /* More recent Microsoft compilers treat the implicit declaration of
          array new and array delete as synonyms for the corresponding non-
@@ -10054,7 +10054,7 @@ C compatibility mode).
   a_type_ptr                     return_type, param1_type;
 
   db_enter(5, "make_predeclared_alloca_symbol");
-  check_assertion(microsoft_mode && C_mode());
+  check_assertion(ms_extensions && C_mode());
   /* Create a locator for the symbol that is to be created.  This will also
      create the symbol header. */
   clear_locator(&locator, &null_source_position);
@@ -10098,7 +10098,7 @@ scope, not in namespace std.
 */
 {
   db_enter(5, "make_predeclared_size_t_symbol");
-  check_assertion(microsoft_mode);
+  check_assertion(ms_extensions);
   predeclared_size_t_symbol = make_predeclared_typedef(
                                 integer_type(targ_size_t_int_kind), "size_t");
   /* Setting the defined flag to FALSE indicates there is (as yet) no explicit

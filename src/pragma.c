@@ -2186,7 +2186,7 @@ Initialize the pragma description table.
                  es_error);
 #endif /* DEBUG */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  if (microsoft_mode) {
+  if (ms_extensions) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_if_exists,
                  fn_for_function(if_exists_pragma),
@@ -2203,7 +2203,7 @@ Initialize the pragma description table.
                  es_error);
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  if (microsoft_mode || clang_mode || (gnu_mode && gnu_version >= 40403)) {
+  if (ms_extensions || clang_mode || (gnu_mode && gnu_version >= 40403)) {
     (void)add_preproc_immediate_pragma_kind_description
 		((a_pragma_kind)pk_push_macro,
                  fn_for_function(push_macro_pragma),
@@ -2224,7 +2224,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_start_map_region,
                  fn_for_function(microsoft_start_map_region_pragma),

@@ -14601,7 +14601,7 @@ TRUE.  If the member is a bit field, issue an error.
   if (!any_cfront_mode() && check_protected_access
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The Microsoft compiler does not do this check. */
-      && !microsoft_mode
+      && !ms_extensions
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       && expr_access_checking_should_be_done()) {
     a_boolean error_detected = FALSE;
@@ -20662,7 +20662,7 @@ transformations.
          an accommodation to existing practice). */
       /* In Microsoft mode, allow an explicit call of a constructor, e.g.,
          "p->X::X()". */
-      a_boolean allow_ctor = (will_call && microsoft_mode);
+      a_boolean allow_ctor = (will_call && ms_extensions);
       conv_function_designator_to_ptr_to_function(operand,
                                                   (a_source_position *)NULL,
                                                   allow_ctor,
@@ -20720,7 +20720,7 @@ C mode.
   } else if (identical_types(type_cast_to, type_before_cast)) {
     /* Same type, operand stays an lvalue. */
     is_still_an_lvalue = TRUE;
-  } else if (!microsoft_mode &&
+  } else if (!ms_extensions &&
              (is_floating_type(type_before_cast) ||
               is_floating_type(type_cast_to))) {
     /* The source or destination types are floating types, so there's
@@ -20736,7 +20736,7 @@ C mode.
        and alignment. */
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
+  } else if (ms_extensions &&
              (is_integral_or_enum_type(type_before_cast) ||
               is_pointer_type(type_before_cast)) &&
              is_integral_or_enum_type(type_cast_to)) {

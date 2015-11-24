@@ -6952,7 +6952,7 @@ and return TRUE if the tiebreakers should be suppressed for this case.
 {
   a_boolean suppress = FALSE;
 
-  check_assertion(microsoft_mode);
+  check_assertion(ms_extensions);
   /* The quirks come up when one function is a template and the other
       is not. */
   if (microsoft_version < 1600 &&

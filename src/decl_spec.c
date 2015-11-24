@@ -5730,7 +5730,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
        "enum struct" and "enum class" is scanned as a single token with
        embedded white space. */
     check_assertion(cli_or_cx_enabled ||
-                    (microsoft_mode && microsoft_version >= 1700));
+                    (ms_extensions && microsoft_version >= 1700));
     is_scoped_enum = TRUE;
   } else {
     check_assertion(curr_token == tok_enum);
@@ -6315,7 +6315,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                          (curr_token == tok_semicolon && !strict_ansi_mode)),
                         /*ignore_gnu_attributes=*/!is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (new_type_created && microsoft_mode && !is_scoped_enum &&
+  if (new_type_created && ms_extensions && !is_scoped_enum &&
       explicit_base_kind == (an_integer_kind)ik_none) {
     /* In Microsoft compatibility mode (unscoped) enum types can be declared
        without being defined and can also be used.  The use requires that
@@ -6634,7 +6634,7 @@ constructor).
   a_boolean          type_mismatch = FALSE;
 
   db_enter(4, "is_constructor_decl");
-  if (microsoft_mode &&
+  if (ms_extensions &&
       (((curr_token == tok_struct || curr_token == tok_class
          or_is_cli_class_type_keyword(curr_token)) &&
         (class_type->kind == (a_type_kind)tk_struct ||
@@ -6668,7 +6668,7 @@ constructor).
                  ctor_type_sym->variant.type.is_injected_class_name &&
                  same_entities(ctor_type_sym->variant.type.ptr, class_type)) {
         /* The type specified is the injected class symbol.  This is okay. */
-      } else if (microsoft_mode && fund_ctor_type_sym != NULL &&
+      } else if (ms_extensions && fund_ctor_type_sym != NULL &&
                  ctor_type_sym != fund_ctor_type_sym &&
                  fund_ctor_type_sym->variant.type.is_injected_class_name &&
                  is_template_class_and_not_specific_def_symbol(tag_sym)) {
@@ -6688,7 +6688,7 @@ constructor).
            been done. */
         type_mismatch = TRUE;
       }  /* if */
-    } else if (microsoft_mode && locator_for_curr_id.is_qualified_name &&
+    } else if (ms_extensions && locator_for_curr_id.is_qualified_name &&
                locator_for_curr_id.is_class_member) {
       a_type_ptr  qualifier = qualifier_class_type(locator_for_curr_id);
       if (!same_entities(qualifier, class_type) &&
@@ -6701,12 +6701,12 @@ constructor).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (name_match || microsoft_mode) {
+  if (name_match || ms_extensions) {
     /* Change "A::A" into "A" if we are processing inside the definition of
        class "A".  This is necessary for curr_token_type_symbol to handle
        this case correctly. */
     (void)simplify_curr_class_qualified_name();
-    if ((!locator_for_curr_id.is_qualified_name || microsoft_mode) &&
+    if ((!locator_for_curr_id.is_qualified_name || ms_extensions) &&
         !locator_for_curr_id.is_conversion_name &&
         !locator_for_curr_id.is_operator_name) {
       if (!cache_in_use) {
@@ -8438,9 +8438,9 @@ which is processed after any other specifiers have also been consumed.
     } else {
       /* "static" and "extern" aren't allowed on parameter declarations,
          but Microsoft compilers ignore them with a warning. */
-      pos_diagnostic(microsoft_mode ? es_warning : es_error,
+      pos_diagnostic(ms_extensions ? es_warning : es_error,
                      ec_bad_param_storage_class, &pos_first_token);
-      *err = !microsoft_mode;
+      *err = !ms_extensions;
     }  /* if */
   } else if (!C_mode() && (*decl_specifiers_seen & DS_INLINE) &&
              first_token != tok_static &&
@@ -8498,7 +8498,7 @@ which is processed after any other specifiers have also been consumed.
                               /*secondary_decls=*/TRUE);
     }  /* if */
   } else if ((*decl_specifiers_seen & DS_FRIEND) &&
-             !microsoft_mode && !sun_mode) {
+             !ms_extensions && !sun_mode) {
     /* Note: in Microsoft and Sun modes a friend function can
        be declared "static" or "extern".  The check is done later. */
     pos_error(ec_storage_class_in_friend_decl, &pos_first_token);
@@ -8509,7 +8509,7 @@ which is processed after any other specifiers have also been consumed.
                 ec_typedef_not_allowed : ec_storage_class_not_allowed,
               &pos_first_token);
     *err = TRUE;
-  } else if (is_member_decl && !microsoft_mode &&
+  } else if (is_member_decl && !ms_extensions &&
              !(*decl_specifiers_seen & DS_FRIEND) &&
              first_token != tok_static && first_token != tok_typedef) {
     /* A declaration like "extern int i;" in a C++ class definition. */
@@ -8518,7 +8518,7 @@ which is processed after any other specifiers have also been consumed.
     *err = TRUE;
   } else if ((input_flags & DSI_IS_LINKAGE_SPEC_DECL) &&
              first_token != tok_typedef &&
-             !microsoft_mode && !gpp_mode && !sun_mode) {
+             !ms_extensions && !gpp_mode && !sun_mode) {
     /* We disallow
          extern "C" static void f();
        in our default and strict modes, but Microsoft, GNU, and Sun all allow
@@ -10067,7 +10067,7 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && !C_mode() && is_member_decl && !err &&
+            if (ms_extensions && !C_mode() && is_member_decl && !err &&
                 !(decl_specifiers_seen & DS_FRIEND)) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
@@ -10202,7 +10202,7 @@ process_enum_specifier:
             /* In Microsoft mode a NULL type is returned for a nonstandard
                typename specifier in which the typename keyword is followed by
                something other than a qualified name. */
-            check_assertion(microsoft_mode);
+            check_assertion(ms_extensions);
             if (is_template_context()) {
               /* The Microsoft compiler ignores certain typename specifiers in
                  instantiations, so forget that we have seen a specifier. */
@@ -10952,7 +10952,7 @@ exit_loop:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   state->qualifiers = qualifiers;
-  if (!C_mode() && (microsoft_mode || sun_mode) &&
+  if (!C_mode() && (ms_extensions || sun_mode) &&
       (decl_specifiers_seen & DS_STORAGE_CLASS)) {
     /* Certain Microsoft-mode diagnostics involving storage class specifiers
        are put off until all the specifiers have been collected.  The same is
@@ -11072,7 +11072,7 @@ exit_loop:
     } else if (*type_ptr == NULL && basic_type == bt_struct_union) {
       /* A friend declaration of the form "friend class X;" where "X" is a
          class template. */
-      check_assertion((microsoft_mode || sun_mode) &&
+      check_assertion((ms_extensions || sun_mode) &&
                       (decl_specifiers_seen & DS_FRIEND));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if VLA_ALLOWED
@@ -11189,7 +11189,7 @@ See decl_specifiers(...) for the meaning of the parameters.
   a_type_qualifier_set    saved_qualifiers = state->qualifiers;
   a_source_position       pos;
 
-  check_assertion(microsoft_mode && !C_mode());
+  check_assertion(ms_extensions && !C_mode());
   pos = pos_curr_token;
   input_flags &= ~(DSI_INLINE_ALLOWED | DSI_ASM_ALLOWED |
                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);

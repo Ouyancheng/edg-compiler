@@ -4733,9 +4733,9 @@ bypass_normal_search:
         if ((options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
             ((options & IDL_IS_DECLARATOR) == 0 ||
              ((options & IDL_FRIEND_LOOKUP) != 0 &&
-              (gpp_mode || microsoft_mode))) &&
+              (gpp_mode || ms_extensions))) &&
             (cssp->any_nonreal_base_classes ||
-             (gpp_mode || microsoft_mode)) &&
+             (gpp_mode || ms_extensions)) &&
               is_prototype_instantiation_lookup) {
           /* If a nonreal member needs to be created, create it as a member of
              the class in which the lookup is being done.  See the comment

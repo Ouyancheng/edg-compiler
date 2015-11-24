@@ -7102,7 +7102,7 @@ such classes.
   if (!open_constructed_arg_list && dependent_arg_list) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && instantiate_nonreal &&
+    if (ms_extensions && instantiate_nonreal &&
         can_be_ms_instantiated_nonreal_class(primary_tssp)) {
       /* In Microsoft mode, certain nonreal classes are instantiated
          like normal classes. */
@@ -8070,7 +8070,7 @@ exist.
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !instantiate_nonreal && !is_alias_template &&
+  if (ms_extensions && !instantiate_nonreal && !is_alias_template &&
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
       is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
@@ -13264,7 +13264,7 @@ information.
   if (gpp_mode) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
-  if (microsoft_mode) {
+  if (ms_extensions) {
     dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
   }  /* if */
   if (is_initial_decl) {
@@ -16785,7 +16785,7 @@ initially used when processing the declaration of a partial specialization.
       record_instantiation(prototype_sym, tssp);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       a_type_ptr  class_type = 
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
@@ -17009,7 +17009,7 @@ subordinate templates.
       an_error_severity			severity = es_error;
       /* The GNU and Microsoft compilers do not diagnose these infractions.
          Reduce the diagnostic to a warning in GNU and Microsoft modes. */
-      if (microsoft_mode || gpp_mode) severity = es_warning;
+      if (ms_extensions || gpp_mode) severity = es_warning;
       /* Get the class template symbol that was used to generate this
          instance. */
       instance_ct_sym = sym->
@@ -17081,14 +17081,14 @@ definition.  Return TRUE if an error was detected.
          using-declaration). */
     } else if (sym->is_error) {
       /* Some other error occurred. */
-    } else if ((microsoft_mode || gpp_mode) &&
+    } else if ((ms_extensions || gpp_mode) &&
                decl_state->is_partial_specialization && is_definition) {
       /* Microsoft allows a partial specialization in an invalid scope via
          a using-directive.  g++ allows it as well in permissive mode.
          Issue a warning in Microsoft mode and a discretionary error in
          g++ mode. */
-      an_error_severity	severity = microsoft_mode ? es_warning
-                                                  : es_discretionary_error;
+      an_error_severity	severity = ms_extensions ? es_warning
+                                                 : es_discretionary_error;
       pos_sy_diagnostic(severity, ec_bad_scope_for_partial_spec,
                         &locator->source_position, sym);
     } else {
@@ -17209,8 +17209,8 @@ of which it is a member.
     if (decl_state->is_partial_specialization) {
       /* Microsoft allows a partial specialization in an invalid scope via
          a using-directive. */
-      an_error_severity	severity = microsoft_mode ? es_warning
-                                                  : es_error;
+      an_error_severity	severity = ms_extensions ? es_warning
+                                                 : es_error;
       pos_sy_diagnostic(severity, ec_bad_scope_for_partial_spec,
                         &locator->source_position, sym);
       result = severity != es_warning;
@@ -17224,7 +17224,7 @@ of which it is a member.
     /* The symbol is something like X::Y, but the locator has a parent
        class or namespace of Z.  This can occur if X::Y is an inherited
        member or one made visible by a using-directive. */
-      if (microsoft_mode || (gpp_mode && !clang_mode)) {
+      if (ms_extensions || (gpp_mode && !clang_mode)) {
         /* MSVC and GCC accept this (but not Clang). */
       } else {
         pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
@@ -18169,7 +18169,7 @@ declaration of a partial specialization declared outside of its class.
   (void)get_token();
   attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Scan any Microsoft extended decl modifiers that may be present
        such as __single_inheritance.  (This may include additional Microsoft
        __declspec attributes.) */
@@ -18406,7 +18406,7 @@ friend_template_checks_done:
         err = TRUE;
       } else if (!sym->is_class_member &&
                  ssep->assoc_namespace != sym_parent_namespace_or_null(sym) &&
-                 (!microsoft_mode && !gpp_mode &&
+                 (!ms_extensions && !gpp_mode &&
                   !namespace_is_enclosed_by_scope(sym, ssep))) {
         pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
@@ -18875,7 +18875,7 @@ friend_template_checks_done:
                           decl_state->is_partial_specialization);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     a_decl_parse_state *dps = &decl_state->decl_parse;
     if (dps->ms_attributes != NULL) {
       /* Apply Microsoft bracketed attributes. */
@@ -18886,7 +18886,7 @@ friend_template_checks_done:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
@@ -19825,7 +19825,7 @@ parameter entry for the parameter.
 			     /*is_friend_decl=*/FALSE);
     if (ignore_default) {
       /* Ignore the default for a parameter pack. */
-    } else if (microsoft_mode && !nonclass_prototype_instantiations &&
+    } else if (ms_extensions && !nonclass_prototype_instantiations &&
                !is_variadic_template_context()) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done.  For variadic contexts, we need to scan
@@ -20008,7 +20008,7 @@ depends on a template parameter.
          indicates that the default argument contains a template parameter. */
      template_param->def_arg_involves_template_param = TRUE;
     }  /* if */
-    if ((!const_type_involves_template_param && !microsoft_mode) ||
+    if ((!const_type_involves_template_param && !ms_extensions) ||
         decl_state->is_template_template_param ||
         nonclass_prototype_instantiations) {
       /* Indicate that a prototype instantiation of this default argument
@@ -23596,7 +23596,7 @@ any non-empty template parameter lists that were scanned.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (dps->ms_attributes != NULL) {
       dispose_of_unapplied_attributes(&dps->ms_attributes,
                                       ec_ms_attr_not_allowed);
@@ -30152,7 +30152,7 @@ emitted in this translation unit.
     /* This definition indicated that it should not be emitted as standalone
        code (e.g., a C99 "inline definition"). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
+  } else if (ms_extensions &&
              (rout_ptr->explicit_extern_inline ||
               rout_ptr->direct_linkage_specifier_on_nondef_decl ||
               (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0)) {
@@ -30956,7 +30956,7 @@ dllimport or dllexport attribute to a template instance.
     } else {
       a_boolean	ignore_directive = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && !is_pragma &&
+      if (ms_extensions && !is_pragma &&
           pragma_kind == (a_pragma_kind)pk_instantiate) {
         /* Members of a dllimport class are never explicitly instantiated. */
         a_class_type_supplement_ptr  ctsp =
@@ -31273,7 +31273,7 @@ instantiation.
   }  /* if */
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
-  if (microsoft_mode && (state.decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+  if (ms_extensions && (state.decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     /* Microsoft compilers treat __declspec(dllimport) in an explicit
        instantiation directive as if the directive was "extern template";
        i.e., a "do not instantiate" directive. */
@@ -31462,7 +31462,7 @@ instantiation.
       if (new_sym != NULL) {
         state.sym = new_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
+        if (ms_extensions) {
           if (new_sym->kind == (a_symbol_kind)sk_member_function &&
               new_sym->variant.routine.ptr->template_arg_list == NULL &&
               (state.decl_modifiers.flags & DM_DLLFLAGS) == 0) {

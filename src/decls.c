@@ -4934,7 +4934,7 @@ attribute application mechanism.)
       variable->decl_modifiers |= DM_THREAD;
     }  /* if */
     flags &= (a_decl_modifier)~DM_THREAD;
-  } else if (!microsoft_mode && !dps->first_decl &&
+  } else if (!ms_extensions && !dps->first_decl &&
              (variable->decl_modifiers & DM_THREAD) != 0) {
     /* Issue an error when a variable previously declared as thread-local does
        not repeat the __thread specifier.  (Microsoft compilers do not
@@ -8124,7 +8124,7 @@ for use in generating cross-reference output describing this declaration.
   idlb.is_friend_decl = ((srk_flags & SRK_FRIEND) != 0);
   is_friend_decl = idlb.is_friend_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (locator->is_template_id && locator->specific_symbol == NULL) {
       /* If this is a template-id for which the symbol has not yet been
          found, look it up now. */
@@ -8436,7 +8436,7 @@ for use in generating cross-reference output describing this declaration.
           /* Error -- redeclaration requires type compatibility. */
           routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        } else if (microsoft_mode &&
+        } else if (ms_extensions &&
                    !calling_conventions_are_compatible(routine_ptr->type,
                                                        type_ptr)) {
           /* Error -- calling conventions are not compatible.  (The GNU mode
@@ -9392,7 +9392,7 @@ skip_overloading:;
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   attach_decl_attributes(dps, is_function_def);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     if (locator->is_qualified_name) {
       /* Microsoft compilers ignore dllexport/dllimport on qualified
          (re)declarations.  Issue a warning if dllexport or dllimport was
@@ -11708,7 +11708,7 @@ Note that this routine determines whether the "implicit int" rule applies.
     if (!is_function) {
       severity = es_warning;
     }  /* if */
-  } else if (C_mode() && (!c99_mode || microsoft_mode || gcc_mode)) {
+  } else if (C_mode() && (!c99_mode || ms_extensions || gcc_mode)) {
     /* In C89 modes the "implicit int" rule applies in most cases, but it's
        nonstandard for declarations that aren't function definitions and
        have no decl-specifiers at all (e.g., "f();").  The standard cases
@@ -11739,14 +11739,14 @@ Note that this routine determines whether the "implicit int" rule applies.
       if (!any_decl_specifiers) {
         /* Microsoft and GNU compilers are as permissive as pcc in this
            case. */
-        severity = (microsoft_mode || gcc_mode) ? es_warning
-                                                : es_discretionary_error;
+        severity = (ms_extensions || gcc_mode) ? es_warning
+                                               : es_discretionary_error;
       } else {
         severity = es_warning;
       }  /* if */
     }  /* if */
   } else if (!C_mode() && (any_cfront_mode() ||
-                           (microsoft_mode && microsoft_version < 1400)) &&
+                           (ms_extensions && microsoft_version < 1400)) &&
              !auto_type_specifier_enabled) {
     /* Cfront compilers and early Microsoft C++ compilers are fairly
        permissive and allow "implicit int" in most cases.  However, if "auto"
@@ -12245,7 +12245,7 @@ style casts where the type involves more than one token -- e.g.,
   a_decl_pos_block        decl_pos_block;
   a_decl_parse_state      state;
 
-  check_assertion(microsoft_mode || gpp_mode);
+  check_assertion(ms_extensions || gpp_mode);
   init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR, &state,
@@ -15591,7 +15591,7 @@ declaration being parsed.
 */
 {
   if (C_dialect == C_dialect_cplusplus &&
-      !microsoft_mode && (state->dso_flags & DSO_DEFINES_SOMETHING) != 0) {
+      !ms_extensions && (state->dso_flags & DSO_DEFINES_SOMETHING) != 0) {
     a_type_ptr  tp = state->declared_type;
     for (;;) {
       tp = skip_typerefs(tp);
@@ -15697,7 +15697,7 @@ routine also works in Microsoft modes that do not have a keyword "default".
       (deleted_functions_enabled || defaulted_special_members_enabled)) {
     /* "=" in a mode when "= delete" and/or "= default" is permitted: Examine
        the next token. */
-    if (microsoft_mode && microsoft_version >= 1400 &&
+    if (ms_extensions && microsoft_version >= 1400 &&
         defaulted_special_members_enabled) {
       /* "default" is not a keyword: Use an explicit token cache to examine
          the spelling of the second token if necessary. */
@@ -15925,7 +15925,7 @@ proceed after the call.
      involved).  Early GNU C++ versions have a similar construct for
      specializations. */
   if (locator->is_class_member && curr_token == tok_semicolon) {
-    if (microsoft_mode) {
+    if (ms_extensions) {
       out_of_class_redecl = TRUE;
     } else if (gpp_mode && gnu_version < 30400) {
       a_type_ptr  pt = qualifier_class_type(*locator);
@@ -17830,7 +17830,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
          declarator (e.g., as an error recovery strategy). */
       dps->is_old_style_param_decl = is_old_style_param_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && !C_mode() && microsoft_version >= 1000 &&
+      if (ms_extensions && !C_mode() && microsoft_version >= 1000 &&
           !is_abstract_or_real_declarator_start() &&
           is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
         /* Microsoft C++ compilers allow decl-specifiers to appear after the

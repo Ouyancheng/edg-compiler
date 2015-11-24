@@ -703,7 +703,7 @@ explicit alignment value was specified, return FALSE.
 #if GNU_EXTENSIONS_ALLOWED
     a_type_ptr  class_type = parent_class_of(field);
     class_type = skip_typerefs(class_type);
-    if (gnu_mode && field->alignment < *alignment &&
+    if (gnu_mode && !ms_extensions && field->alignment < *alignment &&
         !(field->is_packed ||
           class_type->variant.class_struct_union.is_packed)) {
       /* GNU C compilers ignore alignment directives that reduce the
@@ -4782,14 +4782,14 @@ issue a diagnostic if such a reduction is invalid or ignored.
         pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
         alignment = lob->alignment;
       } else if (gnu_mode || sun_mode ||
-                 (microsoft_mode && ap != NULL &&
+                 (ms_extensions && ap != NULL &&
                   !is_immediate_managed_class_type(class_type))) {
         a_boolean  is_packed = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
         is_packed = class_type->variant.class_struct_union.is_packed;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (!is_packed) {
-          pos_warning(gnu_mode ?
+          pos_warning(gnu_mode && !ms_extensions ?
                                ec_alignment_reduction_ignored
                              : ec_alignment_reduction_unconditionally_ignored,
                       ap != NULL ? &ap->position

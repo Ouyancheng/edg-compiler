@@ -1775,7 +1775,7 @@ member declaration (allowed in some Microsoft modes only).
   a_type_ptr           class_type = sym_parent_class(sym);
   a_routine_ptr        rp;
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
-  a_boolean            microsoft_out_of_class_redecl = microsoft_mode &&
+  a_boolean            microsoft_out_of_class_redecl = ms_extensions &&
                                                   locator->is_class_member &&
                                                   curr_token == tok_semicolon;
   a_source_position    orig_pos = null_source_position, saved_pos;
@@ -1880,7 +1880,7 @@ member declaration (allowed in some Microsoft modes only).
            int D::f() { return 0; }  // Ambiguous.
       */
       pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-      check_assertion(microsoft_mode);
+      check_assertion(ms_extensions);
       /* Proceed as if no match had been found at all. */
       sym = NULL;
     }  /* if */
@@ -2021,7 +2021,7 @@ member declaration (allowed in some Microsoft modes only).
       rp->is_constexpr = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (rtsp->calling_convention != (a_calling_convention)cc_default) {
         /* A calling convention was specified on the out-of-class
            definition. */
@@ -2422,7 +2422,7 @@ in-class definitions of member functions.
   check_defaulted_or_deleted_function(dps, func_info, &pos_curr_token);
   force_definition_of_compiler_generated_routine(routine_ptr);
   check_assertion(curr_token == tok_delete || curr_token == tok_default ||
-                  (microsoft_mode && microsoft_version >= 1400 &&
+                  (ms_extensions && microsoft_version >= 1400 &&
                    check_context_sensitive_keyword(tok_default, "default")));
   (void)get_token();
 }  /* scan_defaulted_or_deleted_definition */
@@ -2653,7 +2653,7 @@ member declaration (allowed in Microsoft mode only).
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */
   if (curr_token == tok_semicolon &&
-      (microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
+      (ms_extensions || (gpp_mode && gnu_version < 30400)) &&
       (locator->is_class_member || locator->is_error)) {
     /* There is no definition. */
     check_assertion(!gpp_mode || routine_ptr->is_specialized ||

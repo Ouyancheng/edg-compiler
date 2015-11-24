@@ -11088,7 +11088,7 @@ result in *result (or an error indication in *rcblock).
         /* This is a type-name in parentheses. */
         is_type = TRUE;
       }  /* if */
-    } else if (microsoft_mode) {
+    } else if (ms_extensions) {
       /* Microsoft requires the parentheses even around an expression. */
       expr_pos_diagnostic(es_discretionary_error, ec_exp_lparen,
                           &pos_curr_token);
@@ -14462,7 +14462,7 @@ previously-scanned noexcept expression, and return the result in
                                rcblock);
   expr_stack->in_noexcept_operand_expression = TRUE;
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  if (microsoft_mode || clang_mode) {
+  if (ms_extensions || clang_mode) {
     /* N4431 15.4/15 has:
          The set of potential exceptions of an expression e is empty if e is
          a core constant expression (5.20). [...]
@@ -21160,7 +21160,7 @@ indicates which.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
-                    (microsoft_mode && C_mode())) &&
+                    (ms_extensions && C_mode())) &&
                    !is_bit_field_operand(operand) &&
                    still_an_lvalue(source_type, type_cast_to)) {
           /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
@@ -30195,7 +30195,7 @@ rather than a static variable.
       token != tok_decorated_function_name) {
     /* The current token is not a function-name keyword. */
     is_string = FALSE;
-  } else if (microsoft_mode) {
+  } else if (ms_extensions) {
     /* Microsoft mode keywords are always string literals, except for the
        standard __func__. */
     is_string = (token != tok_func_name);
@@ -30265,9 +30265,9 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
-        if ((microsoft_mode && !C_mode() && curr_token == tok_function_name) ||
+        if ((ms_extensions && !C_mode() && curr_token == tok_function_name) ||
             (cpp11_mode && curr_token == tok_func_name &&
-             !(gpp_mode || clang_mode || microsoft_mode))) {
+             !(gpp_mode || clang_mode || ms_extensions))) {
           /* Microsoft's __FUNCTION__ expands to the fully qualified name of
              the function.  In non-GNU/Clang/Microsoft C++11 mode, we use the
              same expansion for __func__. */
@@ -30338,7 +30338,7 @@ returned is not in the IL and must be copied if needed there.
     case tok_decorated_function_name:
       break;
     case tok_pretty_function_name:
-      if (microsoft_mode) {
+      if (ms_extensions) {
         /* In Microsoft mode, __PRETTY_FUNCTION__ is __FUNCSIG__. */
         name = "__FUNCSIG__";
       }  /* if */
@@ -30432,7 +30432,7 @@ which of the various keywords was used.
   if (is_string) {
     /* The construct is to be treated as a string literal. */
     make_string_constant_operand(&const_for_curr_token, result);
-    if (!microsoft_mode) result->is_simple_string_literal = FALSE;
+    if (!ms_extensions) result->is_simple_string_literal = FALSE;
   } else {
     /* Variable case.  The string literal will be the initializer for the
        static variable. */
@@ -31635,7 +31635,7 @@ handle_identifier:
       { a_boolean is_simple_string = TRUE;
         /* Do concatenations like "abc" __FUNCTION__. */
         if (do_expression_level_string_literal_concatenation()) {
-          if (!microsoft_mode) is_simple_string = FALSE;
+          if (!ms_extensions) is_simple_string = FALSE;
         }  /* if */
         make_string_constant_operand(&const_for_curr_token, &local_result);
         local_result.is_simple_string_literal = is_simple_string;
@@ -32181,7 +32181,7 @@ type_start:
                    type_keyword() != NULL) {
           /* C++/CLI allows things like int::Parse("1"). */
           goto handle_identifier;
-        } else if (microsoft_mode) {
+        } else if (ms_extensions) {
           /* The Microsoft compiler allows things like "unsigned int(x)". */
           cast_type = simple_type_specifier_sequence();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -38295,7 +38295,7 @@ The value of the constant is returned in *constant.
   if ((gcc_mode ||
        (gpp_mode && gnu_version < 40000) ||
        sun_mode ||
-       microsoft_mode) &&
+       ms_extensions) &&
       !constexpr_enabled) {
     /* Sun, GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,

@@ -101,7 +101,7 @@ of the token if digit separators are enabled.
 #endif /* LONG_LONG_ALLOWED */
   if (real_end_pos >= start_of_curr_token) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       /* The Microsoft compiler allows a suffix like "i32" indicating a
          32-bit integer.  "ui32" indicates an unsigned 32-bit integer. */
       /* Look for an "i" or "I" anywhere in the number. */
@@ -180,7 +180,7 @@ of the token if digit separators are enabled.
       }  /* if */
     }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && isuffix_kind != (an_integer_kind)ik_none &&
+    if (ms_extensions && isuffix_kind != (an_integer_kind)ik_none &&
         has_u_suffix) {
       /* The number has a suffix like "ui32".  Adjust the kind to the
          corresponding unsigned integral kind. */
@@ -391,7 +391,7 @@ pcc_kind_established:
   } else if (!ovflo) {
     /* Non-pcc-mode constant checking. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && isuffix_kind != (an_integer_kind)ik_none) {
+    if (ms_extensions && isuffix_kind != (an_integer_kind)ik_none) {
       /* The number has a suffix like "i32".  The kind has already been
          determined. */
       kind = isuffix_kind;
@@ -520,7 +520,7 @@ kind_established:;
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && microsoft_version == 1200 &&
+    if (ms_extensions && microsoft_version == 1200 &&
         isuffix_kind != (an_integer_kind)ik_none) {
       const_for_curr_token.type = microsoft_sized_integer_type(kind);
     } else

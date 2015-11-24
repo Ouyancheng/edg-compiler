@@ -8047,7 +8047,7 @@ of a comment is assumed.  Also tests for "//" in C++ mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_microsoft_mode_slash_slash() \
-  || (microsoft_mode && *(curr_char_loc+1) == '/')
+  || (ms_extensions && *(curr_char_loc+1) == '/')
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_microsoft_mode_slash_slash() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8387,7 +8387,7 @@ white_space_loop:
         /* Advance past the first "/". */
         curr_char_loc++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
+        if (ms_extensions) {
           if (!within_curr_source_line(curr_char_loc)) {
             /* In Microsoft mode, a // comment delimiter can appear in a macro:
                  #define startcomment() /##/
@@ -8990,7 +8990,7 @@ following position.
                            ec_nonstd_long_long, start_of_curr_token);
   }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-  if (microsoft_mode && l_suffix_seen == 0 &&
+  if (ms_extensions && l_suffix_seen == 0 &&
       (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
       isdigit((unsigned char)curr_char_loc[1])) {
     /* The Microsoft compiler allows a suffix like "i32" indicating a
@@ -10396,7 +10396,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
     /* Character constants may not be zero length.  (Except wide character
        literals in Microsoft mode.) */
     if (num_chars == 0) {
-      if (microsoft_mode && character_kind == (a_character_kind)chk_wchar_t) {
+      if (ms_extensions && character_kind == (a_character_kind)chk_wchar_t) {
         /* Microsoft accepts L'' as a null character constant.  (The call to
            conv_char_literal below will correctly produce a zero value given
            an empty literal.) */
@@ -12448,7 +12448,7 @@ modification will be added to restore the first token to the current line.
   if (first_word == tok_for) {
     if (next_word_len == len_of_each &&
         memcmp(curr_char_loc, "each", size_t_arg(len_of_each)) == 0) {
-      check_assertion(microsoft_mode || cli_or_cx_enabled);
+      check_assertion(ms_extensions || cli_or_cx_enabled);
       if (cli_or_cx_enabled || microsoft_version >= 1400) {
         /* "for each" statements (the STL and array versions) are available
            when emulating versions 1400 and later of the Microsoft compiler. */
@@ -12637,7 +12637,7 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
   /* If the current token could begin a whitespace keyword, scan ahead and
      determine if the next token on the line completes the keyword. */
-  if ((cli_or_cx_enabled || (microsoft_mode && !C_mode())) &&
+  if ((cli_or_cx_enabled || (ms_extensions && !C_mode())) &&
       !suppress_keyword_recognition) {
     /* Use of an identifier in a whitespace keyword supersedes any other
        meaning that has been declared for that identifier.  We thus ignore
@@ -16537,7 +16537,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   start_position = pos_curr_token;
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
-  if ((microsoft_mode || gpp_mode || sun_mode) &&
+  if ((ms_extensions || gpp_mode || sun_mode) &&
       template_sym != NULL && next_tok == tok_lt &&
       is_constructor_symbol(template_sym)) {
     /* The symbol passed in is a constructor symbol followed by a template
@@ -16595,7 +16595,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
          error. */
       template_sym = NULL;
       sun_gpp_undefined_template = TRUE;
-    } else if (microsoft_mode && caching_tokens &&
+    } else if (ms_extensions && caching_tokens &&
                scope_is(&scope_stack_top(), sck_template_declaration)) {
       /* We are caching tokens in a template declaration scope.  Ignore an
          undefined template in Microsoft mode.  This most frequently occurs
@@ -16752,7 +16752,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (microsoft_mode && next_tok == tok_lt &&
+  if (ms_extensions && next_tok == tok_lt &&
       (options & GID_CLASS_TEMPLATE_REQUIRED) != 0 &&
       template_sym->variant.template_info->is_nonreal_member) {
     /* The Microsoft compiler allows something like "T::U<>" to be used
@@ -16901,7 +16901,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        mode certain nonreal base classes are actually instantiated.  This
        is done if GID_IS_BASE_CLASS is set and if this is not the qualifier
        of a qualified name. */
-    if (microsoft_mode && (options & GID_IS_BASE_CLASS) != 0) {
+    if (ms_extensions && (options & GID_IS_BASE_CLASS) != 0) {
       instantiate_nonreal = !no_ms_nonreal_base_classes &&
                             next_token() != tok_colon_colon;
     }  /* if */
@@ -16913,7 +16913,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     if (new_sym == NULL) {
       /* A NULL symbol should only be returned in a Microsoft __if_exists
          if the template instance has not been created. */
-      check_assertion(microsoft_mode && (options & GID_IN_IF_EXISTS) != 0);
+      check_assertion(ms_extensions && (options & GID_IN_IF_EXISTS) != 0);
       make_specific_symbol_error_locator(&locator_for_curr_id);
       new_sym = locator_for_curr_id.specific_symbol;
       any_errors = TRUE;

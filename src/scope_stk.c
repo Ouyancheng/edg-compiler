@@ -5571,7 +5571,7 @@ body.  Only called in C++ mode.
               }  /* if */
             } else if (rp->source_corresp.referenced &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                       !(microsoft_mode &&
+                       !(ms_extensions &&
                          (rp->decl_modifiers & DM_DLLIMPORT)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_FUNCTION_MULTIVERSIONING
@@ -6170,7 +6170,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                               &sym->decl_position, sym);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (microsoft_mode &&
+        } else if (ms_extensions &&
                    (rout_ptr->decl_modifiers & DM_DLLIMPORT)) {
           /* No diagnostic. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7554,7 +7554,7 @@ discarded right after they have been generated.
     /* Discard implicit trivial default constructors. */
     discard = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && (routine->decl_modifiers & DM_DLLIMPORT) &&
+  } else if (ms_extensions && (routine->decl_modifiers & DM_DLLIMPORT) &&
              !routine->is_inline) {
     /* In Microsoft mode, routines marked __declspec(dllimport) can
        have bodies, which are discarded.  Inline function definitions are

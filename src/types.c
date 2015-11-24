@@ -6033,7 +6033,7 @@ check_typerefs:
            To be IL identical, they need not be both pointers or both
            references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
+        if (ms_extensions &&
             (!equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
                                       type_2->variant.pointer.modifiers) ||
              type_1->variant.pointer.base_variable !=
@@ -6221,7 +6221,7 @@ check_typerefs:
         /* Pointer-to-member types are identical if they refer to the same
            class type and to the same member type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
+        if (ms_extensions &&
             type_1->variant.ptr_to_member.modifiers !=
                                   type_2->variant.ptr_to_member.modifiers) {
           /* If pointer modifiers were applied, they must be identical. */
@@ -6810,7 +6810,7 @@ check_typerefs:
              references and must point to compatible types.  Same for
              C++/CLI handles and tracking references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode &&
+          if (ms_extensions &&
               (!equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
                                         type_2->variant.pointer.modifiers) ||
                type_1->variant.pointer.base_variable !=
@@ -8490,7 +8490,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                "void *" if the pointer will fit in a "void *".
                ARM 4.6 (pointer conversions).  This is no longer
                allowed in standard C++, but we allow it as an extension. */
-            if (microsoft_mode) {
+            if (ms_extensions) {
               /* Allowed without a warning in Microsoft mode. */
               okay = TRUE;
               std_conv->pointer_normalization_needed = TRUE;

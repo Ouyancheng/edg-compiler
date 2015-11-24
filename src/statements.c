@@ -5111,7 +5111,7 @@ generated.
                  over the initialization still must be diagnosed. */
               severity = strict_ansi_mode ? strict_ansi_error_severity
                                           : es_warning;
-            } else if (is_class_struct_union_type(tp) && !microsoft_mode) {
+            } else if (is_class_struct_union_type(tp) && !ms_extensions) {
               severity = es_error;
             } else if (strict_ansi_mode) {
               severity = strict_ansi_error_severity;
@@ -6080,7 +6080,7 @@ The syntax is:
            Microsoft C allows an expression of any type.  cfront 2.1 allows
            a void expression.  cfront 3.0 does not allow any expression. */
         if (C_mode()) {
-          if (microsoft_mode || gcc_mode) {
+          if (ms_extensions || gcc_mode) {
             /* In Microsoft and GNU C modes a return statement in a void
                function may have the form "return expr;".  For this case the
                return statement is allocated later so that the expression can

@@ -15997,8 +15997,8 @@ constants and (in some emulations) folded cast expressions.
 {
   a_boolean  result = FALSE;
   a_boolean  null_value_okay = cpp11_mode ||
-                               (microsoft_mode && microsoft_version >= 1800);
-  a_boolean  cast_okay = (microsoft_mode ||
+                               (ms_extensions && microsoft_version >= 1800);
+  a_boolean  cast_okay = (ms_extensions ||
                           (cpp11_mode && gpp_mode && !clang_mode));
   /* The C++11 standard allows not only "null pointer constants", but, more
      generally, "null pointer values" (which can result from casting a null
@@ -16009,7 +16009,7 @@ constants and (in some emulations) folded cast expressions.
   if (null_value_okay && is_null_pointer_constant(con)) {
     result = TRUE;
   } else if (con->kind == (a_constant_repr_kind)ck_address) {
-    if (microsoft_mode &&
+    if (ms_extensions &&
              (con->variant.address.kind == (an_address_base_kind)abk_typeid ||
               con->variant.address.kind == (an_address_base_kind)abk_uuidof)) {
       result = TRUE;

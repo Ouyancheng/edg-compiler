@@ -1685,7 +1685,7 @@ actually declares a function, member function, or function template).
     }  /* if */
   } while (loop_token(tok_comma));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && microsoft_version >= 1300 && esp != NULL) {
+  if (ms_extensions && microsoft_version >= 1300 && esp != NULL) {
     /* Some versions of Microsoft C++ treat any non-empty exception
        specification as "throw (...)". */
     esp->variant.exception_specification_type_list = NULL;
@@ -2383,7 +2383,7 @@ this is a helper function.
     pos_error(ec_managed_member_exception_spec, &func_info->throw_position);
     esp = NULL;
   } else if ((microsoft_bugs && microsoft_version <= 1200) ||
-             (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
+             (ms_extensions && microsoft_version >= 1300 && esp != NULL &&
               !esp->is_noexcept &&
               !((esp->variant.exception_specification_type_list == NULL &&
                  !esp->throw_any) ||
@@ -3221,7 +3221,7 @@ an error if a default argument expression is encountered.
             } else if (is_top_level_declarator && !is_typedef_decl &&
                        !(di_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) &&
                        !state->is_lambda && !state->nested_ptr_or_ref_seen &&
-                       !microsoft_mode) {
+                       !ms_extensions) {
               /* Even for a non-template function appearing outside of a class
                  definition we have to cache the default argument until we
                  know which function is being declared, because only then can
@@ -3980,7 +3980,7 @@ constant.
             num_of_elements =
                         unsigned_value_of_integer_constant(constant, &err);
             if (err) pos_error(ec_array_size_too_large, &error_position);
-          } else if (((microsoft_mode && in_class_definition()) || gnu_mode) &&
+          } else if (((ms_extensions && in_class_definition()) || gnu_mode) &&
                      sign_of_integer_constant(constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus

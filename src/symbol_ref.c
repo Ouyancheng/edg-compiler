@@ -2415,7 +2415,7 @@ check_label_decl_seq:
       mark_static_data_member_value_set(sym_ptr);
     }  /* if */
   }  /* if */
-  if ((gnu_mode || microsoft_mode || (!C_mode() && std_version >= 201402)) &&
+  if ((gnu_mode || ms_extensions || (!C_mode() && std_version >= 201402)) &&
       scptr != NULL &&
       !(sym_kind == (a_symbol_kind)sk_type || is_tag_symbol_kind(sym_kind))) {
     check_use_of_deprecated_entity(scptr, source_position);

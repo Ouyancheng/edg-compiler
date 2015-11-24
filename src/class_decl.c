@@ -6258,7 +6258,7 @@ next_named_override:
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode) {
+            if (ms_extensions) {
               if (microsoft_bugs && microsoft_version < 1500 &&
                   remove_qualifiers_from_param_types) {
                 /* For earlier Microsoft compilers the functions may still not
@@ -13711,7 +13711,7 @@ implicitly declared member functions.
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && decl_info->is_constructor &&
+    if (ms_extensions && decl_info->is_constructor &&
         (decl_state->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
       /* We currently ignore "constexpr" on dllimport constructors because a
          constexpr dllimport constructor may be difficult to implement for a
@@ -13812,7 +13812,7 @@ implicitly declared member functions.
   /* Do not insert code here. */
   {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && locator->is_qualified_name &&
+    if (ms_extensions && locator->is_qualified_name &&
         !is_error_locator(*locator)) {
       /* In non-managed class types, a qualified member function declarator
          indicates selective overriding in Microsoft mode, but in managed
@@ -14045,7 +14045,7 @@ implicitly declared member functions.
     if (func_info->final) rtn->final = TRUE;
     rtn->override = func_info->override;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       /* If this function declaration specifies selective overrides, record
          that fact.  (Managed and non-managed classes use different syntax to
          select the overridden base class member.) */
@@ -14450,7 +14450,7 @@ implicitly declared member functions.
       a_boolean  is_virtual = ((decl_state->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
+      if (ms_extensions) {
         if (is_static_member) {
           /* An interface member explicitly declared static. */
           is_virtual = FALSE;
@@ -14934,7 +14934,7 @@ decl_member_function, which handles in-class member function declarations.)
     }  /* if */
     attach_decl_attributes(dps, (a_boolean)func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (dps->prefix_attributes != NULL) {
         add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
                                       dps->prefix_attributes);
@@ -15153,7 +15153,7 @@ func_info describe the current member function declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (func_info->sealed) {
       /* The routine was declared with "sealed". */
-      check_assertion(microsoft_mode);
+      check_assertion(ms_extensions);
       pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
       pure_specifier_allowed = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15206,7 +15206,7 @@ func_info describe the current member function declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+        pos_diagnostic(ms_extensions ? es_warning : es_discretionary_error,
                        ec_pure_virtual_definition, &pos_curr_token);
       }  /* if */
     } else {
@@ -15711,7 +15711,7 @@ in the context of the completed class later on.
   a_token_cache_ptr		token_cache;
   /* Cache the initializer. */
   token_cache = cache_inclass_initializer(dps->sym);
-  if (microsoft_mode && symbol_is(dps->sym, sk_field) &&
+  if (ms_extensions && symbol_is(dps->sym, sk_field) &&
       !nonclass_prototype_instantiations &&
       in_class_template_definition(class_state)) {
     /* Field symbols in prototype instantiations do not have their fixup
@@ -16960,7 +16960,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     next_sym = sym->next;
     sym->next = NULL;
   }  /* for */
-  if (!(C_mode() || microsoft_mode || sun_mode || any_cfront_mode())) {
+  if (!(C_mode() || ms_extensions || sun_mode || any_cfront_mode())) {
     /* Types should normally not be declared inside an anonymous union. */
     a_scope_ptr  scope = skip_typerefs(assoc_object_type)
                                         ->variant.class_struct_union.extra_info
@@ -17925,7 +17925,7 @@ the position indicated by the given locator.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !C_mode() && is_class_struct_union_type(member_type)) {
+  if (ms_extensions && !C_mode() && is_class_struct_union_type(member_type)) {
     /* Microsoft compilers warn when fields of certain non-DLL class types are
        used as members of classes with a DLL interface.  Specifically, a
        warning is issued if the member type has a virtual function or a
@@ -21124,7 +21124,7 @@ The routine body is not generated until it is known to be needed.
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
   if ((generate_move_operations ||
-       (microsoft_mode && microsoft_version < 1900)) &&
+       (ms_extensions && microsoft_version < 1900)) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
       !is_immediate_managed_class_type(class_type) &&
@@ -22973,7 +22973,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
       state->access = (an_access_specifier)as_private;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       if (in_managed_class) {
         char  specifier_name[20];
 			/* Large enough for "protected protected". */
@@ -23483,7 +23483,7 @@ tracks information about the current declaration.
       decl_state->type = error_type();
     }  /* if */
   }  /* if */
-  if ((decl_state->dso_flags & DSO_DEFINES_SOMETHING) && !microsoft_mode) {
+  if ((decl_state->dso_flags & DSO_DEFINES_SOMETHING) && !ms_extensions) {
     /* A class or enum definition was scanned as part of this declaration.
        However, it is explicitly prohibited to define a type in a function
        return type.  This is taken to apply to pointer-to-function type
@@ -25955,7 +25955,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
        a member template declaration to generate a partial instantiation.
        The initial declaration is accepted in g++ mode as a result of
        processing in simplify_curr_class_qualified_name. */
-    if (microsoft_mode ||
+    if (ms_extensions ||
         (gpp_mode && scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation)) {
       di_flags |= DI_QUALIFIED_NAME_ALLOWED;
@@ -26209,7 +26209,7 @@ passed via template_decl.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       /* Record any Microsoft attributes in *dps before calling
          decl_specifiers, because that call may append additional
          attributes. */
@@ -26288,12 +26288,12 @@ passed via template_decl.
   is_typedef =
             dps->declared_storage_class == (a_storage_class)sc_typedef;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     consume_any_stray_microsoft_rparen();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
-  if (microsoft_mode || sun_mode) {
+  if (ms_extensions || sun_mode) {
     if (dps->specifiers_type == NULL && type_explicitly_specified) {
       /* A friend declaration of the form "friend class X;" where "X" is a
          class template. */
@@ -26303,7 +26303,7 @@ passed via template_decl.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && dps->ms_attributes != NULL) {
+  if (ms_extensions && dps->ms_attributes != NULL) {
     if ((microsoft_version < 1400 &&
          (is_member_template || is_member_template_rescan)) ||
         class_type->source_corresp.is_local_to_function) {
@@ -26952,7 +26952,7 @@ next_declaration:;
   check_use_of_auto_type(dps);
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (ms_extensions) {
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
@@ -28943,7 +28943,7 @@ classes.
       need_restore_pack_alignment_state = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if ((cpp11_mode || microsoft_mode ||
+    if ((cpp11_mode || ms_extensions ||
          (gpp_mode && gnu_version >= 30400 && is_template_instantiation)) &&
         !scope_stack_top().defer_access_checks) {
       /* Access checking of the base specifiers must be done in the context
@@ -29549,7 +29549,7 @@ next_declaration:
       if (access_check_depth != NO_SCOPE_DEPTH) {
         f_discard_deferred_access_checks(access_check_depth);
       }  /* if */
-    } else if (cpp11_mode || microsoft_mode) {
+    } else if (cpp11_mode || ms_extensions) {
       if (access_check_depth != NO_SCOPE_DEPTH) {
         perform_deferred_access_checks_at_depth(access_check_depth);
       }  /* if */
@@ -29655,7 +29655,7 @@ next_declaration:
           tssp->variant.class_template.not_standalone_nested_class = TRUE;
         }  /* if */
       }  /* if */
-      if (is_template_specialization && microsoft_mode &&
+      if (is_template_specialization && ms_extensions &&
           !class_state.is_nonreal_instantiation) {
         /* The Microsoft compiler allows a template friend declaration to
            also affect members of explicit specializations. */
@@ -31526,7 +31526,7 @@ translation unit.
      functions of template classes until the end of the translation unit, and
      then only if they are referenced. */
   use_deferred_friend_fixup_list = (gpp_mode && gnu_version < 30400) ||
-                                    microsoft_mode;
+                                    ms_extensions;
   deferred_friend_fixup_list = NULL;
   deferred_friend_fixup_list_tail = NULL;
   classes_that_may_need_fixups = NULL;
