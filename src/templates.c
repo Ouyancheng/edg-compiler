@@ -10460,18 +10460,24 @@ associated parameter.
   a_boolean		copy_arg_operands = FALSE;
   a_template_arg_ptr	pack_tap = NULL;
   a_boolean		is_generic = FALSE;
+  a_boolean		is_variadic = FALSE;
+  a_template_symbol_supplement_ptr
+			tssp = NULL;
   a_boolean		preserve_packs =
                                   (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
 
+  /* If a template symbol was provided, see if it is variadic. */
+  if (template_sym != NULL) {
+    tssp = template_supplement_for_symbol(template_sym);
+    if (tssp != NULL) {
+      is_variadic = tssp->has_variadic_template_params;
+    }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Determine whether a generic type is acceptable as a substituted template
      argument. */
-  if (cli_or_cx_enabled && template_sym != NULL) {
-    a_template_symbol_supplement_ptr tssp;
-    tssp = template_supplement_for_symbol(template_sym);
-    if (tssp != NULL) {
-      is_generic = tssp->is_generic || is_cli_cx_pseudo_template(template_sym);
-    }  /* if */
+  if (cli_or_cx_enabled && tssp != NULL) {
+    is_generic = tssp->is_generic || is_cli_cx_pseudo_template(template_sym);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (options & CTWS_COPY_ARG_OPERAND_INFO) {
@@ -10487,6 +10493,16 @@ associated parameter.
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
     next_tap = tap == NULL ? NULL : tap->next;
+    if (tap != NULL && tap->is_pack) is_variadic = TRUE;
+    /* If we have run out of parameters and this is not a variadic template,
+       consider this a copy error.  Note that above, we consider the presence
+       of a pack to make something variadic, so we need to ignore the start
+       of expansion placeholder below. */
+    if (have_params && tpp == NULL && !is_variadic && tap != NULL &&
+        !is_start_of_pack_expansion_templ_arg(tap)) {
+      *copy_error = TRUE;
+      break;
+    }  /* if */
     /* Exit the loop if we hit a start of pack expansion with no following
        arguments and we are already processing a pack. */
     if (!preserve_packs && added_placeholder &&

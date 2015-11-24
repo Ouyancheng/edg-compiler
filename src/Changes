@@ -1,5 +1,29 @@
 Version 4.11
 
+11/24/15 [EDGcpfe/16668]
+Use of variadic template template parameter should cause substitution failure
+
+A change made in version 4.10 (see EDGcpfe/15605 on 11/17/14) resulted in
+a variadic function template being considered as usable even though
+a substitution failure should have resulted because an empty pack was
+used as a template argument for a template template parameter that had no
+associated template parameter.  Now fixed.
+
+  template < typename > struct B {
+    typedef int I;
+  };
+  // Only this function should be considered callable
+  template < template < typename > class TTP, typename T >
+  void f(typename TTP < T >::I);
+
+  // Should not be considered because it specifies too many arguments for B
+  template <template <typename ... > class TTP, typename T1, typename ... Ts>
+  void f(typename TTP < T1, Ts ... >::I);
+  int main() {
+    f<B, int>(0);
+  }
+
+
 11/23/15 [EDGcpfe/16661]
 Floating-point literals in strict C-mode array bounds
 
