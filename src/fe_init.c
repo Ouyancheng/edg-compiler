@@ -603,6 +603,7 @@ modes.
     enter_keyword((a_token_kind)tok_is_win_interface, "__is_win_interface");
     enter_keyword((a_token_kind)tok_is_valid_winrt_type,
                   "__is_valid_winrt_type");
+    enter_keyword((a_token_kind)tok_is_assignable, "__is_assignable");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,

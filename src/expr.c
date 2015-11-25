@@ -11919,6 +11919,7 @@ static void scan_is_assignable(a_builtin_operation_kind_tag kind,
 Scan a constant-expression having one of the following forms:
       __is_nothrow_assignable( T , U )
       __is_trivially_assignable( T , U )
+      __is_assignable( T , U )
 The result is a boolean of value true if
       declval<T>() = declval<U>()
 with
@@ -11926,10 +11927,9 @@ with
         typename add_rvalue_reference<T>::type declval() noexcept;
 is well-formed, and it is known no exception is thrown for the assignment (for
 the __is_nothrow_assignable case) or all calls involved are to trivial special
-members (in the __is_trivially_assignable case).
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned
-__is_nothrow_assignable/__is_trivially_assignable expression, and return the
-result in *result (or an error indication in *rcblock).
+members (in the __is_trivially_assignable case).  If rcblock is non-NULL, redo
+semantic analysis on a previously-scanned __is_*assignable expression, and
+return the result in *result (or an error indication in *rcblock).
 */
 {
   a_type_ptr  result_type;
@@ -31900,6 +31900,13 @@ handle_identifier:
       scan_is_assignable(bok_is_trivially_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_assignable:
+      /* __is_assignable construct: */
+      scan_is_assignable(bok_is_assignable,
+                         (a_rescan_control_block *)NULL, &local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_is_valid_winrt_type:
       /* __is_valid_winrt_type construct: */
@@ -39848,6 +39855,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_builtin_complex(rcblock, result);
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_is_assignable:
+        /* __is_assignable construct: */
+        scan_is_assignable(bok_is_assignable, rcblock, result);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -42051,7 +42064,8 @@ It determines whether an assignment between two types -- the given destination
 and source types -- is valid (and whether that assignment is known to throw
 an exception or involve a call to a function other than a trivial special
 member function).
-kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
+kind is bok_is_nothrow_assignable, bok_is_trivially_assignable, or
+bok_is_assignable.
 */
 {
   a_boolean               result = FALSE;
@@ -42118,6 +42132,9 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
              member. */
           result = FALSE;
         }  /* if */
+      } else {
+        check_assertion(kind == (a_builtin_operation_kind)bok_is_assignable);
+        /* No further checks are needed. */
       }  /* if */
     }  /* if */
     scope_stack_top().defer_access_checks = saved_defer_access_checks;

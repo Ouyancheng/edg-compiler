@@ -1258,6 +1258,9 @@ typedef enum /*a_token_kind*/ {
   tok_yield,
   tok_await,
 #endif /* COROUTINES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_is_assignable,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1427,6 +1430,9 @@ EXTERN a_const_char
 #if COROUTINES_ALLOWED
    "__yield", "__await",
 #endif /* COROUTINES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "__is_assignable",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -15180,6 +15186,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_builtin_shufflevector,
 			/* Clang's __builtin_shufflevector operator.  Two
 			   vector operands followed by a list of integers. */
+  bok_is_assignable,    /* Microsoft's __is_assignable.  Two type operands. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

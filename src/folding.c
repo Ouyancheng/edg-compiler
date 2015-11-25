@@ -8318,6 +8318,7 @@ constant is set as well.
         break;
       case bok_is_nothrow_assignable:
       case bok_is_trivially_assignable:
+      case bok_is_assignable:
         fold_is_assignable(expr, constant, maintain_expression);
         break;
       default:

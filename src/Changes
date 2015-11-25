@@ -1,5 +1,18 @@
 Version 4.11
 
+11/25/15 [EDGcpfe/16544]
+Microsoft compatibility: Add __is_assignable type trait
+
+Recent versions of Microsoft Visual Studio have implemented a new
+type trait: __is_assignable.  For example, with --microsoft:
+
+  struct A {
+    operator int();
+  };
+  static_assert(__is_assignable(int&, int), "ERROR");
+  static_assert(__is_assignable(int&, A), "ERROR");
+
+
 11/24/15 [EDGcpfe/16668]
 Use of variadic template template parameter should cause substitution failure
 
