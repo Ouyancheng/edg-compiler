@@ -19334,6 +19334,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_win_class",
   "__is_win_interface",
   "__builtin_shufflevector",
+  "__is_assignable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
