@@ -11834,8 +11834,11 @@ tok_ud_literal; otherwise, return tok_string_literal.
   for (;;) {
     a_string_or_char_literal_kind next_encoding = SCLK_ORDINARY_LITERAL;
     a_boolean                     saw_macro_instead_of_udl_suffix = FALSE;
-    if (user_defined_literals_enabled) {
-      /* Check for a ud-suffix. */
+    if (user_defined_literals_enabled && !function_name_case) {
+      /* Check for a ud-suffix.  (The function name case cannot have a
+         ud-suffix because the token in the source was something like
+         __FUNCTION__, so a suffix would have been scanned as part of
+         the token.) */
       a_const_char *id_start = curr_char_loc;
       if (check_for_ud_suffix()) {
         /* Found a ud-suffix. */
