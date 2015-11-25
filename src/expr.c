@@ -11917,9 +11917,9 @@ static void scan_is_assignable(a_builtin_operation_kind_tag kind,
                                an_operand                   *result)
 /*
 Scan a constant-expression having one of the following forms:
+      __is_assignable( T , U )
       __is_nothrow_assignable( T , U )
       __is_trivially_assignable( T , U )
-      __is_assignable( T , U )
 The result is a boolean of value true if
       declval<T>() = declval<U>()
 with
