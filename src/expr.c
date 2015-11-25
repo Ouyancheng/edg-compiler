@@ -25615,9 +25615,10 @@ that case.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  if (gnu_mode && !expr2_evaluated) {
-    /* In GNU modes, "1 || f()" is treated as an integral
-       constant-expression. */
+  /* In C and C++03, the unevaluated part of the operation can still
+     disqualify it from being a constant-expression, but we only follow that
+     rule in strict mode. */
+  if (!strict_ansi_mode && !expr2_evaluated) {
     result->ruled_out_expr_kinds = operand_1->ruled_out_expr_kinds;
   } else {
     result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
@@ -38533,7 +38534,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
       copy_constant(&result.variant.constant, constant);
       discard_constant_expr_object_lifetime();
       if (constant->kind != (a_constant_repr_kind)ck_integer ||
-          ((C_mode() || !constexpr_enabled) &&
+          ((C_mode() || !constexpr_enabled) && strict_ansi_mode &&
            (result.ruled_out_expr_kinds & ROEK_INTEGRAL_CONSTANT) != 0)) {
         /* If the constant is not a ck_integer, we cannot check its sign. */
         if (!is_error_constant(constant) &&

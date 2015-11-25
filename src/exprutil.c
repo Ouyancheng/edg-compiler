@@ -13842,8 +13842,12 @@ question_position and colon_position give the position of the "?" and ":".
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
     result->is_id_expression = FALSE;
-    preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
-                                                         result);
+    if (strict_ansi_mode) {
+      /* In C and C++03, the unevaluated part of the operation can still
+         disqualify it from being a constant-expression. */
+      preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
+                                                           result);
+    }  /* if */
     /* operand_1 is also discarded. */
     preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1, result);
     if (is_constant_operand(result)) {
@@ -13967,9 +13971,11 @@ question_position and colon_position give the position of the "?" and ":".
       }  /* if */
     }  /* if */
   }  /* if */
-  result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
-                                  operand_3->ruled_out_expr_kinds);
-  result->ruled_out_expr_kinds |= operand_2->ruled_out_expr_kinds;
+  if (!do_folding) {
+    result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
+                                    operand_3->ruled_out_expr_kinds);
+    result->ruled_out_expr_kinds |= operand_2->ruled_out_expr_kinds;
+  }  /* if */
   record_operator_position_in_rescan_info(result, question_position,
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           colon_position);
