@@ -1,5 +1,25 @@
 Version 4.11
 
+11/25/15 [EDGcpfe/15640]
+Spurious incompatible linkage error and unbounded loop in Sun mode
+
+A friend declaration referring to an extern "C" function could previously lead
+to a spurious name linkage compatibility error, sometimes followed by an
+unbounded loop (in perform_scheduled_routine_moves) in Sun mode.  For example:
+
+  namespace {
+    extern "C" { static int f(void); }
+    class Foo {
+      friend int f(void);
+    };
+    extern "C" {
+      static int f(void) { return 0; }  // Previously resulted in a spurious
+    }                                   // error and an unbounded loop.
+  }
+
+This is is now fixed.
+
+
 11/25/15 [EDGcpfe/16678]
 Incorrect processing of function name strings with user-defined literals
 
