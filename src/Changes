@@ -1,5 +1,23 @@
 Version 4.11
 
+11/27/15 [EDGcpfe/16254]
+GNU/clang compatibility: additional codes on line-identification directives
+
+The GNU and clang preprocessors use additional codes on line-identification
+directives to specify whether the directive represents the start of a new
+header file or the resumption of a file after completion of a #include
+directive, as well as whether the current file is from a system directory
+or not.  The existing GEN_EXTRA_LINE_ID_INFO configuration macro controls
+whether the entry/resumption codes appear in the front end's preprocessor
+output in --old_c and --old_style_preprocessing modes (only).  The front
+end has now been changed so that this macro also controls the generation of
+the entry/resumption and system file indicators in GNU and clang
+emulations.  This change enables consistent processing of the GNU header
+files, whether compiled directly or from preprocessed output, since the
+handling of some constructs differs depending on whether they appear in
+system header files or in user code.
+
+
 11/25/15 [EDGcpfe/15640]
 Spurious incompatible linkage error and unbounded loop in Sun mode
 

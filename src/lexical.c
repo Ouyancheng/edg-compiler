@@ -3549,11 +3549,11 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     /* Put out a line-identifying directive.  The form is
          #line line-number "file-name"
        or, in pcc mode or GNU mode,
-         # line-number "file-name" kind
-       This is similar to, but is not, a #line directive.  The "kind"
-       is not always wanted (the SUN cc generates it, but not all pcc-based
+         # line-number "file-name" kind-codes
+       This is similar to, but is not, a #line directive.  The kind-codes
+       are not always wanted (the SUN cc generates it, but not all pcc-based
        compilers do); the flag GEN_EXTRA_LINE_ID_INFO controls whether or
-       not it is generated. */
+       not they are generated. */
     if (!pcc_preprocessing_mode && !gnu_mode) {
       /* ANSI version. */
       fputs("#line", f_pp_output);
@@ -3581,10 +3581,13 @@ else.  This routine should only be called when generate_pp_output is TRUE.
                     /*escape_nonprintable_chars=*/TRUE);
     fputc('"', f_pp_output);
 #if GEN_EXTRA_LINE_ID_INFO
-    if (pcc_preprocessing_mode) {
+    if (pcc_preprocessing_mode || gnu_mode) {
       if (kind != ' ') {
         fputc(' ', f_pp_output);
         fputc(kind, f_pp_output);
+      }  /* if */
+      if (gnu_mode && curr_ise->from_system_include_dir) {
+        fprintf(f_pp_output, " 3");
       }  /* if */
     }  /* if */
 #endif /* GEN_EXTRA_LINE_ID_INFO */

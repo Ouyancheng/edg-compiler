@@ -1963,9 +1963,10 @@ overhead of looking for files with the ".stdh" suffix.
 #endif /* DEFAULT_INCLUDE_FILE_SUFFIX_LIST */
 
 /*
-Flag that is TRUE to generate the trailing include file push/pop codes
-(a la SUN cc) on the ends of the line-identifying directives generated
-in preprocessing output.  see gen_pp_line_info in lexical.c.
+Flag that is TRUE to generate trailing include file push/pop and (in GNU
+modes) system-header codes (like those of the GNU preprocessor) on the ends
+of the line-identifying directives generated in preprocessing output.  See
+gen_pp_line_info in lexical.c.
 */
 #ifndef GEN_EXTRA_LINE_ID_INFO
 #define GEN_EXTRA_LINE_ID_INFO FALSE
