@@ -3497,7 +3497,11 @@ constant-expression.
        member supplement. */
     a_static_data_member_supplement_ptr
                sdmsp = sdm_supp(var_sym);
-    if (sdmsp != NULL) token_cache = sdmsp->token_cache;
+    if (sdmsp != NULL) {
+      token_cache = sdmsp->token_cache;
+      /* Clear the cache pointer to avoid runaway recursion. */
+      sdmsp->token_cache = NULL;
+    }  /* if */
   } else if (cli_or_cx_enabled) {
     if (!class_type->incomplete ||
         (scope_is(&scope_stack_top(), sck_class_struct_union) &&
