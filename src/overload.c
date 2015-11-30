@@ -14953,65 +14953,54 @@ for the previous operand.
        i.e.,
          const volatile char *
     */
-    /* This applies only on operations where the result type does not
-       depend on the operand types, i.e., relational operators and the pointer
-       difference "-". */
     if (is_pointer_type(*specific_type)) {
-      if (kind == (an_opname_kind)onk_eq ||
-          kind == (an_opname_kind)onk_ne ||
-          kind == (an_opname_kind)onk_gt ||
-          kind == (an_opname_kind)onk_lt ||
-          kind == (an_opname_kind)onk_ge ||
-          kind == (an_opname_kind)onk_le ||
-          kind == (an_opname_kind)onk_minus) {
-        a_type_ptr orig_specific_type = *specific_type;
-        /* Add cv-qualifiers from previously-considered pointer types. */
-        if (previous_specific_type_considered != NULL) {
-          /* The previous operand has a specific type. */
-          adjust_specific_type_for_previous_specific_type(
+      a_type_ptr orig_specific_type = *specific_type;
+      /* Add cv-qualifiers from previously-considered pointer types. */
+      if (previous_specific_type_considered != NULL) {
+        /* The previous operand has a specific type. */
+        adjust_specific_type_for_previous_specific_type(
                                             specific_type,
                                             previous_specific_type_considered);
-        } else {
-          /* The first operand has a class type. */
-          an_overload_set_traversal_block ostblock;
-          a_symbol_ptr                    conversion_symbol;
-          /* Examine each conversion function from the source class. */
-          for (conversion_symbol =
+      } else {
+        /* The first operand has a class type. */
+        an_overload_set_traversal_block ostblock;
+        a_symbol_ptr                    conversion_symbol;
+        /* Examine each conversion function from the source class. */
+        for (conversion_symbol =
                    set_up_overload_symbol_list_traversal_simple(
                       symbol_supplement_for_class(
-                              previous_class_type_considered)->conversion_list,
+                             previous_class_type_considered)->conversion_list,
                       &ostblock);
-               conversion_symbol != NULL;
-               conversion_symbol =
-                              next_symbol_in_overload_symbol_list(&ostblock)) {
-            a_symbol_ptr base_conversion_symbol =
-                                      fundamental_symbol_of(conversion_symbol);
-            a_type_ptr   conv_routine_type =
-                                   routine_symbol_type(base_conversion_symbol);
-            a_type_ptr   return_type=prvalue_return_type_of(conv_routine_type);
+             conversion_symbol != NULL;
+             conversion_symbol =
+                             next_symbol_in_overload_symbol_list(&ostblock)) {
+          a_symbol_ptr base_conversion_symbol =
+                                     fundamental_symbol_of(conversion_symbol);
+          a_type_ptr   conv_routine_type =
+                                  routine_symbol_type(base_conversion_symbol);
+          a_type_ptr   return_type = prvalue_return_type_of(conv_routine_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (!conversion_function_converts_from_class(
-                                base_conversion_symbol->variant.routine.ptr)) {
-              /* A C++/CLI static conversion function that converts to the
-                 class type instead of from it cannot be used. */
-              continue;
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            adjust_specific_type_for_previous_specific_type(specific_type,
-                                                            return_type);
-          }  /* for */
-        }  /* if */
-        if (!identical_types(*specific_type, orig_specific_type)) {
-          /* We came up with a different type.  Make sure we haven't handled
-             this new type previously.  If we have, go back to the original
-             type, because using this new type would repeat a previous analysis
-             and likely result in an apparent ambiguity. */
-          if (specific_type_previously_handled(
-                                          *specific_type, class_type, stop_on,
-                                          previous_class_type_considered,
-                                          previous_specific_type_considered)) {
-            *specific_type = orig_specific_type;
+          if (!conversion_function_converts_from_class(
+                               base_conversion_symbol->variant.routine.ptr)) {
+            /* A C++/CLI static conversion function that converts to the
+               class type instead of from it cannot be used. */
+            continue;
           }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          adjust_specific_type_for_previous_specific_type(specific_type,
+                                                          return_type);
+        }  /* for */
+      }  /* if */
+      if (!identical_types(*specific_type, orig_specific_type)) {
+        /* We came up with a different type.  Make sure we haven't handled
+           this new type previously.  If we have, go back to the original
+           type, because using this new type would repeat a previous analysis
+           and likely result in an apparent ambiguity. */
+        if (specific_type_previously_handled(
+                                         *specific_type, class_type, stop_on,
+                                         previous_class_type_considered,
+                                         previous_specific_type_considered)) {
+          *specific_type = orig_specific_type;
         }  /* if */
       }  /* if */
     }  /* if */
