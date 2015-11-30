@@ -13847,6 +13847,9 @@ question_position and colon_position give the position of the "?" and ":".
          disqualify it from being a constant-expression. */
       preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
                                                            result);
+    } else {
+      /* The result is never a null pointer constant. */
+      result->variant.constant.null_pointer_constant_ruled_out = TRUE;
     }  /* if */
     /* operand_1 is also discarded. */
     preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1, result);
