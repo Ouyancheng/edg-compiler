@@ -1,5 +1,15 @@
 Version 4.11
 
+11/30/15 [EDGcpfe/16684]
+Microsoft compatibility: Allow empty structs in C mode
+
+Later versions of Microsoft Visual Studio allow empty structs in C mode and
+the front end now does as well when microsoft_version >= 1900.  For example,
+with --microsoft_version --c:
+
+  struct A {};    // No longer an error.
+
+
 11/30/15 [EDGcpfe/16680]
 VLAs and constexpr constructors
 

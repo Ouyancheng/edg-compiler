@@ -9021,8 +9021,8 @@ typedef struct a_type {
 			   virtual functions, virtual base classes or bases
 			   (direct or indirect) with such things.  (In C mode,
 			   that reduces to structs and unions with no fields.)
-			   Computed in do_class_layout.  In GNU C mode, this
-			   is also TRUE for zero-sized classes. */
+			   Computed in do_class_layout.  In GNU and Microsoft
+			   C mode, this is also TRUE for zero-sized classes. */
       a_bit_field
 		has_zero_init_component:1;
 			/* TRUE if an object of this type has no nontrivial

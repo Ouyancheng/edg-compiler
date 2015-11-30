@@ -29164,10 +29164,10 @@ classes.
     if (curr_token == tok_rbrace) {
       /* A member list is optional in C++.  In C mode issue an error and add
          a dummy field to reduce error recovery problems down the line. */
-      if (gcc_mode) {
-        /* In GNU C mode, empty classes are allowed and have size zero.
-           Set the empty class bit early to distinguish this from an
-           incomplete type. */
+      if (gcc_mode || (ms_extensions && microsoft_version >= 1900)) {
+        /* In GNU C mode and later versions of Microsoft, empty classes are
+           allowed and have size zero.  Set the empty class bit early to
+           distinguish this from an incomplete type. */
         class_type->variant.class_struct_union.is_empty_class = TRUE;
       } else if (C_mode()) {
         pos_error(ec_exp_declaration, &error_position);
