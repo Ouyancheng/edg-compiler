@@ -13838,18 +13838,20 @@ question_position and colon_position give the position of the "?" and ":".
   if (do_folding) {
     /* The first operand is a constant.  Fold the operation to the
        second or third operand. */
+    a_ruled_out_expr_kind_set  saved_ruled_out_expr_kinds;
     copy_operand(preserved_operand, result);
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
     result->is_id_expression = FALSE;
-    if (strict_ansi_mode) {
-      /* In C and C++03, the unevaluated part of the operation can still
-         disqualify it from being a constant-expression. */
-      preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
-                                                           result);
-    } else {
-      /* The result is never a null pointer constant. */
-      result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+    /* In C and C++03, the unevaluated part of the operation can still
+       disqualify it from being a constant-expression or a null pointer
+       constant.  The constant-expression part is only done in strict mode,
+       however. */
+    saved_ruled_out_expr_kinds = result->ruled_out_expr_kinds;
+    preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
+                                                         result);
+    if (!strict_ansi_mode) {
+      result->ruled_out_expr_kinds = saved_ruled_out_expr_kinds;
     }  /* if */
     /* operand_1 is also discarded. */
     preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1, result);
