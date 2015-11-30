@@ -14924,7 +14924,6 @@ static void adjust_specific_type_for_previous_operand(
                      a_type_ptr              *specific_type,
                      a_type_ptr              class_type,
                      a_symbol_list_entry_ptr stop_on,
-                     an_opname_kind          kind,
                      a_type_ptr              previous_class_type_considered,
                      a_type_ptr              previous_specific_type_considered)
 /*
@@ -15113,7 +15112,6 @@ in some way, e.g., two pointers that must have the same type.
             any_approp_conversion_function_this_operand = TRUE;
             adjust_specific_type_for_previous_operand(
                                             &specific_type, class_type, slep,
-                                            kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
             try_builtin_operands_match(kind, operand_type_pattern,
@@ -15196,7 +15194,6 @@ in some way, e.g., two pointers that must have the same type.
           adjust_specific_type_for_previous_operand(
                                             &specific_type, (a_type_ptr)NULL,
                                             (a_symbol_list_entry_ptr)NULL,
-                                            kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
           previous_specific_type_considered = specific_type;
