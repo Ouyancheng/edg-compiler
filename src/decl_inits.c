@@ -5486,7 +5486,7 @@ FALSE is returned) for non-class objects.
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                              /*evaluated=*/TRUE);
-          if (ctor->is_constexpr &&
+          if (ctor->is_constexpr && !var->is_vla &&
               fold_constexpr_ctor(init_dip, /*record_backing_expr=*/TRUE,
                                   err_pos, &folded_con)) {
             /* The constructor call can be folded. */
