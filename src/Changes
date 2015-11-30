@@ -35,7 +35,7 @@ unbounded loop (in perform_scheduled_routine_moves) in Sun mode.  For example:
     }                                   // error and an unbounded loop.
   }
 
-This is is now fixed.
+This is now fixed.
 
 
 11/25/15 [EDGcpfe/16678]
