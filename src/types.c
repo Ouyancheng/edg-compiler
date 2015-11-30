@@ -1765,7 +1765,11 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
   /* If the type provided is a handle, strip off the handle. */
   if (is_handle_type(tp)) tp = type_pointed_to(tp);
   tp = skip_typerefs(tp);
-  if (is_immediate_class_type(tp)) {
+  if (is_cli_array_type(tp)) {
+    /* A C++/CLI array is an open constructed type if its element type is. */
+    tp = cli_array_element_type(tp);
+    result = is_cli_open_constructed_type(tp);
+  } else if (is_immediate_class_type(tp)) {
     if (is_cli_generic_constraint_type(tp)) {
       /* A generic parameter is an open constructed type. */
       result = TRUE;
@@ -1777,10 +1781,6 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
          are open constructed types. */
       result = TRUE;
     }  /* if */
-  } else if (is_cli_array_type(tp)) {
-    /* A C++/CLI array is an open constructed type if its element type is. */
-    tp = cli_array_element_type(tp);
-    result = is_cli_open_constructed_type(tp);
   } else if (is_cli_generic_param_type(tp)) {
     /* A generic parameter. */
     result = TRUE;
