@@ -3551,7 +3551,7 @@ else.  This routine should only be called when generate_pp_output is TRUE.
        or, in pcc mode or GNU mode,
          # line-number "file-name" kind-codes
        This is similar to, but is not, a #line directive.  The kind-codes
-       are not always wanted (the SUN cc generates it, but not all pcc-based
+       are not always wanted (the SUN cc generates them, but not all pcc-based
        compilers do); the flag GEN_EXTRA_LINE_ID_INFO controls whether or
        not they are generated. */
     if (!pcc_preprocessing_mode && !gnu_mode) {
