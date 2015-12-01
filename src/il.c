@@ -14247,11 +14247,19 @@ tk_unknown is returned.
     case eok_lt:
     case eok_ge:
     case eok_le:
-      { an_expr_node_ptr  arg1 = expr->variant.operation.operands,
+      if (expr_kind == tk_template_param) {
+        /* If either operand has a tk_template_param type, the call to
+           binary_operation_type_kind below will produce a tk_template_param
+           kind also.  However, in some modes, an expression in a prototype
+           instantiation may be considered template-dependent even when its
+           arguments are not. */
+        result = expr_kind;
+      } else {
+        an_expr_node_ptr  arg1 = expr->variant.operation.operands,
                           arg2 = arg1->next;
         result = binary_operation_type_kind(expr->variant.operation.kind,
                                             arg1->type, arg2->type);
-      }
+      }  /* if */
       break;
     case eok_gnu_min:
     case eok_gnu_max:
