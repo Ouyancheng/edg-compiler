@@ -14247,7 +14247,7 @@ tk_unknown is returned.
     case eok_lt:
     case eok_ge:
     case eok_le:
-      if (expr_kind == tk_template_param) {
+      if (expr_kind == (a_type_kind)tk_template_param) {
         /* If either operand has a tk_template_param type, the call to
            binary_operation_type_kind below will produce a tk_template_param
            kind also.  However, in some modes, an expression in a prototype
