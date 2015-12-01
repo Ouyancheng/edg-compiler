@@ -2084,13 +2084,11 @@ Returns TRUE if a C++ mode is explicitly specified.
 
 static void set_microsoft_mode_flags(void)
 /*
-Set other options whose values should be changed when Microsoft mode
-is enabled.  Only set the option values if they were not already set
-by a command line option.
+Set other options whose values should be changed when Microsoft mode is enabled
+or --ms_extensions or --ms_compat have been specified.  Only set the option
+values if they were not already set by a command line option.
 */
 {
-  ms_extensions = TRUE;
-  ms_compat = TRUE;
   enum_types_can_be_smaller_than_int = FALSE;
   enum_types_can_be_larger_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
@@ -4327,7 +4325,9 @@ This function is also called in clang mode.
     /* g++ 4.3 enabled the decltype feature unconditionally via the __decltype
        keyword (the decltype keyword is only enabled in C++11 mode). */
     decltype_enabled = TRUE;
-    enable_underscore_decltype_only = TRUE;
+    if (!ms_extensions) {
+      enable_underscore_decltype_only = TRUE;
+    }  /* if */
   }  /* if */
   if (gnu_version >= 40500) {
     /* GCC 4.5 and later accept explicit conversion functions even in non-C++11
@@ -4349,7 +4349,9 @@ This function is also called in clang mode.
       /* g++ versions 4.4 and above support explicit enum bases in all modes,
          but report it as nonstandard in non-C++11 mode. */
       explicit_enum_base_enabled = TRUE;
-      report_explicit_enum_base_as_nonstandard = TRUE;
+      if (!ms_extensions) {
+        report_explicit_enum_base_as_nonstandard = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (cpp11_mode &&
@@ -4558,7 +4560,10 @@ command line switches.
     pcc mode            C_dialect == C_dialect_pcc       --old_c, -K
     "ANSI" [= not pcc]  C_dialect == C_dialect_ANSI      (default)
       SVR4 mode         SVR4_C_mode                      --svr4
-      microsoft mode    microsoft_mode                   --microsoft
+      microsoft mode    ms_extensions, ms_compat, microsoft_mode
+                                                         --microsoft
+        MS compatibility ms_extensions, ms_compat        --ms_compat
+        MS extensions   ms_extensions                    --ms_extensions
         bugs mode       microsoft_bugs                   --microsoft_bugs
         16-bit mode     il_header.near_and_far_allowed   --microsoft_16
       C99               std_version >= 199901            --c99
@@ -4573,7 +4578,10 @@ command line switches.
     cfront mode
       2.1 mode          cfront_2_1_mode                  --cfront_2.1
       3.0 mode          cfront_3_0_mode                  --cfront_3.0
-    microsoft mode      microsoft_mode                   --microsoft
+    microsoft mode      ms_extensions, ms_compat, microsoft_mode
+                                                         --microsoft
+      MS compatibility  ms_extensions, ms_compat         --ms_compat
+      MS extensions     ms_extensions                    --ms_extensions
       bugs mode         microsoft_bugs                   --microsoft_bugs
       16-bit mode       il_header.near_and_far_allowed   --microsoft_16
     sun mode            sun_mode                         --sun
@@ -4586,8 +4594,6 @@ command line switches.
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
-FIXME: add something here.
-
 The major C dialect (K&R, ANSI, or C++) is determined by a command line option
 (if any) that selects a major dialect, either implicitly (e.g., --g++ or
 --embedded_c) or explicitly (e.g., --c++ or --c).  The specification of two or
@@ -4597,6 +4603,13 @@ specified with --microsoft et al. or --strict et al.  --sun cannot be combined
 with command-line options to select a C mode, but otherwise it implies C++ mode
 (even in the somewhat unusual event that the front end were modified to compile
 C code by default).
+
+Microsoft emulation has been split into three "tiers": --ms_extensions
+emulates clang's -fms-extensions mode, --ms_compat emulates clang's
+-fms-compatibility mode, and --microsoft enables full Microsoft compatibility.
+Only the last of these modes qualifies as a "major dialect", thereby allowing
+--ms_extensions, and/or --ms_compat to be specified with other major dialects
+(e.g., --clang).
 
 A mode for a newer standard (like C99 or C++11) is in some ways considered
 both a dialect and a mode.  For example, with --c99 C_dialect is still
@@ -9027,7 +9040,7 @@ Process the arguments on the command line that invoked the compiler.
             !option_kind_used[(int)optk_microsoft_compatibility]) {
           /* By itself, specifying --microsoft_version implies enabling
              Microsoft emulation mode, but not if using --ms_extensions or
-             --ms_compatibility. */
+             --ms_compat */
           goto enable_microsoft_mode;
         }  /* if */
         break;
@@ -9045,6 +9058,8 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* NEAR_AND_FAR_ALLOWED */
 enable_microsoft_mode:
         microsoft_mode = opt_value;
+        ms_extensions = opt_value;
+        ms_compat = opt_value;
         if (!option_kind_used[(int)optk_cppcli] &&
             /* Make sure not to disable --cppcli mode if --cppcx has been
                specified. */
@@ -9096,14 +9111,14 @@ enable_microsoft_mode:
                                              &end_assembly_search_path);
         break;
       case optk_microsoft_compatibility:
-        /* Enable Clang's idea of Microsoft "compatibility" (also implies
-           setting "extensions"). */
-        ms_compat = TRUE;
-        ms_extensions = TRUE;
+        /* Enable/disable clang's idea of Microsoft "compatibility" (also
+           implies setting "extensions"). */
+        ms_compat = opt_value;
+        ms_extensions = opt_value;
         break;
       case optk_microsoft_extensions:
-        /* Enable Clang's idea of Microsoft "extensions". */
-        ms_extensions = TRUE;
+        /* Enable/disable clang's idea of Microsoft "extensions". */
+        ms_extensions = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -10105,25 +10120,27 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (!microsoft_mode) {
-    /* FIXME: Will probably rework this later. */
+  if (!microsoft_mode && ms_extensions) {
+    /* The Microsoft mode major dialect was not selected, but either
+       --ms_extensions or --ms_compat has been selected.  In this case, select
+       the appropriate options (any major dialect options have already been
+       selected -- these will generally overwrite them). */
     /* FIXME: Reminder to do documentation for new options. */
     /* FIXME: Changes entry. */
-    if (ms_extensions) {
-      if (!option_kind_used[(int)optk_microsoft_bugs]) {
-        microsoft_bugs = TRUE;
-      }  /* if */
-      if (!option_kind_used[(int)optk_microsoft_version]) {
-        /* If no version was explicitly specified, use 1700 (to match
-           Clang). */
-        microsoft_version = 1900; /* FIXME: doc says 1700. */
-      }  /* if */
-      set_microsoft_mode_flags();
-      if (!C_mode()) {
-        /* Reset flags that were set in check_and_set_default_cpp11_extensions
-           as appropriate. */
-        pragma_operator_allowed = FALSE;
-      }  /* if */
+    if (!option_kind_used[(int)optk_microsoft_bugs]) {
+      microsoft_bugs = TRUE;
+    }  /* if */
+    if (!option_kind_used[(int)optk_microsoft_version]) {
+      /* If no version was explicitly specified, use 1900.  This seems to
+         most closely match the behavior of clang though the default for its
+         -fmsc-version command-line option is 1700. */
+      microsoft_version = 1900;
+    }  /* if */
+    set_microsoft_mode_flags();
+    if (!C_mode()) {
+      /* Reset flags that were set in check_and_set_default_cpp11_extensions
+         as appropriate. */
+      pragma_operator_allowed = FALSE;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

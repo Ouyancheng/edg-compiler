@@ -1199,6 +1199,7 @@ there is an applicable one; otherwise, return NULL.
   if (gnu_mode && gnu_version >= 40800 &&
       family == (a_byte_attribute_family)af_std &&
       ap->namespace_name != NULL &&
+      !ms_extensions &&
       strcmp(ap->namespace_name, "gnu") == 0) {
     /* Starting with version 4.8, GCC maps standard attributes of the form
        [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
