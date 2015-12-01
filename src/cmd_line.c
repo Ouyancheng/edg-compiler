@@ -10125,8 +10125,6 @@ enable_microsoft_mode:
        --ms_extensions or --ms_compat has been selected.  In this case, select
        the appropriate options (any major dialect options have already been
        selected -- these will generally overwrite them). */
-    /* FIXME: Reminder to do documentation for new options. */
-    /* FIXME: Changes entry. */
     if (!option_kind_used[(int)optk_microsoft_bugs]) {
       microsoft_bugs = TRUE;
     }  /* if */

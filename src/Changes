@@ -1,5 +1,22 @@
 Version 4.11
 
+12/1/15  [EDGcpfe/16502]
+--ms_extensions and --ms_compat command-line options
+
+Two new command-line options, --[no_]ms_extensions and --[no_]ms_compat, have
+been added to emulate clang's -fms-extensions and -fms-compatibility options
+respectively.  This creates a multi-tiered approach to Microsoft compatibility,
+with --ms_extensions being the lowest level of compatibility, then --ms_compat,
+and finally --microsoft.  Note that --ms_compat implies --ms_extensions, and
+that --microsoft implies both --ms_compat and --ms_extensions.  --microsoft is
+still a "major dialect" and as such cannot be combined with other major modes
+(e.g., --g++ or --clang), but --ms_extensions and --ms_compat may be combined
+with these modes.  Two new globals, ms_extensions and ms_compat, have been
+added to correspond to the new options.  Two new configuration macros,
+DEFAULT_MICROSOFT_EXTENSIONS and DEFAULT_MICROSOFT_COMPATIBILITY, have also
+been added.
+
+
 11/30/15 [EDGcpfe/16675]
 Conditional operator and user-defined conversions
 
