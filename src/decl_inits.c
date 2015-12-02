@@ -1474,7 +1474,13 @@ with every element initialized with the given constant.
   result = alloc_constant((a_constant_repr_kind)ck_aggregate);
   result->type = atp;
   count = num_array_elements(atp);
-  if (count > 1) cp = add_repeat_con(cp, count);
+  if (count > 1 || constant_is(cp, ck_aggregate)) {
+    /* Ordinarily, we don't need to represent a "repeat one time" entry, but
+       in a case of [1][1] array of aggregates, having the ck_init_repeat
+       entry simplifies identifying at which level int the type tree the
+       non-array ck_aggregate constant applies.  IL lowering relies on this. */
+    cp = add_repeat_con(cp, count);
+  }  /* if */
   if (count > 0) add_constant_to_aggregate(cp, result);
   return result;
 }  /* repeat_constant_for_array_init */
