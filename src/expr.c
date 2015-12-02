@@ -24118,7 +24118,7 @@ that case.
                compatible. */
             if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
-                          /*eq_rel_or_cond=*/FALSE,
+                          opname_kind_for_token[(int)operator_token],
                           /*pointer_normalization_standard_in_C=*/FALSE,
                           /*pointers_to_functions_standard_in_C=*/FALSE,
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -24139,7 +24139,7 @@ that case.
           }  /* if */
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
-                          /*eq_rel_or_cond=*/FALSE,
+                          opname_kind_for_token[(int)operator_token],
                           /*pointer_normalization_standard_in_C=*/FALSE,
                           /*pointers_to_functions_standard_in_C=*/FALSE,
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -24687,7 +24687,7 @@ that case.
            C++ mode, but issue warnings in strict ANSI mode. */
         (void)check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
-                           /*eq_rel_or_cond=*/TRUE,
+                           opname_kind_for_token[(int)operator_token],
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
@@ -24974,15 +24974,16 @@ that case.
                            &operation_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
+      a_boolean  operand_2_is_pointer = is_pointer_type(operand_2.type);
+      if (operand_1_is_pointer || operand_2_is_pointer) {
         /* At least one of the operands is a pointer.  See if the operands are
            compatible.  In C, the operands must be pointers to qualified or
            unqualified versions of compatible types (i.e., object, incomplete,
            or function types), and null pointer constants and "void *" pointers
-           are specially handled (ANSI C 3.3.9).  Ditto in C++ (ARM 5.10). */
+           are specially handled (ANSI C 3.3.9).  Ditto in C++. */
         (void)check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
-                           /*eq_rel_or_cond=*/TRUE,
+                           opname_kind_for_token[(int)operator_token],
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
@@ -25078,6 +25079,7 @@ is expected to be NULL in that case.
   an_expr_operator_kind
                      op;
   a_type_ptr         result_type;
+  an_opname_kind     onk;
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
@@ -25097,11 +25099,11 @@ is expected to be NULL in that case.
     scan_expr(&operand_2, PREC_GNU_MIN_MAX, EOPT_NO_OPTIONS);
   }  /* if */
 
+  onk = (an_opname_kind)(operator_token == tok_gnu_min ?
+                                                   onk_gnu_min : onk_gnu_max);
   if (is_overloadable_type_first_operand(operand_1) ||
       is_overloadable_type_operand(&operand_2)) {
     /* Look for C++ operator overloading cases. */
-    an_opname_kind  onk = (an_opname_kind)(operator_token == tok_gnu_min ?
-                                                   onk_gnu_min : onk_gnu_max);
     check_for_operator_overloading(onk,
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
@@ -25166,8 +25168,7 @@ is expected to be NULL in that case.
            and null pointer constants and "void *" pointers are specially
            handled (ARM 5.9). */
         (void)check_compatibility_of_pointer_operands(
-                           operand_1, &operand_2, &operator_position,
-                           /*eq_rel_or_cond=*/FALSE,
+                           operand_1, &operand_2, &operator_position, onk,
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/FALSE,
@@ -26486,7 +26487,7 @@ that case.
            are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
         if (check_compatibility_of_pointer_operands(
                            &operand_2, &operand_3, &colon_position,
-                           /*eq_rel_or_cond=*/TRUE,
+                           (an_opname_kind)onk_question,
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,

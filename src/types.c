@@ -10956,13 +10956,26 @@ cv-qualification signature is determined as follows:
       result = make_pointer_type(
                         make_qualified_type(stp1, get_type_qualifiers(stp2)));
     } else if (ustp1->kind == (a_type_kind)tk_void) {
-      /* Combine the qualifiers, keeping the non-void underlying type. */
-      result = make_pointer_type(
+      /* Combine the qualifiers, keeping the non-void underlying type.  If the
+         other underlying type is a function type, return NULL (this is not
+         clear in the current C++ working paper -- N4527 -- but doing otherwise
+         leads to unexpected results, such as "b ? (void*)p : (void(*)())q"
+         being silently accepted). */
+      if (ustp2->kind != (a_type_kind)tk_routine) {
+        result = make_pointer_type(
                         make_qualified_type(stp2, get_type_qualifiers(stp1)));
+      } else {
+        goto done;
+      }  /* if */
     } else if (ustp2->kind == (a_type_kind)tk_void) {
-      /* Combine the qualifiers, keeping the non-void underlying type. */
-      result = make_pointer_type(
+      /* Combine the qualifiers, keeping the non-void underlying type.  If the
+         other underlying type is a function type, return NULL. */
+      if (ustp1->kind != (a_type_kind)tk_routine) {
+        result = make_pointer_type(
                         make_qualified_type(stp1, get_type_qualifiers(stp2)));
+      } else {
+        goto done;
+      }  /* if */
     } else if (is_immediate_class_type(ustp1) &&
                is_immediate_class_type(ustp2)) {
       /* Check for related-class cases. */

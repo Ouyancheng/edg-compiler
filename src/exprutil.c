@@ -10097,15 +10097,15 @@ a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
                    a_source_position *operator_position,
-                   a_boolean         eq_rel_or_cond,
+                   an_opname_kind    opkind,
                    a_boolean         pointer_normalization_standard_in_C,
                    a_boolean         pointers_to_functions_standard_in_C,
                    a_boolean         pointers_to_incomplete_standard_in_C,
                    a_boolean         mixed_object_and_incomplete_standard_in_C,
                    a_type_ptr        *p_operation_type)
 /*
-operand_1 and operand_2 are the operands of a pointer operation (a comparison
-or conditional operation if eq_rel_or_cond is TRUE).  Check to see that the
+operand_1 and operand_2 are the operands of a pointer operation (described by
+opkind).  Check to see that the
 operands are compatible or can be made compatible.  One or the other of the
 operands, or both, must have a pointer type.  Return the operation type in
 *p_operation_type.  (The operands are not cast to the operation type; the
@@ -10125,7 +10125,14 @@ FALSE if there is an error.
   a_boolean        suppress_extensions;
   a_std_conv_descr std_conv;
 
-  if (eq_rel_or_cond && !C_mode()) {
+  if (!C_mode() &&
+      (opkind == (an_opname_kind)onk_eq ||
+       opkind == (an_opname_kind)onk_ne ||
+       opkind == (an_opname_kind)onk_lt ||
+       opkind == (an_opname_kind)onk_le ||
+       opkind == (an_opname_kind)onk_gt ||
+       opkind == (an_opname_kind)onk_ge ||
+       opkind == (an_opname_kind)onk_question)) {
     /* For equality operators, relational operators, and the ?: operator, the
        compatibility rules were revised through the resolution of Core issue
        1512 (the C++ committee's paper N3624).  The new rules apply to all C++
@@ -10167,7 +10174,32 @@ FALSE if there is an error.
     } else {
       operation_type = make_cv_combined_type_if_possible(
                                               operand_1_type, operand_2_type);
+      
       okay = operation_type != NULL;
+    }  /* if */
+    if (!okay && !strict_ansi_mode && opkind != (an_opname_kind)onk_question) {
+      /* A pointer to void and a pointer to function are not normally 
+         comparable, but many compilers do permit it. */
+      a_type_ptr  stp1, stp2, ustp1, ustp2;
+      stp1 = skip_typerefs(operand_1_type)->variant.pointer.type;
+      stp2 = skip_typerefs(operand_2_type)->variant.pointer.type;
+      ustp1 = skip_typerefs(stp1);
+      ustp2 = skip_typerefs(stp2);
+      if (ustp1->kind == (a_type_kind)tk_void &&
+          ustp2->kind == (a_type_kind)tk_routine) {
+        operation_type = make_pointer_type(
+                    make_qualified_type(stp2, get_type_qualifiers(stp1)));
+        okay = TRUE;
+      } else if (ustp1->kind == (a_type_kind)tk_routine &&
+                 ustp2->kind == (a_type_kind)tk_void) {
+        operation_type = make_pointer_type(
+                    make_qualified_type(stp1, get_type_qualifiers(stp2)));
+        okay = TRUE;
+      }  /* if */
+      if (operation_type != NULL) {
+        expr_pos_warning(ec_comparison_of_pointers_to_void_and_function,
+                         operator_position);
+      }  /* if */
     }  /* if */
     if (microsoft_mode && !okay) {
       /* In Microsoft mode, if no compatibility was found, try again using the
