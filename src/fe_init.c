@@ -833,7 +833,7 @@ Install the keywords in the symbol table.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     /* Enter keywords that are Microsoft "extensions", i.e., those that
-       Clang recognizes in -fms-extensions mode. */
+       clang recognizes in -fms-extensions mode. */
     enter_underscore_keywords((a_token_kind)tok_microsoft_try, "__try");
     enter_underscore_keywords((a_token_kind)tok_finally, "__finally");
     enter_underscore_keywords((a_token_kind)tok_leave, "__leave");
@@ -901,7 +901,7 @@ Install the keywords in the symbol table.
     }  /* if */
   }  /* if */
   if (microsoft_mode) {
-    /* Enter Microsoft-specific keywords that aren't recognized in Clang's
+    /* Enter Microsoft-specific keywords that aren't recognized in clang's
        -fms-extensions mode. */
     enter_keyword((a_token_kind)tok_cdecl, "cdecl");
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
@@ -1149,7 +1149,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");
     }  /* if */
     if (clang_mode) {
-      /* Clang allows _Static_assert in all C++ modes. */
+      /* clang allows _Static_assert in all C++ modes. */
       enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
     }  /* if */
     if (decltype_enabled) {

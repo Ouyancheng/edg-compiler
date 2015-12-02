@@ -778,10 +778,10 @@ by a command line option.
 /*
 Flag that is TRUE to enable Microsoft "compatibility", i.e., the default value
 of the ms_compat global variable.  The ms_compat variable controls "Microsoft
-compatibility" as generally defined by Clang's -fms-compatibility command-line
+compatibility" as generally defined by clang's -fms-compatibility command-line
 option.  Note that this doesn't enable full Microsoft emulation (see
-DEFAULT_MICROSOFT_MODE and microsoft_mode), but rather just Clang's notion of
-it.  It is typically combined with Clang emulation mode, but could conceivably
+DEFAULT_MICROSOFT_MODE and microsoft_mode), but rather just clang's notion of
+it.  It is typically combined with clang emulation mode, but could conceivably
 be paired with other modes.  Always enabled in Microsoft emulation mode.
 */
 #ifndef DEFAULT_MICROSOFT_COMPATIBILITY
@@ -795,9 +795,9 @@ be paired with other modes.  Always enabled in Microsoft emulation mode.
 Flag that is TRUE to enable Microsoft "extensions", i.e., the default value
 of the ms_extensions global variable.  The ms_extensions variable controls
 which extensions to the language should be accepted by the front end and is
-generally defined by Clang's -fms-extensions command-line option.  Note that
+generally defined by clang's -fms-extensions command-line option.  Note that
 this doesn't enable full Microsoft emulation (see DEFAULT_MICROSOFT_MODE and
-microsoft_mode).  It is typically combined with Clang emulation mode, but could
+microsoft_mode).  It is typically combined with clang emulation mode, but could
 conceivably be paired with other modes.  Always enabled in Microsoft emulation
 mode.
 */
@@ -1192,14 +1192,14 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		ms_extensions;
-			/* TRUE if Microsoft extensions (as defined by Clang's
+			/* TRUE if Microsoft extensions (as defined by clang's
 			   -fms-extensions command-line option) are allowed.
 			   Always TRUE when microsoft_mode is TRUE. */
 
 EXTERN a_boolean
 		ms_compat;
 			/* TRUE if Microsoft "compatibility" (as defined by
-			   Clang's -fms-compatibility command-line option) is
+			   clang's -fms-compatibility command-line option) is
 			   enabled.  Always TRUE when microsoft_mode is
 			   TRUE. */
 

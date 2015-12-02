@@ -9042,7 +9042,7 @@ Process the arguments on the command line that invoked the compiler.
             !option_kind_used[(int)optk_microsoft_compatibility]) {
           /* By itself, specifying --microsoft_version implies enabling
              Microsoft emulation mode, but not if using --ms_extensions or
-             --ms_compat */
+             --ms_compat. */
           goto enable_microsoft_mode;
         }  /* if */
         break;
