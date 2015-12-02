@@ -3434,6 +3434,8 @@ otherwise implicitly enabled Microsoft mode.
          explicit mode setting on the command line overrides it. */
       microsoft_mode = FALSE;
       microsoft_bugs = FALSE;
+      ms_extensions = FALSE;
+      ms_compat = FALSE;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10090,7 +10092,8 @@ enable_microsoft_mode:
     /* Turn on features implied by Microsoft mode. */
     set_microsoft_mode_flags();
   } else {
-    /* Microsoft mode is not being used. */
+    /* Microsoft mode is not being used (though ms_extensions and ms_compat
+       may be set -- see below). */
     microsoft_bugs = FALSE;
     if (import_dir_name != NULL) {
       /* --import_dir is allowed only in Microsoft mode. */
@@ -11113,8 +11116,13 @@ variables declared in cmd_line.h.
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
   cppcx_enabled = DEFAULT_CPPCX_ENABLED && microsoft_mode;  /*lint !e506*/
-  ms_extensions = DEFAULT_MICROSOFT_EXTENSIONS;
-  ms_compat = DEFAULT_MICROSOFT_COMPATIBILITY;
+  if (microsoft_mode) {
+    ms_extensions = TRUE;
+    ms_compat = TRUE;
+  } else {
+    ms_extensions = DEFAULT_MICROSOFT_EXTENSIONS;
+    ms_compat = DEFAULT_MICROSOFT_COMPATIBILITY;
+  }  /* if */
   cli_or_cx_enabled = cppcli_enabled || cppcx_enabled;
   mscorlib_file_name = NULL;
   /* using_framework_directory defaults to TRUE, but has no effect unless
