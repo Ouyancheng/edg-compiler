@@ -10188,12 +10188,12 @@ FALSE if there is an error.
       if (ustp1->kind == (a_type_kind)tk_void &&
           ustp2->kind == (a_type_kind)tk_routine) {
         operation_type = make_pointer_type(
-                    make_qualified_type(stp2, get_type_qualifiers(stp1)));
+                    make_qualified_type(stp1, get_type_qualifiers(stp2)));
         okay = TRUE;
       } else if (ustp1->kind == (a_type_kind)tk_routine &&
                  ustp2->kind == (a_type_kind)tk_void) {
         operation_type = make_pointer_type(
-                    make_qualified_type(stp1, get_type_qualifiers(stp2)));
+                    make_qualified_type(stp2, get_type_qualifiers(stp1)));
         okay = TRUE;
       }  /* if */
       if (operation_type != NULL) {
