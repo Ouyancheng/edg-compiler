@@ -1399,6 +1399,13 @@ typedef struct a_constexpr_ptr_to_mem_data {
   a_field_ptr
 		field;
 			/* Field referred to by the pointer-to-member. */
+  a_byte_count
+		this_class_adjustment;
+			/* The adjustment needed to the "this" pointer. */
+  a_bit_field
+		subtract_adjustment:1;
+			/* TRUE if this_class_adjustment must be subtracted
+			   from the "this" pointer. */
 } a_constexpr_ptr_to_mem_data;
 
 
@@ -2140,8 +2147,20 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         /* PMF NYI FIXME */
         unexpected_condition();
       } else {
-        a_field_ptr  field = con->variant.ptr_to_member.variant.field;
-        ((a_constexpr_ptr_to_mem_data*)value)->field = field;
+        a_field_ptr       field = con->variant.ptr_to_member.variant.field;
+        a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
+        a_constexpr_ptr_to_mem_data
+                          *pm_value = (a_constexpr_ptr_to_mem_data*)value;
+        pm_value->field = field;
+        if (bcp != NULL) {
+          get_mapped_byte_count(&persistent_map, bcp,
+                                pm_value->this_class_adjustment);
+          pm_value->subtract_adjustment =
+                                      con->variant.ptr_to_member.cast_to_base;
+        } else {
+          pm_value->this_class_adjustment = 0;
+          pm_value->subtract_adjustment = FALSE;
+        }  /* if */
       }  /* if */
       break;
     case ck_dynamic_init:
@@ -3593,15 +3612,21 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               break;
             case eok_base_class_cast:
-              if (tp->kind == (a_type_kind)tk_pointer) {
+              if (tp->kind == (a_type_kind)tk_pointer ||
+                  opnd1->is_lvalue || opnd1->is_xvalue) {
                 /* An address adjustment. */
                 a_constexpr_address  *result_addr =
                                          (a_constexpr_address*)result_storage;
                 a_type_ptr           dtp, btp;
                 a_base_class_ptr     bcp;
                 a_byte_count         offset;
-                dtp = skip_typerefs(opnd1_type->variant.pointer.type);
-                btp = skip_typerefs(tp->variant.pointer.type);
+                if (tp->kind == (a_type_kind)tk_pointer) {
+                  dtp = skip_typerefs(opnd1_type->variant.pointer.type);
+                  btp = skip_typerefs(tp->variant.pointer.type);
+                } else {
+                  dtp = opnd1_type;
+                  btp = tp;
+                }  /* if */
                 bcp = find_direct_base_class_of(dtp, btp);
                 get_mapped_byte_count(&persistent_map, bcp, offset);
                 *result_addr = *(a_constexpr_address *)opnd1_value;
@@ -5356,11 +5381,13 @@ type.  This includes checking the value of ovfl set by the operation.
               { /* Accessing a field through a pointer-to-member is almost
                   identical to accessing it directly (see above), except for
                   the possibility of a null pointer-to-member. */
-                a_constexpr_address  result_addr;
-                a_field_ptr          field;
-                a_byte_count         offset;
+                a_constexpr_address          result_addr;
+                a_field_ptr                  field;
+                a_byte_count                 offset;
+                a_constexpr_ptr_to_mem_data  *pm_value;
                 result_addr = *(a_constexpr_address*)opnd1_value;
-                field = ((a_constexpr_ptr_to_mem_data*)opnd2_value)->field;
+                pm_value = (a_constexpr_ptr_to_mem_data*)opnd2_value;
+                field = pm_value->field;
                 if (field == NULL) {
                   result = FALSE;
                   info_with_pos(ec_constexpr_null_ptr_to_member_data,
@@ -5372,6 +5399,13 @@ type.  This includes checking the value of ovfl set by the operation.
                      path entry. */
                   unexpected_condition();
                 } else {
+                  if (pm_value->this_class_adjustment != 0) {
+                    if (pm_value->subtract_adjustment) {
+                      result_addr.address -= pm_value->this_class_adjustment;
+                    } else {
+                      result_addr.address += pm_value->this_class_adjustment;
+                    }  /* if */
+                  }  /* if */
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   result_addr.flags &= ~CA_ARRAY_ELEMENT;
