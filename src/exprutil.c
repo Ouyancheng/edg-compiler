@@ -10105,15 +10105,14 @@ a_boolean check_compatibility_of_pointer_operands(
                    a_type_ptr        *p_operation_type)
 /*
 operand_1 and operand_2 are the operands of a pointer operation (described by
-opkind).  Check to see that the
-operands are compatible or can be made compatible.  One or the other of the
-operands, or both, must have a pointer type.  Return the operation type in
-*p_operation_type.  (The operands are not cast to the operation type; the
-caller must do that.)  operator_position gives the operator position (for
-errors).  The other switches indicate the legality of certain constructs in
-ANSI C.  "Illegal" constructs are accepted anyway, but warnings are issued in
-strict ANSI C mode.  The switches are used only in strict ANSI mode.  Return
-FALSE if there is an error.
+opkind).  Check to see that the operands are compatible or can be made
+compatible.  One or the other of the operands, or both, must have a pointer
+type.  Return the operation type in *p_operation_type.  (The operands are not
+cast to the operation type; the caller must do that.)  operator_position gives
+the operator position (for errors).  The other switches indicate the legality
+of certain constructs in ANSI C.  "Illegal" constructs are accepted anyway,
+but warnings are issued in strict ANSI C mode.  The switches are used only in
+strict ANSI mode.  Return FALSE if there is an error.
 */
 {
   a_boolean        okay = FALSE;
@@ -10632,7 +10631,7 @@ gives the operator position (for errors).  Return FALSE if there is an error.
   /* For equality operators, relational operators, and the ?: operator (which
      are the only operators handled by this routine), the compatibility rules
      were revised through the resolution of Core issue 1512 (the C++
-     committee's paper N3624).  The new rules apply to all C++ modes, except
+     committee's paper N3624).  The new rules apply to all C++ modes except
      Cfront mode. */
   if (!any_cfront_mode()) {
     /* Start by checking the cases where an operand is a null pointer constant.
