@@ -195,7 +195,11 @@ was done while some other class was in the process of being defined,
 the fixup of things such as inline function bodies and default arguments
 would not be done until all pending class definitions completed.  Now
 the fixups for any classes loaded by get_definition_of_class are done
-before get_definition_of_class returns.
+before get_definition_of_class returns.  In addition, the
+classes_that_may_need_fixups list has been moved to the class fixup
+header entry in the scope stack so that final class fixup process
+is also done the last pending local class is completed or when
+a class loaded by get_definition_of_class is finished.
 
 
 11/19/15 [EDGcpfe/16387]
