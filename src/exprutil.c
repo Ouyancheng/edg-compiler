@@ -10177,7 +10177,8 @@ FALSE if there is an error.
       
       okay = operation_type != NULL;
     }  /* if */
-    if (!okay && !strict_ansi_mode && opkind != (an_opname_kind)onk_question) {
+    if (!okay && !strict_ansi_mode && opkind != (an_opname_kind)onk_question &&
+        operand_1_is_pointer && operand_2_is_pointer) {
       /* A pointer to void and a pointer to function are not normally 
          comparable, but many compilers do permit it. */
       a_type_ptr  stp1, stp2, ustp1, ustp2;
