@@ -1477,7 +1477,7 @@ with every element initialized with the given constant.
   if (count > 1 || constant_is(cp, ck_aggregate)) {
     /* Ordinarily, we don't need to represent a "repeat one time" entry, but
        in a case of [1][1] array of aggregates, having the ck_init_repeat
-       entry simplifies identifying at which level int the type tree the
+       entry simplifies identifying at which level in the type tree the
        non-array ck_aggregate constant applies.  IL lowering relies on this. */
     cp = add_repeat_con(cp, count);
   }  /* if */
