@@ -2965,6 +2965,7 @@ the scope being pushed.
   ssep->class_fixup_header.pending_class_definitions = 0;
   ssep->class_fixup_header.fixup_list = NULL;
   ssep->class_fixup_header.fixup_list_tail = NULL;
+  ssep->class_fixup_header.classes_that_may_need_fixups = NULL;
   ssep->param_id_list = NULL;
   ssep->orig_return_type = NULL;
   if (sp != NULL) {

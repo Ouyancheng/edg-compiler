@@ -3689,13 +3689,6 @@ created.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_type_list_entry_ptr
-		classes_that_may_need_fixups;
-			/* A list of classes that potentially have associated
-			   fixups (i.e., classes whose definition has just
-			   appeared in the source code). */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* class_type is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3795,17 +3788,19 @@ after a class instantiation.
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */
-    /* If we pushed a translation unit above, pop it now. */
-  }  /* if */
-  if (classes_that_may_need_fixups != NULL) {
-    a_type_list_entry_ptr  tlep, list_to_free = classes_that_may_need_fixups;
-    classes_that_may_need_fixups = NULL;
+  }  /* while */
+  if (cfhp->classes_that_may_need_fixups != NULL) {
+    a_type_list_entry_ptr tlep;
+    a_type_list_entry_ptr list_to_free = cfhp->classes_that_may_need_fixups;
+
+    cfhp->classes_that_may_need_fixups = NULL;
     for (tlep = list_to_free; tlep != NULL; tlep = tlep->next) {
       check_trans_unit_for_class(tlep->type, &trans_unit_pushed);
       wrap_up_class_definition(tlep->type);
     }  /* for */
     free_list_of_type_list_entries(list_to_free);
   }  /* if */
+  /* If we pushed a translation unit above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
   db_exit();
 }  /* process_deferred_class_fixups */
@@ -28715,8 +28710,12 @@ classes.
   a_symbol_locator                pe_loc;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_list_entry_ptr           new_type_list_entry;
+  a_type_list_entry_ptr           *classes_that_may_need_fixups;
 
   db_enter(3, "scan_class_definition");
+  classes_that_may_need_fixups = 
+                   &curr_class_fixup_header(/*for_instantiation=*/FALSE)->
+                                                  classes_that_may_need_fixups;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   /* Place the class on a list tracking classes with source definitions so we
      know that the class and its members are potentially subject to fixups.
@@ -28725,8 +28724,8 @@ classes.
   cssp->may_need_fixups = TRUE;
   new_type_list_entry = alloc_type_list_entry();
   new_type_list_entry->type = class_type;
-  new_type_list_entry->next = classes_that_may_need_fixups;
-  classes_that_may_need_fixups = new_type_list_entry;
+  new_type_list_entry->next = *classes_that_may_need_fixups;
+  *classes_that_may_need_fixups = new_type_list_entry;
   check_assertion(!cssp->being_defined);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
@@ -31513,7 +31512,6 @@ One-time initialization for class_decl.c static variables.
   register_trans_unit_variable(deferred_friend_fixup_list);
   register_trans_unit_variable(deferred_friend_fixup_list_tail);
   register_trans_unit_variable(use_deferred_friend_fixup_list);
-  register_trans_unit_variable(classes_that_may_need_fixups);
 }  /* class_decl_one_time_init */
 
 
@@ -31533,7 +31531,6 @@ translation unit.
                                     ms_extensions;
   deferred_friend_fixup_list = NULL;
   deferred_friend_fixup_list_tail = NULL;
-  classes_that_may_need_fixups = NULL;
 }  /* class_decl_trans_unit_init */
 
 

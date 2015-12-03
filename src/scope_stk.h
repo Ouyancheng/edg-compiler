@@ -157,6 +157,11 @@ typedef struct a_class_fixup_header {
 		fixup_list_tail;
 			/* Pointer to the last entry on the list pointed to by
 			   fixup_list, or NULL if that list is empty. */
+  a_type_list_entry_ptr
+		classes_that_may_need_fixups;
+			/* A list of classes that potentially have associated
+			   fixups (i.e., classes whose definition has just
+			   appeared in the source code). */
 } a_class_fixup_header;
 
 
