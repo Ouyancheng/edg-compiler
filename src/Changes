@@ -1,5 +1,19 @@
 Version 4.11
 
+12/4/15  [EDGcpfe/16698]
+Calling a constexpr function through a reference
+
+The front end previously incorrectly rejected a call to a constexpr
+function via a constexpr reference to that function in a context requiring
+a constant expression.  This is now fixed.  For example, with --c++11:
+
+  constexpr int foo() {
+    return 11;
+  }
+  constexpr int (& r)() = foo;
+  constexpr int i = r();   // Previously rejected as non-constant
+
+
 12/2/15  [EDGcpfe/16695]
 Single-element multi-dimensional arrays and constexpr constructors
 

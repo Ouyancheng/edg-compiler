@@ -6520,6 +6520,14 @@ context information.
         a_constant_ptr   conaddr1 = local_constant();
         op1 = skip_parens(op1);
         switch (expr->variant.operation.kind) {
+          case eok_ref_indirect:
+            if (is_constant_node(op1)) {
+              /* The operand is a constant reference to an entity, so the
+                 resulting address is that constant. */
+              copy_constant(node_constant(op1), con);
+              is_constant_ptr = TRUE;
+            }  /* if */
+            break;
           case eok_address_of:
             /* "&" operation.  If the operand is an lvalue with a constant
                address, the result is a constant pointer. */
