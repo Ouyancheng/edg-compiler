@@ -6525,7 +6525,7 @@ context information.
                 node_constant(op1)->kind == (a_constant_repr_kind)ck_address &&
                 node_constant(op1)->variant.address.kind ==
                                            (an_address_base_kind)abk_routine) {
-              /* The operand is a constant reference to an function, so the
+              /* The operand is a constant reference to a function, so the
                  resulting address is that constant. */
               copy_constant(node_constant(op1), con);
               is_constant_ptr = TRUE;
