@@ -6521,8 +6521,11 @@ context information.
         op1 = skip_parens(op1);
         switch (expr->variant.operation.kind) {
           case eok_ref_indirect:
-            if (is_constant_node(op1)) {
-              /* The operand is a constant reference to an entity, so the
+            if (is_constant_node(op1) &&
+                node_constant(op1)->kind == (a_constant_repr_kind)ck_address &&
+                node_constant(op1)->variant.address.kind ==
+                                           (an_address_base_kind)abk_routine) {
+              /* The operand is a constant reference to an function, so the
                  resulting address is that constant. */
               copy_constant(node_constant(op1), con);
               is_constant_ptr = TRUE;
