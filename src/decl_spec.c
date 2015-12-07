@@ -5228,7 +5228,7 @@ is updated to reflect relevant positions of this definition.
             }  /* if */
             if (conversion_allowed &&
                 (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
-                 microsoft_mode)) {
+                 ms_compat)) {
               /* In non-strict mode, allow unsigned constants that can be
                  coerced into an int.  (Microsoft compilers appear to even
                  permit cases like:

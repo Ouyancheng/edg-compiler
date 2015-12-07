@@ -364,7 +364,7 @@ the "#" the current token (at least logically).
       kind = ppd_unassert;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && curr_id_is("import")) {
+    } else if (ms_compat && curr_id_is("import")) {
       /* #import directive (a Microsoft extension). */
       kind = ppd_import;
     } else if (curr_id_is("using")) {

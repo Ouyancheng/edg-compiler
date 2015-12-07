@@ -10600,7 +10600,7 @@ previously-scanned sizeof expression, and return the result in *result
         is_type = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && !C_mode()) {
+    } else if (ms_extensions && !C_mode()) {
       /* Microsoft allows "sizeof T" without parentheses in C++ mode,
          where T is a type-name (not a keyword like "int").  If we have
          a type name that is not followed by a left parenthesis, assume this
@@ -14871,7 +14871,7 @@ indication in *rcblock).
   /* typeid is valid only after the type_info type has been defined in a
      header file.  In Clang mode, a declaration is sufficient. */
   if (!err && !is_cli_typeid &&
-      (clang_mode ?
+      (clang_mode && !ms_compat ?
             (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :
             is_incomplete_type(type_of_type_info))) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);

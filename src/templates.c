@@ -24293,7 +24293,7 @@ that follows.
     if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
       /* Storage-class-specifier is non-standard, but allowed in some modes. */
       an_error_severity	severity = es_discretionary_error;
-      if ((gpp_mode && gnu_version < 40300) || microsoft_mode) {
+      if ((gpp_mode && gnu_version < 40300) || ms_compat) {
         /* Accepted, but worth a remark. */
         severity = es_remark;
       }  /* if */

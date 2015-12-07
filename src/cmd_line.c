@@ -4377,6 +4377,7 @@ This function is also called in clang mode.
     constexpr_enabled =  TRUE;
   }  /* if */
   if (gnu_version >= 40700 && variadic_templates_enabled &&
+      !ms_compat &&
       !(option_kind_used[(int)optk_parse_nonclass_templates] &&
         !nonclass_prototype_instantiations)) {
     /* g++ 4.7 and later support __bases and __direct_bases.  This uses the
@@ -4390,7 +4391,8 @@ This function is also called in clang mode.
   }  /* if */
 #if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
   if (gnu_version >= 30400) {
-    if (!(option_kind_used[(int)optk_defer_parse_function_templates])) {
+    if (!(option_kind_used[(int)optk_defer_parse_function_templates]) &&
+        !ms_compat) {
       /* Only do function prototype instantiations for functions that actually
          need to be instantiated.  This is done to avoid diagnostics on unused
          functions.  Prototype instantiations cannot be deferred in some
@@ -10150,7 +10152,7 @@ enable_microsoft_mode:
        (except in C mode). */
     char16_t_and_char32_t_are_keywords = TRUE;
   }  /* if */
-  if (nonclass_prototype_instantiations && !ms_extensions &&
+  if (nonclass_prototype_instantiations && !ms_compat &&
       !option_kind_used[(int)optk_implicit_typename]) {
     /* When doing nonclass prototype instantiations, disable implicit typename
        unless it was explicitly enabled.  In Microsoft mode implicit typename

@@ -3690,7 +3690,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
   next_op = (a_repl_text_seq_kind)*(ahead++);
   if (next_op == rt_raw_argument ||
       next_op == rt_microsoft_maybe_raw_argument ||
-      (microsoft_mode && next_op == rt_argument)) {
+      (ms_compat && next_op == rt_argument)) {
     /* A macro argument follows the concatenation.  (In Microsoft mode,
        the argument is expanded, whether or not preceded by "##".) */
     a_macro_arg_ptr map;
@@ -3699,7 +3699,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
     get_arg_value(arg_number, map);
     if (arg_number == n_params &&
         (map->raw_len == 0 ||
-         (microsoft_mode && map->expanded_len == 0))) {
+         (ms_compat && map->expanded_len == 0))) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
          white space characters preceded by a comma: */
@@ -3791,7 +3791,7 @@ hence its name should not be changed.
         case rt_charized_raw_argument:
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
-          if (map->raw_len == 0 && microsoft_mode && !map->is_empty_arg) {
+          if (map->raw_len == 0 && ms_compat && !map->is_empty_arg) {
             /* The Microsoft preprocessor suppresses all output for
                omitted (as opposed to empty) arguments.  That is, given
 
@@ -3839,7 +3839,7 @@ hence its name should not be changed.
     /* When extended variadic macros are enabled, a "##" followed by an
        empty variadic argument has a special deletion effect.  The same is
        true for Microsoft variadic macros, with or without the "##". */
-    if ((extended_variadic_macros_allowed || microsoft_mode) &&
+    if ((extended_variadic_macros_allowed || ms_compat) &&
         mdp->variadic &&
         ((a_repl_text_seq_kind)*rtp == rt_paste ||
          (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
@@ -4451,7 +4451,7 @@ associated global variables will also have been set).
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       check_expansion_for_recursion = FALSE;
   a_boolean       pcc_mode_macro_recursion = FALSE;
-  a_boolean       comma_ignored_inside_argument = microsoft_mode;
+  a_boolean       comma_ignored_inside_argument = ms_compat;
   a_source_position
                   start_pos;
   a_const_char    *file_name, *full_name;
@@ -4676,7 +4676,7 @@ end_scan_for_macro_modifs:;
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
         if (!pcc_preprocessing_mode) {
-          if (microsoft_mode) {
+          if (ms_compat) {
             /* In some cases, the Microsoft preprocessor expands a macro
                invocation appearing in the expansion of an earlier
                invocation of the same macro.  For example:
@@ -5129,7 +5129,7 @@ do_argument_again:
               if (!too_many_args_diag_given) {
                 an_error_severity severity;
                 a_source_position *pos;
-                if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
+                if (pcc_preprocessing_mode || SVR4_C_mode || ms_compat) {
                   /* In pcc, SVR4 C, and Microsoft mode, this is only a
                      warning. */
                   severity = es_warning;
@@ -5237,7 +5237,7 @@ do_argument_again:
                                           map->raw_text+map->raw_len);
             map->raw_len += token_text_len;
             if (pcc_preprocessing_mode ||
-                (microsoft_mode && curr_token == tok_rparen)) {
+                (ms_compat && curr_token == tok_rparen)) {
               /* Suppress end-of-token markers in pcc mode.  Also, in
                  Microsoft mode, suppress the token separator following a
                  right parenthesis, to allow concatenation of the final
@@ -5539,7 +5539,7 @@ scan_expanded_tokens:
               need_end_of_token_marker = TRUE;
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
-            if (microsoft_mode && token_ends_macro_expansion &&
+            if (ms_compat && token_ends_macro_expansion &&
                 !any_white_space_skipped) {
               /* Suppress the token separator to allow concatenation of the
                  final token of a macro expansion with the following
@@ -5668,10 +5668,10 @@ end_arg_expansion:;
            preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
            where we issue a warning. It is also fine (no warning) to omit
            an extended or Microsoft variadic macro argument. */
-        if (!((extended_variadic_macros_allowed || microsoft_mode) &&
+        if (!((extended_variadic_macros_allowed || ms_compat) &&
               pp->next == NULL && mdp->variadic)) {
           an_error_severity sev;
-          if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode ||
+          if (pcc_preprocessing_mode || SVR4_C_mode || ms_compat ||
               sun_mode) {
             sev = es_warning;
           } else {
@@ -6230,7 +6230,7 @@ end_arg_expansion:;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
-            if (map->raw_len == 0 && microsoft_mode && !map->is_empty_arg) {
+            if (map->raw_len == 0 && ms_compat && !map->is_empty_arg) {
               /* The Microsoft preprocessor suppresses all output for
                  omitted (as opposed to empty) arguments.  That is, given
 
@@ -6315,7 +6315,7 @@ end_arg_expansion:;
               *src_loc++ = LE_RAW_OR_EXPANDED_ARGUMENT;
               /* Calculate the effective length of the raw version. */
               sect_len = map->raw_len;
-              if ((extended_variadic_macros_allowed || microsoft_mode) &&
+              if ((extended_variadic_macros_allowed || ms_compat) &&
                   mdp->variadic &&
                   ((a_repl_text_seq_kind)*rtp == rt_paste ||
                    (a_repl_text_seq_kind)*rtp ==
@@ -6373,7 +6373,7 @@ end_arg_expansion:;
       /* When extended variadic macros are enabled, a "##" followed by an
          empty variadic argument has a special deletion effect.  The same
          is true for Microsoft variadic macros, with or without the "##". */
-      if ((extended_variadic_macros_allowed || microsoft_mode) &&
+      if ((extended_variadic_macros_allowed || ms_compat) &&
           mdp->variadic &&
           ((a_repl_text_seq_kind)*rtp == rt_paste ||
            (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
@@ -6491,7 +6491,7 @@ copy_done:
   if ((pcc_preprocessing_mode ||
        /* Avoid a problem with a missing parenthesis on a "defined"
           operator. */
-       (microsoft_mode && curr_token != tok_newline)) &&
+       (ms_compat && curr_token != tok_newline)) &&
       is_macro_call && macro_depth == 1) {
     /* In pcc mode, in order to more closely approximate the token-pasting
        behavior of pcc, we immediately macro-expand the text resulting from a
@@ -6502,7 +6502,7 @@ copy_done:
     /* Free any allocated macro buffers now, to make their space available
        in the macro expansions about to be done. */
     free_macro_arg_entries(prev_end_of_macro_arg_list);
-    if (microsoft_mode) {
+    if (ms_compat) {
       top_microsoft_slmp = slmp;
     }  /* if */
     expand_top_level_pcc_macro(slmp);
@@ -7528,7 +7528,7 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
               /* The token following "##" is a parameter. */
-              if (microsoft_mode && 
+              if (ms_compat && 
                   (prev_token != tok_identifier ||
                    (microsoft_version >= 1400 && variadic &&
                     param_num == n_params))) {
@@ -7644,7 +7644,7 @@ Scan and process a #define directive.
           /* In pcc mode, always use the raw form of the argument.  Expansion
              is done on rescan of the macro body. */
           a_boolean is_microsoft_va_args =
-                                (microsoft_mode && microsoft_version >= 1400 &&
+                                (ms_compat && microsoft_version >= 1400 &&
                                  variadic && param_num == n_params);
           if (is_microsoft_va_args &&
               next_avail_in_macro_buffer != buffer_start) {
@@ -7716,7 +7716,7 @@ Scan and process a #define directive.
              put out later unless the next thing is "##" or the end of the
              replacement text. */
           need_end_of_token_marker = TRUE;
-          if (microsoft_mode &&
+          if (ms_compat &&
               len_of_curr_token == 1 && *start_of_curr_token == 'L' &&
               start_of_curr_token[1] == '#') {
             /* In Microsoft mode, L#param can be used to create a wide
@@ -7823,7 +7823,7 @@ Scan and process a #define directive.
                           assoc_symbol->header->identifier);
         } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
           /* A redefinition of a predefined symbol. */
-          if (microsoft_mode) {
+          if (ms_compat) {
             discard_new_definition = TRUE;
             severity = es_warning;
             code = ec_cannot_redef_predef_macro;
@@ -10155,7 +10155,7 @@ Do one-time initialization of variables related to macro processing.
   init_macro_text_map(MACRO_TEXT_MAP_INITIAL_COUNT, &macro_text_map,
                       /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  if (pcc_preprocessing_mode || microsoft_mode) {
+  if (pcc_preprocessing_mode || ms_compat) {
     /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
        the full text of a first-level macro expansion so that the token
        pasting can match pcc's. */

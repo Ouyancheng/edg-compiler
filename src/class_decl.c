@@ -22094,7 +22094,7 @@ is the access specifier applicable to the new declaration.
 
   decl_pos = locator_for_curr_id.source_position;
   if (!have_access_to_symbol(sym) &&
-      !(microsoft_mode &&
+      !(ms_compat &&
         sym->kind == (a_symbol_kind)sk_projection &&
         sym->variant.projection.is_using_decl &&
         is_function_symbol(fund_sym))) {
