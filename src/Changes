@@ -1,5 +1,11 @@
 Version 4.11
 
+12/7/15  [EDGcpfe/16711]
+Microsoft compatibility: Fix memory leaks in metadata processing
+
+A few memory leaks have been plugged in the C++/CLI metadata processing.
+
+
 12/7/15  [EDGcpfe/16710]
 Microsoft compatibility: Crash on metadata initialization failure
 

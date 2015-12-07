@@ -4004,6 +4004,7 @@ public:
                                                      fields, _countof(fields),
                                                      &count_of_fields);
             CHECK_API_RESULT(hr, EnumFieldsWithName);
+            import_interface()->CloseEnum(enum_fields);
             check_assertion(count_of_fields == 1);
             PCCOR_SIGNATURE  signature;
             ULONG            bytes_in_signature;
@@ -5689,6 +5690,7 @@ Import the list of enumerators for a enum type definition.
         }  /* if */
       }  /* for */
     } while (count_of_fields > 0);
+    import_interface()->CloseEnum(enum_fields);
     enumerators_initialized_ = true;
   }  /* if */
   return enumerators_;
@@ -8587,7 +8589,8 @@ private:
                         /* The assemblies that we have imported. */
   HMODULE       alink_handle_;
                         /* The handle for alink.dll. */
-  IALink        *alink_interface_;
+  CComPtr<IALink>
+                alink_interface_;
                         /* The interface to the functionality provided by
                            alink.dll. */
   typedef HRESULT (WINAPI* a_pfn_create_assembly_name_object)(
