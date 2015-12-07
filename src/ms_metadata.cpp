@@ -9741,6 +9741,8 @@ Reset the metadata reader for reading metadata for the next translation unit.
 {
   if (ms_metadata_init_if_needed()) {
     (void)metadata_reader->trans_unit_init(tu_file_name);
+  } else {
+    catastrophe(ec_ms_metadata_init_failed);
   }  /* if */
 }  /* ms_metadata_trans_unit_init */
 

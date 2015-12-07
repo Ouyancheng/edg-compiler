@@ -1,5 +1,12 @@
 Version 4.11
 
+12/7/15  [EDGcpfe/16710]
+Microsoft compatibility: Crash on metadata initialization failure
+
+Failure to initialize metadata had resulted in dereferencing a NULL pointer
+and now results in a catastrophic error.
+
+
 12/7/15  [EDGcpfe/16708]
 Microsoft compatibility: Support for Windows Runtime 1.4 metadata
 
