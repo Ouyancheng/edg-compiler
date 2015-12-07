@@ -1418,7 +1418,8 @@ public:
     tik_handle,
     tik_reference,
     tik_rvalue_reference,
-    tik_tracking_reference
+    tik_tracking_reference,
+    tik_tentative_byref
   };
 
   a_type_indirection(an_indirection_kind indirection_kind,
@@ -3266,6 +3267,8 @@ private:
   }  /* constructor */
 
   a_type_wrapper_ptr decode_modified_type(CorElementType element_type);
+
+  a_type_wrapper_ptr decode_raw_type();
 
   a_type_wrapper_ptr decode_type();
 
@@ -5605,7 +5608,8 @@ Import all the import scopes associated with this assembly.
                                                   _countof(metaDataVersion),
                                                   /*pccBufSize=*/nullptr);
       if (SUCCEEDED(hr) &&
-          (wcsstr(metaDataVersion, L"WindowsRuntime 1.3") != nullptr ||
+          (wcsstr(metaDataVersion, L"WindowsRuntime 1.4") != nullptr ||
+           wcsstr(metaDataVersion, L"WindowsRuntime 1.3") != nullptr ||
            wcsstr(metaDataVersion, L"WindowsRuntime 1.2") != nullptr)) {
         is_cppcx_metadata_ = true;
       }  /* if */
@@ -7262,9 +7266,35 @@ Decode a type signature that is modified with a custom type modifier.
     element_type = get_element_type();
   }  /* for */
   /* Decode the modified type. */
-  type = decode_type();
+  type = decode_raw_type();
   if (type->is_invalid()) {
     goto done;
+  }  /* if */
+  /* Resolve the ByRef indirection early so that all checks below can process
+     the final indirection kind correctly. */
+  if (type->is_of_kind(a_type_wrapper::twk_indirection)) {
+    auto indirection = type->as_indirection();
+    if (indirection->is_of_indirection_kind(
+                                   a_type_indirection::tik_tentative_byref)) {
+      if (is_cppcx_metadata) {
+        if ((modifier_flags & tmf_is_const) != 0 &&
+            indirection->underlying_type()->is_of_kind(
+                                                 a_type_wrapper::twk_class)) {
+          /* The specific sequence of CMOD_OPT[const], BYREF, VALUETYPE
+             designates a by-ref struct, which projects in C++ to const T&. */
+          indirection->underlying_type()->add_qualifier_flags(
+                                                    a_type_wrapper::qf_const);
+          indirection->set_indirection_kind(
+                                           a_type_indirection::tik_reference);
+          modifier_flags &= ~tmf_is_const;
+        } else {
+          indirection->set_indirection_kind(a_type_indirection::tik_pointer);
+        }  /* if */
+      } else {
+        indirection->set_indirection_kind(
+                                  a_type_indirection::tik_tracking_reference);
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Apply the modifiers to the decoded type. */
   if ((modifier_flags & tmf_is_boxed) != 0) {
@@ -7814,9 +7844,11 @@ an_attribute_argument::an_attribute_argument(a_const_type_wrapper_ptr type,
 }  /* an_attribute_argument Constructor. */
 
 
-a_type_wrapper_ptr a_signature_decoder::decode_type()
+a_type_wrapper_ptr a_signature_decoder::decode_raw_type()
 /*
-Decode a type signature and return it as a std::wstring.
+Decode a type signature, but preserve any ByRef type indirections so that
+decode_modified_type and decode_type can correctly perform language-specific
+type mappings.
 */
 {
   a_type_wrapper_ptr type;
@@ -7885,9 +7917,7 @@ Decode a type signature and return it as a std::wstring.
       { a_type_wrapper_ptr underlying_type = decode_type();
         if (!underlying_type->is_invalid()) {
           type = make_shared<a_type_indirection>(
-                               is_cppcx_metadata ?
-                                   a_type_indirection::tik_pointer :
-                                   a_type_indirection::tik_tracking_reference,
+                               a_type_indirection::tik_tentative_byref,
                                move(underlying_type));
         }  /* if */
         break;
@@ -7986,6 +8016,30 @@ Decode a type signature and return it as a std::wstring.
   }  /* switch */
   if (type == nullptr) {
     type = a_type_wrapper::create(a_type_wrapper::twk_invalid);
+  }  /* if */
+  return type;
+}  /* a_signature_decoder::decode_raw_type */
+
+
+a_type_wrapper_ptr a_signature_decoder::decode_type()
+/*
+Decode a type signature.
+*/
+{
+  auto type = decode_raw_type();
+  auto indirection = type->as_indirection();
+
+  if (indirection != nullptr && indirection->is_of_indirection_kind(
+                                   a_type_indirection::tik_tentative_byref)) {
+    /* Perform ByRef to language-specific type mapping that can't be performed
+       earlier because decode_modified_type needs to see the raw type in some
+       cases. */
+    if (is_cppcx_metadata) {
+      indirection->set_indirection_kind(a_type_indirection::tik_pointer);
+    } else {
+      indirection->set_indirection_kind(
+                                  a_type_indirection::tik_tracking_reference);
+    }  /* if */
   }  /* if */
   return type;
 }  /* a_signature_decoder::decode_type */

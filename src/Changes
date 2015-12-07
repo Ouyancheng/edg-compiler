@@ -1,5 +1,12 @@
 Version 4.11
 
+12/7/15  [EDGcpfe/16708]
+Microsoft compatibility: Support for Windows Runtime 1.4 metadata
+
+A change has been made to add support for version 1.4 of the Windows Runtime
+metadata.
+
+
 12/4/15  [EDGcpfe/16698]
 Calling a constexpr function through a reference
 
