@@ -842,6 +842,9 @@ extern int fileno(FILE *);
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
+#if !CPPCLI_ENABLING_POSSIBLE
+/*lint -esym(769,ec_ms_metadata_init_failed)*/
+#endif /* !CPPCLI_ENABLING_POSSIBLE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_uint16)*/
@@ -1162,7 +1165,6 @@ extern int fileno(FILE *);
 /*lint -esym(765,free_attachments_to_operand)*/
 /*lint -esym(769,ec_function_modifier_requires_virtual_function)*/
 /*lint -esym(769,ec_constexpr_ignored_on_microsoft_nonstatic_member)*/
-/*lint -esym(769,ec_ms_metadata_init_failed)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/
