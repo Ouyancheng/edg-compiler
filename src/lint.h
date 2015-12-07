@@ -842,9 +842,6 @@ extern int fileno(FILE *);
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
-#if !CPPCLI_ENABLING_POSSIBLE
-/*lint -esym(769,ec_ms_metadata_init_failed)*/
-#endif /* !CPPCLI_ENABLING_POSSIBLE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_uint16)*/
@@ -1259,6 +1256,9 @@ extern int fileno(FILE *);
 /*lint -esym(759,ms_compat)*/
 /*lint -esym(765,ms_compat)*/
 /*lint -esym(552,ms_compat)*/
+/* This should be conditional on !CPPCLI_ENABLING_POSSIBLE, but we don't
+   include *.cpp files when running lint, so make it unconditional. */
+/*lint -esym(769,ec_ms_metadata_init_failed)*/
 
 #endif /* ifndef LINT_H */
 
