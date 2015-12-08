@@ -111,8 +111,21 @@ representations used elsewhere in the front end (i.e., an_integer_value, etc.).
 Bit fields occupy a whole integer value, but every "store" to a bit field is
 appropriately trimmed.
 
+Class types objects and subobjects start with an IL pointer (described below),
+followed by storage for the fields, and that followed by storage for direct
+base classes (in declaration order).  A derived-to-base class cast therefore
+always corresponds to a positive offset of the "this" pointer, whereas a
+base-to-derived class cast involves negative offset.
+
 The storage for a union object starts with a pointer to an IL entry for a
 field.  That pointer reflects which field is the active field in the union.
+
+The storage of a non-union class type ("class" or "struct") starts with a
+pointer to an IL entry for the type of the next-derived subobject, or NULL
+for the most-derived subobject.  This is used to catch invalid base-to-derived
+casts (or certain invalid accesses to a derived-object member through a
+pointer-to-member value).
+
 */
 
 typedef unsigned int a_byte_count;
@@ -1381,47 +1394,34 @@ Macro to initialize a constant address at addr referring to the
   ((a_constexpr_address *)(addr))->variant.addr_con = (con);
 
 
-typedef struct a_constexpr_ptr_to_mem_function {
-  a_routine_ptr	member_function;
-			/* The member function referred to. */
-  a_byte_count
-		this_class_adjustment;
-			/* The adjustment needed to the "this" pointer. */
-} a_constexpr_ptr_to_mem_function;
-
-
-/*FIXME: delete when fields are used*/
-/*lint -esym(754,a_constexpr_ptr_to_mem_function::member_function)*/
-/*lint -esym(754,a_constexpr_ptr_to_mem_function::this_class_adjustment)*/
-
-
-typedef struct a_constexpr_ptr_to_mem_data {
-  a_field_ptr
-		field;
-			/* Field referred to by the pointer-to-member. */
-  a_byte_count
-		this_class_adjustment;
-			/* The adjustment needed to the "this" pointer. */
+typedef struct a_constexpr_ptr_to_mem {
+  a_bit_field
+		is_ptr_to_mem_function:1;
+			/* TRUE if this is a pointer to member function. */
   a_bit_field
 		subtract_adjustment:1;
 			/* TRUE if this_class_adjustment must be subtracted
 			   from the "this" pointer. */
-} a_constexpr_ptr_to_mem_data;
+  a_byte_count
+		this_class_adjustment;
+			/* The adjustment needed to the "this" pointer. */
+  union {
+    /* When is_ptr_to_mem_function is FALSE. */
+    a_field_ptr
+		field;
+			/* Field referred to by the pointer-to-member. */
+    /* When is_ptr_to_mem_function is TRUE. */
+    a_routine_ptr
+		routine;
+			/* Routine referred to by the pointer-to-member. */
+  } variant;
+} a_constexpr_ptr_to_mem;
 
 
 /*
 Macro defining the largest allowed size of a type in the interpreter.
 */
 #define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
-
-#if /*FIXME: delete?*/0
-/*
-Macro producing TRUE if the given tk_pointer type is a pointer or reference to
-a function type.
-*/
-#define ptr_or_ref_is_to_function(tp)                                        \
-  (skip_typerefs(tp->variant.pointer.type)->kind == (a_type_kind)tk_routine)
-#endif /*FIXME: delete?*/
 
 
 /*
@@ -1459,7 +1459,7 @@ Macro giving the number of bytes required for a scalar value.
   max(max(max(sizeof(an_integer_value),         \
               sizeof(an_internal_float_value)), \
           sizeof(a_constexpr_address)),         \
-      sizeof(a_constexpr_ptr_to_mem_function))
+      sizeof(a_constexpr_ptr_to_mem))
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
@@ -1469,7 +1469,6 @@ static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
                                        a_boolean             *p_result);
 
 
-/*ARGSUSED*/  /*FIXME:delete once errors are recorded. */
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp,
                                            a_boolean             *p_result)
@@ -1531,11 +1530,7 @@ redo:
       tp = tp->variant.typeref.type;
       goto redo;
     case tk_ptr_to_member:
-      if (ptr_to_mem_is_to_function(tp)) {
-        result = sizeof(a_constexpr_ptr_to_mem_function);
-      } else {
-        result = sizeof(a_constexpr_ptr_to_mem_data);
-      }  /* if */
+      result = sizeof(a_constexpr_ptr_to_mem);
       break;
     case tk_nullptr:
       result = 1;  /* FIXME? */
@@ -1588,14 +1583,9 @@ interpreter's limits; in that case, *p_result is set to FALSE.
   a_boolean         any_virtual_bases =
                       tp->variant.class_struct_union.any_virtual_base_classes;
 
-  /* FIXME: virtual bases only in error cases? => fail interpretation */
-  if (tp->variant.class_struct_union
-                 .any_virtual_functions_including_in_base_classes ||
-      any_virtual_bases) {
-    /* Allocate storage to indicate which base in a hierarchy it is (NULL if
-       it is a complete object). */
-    total_size += sizeof(a_base_class_ptr);
-  }  /* if */
+  /* Allocate a pointer recording the next derivation step (NULL for a
+     complete class). */
+  total_size += sizeof(a_type_ptr);
   /* Allocate each proper field and record the field offsets. */
   fp = tp->variant.class_struct_union.field_list;
   for (fp = next_initializable_field(fp);
@@ -1681,6 +1671,25 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
 }  /* lay_out_union_type */
 
 
+#define record_subobject_derivation(subobj_ptr, bcp)                         \
+  *(a_base_class_ptr*)(subobj_ptr) = (a_base_class_ptr)(bcp);
+
+/*
+Class type subobjects record the type of the next-more-derived subobject, or
+NULL for a most-derived object.  The following macro records that NULL (for
+proper base subobjects, the next-more-derived type is recorded when the base
+subobject is initializer).
+*/
+#define record_complete_object(utp, storage_ptr)                             \
+  if (is_immediate_class_type(utp)) {                                        \
+    record_subobject_derivation(storage_ptr, NULL);                          \
+  }  /* if */                                                                \
+
+#define alloc_complete_object(ips, n_bytes, utp, storage_ptr)                \
+  {                                                                          \
+    alloc_stack_bytes(ips, n_bytes, storage_ptr);                            \
+    record_complete_object(utp, storage_ptr);                                \
+  }
 
 #if DEBUG
 
@@ -1889,6 +1898,22 @@ diagnostic string.  Also record annotations describing the call stack.
   more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
   info_call_stack(ips);
 }  /* info_with_pos_sym */
+
+
+static void info_with_pos_sym_type(an_error_code         err_code,
+                                   a_source_position     *pos,
+                                   a_symbol_ptr          sym,
+                                   a_type_ptr            type,
+                                   an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym and type for placeholder substitution in
+the diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym_type */
 
 
 static void info_with_pos_sym2(an_error_code         err_code,
@@ -2143,24 +2168,36 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       }  /* switch */
       break;
     case ck_ptr_to_member:
-      if (con->variant.ptr_to_member.is_function_ptr) {
-        /* PMF NYI FIXME */
-        unexpected_condition();
-      } else {
-        a_field_ptr       field = con->variant.ptr_to_member.variant.field;
-        a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
-        a_constexpr_ptr_to_mem_data
-                          *pm_value = (a_constexpr_ptr_to_mem_data*)value;
-        pm_value->field = field;
-        if (bcp != NULL) {
-          get_mapped_byte_count(&persistent_map, bcp,
-                                pm_value->this_class_adjustment);
-          pm_value->subtract_adjustment =
-                                      con->variant.ptr_to_member.cast_to_base;
+      { a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
+        a_constexpr_ptr_to_mem
+                          *pm_value = (a_constexpr_ptr_to_mem*)value;
+        a_byte_count      offset = 0;
+        if (con->variant.ptr_to_member.is_function_ptr) {
+          pm_value->variant.routine =
+                                   con->variant.ptr_to_member.variant.routine;
+          pm_value->is_ptr_to_mem_function = TRUE;
         } else {
-          pm_value->this_class_adjustment = 0;
-          pm_value->subtract_adjustment = FALSE;
+          pm_value->variant.field = con->variant.ptr_to_member.variant.field;
+          pm_value->is_ptr_to_mem_function = FALSE;
         }  /* if */
+        if (bcp != NULL) {
+          /* We cannot look up bcp's offset in the persistent map directly
+             because it may be an indirect base class. */
+          a_derivation_step_ptr  dsp = bcp->derivation->path;
+          a_type_ptr             prev_type = dsp->base_class->type;
+          get_mapped_byte_count(&persistent_map, dsp->base_class, offset);
+          for (dsp = dsp->next; dsp != NULL; dsp = dsp->next) {
+            a_base_class_ptr  sbcp;
+            a_byte_count      step;
+            sbcp = find_direct_base_class_of(prev_type, dsp->base_class->type);
+            prev_type = dsp->base_class->type;
+            get_mapped_byte_count(&persistent_map, sbcp, step);
+            offset += step;
+          }  /* for */
+        }  /* if */
+        pm_value->this_class_adjustment = offset;
+        pm_value->subtract_adjustment =
+                                      con->variant.ptr_to_member.cast_to_base;
       }  /* if */
       break;
     case ck_dynamic_init:
@@ -2216,6 +2253,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 result = FALSE;
                 break;
               }  /* if */
+              /* Record the derivation step (not really needed if this is for
+                 an assignment rather than for an initialization, but it is 
+                 easier -- and probably cheaper -- to do this
+                 indiscriminately). */
+              record_subobject_derivation(value+offset, bcp);
               bcp = bcp->next;
               elem_con = elem_con->next;
               if (bcp == NULL ||
@@ -2466,9 +2508,9 @@ Interpret the given for-statement.
       } else {
         incr_value = incr_bytes;
       }  /* if */
+      record_complete_object(incr_type, incr_value);
     } else {
-      /* Needed only to avoid spurious GNU compiler optimizer
-         warnings. */
+      /* Needed only to avoid spurious GNU compiler optimizer warnings. */
       incr_type = NULL;
       incr_value = incr_bytes;
     }  /* if */
@@ -2566,8 +2608,9 @@ Interpret the given range-based for-statement.
   vp[2] = loop_info->begin;
   vp[3] = loop_info->end;
   for (k = 0; k<4; ++k) {
-    a_byte_count  n_bytes = value_bytes_for_type(ips, vp[k]->type, &result);
-    alloc_stack_bytes(ips, n_bytes, var_storage[k]);
+    a_type_ptr    vtp = skip_typerefs(vp[k]->type);
+    a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
+    alloc_complete_object(ips, n_bytes, vtp, var_storage[k]);
     /* Associate with the variable its value storage. */
     map_stack_bytes(ips, vp[k], var_storage[k]);
     /* Also associate with the variable (somewhat arbitrarily, with its
@@ -2607,6 +2650,7 @@ Interpret the given range-based for-statement.
     } else {
       incr_value = incr_bytes;
     }  /* if */
+    record_complete_object(incr_type, incr_value);
     if (!result) goto unmap_storage;
     dip = vp[0]->initializer.dynamic;
     do {
@@ -2710,6 +2754,7 @@ successfully interpreted, FALSE otherwise.
         } else {
           expr_value = expr_bytes;
         }  /* if */
+        record_complete_object(tp, expr_value);
         if (!result) {
           /* Stop interpretation. */
         } else if (!do_constexpr_expression(ips, expr, expr_value)) {
@@ -2992,7 +3037,7 @@ done_with_switch:
         a_storage_stack_state  saved_stack_for_full_expr;
         /* Allocate storage for the variable. */
         n_bytes = value_bytes_for_type(ips, vtp, &result);
-        alloc_stack_bytes(ips, n_bytes, var_storage);
+        alloc_complete_object(ips, n_bytes, vtp, var_storage);
         /* Associate with the variable its value storage. */
         map_stack_bytes(ips, vp, var_storage);
         /* Also associate with the variable (somewhat arbitrarily, with its
@@ -3161,7 +3206,7 @@ accordingly.
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
-      alloc_stack_bytes(ips, n_bytes, arg_bytes);
+      alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
@@ -3226,7 +3271,8 @@ the body of the (constructor) function proper.
 
   /* Retrieve the routine scope, or issue an error. */
   if (callee->function_def_number == NULL_function_def_number) {
-    /* FIXME: error. */
+    info_with_pos_sym(ec_constexpr_function_undefined, pos,
+                      symbol_for(callee), ips);
     result = FALSE;
 #if /*FIXME*/0
   } else if (ellipsis_case) {
@@ -3243,11 +3289,15 @@ the body of the (constructor) function proper.
                       saved_stack;
     a_statement_ptr   block_stmt = callee_scope->assoc_block;
     a_call_frame      frame;
-    an_expr_node_ptr  arg = dip->variant.constructor.args;
-    a_variable_ptr    param = callee_scope->variant.routine.parameters,
-                      this_var;
+    an_expr_node_ptr  args = dip->variant.constructor.args, arg;
+    a_variable_ptr    params = callee_scope->variant.routine.parameters,
+                      param, this_var;
     a_constructor_init_ptr
                       ctor_init;
+    a_byte_count      n_args = 0;
+    a_byte            *arg_ptrs, **p_arg_ptr;
+    an_alloc_seq_number
+                      alloc_seq_number;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -3255,41 +3305,51 @@ the body of the (constructor) function proper.
        constexpr function). */
     if (!callee_scope->is_constexpr_routine) {
       result = FALSE;
-      /* FIXME: record an error. */
+      info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
+                        symbol_for(callee), ips);
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
     save_storage_stack(ips, saved_stack);
+    alloc_seq_number = ips->curr_alloc_seq_number;
+    /* This process must happen in two phases.  First, the arguments must be
+       allocated and evaluated.  Only then can we map parameter variables onto
+       the allocated arguments.  We cannot do the two in a single loop because
+       of recursive calls.  (See do_constexpr_call for details.) */
+    for (arg = args; arg != NULL; arg = arg->next) {
+      n_args += 1;
+    }  /* for */
+    alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
+    /* Phase 1: Allocate and evaluate the arguments. */
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    for (arg = args, param = params;
+         arg != NULL;
+         arg = arg->next, param = param->next) {
+      a_type_ptr    tp = skip_typerefs(arg->type);
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+      a_byte        *arg_bytes;
+      alloc_complete_object(ips, n_bytes, tp, arg_bytes);
+      *p_arg_ptr = arg_bytes;
+      p_arg_ptr += 1;
+      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
+        result = FALSE;
+        goto reclaim_arg_storage;
+      }  /* if */
+    }  /* for */
+    /* Phase 2: Map the parameters to the arguments. */
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       map_stack_bytes(ips, this_var, result_storage);
-      map_byte_count(&ips->map, &this_var->storage_class,
-                     ips->curr_alloc_seq_number);
+      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
     } else {
       /* A constructor should always have a "this" parameter. */
       unexpected_condition();
     }  /* if */
-    for (; arg != NULL; arg = arg->next, param = param->next) {
-      a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-      a_byte        *arg_bytes;
-      alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
-        /* Undo the mappings so far. */
-        a_variable_ptr  up = callee_scope->variant.routine.parameters;
-        for (; up != param; up = up->next) {
-          unmap_stack_bytes(ips, up);
-          unmap_ptr(&ips->map, &up->storage_class);
-        }  /* for */
-        result = FALSE;
-        goto reclaim_arg_storage;
-      }  /* if */
-/* FIXME!  This mapping must be done after all the arguments have been
-   evaluated because other arguments might refer to the same parameters in
-   recursive calls. */
-      map_stack_bytes(ips, param, arg_bytes);
-      map_byte_count(&ips->map, &param->storage_class,
-                     ips->curr_alloc_seq_number);
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    for (param = params; param != NULL; param = param->next) {
+      map_stack_bytes(ips, param, *p_arg_ptr);
+      map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
+      p_arg_ptr += 1;
     }  /* for */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, pos, result_storage);
@@ -3303,6 +3363,8 @@ the body of the (constructor) function proper.
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         get_mapped_byte_count(&persistent_map, bcp, offset);
+        /* Record the derivation step. */
+        record_subobject_derivation(result_storage+offset, bcp);
       }  /* if */
       if (!do_constexpr_dynamic_init(ips, ctor_init->initializer,
                                      &callee->source_corresp.decl_position,
@@ -3316,7 +3378,7 @@ the body of the (constructor) function proper.
       /* Something went wrong.  Don't perform additional interpretation. */
     } else if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
-      /* FIXME: should be an ordinary failure */
+      info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
       unexpected_condition();
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
@@ -3521,6 +3583,7 @@ type.  This includes checking the value of ovfl set by the operation.
         } else {
           opnd1_value = opnd1_bytes;
         }  /* if */
+        record_complete_object(opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
           result = FALSE;
         }  /* if */
@@ -3547,6 +3610,7 @@ type.  This includes checking the value of ovfl set by the operation.
           } else {
             opnd2_value = opnd2_bytes;
           }  /* if */
+          record_complete_object(opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
             result = FALSE;
           }  /* if */
@@ -3637,13 +3701,102 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               break;
             case eok_derived_class_cast:
-              /* FIXME: NYI. */
+              { a_constexpr_address  *src = (a_constexpr_address*)opnd1_value;
+                a_base_class_ptr     bcp = *(a_base_class_ptr*)src->address;
+                if (bcp != NULL && bcp->type == tp) {
+                  a_byte_count  offset;
+                  a_constexpr_address  *dst =
+                                (a_constexpr_address*)result_storage;
+                  get_mapped_byte_count(&persistent_map, bcp, offset);
+                  *dst = *src;
+                  dst->address -= offset;
+                } else {
+                  a_type_ptr  derived_class;
+                  if (bcp != NULL) {
+                    derived_class = bcp->derived_class;
+                  } else {
+                    if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                      derived_class =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                    } else {
+                      derived_class = opnd1_type;
+                    }  /* if */
+                  }  /* if */
+                  result = FALSE;
+                  info_with_pos_type(ec_constexpr_bad_derived_class_cast,
+                                     &expr->position, derived_class, ips);
+                }  /* if */
+              }
               break;
             case eok_pm_base_class_cast:
-              /* FIXME: NYI. */
+              /* Casting from X D::* to X B::*.  Since the same member is
+                 referred to, but B is at a positive offset from D, the offset
+                 stored in the pointer-to-member value must decrease. */
+              { a_type_ptr           dtp, btp;
+                a_base_class_ptr     bcp;
+                a_byte_count         offset;
+                a_constexpr_ptr_to_mem
+                                     *pm_src, *pm_dst;
+                pm_src = (a_constexpr_ptr_to_mem*)opnd1_value;
+                pm_dst = (a_constexpr_ptr_to_mem*)result_storage;
+                btp = tp->variant.ptr_to_member.class_of_which_a_member;
+                btp = skip_typerefs(btp);
+                dtp = opnd1_type->variant.ptr_to_member
+                                         .class_of_which_a_member;
+                dtp = skip_typerefs(dtp);
+                bcp = find_direct_base_class_of(dtp, btp);
+                get_mapped_byte_count(&persistent_map, bcp, offset);
+                *pm_dst = *pm_src;
+                if (pm_dst->subtract_adjustment) {
+                  pm_dst->this_class_adjustment += offset;
+                } else {
+                  if (offset > pm_dst->this_class_adjustment) {
+                    /* The adjustment changes direction. */
+                    pm_dst->subtract_adjustment = TRUE;
+                    pm_dst->this_class_adjustment =
+                                       offset - pm_dst->this_class_adjustment;
+                  } else {
+                    pm_dst->this_class_adjustment -= offset;
+                  }  /* if */
+                }  /* if */
+              }
               break;
             case eok_pm_derived_class_cast:
-              /* FIXME: NYI. */
+              /* Casting from X B::* to X D::*.  Since the same member is
+                 referred to, but B is at a positive offset from D, the offset
+                 stored in the pointer-to-member value must increase. */
+              { a_type_ptr           dtp, btp;
+                a_base_class_ptr     bcp;
+                a_byte_count         offset;
+                a_constexpr_ptr_to_mem
+                                     *pm_src, *pm_dst;
+                pm_src = (a_constexpr_ptr_to_mem*)opnd1_value;
+                pm_dst = (a_constexpr_ptr_to_mem*)result_storage;
+                btp = opnd1_type->variant.ptr_to_member
+                                         .class_of_which_a_member;
+                btp = skip_typerefs(btp);
+                dtp = tp->variant.ptr_to_member.class_of_which_a_member;
+                dtp = skip_typerefs(dtp);
+                bcp = find_direct_base_class_of(dtp, btp);
+                /* Ensure the derived class (and the base class) has been laid
+                   out. */
+                (void)f_value_bytes_for_type(ips, dtp, &result);
+                if (!result) break;
+                get_mapped_byte_count(&persistent_map, bcp, offset);
+                *pm_dst = *pm_src;
+                if (!pm_dst->subtract_adjustment) {
+                  pm_dst->this_class_adjustment += offset;
+                } else {
+                  if (offset > pm_dst->this_class_adjustment) {
+                    /* The adjustment changes direction. */
+                    pm_dst->subtract_adjustment = FALSE;
+                    pm_dst->this_class_adjustment =
+                                       offset - pm_dst->this_class_adjustment;
+                  } else {
+                    pm_dst->this_class_adjustment -= offset;
+                  }  /* if */
+                }  /* if */
+              }
               break;
             case eok_bool_cast:
               if (opnd1_type->kind == (a_type_kind)tk_integer) {
@@ -5201,6 +5354,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     opnd2_value = opnd2_bytes;
                   }  /* if */
+                  record_complete_object(opnd2_type, opnd2_value);
                   if (result &&
                       !do_constexpr_expression(ips, opnd2, opnd2_value)) {
                     result = FALSE;
@@ -5255,6 +5409,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   } else {
                     opnd2_value = opnd2_bytes;
                   }  /* if */
+                  record_complete_object(opnd2_type, opnd2_value);
                   if (result &&
                       !do_constexpr_expression(ips, opnd2, opnd2_value)) {
                     result = FALSE;
@@ -5379,21 +5534,25 @@ type.  This includes checking the value of ovfl set by the operation.
             case eok_pm_field:
             case eok_pm_points_to_field:
               { /* Accessing a field through a pointer-to-member is almost
-                  identical to accessing it directly (see above), except for
-                  the possibility of a null pointer-to-member. */
-                a_constexpr_address          result_addr;
-                a_field_ptr                  field;
-                a_byte_count                 offset;
-                a_constexpr_ptr_to_mem_data  *pm_value;
+                   identical to accessing it directly (see above), except for
+                   the possibility of a null pointer-to-member and the
+                   potential need for a "this" adjustment. */
+                a_constexpr_address     result_addr;
+                a_field_ptr             field;
+                a_byte_count            offset;
+                a_constexpr_ptr_to_mem  *pm_value;
                 result_addr = *(a_constexpr_address*)opnd1_value;
-                pm_value = (a_constexpr_ptr_to_mem_data*)opnd2_value;
-                field = pm_value->field;
-                if (field == NULL) {
+                pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
+                field = pm_value->variant.field;
+                if (is_runtime_data_address(&result_addr)) {
+                  result = FALSE;
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else if (field == NULL) {
                   result = FALSE;
                   info_with_pos(ec_constexpr_null_ptr_to_member_data,
                                 &expr->position, ips);
                 } else if (opnd1_type->kind == (a_type_kind)tk_union &&
-                           !is_runtime_data_address(&result_addr) &&
                            !add_to_variant_path(&result_addr, field)) {
                   /* We should not return from the failure of adding a variant
                      path entry. */
@@ -5401,6 +5560,41 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   if (pm_value->this_class_adjustment != 0) {
                     if (pm_value->subtract_adjustment) {
+                      /* A derived-member access.  Check that it is valid. */
+                      a_base_class_ptr  bcp = 
+                                     *(a_base_class_ptr*)result_addr.address;
+                      a_type_ptr        derived_class;
+                      if (bcp == NULL) {
+                        if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                          derived_class =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                        } else {
+                          derived_class = opnd1_type;
+                        }  /* if */
+                      } else {
+                        a_derivation_step_ptr  dsp = bcp->derivation->path;
+                        a_type_ptr             ptp = parent_class_of(field);
+                        derived_class = bcp->derived_class;
+                        if (derived_class == ptp) {
+                          derived_class = NULL;
+                        } else {
+                          for (; dsp->base_class != bcp; dsp = dsp->next) {
+                            if (ptp == skip_typerefs(dsp->base_class->type)) {
+                              /* A derived subobject contains the field. */
+                              derived_class = NULL;
+                              break;
+                            }  /* if */
+                          }  /* for */
+                        }  /* if */
+                      }  /* if */
+                      if (derived_class != NULL) {
+                        /* An invalid access. */
+                        result = FALSE;
+                        info_with_pos_sym_type(
+                                         ec_constexpr_invalid_pm_field_access,
+                                         &expr->position, symbol_for(field),
+                                         derived_class, ips);
+                      }  /* if */
                       result_addr.address -= pm_value->this_class_adjustment;
                     } else {
                       result_addr.address += pm_value->this_class_adjustment;
@@ -5521,7 +5715,7 @@ type.  This includes checking the value of ovfl set by the operation.
           /* An glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
-          n_bytes = value_bytes_for_type(ips, expr->type, &result);
+          n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           if (!dip->has_temporary_lifetime) {
             /* A life-time extended temporary.  Switch to the storage stack
@@ -5534,6 +5728,7 @@ type.  This includes checking the value of ovfl set by the operation.
             alloc_stack_bytes(ips, n_bytes, tmp_bytes);
             alloc_seq_number = ips->storage_stack.alloc_seq_number;
           }  /* if */
+          record_complete_object(tp, tmp_bytes);
         } else {
           /* The consumer of the temporary expects an rvalue.  So we can
              evaluate the initialization directly into result_storage. */
@@ -5714,7 +5909,7 @@ return FALSE, and record diagnostic info in *diag_list.
   init_interpreter_state(&ips);
   ips.position = call_expr->position;
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
-  alloc_stack_bytes(&ips, n_bytes, result_storage);
+  alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   result_con->type = result_type;
   if (result &&
       !do_constexpr_call(&ips, call_expr, result_storage)) {
@@ -5769,7 +5964,7 @@ return FALSE.
   ips.position = error_position;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
-  alloc_stack_bytes(&ips, n_bytes, result_storage);
+  alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result &&
       !do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
     result = FALSE;

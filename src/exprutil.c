@@ -6871,14 +6871,16 @@ static void add_a_derived_class_cast(
                                   a_type_ptr            new_type_pointed_to,
                                   a_derivation_step_ptr dsp,
                                   a_boolean             requires_runtime_check,
+                                  a_source_position_ptr src_pos,
                                   an_expr_node_ptr      *p_node)
 /*
 Helper routine for add_derived_class_casts: adds casts to *p_node to change
 its type to pointer to new_type_pointed_to.  dsp points to the derivation
 list from the desired type to the current type (i.e., it's backwards from
 what's needed).  requires_runtime_check is TRUE if a C++/CLI runtime
-check is needed.  *err_pos indicates a source position to be used for
-errors.  Also handles casting of class lvalues and rvalues.
+check is needed.  *src_pos indicates the source position to record for the
+cast (and to issue any errors).  Also handles casting of class lvalues and
+rvalues.
 */
 {
   a_type_ptr cast_type;
@@ -6891,7 +6893,7 @@ errors.  Also handles casting of class lvalues and rvalues.
     cast_type = make_identically_qualified_type(cast_type,
                                                 new_type_pointed_to);
     add_a_derived_class_cast(cast_type, dsp->next, requires_runtime_check,
-                             p_node);
+                             src_pos, p_node);
     check_assertion(is_operation_node(*p_node) &&
                     (*p_node)->variant.operation.kind ==
                                 (an_expr_operator_kind)eok_derived_class_cast);
@@ -6907,6 +6909,7 @@ errors.  Also handles casting of class lvalues and rvalues.
           *p_node = 
               make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
                                  cast_type, *p_node);
+    new_node->position = *src_pos;
     copy_node_value_category(curr_node, new_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (requires_runtime_check) {
@@ -6971,7 +6974,7 @@ NULL.
   } else {
     /* Use recursion to process the list backwards to generate casts. */
     add_a_derived_class_cast(new_type_pointed_to, cast_derivation_path_of(bcp),
-                             requires_runtime_check, p_node);
+                             requires_runtime_check, err_pos, p_node);
   }  /* if */
 }  /* add_derived_class_casts */
 
