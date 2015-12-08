@@ -9,8 +9,9 @@ A few memory leaks have been plugged in the C++/CLI metadata processing.
 12/7/15  [EDGcpfe/16710]
 Microsoft compatibility: Crash on metadata initialization failure
 
-Failure to initialize metadata had resulted in dereferencing a NULL pointer
-and now results in a catastrophic error.
+A NULL pointer dereference could occur if the C++/CLI metadata initialization
+process failed for some reason.  Such failures now result in a catastrophic
+error.
 
 
 12/7/15  [EDGcpfe/16708]
