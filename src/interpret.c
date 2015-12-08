@@ -1425,14 +1425,6 @@ Macro defining the largest allowed size of a type in the interpreter.
 
 
 /*
-Macro producing TRUE if the given tk_ptr_to_member type is a pointer-to-member-
-function type.
-*/
-#define ptr_to_mem_is_to_function(tp)                                        \
-  (skip_typerefs(tp->variant.ptr_to_member.type)->kind ==                    \
-                                                    (a_type_kind)tk_routine)
-
-/*
 Macro returning the number of bytes needed to represent a value of a given type
 in interpreter storage.  In the case of a class type, the layout is computed if
 needed.  Array or class types that are too large trigger an interpretation
