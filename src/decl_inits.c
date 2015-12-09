@@ -4550,24 +4550,26 @@ returned set to TRUE.
     /* In C++ mode, constexpr variables require constant initializers. */
     dps->init_state.initializer_must_be_constant = vp != NULL &&
                                                    vp->is_constexpr;
-    if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
-        !is_error_type(vp_type)) {
-      /* An initializer for a variable declared with the "auto" type
-         specifier.*/
-      if (first_token == tok_lbrace && !list_init_enabled) {
-        pos_error(ec_auto_brace_initialization_not_allowed, &error_position);
-        vp->type = vp_type = error_type();
-        invalidate_type(dps);
-        dps->auto_type_specifier_seen = FALSE;
-        dps->auto_type = NULL;
-      } else {
-        prescan_initializer_for_auto_type_deduction(dps,
-                                                    parenthesized_initializer);
-        vp_type = dps->type;
-      }  /* if */
-      if (is_error_type(vp_type)) {
-        cssp = NULL;
-      }  /* if */
+  }  /* if */
+  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
+      !is_error_type(vp_type)) {
+    /* An initializer for a variable declared with the "auto" type specifier
+       (or, in GNU C mode, the "__auto_type" specifier). */
+    if (first_token == tok_lbrace && !list_init_enabled) {
+      pos_error(C_mode() ? ec_auto_type_brace_initialization_not_allowed
+                         : ec_auto_brace_initialization_not_allowed,
+                &error_position);
+      vp->type = vp_type = error_type();
+      invalidate_type(dps);
+      dps->auto_type_specifier_seen = FALSE;
+      dps->auto_type = NULL;
+    } else {
+      prescan_initializer_for_auto_type_deduction(dps,
+                                                  parenthesized_initializer);
+      vp_type = dps->type;
+    }  /* if */
+    if (is_error_type(vp_type)) {
+      cssp = NULL;
     }  /* if */
   }  /* if */
   dps->type = vp_type;

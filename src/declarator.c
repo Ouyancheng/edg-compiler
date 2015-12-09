@@ -2947,7 +2947,9 @@ an error if a default argument expression is encountered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         /* Check that the type is legal, and do required adjustments. */
-        check_use_of_auto_type(&param_state);
+        if (!C_mode()) {
+          check_use_of_auto_type(&param_state);
+        }  /* if */
         check_and_adjust_parameter_type(&param_state, param_number,
                                         &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
@@ -3508,6 +3510,7 @@ an error if a default argument expression is encountered.
             }  /* if */
           }  /* if */
         }  /* if */
+        run_end_of_parse_actions(&param_state, /*more_declarators=*/FALSE);
       } while (!done || any_variadic_params);
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but
@@ -7178,14 +7181,14 @@ function_lparen:
      two lists will have the right position. */
   copy_source_position(declarator_pos, error_position);
 #if GNU_EXTENSIONS_ALLOWED
-    if (specifiers_type != NULL && predeclarator_attributes != NULL) {
-      /* Apply the nested predeclarator attributes to the type specified
-         before the nested declarator (if there were postfix declarator
-         operators, the attributes were already consumed above). */
-      attach_type_attributes(&complete_type, predeclarator_attributes,
-                             (void*)state);
-      predeclarator_attributes = NULL;
-    }  /* if */
+  if (specifiers_type != NULL && predeclarator_attributes != NULL) {
+    /* Apply the nested predeclarator attributes to the type specified
+       before the nested declarator (if there were postfix declarator
+       operators, the attributes were already consumed above). */
+    attach_type_attributes(&complete_type, predeclarator_attributes,
+                           (void*)state);
+    predeclarator_attributes = NULL;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
@@ -7290,7 +7293,8 @@ function_lparen:
          declaration, e.g., in a case like
            operator int(), j;
          issue an error. */
-      if (is_unknown_type(specifiers_type)) {
+      if (is_unknown_type(specifiers_type) &&
+          !(gcc_mode && state->auto_type_specifier_seen)) {
         pos_error(ec_missing_decl_specifiers, &state->declarator_start_pos);
         complete_type = error_type();
       }  /* if */

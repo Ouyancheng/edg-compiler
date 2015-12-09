@@ -1,5 +1,16 @@
 Version 4.11
 
+12/9/15  [EDGcpfe/15176,EDGcpfe/16691]
+GNU C compatibility:  __auto_type
+
+In GNU C modes with gnu_version >= 40900, the front end now accepts the
+__auto_type specifier.  This specifier is similar to the C++11 "auto" type
+specifier in that it allows the declaration of variables whose type is
+derived from the associated initializer.  For example:
+
+  __auto_type x = 3;  // Same as "int x = 3;".
+
+
 12/9/15  [EDGcpfe/16715]
 Microsoft compatibility: Enable member initializers for aggregates
 

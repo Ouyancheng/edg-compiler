@@ -2793,6 +2793,10 @@ ec_comparison_of_pointers_to_void_and_function;;"comparing a pointer to void and
 ec_ms_metadata_init_failed;;"metadata initialization failed"
 ec_constexpr_bad_derived_class_cast;;"invalid base-to-derived cast (complete class type is %t)"
 ec_constexpr_invalid_pm_field_access;;"invalid access to %n in object of complete type %t"
+ec_bad_gnu_auto_type;;"\"__auto_type\" not allowed here"
+ec_gnu_auto_type_with_secondary_declarator;;"\"__auto_type\" does not permit multiple declarators"
+ec_auto_type_brace_initialization_not_allowed;;"initialization with \"{...}\" is not allowed for \"__auto_type\""
+ec_modified_auto_type;;"\"__auto_type\" must be a placeholder for the complete type of the variable (not for a component of that type)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

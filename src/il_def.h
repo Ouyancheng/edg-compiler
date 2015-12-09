@@ -1149,6 +1149,7 @@ typedef enum /*a_token_kind*/ {
   tok_decltype,
   /* Recognized in GNU C and C++ modes only. */
   tok_typeof,
+  tok_auto_type,
   tok_extension,
   tok_null,
   /* Recognized in cfront compatibility mode only. */
@@ -1341,7 +1342,7 @@ EXTERN a_const_char
    "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
    "bool", "false", "true", "typename", "static_assert", "decltype",
-   "__typeof__", "__extension__", "__null",
+   "__typeof__", "__auto_type", "__extension__", "__null",
    "overload",
 #if SUN_EXTENSIONS_ALLOWED
    "__global", "__symbolic", "__hidden",

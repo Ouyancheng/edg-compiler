@@ -7402,10 +7402,10 @@ _Sat was specified.
         }  /* if */
       }  /* if */
       break;
+    case bt_auto:
     case bt_struct_union:
     case bt_enum:
     case bt_typename:
-    case bt_auto:
     case bt_typedef:
       if (sign != sign_none || size != size_none) bad_combination = TRUE;
       check_assertion_str2(dps->specifiers_type != NULL,
@@ -8718,6 +8718,29 @@ if an error is issued.
 }  /* process_auto_specifier */
 
 
+static void check_gnu_c_auto_type(a_decl_parse_state  *dps)
+/*
+The GNU C "__auto_type" specifier was used.  Ensure that usage was valid or
+that a diagnostic is issued.
+*/
+{
+  if (dps->auto_type == NULL) {
+    expect_error();
+  } else {
+    a_type_ptr  utp = skip_typerefs(dps->auto_type);
+    if (utp->kind == (a_type_kind)tk_unknown) {
+      /* __auto_type did not appear in a valid context (i.e., it was the type
+         specifier for a variable declaration). */
+      pos_error(ec_bad_gnu_auto_type, &dps->auto_pos);
+      set_type_kind(utp, (a_type_kind)tk_error);
+    } else if (dps->secondary_declarator && !is_error_type(utp)) {
+      pos_error(ec_gnu_auto_type_with_secondary_declarator, &dps->auto_pos);
+      set_type_kind(utp, (a_type_kind)tk_error);
+    }  /* if */
+  }  /* if */
+}  /* check_gnu_c_auto_type */
+
+
 static a_boolean process_generic_lambda_param_type(a_decl_parse_state  *dps)
 /*
 *dps describes the declaration of a parameter and the current token is "auto".
@@ -9237,6 +9260,30 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
                     decl_pos_block, &decl_specifiers_seen, &basic_type,
                     type_ptr, &err);
           }  /* if */
+        }  /* if */
+        break;
+      case tok_auto_type:
+        /* GCC 4.9 and later accept "__auto_type x = 3;" in C mode.  It
+           determines the type of a variable declaration from its initializer
+           (much like the C++11 "auto" type specifier, but with more
+           restrictions). */
+        if (!type_specifier_allowed) {
+          pos_error(ec_type_specifier_not_allowed, &error_position);
+          err = TRUE;
+        } else if (basic_type != bt_none) {
+          bad_combination_of_type_specifiers = TRUE;
+          pos_error(ec_bad_combination_of_type_specifiers, &error_position);
+        } else {
+          basic_type = bt_auto;
+          decl_specifiers_seen |= DS_TYPE;
+          state->auto_pos = pos_curr_token;
+          state->auto_type_specifier_seen = TRUE;
+          /* Allocate a separate tk_unknown entry, so it can be changed to
+             another type (e.g., an error type) later on. */
+          state->auto_type = alloc_type((a_type_kind)tk_unknown);
+          state->specifiers_type = state->auto_type;
+          add_end_of_parse_action(check_gnu_c_auto_type, state,
+                                  /*secondary_decls=*/TRUE);
         }  /* if */
         break;
       case tok_typedef:

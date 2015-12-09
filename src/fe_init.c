@@ -957,6 +957,9 @@ Install the keywords in the symbol table.
   if (gnu_mode) {
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+    if (gcc_mode && gnu_version >= 40900) {
+      enter_keyword((a_token_kind)tok_auto_type, "__auto_type");
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* g++ 3.4 and later support an __offsetof keyword that appears to be
        identical to our __INTADDR__.  Only g++ 3.4(.x) appears to use this

@@ -1038,6 +1038,9 @@ of declarations that are permitted.
   } else if (curr_token == tok_attribute) {
     /* An attribute can start a declaration. */
     is_start = TRUE;
+  } else if (curr_token == tok_auto_type) {
+    /* GNU C's __auto_type always starts a declaration. */
+    is_start = TRUE;
   } else if (curr_token == tok_extension) {
     /* The __extension__ keyword could be followed by an arbitrary expression
        or declaration.  Cache the token and recursively examine what
@@ -11916,7 +11919,9 @@ common cases.
       }  /* if */
     }  /* if */
   }  /* if */
-  check_use_of_auto_type(dps);
+  if (!C_mode()) {
+    check_use_of_auto_type(dps);
+  }  /* if */
   if ((any_cfront_mode() &&
        check_member_function_typedef(dps->type, &dps->start_pos)) ||
       is_unknown_type(dps->type)) {
@@ -16899,7 +16904,9 @@ if one is present.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_src_seq_end_of_variable_if_needed(state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  check_use_of_auto_type(state);
+  if (!C_mode()) {
+    check_use_of_auto_type(state);
+  }  /* if */
 #if CHECKING
   check_consistent_init_type(var_ptr);
 #endif /* CHECKING */

@@ -458,79 +458,100 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                           /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
   /* Do type deduction. */
-  undeduced_type = dps->declared_type;
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-      !dps->decltype_auto_specifier_seen &&
-      !is_const_qualified_type(undeduced_type)) {
-    /* constexpr variables are implicitly const. */
-    undeduced_type = make_qualified_type(undeduced_type,
-                                         (a_type_qualifier_set)TQ_CONST);
-  }  /* if */
-  if (is_braced_init_component(icp) && dps->has_direct_initializer &&
-      ((cpp14_mode && !(gpp_mode || clang_mode)) ||
-       (microsoft_mode && microsoft_version >= 1900))) {
-    /* In C++14 mode, direct-list-initialization with a placeholder type only
-       permits a single braced element, and in that case the braces are
-       ignored (rule introduced by the C++ standardization committee's paper
-       N3922). */
-    an_init_component_ptr  elem_icp = icp->variant.braced.list;
-    if (elem_icp == NULL || !is_last_elem(elem_icp)) {
-      /* Not a single element: Issue a diagnostic and proceed with the braced
-         list. */
-      pos_diagnostic(es_discretionary_error,
-                     ec_auto_direct_list_init_requires_singleton,
-                     init_component_pos(icp));
-    } else if (is_braced_init_component(elem_icp)) {
-      /* Something like "auto x{ { 3 } };".  A deduction error will be issued
-         later. */
-      expect_error();
+  if (C_mode()) {
+    /* GNU C has some simplified deduction rules. */
+    a_type_ptr  deduced_type, auto_type = dps->auto_type;
+    check_assertion(gcc_mode && is_expression_component(icp) &&
+                    !parenthesized_init);
+    if (skip_typerefs(dps->type) != dps->auto_type) {
+      pos_error(ec_modified_auto_type, &dps->auto_pos);
+      deduced_type = error_type();
     } else {
-      /* A single brace-enclosed element: Proceed with just the element. */
-      icp = elem_icp;
+      deduced_type = operand_of_arg_list_elem(icp)->type;
+      deduced_type = skip_typerefs(deduced_type);
     }  /* if */
-  }  /* if */
-  if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
-                               undeduced_type,
-                               dps->auto_type,
-                               /*keep_placeholder=*/FALSE,
-                               (an_operand *)NULL,
-                               icp,
-                               &dps->declarator_pos,
-                               &dps->type,
-                               &deduced_auto_type,
-                               &still_dependent)) {
-    if (still_dependent) {
-      /* Deduction was not done because the types are still dependent. */
-      dps->type = undeduced_type;
-      dps->deduced_auto_type = NULL;
-    } else {
-      /* Deduction failed. */
-      expr_pos_error(dps->decltype_auto_specifier_seen ?
-                       ec_cannot_deduce_decltype_auto_type :
-                       ec_cannot_deduce_auto_type,
-                     &dps->auto_pos);
-      dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
-      dps->auto_type_specifier_seen = FALSE;
-      dps->decltype_auto_specifier_seen = FALSE;
-    }  /* if */
+    set_type_kind(auto_type, (a_type_kind)tk_typeref);
+    auto_type->variant.typeref.type = deduced_type;
+    auto_type->variant.typeref.is_deduced_auto = TRUE;
+    dps->deduced_auto_type = deduced_type;
   } else {
-    /* Deduction succeeded. */
-    if (dps->deduced_auto_type != NULL &&
-        !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
-      /* This is a declaration with multiple declarators and the type deduced
-         for a previous declarator is not consistent with the current
-         deduction:  Issue an error. */
-      if (expr_error_should_be_issued()) {
-        pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
-                      deduced_auto_type, dps->deduced_auto_type);
+    /* Normal (i.e., C++-mode) deduction. */
+    undeduced_type = dps->declared_type;
+    if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+        !dps->decltype_auto_specifier_seen &&
+        !is_const_qualified_type(undeduced_type)) {
+      /* constexpr variables are implicitly const. */
+      undeduced_type = make_qualified_type(undeduced_type,
+                                           (a_type_qualifier_set)TQ_CONST);
+    }  /* if */
+    if (is_braced_init_component(icp) && dps->has_direct_initializer &&
+        ((cpp14_mode && !(gpp_mode || clang_mode)) ||
+         (microsoft_mode && microsoft_version >= 1900))) {
+      /* In C++14 mode, direct-list-initialization with a placeholder type only
+         permits a single braced element, and in that case the braces are
+         ignored (rule introduced by the C++ standardization committee's paper
+         N3922). */
+      an_init_component_ptr  elem_icp = icp->variant.braced.list;
+      if (elem_icp == NULL || !is_last_elem(elem_icp)) {
+        /* Not a single element: Issue a diagnostic and proceed with the braced
+           list. */
+        pos_diagnostic(es_discretionary_error,
+                       ec_auto_direct_list_init_requires_singleton,
+                       init_component_pos(icp));
+      } else if (is_braced_init_component(elem_icp)) {
+        /* Something like "auto x{ { 3 } };".  A deduction error will be issued
+           later. */
+        expect_error();
+      } else {
+        /* A single brace-enclosed element: Proceed with just the element. */
+        icp = elem_icp;
       }  /* if */
     }  /* if */
-    /* Record the type deduced for the "auto" specifier. */
-    dps->deduced_auto_type = deduced_auto_type;
-    /* Check that the actual (deduced) type of the declaration is applicable to
-       the declared entity (in particular, this checks for compatibility with
-       previous declarations of the same entity). */
-    check_deduced_auto_type(dps);
+    if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
+                                 undeduced_type,
+                                 dps->auto_type,
+                                 /*keep_placeholder=*/FALSE,
+                                 (an_operand *)NULL,
+                                 icp,
+                                 &dps->declarator_pos,
+                                 &dps->type,
+                                 &deduced_auto_type,
+                                 &still_dependent)) {
+      if (still_dependent) {
+        /* Deduction was not done because the types are still dependent. */
+        dps->type = undeduced_type;
+        dps->deduced_auto_type = NULL;
+      } else {
+        /* Deduction failed. */
+        expr_pos_error(dps->decltype_auto_specifier_seen ?
+                         ec_cannot_deduce_decltype_auto_type :
+                         ec_cannot_deduce_auto_type,
+                       &dps->auto_pos);
+        dps->specifiers_type = dps->deduced_auto_type = dps->type =
+                                                                 error_type();
+        dps->auto_type_specifier_seen = FALSE;
+        dps->decltype_auto_specifier_seen = FALSE;
+      }  /* if */
+    } else {
+      /* Deduction succeeded. */
+      if (dps->deduced_auto_type != NULL &&
+          !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
+        /* This is a declaration with multiple declarators and the type deduced
+           for a previous declarator is not consistent with the current
+           deduction:  Issue an error. */
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_inconsistent_deduction_of_auto,
+                        &dps->declarator_pos, deduced_auto_type,
+                        dps->deduced_auto_type);
+        }  /* if */
+      }  /* if */
+      /* Record the type deduced for the "auto" specifier. */
+      dps->deduced_auto_type = deduced_auto_type;
+      /* Check that the actual (deduced) type of the declaration is applicable
+         to the declared entity (in particular, this checks for compatibility
+         with previous declarations of the same entity). */
+      check_deduced_auto_type(dps);
+    }  /* if */
   }  /* if */
   if (dps->sym != NULL) {
     /* Update the type in the IL entry. */
