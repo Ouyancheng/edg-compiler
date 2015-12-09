@@ -1,5 +1,12 @@
 Version 4.11
 
+12/9/15  [EDGcpfe/16715]
+Microsoft compatibility: Enable member initializers for aggregates
+
+The changes described in the Changes entry for EDGcpfe/14146 are now also
+enabled when microsoft_version >= 1900.
+
+
 12/9/15  [EDGcpfe/16700]
 Corrupt IL pointer with "aligned" attribute in secondary translation unit
 
