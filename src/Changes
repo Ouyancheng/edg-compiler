@@ -1,5 +1,25 @@
 Version 4.11
 
+12/9/15  [EDGcpfe/16700]
+Corrupt IL pointer with "aligned" attribute in secondary translation unit
+
+In some cases, a variable declaration in a secondary translation unit with an
+alignment attribute and a corresponding declaration in the primary translation
+unit (with or without that attribute) could result in an invalid attribute
+pointer in the merged IL.  This could result in aborts if writing the IL to
+file, or in a back end attempting to traverse the merged attribute list.
+For example, in GNU C mode with removal of unneeded entities disabled:
+
+  // Translation unit #1:
+  int x;
+
+  // Translation unit #2:
+  extern int x __attribute((aligned(16)));
+
+Previously, the merged IL representation for variable x pointed into freed
+storage.  This is now fixed.
+
+
 12/7/15  [EDGcpfe/16711]
 Microsoft compatibility: Fix memory leaks in metadata processing
 

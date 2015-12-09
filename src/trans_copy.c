@@ -1135,6 +1135,12 @@ eliminated.
   /* Move any attributes that must be saved to the surviving entry. */
   merge_entity_details(&variable->source_corresp,
                        &corresp_variable->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
+    USER_CONTROL_OF_STRUCT_PACKING
+  if (variable->alignment > corresp_variable->alignment) {
+    corresp_variable->alignment = variable->alignment;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 }  /* transfer_variable_flags */
 
 
@@ -1452,6 +1458,11 @@ to the secondary translation unit.
          in the secondary translation unit but only a declaration in the
          primary IL. */
       check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(variable, iek_variable);
+    } else if (variable->source_corresp.attributes != NULL) {
+      /* The variable has attributes that may need to be merged into the
+         primary entry. */
       keep_on_list = TRUE;
       mark_to_merge(variable, iek_variable);
     } else {
