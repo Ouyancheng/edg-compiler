@@ -9524,12 +9524,12 @@ static a_boolean fold_variable_reference(
                                       a_boolean                    want_addr,
                                       a_constant                   *result_con)
 /*
-expr is an enk_variable node.  See if the variable appears on the
-constexpr remap list provided as ceblock->remap_list, and if so set
-*result_con to the variable's value (or, if want_addr is TRUE, a pointer
-to the variable's value) and return TRUE; otherwise, return FALSE.
-Also replace constexpr variables by their values.  The expression node can
-be an lvalue or rvalue; it doesn't matter.
+expr is an enk_variable node.  If the variable is constexpr or an integral
+constant, or if it appears on the constexpr remap list provided as
+ceblock->remap_list, set *result_con to the variable's value (or, if
+want_addr is TRUE, a pointer to the variable's value) and return TRUE;
+otherwise, return FALSE.  The expression node can be an lvalue or prvalue;
+it doesn't matter.
 */
 {
   a_boolean      folded = FALSE;
@@ -9552,13 +9552,12 @@ be an lvalue or rvalue; it doesn't matter.
         copy_constant(&crp->constant_value, result_con);
       }  /* if */
     }  /* if */
-  } else if (var->is_constexpr) {
+  } else {
     a_constant_ptr valcon = var_constant_value_full(
                                              var,
                                              /*copy_for_reuse=*/TRUE,
                                              /*clear_backing_expr=*/TRUE,
                                              /*allow_C_mode_const_var=*/FALSE);
-    /* valcon can be NULL in error cases. */
     if (valcon != NULL) {
       folded = TRUE;
       if (want_addr) {

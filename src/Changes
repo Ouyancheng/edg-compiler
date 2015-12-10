@@ -1,5 +1,20 @@
 Version 4.11
 
+12/9/15  [EDGcpfe/16677]
+Integral constant variables passed to constexpr reference parameters
+
+Previously, the front end incorrectly allowed only constexpr variables to
+be passed as constants to reference parameters of constexpr functions.  It
+has now been changed to allow integral constant variables as arguments as
+well.  For example, with --c++11:
+
+  constexpr int f(const int& r) { return r; }
+  void g() {
+    const int i = 2;
+    constexpr int j = f(i);   // Previously rejected as non-constant
+  }
+
+
 12/9/15  [EDGcpfe/15176,EDGcpfe/16691]
 GNU C compatibility:  __auto_type
 
