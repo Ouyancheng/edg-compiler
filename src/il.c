@@ -25979,7 +25979,7 @@ back ends.  This is TRUE for dependent template entities.
     (type)->variant.class_struct_union.is_nonreal_class) ||		\
    (type->kind == (a_type_kind)tk_typeref &&				\
     (type)->variant.typeref.is_nonreal) ||				\
-   (type)->kind == (a_type_kind)tk_template_param)
+   ((type)->kind == (a_type_kind)tk_template_param && !is_auto_type(type)))
 
 
 a_boolean ignore_type_in_back_end(a_type_ptr	type)
