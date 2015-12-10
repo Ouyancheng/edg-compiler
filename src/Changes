@@ -39,8 +39,8 @@ Corrupt IL pointer with "aligned" attribute in secondary translation unit
 In some cases, a variable declaration in a secondary translation unit with an
 alignment attribute and a corresponding declaration in the primary translation
 unit (with or without that attribute) could result in an invalid attribute
-pointer in the merged IL.  This could result in aborts if writing the IL to
-file, or in a back end attempting to traverse the merged attribute list.
+pointer in the merged IL.  This could result in aborts if the IL is written to
+a file or if a back end attempts to traverse the merged attribute list.
 For example, in GNU C mode with removal of unneeded entities disabled:
 
   // Translation unit #1:
