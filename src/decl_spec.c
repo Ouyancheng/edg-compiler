@@ -8720,8 +8720,8 @@ if an error is issued.
 
 static void check_gnu_c_auto_type(a_decl_parse_state  *dps)
 /*
-The GNU C "__auto_type" specifier was used.  Ensure that usage was valid or
-that a diagnostic is issued.
+The GNU C "__auto_type" specifier was used.  Make sure that a diagnostic is
+issued if it is not valid.
 */
 {
   if (dps->auto_type == NULL) {
@@ -8729,9 +8729,13 @@ that a diagnostic is issued.
   } else {
     a_type_ptr  utp = skip_typerefs(dps->auto_type);
     if (utp->kind == (a_type_kind)tk_unknown) {
-      /* __auto_type did not appear in a valid context (i.e., it was the type
-         specifier for a variable declaration). */
-      pos_error(ec_bad_gnu_auto_type, &dps->auto_pos);
+      /* __auto_type did not appear in a valid context (it was not the type
+         specifier for a variable declaration with an initializer). */
+      if (dps->sym != NULL && symbol_is(dps->sym, sk_variable)) {
+        pos_error(ec_gnu_auto_type_without_initializer, &dps->auto_pos);
+      } else {
+        pos_error(ec_bad_gnu_auto_type, &dps->auto_pos);
+      }  /* if */
       set_type_kind(utp, (a_type_kind)tk_error);
     } else if (dps->secondary_declarator && !is_error_type(utp)) {
       pos_error(ec_gnu_auto_type_with_secondary_declarator, &dps->auto_pos);

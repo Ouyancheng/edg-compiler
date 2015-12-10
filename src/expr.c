@@ -538,7 +538,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
           !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
         /* This is a declaration with multiple declarators and the type deduced
            for a previous declarator is not consistent with the current
-           deduction:  Issue an error. */
+           deduction: Issue an error. */
         if (expr_error_should_be_issued()) {
           pos_ty2_error(ec_inconsistent_deduction_of_auto,
                         &dps->declarator_pos, deduced_auto_type,
