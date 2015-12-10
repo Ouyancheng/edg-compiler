@@ -4377,8 +4377,7 @@ This function is also called in clang mode.
     /* g++ 4.5 and later accept constexpr in C++11 mode. */
     constexpr_enabled =  TRUE;
   }  /* if */
-  if (gnu_version >= 40700 && variadic_templates_enabled &&
-      !ms_compat &&
+  if (gnu_version >= 40700 && variadic_templates_enabled && !ms_compat &&
       !(option_kind_used[(int)optk_parse_nonclass_templates] &&
         !nonclass_prototype_instantiations)) {
     /* g++ 4.7 and later support __bases and __direct_bases.  This uses the
