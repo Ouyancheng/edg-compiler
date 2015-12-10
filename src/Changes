@@ -30,7 +30,7 @@ derived from the associated initializer.  For example:
 Microsoft compatibility: Enable member initializers for aggregates
 
 The changes described in the Changes entry for EDGcpfe/14146 are now also
-enabled when microsoft_version >= 1900.
+enabled when microsoft_version >= 1902.
 
 
 12/9/15  [EDGcpfe/16700]
