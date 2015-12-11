@@ -2447,10 +2447,6 @@ values if they were not already set by a command line option.
       }  /* if */
       unrestricted_unions_enabled = FALSE;
     }  /* if */
-    if (microsoft_version >= 1902) {
-      /* Visual Studio 2015 Update 2. */
-      aggregate_classes_can_have_field_initializers = TRUE;
-    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
