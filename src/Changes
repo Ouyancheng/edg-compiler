@@ -1,5 +1,20 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16681]
+Alignment of a variable
+
+In nonstrict C++11 modes, the front end accepts (with a warning) the alignof
+operator applied to an expression (as opposed to a type).  However, if the
+expression designates a variable with an explicit alignas specifier, it
+ignores that specifier.  Now, such a specifier affects the result of the
+alignof operator.  For example:
+
+  alignas(16) int x[4];
+  static_assert(alignof(x) == 16, "Unexpected");
+    // Previously failed (assuming int has an alignment other than 16).
+    //  Now okay.
+
+
 12/11/15 [EDGcpfe/16688]
 Spurious exception mismatch error on noexcept-specifier in class template
 
