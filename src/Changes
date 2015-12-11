@@ -1,5 +1,30 @@
 Version 4.11
 
+12/10/15 [EDGcpfe/16689]
+Spurious correspondence error on constant-valued template static data member
+
+When simultaneously compiling multiple translation units containing
+corresponding instantiations of constant-valued template static data members
+whose instantiation is only required for the constant value, the front end
+issued spurious duplicate-definition correspondence errors.  For example:
+
+  // File 1:
+  template<typename T> struct S { static int const N; };
+  template<typename T> int const S<T>::N = 5;
+  int y[S<int>::N];  // Instantiation of S<int>::N only needs the constant
+                     // value of S<int>::N; the actual storage of the member
+                     // need not be allocated.
+
+  // File 2:
+  template<typename T> struct S { static int const N; };
+  template<typename T> int const S<T>::N = 5;
+  int z[S<int>::N];  // Triggered a duplicate definition error.
+
+This problem was introduced in C++11 modes by the changes for EDGcpfe/10300,
+and then extended to other modes by the changes for EDGcpfe/16315.  This is
+now fixed.
+
+
 12/9/15  [EDGcpfe/16677]
 Integral constant variables passed to constexpr reference parameters
 

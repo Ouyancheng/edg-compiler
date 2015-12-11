@@ -516,12 +516,6 @@ processed here, code from any secondary translation units will have
 already been copied over.
 */
 {
-  /* Remove the definitions of any functions instantiated only to determine
-     their return types or static data members instantiated only to
-     determine their size. */
-  if (instantiation_mode != tim_all) {
-    remove_unneeded_instantiations();
-  }  /* if */
   if (is_primary_translation_unit) {
 #if DO_IL_LOWERING
     /* Lower the file scope. */
@@ -705,6 +699,12 @@ Complete the file scope of each of the translation units.
   }  /* if */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
+  /* Remove the definitions of any functions instantiated only to determine
+     their return types or static data members instantiated only to
+     determine their size. */
+  if (instantiation_mode != tim_all) {
+    remove_unneeded_instantiations();
+  }  /* if */
   /* Finish processing on function bodies moved to the primary IL,
      including IL lowering if appropriate.  Do this also on any
      function bodies in the primary IL whose lowering was delayed.

@@ -3149,11 +3149,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
-        /* Prototype instantiations of template static data members may
-           appear in more than one translation unit. */
-        (!var->is_template_static_data_member ||
-         !parent_class_of(var)
-                    ->variant.class_struct_union.is_prototype_instantiation) &&
+        /* Instantiations of template static data members may appear in more
+           than one translation unit. */
+        (!var->is_template_static_data_member || var->is_specialized) &&
 #if GNU_EXTENSIONS_ALLOWED
         !(var->is_weak || corresp_var->is_weak) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
