@@ -9,7 +9,7 @@ warnings are only issued for implicit conversions.  For example, with the
 command-line options "--c99 --lossy_conversion_warning":
 
   unsigned long long f();
-  void f() { unsigned r = (unsigned)f(); }
+  void g() { unsigned r = (unsigned)f(); }
       // Previously elicited a warning.  Now silently accepted.
 
 
