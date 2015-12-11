@@ -20236,7 +20236,8 @@ Currently, the call must be to a nonstatic member function.
     (void)find_symbol(member_name, (sizeof_t)strlen(member_name), &loc);
     member_sym = class_qualified_id_lookup(&loc, class_type, IDL_NO_OPTIONS);
     if (member_sym == NULL || !is_member_function_symbol(member_sym)) {
-      if (is_nontype_template_param_symbol(member_sym)) {
+      if (member_sym != NULL &&
+          is_nontype_template_param_symbol(member_sym)) {
         nonreal_case = TRUE;
         arg_node_list = make_expr_list_from_argument_list(alep);
         make_constant_operand(member_sym->variant.constant, &function_operand);
