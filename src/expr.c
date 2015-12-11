@@ -30281,7 +30281,9 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
   if (innermost_function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
-    check_assertion(gnu_mode);
+    if (!gnu_mode) {
+      pos_error(ec_generic_id_can_only_appear_in_function, &pos_curr_token);
+    }  /* if */
     name_str = "";
   } else {
     a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;

@@ -1,5 +1,20 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16686]
+Abort on invalid use of __FUNCTION__ etc.
+
+In Microsoft mode, certain invalid uses of the special identifier __FUNCTION__
+(and similar identifiers like __FUNCSIG__) could lead to an internal error in
+set_curr_token_to_function_name_string (expr.c).  For example:
+
+  #define _STR2WSTR(str) L##str
+  #define STR2WSTR(str) _STR2WSTR(str)
+  const wchar_t (*ss)[1] = &STR2WSTR(__FUNCTION__);
+                                   // Previously triggered an internal error.
+
+This is now fixed: An ordinary error is now issued.
+
+
 12/11/15 [EDGcpfe/16699]
 Explicit casts with lossy conversions
 
