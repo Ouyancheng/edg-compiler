@@ -1,5 +1,12 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16696]
+__is_literal_type(void)
+
+The "void" type is now treated as a "literal type" in C++ modes.  The type
+traits helper __is_literal_type produces a true value accordingly.
+
+
 12/11/15 [EDGcpfe/16681]
 Alignment of a variable
 
