@@ -10264,8 +10264,14 @@ C++ mode.  See [expr.static.cast].
   a_boolean        okay = FALSE, suppress_extensions = FALSE;
   a_boolean        impl_okay = FALSE, inv_impl_okay = FALSE;
   a_std_conv_descr impl_std_conv, inv_impl_std_conv;
+  a_boolean        saved_warning_on_lossy_conversion;
 
   db_enter(5, "static_cast_conversion_possible_full");
+  /* Some conversions performed by an explicit static_cast (or old-style cast
+     with static_cast semantics) are also valid as implicit conversions.  With
+     the explicit notation, however, some warnings should be disabled. */
+  saved_warning_on_lossy_conversion = warning_on_lossy_conversion;
+  warning_on_lossy_conversion = FALSE;
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "static_cast_conversion_possible_full: source_type = ");
@@ -10371,7 +10377,7 @@ C++ mode.  See [expr.static.cast].
       *is_mild_warning = inv_impl_std_conv.is_mild_warning;
     }  /* if */
   }  /* if */
-
+  warning_on_lossy_conversion = saved_warning_on_lossy_conversion;
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "static_cast_conversion_possible_full: %s\n",

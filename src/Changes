@@ -1,5 +1,18 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16699]
+Explicit casts with lossy conversions
+
+The front end optionally warns about conversion that may lose arithmetic
+precision (see the entry of 6/10/13 for EDGcpfe/2155 etc.).  Now those
+warnings are only issued for implicit conversions.  For example, with the
+command-line options "--c99 --lossy_conversion_warning":
+
+  unsigned long long f();
+  void f() { unsigned r = (unsigned)f(); }
+      // Previously elicited a warning.  Now silently accepted.
+
+
 12/11/15 [EDGcpfe/16685]
 Default arguments and parameter packs
 
