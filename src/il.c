@@ -16969,6 +16969,8 @@ instantiation dependent, set *p_template_case to TRUE.
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
+    USER_CONTROL_OF_STRUCT_PACKING
     if (!(gnu_mode && gnu_version < 30100) &&
         expr != NULL && expr->is_lvalue && is_variable_node(expr)) {
       /* If the expression is an lvalue for a variable with an explicit
@@ -16979,6 +16981,7 @@ instantiation dependent, set *p_template_case to TRUE.
         alignof_value = var->alignment;
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
     if (is_incomplete_type(skip_array_types(alignof_type))) {
       an_error_severity  severity;
       if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
