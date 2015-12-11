@@ -2749,6 +2749,7 @@ an error if a default argument expression is encountered.
         a_boolean	     is_non_initial_pack_element;
         a_boolean            default_arg_allowed_on_curr_param =
                                                 declarator_allows_default_args;
+        a_boolean            check_no_default_arg_okay = FALSE;
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
         is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
@@ -3106,17 +3107,7 @@ an error if a default argument expression is encountered.
         if (C_mode()) {
           /* Default argument processing not needed in C mode. */
         } else if (curr_token != tok_assign) {
-          /* For in-class member template declarations, make sure that
-             all parameters after the first one with a default argument
-             also have default arguments.  Similar checks for other functions
-             are done elsewhere. */
-          if (any_default_args && parent_type != NULL &&
-              depth_template_declaration_scope == depth_scope_stack - 1) {
-            pos_error(ec_default_arg_not_at_end, &last_default_arg_pos);
-            /* Reset the flag that indicates that default arguments have
-               been seen to suppress subsequent errors. */
-            any_default_args = FALSE;
-          }  /* if */
+          check_no_default_arg_okay = TRUE;
         } else {
           a_scope_kind      parent_scope_kind;
           a_scope_stack_entry_ptr
@@ -3360,6 +3351,20 @@ an error if a default argument expression is encountered.
               ++param_number;
             }  /* if */
           }  /* while */
+        }  /* if */
+        if (check_no_default_arg_okay && !ptp->is_parameter_pack) {
+          /* For in-class member template declarations, make sure that all
+             parameters after the first one with a default argument also have
+             default arguments (or are parameter packs).  Similar checks for
+             other functions are done elsewhere.  This had to wait until now,
+             because we need to check the ptp->is_parameter_pack flag. */
+          if (any_default_args && parent_type != NULL &&
+              depth_template_declaration_scope == depth_scope_stack - 1) {
+            pos_error(ec_default_arg_not_at_end, &last_default_arg_pos);
+            /* Reset the flag that indicates that default arguments have
+               been seen to suppress subsequent errors. */
+            any_default_args = FALSE;
+          }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_array_next) {
