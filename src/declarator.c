@@ -2324,7 +2324,8 @@ this is a helper function.
     qualifiers = TQ_NONE;
   } else if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
     /* This is a nonstatic member function declared within the definition
-       of the class indicated, but without significant qualifiers. */
+       of the class indicated, but without significant qualifiers, or a
+       pointer-to-member-function declarator. */
     this_class = parent_type;
   }  /* if */
   if (this_class != NULL) {
@@ -2332,7 +2333,7 @@ this is a helper function.
       /* Ensure that "this_class" points to a class type. */
       this_class = proxy_class_for_template_param(this_class);
     }  /* if */
-    if ((state->dso_flags & DSO_CONSTEXPR) != 0 &&
+    if ((state->dso_flags & DSO_CONSTEXPR) != 0 && top_level &&
         !(is_constructor || is_destructor || is_finalizer)) {
       if (constexpr_implies_const) {
         /* constexpr nonstatic member functions are implicitly "const" in

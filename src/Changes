@@ -1,5 +1,21 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16697]
+Pointer-to-member-function declarators and constexpr
+
+In C++11 mode (but not C++14 mode), the front erroneously made const the
+function type embedded in a pointer-to-member-function type if the declaration
+for the pointer-to-member-function is constexpr.  This resulted in spurious
+errors.  For example:
+
+  struct S { void f(); };
+  constexpr void (S::*pmf)() = &S::f;
+    // Previously treated as "constexpr void (S::*pmf)() const", thereby
+    // triggering an error claiming an incompatible initializer type.
+
+This is now fixed.
+
+
 12/11/15 [EDGcpfe/16692]
 Abort on a coroutine returning a value when the promise type doesn't allow it
 
