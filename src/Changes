@@ -1,5 +1,17 @@
 Version 4.11
 
+12/11/15 [EDGcpfe/16685]
+Default arguments and parameter packs
+
+The front end no longer diagnoses a member function template with a parameter
+pack preceded by a parameter with a default argument.  For example:
+
+  struct S {
+    template<typename ... Ts> int f(int = 0, Ts ...ps);
+      // Previously an error.  Now okay.
+  };
+
+
 12/11/15 [EDGcpfe/16697]
 Pointer-to-member-function declarators and constexpr
 
