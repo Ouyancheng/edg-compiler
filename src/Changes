@@ -1,6 +1,6 @@
 Version 4.11
 
-12/11/15 [EDGcpfe/16696]
+12/11/15 [EDGcpfe/16408,EDGcpfe/16696]
 __is_literal_type(void)
 
 The "void" type is now treated as a "literal type" in C++ modes.  The type
