@@ -5851,16 +5851,16 @@ return_types_are_override_compatible.
                           rtsp = NULL;
 
   rout->is_virtual = TRUE;
-  /* Compiler-generated members have no declarator.  Use the associated
-     symbol's "decl_position" for diagnostics. */
-  if (rout->compiler_generated) {
-    source_pos = &overrider_sym->decl_position;
-    if (rout->type->kind == (a_type_kind)tk_routine) {
-      rtsp = rout->type->variant.routine.extra_info;
-      if (has_indeterminate_exception_spec(rout)) {
-        resolve_indeterminate_exception_specification(rout);
-      }  /* if */
+  if (rout->type->kind == (a_type_kind)tk_routine) {
+    rtsp = rout->type->variant.routine.extra_info;
+    if (has_indeterminate_exception_spec(rout)) {
+      resolve_indeterminate_exception_specification(rout);
     }  /* if */
+  }  /* if */
+  if (rout->compiler_generated) {
+    /* Compiler-generated members have no declarator.  Use the associated
+       symbol's "decl_position" for diagnostics. */
+    source_pos = &overrider_sym->decl_position;
   } else {
     if (rp->is_template_function) {
       instantiate_exception_spec_if_needed(overridden_sym);
