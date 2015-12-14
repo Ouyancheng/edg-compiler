@@ -9725,7 +9725,6 @@ point to the character after the universal character name.
 }  /* scan_universal_character */
 
 #if ABI_COMPATIBILITY_VERSION >= 302
-#if !(UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
 
 static void output_ucn_value(unsigned long ucn_value,
                              char          prefix4,
@@ -9752,8 +9751,6 @@ are the prefix characters to be used for 4-digit and 8-digit output.
      character has been encountered. */
   il_header.UCN_identifiers_used = TRUE;
 }  /* output_ucn_value */
-
-#endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
 #if !(UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
 /*ARGSUSED*/ /* <-- force_ucn not used in this case. */
