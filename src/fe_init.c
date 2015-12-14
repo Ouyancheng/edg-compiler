@@ -908,7 +908,7 @@ Install the keywords in the symbol table.
   }  /* if */
   init_whitespace_keywords();
   if (cli_or_cx_enabled ||
-      (microsoft_mode && microsoft_version >= 1900)) {
+      (microsoft_mode && microsoft_version >= 1900 && !C_mode())) {
     internal_templates_enabled = TRUE;
     /* A keyword used to predefine alias templates even when alias declarations
        are not otherwise enabled.  This is e.g. used to map interior_ptr<T>

@@ -2818,17 +2818,21 @@ Enter predeclared symbols as required by the implementation.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   if (ms_extensions) {
     enter_microsoft_predeclared_functions();
     if (microsoft_version >= 1900 || cppcli_enabled) {
       builtin_functions_enabled = TRUE;
       enter_shared_predeclared_functions();
-      /* Create an alias template for "_make_integer_seq". */
-      make_make_integer_seq_internal_template();
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+  if (microsoft_mode && microsoft_version >= 1900 && !C_mode()) {
+    /* Create an alias template for "_make_integer_seq". */
+    make_make_integer_seq_internal_template();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_upc_predefined_macros();
