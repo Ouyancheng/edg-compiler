@@ -7738,20 +7738,21 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 }  /* make_symbol_for_namespace_cli */
 
 
-static a_symbol_ptr make_cli_internal_template(
-                                           a_const_char    *symbol_name,
+static a_symbol_ptr make_internal_template(a_const_char    *symbol_name,
                                            a_const_char    *definition_string,
                                            a_namespace_ptr ns_ptr)
 /*
 Declare and define the template specified by symbol_name and return the symbol
 associated with it.  The definition is provided by definition_string.
 These templates are generated internally to implement C++/CLI and C++/CX
-features like cli::interior_ptr or Platform::WriteOnlyArray.
+features like cli::interior_ptr or Platform::WriteOnlyArray as well as
+builtin alias templates (e.g., __make_integer_seq).
 */
 {
   a_template_symbol_supplement_ptr tssp;
   a_symbol_ptr                     result_sym;
 
+  check_assertion(internal_templates_enabled);
   scan_top_level_metadata_declarations(definition_string,
                                        (an_assembly_index)0);
   result_sym = look_up_name_string_in_namespace(
@@ -7762,7 +7763,25 @@ features like cli::interior_ptr or Platform::WriteOnlyArray.
   tssp = result_sym->variant.template_info;
   tssp->variant.class_template.cannot_be_specialized = TRUE;
   return result_sym;
-}  /* make_cli_internal_template */
+}  /* make_internal_template */
+
+
+void make_make_integer_seq_internal_template(void)
+/*
+Creates a builtin alias template for "__make_integer_seq" at the file scope.
+*/
+{
+  /* Note that value for the alias template (i.e., "T") is arbitrary
+     here as the template will be instantiated programatically (by
+     instantiate_make_integer_seq). */
+  check_assertion(variadic_templates_enabled);
+  symbol_for_make_integer_seq = make_internal_template(
+      "__make_integer_seq",
+      "template<template<typename U, U... K> class S, typename T, T N>"
+      "  __internal_alias_decl __make_integer_seq = T;",
+      (a_namespace_ptr)NULL);
+  return;
+}  /* make_make_integer_seq_internal_template */
 
 
 static void make_symbol_for_cli_array(void)
@@ -7775,7 +7794,7 @@ definition is lifted from ECMA-372, subsection 8.2.3.)
     defining it to ensure cli_symbols[csk_cli_array] is set before the
     prototype instantiation of cli::array is done.  Then complete the
     definition. */
-  cli_symbols[(int)csk_cli_array] = make_cli_internal_template("array",
+  cli_symbols[(int)csk_cli_array] = make_internal_template("array",
       "namespace cli {"
       "  template <typename T, int rank = 1>"
       "  ref class array;"
@@ -7801,7 +7820,7 @@ Declare and define the C++/CLI type "cli::interior_ptr".
 */
 {
   cli_symbols[(int)csk_interior_ptr] =
-    make_cli_internal_template("interior_ptr",
+    make_internal_template("interior_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl interior_ptr ="
@@ -7816,7 +7835,7 @@ static void make_symbol_for_cli_pin_ptr(void)
 Declare and define the C++/CLI type "cli::pin_ptr".
 */
 {
-  cli_symbols[(int)csk_pin_ptr] = make_cli_internal_template("pin_ptr",
+  cli_symbols[(int)csk_pin_ptr] = make_internal_template("pin_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl pin_ptr ="
@@ -7842,7 +7861,7 @@ vccorlib.h header.
 */
 {
   check_assertion(cppcx_enabled);
-  cli_symbols[(int)csk_cli_array] = make_cli_internal_template(
+  cli_symbols[(int)csk_cli_array] = make_internal_template(
         "Array",
           "namespace Platform {"
           "  template <typename T, unsigned int dimension>"
@@ -7854,7 +7873,7 @@ vccorlib.h header.
       ->variant.class_template.prototype_instantiation
       ->variant.class_struct_union.type
       ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
-  cli_symbols[(int)csk_platform_write_only_array] = make_cli_internal_template(
+  cli_symbols[(int)csk_platform_write_only_array] = make_internal_template(
         "WriteOnlyArray",
           "namespace Platform {"
           "  template <typename T, unsigned int dimension>"
@@ -7872,7 +7891,7 @@ vccorlib.h header.
         ->variant.class_struct_union.type
         ->variant.class_struct_union.extra_info
         ->is_cppcx_write_only_array = TRUE;
-  /* make_cli_internal_template disables specialization of the class template.
+  /* make_internal_template disables specialization of the class template.
      However, C++/CX defines specializations for single-dimension
      WriteOnlyArray and Array instantiations.  Enable specializations for
      those templates here (they will be disabled again once we have scanned
@@ -7892,7 +7911,7 @@ Declare and define the C++/CX type "Platform::Box".
   /* Declare Platform::Box<T> without defining it to ensure that
      cli_symbols[csk_cppcx_box] is set before the prototype instantiation of
      Platform::Box is done when we encounter the definition in vccorlib.h. */
-  cli_symbols[(int)csk_cppcx_box] = make_cli_internal_template(
+  cli_symbols[(int)csk_cppcx_box] = make_internal_template(
     "Box",
       "namespace Platform {"
       "  template <typename T>"
@@ -16324,6 +16343,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(cli_symbols),
+      pch_saved_var_array_elem(symbol_for_make_integer_seq),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
@@ -16405,6 +16425,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_namespace_std_entered);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_array(cli_symbols),
+  register_trans_unit_variable(symbol_for_make_integer_seq);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
@@ -16449,6 +16470,7 @@ given translation unit.
   symbol_for_namespace_std_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   memzero((char *)cli_symbols, sizeof(cli_symbols));
+  symbol_for_make_integer_seq = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI

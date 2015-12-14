@@ -2798,6 +2798,8 @@ ec_gnu_auto_type_with_secondary_declarator;;"\"__auto_type\" does not permit mul
 ec_auto_type_brace_initialization_not_allowed;;"initialization with \"{...}\" is not allowed for \"__auto_type\""
 ec_modified_auto_type;;"\"__auto_type\" must be a placeholder for the complete type of the variable (not for a component of that type)"
 ec_gnu_auto_type_without_initializer;;"a variable declared with \"__auto_type\" requires an initializer"
+ec_constant_must_be_positive;;"integer constant must be greater than or equal to zero"
+ec_type_must_be_integral;;"type must be an integral type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

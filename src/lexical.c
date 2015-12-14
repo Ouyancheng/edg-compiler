@@ -15869,7 +15869,7 @@ all arguments were explicit.
                                        scope_stack_top().in_template_arg_list;
   a_boolean                        too_many_args = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_source_position                arg1_pos, arg2_pos;
+  a_source_position                arg1_pos, arg2_pos, arg3_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   scope_stack_top().in_template_arg_list = TRUE;
@@ -15929,11 +15929,12 @@ all arguments were explicit.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled) {
-    /* Record the starting position of the argument list in case it is needed
-       for a diagnostic later on. */
+  if (internal_templates_enabled) {
+    /* Record the starting positions of the argument(s) in case they are needed
+       for diagnostics later on. */
     arg1_pos = pos_curr_token;
     arg2_pos = null_source_position;
+    arg3_pos = null_source_position;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   arg_number = 0;
@@ -15987,7 +15988,13 @@ all arguments were explicit.
       }  /* if */
       arg_pos = pos_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled && arg_number == 1) arg2_pos = arg_pos;
+      if (internal_templates_enabled) {
+        if (arg_number == 1) {
+          arg2_pos = arg_pos;
+        } else if (arg_number == 2) {
+          arg3_pos = arg_pos;
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* If the template parameter list is empty, exit the loop.  This only
          occurs in error cases. */
@@ -16268,12 +16275,12 @@ all arguments were explicit.
     *any_errors = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled && !*any_errors) {
-    /* cli::interior_ptr, cli::pin_ptr, and cli::array are implemented via
-       templates.  Check that their arguments meet the requirements of the
-       language. */
-    (void)check_cli_internal_template_instantiation(
-                            template_sym, arg_list, &arg1_pos, &arg2_pos);
+  if (internal_templates_enabled && !*any_errors) {
+    /* If internal templates are enabled, check that their arguments meet the
+       requirements of the language. */
+    (void)check_internal_template_instantiation(template_sym, arg_list,
+                                                &arg1_pos, &arg2_pos,
+                                                &arg3_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;

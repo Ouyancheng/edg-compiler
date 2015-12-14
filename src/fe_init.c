@@ -907,6 +907,15 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
   }  /* if */
   init_whitespace_keywords();
+  if (cli_or_cx_enabled || microsoft_mode) {
+    internal_templates_enabled = TRUE;
+    /* A keyword used to predefine alias templates even when alias declarations
+       are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
+       to the appropriate tk_pointer entry and to create builtin alias
+       templates (e.g., __make_integer_seq) in Microsoft emulation mode. */
+    enter_keyword((a_token_kind)tok_internal_alias_decl,
+                  "__internal_alias_decl");
+  }  /* if */
   if (cli_or_cx_enabled) {
     /* Keywords that can be the first word of a whitespace keyword.  They
        are never returned by get_token() but are transformed either into
@@ -915,11 +924,6 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_prefix_interface, "interface");
     enter_keyword((a_token_kind)tok_prefix_ref, "ref");
     enter_keyword((a_token_kind)tok_prefix_value, "value");
-    /* A keyword used to predefine alias templates even when alias declarations
-       are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
-       to the appropriate tk_pointer entry. */
-    enter_keyword((a_token_kind)tok_internal_alias_decl,
-                  "__internal_alias_decl");
     if (cppcx_enabled) {
       /* "partial" can be the first word of a whitespace keyword. */
       enter_keyword((a_token_kind)tok_prefix_partial, "partial");

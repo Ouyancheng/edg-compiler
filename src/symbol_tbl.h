@@ -4457,6 +4457,13 @@ extern a_symbol_ptr enter_cli_accessor(a_symbol_locator               *locator,
 extern void enter_projected_default_indexed_properties(
                                          a_class_symbol_supplement_ptr  cssp);
 
+extern void make_make_integer_seq_internal_template(void);
+
+EXTERN a_symbol_ptr
+                symbol_for_make_integer_seq;
+                        /* Symbol for "__make_integer_seq" which is a
+                           builtin alias template. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void reenter_block_scope_symbol(a_symbol_ptr  sym);

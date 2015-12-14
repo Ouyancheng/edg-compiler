@@ -2824,6 +2824,8 @@ Enter predeclared symbols as required by the implementation.
     if (microsoft_version >= 1900 || cppcli_enabled) {
       builtin_functions_enabled = TRUE;
       enter_shared_predeclared_functions();
+      /* Create an alias template for "_make_integer_seq". */
+      make_make_integer_seq_internal_template();
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
