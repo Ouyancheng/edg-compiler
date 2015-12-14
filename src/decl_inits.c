@@ -7924,6 +7924,12 @@ initialized.  These are addressed in the course of the processing.
       } else {
         /* No copy/move constructor is required.  If any constructor exists,
            the default constructor should be called. */
+        if (is_immediate_class_type(tp)) {
+          rp = select_default_constructor(tp, &err_pos, object_class_type,
+                                          (a_boolean *)NULL);
+        } else {
+          rp = NULL;
+        }  /* if */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
             (is_ref || is_const_qualified || ctor_rout->is_constexpr)) {
           /* An uninitialized field that probably requires initialization.
@@ -7939,9 +7945,10 @@ initialized.  These are addressed in the course of the processing.
                          tp->variant.class_struct_union
                                     .has_zero_init_component &&
                          has_trivial_default_constructor(cssp)) &&
-                       (is_const_qualified ?
+                       (rp != NULL ||
+                        (is_const_qualified ?
                             cssp->has_user_provided_default_constructor
-                          : has_any_default_constructor(cssp))) ||
+                          : has_any_default_constructor(cssp)))) ||
                       (ctor_rout->is_constexpr ?
                                                is_template_param_type(tp) :
                                                is_template_dependent_type(tp))
@@ -8049,12 +8056,6 @@ initialized.  These are addressed in the course of the processing.
             }  /* if */
           }  /* if */
           continue;
-        }  /* if */
-        if (is_immediate_class_type(tp)) {
-          rp = select_default_constructor(tp, &err_pos, object_class_type,
-                                          (a_boolean *)NULL);
-        } else {
-          rp = NULL;
         }  /* if */
         if (rp == NULL) {
           /* No constructor to call. */

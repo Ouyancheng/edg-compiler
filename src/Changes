@@ -1,5 +1,22 @@
 Version 4.11
 
+12/14/15 [EDGcpfe/16718,EDGcpfe/16719]
+Default constructor generation error with constexpr constructor template
+
+When generating a default constructor required a call to a constructor
+template for a subobject, the front end sometimes issued a spurious error.
+For example:
+
+  struct C { template<class = int> C() {} };
+  struct S {
+    const C c;
+  };
+  S s;  // Previously, the generation of S::S() triggered an error claiming
+        // S::c cannot be initialized.  Now accepted.
+
+This is now fixed.
+
+
 12/11/15 [EDGcpfe/16686]
 Abort on invalid use of __FUNCTION__ etc.
 
