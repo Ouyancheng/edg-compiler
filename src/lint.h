@@ -1162,6 +1162,9 @@ extern int fileno(FILE *);
 /*lint -esym(765,free_attachments_to_operand)*/
 /*lint -esym(769,ec_function_modifier_requires_virtual_function)*/
 /*lint -esym(769,ec_constexpr_ignored_on_microsoft_nonstatic_member)*/
+/*lint -esym(769,ec_constant_must_be_positive)*/
+/*lint -esym(769,ec_type_must_be_integral)*/
+/*lint -esym(552,internal_templates_enabled)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/
