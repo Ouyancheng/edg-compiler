@@ -1,5 +1,16 @@
 Version 4.11
 
+12/14/15 [EDGcpfe/16545]
+Microsoft compatibility: Builtin alias template for __make_integer_seq
+
+The front end now implements a builtin alias template for __make_integer_seq
+which is meant to be an efficient implementation of std::make_integer_sequence.
+The alias is available when microsoft_mode >= 1900.
+
+  template <typename T, T... N> class seq {};
+  __make_integer_seq<seq, int, 3> x;  // Has type seq<int, 0, 1, 2>
+
+
 12/14/15 [EDGcpfe/16718,EDGcpfe/16719]
 Default constructor generation error with constexpr constructor template
 
