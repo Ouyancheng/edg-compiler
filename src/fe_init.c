@@ -907,7 +907,8 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
   }  /* if */
   init_whitespace_keywords();
-  if (cli_or_cx_enabled || microsoft_mode) {
+  if (cli_or_cx_enabled ||
+      (microsoft_mode && microsoft_version >= 1900)) {
     internal_templates_enabled = TRUE;
     /* A keyword used to predefine alias templates even when alias declarations
        are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
