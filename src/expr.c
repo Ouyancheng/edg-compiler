@@ -30282,7 +30282,10 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
     if (!gnu_mode) {
-      pos_error(ec_generic_id_can_only_appear_in_function, &pos_curr_token);
+      a_const_char  *token_spelling =
+                                 spelling_for_function_name_token(curr_token);
+      pos_st_error(ec_id_can_only_appear_in_function, &pos_curr_token,
+                   token_spelling);
     }  /* if */
     name_str = "";
   } else {
