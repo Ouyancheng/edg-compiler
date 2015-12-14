@@ -30267,6 +30267,34 @@ caching the tokens of a member function.
 }  /* do_expression_level_string_literal_concatenation */
 
 
+a_const_char *spelling_for_function_name_token(a_token_kind token)
+/*
+Return the spelling of the function-name token for the indicated
+token kind, e.g., __FUNCTION__ for tok_function_name.  The string
+returned is not in the IL and must be copied if needed there.
+*/
+{
+  a_const_char *name;
+
+  name = token_names[(int)token];
+  switch (token) {
+    case tok_func_name:
+    case tok_function_name:
+    case tok_decorated_function_name:
+      break;
+    case tok_pretty_function_name:
+      if (ms_extensions) {
+        /* In Microsoft mode, __PRETTY_FUNCTION__ is __FUNCSIG__. */
+        name = "__FUNCSIG__";
+      }  /* if */
+      break;
+    default:
+      unexpected_condition_str("spelling_for_function_name_token: bad token");
+  }  /* switch */
+  return name;
+}  /* spelling_for_function_name_token */
+
+
 void set_curr_token_to_function_name_string(a_boolean do_concat)
 /*
 Set the current token to a string literal constant for the name
@@ -30348,34 +30376,6 @@ simple_name:
     (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);
   }  /* if */
 }  /* set_curr_token_to_function_name_string */
-
-
-a_const_char *spelling_for_function_name_token(a_token_kind token)
-/*
-Return the spelling of the function-name token for the indicated
-token kind, e.g., __FUNCTION__ for tok_function_name.  The string
-returned is not in the IL and must be copied if needed there.
-*/
-{
-  a_const_char *name;
-
-  name = token_names[(int)token];
-  switch (token) {
-    case tok_func_name:
-    case tok_function_name:
-    case tok_decorated_function_name:
-      break;
-    case tok_pretty_function_name:
-      if (ms_extensions) {
-        /* In Microsoft mode, __PRETTY_FUNCTION__ is __FUNCSIG__. */
-        name = "__FUNCSIG__";
-      }  /* if */
-      break;
-    default:
-      unexpected_condition_str("spelling_for_function_name_token: bad token");
-  }  /* switch */
-  return name;
-}  /* spelling_for_function_name_token */
 
 
 static void make_function_name_operand(an_operand *result)
