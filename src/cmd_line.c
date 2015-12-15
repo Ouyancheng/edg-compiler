@@ -3360,7 +3360,7 @@ setting is used, and to set various unmentioned settings as needed.
     /* Set default C++11 extensions. */
     check_and_set_default_cpp11_extensions();
   }  /* if */
-  if (lambdas_enabled && !ms_extensions) {
+  if (lambdas_enabled && !microsoft_mode) {
     /* Originally, the C++11 standard did not permit lambda expressions with
        default arguments.  The resolution for Core issue 974 changed that.
        Enable the feature in all modes that accept lambdas, except certain
