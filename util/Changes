@@ -1,10 +1,10 @@
 Version 4.11
 
 12/1/15  [EDGcpfe/16502]
---ms_extensions and --ms_compat command-line options
+--ms_extensions and --ms_compatibility command-line options
 
 The eccp script has been updated to include the --[no_]ms_extensions and
---[no_]ms_compat command-line options.
+--[no_]ms_compatibility command-line options.
 
 
 7/25/15  [EDGcpfe/16011]

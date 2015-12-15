@@ -502,10 +502,10 @@ Initialize the option information table.
   add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_microsoft_compatibility, "ms_compat",
+  add_option_description(optk_microsoft_compatibility, "ms_compatibility",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_microsoft_compatibility, "no_ms_compat",
+  add_option_description(optk_microsoft_compatibility, "no_ms_compatibility",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_microsoft_extensions, "ms_extensions",
@@ -2085,8 +2085,8 @@ Returns TRUE if a C++ mode is explicitly specified.
 static void set_microsoft_mode_flags(void)
 /*
 Set other options whose values should be changed when Microsoft mode is enabled
-or --ms_extensions or --ms_compat have been specified.  Only set the option
-values if they were not already set by a command line option.
+or --ms_extensions or --ms_compatibility have been specified.  Only set the
+option values if they were not already set by a command line option.
 */
 {
   enum_types_can_be_smaller_than_int = FALSE;
@@ -4565,7 +4565,7 @@ command line switches.
       SVR4 mode         SVR4_C_mode                      --svr4
       microsoft mode    ms_extensions, ms_compat, microsoft_mode
                                                          --microsoft
-        MS compatibility ms_extensions, ms_compat        --ms_compat
+        MS compatibility ms_extensions, ms_compat        --ms_compatibility
         MS extensions   ms_extensions                    --ms_extensions
         bugs mode       microsoft_bugs                   --microsoft_bugs
         16-bit mode     il_header.near_and_far_allowed   --microsoft_16
@@ -4583,7 +4583,7 @@ command line switches.
       3.0 mode          cfront_3_0_mode                  --cfront_3.0
     microsoft mode      ms_extensions, ms_compat, microsoft_mode
                                                          --microsoft
-      MS compatibility  ms_extensions, ms_compat         --ms_compat
+      MS compatibility  ms_extensions, ms_compat         --ms_compatibility
       MS extensions     ms_extensions                    --ms_extensions
       bugs mode         microsoft_bugs                   --microsoft_bugs
       16-bit mode       il_header.near_and_far_allowed   --microsoft_16
@@ -4608,11 +4608,11 @@ with command-line options to select a C mode, but otherwise it implies C++ mode
 C code by default).
 
 Microsoft emulation has been split into three "tiers": --ms_extensions
-emulates clang's -fms-extensions mode, --ms_compat emulates clang's
+emulates clang's -fms-extensions mode, --ms_compatibility emulates clang's
 -fms-compatibility mode, and --microsoft enables full Microsoft compatibility.
 Only the last of these modes qualifies as a "major dialect", thereby allowing
---ms_extensions, and/or --ms_compat to be specified with other major dialects
-(e.g., --clang).
+--ms_extensions, and/or --ms_compatibility to be specified with other major
+dialects (e.g., --clang).
 
 A mode for a newer standard (like C99 or C++11) is in some ways considered
 both a dialect and a mode.  For example, with --c99 C_dialect is still
@@ -9043,7 +9043,7 @@ Process the arguments on the command line that invoked the compiler.
             !option_kind_used[(int)optk_microsoft_compatibility]) {
           /* By itself, specifying --microsoft_version implies enabling
              Microsoft emulation mode, but not if using --ms_extensions or
-             --ms_compat. */
+             --ms_compatibility. */
           goto enable_microsoft_mode;
         }  /* if */
         break;
@@ -10126,9 +10126,9 @@ enable_microsoft_mode:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!microsoft_mode && ms_extensions) {
     /* The Microsoft mode major dialect was not selected, but either
-       --ms_extensions or --ms_compat has been selected.  In this case, select
-       the appropriate options (any major dialect options have already been
-       selected -- these will generally overwrite them). */
+       --ms_extensions or --ms_compatibility has been selected.  In this case,
+       select the appropriate options (any major dialect options have already
+       been selected -- these will generally overwrite them). */
     if (!option_kind_used[(int)optk_microsoft_bugs]) {
       microsoft_bugs = TRUE;
     }  /* if */
