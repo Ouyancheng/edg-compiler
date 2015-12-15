@@ -11147,6 +11147,7 @@ variables declared in cmd_line.h.
   cppcx_enabled = FALSE;
   cli_or_cx_enabled = FALSE;
   scanning_generated_code_from_metadata = FALSE;
+  scanning_generated_code = FALSE;
   internal_templates_enabled = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

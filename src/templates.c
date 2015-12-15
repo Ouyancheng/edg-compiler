@@ -797,7 +797,10 @@ may be a friend template.
   a_template_ptr  tp;
 
   db_enter(3, "make_il_template_entry");
-  il_header.any_templates_seen = TRUE;
+  if (!in_generated_code()) {
+    /* Don't set this flag for templates that are defined internally. */
+    il_header.any_templates_seen = TRUE;
+  }  /* if */
   tp = alloc_template();
   tp->source_corresp.decl_position = decl_state->decl_parse.start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -25550,7 +25553,7 @@ scanned yet.
   a_boolean			any_errors = FALSE;
 
 #if DEBUG
-  if (db_flag_is_set("cfcc") && !in_code_generated_from_metadata()) {
+  if (db_flag_is_set("cfcc") && !in_generated_code()) {
     fprintf(f_debug, "check_for_constraint_conflict:\n");
     fprintf(f_debug, "  param_type: ");
     db_type_name(param_type);

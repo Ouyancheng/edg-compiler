@@ -128,8 +128,8 @@ should only be called if cross-reference information is being generated
   a_boolean         at_end_of_source;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Don't record cross-references in code from metadata files. */
-  if (in_code_generated_from_metadata()) goto done;
+  /* Don't record cross-references in generated code. */
+  if (in_generated_code()) goto done;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!output_control_block_has_been_set_up) {
     /* Set octl so that it can be passed into the il_to_str routines to tell

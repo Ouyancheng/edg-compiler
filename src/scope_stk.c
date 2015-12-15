@@ -3455,9 +3455,9 @@ the scope being pushed.
     if (processing_vccorlib_header) {
       /* Don't update source_sequence_entries_disallowed when scanning
          vccorlib.h. */
-    } else if (scanning_generated_code_from_metadata) {
+    } else if (scanning_generated_code) {
       /* Don't update source_sequence_entries_disallowed when scanning
-         a declaration from metadata. */ 
+         generated code. */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     } else if (ssep->in_generic_instantiation) {
       /* Don't generate source sequence entries for instantiations of C++/CLI

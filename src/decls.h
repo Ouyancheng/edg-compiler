@@ -1379,9 +1379,9 @@ extern void scan_implicitly_included_template_definition_file(void);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void scan_top_level_metadata_declarations(
-                                             a_const_char      *buffer,
-                                             an_assembly_index assembly_index);
+extern void scan_top_level_generated_code(a_const_char      *buffer,
+                                          an_assembly_index assembly_index,
+                                          a_boolean         is_metadata);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean reconcile_external_symbol_types(

@@ -1226,6 +1226,12 @@ EXTERN a_boolean
 			   metadata. */
 
 EXTERN a_boolean
+		scanning_generated_code;
+			/* TRUE if we are scanning code generated from
+			   internal definitions (e.g., metadata or builtin
+			   templates). */
+
+EXTERN a_boolean
 		internal_templates_enabled;
 			/* TRUE if the front end defines "internal templates"
 			   as a means for enabling certain C++/CLI or C++/CX
@@ -1255,6 +1261,8 @@ EXTERN a_boolean
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
 EXTERN a_boolean
+		scanning_generated_code;
+EXTERN a_boolean
 		internal_templates_enabled;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
@@ -1265,6 +1273,7 @@ EXTERN a_boolean
 #define cppcx_enabled FALSE
 #define cli_or_cx_enabled FALSE
 #define scanning_generated_code_from_metadata FALSE
+#define scanning_generated_code FALSE
 #define internal_templates_enabled FALSE
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

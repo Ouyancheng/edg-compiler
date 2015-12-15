@@ -7740,21 +7740,23 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 
 static a_symbol_ptr make_internal_template(a_const_char    *symbol_name,
                                            a_const_char    *definition_string,
-                                           a_namespace_ptr ns_ptr)
+                                           a_namespace_ptr ns_ptr,
+                                           a_boolean       is_metadata)
 /*
 Declare and define the template specified by symbol_name and return the symbol
 associated with it.  The definition is provided by definition_string.
 These templates are generated internally to implement C++/CLI and C++/CX
 features like cli::interior_ptr or Platform::WriteOnlyArray as well as
-builtin alias templates (e.g., __make_integer_seq).
+builtin alias templates (e.g., __make_integer_seq).  is_metadata is TRUE if
+the template is for a C++/CLI type and FALSE otherwise.
 */
 {
   a_template_symbol_supplement_ptr tssp;
   a_symbol_ptr                     result_sym;
 
   check_assertion(internal_templates_enabled);
-  scan_top_level_metadata_declarations(definition_string,
-                                       (an_assembly_index)0);
+  scan_top_level_generated_code(definition_string, (an_assembly_index)0,
+                                is_metadata);
   result_sym = look_up_name_string_in_namespace(
                                            symbol_name, ns_ptr,
                                            IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
@@ -7779,7 +7781,8 @@ Creates a builtin alias template for "__make_integer_seq" at the file scope.
       "__make_integer_seq",
       "template<template<typename U, U... K> class S, typename T, T N>"
       "  __internal_alias_decl __make_integer_seq = T;",
-      (a_namespace_ptr)NULL);
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
   return;
 }  /* make_make_integer_seq_internal_template */
 
@@ -7799,18 +7802,20 @@ definition is lifted from ECMA-372, subsection 8.2.3.)
       "  template <typename T, int rank = 1>"
       "  ref class array;"
       "}",
-      cli_namespace_ptr_for(csk_cli_namespace));
+      cli_namespace_ptr_for(csk_cli_namespace),
+      /*is_metadata=*/TRUE);
   cli_symbols[(int)csk_cli_array]
       ->variant.template_info
       ->variant.class_template.prototype_instantiation
       ->variant.class_struct_union.type
       ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
-  scan_top_level_metadata_declarations(
+  scan_top_level_generated_code(
       "namespace cli {"
       "  template <typename T, int rank>"
       "  ref class array sealed : System::Array {};"
       "}",
-      (an_assembly_index)0);
+      (an_assembly_index)0,
+      /*is_metadata=*/TRUE);
 }  /* make_symbol_for_cli_array */
 
 
@@ -7826,7 +7831,8 @@ Declare and define the C++/CLI type "cli::interior_ptr".
       "  __internal_alias_decl interior_ptr ="
       "              __declspec(__edg_interior_ptr_alias) Type;"
       "}",
-      cli_namespace_ptr_for(csk_cli_namespace));
+      cli_namespace_ptr_for(csk_cli_namespace),
+      /*is_metadata=*/TRUE);
 }  /* make_symbol_for_cli_interior_ptr */
 
 
@@ -7841,7 +7847,8 @@ Declare and define the C++/CLI type "cli::pin_ptr".
       "  __internal_alias_decl pin_ptr ="
       "              __declspec(__edg_pin_ptr_alias) Type;"
       "}",
-      cli_namespace_ptr_for(csk_cli_namespace));
+      cli_namespace_ptr_for(csk_cli_namespace),
+      /*is_metadata=*/TRUE);
 }  /* make_symbol_for_cli_pin_ptr */
 
 
@@ -7867,7 +7874,8 @@ vccorlib.h header.
           "  template <typename T, unsigned int dimension>"
           "  ref class Array;"
           "}",
-        cli_namespace_ptr_for(csk_system_namespace));
+        cli_namespace_ptr_for(csk_system_namespace),
+        /*is_metadata=*/TRUE);
   cli_symbols[(int)csk_cli_array]
       ->variant.template_info
       ->variant.class_template.prototype_instantiation
@@ -7879,7 +7887,8 @@ vccorlib.h header.
           "  template <typename T, unsigned int dimension>"
           "  ref class WriteOnlyArray;"
           "}",
-        cli_namespace_ptr_for(csk_system_namespace));
+        cli_namespace_ptr_for(csk_system_namespace),
+        /*is_metadata=*/TRUE);
   cli_symbols[(int)csk_platform_write_only_array]
         ->variant.template_info
         ->variant.class_template.prototype_instantiation
@@ -7917,7 +7926,8 @@ Declare and define the C++/CX type "Platform::Box".
       "  template <typename T>"
       "  ref class Box;"
       "}",
-    cli_namespace_ptr_for(csk_system_namespace));
+    cli_namespace_ptr_for(csk_system_namespace),
+    /*is_metadata=*/TRUE);
   cli_symbols[(int)csk_cppcx_box]
                  ->variant.template_info
                  ->variant.class_template.prototype_instantiation
@@ -7934,8 +7944,8 @@ __abi_HSTRING type in C++/CX mode.
 */
 {
   check_assertion (cppcx_enabled);
-  scan_top_level_metadata_declarations(
-     "struct HSTRING__;", (an_assembly_index)0);
+  scan_top_level_generated_code("struct HSTRING__;", (an_assembly_index)0,
+                                /*is_metadata=*/TRUE);
   init_cli_symbol((a_cli_symbol_kind)csk_abi_hstring);
 }  /* make_symbol_for_abi_hstring */
 

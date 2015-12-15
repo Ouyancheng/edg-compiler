@@ -1658,6 +1658,16 @@ instantiation of a generic imported from metadata.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+TRUE if we are processing code that was not present in an input file, i.e., it
+was scanned as part of metadata or from a builtin template.  Note that this
+is TRUE only when scanning generated code; not during an instantiation of
+generated code.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define in_generated_code() (scanning_generated_code)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 TRUE if we are in a C++/CLI generic definition context.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED

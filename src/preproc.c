@@ -1608,7 +1608,8 @@ in the metadata file.
       in_preprocessing_directive = FALSE;
       curr_assembly_index = cmfp->assembly_index; 
       buffer = generate_top_level_metadata_code(cmfp->assembly_index);
-      scan_top_level_metadata_declarations(buffer, cmfp->assembly_index);
+      scan_top_level_generated_code(buffer, cmfp->assembly_index,
+                                    /*is_metadata=*/TRUE);
       /* If this is not a preusing, the next token should be tok_newline of 
          the #using directive. */
       check_assertion(curr_token == tok_newline || 
@@ -1629,7 +1630,7 @@ Perform any necessary actions that must occur before vccorlib.h is parsed.
 {
   /* In order to parse vccorlib.h successfully, several definitions that
      are predefined in the Microsoft compiler must be defined. */
-  scan_top_level_metadata_declarations(
+  scan_top_level_generated_code(
      "struct __s_GUID {"
      "unsigned long Data1;"
      "unsigned short Data2;"
@@ -1637,7 +1638,8 @@ Perform any necessary actions that must occur before vccorlib.h is parsed.
      "unsigned char Data4[8];"
      "};"
      "typedef const struct _GUID &__rcGUID_t;",
-     (an_assembly_index)0);
+     (an_assembly_index)0,
+     /*is_metadata=*/TRUE);
   /* The symbol for __abi_HSTRING__ must be available before vccorlib.h
      processing as well. */
   make_symbol_for_abi_hstring();
