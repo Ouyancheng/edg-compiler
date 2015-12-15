@@ -14,13 +14,13 @@ The alias is available when microsoft_mode >= 1900.
 12/14/15 [EDGcpfe/16718,EDGcpfe/16719]
 Default constructor generation error with constexpr constructor template
 
-When generating a default constructor required a call to a constructor
-template for a subobject, the front end sometimes issued a spurious error.
-For example:
+When generating a default constructor required a call to a constexpr
+constructor template for a subobject, the front end sometimes issued a
+spurious error.  For example:
 
-  struct C { template<class = int> C() {} };
+  struct C { template<class = int> constexpr C() {} };
   struct S {
-    const C c;
+    C c;
   };
   S s;  // Previously, the generation of S::S() triggered an error claiming
         // S::c cannot be initialized.  Now accepted.
