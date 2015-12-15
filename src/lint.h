@@ -1165,6 +1165,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_constant_must_be_positive)*/
 /*lint -esym(769,ec_type_must_be_integral)*/
 /*lint -esym(552,internal_templates_enabled)*/
+/*lint -esym(552,scanning_generated_code)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/

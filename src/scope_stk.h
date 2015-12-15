@@ -1665,6 +1665,8 @@ generated code.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define in_generated_code() (scanning_generated_code)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define in_generated_code() (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
