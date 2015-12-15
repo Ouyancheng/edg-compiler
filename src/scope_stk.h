@@ -1666,7 +1666,7 @@ generated code.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define in_generated_code() (scanning_generated_code)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define in_generated_code() (FALSE)
+#define in_generated_code() /*lint --e(506)*/FALSE 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
