@@ -330,6 +330,7 @@ static an_attr_descr known_attr_table[] = {
   { "no_release_return", "", "m+", ak_no_release_return },
   { "no_weakreferencesource", "", "m+", ak_no_weakreferencesource },
   { "one_phase_constructed", "", "m+", ak_one_phase_constructed },
+  { "allocator", "", "mx(1900-)", ak_allocator },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED
@@ -694,6 +695,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_no_release_return, "t|p|r|v|d", NO_APPL_FN },
   { ak_no_weakreferencesource, "t|p|r|v|d", NO_APPL_FN },
   { ak_one_phase_constructed, "t|p|r|v|d", NO_APPL_FN },
+  { ak_allocator, "r", NO_APPL_FN },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
