@@ -5641,7 +5641,7 @@ declared entity is known to not be a function.
           /* This is a template declaration. */
           is_template_decl = TRUE;
           ssep--;
-        } else if (gpp_mode &&
+        } else if (gpp_mode && !clang_mode &&
                    ((input_flags & DI_IS_FRIEND_DECL) ||
                     (gnu_version < 40101 &&
                      depth_innermost_function_scope != NO_SCOPE_DEPTH)) &&

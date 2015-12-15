@@ -2561,6 +2561,10 @@ typedef struct an_id_linkage_block {
 		name_linkage_is_explicit;
 			/* TRUE if the name linkage for the current
 			   declaration was explicitly specified. */
+  a_byte_boolean
+		suppress_qualified_name_redecl_error;
+			/* TRUE if qualified_name_redecl_sym should suppress
+			   an error if the lookup fails. */
 } an_id_linkage_block;
 
 #if NULL_POINTER_IS_ZERO
@@ -2599,6 +2603,7 @@ Clear the fields of the given id linkage block.
   idlbp->linkage = idl_none;
   idlbp->name_linkage = (a_name_linkage_kind)nlk_none;
   idlbp->name_linkage_is_explicit = FALSE;
+  idlbp->suppress_qualified_name_redecl_error = FALSE;
 }  /* clear_id_linkage_block */
 
 #endif /* NULL_POINTER_IS_ZERO */
@@ -5928,8 +5933,9 @@ function.
                                            &locator->source_position);
         }  /* if */
       }  /* if */
-    } else {
-      /* The lookup failed.  Issue the right error. */
+    } else if (!idlbp->suppress_qualified_name_redecl_error) {
+      /* The lookup failed and the caller requests an error.  Issue the right
+         error. */
       a_symbol_ptr  sym = locator->specific_symbol;
       err = TRUE;
       if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -8164,6 +8170,13 @@ for use in generating cross-reference output describing this declaration.
          only).  Do the appropriate checking, including overload resolution.
          Furthermore, for definitions of namespace-qualified names, be sure
          this is a valid scope for the definition (7.3.1.4). */
+      if (gpp_mode && !clang_mode) {
+        /* g++ doesn't give an error if this lookup finds a function that
+           doesn't match.  For example:
+             int foo();
+             class B { friend int ::foo(const B&); } b; */
+        idlb.suppress_qualified_name_redecl_error = TRUE;
+      }  /* if */
       /* Look up the name. */
       qualified_name_redecl_sym(&idlb);
     } else {
@@ -9857,6 +9870,14 @@ definition of a member function of a class template.
       /* Don't try to find a matching qualified name for a friend declaration
          in a prototype instantiation. */
     } else {
+      if (gpp_mode) {
+        /* Neither g++ nor clang give an error if this lookup fails.  In the
+           example below, the qualified foo ends up being a declaration, not an
+           error:
+             int foo();
+             class B { template <class T> friend int ::foo(const B&, T); }; */
+        idlb.suppress_qualified_name_redecl_error = TRUE;
+      }  /* if */
       qualified_name_redecl_sym(&idlb);
       sym = idlb.linked_symbol;
       if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
