@@ -26292,11 +26292,7 @@ passed via template_decl.
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   is_typedef =
             dps->declared_storage_class == (a_storage_class)sc_typedef;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_extensions) {
-    consume_any_stray_microsoft_rparen();
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  consume_any_stray_microsoft_rparen();
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   if (ms_extensions || sun_mode) {
     if (dps->specifiers_type == NULL && type_explicitly_specified) {
