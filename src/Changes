@@ -1,6 +1,6 @@
 Version 4.11
 
-12/15/15 [EDGcpfe/16123,EDGcpfe/16300]
+12/15/15 [EDGcpfe/16123,EDGcpfe/16300,EDGcpfe/16704]
 Microsoft compatibility: __declspec(allocator)
 
 The "allocator" __declspec attribute is now accepted on function types.
