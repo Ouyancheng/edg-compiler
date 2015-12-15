@@ -16289,9 +16289,7 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
   record_std_alignment_attr(decl_state);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (!var->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);
@@ -23771,12 +23769,10 @@ current declarator was preceded by another one sharing the same specifiers
     if (!decl_info->is_first_in_declarator_list) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
     }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
     /* Record the current setting of the maximum alignment for local class
        members (an adjustment may be required for packing). */
     func_info->max_member_alignment =
                                     current_max_alignment_for_class_members();
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
 }  /* check_if_function_defined_in_class */
 
@@ -28594,7 +28590,6 @@ be a syntax error showing up in the next file.  I.e., something like:
   }  /* if */
 }  /* check_for_file_with_unterminated_type_definition */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void record_max_member_alignment_if_needed(a_type_ptr  class_type)
 /*
@@ -28641,7 +28636,6 @@ alignment of those fields).
   }  /* if */
 }  /* record_max_member_alignment_if_needed */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -28695,10 +28689,8 @@ classes.
   a_type_ptr                       dummy_type;
   a_boolean			   instantiation_scope_pushed = FALSE;
   a_boolean			   is_in_class_specialization;
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
   a_boolean			   need_restore_pack_alignment_state = FALSE;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_boolean                        class_is_in_valid_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -28794,9 +28786,7 @@ classes.
      virtual base classes, virtual functions, or base classes or fields
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   record_max_member_alignment_if_needed(class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* Set the instantiation insert point to assure that instantiations are
@@ -28927,7 +28917,6 @@ classes.
        real instantiation. */
     class_state.corresp_prototype_tag_sym =
                             corresp_prototype_for_class_symbol(tag_sym);
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (class_state.corresp_prototype_tag_sym != NULL) {
       /* The class is an instantiation of a class template (or a class nested
          within such an instantiation).  Overwrite the alignment entered for
@@ -28951,7 +28940,6 @@ classes.
                                  &saved_pack_alignment_state);
       need_restore_pack_alignment_state = TRUE;
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if ((cpp11_mode || ms_extensions ||
          (gpp_mode && gnu_version >= 30400 && is_template_instantiation)) &&
         !scope_stack_top().defer_access_checks) {
@@ -29506,14 +29494,12 @@ next_declaration:
       complete_class_definition(class_type, effective_decl_level,
                                 &class_state);
     }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (need_restore_pack_alignment_state) {
       /* Now that the class instantiation has been scanned, restore the
          original pack alignment state.  Note that this must occur after the
          pragmas associated with the closing brace have been processed. */
       restore_pack_alignment_state(&saved_pack_alignment_state);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
     if (il_template_entry != NULL) {

@@ -82,9 +82,7 @@ since attributes usually do not create new entries).
 
 /* Other required header files. */
 #include "disambig.h"
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if GNU_EXTENSIONS_ALLOWED
 #include "il_walk.h"
@@ -199,9 +197,7 @@ See also the complementary table known_attr_appl_table below.
 */
 static an_attr_descr known_attr_table[] = {
   /* Standard attributes. */
-#if USER_CONTROL_OF_STRUCT_PACKING
   { "align", "(ct)", "c+", ak_align },
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "base_check", "", "1c+", ak_base_check },
   { "carries_dependency", "", "1c+", ak_carries_dependency },
   { "deprecated", "?(sx)", "1c+(201402-)", ak_deprecated },
@@ -262,9 +258,7 @@ static an_attr_descr known_attr_table[] = {
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
   { "noreturn", "", "gx", ak_noreturn },
   { "nothrow", "", "gx", ak_nothrow },
-#if USER_CONTROL_OF_STRUCT_PACKING
   { "packed", "", "gx", ak_packed },
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "pure", "", "gx", ak_pure },
   { "section", "(sn)", "gx", ak_section },
   { "sentinel", "?(ci)", "gx", ak_sentinel },
@@ -338,9 +332,7 @@ static an_attr_descr known_attr_table[] = {
   { "aligned", "?(ci)", "s+", ak_align },
   { "constructor", "", "s+", ak_constructor },
   { "destructor", "", "s+", ak_destructor },
-#if USER_CONTROL_OF_STRUCT_PACKING
   { "packed", "", "s+", ak_packed },
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   { "visibility", "(sn)", "s+", ak_visibility },
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -3656,7 +3648,6 @@ their syntactic location recorded as al_implicit.
   return result;
 }  /* get_param_variable_attr_copies */
 
-#if USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED
 
 static a_boolean get_attr_arg_integer(an_attribute_arg_ptr  aap,
                                       an_attribute_ptr      ap,
@@ -3695,7 +3686,6 @@ other than returning FALSE.)
   return known_good_value;
 }  /* get_attr_arg_integer */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED */
 
 static a_type_ptr get_func_type_for_attr(an_attribute_ptr  ap,
                                          char              **entity,
@@ -3786,9 +3776,6 @@ and make new_attr unrecognized.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !USER_CONTROL_OF_STRUCT_PACKING
-/*ARGSUSED*/  /* The parameters are unused in some configurations. */
-#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 static char* apply_align_attr(an_attribute_ptr  ap,
                               char              *entity,
                               an_il_entry_kind  entity_kind)
@@ -3798,7 +3785,6 @@ return that entity.  This is also the function called for the C++11 "alignas"
 specifier.
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_const_char *constr;
   a_boolean    std_specifier = is_std_attribute(ap);
 
@@ -3985,10 +3971,6 @@ specifier.
     }  /* if */
   }  /* if */
   return entity;
-#else /* !USER_CONTROL_OF_STRUCT_PACKING */
-  /* The "align" attribute is not recognized. */
-  unexpected_condition();
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* apply_align_attr */
 
 
@@ -5652,7 +5634,6 @@ Apply the given GNU "packed" attribute to the given entity and return that
 entity.
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   check_assertion(gnu_mode || sun_mode);
   if (entity_kind == iek_field) {
     ((a_field_ptr)entity)->is_packed = TRUE;
@@ -5673,7 +5654,6 @@ entity.
   } else {
     unexpected_condition();
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return entity;
 }  /* apply_packed_attr */
 
@@ -8160,13 +8140,11 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
         { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
           src_rtsp = src->variant.routine.extra_info;
           dst_rtsp = dst->variant.routine.extra_info;
-#if USER_CONTROL_OF_STRUCT_PACKING
           if (src->alignment_set_explicitly &&
               src->alignment > dst->alignment) {
             dst->alignment = src->alignment;
             dst->alignment_set_explicitly = TRUE;
           }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_X86_ATTRIBUTES_ALLOWED
           if (src_rtsp->calling_convention !=
                                            (a_calling_convention)cc_default &&

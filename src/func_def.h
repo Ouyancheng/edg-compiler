@@ -44,12 +44,10 @@ func_def.h -- Declarations related to func_def.c (having to do with
 			/* If this bit is set the definition is being generated
 			   by the compiler based on a template. */
 #define SFB_PRAGMA_PACK_IS_LOCAL (a_decl_flag_set)(0x10)
-			/* Referenced only if USER_CONTROL_OF_STRUCT_PACKING
-			   is TRUE, this bit means the function whose body is
-			   being scanned is one in which a "#pragma pack"
-			   directive has effect only within the function and
-			   does not persist once the function body has
-			   terminated. */
+			/* This bit means the function whose body is being
+			   scanned is one in which a "#pragma pack" directive
+			   has effect only within the function and does not
+			   persist once the function body has terminated. */
 
 extern void adjust_member_routine_type(a_type_ptr	rout_type,
 				       a_type_ptr	prev_type);

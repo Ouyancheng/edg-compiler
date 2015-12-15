@@ -29,9 +29,7 @@ decls.c -- Scanning of declarations.
 #include "statements.h"
 /* To get clear_initializer_cache: */
 #include "exprutil.h"
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
@@ -15996,12 +15994,10 @@ proceed after the call.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       func_info->declarator_ssep = state->source_sequence_entry;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING
       /* Record the current setting of the maximum alignment for local
          class members (an adjustment may be required for packing). */
       func_info->max_member_alignment =
                          current_max_alignment_for_class_members();
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       if (!C_mode()) {
         /* Issue diagnostic on an incomplete-type in an exception
            specification.  (It wasn't done when the exception
@@ -16255,7 +16251,6 @@ embedded struct declaration.
 }  /* add_src_seq_end_of_routine */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 void record_std_alignment_attr(a_decl_parse_state_ptr  dps)
 /*
@@ -16323,7 +16318,6 @@ if prior declarations specified an alignment attribute.
   }  /* if */
 }  /* record_std_alignment_attr */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if CHECKING
 
 static void check_consistent_init_type(a_variable_ptr  var)
@@ -16859,9 +16853,7 @@ if one is present.
 #if DECL_MODIFIERS_IN_USE
     check_variable_decl_modifiers(var_ptr, state);
 #endif /* DECL_MODIFIERS_IN_USE */
-#if USER_CONTROL_OF_STRUCT_PACKING
     record_std_alignment_attr(state);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG

@@ -2723,12 +2723,12 @@ Print a typedef declaration.
       dump_decl_associated_pragmas(&type->source_corresp);
       set_output_position(&type->source_corresp.decl_position);
       write_tok_str("typedef ");
-#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target &&
           type->alignment_set_explicitly) {
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
       /* Versions 4.1 and later of the GNU compilers issue an error for
          large vector sizes if the vector_size attribute appears before the
@@ -3013,7 +3013,6 @@ Return the byte offset following the end of the indicated field.
   return offset_after;
 }  /* offset_after_field */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 static a_targ_alignment get_pack_alignment(a_type_ptr  type)
 /*
@@ -3032,7 +3031,6 @@ Return the pack alignment, or 0 if it is the default maximum member alignment.
   return pack_alignment;
 }  /* get_pack_alignment */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static a_targ_size_t field_padding(a_field_ptr  prev_field,
                                    a_field_ptr  field,
@@ -3070,7 +3068,6 @@ These two fields are normally consecutive members of the given "type", but
          prev_field->base_class_subobject_with_tail_padding)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
       a_targ_alignment  alignment = field_alignment_for(effective_field->type);
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (effective_field->alignment != 0) {
         /* The alignment of the field was explicitly specified. */
         alignment = effective_field->alignment;
@@ -3088,7 +3085,6 @@ These two fields are normally consecutive members of the given "type", but
           alignment = pack_alignment;
         }  /* if */
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* The offset after the field, rounded up for the alignment of the
          following field, should give the offset of the following field. */
       after_field = (prev_field != NULL) ? offset_after_field(prev_field) : 0;
@@ -3257,11 +3253,11 @@ padding in the generated code.
     }  /* if */
     set_output_position(&field->source_corresp.decl_position);
     dump_decl_associated_pragmas(&field->source_corresp);
-#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       dump_microsoft_align_declspec(field->alignment);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (field->base_class_subobject_with_tail_padding) {
       /* This field represents a base class subobject that has tail
          padding.  Register the name of the field for use in mangling, and
@@ -3515,12 +3511,9 @@ final semicolon if output_final_semi is TRUE.
 {
   a_field_ptr field, last_field = NULL;
   a_boolean   union_alignment_needed = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_boolean   need_to_restore_default_alignment = FALSE;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   if (start_unreferenced_bracket(&type->source_corresp, (a_boolean *)NULL)) {
-#if USER_CONTROL_OF_STRUCT_PACKING
     a_targ_alignment  pack_alignment = get_pack_alignment(type);
     if (pack_alignment != 0
 #if GNU_EXTENSIONS_ALLOWED
@@ -3544,7 +3537,6 @@ final semicolon if output_final_semi is TRUE.
       indent = saved_indent;
       need_to_restore_default_alignment = TRUE;
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Dump any pragmas associated with the type. */
     dump_decl_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
@@ -3552,11 +3544,9 @@ final semicolon if output_final_semi is TRUE.
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (type->alignment_set_explicitly) {
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       if (type->is_microsoft_intrinsic) {
         write_tok_str("__declspec(intrin_type) ");
       }  /* if */
@@ -3677,7 +3667,6 @@ final semicolon if output_final_semi is TRUE.
     (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (need_to_restore_default_alignment) {
       /* Restore the packing alignment to a default state. */
       uint32_t saved_indent = indent;
@@ -3689,7 +3678,6 @@ final semicolon if output_final_semi is TRUE.
       end_output_line();
       indent = saved_indent;
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     end_unreferenced_bracket(&type->source_corresp);
     type->has_been_defined = TRUE;
   }  /* if */

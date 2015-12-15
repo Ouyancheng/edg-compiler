@@ -142,10 +142,8 @@ B.  Layout options
 #if DEBUG || IA64_ABI
 #include "class_decl.h"
 #endif /* DEBUG || IA64_ABI */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "pch.h"
 #include "pragma.h"
-#endif /*USER_CONTROL_OF_STRUCT_PACKING */
 
 
 /* Data structure to track some information about the layout of a class
@@ -216,7 +214,6 @@ Clear the block used to contain information while working out class layout.
 }  /* clear_layout_block */
 
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 /* An entry on the pack alignment stack.  a_pack_alignment_stack_entry_ptr
    is already defined in layout.h. */
@@ -727,7 +724,6 @@ explicit alignment value was specified, return FALSE.
   return result;
 }  /* apply_explicit_field_alignment_directive */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 a_targ_alignment alignment_of_field_full(a_field_ptr  field,
                                          a_boolean    for_alignof)
@@ -740,9 +736,9 @@ only).
 {
   a_type_ptr        class_type = parent_class_of(field);
   a_targ_alignment  field_alignment;
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED
   a_boolean         ignore_packing = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   check_assertion(!for_alignof || gnu_mode);
   if (for_alignof && gnu_version < 30400) {
@@ -762,7 +758,6 @@ only).
     field_alignment = field_alignment_for(field->type);
   }  /* if */
   class_type = skip_typerefs(class_type);
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && gnu_version >= 30400 && !field->is_packed &&
       class_type->variant.class_struct_union.max_member_alignment > 0 &&
@@ -844,7 +839,6 @@ only).
 #if GNU_EXTENSIONS_ALLOWED
 done:
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return field_alignment;
 }  /* alignment_of_field_full */
 
@@ -1034,12 +1028,12 @@ the alignment of the class being laid out (as recorded in lob) as needed.
   if (emulate_gnu_abi_bugs && union_case) {
     /* In the GNU implementation of the IA-64 ABI, bit fields seem to affect
        the alignment of unions, but usually not that of classes and structs. */
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED
   } else if (field->bit_size != 0 && field->alignment != 0) {
     /* Nonzero-length bit fields with an explicitly specified alignment
        always affect the alignment of the enclosing type in GNU compilers
        (even if the bit field is unnamed). */
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else
 #endif /* IA64_ABI */
   /* Do not insert code here. */
@@ -1070,7 +1064,6 @@ the alignment of the class being laid out (as recorded in lob) as needed.
         alignment = targ_alignof_int;
       }  /* if */
 #endif /* IA64_ABI */
-#if USER_CONTROL_OF_STRUCT_PACKING
     /* The alignment was not adjusted earlier on because the environment does
        not apply packing directives to the relative layout of bit fields that
        straddle their base type's alignment boundary.  The class as a whole
@@ -1078,7 +1071,6 @@ the alignment of the class being laid out (as recorded in lob) as needed.
     if (!targ_user_control_of_struct_packing_affects_bit_fields) {
       adjust_alignment_for_packing(&alignment, lob->class_type);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (alignment > lob->alignment) {
       lob->alignment = alignment;
     }  /* if */
@@ -1210,10 +1202,8 @@ container when that size is smaller than the alignment.
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
 #endif /* CHECKING */
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
          the container.  Try first to find such a type for the current
@@ -1275,10 +1265,8 @@ container when that size is smaller than the alignment.
 #endif /* CHECKING */
         }  /* if */
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else {
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size.  For the alignment use the base type
@@ -1294,7 +1282,6 @@ container when that size is smaller than the alignment.
     }  /* if */
   }  /* if */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the container alignment for packing, if required.  Some
      environments do not let packing directives influence the layout of bit
      fields that cross their base type's alignment boundary, but the class
@@ -1339,7 +1326,6 @@ container when that size is smaller than the alignment.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
      must be. */
@@ -1366,18 +1352,16 @@ container when that size is smaller than the alignment.
       lob->curr_container_avail_bits = (container_size * targ_char_bit);
     } /* if */
   } else if (bit_size == 0 ||
-#if USER_CONTROL_OF_STRUCT_PACKING
              field->alignment != 0 ||
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
              !fits_in_container(container_size, container_alignment)) {
     /* Force alignment. */
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
   update_class_alignment_for_bit_field(field, container_alignment, lob);
-#if GNU_EXTENSIONS_ALLOWED && IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
 done:
-#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI && USER_CONTROL_... */
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
@@ -2506,7 +2490,7 @@ there's no overflow TRUE is returned.
     /* Check for a bit-field. */
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED
       if (curr_max_member_alignment == 0 &&
           ((field->is_packed && field->alignment == 0)
 #if ABI_COMPATIBILITY_VERSION >= 307
@@ -2525,7 +2509,7 @@ there's no overflow TRUE is returned.
            purpose of laying out bit fields.  If a bit field is both marked as
            "packed" and explicitly aligned, the alignment is performed. */
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       {
         overflow = !align_offsets_for_bit_field(field, lob);
       }  /* if */
@@ -2813,11 +2797,9 @@ done:
   /* Ensure the alignment of the class as a whole is at least as strict as
      that of the empty base.  (Early versions of g++ do not do this.) */
   alignment = alignment_of_type(bcp->type);
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (packing_applies_to_base_classes) {
     adjust_alignment_for_packing(&alignment, bcp->derived_class);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (alignment > lob->alignment &&
       !(emulate_gnu_abi_bugs && gnu_abi_version < 40300)) {
     lob->alignment = alignment;
@@ -3033,11 +3015,9 @@ Lay out the nonvirtual direct base class bcp.
       a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
       size = base_ctsp->size_without_virtual_base_classes;
       alignment = base_ctsp->alignment_without_virtual_base_classes;
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (packing_applies_to_base_classes) {
         adjust_alignment_for_packing(&alignment, bcp->derived_class);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     }  /* if */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
 #if DEBUG
@@ -3499,10 +3479,8 @@ points to the layout block used to track the layout of the current class.
     if (ctsp->virtual_function_info_base_class == NULL) {
       size = (a_targ_size_t)targ_sizeof_virtual_function_info;
       alignment = (a_targ_alignment)targ_alignof_virtual_function_info;
-#if USER_CONTROL_OF_STRUCT_PACKING
       /* Adjust the vtbl pointer's alignment for packing, if required. */
       adjust_alignment_for_packing(&alignment, lob->class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       ctsp->virtual_function_info_offset =
                             set_offset_and_alignment (lob, size, alignment,
                                                       (a_base_class_ptr)NULL);
@@ -3545,11 +3523,9 @@ bcp.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   size = (a_targ_size_t)targ_sizeof_ptr_to_virtual_base_class;
   alignment = (a_targ_alignment)targ_alignof_ptr_to_virtual_base_class;
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the virtual base class pointer's alignment for packing, if
      required. */
   adjust_alignment_for_packing(&alignment, lob->class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment,
                                                  (a_base_class_ptr)NULL);
 #if DEBUG
@@ -4202,11 +4178,9 @@ Set bcp->offset.  The base class bcp must be a virtual base.
     a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
     size = base_ctsp->size_without_virtual_base_classes;
     alignment = base_ctsp->alignment_without_virtual_base_classes;
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (packing_applies_to_base_classes) {
       adjust_alignment_for_packing(&alignment, bcp->derived_class);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
   }  /* if */
 #if IA64_ABI
@@ -4741,7 +4715,6 @@ size will remain zero; otherwise it will require padding.)
   return result;
 }  /* gnu_zero_sized_class_type */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void check_explicit_alignment(a_type_ptr          class_type,
                                      a_targ_alignment    alignment,
@@ -4802,7 +4775,6 @@ issue a diagnostic if such a reduction is invalid or ignored.
   }  /* if */
 }  /* check_explicit_alignment */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 void do_class_layout(a_type_ptr  class_type)
 /*
@@ -4812,9 +4784,7 @@ for handling virtual bases and functions.
 */
 {
   a_layout_block    lob;
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment  alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   a_boolean         is_POD = FALSE;
 #endif /* IA64_ABI */
@@ -4835,14 +4805,12 @@ for handling virtual bases and functions.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (class_type->alignment_set_explicitly) {
     /* Save the desired alignment and compute the alignment normally.
        Later, we will adjust the computed alignment, if necessary. */
     alignment = class_type->alignment;
     class_type->alignment = 1;
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   clear_layout_block(&lob, class_type);
   compute_empty_class_bit(class_type);
   if (C_dialect == C_dialect_cplusplus) {
@@ -4908,9 +4876,7 @@ for handling virtual bases and functions.
     }  /* if */
 #endif /* !IA64_ABI */
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
   check_explicit_alignment(class_type, alignment, &lob);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   if (C_dialect == C_dialect_cplusplus) {
     /* If there are empty bases "off the end" of the class, update the class
@@ -5068,7 +5034,6 @@ that need to be reinitialized with each new translation unit are handled in
 layout_init.)
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Save variable needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -5079,11 +5044,8 @@ layout_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if USER_CONTROL_OF_STRUCT_PACKING
   register_trans_unit_variable(curr_max_member_alignment);
   register_trans_unit_variable(pack_alignment_stack);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* layout_one_time_init */
 
 
@@ -5094,10 +5056,8 @@ responsible for those variables that need to be initialized for the
 processing of each (primary or secondary) translation unit.
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   curr_max_member_alignment = 0;
   pack_alignment_stack = NULL;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* layout_trans_unit_init */
 
 
@@ -5109,9 +5069,7 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   avail_pack_alignment_stack_entries = NULL;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   check_assertion_str2(!targ_microsoft_bit_field_allocation ||
                               (targ_bit_field_container_size < 0),
                        "layout_init: inconsistent configuration",

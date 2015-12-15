@@ -126,9 +126,7 @@ typedef enum /*an_option_kind*/ {
   optk_far_code_pointers,
 #endif /* NEAR_AND_FAR_ALLOWED */
   optk_wchar_t_is_keyword,
-#if USER_CONTROL_OF_STRUCT_PACKING
   optk_pack_alignment,
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   optk_alternative_tokens,
 #if DO_IL_LOWERING && MINIMAL_INLINING
   optk_inlining,
@@ -1302,6 +1300,10 @@ EXTERN a_boolean
 			   valid.) */
 
 EXTERN a_boolean
+		pragma_pack_enabled;
+			/* TRUE if "#pragma pack(...)" is enabled. */
+
+EXTERN a_boolean
 		std_override_modifiers_enabled;
 			/* TRUE if the C++11 "override" and "final" modifiers
 			   are enabled (as context-sensitive keywords). */
@@ -1457,7 +1459,6 @@ EXTERN a_boolean
 			/* Indicates whether a declaration can appear after a
 			   statement in C mode. */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
 		default_max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
@@ -1466,7 +1467,6 @@ EXTERN a_targ_alignment
 			   on command-line option "--pack_alignment".  (A zero
 			   value means that a member's alignment is based
 			   solely on its type.) */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
                 alternative_tokens_allowed;

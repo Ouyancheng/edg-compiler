@@ -1,5 +1,21 @@
 Version 4.11
 
+12/15/15 [EDGcpfe/16724]
+USER_CONTROL_OF_STRUCT_PACKING removed
+
+The configuration macro previously determined if the front end supports
+extensions to control the alignment of class types, variables, fields, etc.
+The C and C++ languages have since evolved to include standard features for
+such control, which means that with USER_CONTROL_OF_STRUCT_PACKING set to
+FALSE the front end could not implement the current language standards.
+A FALSE value of USER_CONTROL_OF_STRUCT_PACKING now triggers a preprocessing
+error when building the front end, and not defining the macro has the same
+effect as defining it to be TRUE had previously.  A separate global variable
+pragma_pack_enabled is provided to control whether the "#pragma pack"
+extension is enabled; it is always set to TRUE, but customers can modify its
+value based on local preferences.
+
+
 12/15/15 [EDGcpfe/16123,EDGcpfe/16300,EDGcpfe/16704]
 Microsoft compatibility: __declspec(allocator)
 

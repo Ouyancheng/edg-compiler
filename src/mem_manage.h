@@ -435,9 +435,7 @@ enum a_function_number_tag {
   fn_compare_symbol_header_lookup_entry,
   fn_record_arg_pragma,
   fn_instantiation_pragma,
-#if USER_CONTROL_OF_STRUCT_PACKING
   fn_pack_pragma,
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   fn_ident_pragma,
   fn_ident_directive,

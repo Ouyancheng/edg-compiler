@@ -14360,9 +14360,7 @@ Clear the fields of a function information block to default values.
   func_info->declared_type                  = NULL;
   func_info->prototype_scope_ss_list        = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING
   func_info->max_member_alignment           = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* clear_func_info */
 
 

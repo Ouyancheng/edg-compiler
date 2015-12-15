@@ -23485,9 +23485,9 @@ found to be acceptable, and *conversion describes it.
 }  /* prep_arg_passed_via_copy_constructor */
 
 
-#if !(GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING)
+#if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- operand is not used in that case. */
-#endif /* !(GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING) */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean is_gnu_packed_field_operand(an_operand *operand)
 /*
 Return TRUE if the operand is reference to a packed field in GNU mode.
@@ -23495,7 +23495,7 @@ Return TRUE if the operand is reference to a packed field in GNU mode.
 {
   a_boolean is_packed_field = FALSE;
 
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED
   if (is_expression_operand(operand) &&
       is_a_glvalue(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
@@ -23509,7 +23509,7 @@ Return TRUE if the operand is reference to a packed field in GNU mode.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   return is_packed_field;
 }  /* is_gnu_packed_field_operand */
 

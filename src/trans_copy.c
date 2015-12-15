@@ -1135,12 +1135,9 @@ eliminated.
   /* Move any attributes that must be saved to the surviving entry. */
   merge_entity_details(&variable->source_corresp,
                        &corresp_variable->source_corresp);
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
   if (variable->alignment > corresp_variable->alignment) {
     corresp_variable->alignment = variable->alignment;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 }  /* transfer_variable_flags */
 
 

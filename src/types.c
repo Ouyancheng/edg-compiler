@@ -2852,8 +2852,7 @@ found_specifier_type:
   return return_type;
 }  /* type_specifier_of_type */
 
-#if USER_CONTROL_OF_STRUCT_PACKING && \
-    (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 a_targ_alignment f_alignment_of_type(a_type_ptr  tp)
 /*
@@ -2885,7 +2884,7 @@ a typedef.
 }  /* type_explicitly_aligned */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
@@ -4140,7 +4139,6 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
   a_targ_alignment result = base_alignment;
 
   check_assertion(is_enum_type(type));
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (type->alignment_set_explicitly && !(gnu_mode && !clang_mode)) {
     /* An explicit alignment can be set on enum types; verify that it
        is at least as large as the alignment for the underlying type.
@@ -4161,7 +4159,6 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return result;
 }  /* check_explicit_enum_alignment */
 
@@ -14775,7 +14772,6 @@ not a class or enum type, return NULL.
 }  /* uuid_string_of_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 void set_declspec_align(a_type_ptr         type,
                         a_targ_alignment   alignment,
@@ -14793,7 +14789,6 @@ set explicitly, issue a warning for the given position.
   type->alignment = alignment;
 }  /* set_declspec_align */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 a_boolean in_definition_of_class(a_type_ptr  tp)
 /*

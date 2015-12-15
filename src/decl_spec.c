@@ -2621,7 +2621,6 @@ if the type should not be treated as an interface.
   }  /* if */
 }  /* check_interface_redeclaration */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void move_declspec_align_attr(an_attribute_ptr  *p_prefix_attributes, 
                                      an_attribute_ptr  *p_tag_attributes)
@@ -2694,7 +2693,6 @@ issued in some cases.
   }  /* if */
 }  /* preapply_microsoft_class_align_attribute */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -4281,14 +4279,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
   /* Now that we have a type, we can apply any attributes attached to it. */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     preapply_microsoft_class_align_attribute(dps, is_class_definition ||
                                                   definition_removed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (dps->tag_attributes != NULL) {
     a_boolean         ignore_gnu_attributes = FALSE;
     an_attribute_ptr  attributes_to_attach = dps->tag_attributes;

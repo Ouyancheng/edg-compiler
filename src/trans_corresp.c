@@ -3737,10 +3737,8 @@ type is in fact valid.
                                  corresp_info.is_nonstd_anonymous_union_type ||
           class_info.contains_flexible_array_member !=
                                  corresp_info.contains_flexible_array_member ||
-#if USER_CONTROL_OF_STRUCT_PACKING
           class_info.max_member_alignment !=
                                            corresp_info.max_member_alignment ||
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
           class_info.is_empty_class != corresp_info.is_empty_class ||
           (sup != NULL &&
            (sup->virtual_function_info_offset !=

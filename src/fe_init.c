@@ -212,9 +212,7 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)compare_symbol_header_lookup_entry,
   (a_function_pointer)record_arg_pragma,
   (a_function_pointer)instantiation_pragma,
-#if USER_CONTROL_OF_STRUCT_PACKING
   (a_function_pointer)pack_pragma,
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   (a_function_pointer)ident_pragma,
   (a_function_pointer)ident_directive,
@@ -1577,9 +1575,7 @@ source file's compilation.
   il_header.std_version = std_version;
   il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
   il_header.enum_type_is_integral = enum_type_is_integral;
-#if USER_CONTROL_OF_STRUCT_PACKING
   il_header.default_max_member_alignment = default_max_member_alignment;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
   il_header.cppcli_enabled = cppcli_enabled;

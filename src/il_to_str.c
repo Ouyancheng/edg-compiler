@@ -6085,9 +6085,6 @@ TRUE.  Do the output in the way described by octl.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
-#if !USER_CONTROL_OF_STRUCT_PACKING
-/*ARGSUSED*/ /* The parameters are only used in some configurations. */
-#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 static void form_alignment_attributes(
                    a_type_ptr                             type,
                    a_boolean                              *need_leading_space,
@@ -6099,7 +6096,6 @@ If an attribute is output, set *need_leading_space to TRUE.  Do the output
 in the way described by octl.
 */
 {
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (type->alignment_set_explicitly) {
     /* Output an attribute to indicate the explicit alignment. */
     form_unsigned_argument_attribute("__aligned__",
@@ -6111,7 +6107,6 @@ in the way described by octl.
       (is_immediate_enum_type(type) && type->variant.integer.packed)) {
     form_simple_attribute("__packed__", need_leading_space, octl);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* form_alignment_attributes */
 
 
@@ -6284,14 +6279,12 @@ Do the output in the way described by octl.
   if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     form_recorded_gnu_attribute(ak_alloc_size, var->source_corresp.attributes,
                                 &need_leading_space, octl);
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (var->alignment != 0) {
       /* Output the alignment attribute. */
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)var->alignment,
                                        &need_leading_space, octl);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (var->init_priority != 0 && !octl->c_generating_back_end) {
       /* The init_priority is a C++-only attribute; it is ignored with a
@@ -6392,7 +6385,6 @@ Do the output in the way described by octl.
          trigger were already issued by the front end. */
       form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (field->is_packed) {
       form_simple_attribute("__packed__", &need_leading_space, octl);
     }  /* if */
@@ -6401,7 +6393,6 @@ Do the output in the way described by octl.
                                        (a_host_large_unsigned)field->alignment,
                                        &need_leading_space, octl);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (is_pointer_type(field->type) &&
         is_function_type(type_pointed_to(field->type))) {
       form_routine_type_attributes(

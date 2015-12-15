@@ -1910,9 +1910,7 @@ to default values.
       pte->variant.class_struct_union.contains_flexible_array_member = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_transparent = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.is_packed = FALSE;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.has_operator_ampersand = FALSE;
       pte->variant.class_struct_union.virtual_functions_marked_as_required =
@@ -1925,9 +1923,7 @@ to default values.
 #if CENTERLINE_CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
-#if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.max_member_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* Allocate the class type supplement. */
       {
         a_class_type_supplement_ptr  ctsp;
@@ -2122,11 +2118,9 @@ variant fields to default values.
   pte->emit_microsoft_class_decl_modifiers = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   pte->alignment_set_explicitly = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   pte->variables_are_implicitly_referenced = FALSE;
   pte->may_alias = FALSE;
@@ -2379,10 +2373,7 @@ Clear the fields of the given variable to default values.
     NAMED_REGISTERS_ALLOWED
   vp->asm_name_or_reg.name        = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED || ... */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
   vp->alignment                   = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   vp->init_priority               = 0;
@@ -2565,12 +2556,10 @@ to it.
 #if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
   fp->offset_in_container  = 0;
 #endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
-#if USER_CONTROL_OF_STRUCT_PACKING
   fp->alignment            = 0;
 #if GNU_EXTENSIONS_ALLOWED
   fp->is_packed            = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   fp->offset_is_set        = FALSE;
 #endif /* IA64_ABI */
@@ -4086,13 +4075,11 @@ in the current IL memory region.
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     case pk_none:
       break;
-#if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
 #if BACK_END_IS_CP_GEN_BE
       pp->variant.alignment = 0;
 #endif /* BACK_END_IS_CP_GEN_BE */
       break;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:
 #endif /* PRAGMA_WEAK_ALLOWED */
@@ -4780,9 +4767,7 @@ fields, and return a pointer to it.
   tp->is_pack = FALSE;
   tp->is_friend_template = FALSE;
 #if BACK_END_IS_CP_GEN_BE
-#if USER_CONTROL_OF_STRUCT_PACKING
   tp->final_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   tp->min_template_arguments = -1;
 #endif /* BACK_END_IS_CP_GEN_BE */
   tp->cache_checksum = 0;

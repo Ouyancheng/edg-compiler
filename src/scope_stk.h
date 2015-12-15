@@ -889,13 +889,11 @@ typedef struct a_scope_stack_entry {
 			   This is true for most instantiation scopes, but not
 			   for Microsoft specialization scopes that are not
 			   enclosed by an instantiation scope. */
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	pragma_pack_is_local:1;
 			/* TRUE for an sck_function scope of a routine in
 			   which a "#pragma pack" directive is local in
 			   effect -- i.e., does not affect the packing of
 			   structs declared outside the function body. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_bit_field	is_reactivation:1;
 			/* File scopes can be pushed, popped, and then pushed
 			   again later.  When generic lambdas are used this is

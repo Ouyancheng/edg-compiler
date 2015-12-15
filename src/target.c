@@ -532,7 +532,6 @@ are diagnosed.
   if (targ_host_string_char_bit > CHAR_BIT) {
     internal_error("check_target_config: targ_host_string_char_bit too large");
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Be sure the maximum and minimum values for "pack alignment" are
      appropriate and may be stored within a_targ_alignment, which is a_byte
      (= unsigned char). */
@@ -549,7 +548,6 @@ are diagnosed.
                                                 targ_maximum_pack_alignment) {
     internal_error("check_target_config: invalid targ_maximum_pack_alignment");
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
   /* The GNU built-in functions that map on IA-32 vector instructions require
      that integers of specific sizes exist.  To keep things simple, we make
@@ -770,7 +768,6 @@ Return the field alignment for the given type.
         result = float_field_alignments[type->variant.float_kind];
         break;
       case tk_typeref:
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         if (type->alignment_set_explicitly) {
           result = type->alignment;
@@ -781,14 +778,12 @@ Return the field alignment for the given type.
           result = field_alignment_for(type->variant.typeref.type);
         } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         /* Do not insert code here. */
         {
           result = field_alignment_for(skip_typerefs(type));
         }  /* if */
         break;
       case tk_array:
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         if (type->alignment_set_explicitly) {
           /* The alignment cannot be set directly for an array type, but when
@@ -798,7 +793,6 @@ Return the field alignment for the given type.
           result = type->alignment;
         } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         /* Do not insert code here. */
         {
           result = field_alignment_for(underlying_array_element_type(type));

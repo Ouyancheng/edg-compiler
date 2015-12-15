@@ -727,7 +727,6 @@ EXTERN a_boolean
                            access specification.  See
                            TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE. */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
 		targ_minimum_pack_alignment;
 			/* The minimum value which a "pack alignment" value
@@ -745,7 +744,6 @@ EXTERN a_targ_alignment
 			/* The maximum alignment value which the target can
 			   take advantage of.  Initialized to the default
 			   value but reconfigurable. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
 		distinct_template_signatures;

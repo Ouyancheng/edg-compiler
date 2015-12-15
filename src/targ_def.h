@@ -1740,8 +1740,7 @@ of bit fields.  FALSE indicates that TARG_BIT_FIELD_CONTAINER_SIZE controls
 the container boundary/alignment at all times.
 */
 #ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
-#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS  \
-                                              USER_CONTROL_OF_STRUCT_PACKING
+#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS TRUE
 #endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS */
 
 /*
@@ -1751,11 +1750,11 @@ Flag that is TRUE if "#pragma pack(n)" and the command-line option
 the initial value of the global variable packing_applies_to_base_classes.
 */
 #ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES
-#if USER_CONTROL_OF_STRUCT_PACKING && ABI_COMPATIBILITY_VERSION >= 402
+#if ABI_COMPATIBILITY_VERSION >= 402
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES TRUE
-#else /* !(USER_CONTROL_OF_STRUCT_PACKING && ...) */
+#else /* !(ABI_COMPATIBILITY_VERSION >= 402) */
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES FALSE
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && ABI_COMPATIBILITY_VERSION >= 402 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES */
 
 /*
@@ -2680,7 +2679,6 @@ processing.
 			   targ_minimum_struct_alignment. */
 #endif /* !defined(TARG_MINIMUM_STRUCT_ALIGNMENT) */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 /*
 Set the minimum and maximum values which a "pack alignment" value may have.
 This is an alignment that is the maximum alignment for a nonstatic data
@@ -2714,7 +2712,6 @@ targ_maximum_intrinsic_alignment.
 #ifndef TARG_MAXIMUM_INTRINSIC_ALIGNMENT
 #define TARG_MAXIMUM_INTRINSIC_ALIGNMENT 16
 #endif /* !defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 The maximum size a class object may have.  If TARG_MAX_CLASS_OBJECT_SIZE

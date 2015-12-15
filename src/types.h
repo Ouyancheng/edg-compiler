@@ -416,8 +416,7 @@ performed to make sure we get correct alignment, but if the alignment was
 set explicitly using an attribute on a typedef, the skip_typeref could be
 erroneous (GNU and Microsoft modes only).
 */
-#if USER_CONTROL_OF_STRUCT_PACKING && \
-    (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
 
 #define alignment_of_type(tp)                                         \
@@ -426,9 +425,9 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
                                            f_alignment_of_type((tp)))
 
 extern a_boolean type_explicitly_aligned(a_type_ptr  tp);
-#else /* !(USER_CONTROL_OF_STRUCT_PACKING && ...) */
+#else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                                   a_boolean   top_level);

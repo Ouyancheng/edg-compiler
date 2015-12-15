@@ -2825,9 +2825,7 @@ the scope being pushed.
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->in_decltype_context = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
   ssep->discard_when_popped      = FALSE;
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS

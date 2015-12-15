@@ -25,9 +25,7 @@ pragma.c -- Routines to support #pragma directives
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 Macro used to get a pointer to the active pointer to the current construct
@@ -418,9 +416,7 @@ possible.
     case pk_diag_error:
     case pk_diag_once:
     case pk_diag_default:
-#if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     case pk_ident_pragma:
     case pk_ident_directive:
@@ -1764,22 +1760,22 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
 		 es_error);
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-  (void)add_next_token_pragma_kind_description
-		((a_pragma_kind)pk_pack,
+  if (pragma_pack_enabled) {
+    (void)add_next_token_pragma_kind_description
+                ((a_pragma_kind)pk_pack,
                  fn_for_function(pack_pragma),
-		 /*is_pseudo_pragma=*/FALSE,
+                 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/BACK_END_IS_CP_GEN_BE,
                  /*record_pragma_text=*/BACK_END_IS_CP_GEN_BE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-		 /*ignore_in_back_end=*/FALSE,
-		 /*il_info_is_complete=*/FALSE,
-		 /*read_string_as_header_name=*/FALSE,
+                 /*ignore_in_back_end=*/FALSE,
+                 /*il_info_is_complete=*/FALSE,
+                 /*read_string_as_header_name=*/FALSE,
                  es_error);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  }  /* if */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   /* For "#pragma ident": */
   (void)add_next_token_pragma_kind_description

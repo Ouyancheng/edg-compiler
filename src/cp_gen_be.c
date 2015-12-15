@@ -173,13 +173,11 @@ static a_source_sequence_entry_ptr
 			   scope memory region is being visited, and this
 			   points to the entry in the function scope memory
 			   region that sent us off to the sublist. */
-#if USER_CONTROL_OF_STRUCT_PACKING
 static a_source_sequence_entry_ptr
 		pending_pragma_pack;
 			/* If non-NULL, a source sequence entry for a
 			   #pragma pack directive that was skipped and must
 			   be generated before the next declaration. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 Return TRUE if the indicated source sequence entry points to a source sequence
@@ -396,7 +394,6 @@ typedef int a_gen_name_options_set;
 			/* The name is part of an
 			   elaborated-type-specifier. */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 /*
 The alignment specified by the most recent #pragma pack directive (0
 indicates the default value).
@@ -410,7 +407,6 @@ be restored.
 */
 static a_boolean
 		need_pragma_pack_restore;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 /*
@@ -453,9 +449,7 @@ static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
 static void gen_pragma_end(a_pragma_ptr pp);
-#if USER_CONTROL_OF_STRUCT_PACKING
 static void gen_pending_pragma_pack(void);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic);
@@ -6928,11 +6922,9 @@ Return TRUE if any were processed.
   for (;;) {
     /* Skip macros and pragmas. */
     (void)process_preprocessing_directives();
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (pending_pragma_pack != NULL && !any_found) {
       gen_pending_pragma_pack();
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
     any_found = TRUE;
@@ -7441,7 +7433,6 @@ scp is NULL).
 }  /* gen_declaration_using_type */
 
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 static void gen_pending_pragma_pack(void)
 /*
 Generate any #pragma pack directives that were skipped by
@@ -7477,7 +7468,6 @@ the end of the translation unit.
   octl.suppress_line_breaking = saved_suppress_line_breaking;
   pending_pragma_pack = NULL;
 }  /* gen_pending_pragma_pack */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 
 static a_boolean process_preprocessing_directives(void)
@@ -7505,12 +7495,10 @@ pragmas and macros.  Return TRUE if anything was processed.
       break;
     }  /* if */
   }  /* while */
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (curr_source_sequence_entry == NULL && pending_pragma_pack != NULL) {
     /* The translation unit ended with a #pragma pack. */
     gen_pending_pragma_pack();
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return anything_processed;
 }  /* process_preprocessing_directives */
 
@@ -8165,7 +8153,6 @@ Put out the list of direct base classes of the class associated with ctsp
   }  /* for */
 }  /* gen_base_class_list */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void construct_pragma_pack_if_needed(a_type_ptr type)
 /*
@@ -8202,7 +8189,6 @@ pragma, construct a #pragma pack with the type's alignment.
   }  /* if */
 }  /* construct_pragma_pack_if_needed */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if SUN_EXTENSIONS_ALLOWED
 
 static void gen_sun_link_scope_specifiers(a_decl_modifier  flags)
@@ -8263,9 +8249,7 @@ is the one associated with the definition of the class.
                     ctsp = type->variant.class_struct_union.extra_info;
 
   type->has_been_declared = TRUE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   construct_pragma_pack_if_needed(type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
   if (msvc_is_generated_code_target &&
@@ -8462,7 +8446,6 @@ declaration following this one is such a continuation.
     *another_decl_in_comma_list = FALSE;
   } else {
     a_type_ptr class_type;
-#if USER_CONTROL_OF_STRUCT_PACKING
     a_type_ptr specifier_type = type_specifier_of_type(under_type);
     specifier_type = orig_type_if_nonreal_prototype_type(specifier_type);
     if (is_immediate_class_type(specifier_type) &&
@@ -8471,7 +8454,6 @@ declaration following this one is such a continuation.
          the "typedef" keyword if one is required. */
       construct_pragma_pack_if_needed(specifier_type);
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (is_alias) {
       write_tok_str("using ");
     } else {
@@ -8928,11 +8910,9 @@ this one is such a continuation.
           need_to_unset_typedefs = TRUE;
         }  /* if */
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (is_immediate_class_type(type)) {
         construct_pragma_pack_if_needed(type);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* Put out "template<>" at the beginning. */
       gen_template_specialization_header(&type->source_corresp,
                                          is_in_class_specialization,
@@ -13896,7 +13876,6 @@ is the one associated with the pragma.
   a_pragma_ptr pp = ss_entry_ptr(curr_source_sequence_entry, a_pragma_ptr);
   a_boolean    saved_suppress_line_breaking = octl.suppress_line_breaking;
 
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (pp->kind == (a_pragma_kind)pk_pack) {
     /* Because pack is an immediate pragma, it appears in the source
        sequence list before the end-of-construct entry of the declaration
@@ -13908,10 +13887,7 @@ is the one associated with the pragma.
       pending_pragma_pack = curr_source_sequence_entry;
     }  /* if */
     adv_curr_source_sequence_entry();
-  } else
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Advance past the source sequence entry for the pragma. */
     adv_curr_source_sequence_entry();
     /* Ignore this entry if told to do so. */
@@ -14383,11 +14359,9 @@ is the one associated with the template.
       } else {
         adv_curr_source_sequence_entry();
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
       /* Update the current packing alignment to reflect any #pragma pack
          directives that were embedded in the template definition string. */
       curr_pack_alignment = tp->final_alignment;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */      
     }  /* if */
   }  /* if */
   /* Update the canonical template to reflect the number of parameters
@@ -18357,9 +18331,7 @@ parameter declarations).
 {
   an_il_entry_kind kind;
   a_boolean        suppress_specifiers = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_boolean        pragma_pack_was_already_set = need_pragma_pack_restore;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes, along with any preprocessing
@@ -18373,11 +18345,9 @@ parameter declarations).
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
   /* Handle any preprocessing directives preceding the declaration. */
   (void)process_preprocessing_directives();
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (pending_pragma_pack != NULL) {
     gen_pending_pragma_pack();
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop for comma lists.  This loop also skips entries representing non-
      autonomous type declarations (the rendering of those types is triggered
@@ -18489,7 +18459,6 @@ parameter declarations).
        previous declaration generated a declarator which will be followed by
        another declarator in a comma list. */
   }  /* for */
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (need_pragma_pack_restore && !pragma_pack_was_already_set) {
     /* Restore the packing alignment to the previous state. */
     begin_pp_directive("#pragma pack(");
@@ -18500,7 +18469,6 @@ parameter declarations).
     end_pp_directive();
     need_pragma_pack_restore = FALSE;
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18731,11 +18699,9 @@ Initialize for the C++/C-generating back end.
   }  /* if */
   in_template_argument_list = FALSE;
   in_parameter_pack_declaration = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   pending_pragma_pack = NULL;
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* init_cp_gen_be */
 
 

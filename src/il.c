@@ -1561,13 +1561,11 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("__typeof__ ", f_debug);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->alignment_set_explicitly) {
             fprintf(f_debug, "aligned(%d) ", tp->alignment);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         }  /* if */
         db_abbreviated_type(tp->variant.typeref.type);
         break;
@@ -10981,19 +10979,15 @@ and return a pointer to the new array type.
 
   /* Loop, in case this is a multidimensional array. */
   for (;;) {
-#if USER_CONTROL_OF_STRUCT_PACKING
     a_targ_alignment   explicit_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Drop typedefs; there shouldn't be any other typerefs.  Record any
        applicable explicit alignment along the way (so it can be applied on
        the copied type if needed). */
     while (old_array->kind == (a_type_kind)tk_typeref) {
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (old_array->alignment_set_explicitly && explicit_alignment == 0 &&
           !(gnu_mode && gnu_version < 40000)) {
         explicit_alignment = old_array->alignment;
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       old_array = old_array->variant.typeref.type;
     } /* while */
     /* Allocate a new array type and copy the old one into it.  Note that
@@ -11002,7 +10996,6 @@ and return a pointer to the new array type.
     tp = alloc_type((a_type_kind)tk_array);
     copy_type(old_array, tp);
     break_source_corresp(&tp->source_corresp);
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (explicit_alignment != 0) {
       /* The original array type was a typedef whose alignment was modified.
          Since the typedef has been dropped, apply the alignment directly on
@@ -11010,7 +11003,6 @@ and return a pointer to the new array type.
       tp->alignment = explicit_alignment;
       tp->alignment_set_explicitly = TRUE;
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Either tp becomes the top of the new array type or is added on as
        a subarray. */
     if (new_array == NULL) {
@@ -16969,8 +16961,6 @@ instantiation dependent, set *p_template_case to TRUE.
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
     if (!(gnu_mode && gnu_version < 30100) &&
         expr != NULL && expr->is_lvalue && is_variable_node(expr)) {
       /* If the expression is an lvalue for a variable with an explicit
@@ -16981,7 +16971,6 @@ instantiation dependent, set *p_template_case to TRUE.
         alignof_value = var->alignment;
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
     if (is_incomplete_type(skip_array_types(alignof_type))) {
       an_error_severity  severity;
       if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
@@ -25283,15 +25272,10 @@ scan_alignof_operator for details).
 {
   a_targ_alignment  result;
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
   if (vp->alignment != 0) {
     /* Alignment was specified explicitly on the variable declaration. */
     result = vp->alignment;
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
-  /* Do not insert code here. */
-  {
+  } else {
     result = alignment_of_type(vp->type);
   }  /* if */
   return result;

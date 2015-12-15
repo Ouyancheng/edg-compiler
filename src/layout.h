@@ -27,7 +27,6 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 
 typedef a_host_large_unsigned an_unnormalized_bit_offset;
 
-#if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
 		curr_max_member_alignment;
 			/* Current pack alignment, as specified by the most
@@ -67,7 +66,6 @@ extern void pack_pragma(a_pending_pragma_ptr ppp);
 extern a_targ_alignment current_max_alignment_for_class_members(void);
 
 extern a_targ_alignment current_pack_pragma_value(void);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern a_targ_alignment alignment_of_field_full(a_field_ptr  field,
                                                 a_boolean    for_alignof);

@@ -35,9 +35,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "statements.h"
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /* Forward declaration: */
 static void define_special_member_function(a_routine_ptr rout_ptr);
@@ -1146,9 +1144,7 @@ of lambda expressions.
   a_param_type_ptr               ptp;
   a_namespace_ptr                nsp = NULL;
   a_boolean                      is_function_try_block = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state         saved_pack_alignment_state;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_source_position              body_pos;
 
   db_enter(3, "scan_function_body");
@@ -1535,7 +1531,6 @@ of lambda expressions.
       }  /* if */
     }  /* if */
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Change the defaults for packing class members in a struct definition.
      This is especially important when the definition is encountered "out
      of sequence" relative to the rest of the program (e.g., delayed
@@ -1548,7 +1543,6 @@ of lambda expressions.
                                &saved_pack_alignment_state);
     scope_stack[depth_scope_stack].pragma_pack_is_local = TRUE;
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
     /* Save structured statement stack state before calling compound_statement
        (so that it can be restored upon return) and create a new structured
@@ -1629,13 +1623,11 @@ of lambda expressions.
       }  /* if */
     }  /* if */
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Restore defaults for packing class members in a struct definition to
      what it was before the routine body was entered. */
   if (flags & SFB_PRAGMA_PACK_IS_LOCAL) {
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if COROUTINES_ALLOWED
   if (rout_ptr->is_coroutine) {
     wrap_up_coroutine(rout_ptr);

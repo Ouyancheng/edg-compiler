@@ -1345,19 +1345,22 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #endif /* !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED  */
 
 /*
-Flag that is TRUE if "#pragma pack(n)" and command-line option
-"--pack_alignment=n" are supported.  This feature allows for packing classes
-and structs by specifying a maximum alignment for nonstatic data members,
-even when that alignment is less than the alignment dictated by the member's
-type.
+The macro USER_CONTROL_OF_STRUCT_PACKING controlled in older versions of the
+front end whether user-provided directives could affect the alignment of
+class types, fields, variables, etc through nonstandard features like
+"#pragma pack" or "__attribute((align(N)))".  The C and C++ languages have
+since evolved to include standard mechanisms for such control: The front end
+therefore now includes such support in all configurations.
+
+To avoid surprises, issue an error for configurations that attempt to turn off
+user-control of alignment.
 */
-#ifndef USER_CONTROL_OF_STRUCT_PACKING
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-#define USER_CONTROL_OF_STRUCT_PACKING TRUE
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED) */
-#define USER_CONTROL_OF_STRUCT_PACKING FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
+#ifdef USER_CONTROL_OF_STRUCT_PACKING
+#if !USER_CONTROL_OF_STRUCT_PACKING
+ #error -- USER_CONTROL_OF_STRUCT_PACKING can no longer be FALSE
+#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* ifdef USER_CONTROL_OF_STRUCT_PACKING */
+
 
 /*
 Flag that is TRUE to recognize #pragma weak directives.

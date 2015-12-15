@@ -39,9 +39,7 @@ cmd_line.c -- Command-line parsing.
 #include "c_gen_be.h"
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #ifdef HOSTID
 extern long gethostid(void);
@@ -592,13 +590,11 @@ Initialize the option information table.
   add_option_description(optk_wchar_t_is_keyword, "no_wchar_t_keyword",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if USER_CONTROL_OF_STRUCT_PACKING
   /* Note -- the Microsoft-style "-Zpn" option is not supported.  The driver
      that invokes the front end may convert it to "--pack_alignment=n". */
   add_option_description(optk_pack_alignment, "pack_alignment",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   add_option_description(optk_alternative_tokens,
 			 "alternative_tokens",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -8313,11 +8309,6 @@ file.
 #else /* !defined(UPC_EXTENSIONS_ALLOWED) */
   comment_undefined_macro_name(UPC_EXTENSIONS_ALLOWED);
 #endif /* defined(UPC_EXTENSIONS_ALLOWED) */
-#if defined(USER_CONTROL_OF_STRUCT_PACKING)
-  define_numeric_valued_macro(USER_CONTROL_OF_STRUCT_PACKING);
-#else /* !defined(USER_CONTROL_OF_STRUCT_PACKING) */
-  comment_undefined_macro_name(USER_CONTROL_OF_STRUCT_PACKING);
-#endif /* defined(USER_CONTROL_OF_STRUCT_PACKING) */
 #if defined(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS)
   define_numeric_valued_macro(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS);
 #else /* !defined(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS) */
@@ -9140,7 +9131,6 @@ enable_microsoft_mode:
         /* wchar_t is or is not a keyword. */
         wchar_t_is_keyword = opt_value;
         break;
-#if USER_CONTROL_OF_STRUCT_PACKING
       case optk_pack_alignment:
         /* If a pack alignment value is given, it means the alignment of
            nonstatic data members may be smaller than what is dictated by
@@ -9154,7 +9144,6 @@ enable_microsoft_mode:
           command_line_error(ec_bad_pack_alignment);
         }  /* if */
         break;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case optk_alternative_tokens:
         /* Digraphs should or should not be allowed.  This also controls
            recognition of operator keywords (e.g., "not", "and") in C++. */
@@ -10912,6 +10901,7 @@ variables declared in cmd_line.h.
   enumerator_attributes_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
+  pragma_pack_enabled = TRUE;
   gnu_attributes_enabled = FALSE;
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
@@ -10940,9 +10930,7 @@ variables declared in cmd_line.h.
 #endif /* BOOL_ENABLING_POSSIBLE */
   c99_bool_is_keyword = FALSE;
   allow_decl_after_stmt = FALSE;
-#if USER_CONTROL_OF_STRUCT_PACKING
   default_max_member_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   alternative_tokens_allowed = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED;
   trigraphs_allowed = DEFAULT_TRIGRAPHS_ALLOWED;
 #if DO_IL_LOWERING && MINIMAL_INLINING

@@ -31,9 +31,7 @@ templates.c -- Support for C++ templates.
 #if TEMPLATE_LOOKUP_NEEDED || DO_IL_LOWERING
 #include "lower_name.h"
 #endif /* TEMPLATE_LOOKUP_NEEDED || DO_IL_LOWERING */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -22590,14 +22588,12 @@ caller.
     } else {
       *(decl_state->final_token_ptr) = tok_rbrace;
     }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
     if (!err) {
       /* Record the current setting of the maximum alignment for local class
          members (an adjustment may be required for packing). */
       tssp->variant.function.func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
     }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
   if (err) {
     /* Avoid spurious errors -- skip the check for template params, since
@@ -24044,7 +24040,7 @@ any non-empty template parameter lists that were scanned.
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
-#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+#if BACK_END_IS_CP_GEN_BE
   if (tssp != NULL && tssp->il_template_entry != NULL) {
     /* Record the effect of any embedded #pragma pack directives: they will
        be copied into the generated code, but cp_gen_be will be unable to
@@ -24052,7 +24048,7 @@ any non-empty template parameter lists that were scanned.
        source sequence list. */
     tssp->il_template_entry->final_alignment = curr_max_member_alignment;
   }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();
 }  /* template_declaration */
 

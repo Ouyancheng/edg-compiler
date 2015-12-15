@@ -1867,13 +1867,11 @@ Display the indicated type entry.
   if (ptr->declared_in_function_prototype) {
     disp_boolean("declared_in_function_prototype", TRUE);
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->alignment_set_explicitly) {
     disp_boolean("alignment_set_explicitly", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->variables_are_implicitly_referenced) {
     disp_boolean("variables_are_implicitly_referenced", TRUE);
@@ -2251,19 +2249,15 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_transparent) {
         disp_boolean("is_transparent", TRUE);
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.is_packed) {
         disp_boolean("is_packed", TRUE);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",
                            (unsigned long)ptr->variant.class_struct_union.
                                                         max_member_alignment);
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
     case tk_typeref:
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
@@ -2663,12 +2657,9 @@ Display the indicated variable.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (ptr->init_priority != 0) {
@@ -2958,7 +2949,6 @@ Display the indicated field.
     }  /* if */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (ptr->alignment) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
@@ -2967,7 +2957,6 @@ Display the indicated field.
     disp_boolean("is_packed", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (ptr->has_initializer) {
     disp_boolean("has_initializer", TRUE);
     if (ptr->has_direct_braced_initializer) {
@@ -5102,11 +5091,11 @@ Display the indicated pragma entry.
     disp_constant(ptr->variant.ident_string);
   }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-#if USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
   if (ptr->kind == (a_pragma_kind)pk_pack) {
     disp_unsigned_long("alignment", (unsigned long)ptr->variant.alignment);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->kind == (a_pragma_kind)pk_comment) {
     disp_name("comment.kind");
@@ -5327,9 +5316,7 @@ Display the indicated template.
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if BACK_END_IS_CP_GEN_BE
-#if USER_CONTROL_OF_STRUCT_PACKING
   disp_unsigned_long("final_alignment", (unsigned long)ptr->final_alignment);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (ptr->min_template_arguments >= 0) {
     disp_int32("min_template_arguments", ptr->min_template_arguments);
   }  /* if */
@@ -7498,12 +7485,10 @@ Display the IL for the file scope in human-readable form.
                (a_boolean)il_header.pcc_compatibility_mode);
   disp_boolean("enum_type_is_integral",
                (a_boolean)il_header.enum_type_is_integral);
-#if USER_CONTROL_OF_STRUCT_PACKING
   if (il_header.default_max_member_alignment != 0) {
     disp_unsigned_long("default_max_member_alignment",
                        (unsigned long)il_header.default_max_member_alignment);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if RECORD_MACROS_IN_IL
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */

@@ -1771,7 +1771,6 @@ typedef struct a_func_info_block {
 			   generated for the parameter declarations of a
 			   function declarator (if any). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
 		max_member_alignment;
 			/* If nonzero, the default maximum alignment of any
@@ -1779,7 +1778,6 @@ typedef struct a_func_info_block {
 			   union defined in the body of the function.  The
 			   value may be overridden by #pragma pack directives
 			   within the function body. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 } a_func_info_block;
 
 

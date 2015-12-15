@@ -5539,11 +5539,9 @@ enum a_pragma_kind_tag {
 			   This is used because the instantiation_directive
 			   required a pragma kind to indicate the action to
 			   be performed. */
-#if USER_CONTROL_OF_STRUCT_PACKING
   pk_pack,		/* Establishes maximum alignment of nonstatic data
 			   members of subsequent classes, structs, and
 			   unions. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   pk_ident_pragma,	/* Used for #pragma ident; all tokens are collected
 			   in a single string which is passed to the back end
@@ -5664,9 +5662,7 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_do_not_instantiate */	"do_not_instantiate",
 /* pk_can_instantiate */	"can_instantiate",
 /* pk_inline_template */	"inline_template",
-#if USER_CONTROL_OF_STRUCT_PACKING
 /* pk_pack */			"pack",
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
 /* pk_ident_pragma */		"ident",  /* Used for #pragma ident. */
 /* pk_ident_directive */	"",       /* Used for #ident. */
@@ -5872,12 +5868,12 @@ typedef struct a_pragma {
 		ident_string;
 			/* The string for the #ident. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-#if USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
     /* When kind == pk_pack: */
     a_targ_alignment
 		alignment;
 			/* The alignment specified by the pack pragma. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == pk_comment: */
     struct {
@@ -8392,12 +8388,10 @@ typedef struct a_type {
 			   C++-generating back end. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it
 			   refers to because its alignment has been
 			   explicitly set, via an attribute. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	variables_are_implicitly_referenced:1;
 			/* TRUE if no warnings about unused variables
@@ -9046,12 +9040,10 @@ typedef struct a_type {
 			   transparent union type, then it is OK to
 			   pass an argument whose type is one of the
 			   union members. */
-#if USER_CONTROL_OF_STRUCT_PACKING
       a_bit_field
       		is_packed:1;
 			/* TRUE if this class type was declared with the GNU C
 			   "packed" attribute. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       a_bit_field
 		has_operator_ampersand:1;
@@ -9109,7 +9101,6 @@ typedef struct a_type {
 			   array element type in the generated code, which
 			   is an error in C. */
       bitfield_to_avoid_codecenter_warnings()
-#if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
 		max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
@@ -9120,7 +9111,6 @@ typedef struct a_type {
 			   by "#pragma pack". (A zero value means that each
 			   nonstatic data member's alignment is based solely
 			   on its type.) */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
@@ -9604,14 +9594,11 @@ typedef struct a_variable {
 #endif /* NAMED_REGISTERS_ALLOWED */
   } asm_name_or_reg;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED || ... */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
-    USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
@@ -10150,7 +10137,6 @@ typedef struct a_field {
 			   the bit field is offset from its container's origin.
 			   Otherwise zero. */
 #endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
@@ -10161,7 +10147,6 @@ typedef struct a_field {
 			/* TRUE if the field was declared with the GNU "packed"
 			   attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   a_bit_field	offset_is_set:1;
 			/* TRUE if the offset for this field has been set. */
@@ -17643,7 +17628,6 @@ typedef struct a_template {
 			/* TRUE for a template declared as a friend
 			   template. */
 #if BACK_END_IS_CP_GEN_BE
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
 		final_alignment;
 			/* The packing alignment at the end of the template
@@ -17654,7 +17638,6 @@ typedef struct a_template {
 			   effect directly.  This field, set during prototype
 			   instantiation, allows it to re-sync after
 			   inserting the definition into the output. */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   int32_t	min_template_arguments;
 			/* The number of parameters in this declaration
 			   that do not have default arguments.  This will
@@ -18993,7 +18976,6 @@ typedef struct an_il_header {
 			/* Records whether enum types are considered to be
 			   integral; normally, TRUE in C mode and FALSE in
 			   C++ mode. */
-#if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
 		default_max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
@@ -19002,7 +18984,6 @@ typedef struct an_il_header {
 			   on command-line option "--pack_alignment".  (A zero
 			   value means that a member's alignment is based
 			   solely on its type.) */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if RECORD_MACROS_IN_IL
   a_macro_ptr	macros;
 			/* Pointer to a list of entries containing the text
