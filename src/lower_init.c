@@ -16858,6 +16858,10 @@ enough to cause the back end to invoke the routine at initialization.
       var = dip->variable;
       dip_next = dip->next;
       dip->next = NULL;
+      if (ignore_variable_in_back_end(var)) {
+        /* Don't lower prototype instantiations of static data members. */
+        continue;
+      }  /* if */
       /* Determine whether this variable initialization should be emitted
          in the current initialization routine. */
       if (do_thread_local && !var->is_thread_local) {
