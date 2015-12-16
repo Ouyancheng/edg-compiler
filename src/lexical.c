@@ -21540,6 +21540,7 @@ C++/CLI delegate class types.)
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean			saved_scanning_generated_code_from_metadata;
+  a_boolean			saved_scanning_generated_code;
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
@@ -21597,7 +21598,9 @@ C++/CLI delegate class types.)
   curr_assembly_index = assembly_index;
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
+  saved_scanning_generated_code = scanning_generated_code;
   scanning_generated_code_from_metadata = TRUE;
+  scanning_generated_code = TRUE;
   is_generic_definition = class_type->
                               variant.class_struct_union.is_generic_definition;
   /* For nested classes of generic definitions, don't attempt to push an
@@ -21728,6 +21731,7 @@ C++/CLI delegate class types.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
+  scanning_generated_code = saved_scanning_generated_code;
   curr_assembly_index = saved_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
