@@ -2587,7 +2587,7 @@ typedef enum an_attribute_kind_tag {
 			/* "no_weakreferencesource" (ms). */
   ak_one_phase_constructed,
 			/* "one_phase_constructed" (ms). */
-  ak_allocator,         /* "allocator" (ms). */
+  ak_allocator,		/* "allocator" (ms). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
