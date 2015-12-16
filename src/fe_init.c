@@ -909,7 +909,7 @@ Install the keywords in the symbol table.
       (microsoft_mode && microsoft_version >= 1900 && !C_mode())) {
     internal_templates_enabled = TRUE;
     /* A keyword used to predefine alias templates even when alias declarations
-       are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
+       are not otherwise enabled.  This is used, e.g., to map interior_ptr<T>
        to the appropriate tk_pointer entry and to create builtin alias
        templates (e.g., __make_integer_seq) in Microsoft emulation mode. */
     enter_keyword((a_token_kind)tok_internal_alias_decl,

@@ -47,9 +47,9 @@ The front end now emulates this behavior.  For example:
 
 
 12/14/15 [EDGcpfe/16545]
-Microsoft compatibility: Builtin alias template for __make_integer_seq
+Microsoft compatibility: Builtin alias template __make_integer_seq
 
-The front end now implements a builtin alias template for __make_integer_seq
+The front end now implements a builtin alias template __make_integer_seq,
 which is meant to be an efficient implementation of std::make_integer_sequence.
 The alias is available when microsoft_mode >= 1900.
 

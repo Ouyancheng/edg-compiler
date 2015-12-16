@@ -1658,8 +1658,8 @@ instantiation of a generic imported from metadata.
 /*
 TRUE if we are processing code that was not present in an input file, i.e., it
 was scanned as part of metadata or from a builtin template.  Note that this
-is TRUE only when scanning generated code; not during an instantiation of
-generated code.
+is TRUE only when scanning generated code; it is FALSE during an instantiation
+of generated code.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define in_generated_code() (scanning_generated_code)

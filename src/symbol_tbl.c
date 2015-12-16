@@ -7773,7 +7773,7 @@ void make_make_integer_seq_internal_template(void)
 Creates a builtin alias template for "__make_integer_seq" at the file scope.
 */
 {
-  /* Note that value for the alias template (i.e., "T") is arbitrary
+  /* Note that the target type of the alias template (i.e., "T") is arbitrary
      here as the template will be instantiated programatically (by
      instantiate_make_integer_seq). */
   check_assertion(variadic_templates_enabled);
@@ -7783,7 +7783,6 @@ Creates a builtin alias template for "__make_integer_seq" at the file scope.
       "  __internal_alias_decl __make_integer_seq = T;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
-  return;
 }  /* make_make_integer_seq_internal_template */
 
 

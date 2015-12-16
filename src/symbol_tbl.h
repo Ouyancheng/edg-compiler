@@ -4459,7 +4459,7 @@ extern void make_make_integer_seq_internal_template(void);
 
 EXTERN a_symbol_ptr
                 symbol_for_make_integer_seq;
-                        /* Symbol for "__make_integer_seq" which is a
+                        /* Symbol for "__make_integer_seq", which is a
                            builtin alias template. */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

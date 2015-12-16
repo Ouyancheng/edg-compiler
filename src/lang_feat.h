@@ -1235,7 +1235,7 @@ EXTERN a_boolean
 		internal_templates_enabled;
 			/* TRUE if the front end defines "internal templates"
 			   as a means for enabling certain C++/CLI or C++/CX
-			   templates (e.g., cli::pin_ptr), or other builtin
+			   templates (e.g., cli::pin_ptr) or other builtin
 			   alias templates (e.g., __make_integer_seq). */
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */

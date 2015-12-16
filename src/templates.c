@@ -6609,10 +6609,14 @@ specified template argument list.  Returns the appropriate class template
 type.  The definition of __make_integer_seq is:
 
   template<template<typename U, U... K> class S, typename T, T N>
+      __internal_alias_decl __make_integer_seq = T;
+
+Where "__internal_alias_decl" is equivalent to "using" and the target type
+of the alias is arbitrary (the code below determines the target type).
 
 For a template argument list of <A1, A2, A3>, the following class type is
 returned: A1<A2, A2(0), A2(1), ... A2(A3-1)>.  In the case where A2 or A3 are
-template parameters, A1<A2, A3> is returned.
+dependent, A1<A2, A3> is returned.
 */
 {
   a_type_ptr           type;
@@ -6679,8 +6683,8 @@ template parameters, A1<A2, A3> is returned.
              alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
         new_template_arg_list->next = tap;
         prev = tap;
-        /* Constants for a non-type template arguments in a template
-           argument list must be allocated in the file scope. */
+        /* Constants for non-type template arguments in a template argument
+           list must be allocated in the file scope. */
         switch_to_file_scope_region(&region_to_switch_back_to);
         for (i = 0; i < val; i++) {
           tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
@@ -6910,7 +6914,7 @@ a_boolean check_internal_template_instantiation(
 If template_sym corresponds to an internal template (such as cli::array,
 cli::interior_ptr, cli::pin_ptr, and __make_integer_seq), return FALSE if the
 given template argument list is invalid for that template.  If the argument
-positions are non-NULL issue error(s) at the appropriate positions (arg1_pos
+positions are non-NULL, issue error(s) at the appropriate positions (arg1_pos
 is the first argument position, etc.).
 */
 {
@@ -7618,7 +7622,7 @@ error type is used.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (template_sym == symbol_for_make_integer_seq) {
-    /* This is a builtin alias template for __make_integer_seq; the template
+    /* This is the builtin alias template __make_integer_seq; the template
        is instantiated programatically rather than by scanning the cache
        for the template. */
     type->variant.typeref.type =
