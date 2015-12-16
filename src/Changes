@@ -142,8 +142,9 @@ fixed.
 12/11/15 [EDGcpfe/16408,EDGcpfe/16696]
 __is_literal_type(void)
 
-The "void" type is now treated as a "literal type" in C++ modes.  The type
-traits helper __is_literal_type produces a true value accordingly.
+The "void" type is now treated as a "literal type" in C++14 mode and in
+Microsoft C++ mode with microsoft_version >= 1900.  The type traits helper
+__is_literal_type produces a true value accordingly.
 
 
 12/11/15 [EDGcpfe/16681]

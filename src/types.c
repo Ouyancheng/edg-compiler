@@ -1960,7 +1960,10 @@ incomplete class type (or an array thereof) in a valid program.
 
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
-  if (is_scalar(tp) || is_any_reference(tp) || is_void(tp)) {
+  if (is_scalar(tp) || is_any_reference(tp) ||
+      (is_void(tp) && (cpp14_mode ||
+       (microsoft_mode && microsoft_version >= 1900))) {
+    /* void was added to the set of literal types by N3652. */
     result = TRUE;
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (gpp_mode && gnu_version >= 40800 && is_vector_type(tp)) {
