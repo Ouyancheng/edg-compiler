@@ -1,5 +1,19 @@
 Version 4.11
 
+12/17/15 [EDGcpfe/16233]
+Microsoft compatibility: internal error on specialization in variadic class
+
+An internal error could occur (in find_placeholder_arg_for_pack) if a
+variadic class template contained a Microsoft in-class specialization of
+a member function template.  Now fixed.
+
+  template<typename... Us> struct A;
+  template<typename T, typename... Us> struct A<T, Us...> : A<Us...> {
+    template<typename X> X f();
+    template<> T f() { return T(); }
+  };
+
+
 12/17/15 [EDGcpfe/16693]
 Attributes in class template declarations
 
