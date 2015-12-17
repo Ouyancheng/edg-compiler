@@ -2802,6 +2802,8 @@ ec_constant_must_be_positive;;"integer constant must be greater than or equal to
 ec_type_must_be_integral;;"type must be an integral type"
 ec_constexpr_expression_cannot_be_interpreted;;"expression cannot be interpreted"
 ec_constexpr_statement_cannot_be_interpreted;;"statement cannot be interpreted"
+ec_constexpr_interpreter_address;;"invalid use of address into interpreter storage"
+ec_constexpr_invalid_constant_kind;;"invalid constant kind for constant-expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

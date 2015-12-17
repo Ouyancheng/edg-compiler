@@ -1666,13 +1666,14 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
 
 
 #define record_subobject_derivation(subobj_ptr, bcp)                         \
-  *(a_base_class_ptr*)(subobj_ptr) = (a_base_class_ptr)(bcp);
+  *(void**)(subobj_ptr) = (void*)(bcp);
 
 /*
 Class type subobjects record the type of the next-more-derived subobject, or
 NULL for a most-derived object.  The following macro records that NULL (for
 proper base subobjects, the next-more-derived type is recorded when the base
-subobject is initializer).
+subobject is initializer).  For unions, the recorded pointer represents the
+active field rather than a base class entry.
 */
 #define record_complete_object(utp, storage_ptr)                             \
   if (is_immediate_class_type(utp)) {                                        \
@@ -2327,7 +2328,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       }
       break;
     default:
-      unexpected_condition();  /* FIXME: handle more kinds of constants. */
+      { a_source_position  *diag_pos = &con->source_corresp.decl_position;
+        if (diag_pos->seq == 0) {
+          diag_pos = &ips->position;
+        }  /* if */
+        info_with_pos(ec_constexpr_invalid_constant_kind, diag_pos, ips);
+        result = FALSE;
+      }
   }  /* switch */
   return result;
 }  /* extract_value_from_constant */
@@ -5894,17 +5901,20 @@ that are needed for the operation of the interpreter.
 }  /* initialize_interpreter_data */
 
 
-static a_boolean copy_interpreter_object_to_constant(a_byte          *object,
-                                                     a_type_ptr      type,
-                                                     a_constant_ptr  con)
+static a_boolean copy_interpreter_object_to_constant(
+                                                an_interpreter_state  *ips,
+                                                a_byte                *object,
+                                                a_type_ptr            type,
+                                                a_constant_ptr        con)
 /*
 The storage pointed to by object holds a representation of a value of the given
-type produced by the interpreter.  Create in *result a constant representing
+type produced by the interpreter.  Create in *con a constant representing
 that same value.  Return FALSE if this cannot be done (e.g., because the object
-represents an address of interpreter storage).
+represents an address of interpreter storage) and record a corresponding
+diagnostic in *ips.
 */
 {
-  a_boolean   result = TRUE;
+  a_boolean  result = TRUE;
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
   con->type = type;
@@ -5930,6 +5940,7 @@ represents an address of interpreter storage).
           /* The address designates an interpreter value, which will be a
              dangling pointer or reference and thus cannot be constant. */
           result = FALSE;
+          info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
           if (is_variant_path(cap)) {
             release_variant_path(cap);
           }  /* if */
@@ -5949,17 +5960,12 @@ represents an address of interpreter storage).
           cp = alloc_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, bcp, offset);
           if (!copy_interpreter_object_to_constant(
-                                              object+offset, bcp->type, cp)) {
+                                         ips, object+offset, bcp->type, cp)) {
             result = FALSE;
             break;
           }  /* if */
           cp->constant_for_base_class_from_constexpr_folding = TRUE;
-          if (con->variant.aggregate.first_constant == NULL) {
-            con->variant.aggregate.first_constant = cp;
-          } else {
-            con->variant.aggregate.last_constant->next = cp;
-          }  /* if */
-          con->variant.aggregate.last_constant = cp;
+          add_constant_to_aggregate(cp, con);
         }  /* for */
         if (!result) break;
         /* Now add the constants for initializable fields. */
@@ -5969,21 +5975,48 @@ represents an address of interpreter storage).
           a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, fp, offset);
           if (!copy_interpreter_object_to_constant(
-                                               object+offset, fp->type, cp)) {
+                                          ips, object+offset, fp->type, cp)) {
             result = FALSE;
             break;
           }  /* if */
-          if (con->variant.aggregate.first_constant == NULL) {
-            con->variant.aggregate.first_constant = cp;
-          } else {
-            con->variant.aggregate.last_constant->next = cp;
-          }  /* if */
-          con->variant.aggregate.last_constant = cp;
+          add_constant_to_aggregate(cp, con);
         }  /* for */
       }
       break;
     case tk_union:
-      /* FIXME */
+      /* The resulting constant is a ck_aggregate entry containing an
+         optional designator followed by a constant value.  The designator
+         is added only if the active field is not the first initializable
+         field. */
+      { a_field_ptr  fp, afp;
+        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        fp = type->variant.class_struct_union.field_list,
+        fp = next_initializable_field(fp);
+        /* Retrieve the active field. */
+        afp = (a_field_ptr)*(void**)object;
+        if (afp == NULL) {
+          /* This should not currently be possible since all interpreter
+             objects are initialized. */
+          unexpected_condition();
+        } else {
+          a_constant_ptr  elem_con, des_con;
+          a_byte_count    offset;
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!copy_interpreter_object_to_constant(
+                                    ips, object+offset, fp->type, elem_con)) {
+            result = FALSE;
+          } else {
+            if (fp != afp) {
+              /* Add a designator for the active field. */
+              des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+              des_con->variant.designator.field = afp;
+              add_constant_to_aggregate(des_con, con);
+            }  /* if */
+            add_constant_to_aggregate(elem_con, con);
+          }  /* if */
+        }  /* if */
+      }
       break;
     default:
       unexpected_condition();
@@ -6020,7 +6053,7 @@ return FALSE, and record diagnostic info in *diag_list.
       !do_constexpr_call(&ips, call_expr, result_storage)) {
     result = FALSE;
   } else if (!copy_interpreter_object_to_constant(
-                                   result_storage, result_type, result_con)) {
+                             &ips, result_storage, result_type, result_con)) {
     result = FALSE;
   }  /* if */
   *diag_list = ips.diag_list;
@@ -6074,7 +6107,7 @@ return FALSE.
       !do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
     result = FALSE;
   } else if (!copy_interpreter_object_to_constant(
-                                   result_storage, result_type, result_con)) {
+                             &ips, result_storage, result_type, result_con)) {
     result = FALSE;
   }  /* if */
   release_interpreter_state(&ips);
