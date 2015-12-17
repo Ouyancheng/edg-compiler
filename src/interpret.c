@@ -3179,7 +3179,7 @@ accordingly.
     /* A call through a pointer-to-member function.  We'll determine the
        callee here, and adjust the "this" pointer later on. */
     pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
-    if (do_constexpr_expression(ips, callee_node, (a_byte*)pm_target)) {
+    if (do_constexpr_expression(ips, callee_node, pm_bytes)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
