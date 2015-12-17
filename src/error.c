@@ -3518,20 +3518,25 @@ that might be required.
       fill_in_char = *curr_char++;
       /* Scan any option characters that may follow.  These may be letters or
          a digit that specifies which of several fill-ins of a given type is
-         to be used (e.g., %s2 for the second string fill-in). */
+         to be used (e.g., %s2 for the second string fill-in).  Note that
+         isdigit, etc. are not used here because they could return TRUE
+         if the fill-in is followed by a multibyte character. */
       opt_pos = 0;
       fill_in_seq = 1;
-      while (isalnum(*curr_char)) {
-        if (isdigit(*curr_char)) {
+      for (;;) {
+        if (*curr_char >= '0' && *curr_char <= '9') {
           fill_in_seq = *curr_char - '0';
-        } else {
+        } else if ((*curr_char >= 'a' && *curr_char < 'z') ||
+                   (*curr_char >= 'A' && *curr_char < 'Z')) {
           options[opt_pos] = *curr_char;
           opt_pos++;
           check_assertion_str2(opt_pos < MAX_OPTIONS, "construct_message:",
                                "too many option characters");
+        } else {
+          break;
         }  /* if */
         curr_char++;
-      }  /* while */
+      }  /* for */
       /* Terminate the string of options. */
       options[opt_pos] = '\0';
       process_fill_in(dp, fill_in_char, options, fill_in_seq);

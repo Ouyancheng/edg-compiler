@@ -1,5 +1,14 @@
 Version 4.11
 
+12/17/15 [EDGcpfe/16728]
+Incorrect handling of multibyte characters following error fill-ins
+
+If customers provided alternate error message text, and that text had
+a fill-in immediately followed by a multibyte character sequence,
+incorrect behavior (including a possible abort) could occur.  Now
+fixed.
+
+
 12/15/15 [EDGcpfe/16724]
 USER_CONTROL_OF_STRUCT_PACKING removed
 
