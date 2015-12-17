@@ -18268,11 +18268,15 @@ declaration of a partial specialization declared outside of its class.
   a_boolean                         is_abstract = FALSE, is_final = FALSE,
                                     is_sealed = FALSE;
   an_attribute_ptr                  attributes = NULL;
+  an_attribute_ptr                  *p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "class_template_declaration");
+  /* Scan any attributes and ignore them (they don't appertain to anything). */
+  *last_attribute_link(p_attributes) = scan_attributes(al_prefix);
+  disallow_attributes(p_attributes, es_default);
   if (curr_token == tok_typedef || curr_token == tok_auto ||
       curr_token == tok_register) {
     pos_error(curr_token == tok_typedef ?
@@ -18295,6 +18299,10 @@ declaration of a partial specialization declared outside of its class.
     friend_pos = pos_curr_token;
     friend_token_seen = TRUE;
     (void)get_token();
+    /* Scan any attributes and ignore them (they don't appertain to
+       anything).  */
+    *last_attribute_link(p_attributes) = scan_attributes(al_prefix);
+    disallow_attributes(p_attributes, es_default);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled) {
@@ -18383,7 +18391,7 @@ declaration of a partial specialization declared outside of its class.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class", "struct", "union", or "__interface". */
   (void)get_token();
-  attributes = scan_attributes(al_tag_name);
+  *last_attribute_link(p_attributes) = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     /* Scan any Microsoft extended decl modifiers that may be present
@@ -22744,7 +22752,9 @@ in which case the is_delegate flag of decl_state is updated.
   /* Don't record pack expansions during the prescan. */
   push_expansion_suppression(&pesep);
   rescan_reusable_cache(token_cache);
+  skip_over_attributes();
   if (curr_token == tok_friend) (void)get_token();
+  skip_over_attributes();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (microsoft_attribute_tokens_next()) {

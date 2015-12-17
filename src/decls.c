@@ -504,16 +504,34 @@ entry of the given kind, return one of those entries.
 }  /* f_find_decl_attribute */
 
 
-static void disallow_attributes(an_attribute_ptr  *p_attributes)
+void disallow_attributes(an_attribute_ptr  *p_attributes,
+                         an_error_severity sev)
 /*
 If *p_attributes is non-NULL, issue an error message indicating that
 attributes are not allowed at the location in which the associated attribute
-appeared, and set *p_attributes to NULL;
+appeared, and set *p_attributes to NULL.  Use sev as the severity of the
+diagnostic, unless sev is es_default in which case the severity is determined
+locally based on the emulation mode and attribute.
 */
 {
   if (*p_attributes != NULL) {
-    pos_error(ec_invalid_attribute_location,
-              &(*p_attributes)->group->position);
+    if (sev == es_default) {
+      sev = es_discretionary_error;
+      if (gnu_mode) {
+        if (clang_mode && is_std_attribute(*p_attributes)) {
+          /* clang issues an error on standard attributes in incorrect
+             locations and is silent otherwise. */
+          sev = es_none;
+        } else {
+          /* GNU issues a warning. */
+          sev = es_warning;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (sev != es_none) {
+      pos_diagnostic(sev, ec_invalid_attribute_location,
+                     &(*p_attributes)->group->position);
+    }  /* if */
     *p_attributes = NULL;
   }  /* if */
 }  /* disallow_attributes */
@@ -12920,7 +12938,7 @@ a normal try.
     state.prefix_attributes = scan_attributes(al_prefix);
     if (curr_token == tok_ellipsis) {
       /* NULL parameter. */
-      disallow_attributes(&state.prefix_attributes);
+      disallow_attributes(&state.prefix_attributes, es_error);
       (void)get_token();
     } else {
       if (curr_token != tok_identifier &&
@@ -13251,7 +13269,7 @@ to NULL.
        declaration. */
     cannot_bind_to_curr_construct();
     /* Prefix attributes are not allowed on asm declarations. */
-    disallow_attributes(p_attributes);
+    disallow_attributes(p_attributes, es_error);
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
@@ -17048,7 +17066,7 @@ processing should proceed after the call.
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
       a_source_position	           directive_start_pos = pos_curr_token;
       /* Attributes cannot precede the "template" keyword. */
-      disallow_attributes(&state->prefix_attributes);
+      disallow_attributes(&state->prefix_attributes, es_error);
       if (curr_token == tok_extern) {
         /* In some modes "extern template ..." is permitted. */
         (void)get_token();
@@ -17077,7 +17095,7 @@ processing should proceed after the call.
                 next_token() == tok_namespace)) {
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */
-      disallow_attributes(&state->prefix_attributes);
+      disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token);
       if (gpp_mode) {
@@ -17102,7 +17120,7 @@ processing should proceed after the call.
       if (curr_token == tok_namespace) {
         if (gpp_mode && !clang_mode) {
           /* Attributes are allowed on using-directives, but g++ disallows. */
-          disallow_attributes(&state->prefix_attributes);
+          disallow_attributes(&state->prefix_attributes, es_error);
         }  /* if */
         using_directive(state, &using_pos);
         state->decl_okay_in_constexpr_body = TRUE;
@@ -17110,7 +17128,7 @@ processing should proceed after the call.
         a_token_kind  next_tok;
         /* Attributes cannot precede a using-declaration (they are allowed
            on using-directives). */
-        disallow_attributes(&state->prefix_attributes);
+        disallow_attributes(&state->prefix_attributes, es_error);
         if (alias_declarations_enabled &&
             is_generalized_identifier_start(GID_NO_OPTIONS) &&
             ((next_tok = next_token()) == tok_assign ||

@@ -1213,6 +1213,9 @@ extern void attach_param_attributes(a_decl_parse_state  *dps,
 extern void check_prefix_attributes_without_a_declarator(
                                                     a_decl_parse_state  *dps);
 
+extern void disallow_attributes(an_attribute_ptr  *p_attributes,
+                                an_error_severity sev);
+
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
