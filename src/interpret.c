@@ -3165,8 +3165,9 @@ accordingly.
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE;
+  a_byte            pm_bytes[VALUE_BYTES_FOR_SCALAR];
   a_constexpr_ptr_to_mem
-                    ptr_to_mem, *pm_target = NULL;
+                    *pm_target = NULL;
 
   callee_node = call_node->variant.operation.operands;
   if (is_routine_node(callee_node)) {
@@ -3175,7 +3176,7 @@ accordingly.
              node_operator_is(call_node, eok_points_to_pm_call)) {
     /* A call through a pointer-to-member function.  We'll determine the
        callee here, and adjust the "this" pointer later on. */
-    pm_target = &ptr_to_mem;
+    pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
     if (do_constexpr_expression(ips, callee_node, (a_byte*)pm_target)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
@@ -5691,19 +5692,22 @@ type.  This includes checking the value of ovfl set by the operation.
                      path entry. */
                   unexpected_condition();
                 } else {
-                  adjust_this_address(ips, &result_addr, pm_value, opnd1_type,
-                                      expr);
-                  get_mapped_byte_count(&persistent_map, field, offset);
-                  result_addr.address += offset;
-                  result_addr.flags &= ~CA_ARRAY_ELEMENT;
-                  if (field->is_bit_field) {
-                    if (field->bit_field_is_signed) {
-                      result_addr.flags |= (CA_BIT_FIELD |
-                                            CA_SIGNED_BIT_FIELD);
-                    } else {
-                      result_addr.flags |= CA_BIT_FIELD;
+                  if (!adjust_this_address(ips, &result_addr, pm_value,
+                                           opnd1_type, expr)) {
+                    result = FALSE;
+                  } else {
+                    get_mapped_byte_count(&persistent_map, field, offset);
+                    result_addr.address += offset;
+                    result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                    if (field->is_bit_field) {
+                      if (field->bit_field_is_signed) {
+                        result_addr.flags |= (CA_BIT_FIELD |
+                                              CA_SIGNED_BIT_FIELD);
+                      } else {
+                        result_addr.flags |= CA_BIT_FIELD;
+                      }  /* if */
+                      result_addr.length = field->bit_size;
                     }  /* if */
-                    result_addr.length = field->bit_size;
                   }  /* if */
                   set_result_val_from_operand_address(&result_addr);
                 }  /* if */
