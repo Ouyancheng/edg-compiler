@@ -1606,7 +1606,7 @@ typedef union {
 /* Use GCC attributes to control alignment. */
 #define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
    __attribute((aligned(__alignof(a_compact_value_sizing_model))))           \
-     a_byte buf_name[sizeof(a_compact_value_sizing_model)];
+     a_byte buf_name[sizeof(a_compact_value_sizing_model)]
 
 #define compact_value_bytes(buf_name) (buf_name)
 
@@ -1615,7 +1615,7 @@ typedef union {
 /* Use Microsoft __declspec to control alignment. */
 #define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
    __declspec(align(__alignof(a_compact_value_sizing_model)))                \
-     a_byte buf_name[sizeof(a_compact_value_sizing_model)];
+     a_byte buf_name[sizeof(a_compact_value_sizing_model)]
 
 #define compact_value_bytes(buf_name) (buf_name)
 
@@ -1628,7 +1628,7 @@ typedef union a_compact_value {
 } a_compact_value;
 
 #define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
-  a_compact_value buf_name;
+  a_compact_value buf_name
 
 #define compact_value_bytes(buf_name) ((buf_name).buf)
 
