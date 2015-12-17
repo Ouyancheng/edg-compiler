@@ -1445,15 +1445,52 @@ Macro returning the larger of two values.
 
 
 /*
-Macro giving the number of bytes required for a scalar value.
-FIXME: This is used to create local buffers holding common value kinds, but
-       they're not guaranteed to be aligned!
+The interpreter's stack allocator is pretty efficient, but many "compact"
+operands can be allocated even more efficiently on the call stack.  To manage
+this, we create a union of the value types allocated on the stack, and macros
+to declare and access a corresponding array of bytes.
 */
-#define VALUE_BYTES_FOR_SCALAR                  \
-  max(max(max(sizeof(an_integer_value),         \
-              sizeof(an_internal_float_value)), \
-          sizeof(a_constexpr_address)),         \
-      sizeof(a_constexpr_ptr_to_mem))
+typedef union {
+  an_integer_value	 iv;
+  an_internal_float_value
+			 ifv;
+  a_constexpr_address	 ca;
+  a_constexpr_ptr_to_mem cptm;
+} a_compact_value_sizing_model;
+
+#define is_compact_value_size(n)  (n <= sizeof(a_compact_value_sizing_model))
+
+#ifdef __GNUC__
+/* Use GCC attributes to control alignment. */
+#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
+   __attribute((aligned(__alignof(a_compact_value_sizing_model))))           \
+     a_byte buf_name[sizeof(a_compact_value_sizing_model)];
+
+#define compact_value_bytes(buf_name) (buf_name)
+
+#else /* !defined(__GNUC__) */
+#ifdef _MSVC_VER
+/* Use Microsoft __declspec to control alignment. */
+#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
+   __declspec(align(__alignof(a_compact_value_sizing_model)))                \
+     a_byte buf_name[sizeof(a_compact_value_sizing_model)];
+
+#define compact_value_bytes(buf_name) (buf_name)
+
+#else /* !defined(_MSC_VER) */
+/* Use a union to align a byte buffer. */
+#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
+  union {                                                                    \
+    a_compact_value_sizing_model                                             \
+           alignment_model;                                                  \
+    a_byte buf[sizeof(a_compact_value_sizing_model)];                        \
+  } buf_name;
+
+#define compact_value_bytes(buf_name) ((buf_name).buf)
+
+#endif /* ifdef _MSC_VER */
+#endif /* ifdef __GNUC__ */
+
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
@@ -2480,23 +2517,23 @@ Interpret the given for-statement.
     result = FALSE;
   } else {
     an_expr_node_ptr  expr = stmt->expr, incr = loop_info->increment;
-    a_byte            expr_bytes[VALUE_BYTES_FOR_SCALAR];
-    a_byte            incr_bytes[VALUE_BYTES_FOR_SCALAR];
     a_byte            *expr_value, *incr_value;
     a_type_ptr        tp, incr_type;
     a_byte_count      n_bytes;
     a_boolean         ovfl;
     a_host_large_integer
                       bool_val;
+    DECL_COMPACT_VALUE_BYTES(expr_bytes);
+    DECL_COMPACT_VALUE_BYTES(incr_bytes);
     if (expr != NULL) {
       /* The type of the test expression is known to be bool, which will
          fit within the expr_bytes array. */
-      expr_value = expr_bytes;
+      expr_value = compact_value_bytes(expr_bytes);
       tp = skip_typerefs(expr->type);
     } else {
       /* Needed only to avoid spurious GNU compiler optimizer
          warnings. */
-      expr_value = expr_bytes;
+      expr_value = compact_value_bytes(expr_bytes);
       tp = NULL;
     }  /* if */
     incr = loop_info->increment;
@@ -2504,19 +2541,19 @@ Interpret the given for-statement.
       incr_type = skip_typerefs(incr->type);
       n_bytes = value_bytes_for_type(ips, incr_type, &result);
       if (!result) goto unmap_storage;
-      if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+      if (!is_compact_value_size(n_bytes) &&
           !incr->is_lvalue && !incr->is_xvalue) {
         /* The result of the increment expression is larger than a scalar
            type, so allocate space for it on the stack. */
         alloc_stack_bytes(ips, n_bytes, incr_value);
       } else {
-        incr_value = incr_bytes;
+        incr_value = compact_value_bytes(incr_bytes);
       }  /* if */
       record_complete_object(incr_type, incr_value);
     } else {
       /* Needed only to avoid spurious GNU compiler optimizer warnings. */
       incr_type = NULL;
-      incr_value = incr_bytes;
+      incr_value = compact_value_bytes(incr_bytes);
     }  /* if */
     do {
       /* Evaluate the test expression. */
@@ -2636,23 +2673,24 @@ Interpret the given range-based for-statement.
   if (result) {
     an_expr_node_ptr  expr = loop_info->ne_call_expr,
                       incr = loop_info->incr_call_expr;
-    a_byte            expr_bytes[VALUE_BYTES_FOR_SCALAR];
-    a_byte            incr_bytes[VALUE_BYTES_FOR_SCALAR];
-    a_byte            *expr_value = expr_bytes, *incr_value;
+    a_byte            *expr_value, *incr_value;
     a_type_ptr        tp = skip_typerefs(expr->type),
                       incr_type = skip_typerefs(incr->type);
     a_byte_count      n_bytes;
     a_boolean         ovfl;
     a_host_large_integer
                       bool_val;
+    DECL_COMPACT_VALUE_BYTES(expr_bytes);
+    DECL_COMPACT_VALUE_BYTES(incr_bytes);
+    expr_value = compact_value_bytes(expr_bytes);
     n_bytes = value_bytes_for_type(ips, incr_type, &result);
-    if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+    if (!is_compact_value_size(n_bytes) &&
         !incr->is_lvalue && !incr->is_xvalue) {
       /* The result of the increment expression is larger than a scalar type,
          so allocate space for it on the stack. */
       alloc_stack_bytes(ips, n_bytes, incr_value);
     } else {
-      incr_value = incr_bytes;
+      incr_value = compact_value_bytes(incr_bytes);
     }  /* if */
     record_complete_object(incr_type, incr_value);
     if (!result) goto unmap_storage;
@@ -2735,12 +2773,12 @@ successfully interpreted, FALSE otherwise.
 {
   a_boolean             result = TRUE;
   an_expr_node_ptr      expr;
-  a_byte                expr_bytes[VALUE_BYTES_FOR_SCALAR];
   a_byte                *expr_value;
   a_storage_stack_state saved_stack;
   a_host_large_integer  bool_val;
   a_type_ptr            tp;
   a_boolean             ovfl;
+  DECL_COMPACT_VALUE_BYTES(expr_bytes);
 
   switch (stmt->kind) {
     case stmk_expr:
@@ -2750,13 +2788,13 @@ successfully interpreted, FALSE otherwise.
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         save_storage_stack(ips, saved_stack);
-        if (n_bytes > VALUE_BYTES_FOR_SCALAR &&
+        if (!is_compact_value_size(n_bytes) &&
             !expr->is_lvalue && !expr->is_xvalue) {
           /* The value is larger than a scalar type, so allocate space for
              it on the stack. */
           alloc_stack_bytes(ips, n_bytes, expr_value);
         } else {
-          expr_value = expr_bytes;
+          expr_value = compact_value_bytes(expr_bytes);
         }  /* if */
         record_complete_object(tp, expr_value);
         if (!result) {
@@ -2772,9 +2810,9 @@ successfully interpreted, FALSE otherwise.
     case stmk_if:
       {
         /* The type of the test expression is known to be bool, which will
-           fit within the expr_bytes array. */
+           fit within the expr_bytes buffer. */
         expr = stmt->expr;
-        expr_value = expr_bytes;
+        expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
@@ -2798,7 +2836,7 @@ successfully interpreted, FALSE otherwise.
         expr = stmt->expr;
         /* The type of the test expression is known to be bool, which will
            fit within the expr_bytes array. */
-        expr_value = expr_bytes;
+        expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
         do {
           /* Evaluate the test expression. */
@@ -2889,7 +2927,7 @@ successfully interpreted, FALSE otherwise.
         expr = stmt->expr;
         /* The type of the test expression is known to be bool, which will
            fit within the expr_bytes array. */
-        expr_value = expr_bytes;
+        expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
         do {
           /* Execute the dependent statement. */
@@ -2947,7 +2985,7 @@ successfully interpreted, FALSE otherwise.
         expr = stmt->expr;
         /* The type of the switch expression is known to be integral, which
            will fit within the expr_bytes array. */
-        expr_value = expr_bytes;
+        expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
         is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
         do_constexpr_full_expression(ips, expr, expr_value, result);
@@ -2955,11 +2993,11 @@ successfully interpreted, FALSE otherwise.
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
-          a_byte  case_buffer[VALUE_BYTES_FOR_SCALAR];
-          a_byte  *case_bytes = case_buffer;
+          DECL_COMPACT_VALUE_BYTES(case_buffer);
+          a_byte  *case_bytes = compact_value_bytes(case_buffer);
           int cmp;
           result = copy_val_from_constant(ips, scep->case_value, case_bytes);
-          cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
+          cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
                                    (an_integer_value*)case_bytes, is_signed);
           if (cmp == 0) {
             /* We found the case entry. */
@@ -2971,7 +3009,7 @@ successfully interpreted, FALSE otherwise.
 #if GNU_EXTENSIONS_ALLOWED
           } else if (scep->range_end != NULL) {
             result = copy_val_from_constant(ips, scep->range_end, case_bytes);
-            cmp = cmp_integer_values((an_integer_value*)expr_bytes, is_signed,
+            cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
                                      (an_integer_value*)case_bytes, is_signed);
             if (cmp <= 0) {
               /* We're in the range. */
@@ -3174,9 +3212,9 @@ accordingly.
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE;
-  a_byte            pm_bytes[VALUE_BYTES_FOR_SCALAR];
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
+  DECL_COMPACT_VALUE_BYTES(pm_bytes);
 
   callee_node = call_node->variant.operation.operands;
   if (is_routine_node(callee_node)) {
@@ -3185,8 +3223,8 @@ accordingly.
              node_operator_is(call_node, eok_points_to_pm_call)) {
     /* A call through a pointer-to-member function.  We'll determine the
        callee here, and adjust the "this" pointer later on. */
-    pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
-    if (do_constexpr_expression(ips, callee_node, pm_bytes)) {
+    pm_target = (a_constexpr_ptr_to_mem*)compact_value_bytes(pm_bytes);
+    if (do_constexpr_expression(ips, callee_node, (a_byte*)pm_target)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
@@ -3246,9 +3284,9 @@ accordingly.
                     param, this_var;
     a_byte_count    n_args = 0;
     a_byte          *arg_ptrs, **p_arg_ptr;
-    a_byte          this_bytes[VALUE_BYTES_FOR_SCALAR];
     an_alloc_seq_number
                     alloc_seq_number;
+    DECL_COMPACT_VALUE_BYTES(this_buf);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -3283,6 +3321,7 @@ accordingly.
     arg = callee_node->next;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
+      a_byte  *this_bytes = compact_value_bytes(this_buf);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
       if (!result || !do_constexpr_expression(ips, arg, this_bytes)) {
@@ -3597,14 +3636,14 @@ of the prvalue result.
            required by the semantics of the operation. */
         an_expr_node_ptr opnd1;
         a_type_ptr       opnd1_type;
-        a_byte           opnd1_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd1_value;
         an_expr_node_ptr opnd2;
         a_type_ptr       opnd2_type;
-        a_byte           opnd2_bytes[VALUE_BYTES_FOR_SCALAR];
         a_byte           *opnd2_value;
         a_boolean        ovfl, err, depends_on_fp_mode, unord;
         a_byte_count     opnd_n_bytes;
+        DECL_COMPACT_VALUE_BYTES(opnd1_bytes);
+        DECL_COMPACT_VALUE_BYTES(opnd2_bytes);
 
         if (is_call_node(expr)) {
           /* Call nodes are handled separately because their operands are set
@@ -3718,13 +3757,13 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = value_bytes_for_type(ips, opnd1_type, &result);
-        if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+        if (!is_compact_value_size(opnd_n_bytes) &&
             !opnd1->is_lvalue && !opnd1->is_xvalue) {
           /* The value is larger than a scalar type, so allocate
              space for it on the stack. */
           alloc_stack_bytes(ips, opnd_n_bytes, opnd1_value);
         } else {
-          opnd1_value = opnd1_bytes;
+          opnd1_value = compact_value_bytes(opnd1_bytes);
         }  /* if */
         record_complete_object(opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
@@ -3745,20 +3784,20 @@ type.  This includes checking the value of ovfl set by the operation.
              to the comma operator in this respect. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
-          if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+          if (!is_compact_value_size(opnd_n_bytes) &&
               !opnd2->is_lvalue && !opnd2->is_xvalue) {
             /* The value may be larger than a scalar type, so allocate
                space for it on the stack. */
             alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
           } else {
-            opnd2_value = opnd2_bytes;
+            opnd2_value = compact_value_bytes(opnd2_bytes);
           }  /* if */
           record_complete_object(opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
             result = FALSE;
           }  /* if */
         } else {
-          opnd2_value = opnd2_bytes;
+          opnd2_value = compact_value_bytes(opnd2_bytes);
           opnd2_type = NULL;
         }  /* if */
         if (result) {
@@ -5489,13 +5528,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   opnd2_type = skip_typerefs(opnd2->type);
                   opnd_n_bytes = value_bytes_for_type(ips, opnd2_type,
                                                       &result);
-                  if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+                  if (!is_compact_value_size(opnd_n_bytes) &&
                       !opnd2->is_lvalue && !opnd2->is_xvalue) {
                     /* The value may be larger than a scalar type, so allocate
                        space for it on the stack. */
                     alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
                   } else {
-                    opnd2_value = opnd2_bytes;
+                    opnd2_value = compact_value_bytes(opnd2_bytes);
                   }  /* if */
                   record_complete_object(opnd2_type, opnd2_value);
                   if (result &&
@@ -5544,13 +5583,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   opnd2_type = skip_typerefs(opnd2->type);
                   opnd_n_bytes = value_bytes_for_type(ips, opnd2_type,
                                                       &result);
-                  if (opnd_n_bytes > VALUE_BYTES_FOR_SCALAR &&
+                  if (!is_compact_value_size(opnd_n_bytes) &&
                       !opnd2->is_lvalue && !opnd2->is_xvalue) {
                     /* The value may be larger than a scalar type, so allocate
                        space for it on the stack. */
                     alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
                   } else {
-                    opnd2_value = opnd2_bytes;
+                    opnd2_value = compact_value_bytes(opnd2_bytes);
                   }  /* if */
                   record_complete_object(opnd2_type, opnd2_value);
                   if (result &&
