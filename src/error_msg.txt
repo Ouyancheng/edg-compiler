@@ -2804,6 +2804,7 @@ ec_constexpr_expression_cannot_be_interpreted;;"expression cannot be interpreted
 ec_constexpr_statement_cannot_be_interpreted;;"statement cannot be interpreted"
 ec_constexpr_interpreter_address;;"invalid use of address into interpreter storage"
 ec_constexpr_invalid_constant_kind;;"invalid constant kind for constant-expression"
+ec_constexpr_type_too_large;;"type %t too large for constant-expression evaluation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1418,10 +1418,131 @@ typedef struct a_constexpr_ptr_to_mem {
 } a_constexpr_ptr_to_mem;
 
 
+static void info_call_stack(an_interpreter_state  *ips)
 /*
-Macro defining the largest allowed size of a type in the interpreter.
 */
-#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
+{
+  a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
+
+  if (frame != NULL) {
+    for (; frame->parent != NULL; frame = frame->parent) {
+      more_info_diagnostic(ec_constexpr_called_from, frame->position,
+                           &ips->diag_list);
+    }  /* for */
+  }  /* if */
+}  /* info_call_stack */
+
+
+static void info_with_pos(an_error_code         err_code,
+                          a_source_position     *pos,
+                          an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_diagnostic(err_code, pos, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos */
+
+
+static void info_with_pos_type(an_error_code         err_code,
+                               a_source_position     *pos,
+                               a_type_ptr            tp,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_type */
+
+
+static void info_with_pos_num(an_error_code         err_code,
+                              a_source_position     *pos,
+                              uint32_t              num,
+                              an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_num */
+
+
+static void info_with_pos_num2(an_error_code         err_code,
+                               a_source_position     *pos,
+                               uint32_t              num1,
+                               uint32_t              num2,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.
+*/
+{
+  more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_num2 */
+
+
+static void info_with_pos_sym(an_error_code         err_code,
+                              a_source_position     *pos,
+                              a_symbol_ptr          sym,
+                              an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym for placeholder substitution in the
+diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym */
+
+
+static void info_with_pos_sym_type(an_error_code         err_code,
+                                   a_source_position     *pos,
+                                   a_symbol_ptr          sym,
+                                   a_type_ptr            type,
+                                   an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym and type for placeholder substitution in
+the diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym_type */
+
+
+static void info_with_pos_sym2(an_error_code         err_code,
+                               a_source_position     *pos,
+                               a_symbol_ptr          sym1,
+                               a_symbol_ptr          sym2,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Use sym1 and sym2 for placeholder substitution in
+the diagnostic string.  Also record annotations describing the call stack.
+*/
+{
+  more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_sym */
+
+
+static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
+                                           a_type_ptr            tp,
+                                           a_boolean             *p_result);
 
 
 /*
@@ -1438,11 +1559,32 @@ failure (*ips is updated accordingly).
    /* else */                                                                \
     f_value_bytes_for_type(ips, tp, result_flag))
 
+static void info_one_past_end_of_array(a_constexpr_address   *addr,
+                                       an_expr_node_ptr      expr,
+                                       an_interpreter_state  *ips)
 /*
-Macro returning the larger of two values.
+expr is an rvalue whose evaluation requires the indirection of addr, but it
+turns out addr is pointing one position past an array.  Record diagnostic
+information describing the problem.
 */
-#define max(a, b) (((a) > (b))/*lint --e(506)*/ ? (a) : (b))
+{
+  a_byte_count  elem_size, pos;
+  a_byte        *base_address;
+  a_boolean     local_result = TRUE;
 
+  elem_size = value_bytes_for_type(ips, expr->type, &local_result);
+  check_assertion(local_result);
+  base_address = get_base_address(addr);
+  pos = (a_byte_count)(addr->address - base_address) / elem_size;
+  info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
+                    pos, ips);
+}  /* info_one_past_end_of_array */
+
+
+/*
+Macro defining the largest allowed size of a type in the interpreter.
+*/
+#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
 
 /*
 The interpreter's stack allocator is pretty efficient, but many "compact"
@@ -1479,12 +1621,14 @@ typedef union {
 
 #else /* !defined(_MSC_VER) */
 /* Use a union to align a byte buffer. */
+typedef union a_compact_value {
+  a_compact_value_sizing_model
+		alignment_model;
+  a_byte	buf[sizeof(a_compact_value_sizing_model)];
+} a_compact_value;
+
 #define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
-  union {                                                                    \
-    a_compact_value_sizing_model                                             \
-           alignment_model;                                                  \
-    a_byte buf[sizeof(a_compact_value_sizing_model)];                        \
-  } buf_name;
+  a_compact_value buf_name;
 
 #define compact_value_bytes(buf_name) ((buf_name).buf)
 
@@ -1533,8 +1677,10 @@ redo:
           /* Interpretation failure. */
         } else if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
           /* Too many elements. */
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          if (pos->seq == 0) pos = &ips->position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
           *p_result = FALSE;
-          /* FIXME: Diagnostic. */
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
@@ -1626,7 +1772,9 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     map_byte_count(&persistent_map, fp, total_size);
     total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-      /* FIXME: Diagnostic. */
+      a_source_position  *pos = &tp->source_corresp.decl_position;
+      if (pos->seq == 0) pos = &ips->position;
+      info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
       *p_result = TRUE;
       total_size = MAX_CONSTEXPR_TYPE_SIZE;
       goto done;
@@ -1639,7 +1787,9 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       map_byte_count(&persistent_map, bcp, total_size);
       total_size += value_bytes_for_type(ips, bcp->type, p_result);
       if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-        /* FIXME: Diagnostic. */
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
         *p_result = TRUE;
         total_size = MAX_CONSTEXPR_TYPE_SIZE;
         goto done;
@@ -1654,7 +1804,9 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         map_byte_count(&persistent_map, bcp, total_size);
         total_size += value_bytes_for_type(ips, bcp->type, p_result);
         if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-          /* FIXME: Diagnostic. */
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          if (pos->seq == 0) pos = &ips->position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
           *p_result = TRUE;
           total_size = MAX_CONSTEXPR_TYPE_SIZE;
           goto done;
@@ -1841,150 +1993,6 @@ expose an_interpreter_state in outside this source file).
 }  /* db_call_stack */
 
 #endif /* DEBUG */
-
-static void info_call_stack(an_interpreter_state  *ips)
-/*
-*/
-{
-  a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
-
-  if (frame != NULL) {
-    for (; frame->parent != NULL; frame = frame->parent) {
-      more_info_diagnostic(ec_constexpr_called_from, frame->position,
-                           &ips->diag_list);
-    }  /* for */
-  }  /* if */
-}  /* info_call_stack */
-
-
-static void info_with_pos(an_error_code         err_code,
-                          a_source_position     *pos,
-                          an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Also record annotations describing the call
-stack.
-*/
-{
-  more_info_diagnostic(err_code, pos, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos */
-
-
-static void info_with_pos_type(an_error_code         err_code,
-                               a_source_position     *pos,
-                               a_type_ptr            tp,
-                               an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Also record annotations describing the call
-stack.
-*/
-{
-  more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_type */
-
-
-static void info_with_pos_num(an_error_code         err_code,
-                              a_source_position     *pos,
-                              uint32_t              num,
-                              an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Also record annotations describing the call
-stack.
-*/
-{
-  more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_num */
-
-
-static void info_with_pos_num2(an_error_code         err_code,
-                               a_source_position     *pos,
-                               uint32_t              num1,
-                               uint32_t              num2,
-                               an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Also record annotations describing the call
-stack.
-*/
-{
-  more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_num2 */
-
-
-static void info_with_pos_sym(an_error_code         err_code,
-                              a_source_position     *pos,
-                              a_symbol_ptr          sym,
-                              an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Use sym for placeholder substitution in the
-diagnostic string.  Also record annotations describing the call stack.
-*/
-{
-  more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_sym */
-
-
-static void info_with_pos_sym_type(an_error_code         err_code,
-                                   a_source_position     *pos,
-                                   a_symbol_ptr          sym,
-                                   a_type_ptr            type,
-                                   an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Use sym and type for placeholder substitution in
-the diagnostic string.  Also record annotations describing the call stack.
-*/
-{
-  more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_sym_type */
-
-
-static void info_with_pos_sym2(an_error_code         err_code,
-                               a_source_position     *pos,
-                               a_symbol_ptr          sym1,
-                               a_symbol_ptr          sym2,
-                               an_interpreter_state  *ips)
-/*
-Record the given error code at the given position as a diagnostic annotation
-for interpretation failure.  Use sym1 and sym2 for placeholder substitution in
-the diagnostic string.  Also record annotations describing the call stack.
-*/
-{
-  more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_sym */
-
-
-static void info_one_past_end_of_array(a_constexpr_address   *addr,
-                                       an_expr_node_ptr      expr,
-                                       an_interpreter_state  *ips)
-/*
-expr is an rvalue whose evaluation requires the indirection of addr, but it
-turns out addr is pointing one position past an array.  Record diagnostic
-information describing the problem.
-*/
-{
-  a_byte_count  elem_size, pos;
-  a_byte        *base_address;
-  a_boolean     local_result = TRUE;
-
-  elem_size = value_bytes_for_type(ips, expr->type, &local_result);
-  check_assertion(local_result);
-  base_address = get_base_address(addr);
-  pos = (a_byte_count)(addr->address - base_address) / elem_size;
-  info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
-                    pos, ips);
-}  /* info_one_past_end_of_array */
-
 
 static a_boolean add_to_variant_path(a_constexpr_address  *addr,
                                      a_field_ptr          union_field)

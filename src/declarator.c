@@ -4024,6 +4024,7 @@ constant.
     *new_type_ptr = error_type();
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
+    (*new_type_ptr)->source_corresp.decl_position = start_pos;
     (*new_type_ptr)->variant.array.is_static = static_seen;
     (*new_type_ptr)->variant.array.qualifiers = qualifiers;
     /* Store the array size. */
