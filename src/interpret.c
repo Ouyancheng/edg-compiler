@@ -3222,7 +3222,7 @@ accordingly.
   a_boolean         result = TRUE;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
-  DECL_COMPACT_VALUE_BYTES(pm_bytes);
+  DECL_COMPACT_VALUE_BYTES(pm_buf);
 
   callee_node = call_node->variant.operation.operands;
   if (is_routine_node(callee_node)) {
@@ -3231,8 +3231,9 @@ accordingly.
              node_operator_is(call_node, eok_points_to_pm_call)) {
     /* A call through a pointer-to-member function.  We'll determine the
        callee here, and adjust the "this" pointer later on. */
-    pm_target = (a_constexpr_ptr_to_mem*)compact_value_bytes(pm_bytes);
-    if (do_constexpr_expression(ips, callee_node, (a_byte*)pm_target)) {
+    a_byte  *pm_bytes = compact_value_bytes(pm_buf);
+    pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
+    if (do_constexpr_expression(ips, callee_node, pm_bytes)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
