@@ -2412,9 +2412,11 @@ Interpret the given block statement and its associated scope (if any).
     /* If local variables are going to be allocated (which will be done when
        their corresponding stmk_init statement is interpreter), save the
        current allocation state so we can efficiently deallocate those
-       variables below. */
+       variables below.  Also do this for the top-level block of a statement
+       because any parameters have already been associated with the allocation
+       sequence number about to be recorded. */
     a_variable_ptr  vp = scope->nonstatic_variables;
-    if (vp != NULL) {
+    if (vp != NULL || scope_is(scope, sck_function)) {
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
     }  /* if */
@@ -2434,7 +2436,7 @@ Interpret the given block statement and its associated scope (if any).
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
     a_variable_ptr  vp = scope->nonstatic_variables;
-    do {
+    for (; vp != NULL; vp = vp->next) {
       if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
         a_byte          *var_bytes;
         get_stack_bytes(ips, vp, var_bytes);
@@ -2442,8 +2444,7 @@ Interpret the given block statement and its associated scope (if any).
       }  /* if */
       unmap_stack_bytes(ips, vp);
       unmap_ptr(&ips->map, &vp->storage_class);
-      vp = vp->next;
-    } while (vp != NULL);
+    }  /* for */
     restore_storage_stack(ips, saved_stack);
   }  /* if */
   return result;
@@ -3250,7 +3251,6 @@ accordingly.
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
-    alloc_seq_number = ips->curr_alloc_seq_number;
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
        the allocated arguments.  We cannot do the two in a single loop because
@@ -3323,6 +3323,11 @@ accordingly.
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
+    /* Associate with the parameter variables the allocation sequence number
+       that is about to be created for the top-level block (since the
+       parameters technically expire when that block expires, even though in
+       our implementation they are allocated in the caller's context). */
+    alloc_seq_number = ips->curr_alloc_seq_number+1;
     p_arg_ptr = (a_byte**)arg_ptrs;
     if (this_var != NULL) {
       map_stack_bytes(ips, this_var, *p_arg_ptr);
@@ -3414,7 +3419,6 @@ the body of the (constructor) function proper.
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
-    alloc_seq_number = ips->curr_alloc_seq_number;
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
        the allocated arguments.  We cannot do the two in a single loop because
@@ -3463,6 +3467,11 @@ the body of the (constructor) function proper.
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
+    /* Associate with the parameter variables the allocation sequence number
+       that is about to be created for the top-level block (since the
+       parameters technically expire when that block expires, even though in
+       our implementation they are allocated in the caller's context). */
+    alloc_seq_number = ips->curr_alloc_seq_number+1;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       map_stack_bytes(ips, this_var, result_storage);
