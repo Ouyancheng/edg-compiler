@@ -996,6 +996,29 @@ Return TRUE if the given type is a C++11 rvalue reference type.
   return is_reference_ptr(tp) && tp->variant.pointer.is_rvalue_reference;
 }  /* is_rvalue_reference_type */
 
+
+a_boolean is_qualified_function_type(a_type_ptr	tp)
+/*
+Return TRUE if the given type is a function type that has qualifiers,
+this_qualifiers, or ref_qualifiers.
+*/
+{
+  a_boolean	result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_function(tp)) {
+    a_routine_type_supplement_ptr rtsp;
+    rtsp = tp->variant.routine.extra_info;
+    if (rtsp->qualifiers != TQ_NONE ||
+        rtsp->this_qualifiers != TQ_NONE ||
+        rtsp->ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_qualified_function_type */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void)

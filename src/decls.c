@@ -1388,8 +1388,7 @@ diagnostics.
     a_type_ptr  rtp = skip_typerefs(dps->type);
     if (type_is_typedef(dps->type) &&
         rtp->kind == (a_type_kind)tk_routine &&
-        (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
-         rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
+        is_qualified_function_type(rtp)) {
       pos_error(ec_bad_qualified_function_type_parameter, error_pos);
     }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes

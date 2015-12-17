@@ -13530,13 +13530,13 @@ ensures this routine will issue an error on this example.
       dps->type = alloc_type((a_type_kind)tk_routine);
       copy_type(rtp, dps->type);
       rtsp = dps->type->variant.routine.extra_info;
-      if (no_cv_quals &&
-          (rtsp->qualifiers != TQ_NONE || rtsp->this_qualifiers != TQ_NONE)) {
+      if (no_cv_quals && is_qualified_function_type(dps->type)) {
         pos_error(ec_bad_qualified_function_type, &loc->source_position);
         /* Strip any qualifiers from the routine type to avoid problems later
            on. */
         rtsp->qualifiers = TQ_NONE;
         rtsp->this_qualifiers = TQ_NONE;
+        rtsp->ref_qualifiers = (a_ref_qualifier_kind)rqk_default;
       }  /* if */
     }  /* if */
   }  /* if */

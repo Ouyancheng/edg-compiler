@@ -1,5 +1,20 @@
 Version 4.11
 
+12/17/15 [EDGcpfe/16721]
+Missing substitution check for reference to qualified function type
+
+Template argument substitution failed to check for the creation of
+a reference to a qualified function type.  This could result in incorrect
+overload resolution or partial specialization selection in cases where
+SFINAE was being used to disqualify such cases.  Now fixed.
+
+  template <class T> struct A {};
+  template <class T> void f(A<T&>*);
+  int main() {
+    f<int (int) const>(0);  // previously accepted
+  }
+
+
 12/17/15 [EDGcpfe/16233]
 Microsoft compatibility: internal error on specialization in variadic class
 
