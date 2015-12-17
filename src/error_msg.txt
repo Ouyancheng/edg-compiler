@@ -2792,7 +2792,7 @@ ec_constexpr_null_ptr_to_member_data;;"attempt to dereference a null pointer-to-
 ec_comparison_of_pointers_to_void_and_function;;"comparing a pointer to void and a pointer to a function is nonstandard"
 ec_ms_metadata_init_failed;;"metadata initialization failed"
 ec_constexpr_bad_derived_class_cast;;"invalid base-to-derived cast (complete class type is %t)"
-ec_constexpr_invalid_pm_field_access;;"invalid access to %n in object of complete type %t"
+ec_constexpr_invalid_pm_access;;"invalid access to %n in object of complete type %t"
 ec_bad_gnu_auto_type;;"\"__auto_type\" not allowed here"
 ec_gnu_auto_type_with_secondary_declarator;;"\"__auto_type\" does not permit multiple declarators"
 ec_auto_type_brace_initialization_not_allowed;;"initialization with \"{...}\" is not allowed for \"__auto_type\""
@@ -2800,6 +2800,8 @@ ec_modified_auto_type;;"\"__auto_type\" must be a placeholder for the complete t
 ec_gnu_auto_type_without_initializer;;"a variable declared with \"__auto_type\" requires an initializer"
 ec_constant_must_be_positive;;"integer constant must be greater than or equal to zero"
 ec_type_must_be_integral;;"type must be an integral type"
+ec_constexpr_expression_cannot_be_interpreted;;"expression cannot be interpreted"
+ec_constexpr_statement_cannot_be_interpreted;;"statement cannot be interpreted"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

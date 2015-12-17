@@ -2177,6 +2177,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
              because it may be an indirect base class. */
           a_derivation_step_ptr  dsp = bcp->derivation->path;
           a_type_ptr             prev_type = dsp->base_class->type;
+          /* Ensure the derived class has been laid out. */
+          (void)f_value_bytes_for_type(ips, bcp->derived_class, &result);
           get_mapped_byte_count(&persistent_map, dsp->base_class, offset);
           for (dsp = dsp->next; dsp != NULL; dsp = dsp->next) {
             a_base_class_ptr  sbcp;
@@ -2370,13 +2372,13 @@ Evaluate the given dynamic initialization for the given storage.
                                       result_storage);
       break;
     case dik_expression:
+    case dik_class_result_via_ctor:
       result = do_constexpr_expression(ips, dip->variant.expression,
                                        result_storage);
       break;
     case dik_constructor:
       result = do_constexpr_ctor(ips, dip, pos, result_storage);
       break;
-    case dik_class_result_via_ctor:
     case dik_bitwise_copy:
       /* FIXME: NYI. */
       unexpected_condition();
@@ -2844,24 +2846,28 @@ successfully interpreted, FALSE otherwise.
       /* Nothing to do. */
       break;
     case stmk_return:
-      if (stmt->expr != NULL) {
-        do_constexpr_full_expression(ips, stmt->expr,
-                                     ips->curr_call_frame->result_storage,
-                                     result);
-      } else if (stmt->variant.return_dynamic_init != NULL) {
-        /* Handle return_dynamic_init case. FIXME */
-        unexpected_condition();
-      } else {
-        /* Return without a value. */
-        a_type_ptr  fn_type = ips->curr_call_frame->routine->type;
-        fn_type = skip_typerefs(fn_type);
-        if (!is_void_type(fn_type->variant.routine.return_type)) {
-          info_with_pos(ec_constexpr_missing_return_value, &stmt->position,
-                        ips);
-          result = FALSE;
+      { a_call_frame_ptr  frame = ips->curr_call_frame;
+        if (stmt->expr != NULL) {
+          do_constexpr_full_expression(ips, stmt->expr, frame->result_storage,
+                                       result);
+        } else if (stmt->variant.return_dynamic_init != NULL) {
+          /* Handle return_dynamic_init case. FIXME */
+          result = do_constexpr_dynamic_init(ips,
+                                             stmt->variant.return_dynamic_init,
+                                             &stmt->position, 
+                                             frame->result_storage);
+        } else {
+          /* Return without a value. */
+          a_type_ptr  fn_type = frame->routine->type;
+          fn_type = skip_typerefs(fn_type);
+          if (!is_void_type(fn_type->variant.routine.return_type)) {
+            info_with_pos(ec_constexpr_missing_return_value, &stmt->position,
+                          ips);
+            result = FALSE;
+          }  /* if */
         }  /* if */
-      }  /* if */
-      ips->curr_call_frame->return_active = TRUE;
+        frame->return_active = TRUE;
+      }
       break;
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
@@ -3071,10 +3077,79 @@ done_with_switch:
       result = FALSE;
       break;
     default:
-      unexpected_condition();  /* FIXME: handle errors. */
+      info_with_pos(ec_constexpr_statement_cannot_be_interpreted,
+                    &stmt->position, ips);
+      result = FALSE;
   }  /* switch */
   return result;
 }  /* do_constexpr_statement */
+
+
+static a_boolean adjust_this_address(an_interpreter_state    *ips,
+                                     a_constexpr_address     *this_addr,
+                                     a_constexpr_ptr_to_mem  *pm_value,
+                                     a_type_ptr              selector_type,
+                                     an_expr_node_ptr        expr)
+/*
+this_addr is the address of an object which is accessed (via a pointer or
+lvalue of type selector_type) through the given pointer-to-member value.
+Adjust the address if needed.  If the adjustment is invalid (because the
+complete object does not contain the accessed subobject) return FALSE and
+record a diagnostic in the interpreter state (using the position of expr).
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (pm_value->this_class_adjustment != 0) {
+    if (pm_value->subtract_adjustment) {
+      /* A derived-member access.  Check that it is valid. */
+      a_base_class_ptr  bcp = *(a_base_class_ptr*)this_addr->address;
+      a_type_ptr        derived_class;
+      a_symbol_ptr      mem_sym;
+      if (pm_value->is_ptr_to_mem_function) {
+        mem_sym = symbol_for(pm_value->variant.routine);
+      } else {
+        mem_sym = symbol_for(pm_value->variant.field);
+      }  /* if */
+      if (bcp == NULL) {
+        if (selector_type->kind == (a_type_kind)tk_pointer) {
+          derived_class =
+              skip_typerefs(selector_type->variant.pointer.type);
+        } else {
+          derived_class = selector_type;
+        }  /* if */
+      } else {
+        a_derivation_step_ptr  dsp = bcp->derivation->path;
+        a_type_ptr             ptp;
+        ptp = sym_parent_class(mem_sym);
+        derived_class = bcp->derived_class;
+        if (derived_class == ptp) {
+          derived_class = NULL;
+        } else {
+          for (; dsp->base_class != bcp; dsp = dsp->next) {
+            if (ptp == skip_typerefs(dsp->base_class->type)) {
+              /* A derived subobject contains the field. */
+              derived_class = NULL;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+      if (derived_class != NULL) {
+        /* An invalid access. */
+        result = FALSE;
+        info_with_pos_sym_type(ec_constexpr_invalid_pm_access, &expr->position,
+                               mem_sym, derived_class, ips);
+      }  /* if */
+      this_addr->address -= pm_value->this_class_adjustment;
+    } else {
+      /* A base-class member access: Type checking in the front end ensures
+         that it is valid. */
+      this_addr->address += pm_value->this_class_adjustment;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* adjust_this_address */
 
 
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
@@ -3089,10 +3164,28 @@ accordingly.
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE;
+  a_constexpr_ptr_to_mem
+                    ptr_to_mem, *pm_target = NULL;
 
   callee_node = call_node->variant.operation.operands;
   if (is_routine_node(callee_node)) {
     callee = node_routine(callee_node);
+  } else if (node_operator_is(call_node, eok_dot_pm_call) ||
+             node_operator_is(call_node, eok_points_to_pm_call)) {
+    /* A call through a pointer-to-member function.  We'll determine the
+       callee here, and adjust the "this" pointer later on. */
+    pm_target = &ptr_to_mem;
+    if (do_constexpr_expression(ips, callee_node, (a_byte*)pm_target)) {
+      callee = pm_target->variant.routine;
+      if (callee == NULL) {
+        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      result = FALSE;
+      goto done;
+    }  /* if */
   } else {
     a_constexpr_address  addr;
     if (do_constexpr_expression(ips, callee_node, (a_byte*)&addr)) {
@@ -3135,8 +3228,6 @@ accordingly.
     result = FALSE;
   } else {
     a_scope_ptr     callee_scope = scope_for_routine(callee);
-    a_storage_stack_state
-                    saved_stack;
     a_statement_ptr
                     block_stmt = callee_scope->assoc_block;
     a_call_frame    frame;
@@ -3144,6 +3235,7 @@ accordingly.
                     param, this_var;
     a_byte_count    n_args = 0;
     a_byte          *arg_ptrs, **p_arg_ptr;
+    a_byte          this_bytes[VALUE_BYTES_FOR_SCALAR];
     an_alloc_seq_number
                     alloc_seq_number;
     /* Don't attempt to interpret a non-constexpr function.  The flag
@@ -3158,7 +3250,6 @@ accordingly.
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
-    save_storage_stack(ips, saved_stack);
     alloc_seq_number = ips->curr_alloc_seq_number;
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -3182,15 +3273,17 @@ accordingly.
     arg = callee_node->next;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
-      a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result); 
-      a_byte        *arg_bytes;
-      alloc_stack_bytes(ips, n_bytes, arg_bytes);
-      *p_arg_ptr = arg_bytes;
+      *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
+      if (!result || !do_constexpr_expression(ips, arg, this_bytes)) {
         result = FALSE;
-        goto reclaim_arg_storage;
+        goto done;
+      }  /* if */
+      if (pm_target != NULL &&
+          !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
+                               pm_target, this_var->type, call_node)) {
+        result = FALSE;
+        goto done;
       }  /* if */
       arg = arg->next;
     }  /* if */
@@ -3198,12 +3291,35 @@ accordingly.
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
+      a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
-      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
-        result = FALSE;
-        goto reclaim_arg_storage;
+      if (result) {
+        if (!(tp->kind == (a_type_kind)tk_pointer &&
+              tp->variant.pointer.is_reference)) {
+          /* When a class-type argument is pass by-value via a copy constructor
+             call, the argument is left as an lvalue.  Temporarily set it back
+             to an rvalue. */
+          if (arg->is_lvalue) {
+            restore_lvalue = TRUE;
+            arg->is_lvalue = FALSE;
+          } else if (arg->is_xvalue) {
+            restore_xvalue = TRUE;
+            arg->is_xvalue = FALSE;
+          }  /* if */
+        }  /* if */
+        if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+          result = FALSE;
+        }  /* if */
+        if (restore_lvalue) {
+          arg->is_lvalue = TRUE;
+        } else if (restore_xvalue) {
+          arg->is_xvalue = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!result) {
+        goto done;
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
@@ -3235,8 +3351,6 @@ accordingly.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
-reclaim_arg_storage:
-    restore_storage_stack(ips, saved_stack);
     ips->cost += 1;
   }  /* if */
 done:
@@ -3277,8 +3391,6 @@ the body of the (constructor) function proper.
     result = FALSE;
   } else {
     a_scope_ptr       callee_scope = scope_for_routine(callee);
-    a_storage_stack_state
-                      saved_stack;
     a_statement_ptr   block_stmt = callee_scope->assoc_block;
     a_call_frame      frame;
     an_expr_node_ptr  args = dip->variant.constructor.args, arg;
@@ -3302,7 +3414,6 @@ the body of the (constructor) function proper.
       goto done;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
-    save_storage_stack(ips, saved_stack);
     alloc_seq_number = ips->curr_alloc_seq_number;
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -3320,12 +3431,35 @@ the body of the (constructor) function proper.
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
+      a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
-      if (!result || !do_constexpr_expression(ips, arg, arg_bytes)) {
-        result = FALSE;
-        goto reclaim_arg_storage;
+      if (result) {
+        if (!(tp->kind == (a_type_kind)tk_pointer &&
+              tp->variant.pointer.is_reference)) {
+          /* When a class-type argument is pass by-value via a copy constructor
+             call, the argument is left as an lvalue.  Temporarily set it back
+             to an rvalue. */
+          if (arg->is_lvalue) {
+            restore_lvalue = TRUE;
+            arg->is_lvalue = FALSE;
+          } else if (arg->is_xvalue) {
+            restore_xvalue = TRUE;
+            arg->is_xvalue = FALSE;
+          }  /* if */
+        }  /* if */
+        if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+          result = FALSE;
+        }  /* if */
+        if (restore_lvalue) {
+          arg->is_lvalue = TRUE;
+        } else if (restore_xvalue) {
+          arg->is_xvalue = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!result) {
+        goto done;
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
@@ -3382,8 +3516,6 @@ the body of the (constructor) function proper.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
-reclaim_arg_storage:
-    restore_storage_stack(ips, saved_stack);
     ips->cost += 1;
   }  /* if */
 done:
@@ -5550,48 +5682,8 @@ type.  This includes checking the value of ovfl set by the operation.
                      path entry. */
                   unexpected_condition();
                 } else {
-                  if (pm_value->this_class_adjustment != 0) {
-                    if (pm_value->subtract_adjustment) {
-                      /* A derived-member access.  Check that it is valid. */
-                      a_base_class_ptr  bcp = 
-                                     *(a_base_class_ptr*)result_addr.address;
-                      a_type_ptr        derived_class;
-                      if (bcp == NULL) {
-                        if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                          derived_class =
-                              skip_typerefs(opnd1_type->variant.pointer.type);
-                        } else {
-                          derived_class = opnd1_type;
-                        }  /* if */
-                      } else {
-                        a_derivation_step_ptr  dsp = bcp->derivation->path;
-                        a_type_ptr             ptp = parent_class_of(field);
-                        derived_class = bcp->derived_class;
-                        if (derived_class == ptp) {
-                          derived_class = NULL;
-                        } else {
-                          for (; dsp->base_class != bcp; dsp = dsp->next) {
-                            if (ptp == skip_typerefs(dsp->base_class->type)) {
-                              /* A derived subobject contains the field. */
-                              derived_class = NULL;
-                              break;
-                            }  /* if */
-                          }  /* for */
-                        }  /* if */
-                      }  /* if */
-                      if (derived_class != NULL) {
-                        /* An invalid access. */
-                        result = FALSE;
-                        info_with_pos_sym_type(
-                                         ec_constexpr_invalid_pm_field_access,
-                                         &expr->position, symbol_for(field),
-                                         derived_class, ips);
-                      }  /* if */
-                      result_addr.address -= pm_value->this_class_adjustment;
-                    } else {
-                      result_addr.address += pm_value->this_class_adjustment;
-                    }  /* if */
-                  }  /* if */
+                  adjust_this_address(ips, &result_addr, pm_value, opnd1_type,
+                                      expr);
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   result_addr.flags &= ~CA_ARRAY_ELEMENT;
@@ -5630,9 +5722,12 @@ type.  This includes checking the value of ovfl set by the operation.
               break;
             case eok_call:
               /* Calls are handled separately.  We should not get here. */
+              unexpected_condition();
               /*FALLTHROUGH*/
             default:
-              unexpected_condition();
+              result = FALSE;
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
           }  /* switch */
         }  /* if */
       }
@@ -5741,7 +5836,9 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     default:
-      unexpected_condition();  /* FIXME: handle errors. */
+      result = FALSE;
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &expr->position, ips);
   }  /* switch */
 done:
   return result;
@@ -5794,6 +5891,7 @@ represents an address of interpreter storage).
 {
   a_boolean   result = TRUE;
 
+  clear_constant(con, (a_constant_repr_kind)ck_error);
   con->type = type;
   con->is_result_of_constexpr_call = TRUE;
   type = skip_typerefs(type);
