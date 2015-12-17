@@ -1446,6 +1446,8 @@ Macro returning the larger of two values.
 
 /*
 Macro giving the number of bytes required for a scalar value.
+FIXME: This is used to create local buffers holding common value kinds, but
+       they're not guaranteed to be aligned!
 */
 #define VALUE_BYTES_FOR_SCALAR                  \
   max(max(max(sizeof(an_integer_value),         \
