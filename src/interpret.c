@@ -2440,6 +2440,26 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_byte                *result_storage);
 
 
+static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
+                                       a_type_ptr            tp,
+                                       a_byte                *src_bytes,
+                                       a_byte                *dst_bytes)
+/*
+Copy an object of the given type from one interpreter storage location
+(src_bytes) to another (dst_bytes).
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+
+  if (result) {
+    (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
+    // FIXME: Adjust addresses in object?
+  }  /* if */
+  return result;
+}  /* constexpr_copy_object */
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -2466,8 +2486,14 @@ Evaluate the given dynamic initialization for the given storage.
       result = do_constexpr_ctor(ips, dip, pos, result_storage);
       break;
     case dik_bitwise_copy:
-      /* FIXME: NYI. */
-      unexpected_condition();
+      { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
+        if (source_expr != NULL) {
+          result = do_constexpr_expression(ips, source_expr, result_storage);
+        } else {
+          /* An implicit source: The caller should catch those cases. */
+          unexpected_condition();
+        }  /* if */
+      }
       break;
     case dik_zero:
     case dik_none:
@@ -3583,8 +3609,10 @@ the body of the (constructor) function proper.
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count        offset;
       a_dynamic_init_ptr  sub_dip;
+      a_type_ptr          tp;
       if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
         a_field_ptr  fp = ctor_init->variant.field;
+        tp = skip_typerefs(fp->type);
         get_mapped_byte_count(&persistent_map, fp, offset);
         if (ctor_init->use_field_initializer) {
           sub_dip = fp->initializer;
@@ -3593,14 +3621,35 @@ the body of the (constructor) function proper.
         }  /* if */
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
+        tp = bcp->type;
         get_mapped_byte_count(&persistent_map, bcp, offset);
         /* Record the derivation step. */
         record_subobject_derivation(result_storage+offset, bcp);
         sub_dip = ctor_init->initializer;
       }  /* if */
-      if (!do_constexpr_dynamic_init(ips, sub_dip,
-                                     &callee->source_corresp.decl_position,
-                                     result_storage+offset)) {
+      if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+          sub_dip->variant.bitwise_copy.source == NULL) {
+        /* An implicit member copy in a copy constructor.  arg_ptrs[0] points
+           to the first argument of the copy constructor, which is a reference
+           to the copied object. */
+        a_constexpr_address  *src_addr;
+        src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
+        if (is_runtime_data_address(src_addr)) {
+          /* Cannot modify the value of an object whose lifetime began
+             outside the current evaluation. */
+          info_with_pos(ec_constexpr_access_to_runtime_storage,
+                        &args->position, ips);
+          release_local_constant(&src_addr->variant.addr_con);
+          result = FALSE;
+          break;
+        } else {
+          constexpr_copy_object(ips, tp, src_addr->address+offset,
+                                result_storage+offset);
+        }  /* if */
+      } else if (!do_constexpr_dynamic_init(
+                                        ips, sub_dip,
+                                        &callee->source_corresp.decl_position,
+                                        result_storage+offset)) {
         result = FALSE;
         break;
       }  /* if */
