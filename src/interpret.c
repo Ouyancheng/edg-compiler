@@ -1592,12 +1592,16 @@ operands can be allocated even more efficiently on the call stack.  To manage
 this, we create a union of the value types allocated on the stack, and macros
 to declare and access a corresponding array of bytes.
 */
-typedef union {
+typedef union a_compact_value_sizing_model {
   an_integer_value	 iv;
+	/*lint -esym(754, pointer_alignment_test::iv)*/
   an_internal_float_value
 			 ifv;
+	/*lint -esym(754, pointer_alignment_test::ifv)*/
   a_constexpr_address	 ca;
+	/*lint -esym(754, pointer_alignment_test::ca)*/
   a_constexpr_ptr_to_mem cptm;
+	/*lint -esym(754, pointer_alignment_test::cptm)*/
 } a_compact_value_sizing_model;
 
 #define is_compact_value_size(n)  (n <= sizeof(a_compact_value_sizing_model))
@@ -1624,6 +1628,7 @@ typedef union {
 typedef union a_compact_value {
   a_compact_value_sizing_model
 		alignment_model;
+	/*lint -esym(754, a_compact_value::alignment_model)*/
   a_byte	buf[sizeof(a_compact_value_sizing_model)];
 } a_compact_value;
 
@@ -1685,7 +1690,9 @@ redo:
           result *= (a_byte_count)n_elems;
         }  /* if */
       } else {
-        /* FIXME: Diagnostic. */
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos(ec_constexpr_vla, pos, ips);
         *p_result = FALSE;
         result = 0;
       }  /* if */
@@ -1710,7 +1717,7 @@ redo:
       result = sizeof(a_constexpr_ptr_to_mem);
       break;
     case tk_nullptr:
-      result = 1;  /* FIXME? */
+      result = 1;
       break;
     case tk_error:
 #if FIXED_POINT_ALLOWED
@@ -1724,9 +1731,12 @@ redo:
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* These types are not supported by the interpreter. */
-      /* FIXME: Diagnostic. */
-      *p_result = FALSE;
-      result = 0;
+      { a_source_position  *pos = &tp->source_corresp.decl_position;
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        *p_result = FALSE;
+        result = 0;
+      }
       break;
     case tk_void:
     case tk_routine:
@@ -1846,8 +1856,11 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   }  /* for */
   total_size = prefix_size+max_field_size;
   if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-    /* FIXME: error & saturate. */
-    unexpected_condition();
+    a_source_position  *pos = &tp->source_corresp.decl_position;
+    if (pos->seq == 0) pos = &ips->position;
+    info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+    *p_result = TRUE;
+    total_size = MAX_CONSTEXPR_TYPE_SIZE;
   }  /* if */
   map_byte_count(&persistent_map, tp, total_size);
   return total_size;
@@ -2907,7 +2920,7 @@ successfully interpreted, FALSE otherwise.
           do_constexpr_full_expression(ips, stmt->expr, frame->result_storage,
                                        result);
         } else if (stmt->variant.return_dynamic_init != NULL) {
-          /* Handle return_dynamic_init case. FIXME */
+          /* Handle return_dynamic_init case. */
           result = do_constexpr_dynamic_init(ips,
                                              stmt->variant.return_dynamic_init,
                                              &stmt->position, 
