@@ -1734,7 +1734,7 @@ redo:
       /* These types are not supported by the interpreter. */
       { a_source_position  *pos = &tp->source_corresp.decl_position;
         if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
         *p_result = FALSE;
         result = 0;
       }
