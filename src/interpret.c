@@ -1679,6 +1679,9 @@ type kinds.  If the number of bytes is too large, interpretation fails, and
 
 redo:
   switch (tp->kind) {
+    case tk_void:
+      result = 0;
+      break;
     case tk_integer:
       result = sizeof(an_integer_value);
       break;
@@ -1755,7 +1758,6 @@ redo:
         result = 0;
       }
       break;
-    case tk_void:
     case tk_routine:
     case tk_template_param:
     case tk_unknown:
@@ -3579,17 +3581,24 @@ the body of the (constructor) function proper.
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-      a_byte_count  offset;
+      a_byte_count        offset;
+      a_dynamic_init_ptr  dip;
       if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
         a_field_ptr  fp = ctor_init->variant.field;
         get_mapped_byte_count(&persistent_map, fp, offset);
+        if (ctor_init->use_field_initializer) {
+          dip = fp->initializer;
+        } else {
+          dip = ctor_init->initializer;
+        }  /* if */
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         get_mapped_byte_count(&persistent_map, bcp, offset);
         /* Record the derivation step. */
         record_subobject_derivation(result_storage+offset, bcp);
+        dip = ctor_init->initializer;
       }  /* if */
-      if (!do_constexpr_dynamic_init(ips, ctor_init->initializer,
+      if (!do_constexpr_dynamic_init(ips, dip,
                                      &callee->source_corresp.decl_position,
                                      result_storage+offset)) {
         result = FALSE;
@@ -6110,6 +6119,9 @@ diagnostic in *ips.
           }  /* if */
         }  /* if */
       }
+      break;
+    case tk_void:
+      set_constant_kind(con, (a_constant_repr_kind)ck_void);
       break;
     default:
       unexpected_condition();

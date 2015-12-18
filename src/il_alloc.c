@@ -760,6 +760,7 @@ fields to default values.
   cp->kind = kind;
   switch (kind) {
     case ck_error:
+    case ck_void:
       /* No variant fields to set. */
       break;
 #if UPC_EXTENSIONS_ALLOWED

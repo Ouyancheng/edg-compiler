@@ -4900,6 +4900,7 @@ IL prefix is accessed).
 #if GNU_EXTENSIONS_ALLOWED
       case ck_label_difference:
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case ck_void:
         /* No handling required. */
         break;
       case ck_init_repeat:

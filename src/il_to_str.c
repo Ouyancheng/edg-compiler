@@ -5843,6 +5843,9 @@ do_sizeof_cases:
         octl->output_str("] = ", octl);
       } /* if */
       break;
+    case ck_void:
+      octl->output_str("((void)0)", octl);
+      break;
     default:
 #if DEBUG
       if (octl->debug_output) {

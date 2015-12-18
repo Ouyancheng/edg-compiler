@@ -3063,6 +3063,9 @@ enum a_constant_repr_kind_tag {
   ck_upc_threads,       /* A multiple of the UPC pseudo-constant THREADS. */
   ck_upc_mythread,      /* The UPC pseudo-constant MYTHREAD. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  ck_void,		/* In C++14, "void" is a literal type, and folding
+			   can produces "values" of that type.  This constant
+			   kind represents such cases. */
   ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -4147,7 +4150,7 @@ typedef struct a_constant {
                 kind;
                         /* The kind of representation for the constant. */
   union {
-    /* When kind == ck_error, no variant fields. */
+    /* When kind == ck_error or ck_void, no variant fields. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED

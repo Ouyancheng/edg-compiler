@@ -1359,6 +1359,9 @@ display_constant_value:
     case ck_template_param:
       disp_template_param_constant(ptr);
       break;
+    case ck_void:
+      (void)printf("ck_void\n");
+      break;
     default:
       printf("**BAD CONSTANT KIND**\n");
   }  /* switch */

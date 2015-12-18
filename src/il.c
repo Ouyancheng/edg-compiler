@@ -2224,6 +2224,7 @@ Dump a string identifying a constant-representation kind, for debug purposes.
     case ck_upc_threads:      s = "ck_upc_threads"; 	 break;
     case ck_upc_mythread:     s = "ck_upc_mythread";	 break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+    case ck_void:             s = "ck_void";		 break;
     default:                  s = "**BAD CONSTANT KIND";
   }  /* switch */
   fputs(s, f_debug);
@@ -6829,6 +6830,7 @@ definition of the CC flags in il.h for more information.
 #if UPC_EXTENSIONS_ALLOWED
       case ck_upc_mythread:
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      case ck_void:
         /* No further field to check. */
         eq = TRUE;
         break;
@@ -7328,6 +7330,7 @@ at the file scope (it would contain a pointer down into a function scope).
     case ck_upc_threads:
     case ck_upc_mythread:
 #endif /* UPC_EXTENSIONS_ALLOWED */
+    case ck_void:
       /* No references. */
       break;
     case ck_string:

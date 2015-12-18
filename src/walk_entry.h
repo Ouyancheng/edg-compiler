@@ -745,6 +745,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if C99_IL_EXTENSIONS_SUPPORTED
           case ck_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          case ck_void:
             /* No pointers. */
             break;
           case ck_string:
