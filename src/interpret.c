@@ -3643,8 +3643,11 @@ the body of the (constructor) function proper.
           result = FALSE;
           break;
         } else {
-          constexpr_copy_object(ips, tp, src_addr->address+offset,
-                                result_storage+offset);
+           if (constexpr_copy_object(ips, tp, src_addr->address+offset,
+                                     result_storage+offset)) {
+             result = FALSE;
+             break;
+           }  /* if */
         }  /* if */
       } else if (!do_constexpr_dynamic_init(
                                         ips, sub_dip,
