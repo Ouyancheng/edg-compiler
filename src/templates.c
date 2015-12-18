@@ -9652,6 +9652,13 @@ points to the template parameter list.
        handle for deduction purposes. */
     templ_type = templ_type->variant.pointer.type;
   }  /* if */
+  /* If the top level call passed in handles, pass the inexact deduction
+     flag down to the next level. */
+  if (cli_or_cx_enabled && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
+      is_handle_type(templ_type) && is_handle_type(type)) {
+    new_flags = MTT_ALLOW_INEXACT_DEDUCTION;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the types are the same, don't check further.  This is more than
      an optimization because attempting to do more complex comparisons
      can be problematic in certain contexts (specifically this_class
@@ -9660,13 +9667,6 @@ points to the template parameter list.
     match = TRUE;
     goto done;
   }  /* if */
-  /* If the top level call passed in handles, pass the inexact deduction
-     flag down to the next level. */
-  if (cli_or_cx_enabled && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
-      is_handle_type(templ_type) && is_handle_type(type)) {
-    new_flags = MTT_ALLOW_INEXACT_DEDUCTION;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_immediate_class_type(templ_type)) {
     /* If the template type is a proxy class for a template parameter,
        substitute the underlying template parameter for the deduction
