@@ -1594,14 +1594,14 @@ to declare and access a corresponding array of bytes.
 */
 typedef union a_compact_value_sizing_model {
   an_integer_value	 iv;
-	/*lint -esym(754, pointer_alignment_test::iv)*/
+	/*lint -esym(754, a_compact_value_sizing_model::iv)*/
   an_internal_float_value
 			 ifv;
-	/*lint -esym(754, pointer_alignment_test::ifv)*/
+	/*lint -esym(754, a_compact_value_sizing_model::ifv)*/
   a_constexpr_address	 ca;
-	/*lint -esym(754, pointer_alignment_test::ca)*/
+	/*lint -esym(754, a_compact_value_sizing_model::ca)*/
   a_constexpr_ptr_to_mem cptm;
-	/*lint -esym(754, pointer_alignment_test::cptm)*/
+	/*lint -esym(754, a_compact_value_sizing_model::cptm)*/
 } a_compact_value_sizing_model;
 
 #define is_compact_value_size(n)  (n <= sizeof(a_compact_value_sizing_model))
@@ -1680,7 +1680,8 @@ redo:
         result = value_bytes_for_type(ips, etp, p_result);
         if (!*p_result) {
           /* Interpretation failure. */
-        } else if (MAX_CONSTEXPR_TYPE_SIZE/result < n_elems) {
+        } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
+                   n_elems > MAX_ARRAY_LENGTH) {
           /* Too many elements. */
           a_source_position  *pos = &tp->source_corresp.decl_position;
           if (pos->seq == 0) pos = &ips->position;
@@ -4037,8 +4038,9 @@ type.  This includes checking the value of ovfl set by the operation.
                     result_addr->variant.base_address = result_addr->address;
                   }  /* if */
                 } else {
-                  result = FALSE;
-                  /* FIXME: record diagnostic. */
+                  /* Interpretation would have failed when the array size
+                     was determined. */
+                  unexpected_condition();
                 }  /* if */
               }
               break;
@@ -4062,15 +4064,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 check_int_range((an_integer_value *)result_storage, tp, result,
                                 ovfl, &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                err = FALSE;
                 fp_negate(opnd1_type->variant.float_kind,
                           fp_value(opnd1_value), fp_value(result_storage),
                           &err, &depends_on_fp_mode);
                 if (err) {
-                  result = FALSE;
-                  /* FIXME: record a diagnostic. */
+                  /* fp_negate should never fail. */
+                  unexpected_condition();
                 }  /* if */
               } else {
-                unexpected_condition();  /* FIXME: NYI, other source types. */
+                unexpected_condition();
               }  /* if */
               break;
             case eok_unary_plus:
@@ -4084,8 +4087,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                 ovfl, &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_float) {
                 *fp_value(result_storage) = *fp_value(opnd1_value);
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address *)opnd1_value;
               } else {
-                unexpected_condition();  /* FIXME: NYI, other source types. */
+                unexpected_condition();
               }  /* if */
               break;
             case eok_complement:
