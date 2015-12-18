@@ -2806,6 +2806,9 @@ ec_constexpr_interpreter_address;;"invalid use of address into interpreter stora
 ec_constexpr_invalid_constant_kind;;"invalid constant kind for constant-expression"
 ec_constexpr_type_too_large;;"type %t too large for constant-expression evaluation"
 ec_constexpr_type_invalid;;"invalid type %t for constant-expression evaluation"
+ec_constexpr_invalid_type_conversion;;"conversion from %t1 to %t2 is invalid in constant-expression evaluation"
+ec_constexpr_fp_conversion_failed;;"floating-point conversion failed"
+ec_constexpr_invalid_pointer;;"pointer value invalid"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

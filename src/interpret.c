@@ -1454,12 +1454,28 @@ static void info_with_pos_type(an_error_code         err_code,
 /*
 Record the given error code at the given position as a diagnostic annotation
 for interpretation failure.  Also record annotations describing the call
-stack.
+stack.  Use the given type to replace fill-ins.
 */
 {
   more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
   info_call_stack(ips);
 }  /* info_with_pos_type */
+
+
+static void info_with_pos_type2(an_error_code         err_code,
+                                a_source_position     *pos,
+                                a_type_ptr            tp1,
+                                a_type_ptr            tp2,
+                                an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.  Use the given types to replace fill-ins.
+*/
+{
+  more_info_type2_diagnostic(err_code, pos, tp1, tp2, &ips->diag_list);
+  info_call_stack(ips);
+}  /* info_with_pos_type2 */
 
 
 static void info_with_pos_num(an_error_code         err_code,
@@ -3859,22 +3875,28 @@ type.  This includes checking the value of ovfl set by the operation.
                                  fp_value(result_storage),
                                  tp->variant.float_kind,
                                  &err, &depends_of_fp_mode);
-                  if (err) result = FALSE;
+                  if (err) {
+                    info_with_pos(ec_constexpr_fp_conversion_failed,
+                                  &expr->position, ips);
+                    result = FALSE;
+                  }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_void) {
                   release_address_structures(opnd1, opnd1_type, opnd1_value);
                 } else {
-                  /* FIXME: Diagnostic. */
+                  info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                      &expr->position, opnd1_type, tp, ips);
                   result = FALSE;
                 }  /* if */
               } else {
-                unexpected_condition();  /* FIXME: implement conversions. */
+                unexpected_condition();  /* FIXME NYI: actual conversions. */
               }  /* if */
               break;
             case eok_lvalue_cast:
             case eok_ref_cast:
             case eok_lvalue_adjust:
               if (tp != opnd1_type) {
-                /* FIXME: Diagnostic. */
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
                 result = FALSE;
               } else {
                 set_result_val_from_operand_address(opnd1_value);
@@ -4128,7 +4150,8 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(opnd1_value)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
                 result = FALSE;
               } else {
                 /* Return a copy of the value stored at the operand address. */
@@ -4158,7 +4181,7 @@ type.  This includes checking the value of ovfl set by the operation.
                          fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
                   if (err) {
                     result = FALSE;
-                    /* FIXME: record a diagnostic. */
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
@@ -4167,7 +4190,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (!is_array_element(ptr) || cannot_dereference(ptr)) {
                     /* Not a pointer to an array element in interpreter
                        storage. */
-                    /* FIXME: record a diagnostic. */
+                    info_with_pos(ec_constexpr_invalid_pointer,
+                                  &expr->position, ips);
                     result = FALSE;
                   } else {
                     a_type_ptr    elem_type;
@@ -4193,7 +4217,8 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(opnd1_value)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
                 result = FALSE;
               } else {
                 /* Return a copy of the value stored at the operand address. */
@@ -4219,7 +4244,7 @@ type.  This includes checking the value of ovfl set by the operation.
                               &depends_on_fp_mode);
                   if (err) {
                     result = FALSE;
-                    /* FIXME: record a diagnostic. */
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
@@ -4228,7 +4253,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (!is_array_element(ptr)) {
                     /* Not a pointer to an array element in interpreter
                        storage. */
-                    /* FIXME: record a diagnostic. */
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                     result = FALSE;
                   } else {
                     a_type_ptr    elem_type;
@@ -4239,8 +4264,9 @@ type.  This includes checking the value of ovfl set by the operation.
                     elem_size = value_bytes_for_type(ips, elem_type, &result);
                     base_address = get_base_address(ptr);
                     if (ptr->address == base_address) {
-                      /* The pointer can point ahead of the array. */
-                      /* FIXME: record a diagnostic. */
+                      /* The pointer cannot point ahead of the array. */
+                      info_with_pos(ec_constexpr_invalid_pointer,
+                                    &expr->position, ips);
                       result = FALSE;
                     } else {
                       if (ptr->address == base_address+ptr->length*elem_size) {
