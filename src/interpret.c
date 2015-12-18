@@ -2454,7 +2454,7 @@ Copy an object of the given type from one interpreter storage location
 
   if (result) {
     (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
-    // FIXME: Adjust addresses in object?
+    /* FIXME: Adjust addresses in object? */
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
