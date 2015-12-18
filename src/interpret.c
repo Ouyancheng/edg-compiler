@@ -3582,23 +3582,23 @@ the body of the (constructor) function proper.
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count        offset;
-      a_dynamic_init_ptr  dip;
+      a_dynamic_init_ptr  sub_dip;
       if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
         a_field_ptr  fp = ctor_init->variant.field;
         get_mapped_byte_count(&persistent_map, fp, offset);
         if (ctor_init->use_field_initializer) {
-          dip = fp->initializer;
+          sub_dip = fp->initializer;
         } else {
-          dip = ctor_init->initializer;
+          sub_dip = ctor_init->initializer;
         }  /* if */
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         get_mapped_byte_count(&persistent_map, bcp, offset);
         /* Record the derivation step. */
         record_subobject_derivation(result_storage+offset, bcp);
-        dip = ctor_init->initializer;
+        sub_dip = ctor_init->initializer;
       }  /* if */
-      if (!do_constexpr_dynamic_init(ips, dip,
+      if (!do_constexpr_dynamic_init(ips, sub_dip,
                                      &callee->source_corresp.decl_position,
                                      result_storage+offset)) {
         result = FALSE;
