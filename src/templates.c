@@ -9640,14 +9640,6 @@ points to the template parameter list.
     fprintf(f_debug, "\n");   
   }  /* if */
 #endif /* DEBUG */
-  /* If the types are the same, don't check further.  This is more than
-     an optimization because attempting to do more complex comparisons
-     can be problematic in certain contexts (specifically this_class
-     comparisons for in-class specializations). */
-  if (type == templ_type) {
-    match = TRUE;
-    goto done;
-  }  /* if */
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown this class
      type checks. */
@@ -9659,6 +9651,14 @@ points to the template parameter list.
     /* If this is a generic definition argument that is a handle, drop the
        handle for deduction purposes. */
     templ_type = templ_type->variant.pointer.type;
+  }  /* if */
+  /* If the types are the same, don't check further.  This is more than
+     an optimization because attempting to do more complex comparisons
+     can be problematic in certain contexts (specifically this_class
+     comparisons for in-class specializations). */
+  if (type == templ_type) {
+    match = TRUE;
+    goto done;
   }  /* if */
   /* If the top level call passed in handles, pass the inexact deduction
      flag down to the next level. */
