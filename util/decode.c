@@ -2548,19 +2548,32 @@ is TRUE, suppress any function-local information.
        "n" of function "f". */
     for (p2 = p+1; p2+6 < p+nchars; p2++) {
       if (get_char(p2,   dctl) == '_' &&
-          get_char(p2+1, dctl) == '_' &&
-          get_char(p2+2, dctl) == 'L') {
-        has_function_local_info = TRUE;
-        nchars2 = nchars;
-        /* Set the length for the scan below to stop just before "__L". */
-        nchars = p2 - p;
-        p2 += 3;  /* Points to block number after "__L". */
-        nchars2 -= (p2 - p);
-        /* Output the block number and function name. */
-        if (base_name_only) dctl->suppress_id_output++;
-        p2 = demangle_function_local_indication(p2, nchars2, &instance, dctl);
-        if (base_name_only) dctl->suppress_id_output--;
-        break;
+          get_char(p2+1, dctl) == '_') {
+        if (get_char(p2+2, dctl) == 't' &&
+            get_char(p2+3, dctl) == 'm' &&
+            get_char(p2+4, dctl) == '_' &&
+            get_char(p2+5, dctl) == '_') {
+          /* Beware of a local type in a template argument list; don't
+             decode the local information yet, it will be decoded when the
+             local type is processed. */
+          unsigned long skip;
+          a_const_char  *dummy;
+          p2 = get_length(p2+6, &skip, &dummy, dctl);
+          p2 += skip;
+        } else if (get_char(p2+2, dctl) == 'L') {
+          has_function_local_info = TRUE;
+          nchars2 = nchars;
+          /* Set the length for the scan below to stop just before "__L". */
+          nchars = p2 - p;
+          p2 += 3;  /* Points to block number after "__L". */
+          nchars2 -= (p2 - p);
+          /* Output the block number and function name. */
+          if (base_name_only) dctl->suppress_id_output++;
+          p2 = demangle_function_local_indication(p2, nchars2, &instance,
+                                                  dctl);
+          if (base_name_only) dctl->suppress_id_output--;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

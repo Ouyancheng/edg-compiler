@@ -1,5 +1,25 @@
 Version 4.11
 
+12/20/15 [EDGcpfe/16731]
+Demangling of local types in template argument lists
+
+In the Cfront ABI, a local type that had appeared in a template argument list
+had caused demangling to fail.  For this example (with --c++11):
+
+  template <typename T> struct A {
+    A() { while(0); }
+  };
+  void f() {
+    struct LocalType {};
+    A<LocalType> a;
+  }
+
+the mangled name __ct__32A__tm__23_20LocalType__L1__f__FvFv had failed to
+be decoded and now decodes to:
+
+A<T1>::A<f()::LocalType (instance 1)>() [with T1=f()::LocalType (instance 1)]
+
+
 12/1/15  [EDGcpfe/16502]
 --ms_extensions and --ms_compatibility command-line options
 
