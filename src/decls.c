@@ -517,15 +517,15 @@ locally based on the emulation mode and attribute.
   if (*p_attributes != NULL) {
     if (sev == es_default) {
       sev = es_discretionary_error;
-      if (gnu_mode) {
-        if (clang_mode && is_std_attribute(*p_attributes)) {
-          /* clang issues an error on standard attributes in incorrect
-             locations and is silent otherwise. */
-          sev = es_none;
+      if (clang_mode) {
+        if (is_std_attribute(*p_attributes)) {
+          /* Leave sev as es_discretionary_error. */
         } else {
-          /* GNU issues a warning. */
-          sev = es_warning;
+          sev = es_none;
         }  /* if */
+      } else if (gnu_mode) {
+        /* GNU issues a warning. */
+        sev = es_warning;
       }  /* if */
     }  /* if */
     if (sev != es_none) {
