@@ -518,9 +518,9 @@ locally based on the emulation mode and attribute.
     if (sev == es_default) {
       sev = es_discretionary_error;
       if (clang_mode) {
-        if (is_std_attribute(*p_attributes)) {
-          /* Leave sev as es_discretionary_error. */
-        } else {
+        /* clang issues an error on standard attributes in incorrect locations
+           and is silent otherwise. */
+        if (!is_std_attribute(*p_attributes)) {
           sev = es_none;
         }  /* if */
       } else if (gnu_mode) {
