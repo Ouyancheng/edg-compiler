@@ -16950,11 +16950,9 @@ instantiation dependent, set *p_template_case to TRUE.
              is_template_dependent_type(alignof_type)) {
     template_case = TRUE;
   } else {
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && expr != NULL && is_operation_node(expr)) {
-      /* Field selection operations need special treatment in GNU modes: The
-         alignment of the field (including field-specific attributes) is
-         produced. */
+    if (expr != NULL && is_operation_node(expr)) {
+      /* Field selection operations need special treatment: The alignment of
+         the field (including field-specific attributes) is produced. */
       an_expr_operator_kind  opkind = expr->variant.operation.kind;
       if (opkind == (an_expr_operator_kind)eok_dot_field ||
           opkind == (an_expr_operator_kind)eok_points_to_field) {
@@ -16963,7 +16961,6 @@ instantiation dependent, set *p_template_case to TRUE.
                                   node_field(field_op), /*for_alignof=*/TRUE);
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!(gnu_mode && gnu_version < 30100) &&
         expr != NULL && expr->is_lvalue && is_variable_node(expr)) {
       /* If the expression is an lvalue for a variable with an explicit

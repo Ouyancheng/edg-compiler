@@ -740,7 +740,6 @@ only).
   a_boolean         ignore_packing = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-  check_assertion(!for_alignof || gnu_mode);
   if (for_alignof && gnu_version < 30400) {
     /* In recent GNU C and C++ compilers, __alignof__ applied to a field
        selection operation (. or ->) results in the "field alignment" rather
