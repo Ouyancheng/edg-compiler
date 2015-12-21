@@ -1,5 +1,26 @@
 Version 4.11
 
+12/21/15 [EDGcpfe/16733]
+Remove unneeded guard variables for specialized static data members
+
+In cases where the initialization of a static data member could happen in
+multiple translation units and TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is
+TRUE, lowering introduces a guard variable to prevent multiple initializations.
+In cases where a static data member is explicitly specialized, a guard variable
+had been emitted, but that variable was unused.  The guard variable is now
+suppressed in such cases.  For example:
+
+  struct X {
+    X();
+  };
+  template <typename T> struct A {
+    static X sdm;
+  };
+  template <> X A<int>::sdm = X();
+      // _ZGVN1AIiE3sdmE (IA-64 ABI) or __SDG__sdm__S__10A__tm__2_i (Cfront)
+      // guard variable is suppressed.
+
+
 12/17/15 [EDGcpfe/16721]
 Missing substitution check for reference to qualified function type
 

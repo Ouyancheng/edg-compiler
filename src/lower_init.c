@@ -11784,46 +11784,33 @@ causes some problems, because the initialization is placed in a file-scope
 initialization routine.  There is no way for the linker to remove just
 that code from an initialization routine, so guard code is used instead
 to ensure that the initialization is done only once.  If there is a
-specialization of the initialization of the static data member, that takes
-precedence over the other initializations.  It does so by initializing the
-guard variable to non-zero, thus locking out the other initializations.
-This routine returns TRUE if guard code was emitted.
+specialization of the initialization of the static data member no guard
+variable is necessary because the specialization takes precedence over the
+other initializations.  This routine returns TRUE if guard code was emitted.
 */
 {
   a_variable_ptr         test_var;
 #if !IA64_ABI
   an_expr_node_ptr       test_var_node, compare_node;
 #endif /* !IA64_ABI */
-  a_constant_ptr         minus_one_constant = local_constant();
   a_boolean              guard_code_emitted = FALSE;
 
   *guard_var = NULL;
-  /* If the variable has internal linkage (e.g., in -tlocal mode), do not
-     put out guard code at all. */
-  if (variable->source_corresp.name_linkage ==
-                        (a_name_linkage_kind)nlk_internal) goto end_of_routine;
-#if !IA64_ABI
-  /* Make the guard variable at the file scope. */
-  test_var = make_global_var_with_prefixed_name("__SDG__",
-                                               (an_integer_kind)ik_int,
-                                               &variable->source_corresp,
-                                               (an_il_entry_kind)iek_variable);
-  if (variable->is_specialized) {
-    /* This variable is a specialization of a template entity, so its
-       initialization should take precedence over any initialization code
-       for other instances.  Initialize the guard variable to -1 to lock out
-       all other initialization code.  No test of the guard variable is
-       needed here. */
-    test_var->init_kind = (an_init_kind)initk_static;
-    set_integer_constant(minus_one_constant, (a_host_large_integer)-1,
-                         (an_integer_kind)ik_int);
-    test_var->initializer.constant = alloc_unshared_constant_in_region(
-                                                      minus_one_constant,
-                                                      /*in_file_region=*/TRUE);
-  } else {
+  /* If the variable has internal linkage (e.g., in -tlocal mode), or the
+     variable is an explicit specialization do not put out guard code at
+     all.  */
+  if (variable->source_corresp.name_linkage !=
+                        (a_name_linkage_kind)nlk_internal &&
+      !variable->is_specialized) {
     /* This is not a specialization, so the guard variable must be tested
        here. */
     guard_code_emitted = TRUE;
+#if !IA64_ABI
+    /* Make the guard variable at the file scope. */
+    test_var = make_global_var_with_prefixed_name("__SDG__",
+                                               (an_integer_kind)ik_int,
+                                               &variable->source_corresp,
+                                               (an_il_entry_kind)iek_variable);
     /* Make "test_var == 0". */
     test_var_node = var_rvalue_expr(test_var);
     test_var_node->next = node_for_integer_constant(0L,
@@ -11840,41 +11827,20 @@ This routine returns TRUE if guard code was emitted.
                                           node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                           insert_location2);
-  }  /* if */
 #else /* IA64_ABI */
-  if (variable->is_specialized) {
-    /* This variable is a specialization of a template entity, so its
-       initialization should take precedence over any initialization code
-       for other instances.  Initialize the guard variable to -1 to lock out
-       all other initialization code.  No test of the guard variable is
-       needed here. */
-    test_var = make_global_var_with_prefixed_name("_ZGV",
-                                               (an_integer_kind)ik_int,
-                                               &variable->source_corresp,
-                                               (an_il_entry_kind)iek_variable);
-    test_var->init_kind = (an_init_kind)initk_static;
-    set_integer_constant(minus_one_constant, (a_host_large_integer)-1,
-                         (an_integer_kind)ik_int);
-    test_var->initializer.constant = alloc_unshared_constant_in_region(
-                                                      minus_one_constant,
-                                                      /*in_file_region=*/TRUE);
-  } else {
     /* Normal case -- emit the usual guard code. */
     add_first_time_test(variable, insert_location, insert_location2,
                         (a_statement_ptr *)NULL, &test_var);
     /* The guard variable is set to 1 at the end of the initialization.
        See set_local_static_guard_var. */
     *guard_var = test_var;
-    guard_code_emitted = TRUE;
-  }  /* if */
 #endif /* IA64_ABI */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  /* The guard variable should also have the same ELF visibility as the
-     guarded variable. */
-  test_var->ELF_visibility = variable->ELF_visibility;
+    /* The guard variable should also have the same ELF visibility as the
+       guarded variable. */
+    test_var->ELF_visibility = variable->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-end_of_routine:
-  release_local_constant(&minus_one_constant);
+  }  /* if */
   return guard_code_emitted;
 }  /* add_static_data_member_init_guard_test */
 
