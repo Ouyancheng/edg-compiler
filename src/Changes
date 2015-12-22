@@ -225,11 +225,11 @@ __is_literal_type produces a true value accordingly.
 
 
 12/11/15 [EDGcpfe/16681]
-Alignment of a variable
+Alignment of a variable or field
 
 In nonstrict C++11 modes, the front end accepts (with a warning) the alignof
 operator applied to an expression (as opposed to a type).  However, if the
-expression designates a variable of field with an explicit alignas specifier,
+expression designates a variable or field with an explicit alignas specifier,
 it ignored that specifier, unless GNU or (for variables only) Microsoft modes
 were in effect.  Now, such a specifier affects the result of the alignof
 operator in all nonstrict C++11 modes.  For example:
