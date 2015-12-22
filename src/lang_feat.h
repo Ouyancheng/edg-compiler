@@ -1345,9 +1345,9 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #endif /* !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED  */
 
 /*
-The macro USER_CONTROL_OF_STRUCT_PACKING controlled in older versions of the
-front end whether user-provided directives could affect the alignment of
-class types, fields, variables, etc through nonstandard features like
+In older versions of the front end, the macro USER_CONTROL_OF_STRUCT_PACKING
+controlled whether user-provided directives could affect the alignment of
+class types, fields, variables, etc., through nonstandard features like
 "#pragma pack" or "__attribute((align(N)))".  The C and C++ languages have
 since evolved to include standard mechanisms for such control: The front end
 therefore now includes such support in all configurations.
