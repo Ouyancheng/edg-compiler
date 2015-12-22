@@ -2829,7 +2829,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   if (microsoft_mode && microsoft_version >= 1900 && !C_mode()) {
-    /* Create an alias template for "_make_integer_seq". */
+    /* Create an alias template for "__make_integer_seq". */
     make_make_integer_seq_internal_template();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
