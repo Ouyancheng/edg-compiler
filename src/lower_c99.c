@@ -3868,6 +3868,12 @@ second parameter.
       expr->next = NULL;
       lower_c99_expr_full(expr, statement);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      lower_c99_expr_list(expr->variant.builtin_choose_expr.operands,
+                          /*is_bool_controlling_expr_mask=*/0x0);
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;

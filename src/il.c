@@ -2033,6 +2033,19 @@ sizeof_cases:
         operand = operand->next;
       }  /* while */
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      fputs("builtin-choose-expr:\n", f_debug);
+      fputs(node->variant.builtin_choose_expr.choose_first ? "choose first\n"
+                                                           : "choose second\n",
+            f_debug);
+      operand = node->variant.builtin_choose_expr.operands;
+      while (operand != NULL) {
+        db_expr_node(operand, level + 2);
+        operand = operand->next;
+      }  /* while */
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
       fputs("await:\n", f_debug);
@@ -6685,6 +6698,18 @@ are done.
         eq = compare_expressions(node1->variant.c11_generic.result,
                                  node2->variant.c11_generic.result, options);
         break;
+#if BUILTIN_FUNCTIONS_ENABLED
+      case enk_builtin_choose_expr:
+        { an_expr_node_ptr  op1 = node1->variant.builtin_choose_expr.operands,
+                            op2 = node2->variant.builtin_choose_expr.operands;
+          op1 = node1->variant.builtin_choose_expr.choose_first ?
+                                                  op1->next : op1->next->next;
+          op2 = node2->variant.builtin_choose_expr.choose_first ?
+                                                  op2->next : op2->next->next;
+          eq = compare_expressions(op1, op2, options);
+        }
+        break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
@@ -18205,6 +18230,15 @@ be called to start a copy.
         expr_copy->variant.c11_generic.result = node2;
       }
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      expr_copy->variant.builtin_choose_expr.operands =
+         i_copy_list_of_expr_trees(expr->variant.builtin_choose_expr.operands,
+                                   options, cblock);
+      expr_copy->variant.builtin_choose_expr.choose_first =
+                               expr->variant.builtin_choose_expr.choose_first;
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* Doesn't have to be copied because forbidden in default argument
@@ -19598,6 +19632,17 @@ already indicates the load.
         rvalueable = is_rvalueable_node(node->variant.c11_generic.result);
         break;
 #endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
+#if BUILTIN_FUNCTIONS_ENABLED
+      case enk_builtin_choose_expr:
+        { an_expr_node_ptr  op1 = node->variant.builtin_choose_expr.operands;
+          if (node->variant.builtin_choose_expr.choose_first) {
+            rvalueable = is_rvalueable_node(op1->next);
+          } else {
+            rvalueable = is_rvalueable_node(op1->next->next);
+          }  /* if */
+        }
+        break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     default:
       break;
   }  /* switch */

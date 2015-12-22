@@ -3352,6 +3352,11 @@ as specified in the control block.
     case enk_c11_generic:
       traverse_expr_list(expr->variant.c11_generic.operands, tblock);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      traverse_expr_list(expr->variant.builtin_choose_expr.operands, tblock);
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
       traverse_expr(expr->variant.await_info.operand, tblock);

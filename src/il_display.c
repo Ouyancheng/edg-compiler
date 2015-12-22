@@ -4506,6 +4506,16 @@ cleanup_state_common:
       disp_ptr("c11_generic.result", (char *)ptr->variant.c11_generic.result,
                iek_expr_node);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      (void)printf("enk_builtin_choose_expr\n");
+      disp_ptr("builtin_choose_expr.operands",
+               (char *)ptr->variant.builtin_choose_expr.operands,
+               iek_expr_node);
+      disp_boolean("builtin_choose_expr.choose_first",
+                   (a_boolean)ptr->variant.builtin_choose_expr.choose_first);
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
       (void)printf("enk_await\n");

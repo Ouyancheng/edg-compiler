@@ -3400,6 +3400,12 @@ fields to default values.
       node->variant.c11_generic.operands = NULL;
       node->variant.c11_generic.result = NULL;
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      node->variant.builtin_choose_expr.operands = NULL;
+      node->variant.builtin_choose_expr.choose_first = FALSE;
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
       node->variant.await_info.operand = NULL;

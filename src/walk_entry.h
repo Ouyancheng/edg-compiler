@@ -1789,6 +1789,12 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.c11_generic.result,
                       an_expr_node_ptr, iek_expr_node);
             break;
+#if BUILTIN_FUNCTIONS_ENABLED
+          case enk_builtin_choose_expr:
+            walk_list(ptr->variant.builtin_choose_expr.operands,
+                      an_expr_node_ptr, iek_expr_node);
+            break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
           case enk_await:
             walk_ptr(ptr->variant.await_info.operand, an_expr_node_ptr,

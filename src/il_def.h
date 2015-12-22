@@ -14556,6 +14556,11 @@ enum an_expr_node_kind_tag {
   enk_braced_init_list,	/* A C++11 brace-enclosed initializer list. */
   enk_c11_generic,	/* Used to represent a C11 _Generic expression
 			   selection. */
+#if BUILTIN_FUNCTIONS_ENABLED
+  enk_builtin_choose_expr,
+			/* Used to represent the GNU __builtin_choose_expr
+			   construct. */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
   enk_await,		/* An "await" operation. */
 #endif /* COROUTINES_ALLOWED */
@@ -16160,6 +16165,21 @@ typedef struct an_expr_node {
 			/* The selected expression.  This points to a node in
 			   the operands list. */
     } c11_generic;
+#if BUILTIN_FUNCTIONS_ENABLED
+    /* When kind == enk_builtin_choose_expr: */
+    struct {
+      an_expr_node_ptr
+		operands;
+			/* A list of three operands that appeared in the
+			   __builtin_choose_expr construct. */
+      a_bit_field
+		choose_first:1;
+			/* TRUE if the first operand has a “true” value,
+			   indicating that the overall construct should
+			   evaluate the second operand; otherwise, the third
+			   operand should be evaluated. */
+    } builtin_choose_expr;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     /* When kind == enk_await: */
     struct {

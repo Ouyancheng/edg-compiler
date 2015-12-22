@@ -6423,6 +6423,17 @@ sizeof_cases:
          (e.g., in a sizeof argument). */
       form_param_ref(expr, &octl);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      { an_expr_node_ptr  arg = expr->variant.builtin_choose_expr.operands;
+        arg = arg->next;
+        if (!expr->variant.builtin_choose_expr.choose_first) {
+          arg = arg->next;
+        }  /* if */
+        dump_expr(arg, /*need_parens=*/TRUE);
+      }
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");

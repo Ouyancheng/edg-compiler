@@ -4054,48 +4054,64 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
 }  /* fold_gnu_call_if_possible */
 
 
-static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
-                                              a_boolean   is_evaluated,
-                                              a_boolean   *err)
+static void scan_expr_for_builtin_choose_expr(an_expr_node  *node,
+                                              an_operand    *result,
+                                              a_boolean     *err)
 /*
-Scan the second or third argument of a GNU C __builtin_choose_expr construct
-(including the leading comma).  If is_evaluated is TRUE, *operand is set to
-represent the argument; otherwise, the argument is discarded.  *err is set to
-TRUE if errors are detected; if *err is already set to TRUE, some diagnostics
-are inhibited.
+Scan the second or third operand (including the leading comma) of a GNU C
+__builtin_choose_expr construct represented by node and update *node
+accordingly if appropriate.  *err is set to TRUE if errors are detected;
+if *err is already set to TRUE, some diagnostics are inhibited.  *result is
+the operand representing the __builtin_choose_expr node; this routine may
+turn it into a constant operand if needed.
 */
 {
-  an_operand *arg_ptr, unevaluated_operand;
+  an_expr_node_ptr  *p_arg;
+  a_boolean         is_evaluated;
 
+  p_arg = &node->variant.builtin_choose_expr.operands->next;
+  if (*p_arg == NULL) {
+    /* We're scanning the second operand. */
+    is_evaluated = node->variant.builtin_choose_expr.choose_first;
+  } else {
+    /* We're scanning the third operand. */
+    is_evaluated = !node->variant.builtin_choose_expr.choose_first;
+    p_arg = &(*p_arg)->next;
+  }  /* if */
   if (curr_token == tok_comma) {
-    a_boolean saved_evaluated = expr_stack->evaluated;
+    an_operand  operand;
+    a_boolean   saved_evaluated = expr_stack->evaluated;
     expr_stack->evaluated = is_evaluated;
+    /* Skip the comma. */
     (void)get_token();
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     if (is_evaluated) {
-      arg_ptr = operand;
-    } else {
-      arg_ptr = &unevaluated_operand;
-    }  /* if */
-    scan_expr(arg_ptr, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    if (is_evaluated && curr_expr_kind_is_const()) {
-      do_operand_transformations(arg_ptr, TOPT_NO_OPTIONS);
-      force_operand_to_constant_if_possible(arg_ptr);
-      if (!is_constant_operand(arg_ptr)) {
-        if (!is_error_operand(arg_ptr)) {
-          error_in_operand(ec_expr_not_constant, arg_ptr);
+      if (curr_expr_kind_is_const()) {
+        do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+        force_operand_to_constant_if_possible(&operand);
+        if (!is_constant_operand(&operand)) {
+          if (!is_error_operand(&operand)) {
+            error_in_operand(ec_expr_not_constant, &operand);
+          }  /* if */
+        } else {
+          /* Make sure the overall operand is a constant also.  Use the
+             expression representation as a backing expression. */
+          copy_operand(&operand, result);
+          result->variant.constant.expr = node;
         }  /* if */
       }  /* if */
+      node->type = operand.type;
+      result->type = operand.type;
     }  /* if */
     expr_stack->evaluated = saved_evaluated;
+    *p_arg = make_node_from_operand(&operand);
   } else {
     if (!*err) {
       expr_pos_error(ec_exp_comma, &pos_curr_token);
     }  /* if */
     flush_tokens();
-    if (is_evaluated) {
-      make_error_operand(operand);
-    }  /* if */
     *err = TRUE;
+    *p_arg = error_node();
   }  /* if */
 }  /* scan_expr_for_builtin_choose_expr */
 
@@ -4110,12 +4126,14 @@ false) should be returned in *result.  The type of the operand is the type of
 the chosen expression.  Only available in C mode.
 */
 {
-  a_boolean            evaluate_2nd_arg, evaluate_3rd_arg, err = FALSE;
+  a_boolean             err = FALSE;
   an_operand           selector_op;
-  a_constant_ptr       selector = local_constant();
   an_expr_stack_entry  expr_stack_entry;
+  an_expr_node_ptr     node;
 
   check_assertion(C_mode());
+  node = alloc_expr_node((an_expr_node_kind)enk_builtin_choose_expr);
+  make_expression_operand(node, result);
   /* Scan the selector expression, which must be a scalar constant. */
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -4129,19 +4147,20 @@ the chosen expression.  Only available in C mode.
   } else if (!is_scalar_type(selector_op.type)) {
     error_in_operand(ec_expr_not_scalar, &selector_op);
     err = TRUE;
+  } else {
+    check_assertion(is_constant_operand(&selector_op));
+    if (!op_is_false_constant(&selector_op)) {
+      node->variant.builtin_choose_expr.choose_first = TRUE;
+    }  /* if */
   }  /* if */
-  extract_constant_from_operand(&selector_op, selector);
-  /* Now scan the second and third argument: One is discarded and the other
-     is returned through *result (except in error cases, where both operands
-     are discarded). */
-  evaluate_2nd_arg = !err && !is_false_constant(selector);
-  evaluate_3rd_arg = !err && !evaluate_2nd_arg;
+  node->variant.builtin_choose_expr.operands =
+                                         make_node_from_operand(&selector_op);
+  /* Now scan the second and third argument. */
+  scan_expr_for_builtin_choose_expr(node, result, &err);
+  scan_expr_for_builtin_choose_expr(node, result, &err);
   if (err) {
     make_error_operand(result);
   }  /* if */
-  scan_expr_for_builtin_choose_expr(result, evaluate_2nd_arg, &err);
-  scan_expr_for_builtin_choose_expr(result, evaluate_3rd_arg, &err);
-  release_local_constant(&selector);
 }  /* scan_and_process_builtin_choose_expr_args */
 
 
