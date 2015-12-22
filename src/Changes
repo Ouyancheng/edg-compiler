@@ -1,5 +1,23 @@
 Version 4.11
 
+12/22/15 [EDGcpfe/16736]
+Ensure guard variable is thread_local if guarded variable is
+
+In configurations where TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is TRUE,
+the guard variable for a thread_local static data member had not itself been
+marked as thread_local, leading to improper initialization of the static
+data member.  For example (with --c++11):
+
+  int f() {
+    return 5;
+  }
+  template <typename T> struct A {
+    static thread_local int sdm;
+  };
+  template <typename T> thread_local int A<T>::sdm = f();
+  int x = A<int>::sdm;
+
+
 12/21/15 [EDGcpfe/16733]
 Remove unneeded guard variables for specialized static data members
 

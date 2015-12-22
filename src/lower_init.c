@@ -11840,6 +11840,9 @@ other initializations.  This routine returns TRUE if guard code was emitted.
        guarded variable. */
     test_var->ELF_visibility = variable->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    /* Ensure that the guard variable is thread_local if the variable being
+       guarded is thread_local. */
+    test_var->is_thread_local = variable->is_thread_local;
   }  /* if */
   return guard_code_emitted;
 }  /* add_static_data_member_init_guard_test */
