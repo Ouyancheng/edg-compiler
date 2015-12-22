@@ -11796,9 +11796,9 @@ other initializations.  This routine returns TRUE if guard code was emitted.
   a_boolean              guard_code_emitted = FALSE;
 
   *guard_var = NULL;
-  /* If the variable has internal linkage (e.g., in -tlocal mode), or the
-     variable is an explicit specialization do not put out guard code at
-     all.  */
+  /* If the variable has internal linkage (e.g., in -tlocal mode), or if the
+     variable is an explicit specialization, do not put out guard code at
+     all. */
   if (variable->source_corresp.name_linkage !=
                         (a_name_linkage_kind)nlk_internal &&
       !variable->is_specialized) {
