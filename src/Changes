@@ -1,5 +1,25 @@
 Version 4.11
 
+12/23/15 [EDGcpfe/16730]
+Microsoft compatibility: Binding a const class temporary to a reference
+
+Microsoft allows binding a reference to a nonconst class type to an rvalue
+temporary that is the result of a constructor call.  This is possible even
+when the rvalue has a const class type.  Previously, that behavior had been
+approximated by dropping the cv-qualifiers on cast to a cv-qualified class
+type (see entry of 3/17/08), but that approach produced results different from
+the Microsoft compiler in some cases.  Now the const qualifier is dropped
+only in specific reference bindings.  For example:
+
+  struct S {
+    S();
+    int operator[](int) = delete;
+    int operator[](int) const; 
+  } s;
+  int r = ((S const)s)[0];
+     // Previously an error (selected the deleted operator[]).  Now okay.
+
+
 12/23/15 [EDGcpfe/16734]
 clang compatibility: __builtin_operator_new and __builtin_operator_delete
 

@@ -20487,6 +20487,7 @@ direct binding is "possible" and not whether it is "valid".
     a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
+      an_expr_node_ptr  temp_init_node;
       if (microsoft_handle_extension) {
         /* In the odd handle case (see above), compare the qualifiers on
            the underlying handle types. */
@@ -20496,6 +20497,16 @@ direct binding is "possible" and not whether it is "valid".
       /* It's allowed to drop __unaligned or __restrict in Microsoft mode.
          MSVC++ issues no diagnostic. */
       source_quals &= ~(TQ_UNALIGNED | TQ_RESTRICT);
+      if (is_a_prvalue(source_operand) &&
+          operand_is_temp_init_full(source_operand, &temp_init_node) &&
+          temp_init_node->variant.init.dynamic_init->kind
+                                    == (a_dynamic_init_kind)dik_constructor) {
+        /* Microsoft allows binding an rvalue that is a temporary constructed
+           by constructor to an lvalue reference to nonconst (this is handled
+           elsewhere).  This is true even if the temporary has a const class
+           type.  We therefore drop the const qualifier in that case. */
+        source_quals &= ~TQ_CONST;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (source_quals != TQ_NONE) {
