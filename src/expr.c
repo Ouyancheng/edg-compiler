@@ -4059,16 +4059,18 @@ static void scan_expr_for_builtin_choose_expr(an_expr_node  *node,
                                               a_boolean     *err)
 /*
 Scan the second or third operand (including the leading comma) of a GNU C
-__builtin_choose_expr construct represented by node and update *node
-accordingly if appropriate.  *err is set to TRUE if errors are detected;
-if *err is already set to TRUE, some diagnostics are inhibited.  *result is
-the operand representing the __builtin_choose_expr node; this routine may
-turn it into a constant operand if needed.
+__builtin_choose_expr construct.  node points to the enk_builtin_choose_expr
+node for the construct and is updated as needed with the results of the scan.
+*err is set to TRUE if errors are detected; if *err is already set to TRUE,
+some diagnostics are inhibited.  *result is the operand representing the
+__builtin_choose_expr operation; this routine may turn it into a constant
+operand (with node as the back expression) if needed.
 */
 {
   an_expr_node_ptr  *p_arg;
   a_boolean         is_evaluated;
 
+  check_assertion(node->kind == (an_expr_node_kind)enk_builtin_choose_expr);
   p_arg = &node->variant.builtin_choose_expr.operands->next;
   if (*p_arg == NULL) {
     /* We're scanning the second operand. */
@@ -4122,11 +4124,13 @@ Parse the three comma-separated arguments in a construct of the form
     __builtin_choose_expr( <arg1>, <arg2>, <arg3>)
 The left parenthesis is already consumed.  <arg1> must be a constant-expression
 and determines whether <arg2> (if <arg1> is true) or <arg3> (if <arg1> is
-false) should be returned in *result.  The type of the operand is the type of
-the chosen expression.  Only available in C mode.
+false) is selected for evaluation.  The scanned construct is recorded in
+*result; if the selected expression produces a constant, *result will be a
+constant operand with the full construct recorded as a backing expression.
+Only available in C mode.
 */
 {
-  a_boolean             err = FALSE;
+  a_boolean            err = FALSE;
   an_operand           selector_op;
   an_expr_stack_entry  expr_stack_entry;
   an_expr_node_ptr     node;

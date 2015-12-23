@@ -5,8 +5,8 @@ __builtin_choose_expr
 
 Previously, the front end scanned the GNU __builtin_choose_expr construct and
 attempted to discard all the IL resulting from that process, except for the
-selected expression.  This could lead to dangling pointer in some cases (e.g.,
-source sequence entries pointing to entities declared in the discarded
+selected expression.  This could lead to dangling pointers in some cases
+(e.g., source sequence entries pointing to entities declared in the discarded
 expression), which in turn could lead to aborts (e.g., while writing the IL to
 a file).  Now, the front end represents the construct as a whole in the IL
 (using a new enk_builtin_choose_expr node kind); this fixes the dangling
