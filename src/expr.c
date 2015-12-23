@@ -4064,7 +4064,7 @@ node for the construct and is updated as needed with the results of the scan.
 *err is set to TRUE if errors are detected; if *err is already set to TRUE,
 some diagnostics are inhibited.  *result is the operand representing the
 __builtin_choose_expr operation; this routine may turn it into a constant
-operand (with node as the back expression) if needed.
+operand (with node as the backing expression) if needed.
 */
 {
   an_expr_node_ptr  *p_arg;
