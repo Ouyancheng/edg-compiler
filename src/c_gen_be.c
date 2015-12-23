@@ -4949,6 +4949,17 @@ routine.
     need_parens = TRUE;
     dump_cast_to_pointer_to(expr_rout_type);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+  if (rout->implicit_alias &&
+      rout->special_kind == (a_special_function_kind)sfk_none &&
+      rout->variant.builtin_function_kind !=
+                                           (a_builtin_function_kind)bfk_none) {
+    /* If this routine is an alias for a builtin, use the aliased routine
+       name (used for __builtin_operator_new and __builtin_operator_delete
+       in clang mode). */
+    rout = gnu_routine_supp(rout)->aliased_routine;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
   dump_routine_name(rout);
   if (need_parens) write_tok_ch(')');
 }  /* dump_routine_address */

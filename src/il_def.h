@@ -11759,6 +11759,8 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_cmpsd,               /* __builtin_ia32_cmpsd */
   bfk_ia32_cmpss,               /* __builtin_ia32_cmpss */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+  bfk_operator_new,		/* __builtin_operator_new */
+  bfk_operator_delete,		/* __builtin_operator_delete */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -13199,6 +13201,8 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_cmpsd */               "__builtin_ia32_cmpsd",
   /* bfk_ia32_cmpss */               "__builtin_ia32_cmpss",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+  /* bfk_operator_new */             "__builtin_operator_new",
+  /* bfk_operator_delete */          "__builtin_operator_delete",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

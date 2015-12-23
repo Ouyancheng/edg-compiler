@@ -7653,15 +7653,32 @@ use of).
                find_decl_attribute(ak_alias, dps) == NULL &&
                find_decl_attribute(ak_weakref, dps) == NULL) {
       a_const_char *name = NULL;
+      a_symbol_ptr bsym = NULL;
       if (strcmp(rp->source_corresp.name, "strlen") == 0) {
         name = "__builtin_strlen";
       } else if (strcmp(rp->source_corresp.name, "abs") == 0) {
         name = "__builtin_abs";
+      } else if (clang_mode && !C_mode()) {
+        an_opname_kind opname_kind = (an_opname_kind)onk_none;
+        /* clang folds __builtin_operator_new and __builtin_operator_delete;
+           create an alias for the appropriate operator. */
+        if (strcmp(rp->source_corresp.name, "__builtin_operator_new") == 0) {
+          opname_kind = (an_opname_kind)onk_new;
+        } else if (strcmp(rp->source_corresp.name, "__builtin_operator_delete")
+                                                                        == 0) {
+          opname_kind = (an_opname_kind)onk_delete;
+        }  /* if */
+        if (opname_kind != (an_opname_kind)onk_none) {
+          /* Create an implicit alias for the routine. */
+          bsym = opname_function_symbol(opname_kind);
+          check_assertion(bsym != NULL);
+        }  /* if */
       }  /* if */
       if (name != NULL) {
         a_symbol_locator  loc;
-        a_symbol_ptr      bsym;
         bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+      }  /* if */
+      if (bsym != NULL) {
         for (; bsym != NULL; bsym = bsym->next) {
           if (is_simple_function_symbol(bsym) &&
               !sym_is_class_or_namespace_member(bsym)) {

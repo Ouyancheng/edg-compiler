@@ -2458,6 +2458,13 @@ Enter the standard predeclared functions for GCC.
     enter_gnu_builtin_func0(_cpu_init, no_return);
   }  /* if */
   enter_gnu_builtin_func0(_unreachable, no_return);
+  if (clang_mode && !C_mode()) {
+    /* Note that these should have "C++" name linkage, but it's not possible
+       to take the address of these and they will be aliased to routines
+       with the proper linkage. */
+    enter_gnu_builtin_func1(_operator_new, void_star, size_t);
+    enter_gnu_builtin_func1(_operator_delete, no_return, void_star);
+  }  /* if */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();
