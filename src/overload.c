@@ -20497,7 +20497,7 @@ direct binding is "possible" and not whether it is "valid".
       /* It's allowed to drop __unaligned or __restrict in Microsoft mode.
          MSVC++ issues no diagnostic. */
       source_quals &= ~(TQ_UNALIGNED | TQ_RESTRICT);
-      if (is_a_prvalue(source_operand) &&
+      if (source_operand != NULL && is_a_prvalue(source_operand) &&
           operand_is_temp_init_full(source_operand, &temp_init_node) &&
           temp_init_node->variant.init.dynamic_init->kind
                                     == (a_dynamic_init_kind)dik_constructor) {
