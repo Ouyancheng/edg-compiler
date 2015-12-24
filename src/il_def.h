@@ -11754,10 +11754,10 @@ enum a_builtin_function_kind_tag {
   bfk_assume_aligned,		/* __builtin_assume_aligned */
   bfk_unreachable,		/* __builtin_unreachable */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
-  bfk_ia32_cmppd,               /* __builtin_ia32_cmppd */
-  bfk_ia32_cmpps,               /* __builtin_ia32_cmpps */
-  bfk_ia32_cmpsd,               /* __builtin_ia32_cmpsd */
-  bfk_ia32_cmpss,               /* __builtin_ia32_cmpss */
+  bfk_ia32_cmppd,		/* __builtin_ia32_cmppd */
+  bfk_ia32_cmpps,		/* __builtin_ia32_cmpps */
+  bfk_ia32_cmpsd,		/* __builtin_ia32_cmpsd */
+  bfk_ia32_cmpss,		/* __builtin_ia32_cmpss */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   bfk_operator_new,		/* __builtin_operator_new */
   bfk_operator_delete,		/* __builtin_operator_delete */
