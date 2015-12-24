@@ -3610,10 +3610,22 @@ kind of mismatch here.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    a_type_qualifier_set quals = get_type_qualifiers(selector_type);
+    an_expr_node_ptr     temp_init_node;
+    /* Microsoft allows a nonconst member function to be called on a const
+       temporary constructed by constructor. */
+    if ((quals & TQ_CONST) != 0 && (rtsp->qualifiers & TQ_CONST) == 0 &&
+        selector != NULL && is_a_prvalue(selector) &&
+        operand_is_temp_init_full(selector, &temp_init_node) &&
+        temp_init_node->variant.init.dynamic_init->kind
+                                    == (a_dynamic_init_kind)dik_constructor) {
+      quals &= ~TQ_CONST;
+      selector_type = make_unqualified_type(selector_type);
+      selector_type = make_qualified_type(selector_type, quals);
+    }  /* if */
     /* Drop __unaligned as a type qualifier on the selector type.
        MSVC++ allows a member function to be called on an __unaligned
        object with no warning. */
-    a_type_qualifier_set quals = get_type_qualifiers(selector_type);
     if (quals & TQ_UNALIGNED) {
       quals &= ~TQ_UNALIGNED;
       selector_type = make_unqualified_type(selector_type);
