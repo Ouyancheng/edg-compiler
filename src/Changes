@@ -1,5 +1,25 @@
 Version 4.11
 
+12/30/15 [EDGcpfe/16739]
+Spurious deduction failure in a nondeduced context
+
+When a function template parameter was a nondeduced context because of a
+dependent qualifier, deduction incorrectly failed, resulting in an error
+for examples like the one below.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> struct B {
+      B(U*){}
+    };
+  };
+  template <class T> void f(A<T>, typename A<T>::template B<T>){}
+  int main() {
+    A<int> ai;
+    int *p;
+    f(ai, p);
+  }
+
+
 12/23/15 [EDGcpfe/16730]
 Microsoft compatibility: Binding a const class temporary to a reference
 

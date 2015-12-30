@@ -9602,6 +9602,24 @@ T is a template parameter from the given list.
 }  /* is_parameter_type_with_special_ref_deduction */
 
 
+static a_boolean is_instantiation_of_nonreal_member(a_type_ptr	type)
+/*
+type is a nonreal class type.  Return TRUE if it is a reference to a
+nonreal class template.
+*/
+{
+  a_symbol_ptr				template_sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_class_symbol_supplement_ptr		cssp;
+
+  cssp = symbol_supplement_for_class(type);
+  template_sym = cssp->class_template;
+  check_assertion(template_sym != NULL);
+  tssp = template_supplement_for_symbol(template_sym);
+  return tssp->is_nonreal_member;
+}  /* is_instantiation_of_nonreal_member */
+
+
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
@@ -9701,6 +9719,15 @@ points to the template parameter list.
       templ_type->variant.typeref.is_dependent_type_operator) {
     /* decltype and typeof should be considered nondeduced.  Consider
        this a match for now. */
+    match = TRUE;
+  } else if (!nonstandard_qualifier_deduction &&
+             templ_type->source_corresp.is_class_member &&
+             is_immediate_class_type(templ_type) &&
+             templ_type->variant.class_struct_union.is_nonreal_class &&
+             is_instantiation_of_nonreal_member(templ_type)) {
+    /* The template type is a member nonreal class.  There could end up
+       being a conversion to the member type, or the member could end up
+       being an alias.  Consider this a match for now. */
     match = TRUE;
   } else if (templ_type->kind == (a_type_kind)tk_typeref &&
              templ_type->variant.typeref.is_bases) {
