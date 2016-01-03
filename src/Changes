@@ -1,5 +1,47 @@
 Version 4.11
 
+1/3/15   [EDGcpfe/15902,EDGcpfe/15946,EDGcpfe/16053,EDGcpfe/16054,
+          EDGcpfe/16269,EDGcpfe/16269,EDGcpfe/16466,EDGcpfe/16468,
+          EDGcpfe/16665
+
+Core issue 1558: unused arguments in alias instantiation (e.g., void_t)
+
+The front end now implements core issue 1558.  This is used by the g++
+future, regex, and possibly other headers.
+
+In order to implement this, PROTOTYPE_INSTANTIATIONS_IN_IL must now be
+TRUE.  The largest part of the changes for this are those required to
+allow IL lowering to be able to coexist with PROTOTYPE_INSTANTIATIONS_IN_IL.
+Prototype instantiations are not actually lowered, but lowering has to
+be able to ignore the prototype instantiation information.
+
+Back ends will require some modifications to ignore prototype instantiation
+information in the IL tree.  These changes are expected to be minor.
+There are new functions/macros named ignore_type_in_back_end,
+ignore_routine_in_back_end, and ignore_variable_in_back_end that may
+need to be tested.  See c_gen_be.c for examples.
+
+A new configuration macro named ALL_TEMPLATE_INFO_IN_IL has been added.
+This controls part of the functionality previously included as part of
+PROTOTYPE_INSTANTIATIONS_IN_IL.  When it is TRUE, the prototype
+instantiations of function definitions are included in the IL, and
+certain IL data structures that mirror front end structures  (e.g.,
+a_template_decl and a_template_parameter) are created.
+
+  template <typename... > using __void_t = void;
+  template <int, typename> struct A {};
+  template <typename T> struct A <1, T> {
+    typename T::type type;
+  };
+  template < typename, typename = void > struct B {
+    static constexpr bool value = 0;
+  };
+  template < typename T > struct B<T, __void_t <typename T::type >> {
+    static constexpr bool value = 1;
+  };
+  A<B<int>::value, int> b;
+
+
 12/30/15 [EDGcpfe/16739]
 Spurious deduction failure in a nondeduced context
 

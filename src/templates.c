@@ -6397,13 +6397,22 @@ instantiation-dependent.
 }  /* template_arg_is_dependent */
 
 
-a_boolean template_arg_list_is_dependent(a_template_arg_ptr	tap)
+static a_boolean template_arg_list_is_dependent_full(
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	templ_param_list,
+				a_boolean		*p_any_dependent_args)
 /*
-Return TRUE if the template argument list pointed to by tap is
-instantiation-dependent.
+Return TRUE if the template argument list pointed to by templ_arg_list is
+instantiation-dependent.  If templ_param_list is non-NULL, it points to the
+associated template parameter list, and only parameters with the
+used_in_alias flag will be considered for this test.  If *p_any_dependent_args
+is non-NULL, it will be set to TRUE if any template arguments (even one
+that is not used in the result type of an alias) is dependent.
 */
 {
   a_boolean	result = FALSE;
+  a_boolean	have_params = templ_param_list != NULL;
+  a_boolean	any_dependent_args = FALSE;
 
   if (in_front_end &&
       !is_template_dependent_context() &&
@@ -6412,12 +6421,49 @@ instantiation-dependent.
        argument list cannot be dependent. */
   } else {
     /* Check each argument in turn. */
-    for (; tap != NULL; tap = tap->next) {
-      result = template_arg_is_dependent(tap);
-      if (result) break;
+    a_template_arg_ptr		tap;
+    a_template_param_ptr	tpp = NULL;
+    begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                      &tpp, &tap);
+    for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+      if (!have_params || tpp->used_in_alias) {
+        result = template_arg_is_dependent(tap);
+        if (result) break;
+      }  /* if */
     }  /* for */
+    if (p_any_dependent_args != NULL) {
+      /* If the caller wants to know about arguments that are not used in
+         the alias type, go back and check those arguments if we haven't
+         already determined the other arguments (that are used in the alias
+         type) to be dependent. */
+      if (result) {
+        any_dependent_args = TRUE;
+      } else {
+        begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                          &tpp, &tap);
+        for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+          if (!tpp->used_in_alias) {
+            any_dependent_args = template_arg_is_dependent(tap);
+            if (any_dependent_args) break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      *p_any_dependent_args = any_dependent_args;
+    }  /* if */
   }  /* if */
   return result;
+}  /* template_arg_list_is_dependent_full */
+
+
+a_boolean template_arg_list_is_dependent(a_template_arg_ptr	templ_arg_list)
+/*
+Wrapper to template_arg_list_is_dependent_full that supplies a default
+value for template_param_list.
+*/
+{
+  return template_arg_list_is_dependent_full(templ_arg_list,
+                                             (a_template_param_ptr)NULL,
+                                             (a_boolean*)NULL);
 }  /* template_arg_list_is_dependent */
 
 
@@ -6478,21 +6524,24 @@ error entity.
 }  /* template_arg_list_involves_error_entity */
 
 
-static void strip_types_from_template_arg_list(a_template_arg_ptr tap)
+static void strip_types_from_template_arg_list(a_template_arg_ptr tap,
+                                               a_boolean          local_only)
 /*
-Remove any local typedefs or nonreal typedefs from the template argument
-list specified by tap.
+Remove any local typedefs and, if local_only is FALSE, nonreal typedefs
+from the template argument list specified by tap.
 */
 {
   if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     for (; tap != NULL; tap = tap->next) {
       if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
         tap->variant.type =
-                           strip_local_and_nonreal_typedefs(tap->variant.type);
+                           strip_local_and_nonreal_typedefs(tap->variant.type,
+                                                            local_only);
       } else if (is_nontype_templ_arg(tap)) {
         check_assertion(tap->arg_operand == NULL);
         tap->variant.constant->type =
-                 strip_local_and_nonreal_typedefs(tap->variant.constant->type);
+                 strip_local_and_nonreal_typedefs(tap->variant.constant->type,
+                                                  local_only);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -7013,7 +7062,7 @@ entry pointer.  Return TRUE if the key matches the entry.
   /* Get the options to be passed to equiv_template_arg_lists. */
   eta_options = eta_options_for_template(template_sym, tssp);
   entry_sym = (a_symbol_ptr)entry;
-  entry_tap = template_arg_list_for_symbol(entry_sym);
+  entry_tap = orig_template_arg_list_for_symbol(entry_sym);
   key_tap = key_ikp->template_arg_list;
   result = equiv_template_arg_lists(entry_tap, key_tap,
                                     eta_options | ETA_EXACT_MATCH_REQUIRED);
@@ -7137,7 +7186,7 @@ hashes template argument lists works properly.
       a_template_arg_ptr	old_list;
       a_symbol_ptr	sym;
       sym = slep->symbol;
-      old_list = template_arg_list_for_symbol(sym);
+      old_list = orig_template_arg_list_for_symbol(sym);
       if (equiv_template_arg_lists(old_list, template_arg_list,
                                    eta_options | ETA_EXACT_MATCH_REQUIRED)) {
         /* We've found a match. */
@@ -7185,7 +7234,8 @@ can have a Microsoft mode nonreal instantiation.
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
 				a_template_arg_ptr	template_arg_list,
-				a_boolean		instantiate_nonreal)
+				a_boolean		instantiate_nonreal,
+				a_boolean		dependent_arg_list)
 /*
 Do a partial instantiation of class_template_sym based on the template
 arguments specified by template_arg_list.  Return the symbol for the
@@ -7197,7 +7247,8 @@ is returned.  instantiate_nonreal is TRUE in Microsoft mode if a nonreal
 class should be instantiated as if it were a real class instead of just
 creating a normal nonreal class.  This is used for nonreal classes used
 as base classes because the Microsoft compiler does actual name lookup in
-such classes.
+such classes.  dependent_arg_list is TRUE if the argument list uses
+a type in certain ways (see template_arg_list_is_dependent).
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -7210,12 +7261,10 @@ such classes.
   a_boolean				add_to_instantiation_list = TRUE;
   a_boolean				open_constructed_arg_list = FALSE;
   a_boolean				instantiate_nonreal_class = FALSE;
-  a_boolean				dependent_arg_list;
   a_symbol_ptr				prototype_template_prototype_sym;
   a_type_ptr				prototype_type;
   a_symbol_ptr				proto_template;
 
-  dependent_arg_list = template_arg_list_is_dependent(template_arg_list);
   tssp = class_template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
@@ -7462,15 +7511,16 @@ such classes.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    if (debug_level >= 4 || db_flag_is_set("cpioc") ||
+        db_flag_is_set("dump_ss_full")) {
       fputs("partial instantiation of \"", f_debug);
       db_type_name(class_type);
       fputs("\":\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (tssp->variant.class_template.cannot_be_specialized &&
         !instantiate_nonreal_class) {
       /* Don't create source sequence entries that would be interpreted as
@@ -7516,6 +7566,9 @@ such classes.
     db_symbol_name_trans_unit(sym);
     fprintf(f_debug, " based on ");
     db_symbol_name_trans_unit(class_template_sym);
+    fprintf(f_debug, ", nonreal=%s\n",
+            class_type->variant.class_struct_union.is_nonreal_class ? "TRUE"
+                                                                    : "FALSE");
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -7528,17 +7581,87 @@ such classes.
 }  /* create_partial_instantiation_of_class */
 
 
+static a_symbol_ptr create_alias_instance(
+				a_symbol_ptr		template_sym)
+/*
+Create the symbol and type entries for an instance of the alias template
+specified by template_sym.  Return the symbol for the new instance.
+*/
+{
+  a_symbol_ptr			instance_sym;
+  a_type_ptr			type;
+
+  /* Create the symbol for the alias instance. */
+  instance_sym = make_template_class_symbol(template_sym);
+  /* Create the type entry for the alias. */
+  type = alloc_type((a_type_kind)tk_typeref);
+  type->variant.typeref.is_alias = TRUE;
+  type->variant.typeref.is_template_alias = TRUE;
+  instance_sym->variant.type.ptr = type;
+  set_source_corresp(&(type->source_corresp), instance_sym);
+  set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
+  return instance_sym;
+}  /* create_alias_instance */
+
+
+static void set_alias_nonreal_flag(a_symbol_ptr		instance_sym,
+				   a_template_arg_ptr	template_arg_list,
+				   a_boolean		dependent_arg_list,
+				   a_boolean		any_dependent_args)
+/*
+Set the is_nonreal flag of the alias instance specified by instance_sym
+and template_arg_list.  dependent_arg_list is TRUE if any of the template
+arguments actually used in the result type are instantiation dependent.
+any_dependent_args is TRUE if any template arguments (even those not used
+in the result type) are instantiation dependent.
+*/
+{
+  a_type_ptr	type;
+
+  type = instance_sym->variant.type.ptr;
+  if (!type->variant.typeref.is_nonreal &&
+      !type->variant.typeref.is_dependent) {
+    a_boolean	open_constructed_arg_list = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Check if this the argument list involves open constructed types.
+         We need to check even for templates (as opposed to C++/CLI generics)
+         because an alias instantiated on a generic parameter is a real class
+         type. */
+    if (cli_or_cx_enabled && dependent_arg_list) {
+      open_constructed_arg_list = is_open_constructed_generic_arg_list(
+                                                           template_arg_list);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* See if the template arguments involve any nonreal types.  For this
+       test, an alias with dependent template argument is not considered
+       dependent if the underlying type is not dependent. */
+    if (!open_constructed_arg_list && dependent_arg_list) {
+      type->variant.typeref.is_nonreal = TRUE;
+    }  /* if */
+    /* See if the template arguments involve any nonreal types. */
+    if (!open_constructed_arg_list && any_dependent_args) {
+      type->variant.typeref.is_dependent = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_alias_nonreal_flag */
+
+
 static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	template_arg_list,
+				a_template_arg_ptr	orig_arg_list,
 				a_symbol_ptr		existing_instance_sym)
 /*
 Instantiate the alias template template_sym using the template argument
-list template_arg_list.  Return the symbol for the type that was created.
-If the alias is indirectly used in the type to which the alias refers an
-error should be issued.  existing_instance_sym will point to the template
-alias symbol that is in the process of being instantiated in this case.
-When existing_instance_sym is non-NULL an error is issued here and an
+list template_arg_list.  template_arg_list has had any local and nonreal
+typerefs removed.  orig_arg_list is the list preserving such types.  This
+is needed to keep dependent types that were not used in the expansion of
+the alias.  Such types must be substituted when an alias is substituted
+in template parameter substitution.  Return the symbol for the type that was
+created. If the alias is indirectly used in the type to which the alias
+refers an error should be issued.  existing_instance_sym will point to the
+template alias symbol that is in the process of being instantiated in this
+case.  When existing_instance_sym is non-NULL an error is issued here and an
 error type is used.
 */
 {
@@ -7547,10 +7670,24 @@ error type is used.
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
   a_type_ptr				parent_class = NULL;
-  a_boolean				open_constructed_arg_list = FALSE;
   a_boolean				dependent_arg_list;
+  a_template_cache_ptr			body_cache;
+  a_symbol_ptr				template_sym_of_prototype;
+  a_template_symbol_supplement_ptr	tssp_of_prototype;
+  a_boolean				nonreal_context = FALSE;
+  a_boolean				any_dependent_args = FALSE;
 
-  dependent_arg_list = template_arg_list_is_dependent(template_arg_list);
+  /* If this is an alias defined within a class template, the prototype
+     instantiation is associated with the definition within the original
+     template.  Get a pointer to the template symbol that is associated
+     with the prototype instantiation. */
+  template_sym_of_prototype = prototype_template_of(template_sym);
+  tssp_of_prototype =
+                     template_supplement_for_symbol(template_sym_of_prototype);
+  body_cache = cache_for_template(tssp_of_prototype);
+  dependent_arg_list = template_arg_list_is_dependent_full(
+                         template_arg_list, body_cache->decl_info->parameters,
+                         &any_dependent_args);
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
@@ -7566,52 +7703,36 @@ error type is used.
     /* This is the normal case.  Create a symbol for the new instance. */
     a_typeref_type_supplement_ptr	ttsp;
     /* Create the symbol for the alias instance. */
-    instance_sym = make_template_class_symbol(template_sym);
+    instance_sym = create_alias_instance(template_sym);
+    type = instance_sym->variant.type.ptr;
 #if EXPENSIVE_CHECKING
     /* Check that the type is not already on the instantiation list. */
-    check_new_class_instantiation(template_sym, tssp, template_arg_list);
+    check_new_class_instantiation(template_sym, tssp, orig_arg_list);
 #endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
     add_instantiation(template_sym, tssp, instance_sym,
-                      template_arg_list);
-    /* Create the type entry for the alias. */
-    type = alloc_type((a_type_kind)tk_typeref);
-    type->variant.typeref.is_alias = TRUE;
-    type->variant.typeref.is_template_alias = TRUE;
-    instance_sym->variant.type.ptr = type;
-    set_source_corresp(&(type->source_corresp), instance_sym);
-    set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Check if this the argument list involves open constructed types.
-       We need to check even for templates (as opposed to C++/CLI generics)
-       because an alias instantiated on a generic parameter is a real class
-       type. */
-    if (cli_or_cx_enabled) {
-      open_constructed_arg_list = is_open_constructed_generic_arg_list(
-                                                           template_arg_list);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                      orig_arg_list);
+    set_alias_nonreal_flag(instance_sym, template_arg_list,
+                           dependent_arg_list, any_dependent_args);
     if (instance_sym->is_class_member) {
+      a_type_ptr	parent_class;
       parent_class = sym_parent_class(instance_sym);
       /* If the enclosing class is nonreal, then any instances of the member
          alias must also be nonreal. */
       if (parent_class->variant.class_struct_union.is_nonreal_class) {
-        type->variant.typeref.is_nonreal = TRUE;
+        nonreal_context = TRUE;
       }  /* if */
-    }  /* if */
-    /* See if the template arguments involve any nonreal types. */
-    if (!open_constructed_arg_list && dependent_arg_list) {
-      type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
     /* Record the argument list in the type. */
     ttsp = type->variant.typeref.extra_info;
     ttsp->template_arg_list = template_arg_list;
+    ttsp->orig_template_arg_list = orig_arg_list;
     {
-      /* For certain types (like X<int>::Y<T>) the prototype instantiation
-         must be fetched from the prototype template (e.g., X<T>::Y). */
-      a_symbol_ptr  proto_template = prototype_template_of(template_sym);
+      /* Record the template on which this is based.  Unlike classes, this
+         refers to the subordinate template (X<int>::Y<T> rather than
+          X<T>::Y). */
       ttsp->assoc_template =
-                      proto_template->variant.template_info->il_template_entry;
+                       template_sym->variant.template_info->il_template_entry;
     }
     if (instance_sym->is_class_member) {
       /* If this is an instance of a member alias, set the access of
@@ -7684,7 +7805,8 @@ error type is used.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_boolean                 saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (type->variant.typeref.is_nonreal) {
+      if (type->variant.typeref.is_nonreal ||
+          type->variant.typeref.is_dependent || nonreal_context) {
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
         ps_options |= PS_NONREAL_INSTANTIATION;
@@ -7797,7 +7919,8 @@ error type is used.
     db_symbol_name_trans_unit(template_sym);
     fprintf(f_debug, " type is ");
     db_type(type->variant.typeref.type);
-    fprintf(f_debug, "\n");
+    fprintf(f_debug, " nonreal=%s\n",
+            type->variant.typeref.is_nonreal ? "TRUE" : "FALSE");
   }  /* if */
 #endif /* DEBUG */
   /* Call a routine that manages the correspondence of entities between
@@ -8186,12 +8309,19 @@ type, and that a new type should not be created if one does not already
 exist.
 */
 {
-  a_symbol_ptr                      sym;
-  a_symbol_ptr 			    prototype_sym;
-  a_template_arg_ptr                old_list;
-  a_template_symbol_supplement_ptr  tssp;
-  an_equiv_templ_arg_options_set    eta_options;
-  a_boolean                         is_alias_template;
+  a_symbol_ptr				sym;
+  a_symbol_ptr				prototype_sym;
+  a_template_arg_ptr			old_list;
+  a_template_arg_ptr			new_list_without_local_types = NULL;
+  a_template_arg_ptr			list_for_prototype_check;
+  a_template_arg_ptr			list_for_instantiation;
+  a_template_symbol_supplement_ptr	tssp;
+  an_equiv_templ_arg_options_set	eta_options;
+  a_boolean				is_alias_template;
+  a_boolean				orig_list_is_dependent;
+  a_boolean				stripped_list_is_dependent;
+  a_boolean				dependent_arg_list;
+  a_boolean				list_copied = FALSE;
 
   db_enter(3, "find_template_class");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
@@ -8212,8 +8342,37 @@ exist.
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
   eta_options = eta_options_for_template(template_sym, tssp);
+  if (is_template_dependent_context()) {
+    /* Make a copy of the original list before stripping certain typerefs. */
+    new_list_without_local_types = copy_template_arg_list(*new_list);
+    list_copied = TRUE;
+    strip_types_from_template_arg_list(new_list_without_local_types,
+                                       /*local_only=*/TRUE);
+    orig_list_is_dependent = template_arg_list_is_dependent(
+                                                 new_list_without_local_types);
+  }  /* if */
   /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(*new_list);
+  strip_types_from_template_arg_list(*new_list, /*local_only=*/FALSE);
+  stripped_list_is_dependent = template_arg_list_is_dependent(*new_list);
+  dependent_arg_list = stripped_list_is_dependent;
+  if (new_list_without_local_types == NULL) {
+    new_list_without_local_types = *new_list;
+    orig_list_is_dependent = stripped_list_is_dependent;
+  }  /* if */
+  if (is_alias_template ||
+      (is_template_declaration_context() &&
+       orig_list_is_dependent && stripped_list_is_dependent)) {
+    /* For alias templates, and for dependent argument lists in other
+       contexts, use the original list to see if this refers to the
+       prototype instantiation and also for any new instantiations done. */
+    list_for_prototype_check = new_list_without_local_types;
+    list_for_instantiation = new_list_without_local_types;
+  } else {
+    /* In other contexts, use the what is now the list stripped of local
+       and nonreal types. */
+    list_for_prototype_check = *new_list;
+    list_for_instantiation = *new_list;
+  }  /* if */
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {
@@ -8225,8 +8384,8 @@ exist.
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
-      old_list = template_arg_list_for_symbol(prototype_sym);
-      if (equiv_template_arg_lists(old_list, *new_list,
+      old_list = orig_template_arg_list_for_symbol(prototype_sym);
+      if (equiv_template_arg_lists(old_list, list_for_prototype_check,
                                    eta_options | ETA_IS_PROTOTYPE)) {
         /* A match.  Set sym which will suppress any further search. */
         sym = prototype_sym;
@@ -8250,7 +8409,7 @@ exist.
              the list passed in matches it. */
           old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-          if (equiv_template_arg_lists(old_list, *new_list,
+          if (equiv_template_arg_lists(old_list, list_for_prototype_check,
                                        eta_options | ETA_IS_PROTOTYPE)) {
             sym = ps_prototype_sym;
             break;
@@ -8262,7 +8421,8 @@ exist.
   if (sym == NULL) {
     a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
-    hash_table_sym = find_instantiation(template_sym, tssp, *new_list,
+    hash_table_sym = find_instantiation(template_sym, tssp,
+                                        list_for_instantiation,
                                         /*create=*/FALSE);
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
@@ -8273,12 +8433,12 @@ exist.
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
       is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
-      template_arg_list_is_dependent(*new_list)) {
+      template_arg_list_is_dependent(list_for_prototype_check)) {
     /* Check whether the scope stack contains any classes that have
        Microsoft mode nonreal instantiations as base classes.  If so, this
        reference should use a Microsoft mode instantiated nonreal class. */
     if (scope_stack_has_ms_instantiated_nonreal_class(template_sym,
-                                                      *new_list,
+                                                      list_for_prototype_check,
                                                       eta_options)) {
       instantiate_nonreal = TRUE;
       if (sym != NULL) {
@@ -8294,13 +8454,18 @@ exist.
 #if DEBUG
   if (db_flag_is_set("ftc")) {
     fprintf(f_debug, "find_template_class: for arg list ");
-    db_template_arg_list(*new_list);
+    db_template_arg_list(list_for_prototype_check);
     if (sym != NULL) {
       fprintf(f_debug, ", found ");
       db_symbol_name(sym);
       fprintf(f_debug, "\n");
     } else {
       fprintf(f_debug, ", not found\n");
+    }  /* if */
+    if (list_for_prototype_check != list_for_instantiation) {
+      fprintf(f_debug, "  list_for_instantiation: ");
+      db_template_arg_list(list_for_instantiation);
+      fprintf(f_debug, "\n");
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -8312,14 +8477,25 @@ exist.
        instantiation routine if the type is already in the process of being
        instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(template_sym, *new_list, sym);
+      sym = instantiate_template_alias(template_sym, *new_list,
+                                       list_for_instantiation, sym);
     } else {
-      sym = create_partial_instantiation_of_class(template_sym, *new_list,
-                                                  instantiate_nonreal);
+      sym = create_partial_instantiation_of_class(template_sym,
+                                                  list_for_instantiation,
+                                                  instantiate_nonreal,
+                                                  dependent_arg_list);
+    }  /* if */
+    /* If the new list without local types was not used above, free it now. */
+    if (list_for_instantiation != new_list_without_local_types) {
+      free_template_arg_list(new_list_without_local_types);
     }  /* if */
   } else {
     /* We are reusing a class type that already exists, so *new_list will not
-       be used.  Return the entries to the available list for reuse. */
+       be used.  Return the entries to the available list for reuse.  Also
+       free a copy if one was made. */
+    if (list_copied) {
+      free_template_arg_list(new_list_without_local_types);
+    }  /* if */
     free_template_arg_list(*new_list);
   }  /* if */
   /* The list is cleared in all cases.  The caller cannot use the list
@@ -10980,6 +11156,45 @@ are looked up, if needed.  The symbol of the new instance is returned.
 }  /* copy_template_class_reference_with_substitution */
 
 
+static void copy_template_alias_reference_with_substitution(
+			a_symbol_ptr			template_sym,
+			a_type_ptr			orig_type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+Copy, with substitution, the template argument list from orig_type, which
+is an instance of an alias template.  template_sym is the template on
+which the alias is based.  options is a set of bit flags used to control
+substitution.  Note that this only does substitution on the argument list
+*/
+{
+  a_template_arg_ptr			new_list;
+  a_template_arg_ptr			tap;
+  a_template_param_ptr			tpp;
+  a_template_symbol_supplement_ptr	tssp;
+  a_typeref_type_supplement_ptr		ttsp;
+  
+  template_sym = primary_template_of(template_sym);
+  ttsp = orig_type->variant.typeref.extra_info;
+  tssp = template_sym->variant.template_info;
+  tap = ttsp->orig_template_arg_list;
+  tpp = tssp->cache.decl_info->parameters;
+  check_assertion(tpp != NULL);
+  /* Make a copy of the template argument list, doing substitution. */
+  new_list = copy_template_arg_list_with_substitution(
+                                           template_sym,
+                                           tap, tpp, templ_arg_list,
+                                           templ_param_list, 
+                                           source_pos, options,
+                                           /*orig_is_nonreal_template=*/FALSE,
+                                           copy_error, ctws_state);
+}  /* copy_template_alias_reference_with_substitution */
+
+
 static a_type_ptr copy_array_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -11590,40 +11805,60 @@ a pointer over a reference type or creating an array of references.
           /* Substitution of __bases and __direct_bases is not supported. */
           *copy_error = TRUE;
         } else {
-          /* Make an identically qualified type of a copy (or reuse) of the
-             type that underlies the typeref. */
-          a_type_qualifier_set	qualifiers = TQ_NONE;
-          a_type_ptr		type_without_typerefs;
-          /* Remove typerefs, but stop at a decltype, since it may require
-             substitution of its own.  Accumulate the type qualifiers we
-             skip over so they can be restored below.  Always take at least
-             one typeref because we decided above that the current typeref
-             doesn't require the decltype expression processing. */
-          type_without_typerefs = type;
-          do {
-            qualifiers |= type_without_typerefs->variant.typeref.qualifiers;
-            type_without_typerefs= type_without_typerefs->variant.typeref.type;
-          } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
-                   !typeref_is_type_operator(type_without_typerefs));
-          tp = copy_type_with_substitution(type_without_typerefs,
-                                           templ_arg_list,
-                                           templ_param_list, source_pos,
-                                           options, copy_error, ctws_state);
-          new_type = tp;
-          if (qualifiers != TQ_NONE) {
-            if (is_function_type(tp)) {
-              /* An attempt to place a qualifier on top of a function type.
-                 Ignore it. */
-            } else if (is_vla_type(tp)) {
-              /* An attempt to add qualifiers to a VLA type.  Deduction
-                 fails.  (You can't create a new version of a VLA type
-                 with a different element type, because the bound
-                 expression evaluation is unique to the original
-                 array type.) */
-              *copy_error = TRUE;
-            } else {
-              /* Restore the type qualifiers stripped off above. */
-              new_type = make_qualified_type(tp, qualifiers);
+          if (type->variant.typeref.is_template_alias) {
+            if (type->variant.typeref.is_dependent) {
+              /* If the typeref is an alias template instance, substitute the
+                 new template arguments.  This is needed because the result
+                 type may not use some of the template arguments, but the
+                 substitution must be done to check for errors. */
+              a_typeref_type_supplement_ptr	ttsp;
+              a_symbol_ptr			template_sym;
+              ttsp = type->variant.typeref.extra_info;
+              template_sym = symbol_for(ttsp->assoc_template);
+              (void)copy_template_alias_reference_with_substitution(
+                              template_sym, type, templ_arg_list,
+                              templ_param_list, source_pos, options,
+                              copy_error,
+                              ctws_state);
+            }  /* if */
+          }  /* if */
+          if (!*copy_error) {
+            /* Make an identically qualified type of a copy (or reuse) of the
+               type that underlies the typeref. */
+            a_type_qualifier_set	qualifiers = TQ_NONE;
+            a_type_ptr			type_without_typerefs;
+            /* Remove typerefs, but stop at a decltype, since it may require
+               substitution of its own.  Accumulate the type qualifiers we
+               skip over so they can be restored below.  Always take at least
+               one typeref because we decided above that the current typeref
+               doesn't require the decltype expression processing. */
+            type_without_typerefs = type;
+            do {
+              qualifiers |= type_without_typerefs->variant.typeref.qualifiers;
+              type_without_typerefs =
+                                   type_without_typerefs->variant.typeref.type;
+            } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
+                     !typeref_is_type_operator(type_without_typerefs));
+            tp = copy_type_with_substitution(type_without_typerefs,
+                                             templ_arg_list,
+                                             templ_param_list, source_pos,
+                                             options, copy_error, ctws_state);
+            new_type = tp;
+            if (qualifiers != TQ_NONE) {
+              if (is_function_type(tp)) {
+                /* An attempt to place a qualifier on top of a function type.
+                   Ignore it. */
+              } else if (is_vla_type(tp)) {
+                /* An attempt to add qualifiers to a VLA type.  Deduction
+                   fails.  (You can't create a new version of a VLA type
+                   with a different element type, because the bound
+                  expression evaluation is unique to the original
+                  array type.) */
+                *copy_error = TRUE;
+              } else {
+                /* Restore the type qualifiers stripped off above. */
+                new_type = make_qualified_type(tp, qualifiers);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -14047,7 +14282,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   check_function_template_arg_list(templ_arg_list, templ_sym);
 #endif /* CHECKING */
   /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(templ_arg_list);
+  strip_types_from_template_arg_list(templ_arg_list, /*local_only=*/FALSE);
   check_assertion(templ_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = templ_sym->variant.template_info;
   /* Create the associated function instantiation entry and link it
@@ -15661,7 +15896,8 @@ structure.
       /* Local typedef names (legal if they refer to nonlocal types) should
          not be part of the type signature of the template itself,
          which is nonlocal.  Strip them off, if there are any. */
-      tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);
+      tap->variant.type = strip_local_and_nonreal_typedefs(
+                                      tap->variant.type, /*local_only=*/FALSE);
     } else if (is_nontype_templ_arg(tap)) {
       if (nontype_templ_arg_constant_involves_invalid_linkage(
                                                       tap->variant.constant)) {
@@ -16995,6 +17231,8 @@ initially used when processing the declaration of a partial specialization.
     templ_arg_list = create_prototype_arg_list(sym, templ_param_list);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
+                                                              = templ_arg_list;
+      prototype_type->variant.typeref.extra_info->orig_template_arg_list
                                                               = templ_arg_list;
     } else if (is_partial_specialization) {
       /* This is the initial declaration of a partial specialization.
@@ -23155,6 +23393,42 @@ information).  See the definition of a_tmpl_decl_state for details.
 }  /* scan_template_param_clauses */
 
 
+static void check_alias_template_param_usage(
+					a_tmpl_decl_state_ptr	decl_state,
+					a_type_ptr		alias_type)
+/*
+Determine which of the template parameters of an alias template are used
+in the resulting type.
+*/
+{
+  a_template_param_ptr	template_param_list =
+                                             decl_state->decl_info->parameters;
+  a_template_param_ptr	tpp;
+  a_boolean		any_used = FALSE;
+
+  for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr param_sym = tpp->param_symbol;
+    a_boolean	 param_used;
+    /* Determine whether all template parameters are used by
+       function parameter types. */
+    param_used = template_param_used_in_type(param_sym,
+                                             alias_type,
+                                             /*deduced_only=*/FALSE);
+    tpp->used_in_alias = param_used;
+    if (param_used) any_used = TRUE;
+  } /* for */
+  if (!any_used) {
+    /* If none of the parameters were used in the type, check for an error
+       type, and if one is found, consider the parameters used. */
+    if (is_or_contains_error_type(alias_type)) {
+      for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+        tpp->used_in_alias = TRUE;
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* check_alias_template_param_usage */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* <-- decl_state is not used in that case. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -23230,6 +23504,9 @@ can be diagnosed at template definition time.
   }  /* if */
   /* Mark the prototype instantiation type as being complete. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+  /* Determine which of the template parameters is used in the resulting
+     type. */
+  check_alias_template_param_usage(decl_state, tp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il && decl_state->is_alias_redecl &&
       !source_sequence_entries_disallowed) {
@@ -32248,7 +32525,7 @@ list.
     *tap = (*tap)->next;
     /* If there are no pack elements, advance to the next parameter. */
     if ((!is_first_arg || (*tap != NULL && !(*tap)->is_pack_element)) &&
-        tpp != NULL) {
+        tpp != NULL && *tpp != NULL) {
       *tpp = (*tpp)->next;
     }  /* if */
   }  /* for */
@@ -32313,7 +32590,7 @@ list.
   /* If *tap points to a placeholder, skip to the next real argument. */
   skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
   if (*tap == NULL || !(*tap)->is_pack_element) {
-    if (tpp != NULL) {
+    if (tpp != NULL && *tpp != NULL) {
       *tpp = (*tpp)->next;
     }  /* if */
   }  /* if */

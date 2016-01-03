@@ -1344,6 +1344,7 @@ a pointer to it.
 #endif /* UPC_EXTENSIONS_ALLOWED */
   ttsp->expr = NULL;
   ttsp->template_arg_list = NULL;
+  ttsp->orig_template_arg_list = NULL;
   ttsp->assoc_template = NULL;
   ttsp->proxy_class = NULL;
   ttsp->operator_type_arg = NULL;
@@ -2025,6 +2026,7 @@ to default values.
       pte->variant.typeref.is_alias = FALSE;
       pte->variant.typeref.is_template_alias = FALSE;
       pte->variant.typeref.is_nonreal = FALSE;
+      pte->variant.typeref.is_dependent = FALSE;
       pte->variant.typeref.is_prototype_instantiation = FALSE;
       pte->variant.typeref.is_bases = FALSE;
       pte->variant.typeref.direct_bases = FALSE;

@@ -11922,7 +11922,8 @@ field in the new parameter types will be NULL.
 */
 {
   a_type_kind                   from_kind;
-  a_routine_type_supplement_ptr extra_info = NULL;
+  a_routine_type_supplement_ptr rtsp = NULL;
+  a_typeref_type_supplement_ptr ttsp = NULL;
   a_type_ptr                    next_ptr, tp;
   a_dependent_type_fixup_kind   dtf_kind;
 
@@ -11930,10 +11931,16 @@ field in the new parameter types will be NULL.
   /* If one type is a routine, both must be. */
   check_assertion((from_kind == (a_type_kind)tk_routine) ==
                   (to->kind == (a_type_kind)tk_routine));
+  check_assertion((from_kind == (a_type_kind)tk_typeref) ==
+                  (to->kind == (a_type_kind)tk_typeref));
   if (from_kind == (a_type_kind)tk_routine) {
     /* For a routine type, preserve the type supplement pointer for the
        copy below. */
-    extra_info = to->variant.routine.extra_info;
+    rtsp = to->variant.routine.extra_info;
+  } else if (from_kind == (a_type_kind)tk_typeref) {
+    /* For a typeref type, preserve the type supplement pointer for the
+       copy below. */
+    ttsp = to->variant.typeref.extra_info;
   }  /* if */
   /* Preserve the "next" pointer in the "to" entry. */
   next_ptr = to->next;
@@ -11954,10 +11961,10 @@ field in the new parameter types will be NULL.
       from_kind == (a_type_kind)tk_routine) {
     if (from_kind == (a_type_kind)tk_routine) {
       /* For a routine type, the type supplement must also be copied. */
-      *extra_info = *from->variant.routine.extra_info;
-      to->variant.routine.extra_info = extra_info;
+      *rtsp = *from->variant.routine.extra_info;
+      to->variant.routine.extra_info = rtsp;
       /* Copy the parameter type list. */
-      extra_info->param_type_list =
+      rtsp->param_type_list =
             copy_param_type_list(function_type_params(from), copy_default_args,
                                  /*max_params=*/(uint32_t)0);
       tp = skip_typerefs(to->variant.routine.return_type);
@@ -11995,6 +12002,9 @@ field in the new parameter types will be NULL.
                                        (a_byte_il_entry_kind)iek_type,
                                        &null_source_position);
     }  /* if */
+  } else if (from_kind == (a_type_kind)tk_typeref) {
+    /* For a typeref, copy the supplement. */
+    *ttsp = *from->variant.typeref.extra_info;
   }  /* if */
 }  /* copy_type_full */
 
@@ -26006,7 +26016,8 @@ back ends.  This is TRUE for dependent template entities.
   ((is_immediate_class_type(type) &&					\
     (type)->variant.class_struct_union.is_nonreal_class) ||		\
    (type->kind == (a_type_kind)tk_typeref &&				\
-    (type)->variant.typeref.is_nonreal) ||				\
+    ((type)->variant.typeref.is_nonreal ||				\
+     (type)->variant.typeref.is_dependent)) ||				\
    ((type)->kind == (a_type_kind)tk_template_param && !is_auto_type(type)))
 
 

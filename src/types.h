@@ -1317,7 +1317,9 @@ extern void lower_vla_dimensions_in_type(a_type_ptr  tp);
 extern a_boolean is_directly_variably_modified_type(a_type_ptr  tp);
 extern a_type_ptr strip_routine_default_args(a_type_ptr  type);
 extern a_type_ptr strip_qualifiers_from_param_types(a_type_ptr  type);
-extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
+extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type,
+                                                   a_boolean   local_only);
+extern a_type_ptr strip_local_typedefs(a_type_ptr  type);
 extern a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type);
 
 #if !STANDALONE_UTILITY_PROGRAM

@@ -8048,6 +8048,16 @@ typedef struct a_typeref_type_supplement {
 			   on which the instantiation is based.  NULL for
 			   ordinary types that are not generated from an
 			   alias template. */
+  a_template_arg_ptr
+		orig_template_arg_list;
+			/* For types that are instantiations of a template
+			   alias, this points to the template argument list
+			   before any nonreal typerefs have been removed.
+			   This argument list is used for substitution as
+			   a substitution failure in one of the arguments
+			   should result in a substitution failure on the
+			   type, even if the argument is not used in the
+			   eventual type. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
@@ -9225,6 +9235,13 @@ typedef struct a_type {
 			   instantiation. */
       a_bit_field
 		is_nonreal:1;
+			/* TRUE if the result of an alias instantiation is
+			   a dependent type.  It is not TRUE if the alias
+			   instantiation has a dependent argument that is
+			   not used in the resulting type (see is_dependent
+			   below). */
+      a_bit_field
+		is_dependent:1;
 			/* TRUE if the type is an instantiation of a template
 			   alias based on template arguments that include
 			   one or more template parameters.

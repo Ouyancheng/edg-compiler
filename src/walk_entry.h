@@ -3198,6 +3198,12 @@ after_entry_from_class:
                                       (a_typeref_type_supplement_ptr)entry_ptr;
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
+        if (!prototype_instantiations_in_il) {
+          conditionally_clear_fe_pointer(ptr->orig_template_arg_list);
+        } else {
+          walk_list(ptr->orig_template_arg_list, a_template_arg_ptr,
+                    iek_template_arg);
+        }  /* if */
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->proxy_class, a_type_ptr, iek_type);

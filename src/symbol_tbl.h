@@ -2004,6 +2004,9 @@ typedef struct a_template_param {
 			   or its default argument is dependent.  For
 			   a template template parameter, this is TRUE if
 			   any of its template parameters are dependent. */
+  a_bit_field	used_in_alias:1;
+			/* TRUE if the parameter is used in the resulting
+			   alias type. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */
@@ -5999,6 +6002,18 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
   ((sym)->kind == (a_symbol_kind)sk_type				\
     ? (sym)->variant.type.ptr->						\
                      variant.typeref.extra_info->template_arg_list	\
+    : is_class_struct_union_symbol(sym)                                 \
+      ? (sym)->variant.class_struct_union.type->			\
+                     variant.class_struct_union.extra_info->template_arg_list \
+   : (sym)->variant.routine.ptr->template_arg_list)
+
+/* Return the template argument list associated with a given template class
+   or template alias symbol.  For an alias, the original argument list
+   is returned. */
+#define orig_template_arg_list_for_symbol(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_type				\
+    ? (sym)->variant.type.ptr->						\
+                     variant.typeref.extra_info->orig_template_arg_list	\
     : is_class_struct_union_symbol(sym)                                 \
       ? (sym)->variant.class_struct_union.type->			\
                      variant.class_struct_union.extra_info->template_arg_list \

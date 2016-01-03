@@ -1624,6 +1624,12 @@ scopes.  It is also TRUE when in_nonreal_instantiation is TRUE.
    scope_stack[depth_scope_stack].in_nonreal_instantiation)
 
 /*
+TRUE if we are within a template declaration scope.
+*/
+#define is_template_declaration_context()				\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH)
+
+/*
 TRUE if we are in the context of a variadic template.  This is TRUE both
 when the original template is scanned and during a real instantiation.
 */

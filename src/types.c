@@ -5895,6 +5895,7 @@ check_typerefs:
     a_type_qualifier_set  tqs1 = TQ_NONE, tqs2 = TQ_NONE;
     a_boolean             type_op = FALSE;
     a_type_ptr            tp1 = type_1, tp2 = type_2;
+    a_boolean	          is_nonreal1 = FALSE, is_nonreal2 = FALSE;
     while (tp1->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp1)) {
         if (typeref_is_type_operator(tp1)) {
@@ -5903,6 +5904,7 @@ check_typerefs:
           tqs1 |= tp1->variant.typeref.qualifiers;
         }  /* if */
       }  /* if */
+      if (tp1->variant.typeref.is_nonreal) is_nonreal1 = TRUE;
       tp1 = tp1->variant.typeref.type;
     } /* while */
     while (tp2->kind == (a_type_kind)tk_typeref) {
@@ -5913,8 +5915,14 @@ check_typerefs:
           tqs2 |= tp2->variant.typeref.qualifiers;
         }  /* if */
       }  /* if */
+      if (tp2->variant.typeref.is_nonreal) is_nonreal2 = TRUE;
       tp2 = tp2->variant.typeref.type;
     } /* while */
+    if (is_nonreal1 != is_nonreal2 &&
+        type_1->kind == (a_type_kind)tk_typeref &&
+        type_2->kind == (a_type_kind)tk_typeref) {
+      goto done;
+    }  /* if */
     if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) && tqs1 != tqs2) {
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
@@ -12418,8 +12426,9 @@ types, i.e., also for nonreal classes.
       *force_end_of_traversal = found = TRUE;
     } else if (find_all_dependent_types &&
                type_ptr->kind == (a_type_kind)tk_typeref &&
-               type_ptr->variant.typeref.is_dependent_type_operator) {
-      /* A dependent decltype or typeof. */
+               (type_ptr->variant.typeref.is_dependent_type_operator ||
+                type_ptr->variant.typeref.is_nonreal)) {
+      /* A dependent decltype, typeof, or nonreal alias instance. */
       *force_end_of_traversal = found = TRUE;
     } else if (find_all_dependent_types &&
                type_ptr->kind == (a_type_kind)tk_typeref &&
@@ -13476,7 +13485,6 @@ returns TRUE for types that contain C++/CLI generic parameters.
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARAM_TYPES |
                                                  TTT_TEMPLATE_ARGS |
-                                                 TTT_SKIP_TYPEREFS |
                                                  TTT_CLI_GENERIC_PARAMETERS |
                                                  TTT_PARENT_CLASSES);
 
@@ -14325,6 +14333,10 @@ typedef a_boolean a_type_modifier_function(
 typedef a_type_modifier_function *a_type_modifier_function_ptr;
 
 
+/* Forward declaration. */
+static a_type_ptr f_strip_local_and_nonreal_typedefs(a_type_ptr  type);
+
+
 /*ARGSUSED*/ /* flags is not required but is part of the general interface. */
 static a_boolean tmtt_strip_local_and_nonreal_typedefs(
                                     a_type_ptr                      type,
@@ -14336,7 +14348,7 @@ was done. The modified type (or the original type if no modification was done)
 is returned in *new_type.
 */
 {
-  *new_type = strip_local_and_nonreal_typedefs(type);
+  *new_type = f_strip_local_and_nonreal_typedefs(type);
   return !same_entities(type, *new_type);
 }  /* tmtt_strip_local_and_nonreal_typedefs */
 
@@ -14622,7 +14634,12 @@ make_new_type:
 }  /* traverse_and_modify_type_tree */
 
 
-a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type)
+/* TRUE if only local types should be removed by
+   f_strip_local_and_nonreal_typedefs. */
+static a_boolean
+		slnrt_local_only;
+
+static a_type_ptr f_strip_local_and_nonreal_typedefs(a_type_ptr  type)
 /*
 If type contains one or more typedefs that are local to a function, or that
 were defined in a prototype instantiation (whether at the top level or
@@ -14635,7 +14652,7 @@ to the caller.  If no modification is done return the original type.
 
   /* If the underlying type is not dependent, make sure we strip off any
      nonreal typerefs. */
-  if (type->kind == (a_type_kind)tk_typeref &&
+  if (!slnrt_local_only && type->kind == (a_type_kind)tk_typeref &&
       prototype_instantiations_in_il) {
     if (is_template_dependent_context() && !is_template_dependent_type(type)) {
       force_strip_nonreal = TRUE;
@@ -14644,6 +14661,7 @@ to the caller.  If no modification is done return the original type.
   while (type->kind == (a_type_kind)tk_typeref) {
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
+    a_boolean  is_alias =  FALSE;
     /* Don't strip dependent decltype or typeof operators.  We need to
        check the underlying type because these operators could be
        instantiation-dependent without being type-dependent. */
@@ -14653,9 +14671,11 @@ to the caller.  If no modification is done return the original type.
     }  /* if */
     /* See if the type is local to a function. */
     is_local = type->source_corresp.is_local_to_function;
-    if (!prototype_instantiations_in_il || force_strip_nonreal) {
+    if (!slnrt_local_only && !is_local &&
+        (!prototype_instantiations_in_il || force_strip_nonreal)) {
       /* Check for a nonreal template alias. */
-      is_nonreal = type->variant.typeref.is_nonreal;
+      is_alias = type->variant.typeref.is_dependent;
+      is_nonreal = is_alias;
     }  /* if */
     if (!is_local && !is_nonreal &&
         (!prototype_instantiations_in_il || force_strip_nonreal)) {
@@ -14709,7 +14729,30 @@ to the caller.  If no modification is done return the original type.
   return traverse_and_modify_type_tree(type,
 				       tmtt_strip_local_and_nonreal_typedefs,
                                        TTT_NO_INPUT_FLAGS);
+}  /* f_strip_local_and_nonreal_typedefs */
+
+
+a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type,
+                                            a_boolean   local_only)
+/*
+Interface to strip_local_and_nonreal_typedefs_full to strip local and 
+optionally nonreal typedefs.
+*/
+{
+  slnrt_local_only = local_only;
+  return f_strip_local_and_nonreal_typedefs(type);
 }  /* strip_local_and_nonreal_typedefs */
+
+
+a_type_ptr strip_local_typedefs(a_type_ptr  type)
+/*
+Interface to strip_local_and_nonreal_typedefs_full to strip only
+local typedefs.
+*/
+{
+  slnrt_local_only = TRUE;
+  return f_strip_local_and_nonreal_typedefs(type);
+}  /* strip_local_typedefs */
 
 
 a_type_ptr strip_routine_default_args(a_type_ptr  type)

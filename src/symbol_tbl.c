@@ -14908,6 +14908,7 @@ and return a pointer to it.
   ptr->is_pack = FALSE;
   ptr->do_prototype_instantiation = FALSE;
   ptr->is_dependent = FALSE;
+  ptr->used_in_alias = FALSE;
 #if CENTERLINE_CHECKING
   ptr->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
