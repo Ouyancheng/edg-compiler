@@ -11804,7 +11804,7 @@ a pointer over a reference type or creating an array of references.
               a_symbol_ptr			template_sym;
               ttsp = type->variant.typeref.extra_info;
               template_sym = symbol_for(ttsp->assoc_template);
-              (void)copy_template_alias_reference_with_substitution(
+              copy_template_alias_reference_with_substitution(
                               template_sym, type, templ_arg_list,
                               templ_param_list, source_pos, options,
                               copy_error,
