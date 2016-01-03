@@ -7715,7 +7715,6 @@ error type is used.
     set_alias_nonreal_flag(instance_sym, template_arg_list,
                            dependent_arg_list, any_dependent_args);
     if (instance_sym->is_class_member) {
-      a_type_ptr	parent_class;
       parent_class = sym_parent_class(instance_sym);
       /* If the enclosing class is nonreal, then any instances of the member
          alias must also be nonreal. */
@@ -7751,10 +7750,6 @@ error type is used.
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   {
-    a_template_cache_ptr	body_cache;
-    a_symbol_ptr		template_sym_of_prototype;
-    a_template_symbol_supplement_ptr
-				tssp_of_prototype;
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
        may be restored when we are done. */
@@ -7767,14 +7762,6 @@ error type is used.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* If this is an alias defined within a class template, the prototype
-       instantiation is associated with the definition within the original
-       template.  Get a pointer to the template symbol that is associated
-       with the prototype instantiation. */
-    template_sym_of_prototype = prototype_template_of(template_sym);
-    tssp_of_prototype =
-                     template_supplement_for_symbol(template_sym_of_prototype);
-    body_cache = cache_for_template(tssp_of_prototype);
     if (body_cache->tokens.first_token == NULL) {
       /* The template definition is missing.  This should only occur in error
          cases. */
@@ -11172,7 +11159,6 @@ which the alias is based.  options is a set of bit flags used to control
 substitution.  Note that this only does substitution on the argument list
 */
 {
-  a_template_arg_ptr			new_list;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp;
   a_template_symbol_supplement_ptr	tssp;
@@ -11185,7 +11171,7 @@ substitution.  Note that this only does substitution on the argument list
   tpp = tssp->cache.decl_info->parameters;
   check_assertion(tpp != NULL);
   /* Make a copy of the template argument list, doing substitution. */
-  new_list = copy_template_arg_list_with_substitution(
+  (void)copy_template_arg_list_with_substitution(
                                            template_sym,
                                            tap, tpp, templ_arg_list,
                                            templ_param_list, 
