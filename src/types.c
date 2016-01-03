@@ -14744,17 +14744,6 @@ optionally nonreal typedefs.
 }  /* strip_local_and_nonreal_typedefs */
 
 
-a_type_ptr strip_local_typedefs(a_type_ptr  type)
-/*
-Interface to strip_local_and_nonreal_typedefs_full to strip only
-local typedefs.
-*/
-{
-  slnrt_local_only = TRUE;
-  return f_strip_local_and_nonreal_typedefs(type);
-}  /* strip_local_typedefs */
-
-
 a_type_ptr strip_routine_default_args(a_type_ptr  type)
 /*
 If type contains any routine types, remove the default arguments from the

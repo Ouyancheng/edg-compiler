@@ -7604,6 +7604,9 @@ specified by template_sym.  Return the symbol for the new instance.
 }  /* create_alias_instance */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- template_arg_list is not used in this case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void set_alias_nonreal_flag(a_symbol_ptr		instance_sym,
 				   a_template_arg_ptr	template_arg_list,
 				   a_boolean		dependent_arg_list,
