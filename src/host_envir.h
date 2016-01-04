@@ -613,14 +613,14 @@ slower.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
-When this flag is TRUE the prototype instantiations of function definitions
-are included in the IL.  In addition, IL data structures that mirror
-certain front end template data structures (e.g., a_template_decl and
-a_template_parameter) are created.  When the flag is FALSE, prototype
+When this flag is TRUE, any prototype instantiations of function definitions
+that are done are included in the IL.  In addition, IL data structures
+that mirror certain front end template data structures (e.g., a_template_decl
+and a_template_parameter) are created.  When the flag is FALSE, prototype
 instantiations of function definitions may or may not be done, depending
 on other modes, but the definition generated (if any) will not be included
 in the IL.  If PROTOTYPE_INSTANTIATIONS_IN_IL is already defined, use that
-as the bases of the value for this flag.
+as the basis of the value for this flag.
 */
 #ifndef ALL_TEMPLATE_INFO_IN_IL
 #ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -642,12 +642,17 @@ representations should be recorded in the IL.  (It is typically not needed
 for direct code generation.)  It is the default value of the variable
 prototype_instantiations_in_il.  Note that prototype instantiations cannot
 be generated when doing IL lowering.
+
+This flag must now be set to TRUE.  The flag and the tests that use it
+will be removed at some point.
 */
-/* FIXME: */
-#undef PROTOTYPE_INSTANTIATIONS_IN_IL
 #ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
 #define PROTOTYPE_INSTANTIATIONS_IN_IL TRUE
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
+
+#if !PROTOTYPE_INSTANTIATIONS_IN_IL
+  #error PROTOTYPE_INSTANTIATIONS_IN_IL can no longer be set to FALSE
+#endif /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
 In some modes, the prototype instantiation of functions is deferred until

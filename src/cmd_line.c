@@ -10530,16 +10530,6 @@ enable_microsoft_mode:
     f_error = stdout;
   }  /* if */
 #endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
-#if DO_IL_LOWERING
-  /* Things like prototype instantiations of function bodies cannot be
-     lowered, so don't bother passing them to the back end.  Note that the
-     IL can still contain class prototype instantiations and other
-     dependent entities. */
-/* FIXME */
-#if 0
-  all_template_info_in_il = FALSE;
-#endif
-#endif /* DO_IL_LOWERING */
   /* When name mangling is being done, name references are needed for entities
      from template deduction contexts. */
   create_template_deduction_name_references = NEED_NAME_MANGLING;

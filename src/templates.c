@@ -7581,8 +7581,7 @@ a type in certain ways (see template_arg_list_is_dependent).
 }  /* create_partial_instantiation_of_class */
 
 
-static a_symbol_ptr create_alias_instance(
-				a_symbol_ptr		template_sym)
+static a_symbol_ptr create_alias_instance(a_symbol_ptr	template_sym)
 /*
 Create the symbol and type entries for an instance of the alias template
 specified by template_sym.  Return the symbol for the new instance.
@@ -7636,7 +7635,7 @@ in the result type) are instantiation dependent.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* See if the template arguments involve any nonreal types.  For this
-       test, an alias with dependent template argument is not considered
+       test, an alias with a dependent template argument is not considered
        dependent if the underlying type is not dependent. */
     if (!open_constructed_arg_list && dependent_arg_list) {
       type->variant.typeref.is_nonreal = TRUE;
@@ -7661,7 +7660,7 @@ typerefs removed.  orig_arg_list is the list preserving such types.  This
 is needed to keep dependent types that were not used in the expansion of
 the alias.  Such types must be substituted when an alias is substituted
 in template parameter substitution.  Return the symbol for the type that was
-created. If the alias is indirectly used in the type to which the alias
+created.  If the alias is indirectly used in the type to which the alias
 refers an error should be issued.  existing_instance_sym will point to the
 template alias symbol that is in the process of being instantiated in this
 case.  When existing_instance_sym is non-NULL an error is issued here and an
@@ -7732,7 +7731,7 @@ error type is used.
     {
       /* Record the template on which this is based.  Unlike classes, this
          refers to the subordinate template (X<int>::Y<T> rather than
-          X<T>::Y). */
+         X<T>::Y). */
       ttsp->assoc_template =
                        template_sym->variant.template_info->il_template_entry;
     }
@@ -8358,7 +8357,7 @@ exist.
     list_for_prototype_check = new_list_without_local_types;
     list_for_instantiation = new_list_without_local_types;
   } else {
-    /* In other contexts, use the what is now the list stripped of local
+    /* In other contexts, use what is now the list stripped of local
        and nonreal types. */
     list_for_prototype_check = *new_list;
     list_for_instantiation = *new_list;
@@ -11158,8 +11157,8 @@ static void copy_template_alias_reference_with_substitution(
 /*
 Copy, with substitution, the template argument list from orig_type, which
 is an instance of an alias template.  template_sym is the template on
-which the alias is based.  options is a set of bit flags used to control
-substitution.  Note that this only does substitution on the argument list
+which the alias is based.  Note that this only does substitution on the
+argument list.
 */
 {
   a_template_arg_ptr			tap;
@@ -11841,8 +11840,8 @@ a pointer over a reference type or creating an array of references.
                 /* An attempt to add qualifiers to a VLA type.  Deduction
                    fails.  (You can't create a new version of a VLA type
                    with a different element type, because the bound
-                  expression evaluation is unique to the original
-                  array type.) */
+                   expression evaluation is unique to the original
+                   array type.) */
                 *copy_error = TRUE;
               } else {
                 /* Restore the type qualifiers stripped off above. */
@@ -23387,7 +23386,8 @@ static void check_alias_template_param_usage(
 					a_type_ptr		alias_type)
 /*
 Determine which of the template parameters of an alias template are used
-in the resulting type.
+in the prototype instantiation type specified by alias_type.  The parameter
+information is obtained from decl_state.
 */
 {
   a_template_param_ptr	template_param_list =
@@ -23398,8 +23398,8 @@ in the resulting type.
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
-    /* Determine whether all template parameters are used by
-       function parameter types. */
+    /* Determine whether all template parameters are used by function
+       parameter types. */
     param_used = template_param_used_in_type(param_sym,
                                              alias_type,
                                              /*deduced_only=*/FALSE);

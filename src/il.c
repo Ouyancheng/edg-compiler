@@ -11573,8 +11573,8 @@ ck_template_param/tpck_expression constant.
                               (a_local_expr_node_ref_kind)lerk_tpl_param_expr);
   } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  /* Do not insert code here. */
   {
-    /* Do not insert code here. */
     expr = cp->variant.template_param.variant.expr;
   }  /* if */
   return expr;

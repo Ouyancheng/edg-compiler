@@ -4183,7 +4183,7 @@ the scope must be the file scope.
       /* Certain types, such as a prototype instantiations, should not be
          processed by the back end. */
       if (!ignore_type_in_back_end(type)) {
-	dump_type_decl(type, pass);
+        dump_type_decl(type, pass);
       }  /* if */
     }  /* for */
     /* K&R C doesn't have prototype scopes, so when generating K&R C

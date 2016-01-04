@@ -9713,8 +9713,8 @@ typedef struct a_variable {
 			/* TRUE if this variable represents the prototype
 			   instantiation of a static data member of
 			   a class template.  Also TRUE for a variable declared
-                           during the prototype instantiation of a function
-			   template, except if that variable has linkage and a
+			   during the prototype instantiation of a function
+			   template, unless that variable has linkage and a
 			   a nondependent type. */
   a_bit_field	is_specialized:1;
 			/* TRUE when is_template_static_data_member is TRUE
@@ -13554,7 +13554,7 @@ typedef struct a_routine {
   a_bit_field	is_prototype_instantiation:1;
 			/* TRUE if this routine represents the prototype
 			   instantiation of a function template or a member
-			   function of a class template.  It is also true
+			   function of a class template.  It is also TRUE
 			   for other kinds of dependent function declarations,
 			   such as member functions of a local class that
 			   is defined in a dependent context, and block extern

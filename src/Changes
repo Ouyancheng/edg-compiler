@@ -12,13 +12,16 @@ In order to implement this, PROTOTYPE_INSTANTIATIONS_IN_IL must now be
 TRUE.  The largest part of the changes for this are those required to
 allow IL lowering to be able to coexist with PROTOTYPE_INSTANTIATIONS_IN_IL.
 Prototype instantiations are not actually lowered, but lowering has to
-be able to ignore the prototype instantiation information.
+be able to ignore the prototype instantiation information.  Attempting
+to set the flag to FALSE will now result in an #error at build time.  At
+some point in the future, this flag and the tests of it will be removed.
 
 Back ends will require some modifications to ignore prototype instantiation
 information in the IL tree.  These changes are expected to be minor.
 There are new functions/macros named ignore_type_in_back_end,
-ignore_routine_in_back_end, and ignore_variable_in_back_end that may
-need to be tested.  See c_gen_be.c for examples.
+ignore_routine_in_back_end, and ignore_variable_in_back_end that can be
+used to determine whether a given entity should be processed.  See
+c_gen_be.c for examples.
 
 A new configuration macro named ALL_TEMPLATE_INFO_IN_IL has been added.
 This controls part of the functionality previously included as part of
