@@ -10923,11 +10923,14 @@ associated parameter.
     }  /* if */
     if ((!any_more || tap == NULL) &&
         have_params && tpp != NULL && tpp->has_default_arg &&
-        template_sym != NULL && is_class_template_symbol(template_sym)) {
+        template_sym != NULL && is_class_template_symbol(template_sym) &&
+        !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
       /* This is an empty pack expansion for a template parameter with a
          default argument, or a missing template argument (which can occur
          following a use of a pack as an argument to a non-pack).  Get the
-         default argument value. */
+         default argument value.  Don't do this if we're doing a partial
+         substitution that allows additional deduction later on (since the
+         deduction may provide a non-default argument value). */
       a_templ_arg_kind		arg_kind;
       arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
       tap = alloc_template_arg(arg_kind);

@@ -1,5 +1,24 @@
 Version 4.11
 
+1/5/16   [EDGcpfe/16587]
+Explicit template arguments, parameter packs, and default arguments
+
+The front end previously sometimes handled explicit function template arguments
+incorrectly when they appear on a variadic function template whose signature
+involves a nonvariadic class template with default arguments.  For example:
+
+  template<typename T, typename U  = int> struct X { };
+  template<typename... Ts> X<Ts...> g(X<Ts...>);
+  void f(X<int, float> p) {
+    g<int>(p);  // Previously triggered a spurious error; now okay.
+  }
+
+Previously, the substitution of g<int> produced a function type with parameter
+type X<int, int> (instead of something like X<int, __T2> where T2 can still be
+deduced to float), which cannot be matched with the argument p of type
+X<int, float>.  This is now fixed.
+
+
 1/5/16   [EDGcpfe/16542]
 Default member initializers in template classes and generated constructors
 
