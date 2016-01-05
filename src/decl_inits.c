@@ -8084,7 +8084,7 @@ initialized.  These are addressed in the course of the processing.
                and for template instances failing this test isn't an error,
                but it makes the function effectively non-constexpr. */
             if (ctor_rout->is_declared_constexpr &&
-                is_unspecialized_template_member_function(ctor_rout)) {
+                !is_unspecialized_template_member_function(ctor_rout)) {
               if (!bad_call_for_constexpr_ctor_reported) {
                 pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
                              symbol_for(rp));
