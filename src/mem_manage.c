@@ -1442,20 +1442,23 @@ any unused space.
 static a_boolean must_not_write_function_region(
 					a_memory_region_number region_number)
 /*
-Return TRUE if region_number must be not written to the IL file.
+Return TRUE if region_number must be not written to the IL file.  A
+region that contains only prototype instantiations should not be written.
+This is mostly needed to detect top-level generic lambda prototype
+instantiations (i.e., ones that are not defined in function scopes).
 */
 {
-  a_boolean	discard = FALSE;
+  a_boolean	discard = TRUE;
   a_scope_ptr	sp;
 
   sp = il_header.region_scope_entry[region_number];
   for (; sp != NULL; sp = sp->next) {
     a_routine_ptr	rp = sp->variant.routine.ptr;
     check_assertion(rp != NULL);
-    if (rp->is_prototype_instantiation && !all_template_info_in_il) {
+    if (!rp->is_prototype_instantiation || all_template_info_in_il) {
       /* Don't write prototype instantiations unless all_template_info_in_il
          is TRUE. */
-      discard = TRUE;
+      discard = FALSE;
       break;
     }  /* if */
   }  /* for */
