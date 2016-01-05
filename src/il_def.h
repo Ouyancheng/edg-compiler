@@ -13528,16 +13528,15 @@ typedef struct a_routine {
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_bit_field	is_template_function:1;
-			/* TRUE for: instances and specializations of
-			   function templates; instances and
-			   specializations of member function
-			   templates; instances and specializations of
-			   member functions of generated template
-			   class instances.  FALSE for all other
-			   functions, including a function that is a
-			   member (but not a member template) of a
-			   class that is a specialization of a
-			   template class. */
+			/* TRUE for instances and specializations of function
+			   templates, instances and specializations of member
+			   function templates, and instances and
+			   specializations of member functions -- except
+			   generated special members -- of generated template
+			   class instances.  FALSE for all other functions,
+			   including a function that is a member (but not a
+			   member template) of a class that is a specialization
+			   of a template class. */
   a_bit_field	is_specialized:1;
 			/* TRUE when is_template_function is TRUE but the
 			   function definition is supplied independently of

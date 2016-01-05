@@ -6405,7 +6405,7 @@ the prototype instantiation).
     /* A constexpr constructor requires constant initialization.  In the
        template case, the "constexpr" property is silently dropped.  In other
        cases, an error is issued. */
-    if (ctor->is_template_function && !ctor->is_specialized) {
+    if (is_unspecialized_template_member_function(ctor)) {
       if (!ctor->is_prototype_instantiation) {
         ctor->is_constexpr = FALSE;
       }  /* if */
@@ -7892,8 +7892,7 @@ initialized.  These are addressed in the course of the processing.
             } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */
-              if (!ctor_rout->is_template_function ||
-                  ctor_rout->is_specialized) {
+              if (!is_unspecialized_template_member_function(ctor_rout)) {
                 pos_sy_error(
                           ec_nonconstant_field_initializer_in_mem_initializer,
                           &err_pos, field_sym);
@@ -7968,8 +7967,8 @@ initialized.  These are addressed in the course of the processing.
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
             a_constructor_init_ptr  diag_cip;
-            if (ctor_rout->is_constexpr && (!ctor_rout->is_template_function ||
-                                            ctor_rout->is_specialized)) {
+            if (ctor_rout->is_constexpr &&
+                !is_unspecialized_template_member_function(ctor_rout)) {
               /* For constexpr constructors that aren't template instances the
                  initializer entry should remain on the list so folding has
                  something to work with.  (For template instances, the
@@ -8085,8 +8084,7 @@ initialized.  These are addressed in the course of the processing.
                and for template instances failing this test isn't an error,
                but it makes the function effectively non-constexpr. */
             if (ctor_rout->is_declared_constexpr &&
-                (!ctor_rout->is_template_function ||
-                 ctor_rout->is_specialized)) {
+                is_unspecialized_template_member_function(ctor_rout)) {
               if (!bad_call_for_constexpr_ctor_reported) {
                 pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
                              symbol_for(rp));
@@ -8158,7 +8156,7 @@ initialized.  These are addressed in the course of the processing.
          is issued. */
       an_error_code  errcode = ec_missing_initializer_on_fields;
       if (ctor_rout->is_constexpr) {
-        if (!ctor_rout->is_template_function || ctor_rout->is_specialized) {
+        if (!is_unspecialized_template_member_function(ctor_rout)) {
           /* Use a slightly different wording for constexpr constructors. */
           errcode = ec_missing_initializer_on_fields_with_constexpr_ctor;
         } else {

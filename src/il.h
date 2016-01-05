@@ -542,6 +542,15 @@ extern a_boolean instantiation_needed_flag_is_set(
    !(rp)->is_prototype_instantiation)
 
 
+/*
+Produce TRUE if the given member function is a template instance.  This macro
+also works for generated members.
+*/
+#define is_unspecialized_template_member_function(rp)                        \
+  ((rp)->compiler_generated ?                                                \
+                   (is_unspecialized_template_class(parent_class_of(rp))) :  \
+                   ((rp)->is_template_function && !(rp)->is_specialized))
+
 
 /* Test a routine to see whether it is inline.  When it is a template
    instance, this may require looking at the template because the

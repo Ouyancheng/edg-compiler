@@ -1,5 +1,22 @@
 Version 4.11
 
+1/5/16   [EDGcpfe/16542]
+Default member initializers in template classes and generated constructors
+
+The front end no longer forces the instantiation of default member initializers
+(aka. nonstatic data member initializers) when generating a default constructor
+declaration for a non-specialized template class.  For example:
+
+  template<typename> struct I;
+  template<typename T> struct B {
+    int i = f(I<T>());
+  };
+  struct D: B<int> {};
+
+Previously this example triggered an error about I<int> being incomplete, but
+now it is accepted but the initializer for B<int>::i is not instantiated.
+
+
 1/3/16   [EDGcpfe/15902,EDGcpfe/15946,EDGcpfe/16053,EDGcpfe/16054,
           EDGcpfe/16269,EDGcpfe/16466,EDGcpfe/16468,EDGcpfe/16665]
 Core issue 1558: unused arguments in alias instantiation (e.g., void_t)

@@ -19539,13 +19539,17 @@ static a_boolean fields_initialized_for_constexpr_constructor(
 Return TRUE if the field initialization constraints for a generated constexpr
 default constructor are satisfied by the given class type.  For non-union
 types, all fields must be initialized, and for union types exactly one field
-must be initialized.  In all cases, the initializers must also be constants.
+must be initialized.  The initializers must also be constants, but we do not
+enforce that for template classes to avoid forcing the premature instantiation
+of the initializers.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  ensure_all_field_initializers_scanned(class_type);
+  if (!is_unspecialized_template_class(class_type)) {
+    ensure_all_field_initializers_scanned(class_type);
+  }  /* if */
   fp = next_initializable_field(fp);
   if (fp != NULL) {
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
