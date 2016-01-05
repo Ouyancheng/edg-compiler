@@ -1439,6 +1439,30 @@ any unused space.
 #if !STANDALONE_UTILITY_PROGRAM
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
+static a_boolean must_not_write_function_region(
+					a_memory_region_number region_number)
+/*
+Return TRUE if region_number must be not written to the IL file.
+*/
+{
+  a_boolean	discard = FALSE;
+  a_scope_ptr	sp;
+
+  sp = il_header.region_scope_entry[region_number];
+  for (; sp != NULL; sp = sp->next) {
+    a_routine_ptr	rp = sp->variant.routine.ptr;
+    check_assertion(rp != NULL);
+    if (rp->is_prototype_instantiation && !all_template_info_in_il) {
+      /* Don't write prototype instantiations unless all_template_info_in_il
+         is TRUE. */
+      discard = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return discard;
+}  /* must_not_write_function_region */
+
+
 static a_boolean memory_region_should_be_kept_for_routine(a_routine_ptr	rout,
 							  a_scope_ptr	scope)
 /*
@@ -1453,6 +1477,15 @@ memory because of the properties of rout.  scope is the scope of rout
 #endif /* DO_IL_LOWERING */
 
   if (rout != NULL &&
+      !scope->function_body_processing_finished) {
+    /* If we haven't finished processing the function body, don't write
+       it out.  In particular, if IL lowering has not been done yet,
+       do not write out the body. */
+    keep_memory = TRUE;
+  } else if (rout->is_prototype_instantiation && !all_template_info_in_il) {
+    /* Discard regions for prototype instantiation when not keeping all
+       template information in the IL. */
+  } else if (rout != NULL &&
       keep_function_body_for_possible_inlining(rout)) {
     /* Keep the region for an inline function so it can be used to
        do inlining. */
@@ -1465,12 +1498,6 @@ memory because of the properties of rout.  scope is the scope of rout
        that definition. */
     keep_memory = TRUE;
 #endif /* DO_IL_LOWERING */
-  } else if (rout != NULL &&
-             !scope->function_body_processing_finished) {
-    /* If we haven't finished processing the function body, don't write
-       it out.  In particular, if IL lowering has not been done yet,
-       do not write out the body. */
-    keep_memory = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
   } else if (rout != NULL &&
              (!rout->keep_definition_in_il || !rout->definition_needed)) {
@@ -1587,7 +1614,9 @@ memory or with an IL file.
   if (!keep_memory) {
     /* Write the region to the file and free it. */
     check_assertion(!in_secondary_trans_unit(scope));
-    write_memory_region(region_number);
+    if (rout == NULL || !must_not_write_function_region(region_number)) {
+      write_memory_region(region_number);
+    }  /* if */
   }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -1630,9 +1659,13 @@ part of secondary translation units (perhaps).
       a_boolean   from_secondary_trans_unit = in_secondary_trans_unit(sp);
       /* Skip the file-scope memory regions of secondary translation units. */
       if (!from_secondary_trans_unit || sp->kind != (a_scope_kind)sck_file) {
-        a_routine_ptr rout;
+        a_routine_ptr	rout;
+        a_boolean	write_region = !from_secondary_trans_unit;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
         rout = sp->variant.routine.ptr;
+        if (write_region && rout != NULL) {
+          write_region = !must_not_write_function_region(n);
+        }  /* if */
         check_assertion_str2(!rout->is_trivial_default_constructor ||
                              rout->is_defaulted,
                            "check_for_done_with_all_function_memory_regions:",
@@ -1642,13 +1675,12 @@ part of secondary translation units (perhaps).
           fprintf(f_debug,
                   "check_for_done_with_all_function_memory_regions: ");
           fprintf(f_debug, "%s memory region for ",
-                           !from_secondary_trans_unit ?
-                                                "writing/freeing" : "freeing");
+                           write_region ? "writing/freeing" : "freeing");
           db_name(&rout->source_corresp);
           fprintf(f_debug, "\n");
         }  /* if */
 #endif /* DEBUG */
-        if (!from_secondary_trans_unit) write_memory_region(n);
+        if (write_region) write_memory_region(n);
         free_memory_region(n);
       }  /* if */
     }  /* if */
