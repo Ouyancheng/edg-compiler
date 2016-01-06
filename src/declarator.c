@@ -2008,6 +2008,9 @@ a trailing return type.
         /* Something like "auto g() { return 0; }", which is permitted in
            C++14. */
         state->has_deducible_return_type = TRUE;
+        if (warn_on_deduced_return_types) {
+          pos_warning(ec_deduced_return_types_is_cpp14, &state->auto_pos);
+        }  /* if */
       } else {
         if (is_error_type(state->specifiers_type)) {
           /* A diagnostic has been issued already. */

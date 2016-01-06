@@ -1,5 +1,13 @@
 Version 4.11
 
+1/6/16   [EDGcpfe/16745]
+GNU compatibility: Deduced return types in C++11 mode
+
+In GNU C++11 mode (without C++14 features enabled) with gnu_version >= 40800
+and gnu_version < 40900, the front end now accepts deduced return types with
+a warning.
+
+
 1/6/16   [EDGcpfe/16590]
 Abort in get_expr_rescan_info
 

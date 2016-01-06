@@ -4452,6 +4452,13 @@ This function is also called in clang mode.
          captures. */
       init_capture_enabled = TRUE;
     }  /* if */
+    if (!deduced_return_types_enabled && auto_type_specifier_enabled &&
+        !clang_mode && gnu_version >= 40800 && gnu_version < 40900) {
+      /* GCC 4.8.x accepts deduced return types with a warning (on every
+         occurrence) in its C++11 mode. */
+      deduced_return_types_enabled = TRUE;
+      warn_on_deduced_return_types = TRUE;
+    }  /* if */
   }  /* if */
   if (clang_mode && clang_version >= 30000) {
     inline_namespaces_enabled = TRUE;
@@ -11182,6 +11189,8 @@ variables declared in cmd_line.h.
   builtin_functions_enabled = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   utf8_char_literals_enabled = FALSE;
+  deduced_return_types_enabled = FALSE;
+  warn_on_deduced_return_types = FALSE;
 }  /* cmd_line_static_var_init */
 
 

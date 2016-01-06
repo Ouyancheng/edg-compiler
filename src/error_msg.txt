@@ -2809,6 +2809,7 @@ ec_constexpr_type_invalid;;"invalid type %t for constant-expression evaluation"
 ec_constexpr_invalid_type_conversion;;"conversion from %t1 to %t2 is invalid in constant-expression evaluation"
 ec_constexpr_fp_conversion_failed;;"floating-point conversion failed"
 ec_constexpr_invalid_pointer;;"pointer value invalid"
+ec_deduced_return_types_is_cpp14;;"deduced return types are a C++14 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

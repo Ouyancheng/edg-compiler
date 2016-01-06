@@ -2486,6 +2486,12 @@ EXTERN a_boolean
 			   types from their definitions is enabled.  E.g.,
 			       auto f() { return 2.0; } // returns double
 			   */
+
+EXTERN a_boolean
+		warn_on_deduced_return_types;
+			/* When TRUE, issue a warning on the use of deduced
+			   return types (to emulate a GCC 4.8.x feature). */
+
 EXTERN a_boolean
 		enable_underscore_decltype_only;
 			/* When TRUE in GNU C++ mode with decltype_enabled set
