@@ -41853,18 +41853,8 @@ Called from fold_is_convertible_to, which may have pre-adjusted the source and
 destination types in Microsoft mode.
 */
 {
-  a_boolean               result;
-  an_expr_stack_entry     expr_stack_entry;
-  an_expr_stack_entry_ptr saved_expr_stack;
+  a_boolean  result;
 
-  /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  If there is already something on the stack,
-     save it, clear the stack, and restore it later. */
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  expr_stack->suppress_diagnostics = TRUE;
   complete_type_is_needed(src_type);
   complete_type_is_needed(dst_type);
   if (is_void_type(dst_type)) {
@@ -41886,35 +41876,47 @@ destination types in Microsoft mode.
        really desired. */
     result = FALSE;
   } else {
-    an_arg_list_elem_ptr    src_val;
-    an_arg_match_summary    arg_match;
-    /* Test whether the conversion is possible.  Use the argument match
-       routine because it can test whether the conversion is possible without
-       generating any errors.  It also handles destination types that are
-       references. */
+    an_expr_stack_entry      expr_stack_entry;
+    an_expr_stack_entry_ptr  saved_expr_stack;
+    an_arg_list_elem_ptr     src_val;
+    /* Test whether the conversion is possible.  Even though this is not an
+       actual expression scan, make sure the expr_stack has something on it.
+       Specifically, treat the conversion as unevaluated and SFINAE-like (i.e.,
+       suppress diagnostics).  If there is already something on the stack,
+       save it, clear the stack, and restore it later. */
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack->suppress_diagnostics = TRUE;
     src_val = make_declval_arg(src_type);
     if (src_val != NULL) {
-      a_base_class_ptr  bcp;
-      determine_arg_match_level(operand_of_arg_list_elem(src_val),
-                                (a_type_ptr)NULL, dst_type,
-                                (a_param_type_ptr)NULL,
-                                /*param_type_is_deduced=*/FALSE,
-                                /*try_user_conversions=*/TRUE,
-                                /*allow_expl_conv_funcs=*/FALSE,
-                                &arg_match);
+      a_boolean           incomplete;
+      a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
+                                          CCO_MOVE_OPTIMIZATION_ALLOWED);
+      an_operand          *opnd = operand_of_arg_list_elem(src_val);
+      if (type_returned_by_cctor(dst_type, &incomplete)) {
+        a_dynamic_init_ptr  dip;
+        prep_elision_initializer_operand(opnd, dst_type,
+                                         /*fill_in_dtor=*/FALSE, conv_context,
+                                         ec_no_error, (a_boolean *)NULL,
+                                         &dip);
+      } else {
+        prep_initializer_operand(opnd, dst_type, (a_boolean *)NULL,
+                                 (a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/TRUE,
+                                 conv_context, ec_no_error);
+      }  /* if */
+      result = !expr_stack->any_suppressed_error;
       free_init_component_list(src_val);
-      bcp = arg_match.conversion.std.cast_base_class;
-      result = (arg_match.match_level != aml_none) &&
-               !(bcp != NULL &&
-                 (bcp->ambiguous || !is_accessible_base_class(bcp)));
     } else {
       /* This can occur with references to incomplete types. */
       check_assertion(is_any_reference_type(src_type));
       result = FALSE;
     }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
   return result;
 }  /* compute_is_convertible */
 
