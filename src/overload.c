@@ -2652,6 +2652,7 @@ null pointer constant but not a known null pointer constant.
    is_or_might_be_null_pointer_constant(con))
 
 
+static
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,

@@ -1082,16 +1082,6 @@ extern a_boolean conversion_for_direct_reference_binding_possible(
 
 extern a_boolean current_mode_requires_early_rvalue_ref_lvalue_test(void);
 
-extern void determine_arg_match_level(
-                               an_operand           *arg_operand,
-                               a_type_ptr           arg_type,
-                               a_type_ptr           param_type,
-                               a_param_type_ptr     ptp,
-                               a_boolean            param_type_is_deduced,
-                               a_boolean            try_user_conversions,
-                               a_boolean            allow_expl_conv_funcs,
-                               an_arg_match_summary *arg_summary);
-
 extern a_boolean direct_reference_binding_possible(
                                  an_operand         *source_operand,
                                  a_type_ptr         source_type,
