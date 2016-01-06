@@ -6473,6 +6473,26 @@ constant comparison options.
 }  /* itf_flags_for_cc_options */
 
 
+static an_equiv_templ_arg_options_set eta_flags_for_cc_options(
+                                      a_compare_constants_options_set options)
+/*
+Return the appropriate template argument list comparison flags for a given set
+of constant comparison options.
+*/
+{
+  an_equiv_templ_arg_options_set eta_options = ETA_NO_OPTIONS;
+
+  if ((options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0 ||
+      (options & CC_STRICTLY_IDENTICAL) != 0) {
+    eta_options |= ETA_EXACT_MATCH_REQUIRED;
+  }  /* if */
+  if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+    eta_options |= ETA_EXACT_MATCH_REQUIRED;
+  }  /* if */
+  return eta_options;
+}  /* eta_flags_for_cc_options */
+
+
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -7146,7 +7166,8 @@ definition of the CC flags in il.h for more information.
                                                          template_ref.arg_list,
                                       cp2->variant.template_param.variant.
                                                          template_ref.arg_list,
-                                      ETA_IS_NONREAL_MEMBER);
+                                      (ETA_IS_NONREAL_MEMBER |
+                                       eta_flags_for_cc_options(options)));
               break;
             case tpck_destructor:
               eq = identical_types_full(

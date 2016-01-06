@@ -1,5 +1,26 @@
 Version 4.11
 
+1/6/16   [EDGcpfe/16590]
+Abort in get_expr_rescan_info
+
+When a template-dependent non-type template argument is used both in a
+nondeduced context and (later) in a deduced context, the front end sometimes
+aborted in get_expr_rescan_info (exprutil.c; "missing default rescan info").
+For example:
+
+  template<int> struct I {};
+  template<typename> constexpr int n() { return 42; };
+  template<typename T> struct S {
+    S(I<n<T>()>);  // n<T>() appears as an argument of I in a nondeduced
+  };               // context here.
+  template<typename T> int g(I<n<T>()>) { return 1; };
+    // n<T>() appears as an argument of I in a deduced context here.
+  int r = g<void>(I<42>());
+    // Previously aborted during the rescanning of n<T>(); now okay.
+
+This is now fixed.
+
+
 1/5/16   [EDGcpfe/16587]
 Explicit template arguments, parameter packs, and default arguments
 
