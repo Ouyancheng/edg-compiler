@@ -6074,7 +6074,7 @@ represents an address of interpreter storage) and record a corresponding
 diagnostic in *ips.
 */
 {
-// FIXME: replace alloc_constant by local_constant?
+/* FIXME: replace alloc_constant by local_constant? */
   a_boolean  result = TRUE;
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
