@@ -3536,6 +3536,8 @@ the body of the (constructor) function proper.
     a_byte            *arg_ptrs, **p_arg_ptr;
     an_alloc_seq_number
                       alloc_seq_number;
+    a_class_symbol_supplement_ptr
+                      cssp;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -3546,6 +3548,12 @@ the body of the (constructor) function proper.
       info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                         symbol_for(callee), ips);
       goto done;
+    }  /* if */
+    /* If the constructor has an associated nontrivial destructor, don't
+       attempt interpretation either since the lifetime won't be right. */
+    cssp = class_symbol_supp(symbol_for(parent_class_of(callee)));
+    if (has_nontrivial_destructor(cssp)) {
+      result = FALSE;
     }  /* if */
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
@@ -6296,13 +6304,13 @@ return FALSE.
       goto done;
     }  /* if */
   }  /* if */
+  result_type = parent_class_of(ctor);
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
   ips.position = error_position;
-  result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result &&
