@@ -1,5 +1,22 @@
 Version 4.11
 
+1/6/16   [EDGcpfe/16491]
+Microsoft compatibility: comma preceding empty __VA_ARGS__ in macro argument
+
+When __VA_ARGS__ is preceded in a macro definition by a comma and the
+variadic argument is empty, the Microsoft preprocessor generally omits the
+comma from the expanded text, as does the front end in --microsoft mode;
+see the entry of 2/15/07.  However, the Microsoft preprocessor does not
+suppress the comma if it appears in a macro argument, while the front end
+did so in all contexts.  This is now fixed.  For example, with --microsoft:
+
+  #define MAC(...) __VA_ARGS__
+  #define MF(x, ...) fun(x, __VA_ARGS__,<-)
+  #define MM(x, ...) MAC(x, __VA_ARGS__,<-)
+  MF(->);   // Expands to "fun(->,<-)" (first comma suppressed)
+  MM(->);   // Now expands to "->,,<-" (first comma not suppressed)
+
+
 1/6/16   [EDGcpfe/16645]
 __is_convertible_to and class types
 

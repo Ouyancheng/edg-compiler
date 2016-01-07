@@ -1210,6 +1210,18 @@ escape.
 			   correct form when needed to support an obscure
 			   characteristic of the Microsoft preprocessor.
 			   See choose_raw_or_expanded_arg for details. */
+#define LE_MICROSOFT_MAGIC_COMMA 11
+			/* Indicates that the immediately following
+			   character, which must be a comma, is a comma
+			   immediately preceding an empty __VARARGS__
+			   expansion in Microsoft emulation mode.  While
+			   ordinarily such a comma is deleted (see
+			   adjust_length_for_magic_arg), the Microsoft
+			   preprocessor preserves such commas if they
+			   appear in a macro argument list.  This escape
+			   allows skip_white_space to skip over the comma
+			   normally but stop the white space scan on the
+			   comma when processing macro arguments. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds

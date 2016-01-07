@@ -2159,6 +2159,12 @@ print the replacement text and expansions of macros.
            macro argument. */
         ch = '~';
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+        /* Marks the following character (a comma) as potentially
+           suppressed because of preceding an empty __VA_ARGS__
+           expansion. */
+        ch = '?';
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -3655,16 +3661,18 @@ static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
                                         char                 *rtp,
                                         sizeof_t             n_params,
                                         a_macro_arg_ptr      *arg_values,
-                                        sizeof_t             *length)
+                                        sizeof_t             *length,
+                                        a_boolean            *add_escape)
 /*
 Check if the operator to which rtp points (an rt_paste or
 rt_microsoft_magic_arg_marker) is followed by an empty substitution of the
 variadic macro parameter.  If so, and if it is immediately preceded by a
-comma (optionally followed by white space), the comma is removed (along
-with any white space).  This strange behavior is emulated for Microsoft
-variadic macros and when extended variadic macros are enabled.  Some
-preprocessors (notably from the GNU project) implement this to work around
-the following problem:
+comma (optionally followed by white space), the comma is generally removed
+(along with any white space).  (The removal does not occur in Microsoft
+mode when the comma appears inside a macro argument list.)  This strange
+behavior is emulated for Microsoft variadic macros and when extended
+variadic macros are enabled.  Some preprocessors (notably from the GNU
+project) implement this to work around the following problem:
 
 	#define M(fmt, args) printf(fmt , ## args)
 	void f() { M("Hello.\n"); }
@@ -3677,6 +3685,14 @@ rt_paste or rt_microsoft_magic_arg_marker.  n_params is the number of
 parameters in the macro.  arg_values is a pointer to an array of
 a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
 hence its name should not be changed.  *length is the value to be adjusted.
+In non-Microsoft mode, *length is set to exclude the comma.  In Microsoft
+mode, we don't know yet whether the comma will appear in a macro argument
+list or not, so *length is set so that an LE_MICROSOFT_MAGIC_COMMA lexical
+escape and a comma can be inserted and *add_escape is set to TRUE,
+indicating to the caller the need to do so.  This lexical escape allows
+skip_white_space to determine when the text is rescanned whether the comma
+will be suppressed or not in the expanded text.  *add_escape is set to
+FALSE in all other cases.
 */
 {
   sizeof_t             arg_number;
@@ -3686,6 +3702,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
   a_repl_text_seq_kind rtp_op = (a_repl_text_seq_kind)*rtp;
   a_repl_text_seq_kind next_op;
 
+  *add_escape = FALSE;
   get_macro_repl_text_number(arg_number, ahead);
   next_op = (a_repl_text_seq_kind)*(ahead++);
   if (next_op == rt_raw_argument ||
@@ -3715,6 +3732,12 @@ hence its name should not be changed.  *length is the value to be adjusted.
         }  /* if */
         if (*back == ',') {
           *length -= (rtp-back);
+          if (microsoft_mode) {
+            /* Leave space for an LE_MICROSOFT_MAGIC_COMMA escape and a
+               comma to be inserted and indicate the need to do so. */
+            *length += LE_ESCAPE_LEN + 1;
+            *add_escape = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3740,6 +3763,7 @@ hence its name should not be changed.
   char      *prev_text = NULL;
   sizeof_t  prev_len = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean add_escape;
 
   for (; *rtp != (int)rt_null;) {
     sizeof_t             sect_len, rts_number;
@@ -3844,7 +3868,7 @@ hence its name should not be changed.
         ((a_repl_text_seq_kind)*rtp == rt_paste ||
          (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
       adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
-                                  &sect_len);
+                                  &sect_len, &add_escape);
     }  /* if */
     result += sect_len;
     prev_section_is_paste = (rts_kind == rt_paste);
@@ -4509,6 +4533,8 @@ associated global variables will also have been set).
                   concat_record_tail = NULL;
   a_feature_support
                   *feature;
+  a_boolean       add_escape;
+  a_boolean       saved_in_macro_arg_list = in_macro_arg_list;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5068,6 +5094,7 @@ make_inert_macro:
          and save them in the parameter list blocks (in both raw and
          macro-expanded form). */
       macro_depth++;
+      in_macro_arg_list = TRUE;
       fetch_pp_tokens = TRUE;
       expand_macros = FALSE;
 #if RECORD_MACRO_INVOCATIONS
@@ -5863,6 +5890,7 @@ end_arg_expansion:;
       }  /* if */
 #endif /* RECORD_MACRO_INVOCATIONS && EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+    in_macro_arg_list = saved_in_macro_arg_list;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -6321,7 +6349,8 @@ end_arg_expansion:;
                    (a_repl_text_seq_kind)*rtp ==
                                               rt_microsoft_magic_arg_marker)) {
                 adjust_length_for_magic_arg(rts_kind, rtp, n_params,
-                                            arg_values, &sect_len);
+                                            arg_values, &sect_len,
+                                            &add_escape);
               }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
               /* Copy the raw text map entries, using
@@ -6378,11 +6407,24 @@ end_arg_expansion:;
           ((a_repl_text_seq_kind)*rtp == rt_paste ||
            (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
         adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
-                                    &sect_len);
+                                    &sect_len, &add_escape);
+      } else {
+        add_escape = FALSE;
       }  /* if */
       if (sect_len != 0) {
         /*lint --e(668)*/(void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
         src_loc += sect_len;
+        if (add_escape) {
+          /* The insertion ended with a comma that might or might not be
+             suppressed as a result of appearing before an empty
+             __VA_ARGS__ expansion.  Replace the last three characters of
+             the insertion with an LE_MICROSOFT_MAGIC_COMMA escape so that
+             skip_white_space will be able to handle it correctly during
+             the rescan. */
+          src_loc[-3] = LE_ESCAPE;
+          src_loc[-2] = LE_MICROSOFT_MAGIC_COMMA;
+          src_loc[-1] = ',';
+        }  /* if */
       }  /* if */
 copy_done:
       if (check_concatenations && prev_section_is_paste &&
@@ -6578,6 +6620,7 @@ return_point:
   }  /* if */
 #endif /* DEBUG */
   macro_depth = saved_macro_depth;
+  in_macro_arg_list = saved_in_macro_arg_list;
   num_macro_invocations_in_process--;
   /* Restore the lexical state. */
   pop_lexical_state_stack();

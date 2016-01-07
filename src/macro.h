@@ -64,6 +64,11 @@ EXTERN unsigned long
 			   invocations.  Zero if no macro calls are being
 			   processed currently. */
 
+EXTERN a_boolean
+		in_macro_arg_list;
+			/* TRUE when reading the tokens of a macro argument
+			   list, FALSE at all other times. */
+
 EXTERN a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,

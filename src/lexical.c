@@ -3897,6 +3897,11 @@ is TRUE.
                      ch == LE_RAW_OR_EXPANDED_ARGUMENT) {
             /* Do not output comma or argument markers. */
             loc_in_line += LE_ESCAPE_LEN;
+          } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+            /* A comma that was removed because it appeared before an empty
+               __VA_ARGS__ expansion.  Put out nothing and skip over the
+               escape and the associated comma. */
+            loc_in_line += LE_ESCAPE_LEN + 1;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
           } else if (ch == LE_END_OF_TOP_LEVEL_EXPANSION) {
             /* Do not output end-of-top-level-expansion markers. */
@@ -4314,6 +4319,11 @@ the calls to this routine.
           add_char_to_raw_listing_buffer(' ');
           prev_ch = ' ';
           loc_in_line += LE_ESCAPE_LEN;
+        } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+          /* A comma that was suppressed by appearing before an empty
+             __VA_ARGS__ expansion.  Put out nothing and skip over the
+             escape and the comma. */
+          loc_in_line += LE_ESCAPE_LEN + 1;
         } else {
           unexpected_condition_str(
                            "gen_expanded_raw_listing_...: bad lexical escape");
@@ -8293,6 +8303,25 @@ white_space_loop:
            See choose_raw_or_expanded_arg for details. */
         choose_raw_or_expanded_arg();
         curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+        /* Marker for a comma that appeared before an empty __VA_ARGS__
+           expansion.  In normal text, such a comma is suppressed (see
+           adjust_length_for_magic_arg).  In a macro argument list,
+           however, such commas are not suppressed. */
+        curr_char_loc += LE_ESCAPE_LEN;
+        check_assertion(*curr_char_loc == ',');
+        if (in_macro_arg_list) {
+          /* In a macro argument list: skip over the escape and end the
+             scan with curr_char_loc pointing to the comma. */
+          goto end_skip;
+        } else {
+          /* Normal text: skip over the comma, treating the escape and
+             comma as white space and effectively removing them from the
+             expansion. */
+          ++curr_char_loc;
+          kind_skipped |= WHITE_SPACE_OTHER;
+          goto white_space_loop;
+        }  /* if */
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -10945,6 +10974,11 @@ non-NULL, also append the characters in the comment, through but not including
           /* Newline character. */
           ends_with_newline = TRUE;
           next_char = curr_char + LE_ESCAPE_LEN;
+        } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+          /* A comma that is suppressed because it appeared preceding an
+             empty __VA_ARGS__ expansion.  Skip the escape and the
+             comma. */
+          next_char = curr_char + LE_ESCAPE_LEN + 1;
         } else {
           unexpected_condition_str(
                    "copy_from_source_to_asm_func_buffer: bad lexical escape");
@@ -12925,6 +12959,12 @@ return_end_of_source_token:
            selecting either the raw or expanded version of a macro argument,
            depending on how it is used in the replacement text.  See
            choose_raw_or_expanded_arg for details. */
+        skip_white_space();
+        goto start_of_token_scan;
+      } else if (ch == LE_MICROSOFT_MAGIC_COMMA) {
+        /* A comma that precedes an empty __VA_ARGS__ expansion.  The comma
+           may or may not be suppressed, depending on the context; let
+           skip_white_space process it appropriately. */
         skip_white_space();
         goto start_of_token_scan;
       } else {
