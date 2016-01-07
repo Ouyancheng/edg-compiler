@@ -5980,10 +5980,16 @@ type.  This includes checking the value of ovfl set by the operation.
              storage for that object here. */
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
-          if (!dip->has_temporary_lifetime) {
+          if (!dip->has_temporary_lifetime && ips->extension_state != NULL) {
             /* A life-time extended temporary.  Switch to the storage stack
                state was saved at the time the stmk_init statement was
                started. */
+            /* If we're processing the initializer of a static-lifetime
+               variable.  E.g.,
+                 constexpr std::initializer_list<int> x = { 1, 2 };
+               there is no extended-lifetime storage.  Instead, the result
+               will be stored in IL, which is persistent across interpreter
+               invocations. */
             alloc_bytes(ips->extension_state, n_bytes, tmp_bytes);
             alloc_seq_number = ips->extension_state->alloc_seq_number;
             ips->extension_state = NULL;
@@ -6068,6 +6074,7 @@ represents an address of interpreter storage) and record a corresponding
 diagnostic in *ips.
 */
 {
+// FIXME: replace alloc_constant by local_constant?
   a_boolean  result = TRUE;
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
@@ -6090,14 +6097,31 @@ diagnostic in *ips.
              constant. */
           copy_constant(cap->variant.addr_con, con);
           release_local_constant(&cap->variant.addr_con);
-        } else {
-          /* The address designates an interpreter value, which will be a
-             dangling pointer or reference and thus cannot be constant. */
+        } else if (cap->alloc_seq_number > 1) {
+          /* The address designates an interpreter value that is already
+             deallocated, and thus cannot be constant. */
           result = FALSE;
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
-          if (is_variant_path(cap)) {
-            release_variant_path(cap);
+        } else {
+          /* Create an abk_constant or abk_temporary entry. */
+          a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+          a_type_ptr      utp = skip_typerefs(type->variant.pointer.type);
+          if (!copy_interpreter_object_to_constant(
+                                                ips, cap->address, utp, cp)) {
+            result = FALSE;
+            break;
           }  /* if */
+          set_constant_kind(con, (a_constant_repr_kind)ck_address);
+          if (utp->kind == (a_type_kind)tk_array ||
+              is_immediate_class_type(utp)) {
+            con->variant.address.kind = (an_address_base_kind)abk_constant;
+          } else {
+            con->variant.address.kind = (an_address_base_kind)abk_temporary;
+          }  /* if */
+          con->variant.address.variant.constant = cp;
+        }  /* if */
+        if (is_variant_path(cap)) {
+          release_variant_path(cap);
         }  /* if */
       }
       break;
