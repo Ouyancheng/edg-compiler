@@ -2507,6 +2507,8 @@ Evaluate the given dynamic initialization for the given storage.
       }
       break;
     case dik_zero:
+      /* Nothing to do. */
+      break;
     case dik_none:
     default:
       unexpected_condition();
