@@ -3445,10 +3445,12 @@ accordingly.
     arg = callee_node->next;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
-      a_byte  *this_bytes = compact_value_bytes(this_buf);
+      a_byte      *this_bytes = compact_value_bytes(this_buf);
+      a_type_ptr  tp = skip_typerefs(arg->type);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (arg->is_lvalue || arg->is_xvalue) {
+      if (arg->is_lvalue || arg->is_xvalue ||
+          tp->kind == (a_type_kind)tk_pointer) {
         /* The usual case: An address is produced. */
         if (!do_constexpr_expression(ips, arg, this_bytes)) {
           result = FALSE;
@@ -3456,7 +3458,6 @@ accordingly.
         }  /* if */
       } else {
         /* The call is on a class rvalue.  E.g., "X().f();". */
-        a_type_ptr    tp = skip_typerefs(arg->type);
         a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
         a_byte        *class_bytes;
         if (!result) goto done;
@@ -4029,6 +4030,19 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (err) {
                     info_with_pos(ec_constexpr_fp_conversion_failed,
                                   &expr->position, ips);
+                    result = FALSE;
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_pointer) {
+                  a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
+                  a_type_ptr  utp2;
+                  utp2 = skip_typerefs(opnd1_type->variant.pointer.type);
+                  if (identical_types(utp1, utp2)) {
+                    /* E.g., a conversion from X* to X const*. */
+                    *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address *)opnd1_value;
+                  } else {
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
                     result = FALSE;
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_void) {
