@@ -3406,9 +3406,25 @@ accordingly.
       a_byte  *this_bytes = compact_value_bytes(this_buf);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (!result || !do_constexpr_expression(ips, arg, this_bytes)) {
-        result = FALSE;
-        goto done;
+      if (arg->is_lvalue || arg->is_xvalue) {
+        /* The usual case: An address is produced. */
+        if (!do_constexpr_expression(ips, arg, this_bytes)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else {
+        /* The call is on a class rvalue.  E.g., "X().f();". */
+        a_type_ptr    tp = skip_typerefs(arg->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+        a_byte        *class_bytes;
+        if (!result) goto done;
+        alloc_complete_object(ips, n_bytes, tp, class_bytes);
+        if (!do_constexpr_expression(ips, arg, class_bytes)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Store the address of the class in *this_bytes. */
+        clear_address(this_bytes, class_bytes);
       }  /* if */
       if (pm_target != NULL &&
           !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
