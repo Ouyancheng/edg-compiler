@@ -5085,6 +5085,15 @@ make_inert_macro:
             "Potential macro not followed by \"(\", left as identifier.\n");
       }  /* if */
 #endif /* DEBUG */
+      if (check_expansion_for_recursion) {
+        /* This macro name appeared in its own expansion: treat it as an
+           inert macro, even though we wouldn't have expanded it here. */
+        is_inert_macro = TRUE;
+        delete_source_from_loc = start_of_curr_token;
+        curr_char_loc =
+                 start_of_curr_token + macro_symbol->header->identifier_length;
+        goto make_inert_macro;
+      }  /* if */
       ctoken = tok_identifier;
       *rescan = FALSE;
       is_macro_call = FALSE;
