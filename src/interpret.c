@@ -1739,6 +1739,26 @@ redo:
     case tk_nullptr:
       result = 1;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      { a_type_ptr     etp = skip_typerefs(tp->variant.vector.element_type);
+        a_targ_size_t  n_elems = tp->size/etp->size;
+        result = value_bytes_for_type(ips, etp, p_result);
+        if (!*p_result) {
+          /* Interpretation failure. */
+        } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
+                   n_elems > MAX_ARRAY_LENGTH) {
+          /* Too many elements. */
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          if (pos->seq == 0) pos = &ips->position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          *p_result = FALSE;
+        } else {
+          result *= (a_byte_count)n_elems;
+        }  /* if */
+      }
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_error:
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */
@@ -1747,9 +1767,6 @@ redo:
     case tk_imaginary:
     case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tk_vector:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* These types are not supported by the interpreter. */
       { a_source_position  *pos = &tp->source_corresp.decl_position;
         if (pos->seq == 0) pos = &ips->position;
@@ -2412,6 +2429,31 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
           }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+        } else if (tp->kind == (a_type_kind)tk_vector) {
+          a_constant_ptr  elem_con;
+          a_type_ptr      etp = skip_typerefs(tp->variant.vector.element_type);
+          a_targ_size_t   k, n_elems = tp->size/etp->size;
+          a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
+          if (!result) break;
+          elem_con = con->variant.aggregate.first_constant;
+          for (k = 0; k<n_elems;) {
+            if (!copy_val_from_constant(ips, elem_con, value)) {
+              result = FALSE;
+              break;
+            }  /* if */
+            elem_con = elem_con->next;
+            k += 1;
+            value += elem_size;
+            if (elem_con == NULL) {
+              if (k<n_elems) {
+                /* Not all elements are covered.  Zero the remainder. */
+                memzero(value, size_t_arg((n_elems-k)*elem_size));
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* for */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         } else {
           result = FALSE;
         }  /* if */
@@ -6255,6 +6297,27 @@ diagnostic in *ips.
     case tk_void:
       set_constant_kind(con, (a_constant_repr_kind)ck_void);
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      { a_type_ptr      etp = skip_typerefs(type->variant.vector.element_type);
+        a_targ_size_t   k, n_elems = type->size/etp->size;
+        a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
+        a_byte          *sub_obj = object;
+        if (!result) break;
+        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
+          a_constant_ptr  elem_con;
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          if (!copy_interpreter_object_to_constant(
+                                               ips, sub_obj, etp, elem_con)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          add_constant_to_aggregate(elem_con, con);
+        }  /* for */
+      }
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */
@@ -6284,14 +6347,17 @@ return FALSE, and record diagnostic info in *diag_list.
   init_interpreter_state(&ips);
   ips.position = call_expr->position;
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
-  alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-  result_con->type = result_type;
-  if (result &&
-      !do_constexpr_call(&ips, call_expr, result_storage)) {
-    result = FALSE;
-  } else if (!copy_interpreter_object_to_constant(
+  if (!result) {
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    result_con->type = result_type;
+    if (!do_constexpr_call(&ips, call_expr, result_storage)) {
+      result = FALSE;
+    } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-    result = FALSE;
+      result = FALSE;
+    }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
