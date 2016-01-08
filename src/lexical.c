@@ -8307,21 +8307,24 @@ white_space_loop:
         /* Marker for a comma that appeared before an empty __VA_ARGS__
            expansion.  In normal text, such a comma is suppressed (see
            adjust_length_for_magic_arg).  In a macro argument list,
-           however, such commas are not suppressed. */
+           however, such commas are not suppressed.  (Note that the
+           character following the escape may not be a ',' when reading
+           macro arguments: in an empty argument, the ',' may be replaced
+           by an ATTENTION_MARKER for a source line modification during the
+           expanded-argument scan.  That is why we continue the scan for
+           white space even in a macro argument list when the comma would
+           not be skipped, so that we will step into the empty modification
+           and hit the end-of-insertion marker.) */
         curr_char_loc += LE_ESCAPE_LEN;
-        check_assertion(*curr_char_loc == ',');
-        if (in_macro_arg_list) {
-          /* In a macro argument list: skip over the escape and end the
-             scan with curr_char_loc pointing to the comma. */
-          goto end_skip;
-        } else {
+        if (!in_macro_arg_list) {
           /* Normal text: skip over the comma, treating the escape and
              comma as white space and effectively removing them from the
              expansion. */
+          check_assertion(*curr_char_loc == ',');
           ++curr_char_loc;
           kind_skipped |= WHITE_SPACE_OTHER;
-          goto white_space_loop;
         }  /* if */
+        goto white_space_loop;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
