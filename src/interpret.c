@@ -6308,8 +6308,24 @@ diagnostic in *ips.
         }  /* if */
       }
       break;
-    case tk_void:
-      set_constant_kind(con, (a_constant_repr_kind)ck_void);
+    case tk_array:
+      { a_type_ptr      etp = skip_typerefs(type->variant.array.element_type);
+        a_targ_size_t   k, n_elems = type->size/etp->size;
+        a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
+        a_byte          *sub_obj = object;
+        if (!result) break;
+        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
+          a_constant_ptr  elem_con;
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          if (!copy_interpreter_object_to_constant(
+                                               ips, sub_obj, etp, elem_con)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          add_constant_to_aggregate(elem_con, con);
+        }  /* for */
+      }
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
@@ -6332,6 +6348,9 @@ diagnostic in *ips.
       }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_void:
+      set_constant_kind(con, (a_constant_repr_kind)ck_void);
+      break;
     default:
       unexpected_condition();
   }  /* switch */
