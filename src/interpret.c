@@ -3538,6 +3538,7 @@ the body of the (constructor) function proper.
     a_byte            *arg_ptrs, **p_arg_ptr;
     an_alloc_seq_number
                       alloc_seq_number;
+    a_type_ptr        class_type = parent_class_of(callee);
     a_class_symbol_supplement_ptr
                       cssp;
     /* Don't attempt to interpret a non-constexpr function.  The flag
@@ -3553,7 +3554,7 @@ the body of the (constructor) function proper.
     }  /* if */
     /* If the constructor has an associated nontrivial destructor, don't
        attempt interpretation either since the lifetime won't be right. */
-    cssp = class_symbol_supp(symbol_for(parent_class_of(callee)));
+    cssp = class_symbol_supp(symbol_for(class_type));
     if (has_nontrivial_destructor(cssp)) {
       result = FALSE;
     }  /* if */
@@ -3629,6 +3630,14 @@ the body of the (constructor) function proper.
     push_call_frame(ips, &frame, callee, pos, result_storage);
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
+    if (class_type->kind == (a_type_kind)tk_union && ctor_init != NULL) {
+      /* For a union, there should be at most one initializer, and it sets the
+         active field.  Record the active field here (the initializer is
+         evaluated in the general loop below). */
+      if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
+        *(a_field_ptr*)result_storage = ctor_init->variant.field;
+      }  /* if */
+    }  /* if */
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count        offset;
       a_dynamic_init_ptr  sub_dip;
