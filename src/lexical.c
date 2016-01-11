@@ -15925,6 +15925,7 @@ all arguments were explicit.
      instantiation.  Such cases must be handled specially for rescanning
      purposes. */
   if (template_sym->is_class_member &&
+      !scope_is(&scope_stack_top(), sck_template_declaration) &&
       sym_parent_class(template_sym)
                      ->variant.class_struct_union.is_prototype_instantiation) {
     template_in_prototype_instantiation = TRUE;

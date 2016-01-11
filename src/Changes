@@ -1,5 +1,22 @@
 Version 4.11
 
+1/10/16  [EDGcpfe/16582]
+C++-generating back end: nested partial specializations and default arguments
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+template argument list for a partial specialization of a class template
+nested within a class template was generated incorrectly if the partial
+specialization relies on a default template argument of the primary class
+template.  This is now fixed.  For example:
+
+  template <typename T> struct outer {
+    template  <T x,  typename D1, typename D2 = D1> struct inner { };
+    template <typename T2> struct inner<20, T2> { };
+    // Previously erroneously generated as inner<20, T2, D1>
+    // Now generated correctly as inner<20, T2, T2>
+  };
+
+
 1/6/16   [EDGcpfe/16491]
 Microsoft compatibility: comma preceding empty __VA_ARGS__ in macro argument
 
