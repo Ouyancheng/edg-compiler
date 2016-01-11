@@ -3497,11 +3497,6 @@ accordingly.
     info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
     result = FALSE;
-#if /*FIXME*/0
-  } else if (ellipsis_case) {
-    /* error. */
-    result = FALSE;
-#endif /* 0 */
   } else if (cost_exceeded(ips)) {
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
@@ -3590,7 +3585,7 @@ accordingly.
       }  /* if */
       arg = arg->next;
     }  /* if */
-    for (param = params; arg != NULL; arg = arg->next, param = param->next) {
+    for (; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
@@ -3689,11 +3684,6 @@ the body of the (constructor) function proper.
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
                       symbol_for(callee), ips);
     result = FALSE;
-#if /*FIXME*/0
-  } else if (ellipsis_case) {
-    /* error. */
-    result = FALSE;
-#endif /* 0 */
   } else if (cost_exceeded(ips)) {
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
@@ -3750,9 +3740,7 @@ the body of the (constructor) function proper.
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
-    for (arg = args, param = params;
-         arg != NULL;
-         arg = arg->next, param = param->next) {
+    for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       a_byte        *arg_bytes;
