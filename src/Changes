@@ -4,10 +4,10 @@ Version 4.11
 C++-generating back end: nested partial specializations and default arguments
 
 In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
-template argument list for a partial specialization of a class template
-nested within a class template was generated incorrectly if the partial
-specialization relies on a default template argument of the primary class
-template.  This is now fixed.  For example:
+C++-generating back end incorrectly generated the template argument list
+for a partial specialization of a class template nested within a class
+template if the partial specialization relies on a default template
+argument of the primary class template.  This is now fixed.  For example:
 
   template <typename T> struct outer {
     template  <T x,  typename D1, typename D2 = D1> struct inner { };
