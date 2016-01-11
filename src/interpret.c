@@ -2653,8 +2653,17 @@ Evaluate the given dynamic initialization for the given storage.
       break;
     case dik_zero:
       /* Nothing to do. */
+      result = TRUE;
       break;
     case dik_none:
+      /* Nothing to do, but check that there is no associated destructor. */
+      if (dip->destructor != NULL) {
+        info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
+        result = FALSE;
+      } else {
+        result = TRUE;
+      }  /* if */
+      break;
     default:
       unexpected_condition();
   }  /* switch */
