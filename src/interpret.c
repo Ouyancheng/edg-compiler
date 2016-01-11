@@ -2652,9 +2652,6 @@ Evaluate the given dynamic initialization for the given storage.
       }
       break;
     case dik_zero:
-      /* Nothing to do. */
-      result = TRUE;
-      break;
     case dik_none:
       /* Nothing to do, but check that there is no associated destructor. */
       if (dip->destructor != NULL) {
