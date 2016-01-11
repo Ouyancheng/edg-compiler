@@ -2420,20 +2420,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
-            if (!copy_val_from_constant(ips, elem_con, value)) {
-              result = FALSE;
-              break;
-            }  /* if */
-            elem_con = elem_con->next;
-            k += 1;
-            value += elem_size;
             if (elem_con == NULL) {
               if (k<n_elems) {
                 /* Not all elements are covered.  Zero the remainder. */
                 memzero(value, size_t_arg((n_elems-k)*elem_size));
               }  /* if */
               break;
+            } else if (!copy_val_from_constant(ips, elem_con, value)) {
+              result = FALSE;
+              break;
             }  /* if */
+            elem_con = elem_con->next;
+            k += 1;
+            value += elem_size;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
