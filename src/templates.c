@@ -12936,10 +12936,16 @@ instantiation of a class template or member of class template.
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
       /* Reactivate the class scope and parse the initializer. */
+      a_scope_depth  depth = depth_scope_stack;
       push_class_and_template_reactivation_scope(parent_type,
                                                  /*is_template_based=*/TRUE,
                                                  /*extend_namespace=*/TRUE);
       class_reactivated = TRUE;
+      /* Don't show the reactivated scopes in diagnostics. */
+      do {
+        depth += 1;
+        scope_stack[depth].exclude_from_context_output = TRUE;
+      } while (depth < depth_scope_stack);
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
        region to file scope memory.  So we do it manually here.  (Ordinarily
