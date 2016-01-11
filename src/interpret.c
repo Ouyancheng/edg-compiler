@@ -3653,6 +3653,7 @@ accordingly.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
+    /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-1;
   }  /* if */
 done:
@@ -3707,6 +3708,7 @@ the body of the (constructor) function proper.
     a_type_ptr        class_type = parent_class_of(callee);
     a_class_symbol_supplement_ptr
                       cssp;
+    unsigned long     up_front_cost;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -3723,7 +3725,14 @@ the body of the (constructor) function proper.
     cssp = class_symbol_supp(symbol_for(class_type));
     if (has_nontrivial_destructor(cssp)) {
       result = FALSE;
+      info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
+      goto done;
     }  /* if */
+    /* Account a relatively high cost for the call up-front, to limit the
+       overall call depth.  When the call returns, that cost will be reduced
+       to just "one". */
+    up_front_cost = max_constexpr_call_cost/max_constexpr_call_depth+1;
+    ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -3872,7 +3881,8 @@ the body of the (constructor) function proper.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
-    ips->cost += 1;
+    /* Reduce the cost of the call to just 1. */
+    ips->cost -= up_front_cost-1;
   }  /* if */
 done:
   return result;

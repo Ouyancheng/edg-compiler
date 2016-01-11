@@ -2810,6 +2810,7 @@ ec_constexpr_invalid_type_conversion;;"conversion from %t1 to %t2 is invalid in 
 ec_constexpr_fp_conversion_failed;;"floating-point conversion failed"
 ec_constexpr_invalid_pointer;;"pointer value invalid"
 ec_deduced_return_types_is_cpp14;;"deduced return types are a C++14 feature"
+ec_constexpr_ctor_with_dtor;;"cannot evaluate a constructor with an associated destructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
