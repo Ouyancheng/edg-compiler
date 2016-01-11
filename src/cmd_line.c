@@ -1420,8 +1420,8 @@ Initialize the option information table.
                          "max_constexpr_call_depth",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
-  add_option_description(optk_max_constexpr_call_count,
-                         "max_constexpr_call_count",
+  add_option_description(optk_max_constexpr_call_cost,
+                         "max_constexpr_call_cost",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
   add_option_description(optk_delegating_constructors,
@@ -2987,7 +2987,7 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(ec_cl_variadic_templates_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_max_constexpr_call_depth] ||
-      option_kind_used[(int)optk_max_constexpr_call_count]) {
+      option_kind_used[(int)optk_max_constexpr_call_cost]) {
     command_line_error(ec_cl_max_constexpr_option_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_unrestricted_unions]) {
@@ -5685,6 +5685,11 @@ file.
 #else /* !defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
   comment_undefined_macro_name(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
 #endif /* defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
+#if defined(DEFAULT_MAX_CONSTEXPR_CALL_COST)
+  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_COST);
+#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_COST) */
+  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_COST);
+#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_COST) */
 #if defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT)
   define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_COUNT);
 #else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT) */
@@ -9814,8 +9819,8 @@ enable_microsoft_mode:
       case optk_max_constexpr_call_depth:
         max_constexpr_call_depth = scan_opt_arg_number(opt_arg);
         break;
-      case optk_max_constexpr_call_count:
-        max_constexpr_call_count = scan_opt_arg_number(opt_arg);
+      case optk_max_constexpr_call_cost:
+        max_constexpr_call_cost = scan_opt_arg_number(opt_arg);
         break;
       case optk_delegating_constructors:
         delegating_constructors_enabled = opt_value;
@@ -10280,6 +10285,13 @@ enable_microsoft_mode:
     delegating_constructors_enabled = FALSE;
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION < 407 && DO_IL_LOWERING && ... */
+  if (constexpr_enabled && max_constexpr_call_cost == 0) {
+    if (relaxed_constexpr_enabled) {
+      max_constexpr_call_cost = DEFAULT_MAX_CONSTEXPR_CALL_COST;
+    } else {
+      max_constexpr_call_cost = DEFAULT_MAX_CONSTEXPR_CALL_COUNT;
+    }  /* if */
+  }  /* if */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */
   if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
@@ -10981,7 +10993,7 @@ variables declared in cmd_line.h.
   stdc_zero_in_system_headers = DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
   max_constexpr_call_depth = DEFAULT_MAX_CONSTEXPR_CALL_DEPTH;
-  max_constexpr_call_count = DEFAULT_MAX_CONSTEXPR_CALL_COUNT;
+  max_constexpr_call_cost = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

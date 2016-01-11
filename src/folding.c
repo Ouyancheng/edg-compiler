@@ -9164,7 +9164,7 @@ infinite recursion.
   if (ceblock->call_depth > max_constexpr_call_depth) {
     ovflo = TRUE;
     ceblock->failure_warning = ec_excessive_constexpr_recursion;
-  } else if (ceblock->call_count >= max_constexpr_call_count) {
+  } else if (ceblock->call_count >= max_constexpr_call_cost) {
     ovflo = TRUE;
     ceblock->failure_warning = ec_excessive_constexpr_complexity;
   } else {

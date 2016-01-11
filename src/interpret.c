@@ -614,7 +614,7 @@ typedef struct an_interpreter_state {
 
 
 #define cost_exceeded(ips)                                                   \
-  (++(ips)->cost > 2000000)
+  (++(ips)->cost > max_constexpr_call_cost)
 
 
 static a_byte	*free_stack_blocks;
@@ -3464,6 +3464,7 @@ accordingly.
     a_byte          *arg_ptrs, **p_arg_ptr;
     an_alloc_seq_number
                     alloc_seq_number;
+    unsigned long   up_front_cost;
     DECL_COMPACT_VALUE_BYTES(this_buf);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
@@ -3476,6 +3477,11 @@ accordingly.
                         &call_node->position, symbol_for(callee), ips);
       goto done;
     }  /* if */
+    /* Account a relatively high cost for the call up-front, to limit the
+       overall call depth.  When the call returns, that cost will be reduced
+       to just "one". */
+    up_front_cost = max_constexpr_call_cost/max_constexpr_call_depth+1;
+    ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -3600,7 +3606,7 @@ accordingly.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
-    ips->cost += 1;
+    ips->cost -= up_front_cost-1;
   }  /* if */
 done:
   return result;
