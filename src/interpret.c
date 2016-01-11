@@ -602,6 +602,14 @@ typedef struct an_interpreter_state {
 			/* A sequence number counting the number of saved
 			   storage stack states.  This is used to detect
 			   dangling pointers. */
+  a_bit_field
+		static_storage_ready:1;
+			/* TRUE if static_storage has been initialized. */
+  a_storage_stack_state
+		static_storage;
+			/* Pointer to the storage stack state used to allocate
+			   static storage-duration variables.  Initialized
+			   when first needed. */
 } an_interpreter_state;
 
 
@@ -678,6 +686,7 @@ Initialize the given interpreter state.
   clear_diag_list(&ips->diag_list);
   ips->position = null_source_position;
   ips->cost = 0;
+  ips->static_storage_ready = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -691,6 +700,9 @@ Release the storage allocated for the given interpreter state.
   ips->map.table = NULL;
   release_live_set_table(&ips->live_set);
   ips->live_set.table = NULL;
+  if (ips->static_storage_ready) {
+    release_constexpr_stack(&ips->static_storage);
+  }  /* if */
 }  /* release_interpreter_state */
 
 
@@ -2253,6 +2265,48 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       switch (con->variant.address.kind) {
         case abk_routine:
           make_function_address(value, con->variant.address.variant.routine);
+          break;
+        case abk_variable:
+          { /* Check if the variable has a constant value, and if so ensure
+               it has a representation in static interpreter storage (this is
+               the only context where static storage may be allocated).
+               Otherwise, create a run-time address. */
+            a_variable_ptr  vp = con->variant.address.variant.variable;
+            if (vp->constant_valued) {
+              a_byte  *var_bytes;
+              get_stack_bytes(ips, vp, var_bytes);
+              if (var_bytes == NULL) {
+                a_type_ptr    vtp = skip_typerefs(vp->type);
+                a_byte_count  n_bytes;
+                if (!ips->static_storage_ready) {
+                  /* This is the first time we allocate static storage:
+                     Initialize the associated static storage stack. */
+                  init_constexpr_stack(&ips->static_storage);
+                  ips->static_storage_ready = TRUE;
+                }  /* if */
+                n_bytes = value_bytes_for_type(ips, vtp, &result);
+                if (result) {
+                  a_constant_ptr  cp;
+                  alloc_bytes(&ips->static_storage, n_bytes, var_bytes);
+                  if (vp->init_kind == (an_init_kind)initk_static) {
+                    cp = vp->initializer.constant;
+                  } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
+                    cp = vp->initializer.dynamic->variant.constant;
+                  } else {
+                    unexpected_condition();
+                  }  /* if */
+                  result = extract_value_from_constant(ips, cp, var_bytes);
+                }  /* if */
+                if (!result) break;
+                map_stack_bytes(ips, vp, var_bytes);
+              }  /* if */
+              clear_address(value, var_bytes);
+            } else {
+              a_constant_ptr addr_con = local_constant();
+              copy_constant(con, addr_con);
+              clear_runtime_constant_address(value, addr_con);
+            }  /* if */
+          }
           break;
         default:
           { /* Create an a_constexpr_address for the runtime constant, which
