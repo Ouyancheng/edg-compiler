@@ -2268,8 +2268,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           break;
         case abk_variable:
           { /* Check if the variable has a constant value, and if so ensure
-               it has a representation in static interpreter storage (this is
-               the only context where static storage may be allocated).
+               it has a representation in static interpreter storage.
                Otherwise, create a run-time address. */
             a_variable_ptr  vp = con->variant.address.variant.variable;
             if (vp->constant_valued) {
@@ -2306,6 +2305,32 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               copy_constant(con, addr_con);
               clear_runtime_constant_address(value, addr_con);
             }  /* if */
+          }
+          break;
+        case abk_constant:
+        case abk_temporary:
+          {
+            a_constant_ptr  cp = con->variant.address.variant.constant;
+            a_byte          *con_bytes;
+            get_stack_bytes(ips, cp, con_bytes);
+            if (con_bytes == NULL) {
+              a_type_ptr    ctp = skip_typerefs(cp->type);
+              a_byte_count  n_bytes;
+              if (!ips->static_storage_ready) {
+                /* This is the first time we allocate static storage:
+                   Initialize the associated static storage stack. */
+                init_constexpr_stack(&ips->static_storage);
+                ips->static_storage_ready = TRUE;
+              }  /* if */
+              n_bytes = value_bytes_for_type(ips, ctp, &result);
+              if (result) {
+                alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
+                result = extract_value_from_constant(ips, cp, con_bytes);
+              }  /* if */
+              if (!result) break;
+              map_stack_bytes(ips, cp, con_bytes);
+            }  /* if */
+            clear_address(value, con_bytes);
           }
           break;
         default:
@@ -2358,6 +2383,28 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
                                            &con->source_corresp.decl_position,
                                            value);
+      }
+      break;
+    case ck_string:
+      {
+        a_type_ptr     tp = skip_typerefs(con->type);
+        a_type_ptr     etp;
+        a_targ_size_t  n_elems, k, char_size;
+        a_byte_count   elem_size;
+        a_const_char   *char_ptr;
+        etp = skip_typerefs(tp->variant.array.element_type);
+        char_size = etp->size;
+        n_elems = tp->variant.array.variant.number_of_elements;
+        elem_size = value_bytes_for_type(
+                                ips, tp->variant.array.element_type, &result);
+        char_ptr = con->variant.string.value;
+        for (k = 0; k<n_elems; k += 1) {
+          unsigned long char_val = extract_character_from_string(
+                                           char_ptr, (unsigned int)char_size);
+          set_integer_value((an_integer_value*)value,
+                            (a_host_large_integer)char_val);
+          value += elem_size;
+        }  /* for */
       }
       break;
     case ck_aggregate:
