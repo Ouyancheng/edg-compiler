@@ -39,8 +39,9 @@ allowed in a constant expression in C++14.
 The Interpreter
 ---------------
 The interpreter itself traverses the IL in typical "recursive descent" fashion.
-The principal entry point is interpret_constexpr_call, which sets up an
-"interpreter state" that is carried through the interpretation process.
+The principal entry points are interpret_constexpr_call and
+interpret_constexpr_ctor, which set up an "interpreter state" that is carried
+through the interpretation process.
 
 An interpreter invocation can end for one of three reasons:
   (1) the call is completed with a valid result (normal case),
@@ -50,7 +51,8 @@ An interpreter invocation can end for one of three reasons:
 
 Regarding the latter reason, the interpreter tracks the sum of the number of
 calls and the number of loop-back branches.  When that number reaches a certain
-large value, the interpretation is deemed too expensive.
+large value, the interpretation is deemed too expensive.  Deeply nested
+recursion is also limited.
 
 
 Storage
@@ -82,14 +84,19 @@ can be used for these allocations.
 
 Mappings
 --------
-Storage can be associated with a particular IL entry through a data map (an
-efficient pointer-to-pointer hash table).  An association is established by
-invoking the macro map_ptr, and revoked by invoking unmap_ptr.  A mapping
-can be retrieved with the macro get_mapped_ptr.
+Storage can be associated with a particular address in IL memory through a
+data map (an efficient pointer-to-pointer hash table).  An association is
+established by invoking the macro map_ptr, and revoked by invoking unmap_ptr.
+A mapping can be retrieved with the macro get_mapped_ptr.  The macros
+map_byte_count and get_mapped_byte_count can similarly be used to associate an
+unsigned integer with an IL address.
 
 The interpreter state includes a data map for automatic variables and
 temporaries; convenience macros map_stack_bytes, unmap_stack_bytes, and
-get_stack_bytes can be used to manage that data map.
+get_stack_bytes can be used to manage that data map.  This map is also used
+to map run-time namespace-scope variables to a_constant entries representing
+their address (this is done by mapping the storage class field of the
+variable).
 
 If a pointer is mapped multiple times (e.g., a local variable entry during a
 recursive function invocation), the last mapping is returned by get_mapped_ptr
@@ -582,6 +589,11 @@ typedef struct an_interpreter_state {
 			/* Pointer to the storage stack state from which a
 			   temporary with extended lifetime should be
 			   allocated. */
+  a_constant_ptr
+		constants;
+			/* A list of local constants allocated for the
+			   interpreter (to be released when interpretation is
+			   done). */
   a_diag_list
 		diag_list;
 			/* A representation of a pending diagnostics
@@ -683,6 +695,7 @@ Initialize the given interpreter state.
   ips->curr_alloc_seq_number = 1;
   ips->curr_call_frame = NULL;
   ips->extension_state = NULL;
+  ips->constants = NULL;
   clear_diag_list(&ips->diag_list);
   ips->position = null_source_position;
   ips->cost = 0;
@@ -700,6 +713,13 @@ Release the storage allocated for the given interpreter state.
   ips->map.table = NULL;
   release_live_set_table(&ips->live_set);
   ips->live_set.table = NULL;
+  { a_constant_ptr  cp = ips->constants;
+    while (cp != NULL) {
+      a_constant_ptr  next_cp = cp->next;
+      release_local_constant(&cp);
+      cp = next_cp;
+    }  /* while */
+  }
   if (ips->static_storage_ready) {
     release_constexpr_stack(&ips->static_storage);
   }  /* if */
@@ -1268,12 +1288,7 @@ typedef struct a_constexpr_address {
     /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
     a_constant_ptr
 		addr_con;
-			/* For constant addresses of run-time objects.  This
-			   will always point to a constant acquired from
-			   local_constant() and must be released when the
-			   lvalue_to_rvalue conversion is applied or when
-			   the expression is discarded. */
-    
+			/* For constant addresses of run-time objects. */
     /* When (flags & CA_VARIANT_PATH) != 0: */
     a_variant_path_entry_ptr
 		variant_path;
@@ -2186,21 +2201,16 @@ completed.
 }  /* release_variant_path_if_needed */
 
 /*
-Macro to release a local constant captured by a glvalue or pointer
-expression (i.e., an a_constexpr_address value).  expr is the expression
-corresponding to the interpreter storage at value and tp is the type of
-expr after applying skip_typerefs.
+Macro to release structures allocated for the representation of the result of
+a glvalue or pointer expression (i.e., an a_constexpr_address value).  expr is
+the expression corresponding to the interpreter storage at value and tp is
+the type of expr after applying skip_typerefs.
 */
 #define release_address_structures(expr, tp, value)                           \
 {                                                                             \
   if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
        (tp)->kind == (a_type_kind)tk_pointer)) {                              \
-    a_constexpr_address  *addr = (a_constexpr_address *)(value);              \
-    if (is_runtime_data_address(addr)) {                                      \
-      release_local_constant(&addr->variant.addr_con);                        \
-    } else {                                                                  \
-      release_variant_path_if_needed(addr);                                   \
-    }  /* if */                                                               \
+    release_variant_path_if_needed(value);                                    \
   }  /* if */                                                                 \
 }  /* release_address_structures */
 
@@ -2213,9 +2223,7 @@ address they were shallowly copied from.
 #define copy_address_structures(value)                                        \
 {                                                                             \
   a_constexpr_address  *addr = (a_constexpr_address *)(value);                \
-  if (is_runtime_data_address(addr)) {                                        \
-    /*FIXME*/;                                                                \
-  } else if (is_variant_path(addr)) {                                         \
+  if (is_variant_path(addr)) {                                                \
     copy_variant_path(addr);                                                  \
   }  /* if */                                                                 \
 }  /* copy_address_structures */
@@ -2305,9 +2313,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* if */
               clear_address(value, var_bytes);
             } else {
-              a_constant_ptr addr_con = local_constant();
-              copy_constant(con, addr_con);
-              clear_runtime_constant_address(value, addr_con);
+              clear_runtime_constant_address(value, con);
             }  /* if */
           }
           break;
@@ -2340,9 +2346,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         default:
           { /* Create an a_constexpr_address for the runtime constant, which
                requires a local constant. */
-            a_constant_ptr addr_con = local_constant();
-            copy_constant(con, addr_con);
-            clear_runtime_constant_address(value, addr_con);
+            clear_runtime_constant_address(value, con);
           }
           break;
       }  /* switch */
@@ -3875,7 +3879,6 @@ the body of the (constructor) function proper.
              outside the current evaluation. */
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &args->position, ips);
-          release_local_constant(&src_addr->variant.addr_con);
           result = FALSE;
           break;
         } else {
@@ -4024,10 +4027,6 @@ nodes.
           info_with_pos(ec_constexpr_access_to_runtime_storage,               \
                         &expr->position, ips);                                \
         }  /* if */                                                           \
-        /* Release the local constant acquired when this a_constexpr_address  \
-           was created. */                                                    \
-        release_local_constant(&((a_constexpr_address*)(opnd))                \
-                                                         ->variant.addr_con); \
       } else if (!in_live_set(&ips->live_set,                                 \
                               ((a_constexpr_address*)(opnd))                  \
                                                       ->alloc_seq_number)) {  \
@@ -6199,12 +6198,19 @@ type.  This includes checking the value of ovfl set by the operation.
             get_mapped_byte_count(&ips->map, &var->storage_class,
                                   p_address->alloc_seq_number);
           } else {
-            con = local_constant();
+            a_byte  *con_ptr;
+            get_mapped_ptr(&ips->map, &var->storage_class, con_ptr);
+            con = (a_constant_ptr)con_ptr;
+            if (con == NULL) {
+              con = local_constant();
+              map_ptr(&ips->map, &var->storage_class, (a_byte*)con);
+              con->next = ips->constants;
+              ips->constants = con;
+            }  /* if */
             if (constant_glvalue_address(expr, con,
                                          /*address_escapes=*/FALSE)) {
               clear_runtime_constant_address(result_storage, con);
             } else {
-              release_local_constant(&con);
               info_with_pos_sym(ec_variable_not_constant_addressed,
                                 &expr->position, symbol_for(var), ips);
               result = FALSE;
@@ -6346,7 +6352,6 @@ diagnostic in *ips.
           /* Copy the address constant to result_con and release the local
              constant. */
           copy_constant(cap->variant.addr_con, con);
-          release_local_constant(&cap->variant.addr_con);
         } else if (cap->address == NULL) {
           /* A NULL pointer constant. */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
@@ -6626,6 +6631,7 @@ One-time initialization for interpret.c static variables.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(persistent_data),
+      pch_saved_var_array_elem(persistent_map),
       pch_saved_var_array_elem(free_stack_blocks),
       pch_saved_var_array_elem(free_map_tables),
       pch_saved_var_array_elem(free_live_set_tables),
