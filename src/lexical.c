@@ -19192,7 +19192,7 @@ selection operator, in which case it points to the type of the left operand.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token != tok_identifier ||
-            ((next_tok != qualifier_separator &&
+            ((next_tok != qualifier_separator && next_tok != tok_colon_colon &&
               (!(microsoft_bugs && microsoft_version <= 1500) ||
                (is_qualified_name &&
                 (next_tok != tok_period ||

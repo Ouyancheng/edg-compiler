@@ -1,5 +1,23 @@
 Version 4.11
 
+1/12/16  [EDGcpfe/16755]
+Microsoft compatibility: issue with use of "." in place of "::"
+
+Older Microsoft compilers (microsoft_version <= 1500) allow the use of "."
+where "::" is required in qualified names.  The front end allowed mixed
+usage such as "A::B.C" but rejected "A.B::C".  Now fixed.
+
+  struct A {
+    struct B {
+      enum E { e0, e1 };
+      E e;
+    };
+  };
+  void f(A::B* ab) {
+    if(ab->e == A.B::e0) { }
+  }
+
+
 1/10/16  [EDGcpfe/16582]
 C++-generating back end: nested partial specializations and default arguments
 
