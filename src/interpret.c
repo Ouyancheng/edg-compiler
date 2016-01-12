@@ -1787,9 +1787,13 @@ redo:
         result = 0;
       }
       break;
-    case tk_routine:
     case tk_template_param:
     case tk_unknown:
+      /* Fail interpretation. */
+      result = 0;
+      *p_result = FALSE;
+      break;
+    case tk_routine:
     default:
       /* These types should never be encountered by the interpreter. */
       /* The GNU optimizer complains if result is not assigned a value on
