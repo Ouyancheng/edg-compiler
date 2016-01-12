@@ -2289,7 +2289,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
                 n_bytes = value_bytes_for_type(ips, vtp, &result);
                 if (result) {
-                  a_constant_ptr  cp;
+                  a_constant_ptr  cp = NULL;
                   alloc_bytes(&ips->static_storage, n_bytes, var_bytes);
                   if (vp->init_kind == (an_init_kind)initk_static) {
                     cp = vp->initializer.constant;
@@ -3665,6 +3665,33 @@ done:
 }  /* do_constexpr_call */
 
 
+static a_byte_count record_anon_union_active_field(a_field_ptr  *p_fp,
+                                                   a_byte       *storage)
+/*
+*p_fp is a field in an anonymous union.  storage points to the representation
+of the object enclosing the one or more anonymous union parent objects of
+*p_fp.  Set the active field in every anonymous union parent object, update
+*p_fp to point to the top-most anonymous parent object, and return the offset
+of the original *p_fp field in the representation of the returned *p_fp field.
+*/
+{
+  a_field_ptr   fp = *p_fp, aufp;
+  a_byte_count  offset;
+
+  aufp = symbol_for(fp)->variant.field.anonymous_parent_object
+                       ->variant.field.ptr;
+  get_mapped_byte_count(&persistent_map, aufp, offset);
+  if (symbol_for(aufp)->variant.field.anonymous_parent_object != NULL) {
+    /* aufp is not the top-most anonymous union.  Recurse to determine its
+       offset, and then replace it by the top-most anonymous union. */
+    offset += record_anon_union_active_field(&aufp, storage);
+  }  /* if */
+  *(a_field_ptr*)(storage+offset) = fp;
+  *p_fp = aufp;
+  return offset;
+}  /* record_anon_union_active_field */
+
+
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
@@ -3802,14 +3829,6 @@ the body of the (constructor) function proper.
     push_call_frame(ips, &frame, callee, pos, result_storage);
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
-    if (class_type->kind == (a_type_kind)tk_union && ctor_init != NULL) {
-      /* For a union, there should be at most one initializer, and it sets the
-         active field.  Record the active field here (the initializer is
-         evaluated in the general loop below). */
-      if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
-        *(a_field_ptr*)result_storage = ctor_init->variant.field;
-      }  /* if */
-    }  /* if */
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count        offset;
       a_dynamic_init_ptr  sub_dip;
@@ -3822,6 +3841,19 @@ the body of the (constructor) function proper.
           sub_dip = fp->initializer;
         } else {
           sub_dip = ctor_init->initializer;
+        }  /* if */
+        if (symbol_for(fp)->variant.field.anonymous_parent_object != NULL) {
+          /* ctor-init may point directly to an anonymous union field.  In
+             that case, the active fields of all intervening anonymous unions
+             must be recorded, offset must be adjusted, and fp must be set to
+             the top-level anonymous union parent field, so that it can be
+             recorded as the active field in case class_type itself is a union
+             (see below). */
+          offset += record_anon_union_active_field(&fp, result_storage);
+        }  /* if */
+        if (class_type->kind == (a_type_kind)tk_union) {
+          /* Record the active field for the enclosing union. */
+          *(a_field_ptr*)result_storage = fp;
         }  /* if */
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
@@ -6406,9 +6438,9 @@ diagnostic in *ips.
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
-          get_mapped_byte_count(&persistent_map, fp, offset);
+          get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
-                                    ips, object+offset, fp->type, elem_con)) {
+                                    ips, object+offset, afp->type, elem_con)) {
             result = FALSE;
           } else {
             if (fp != afp) {
