@@ -18581,18 +18581,17 @@ selection operator, in which case it points to the type of the left operand.
       /* Check for the anachronism of allowing a "." as a qualifier separator
          where a "::" should be used.  This is done in cfront and Microsoft
          bugs modes.  This is something that cfront labels as an anachronism
-         but is not in the ARM list of anachronisms.  Note that when using the
-         "." notation, you must use "." at all levels of qualification
-         except global.  That is, you must say A.B.C not A.B::C or A::B.C.
-         Also "." qualifiers are not supported for vacuous destructor/
-         finalizer references or template references.  We can't tell yet
-         whether this is a qualified name or simply a normal field reference.
-         We'll assume this is a qualifier for now and make a final decision
-         after we try to look up the identifier.  A warning will be issued if
-         appropriate, after the lookup is done.  The "." may not be used as a
-         qualifier separator in a field selection operator.  The Microsoft
-         compiler also allows usage like "A::B.C".  This is handled below
-         without changing qualifier_separator. */
+         but is not in the ARM list of anachronisms.  "." qualifiers are
+         not supported for vacuous destructor/finalizer references or
+         template references.  We can't tell yet whether this is a qualified
+         name or simply a normal field reference.  We'll assume this is a
+         qualifier for now and make a final decision after we try to look up
+         the identifier.  A warning will be issued if appropriate, after
+         the lookup is done.  The "." may not be used as a qualifier
+         separator in a field selection operator.  If the initial 
+         separator is a ".", a "::" can still be used later (e.g., "A.B::C").
+         The Microsoft compiler also allows usage like "A::B.C".  This
+         is handled below without changing qualifier_separator. */
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
