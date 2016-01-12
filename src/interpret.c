@@ -6383,6 +6383,19 @@ diagnostic in *ips.
         }  /* if */
       }
       break;
+    case tk_ptr_to_member:
+      {
+        a_constexpr_ptr_to_mem  *pm_value = (a_constexpr_ptr_to_mem*)object;
+        set_constant_kind(con, (a_constant_repr_kind)ck_ptr_to_member);
+        if (pm_value->is_ptr_to_mem_function) {
+          con->variant.ptr_to_member.is_function_ptr = TRUE;
+          con->variant.ptr_to_member.variant.routine =
+                                                    pm_value->variant.routine;
+        } else {
+          con->variant.ptr_to_member.variant.field = pm_value->variant.field;
+        }  /* if */
+      }
+      break;
     case tk_struct:
     case tk_class:
       { a_base_class_ptr  bcp = base_classes_of(type);
