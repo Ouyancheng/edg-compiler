@@ -4222,8 +4222,28 @@ type.  This includes checking the value of ovfl set by the operation.
                                       &expr->position, opnd1_type, tp, ips);
                   result = FALSE;
                 }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_integer &&
+                         tp->kind == (a_type_kind)tk_float) {
+                /* Integer-to-floating-point conversion. */
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                conv_integer_value_to_float((an_integer_value*)opnd1_value,
+                                            is_signed,
+                                            fp_value(result_storage),
+                                            tp->variant.float_kind,
+                                            &err);
+                if (err) {
+                  result = FALSE;
+                  info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                      &expr->position, opnd1_type, tp, ips);
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float &&
+                         tp->kind == (a_type_kind)tk_integer) {
+                unexpected_condition(); /* FIXME NYI */
               } else {
-                unexpected_condition();  /* FIXME NYI: actual conversions. */
+                result = FALSE;
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
               }  /* if */
               break;
             case eok_lvalue_cast:

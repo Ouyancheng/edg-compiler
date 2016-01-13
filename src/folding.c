@@ -11346,6 +11346,10 @@ fold_constexpr_ctor should usually be called instead.
   check_assertion(ctor_dip != NULL);
   if (is_error_dynamic_init(ctor_dip)) goto end_of_routine;
   check_assertion(ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
+  if (relaxed_constexpr_enabled) {
+    folded = interpret_constexpr_ctor(ctor_dip, result_con);
+    goto end_of_routine;
+  }  /* if */
   ctor_routine = ctor_dip->variant.constructor.ptr;
   args = ctor_dip->variant.constructor.args;
   if (incr_constexpr_call_depth(ceblock, &call_block)) {
