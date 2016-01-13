@@ -3661,6 +3661,13 @@ accordingly.
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
+    /* Release any address structures, if needed. */
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    for (arg = callee_node->next; arg != NULL; arg = arg->next) {
+      a_type_ptr  tp = skip_typerefs(arg->type);
+      release_address_structures(arg, tp, *p_arg_ptr);
+      p_arg_ptr += 1;
+    }  /* for */
     pop_call_frame(ips);
     /* Release mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
@@ -3913,6 +3920,13 @@ the body of the (constructor) function proper.
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
+    /* Release any address structures, if needed. */
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    for (arg = args; arg != NULL; arg = arg->next) {
+      a_type_ptr  tp = skip_typerefs(arg->type);
+      release_address_structures(arg, tp, *p_arg_ptr);
+      p_arg_ptr += 1;
+    }  /* for */
     pop_call_frame(ips);
     /* Release the storage and mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
@@ -6180,7 +6194,7 @@ type.  This includes checking the value of ovfl set by the operation.
             /* This is a variable on the interpreter stack. */
             (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
             if (tp->kind == (a_type_kind)tk_pointer) {
-              /* Copying a pointer type.  Make sure its side structures, if
+              /* Copying an address type.  Make sure its side structures, if
                  any, are not shared. */
               copy_address_structures(result_storage);
             }  /* if */
