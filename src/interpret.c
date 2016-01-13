@@ -3851,7 +3851,7 @@ the body of the (constructor) function proper.
       a_byte_count        offset;
       a_dynamic_init_ptr  sub_dip;
       a_type_ptr          tp;
-      if (ctor_init->kind == (a_constructor_init_kind)cik_field) { 
+      if (ctor_init->kind == (a_constructor_init_kind)cik_field) {
         a_field_ptr  fp = ctor_init->variant.field;
         tp = skip_typerefs(fp->type);
         get_mapped_byte_count(&persistent_map, fp, offset);
@@ -3873,6 +3873,10 @@ the body of the (constructor) function proper.
           /* Record the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = fp;
         }  /* if */
+      } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
+        result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
+                                           result_storage);
+        break;
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         tp = bcp->type;
