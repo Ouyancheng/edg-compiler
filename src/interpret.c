@@ -6634,21 +6634,29 @@ return FALSE.
   a_byte_count          n_bytes;
   a_type_ptr            result_type;
 
-  if (is_error_dynamic_init(dip)) {
-    goto done;
-  } else {
-    ctor = dip->variant.constructor.ptr;
-    if (ctor == NULL || !ctor->is_constexpr) {
-      goto done;
-    }  /* if */
-  }  /* if */
-  result_type = parent_class_of(ctor);
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips);
   ips.position = error_position;
+  if (is_error_dynamic_init(dip)) {
+    set_error_constant(result_con);
+    goto done;
+  } else {
+    ctor = dip->variant.constructor.ptr;
+    if (ctor == NULL) {
+      expect_error();
+      result = FALSE;
+      goto done;
+    } else if (!ctor->is_constexpr) {
+      info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
+                        &error_position, symbol_for(ctor), &ips);
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result &&
