@@ -8316,7 +8316,13 @@ white_space_loop:
            not be skipped, so that we will step into the empty modification
            and hit the end-of-insertion marker.) */
         curr_char_loc += LE_ESCAPE_LEN;
-        if (!in_macro_arg_list) {
+        if (in_macro_arg_list) {
+          /* A comma in a macro argument list.  Don't skip it, and set a
+             flag indicating that it is magic. */
+          if (*curr_char_loc == ',') {
+            comma_is_magic = TRUE;
+          }  /* if */
+        } else {
           /* Normal text: skip over the comma, treating the escape and
              comma as white space and effectively removing them from the
              expansion. */

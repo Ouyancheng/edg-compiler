@@ -1553,6 +1553,14 @@ EXTERN a_boolean
 			   seen by skip_white_space.  It is the responsibility
 			   of the caller of skip_white_space to set it to
 			   FALSE beforehand. */
+EXTERN a_boolean
+		comma_is_magic;
+			/* Set to TRUE when skip_white_space encounters an
+			   LE_MICROSOFT_MAGIC_COMMA when in_macro_arg_list
+			   is TRUE and the following comma is thus not
+			   skipped.  It is the responsibility of the caller
+			   of skip_white_space to set it to FALSE
+			   beforehand. */
 EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
