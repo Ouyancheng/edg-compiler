@@ -2229,6 +2229,29 @@ address they were shallowly copied from.
 }  /* copy_address_structures */
 
 
+/*
+Macro to interpret a full-expression.
+*/
+#define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
+  {                                                                           \
+    a_storage_stack_state  saved_stack_for_full_expr;                         \
+    save_storage_stack(ips, saved_stack_for_full_expr);                       \
+    (result_flag) = do_constexpr_expression(ips, expr, result_storage);       \
+    restore_storage_stack(ips, saved_stack_for_full_expr);                    \
+  }
+
+static a_boolean do_constexpr_expression(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_byte                *result_storage);
+
+
+static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
+                                   a_dynamic_init_ptr    dip,
+                                   a_source_position     *pos,
+                                   a_byte                *result_storage);
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -2263,6 +2286,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
 {
   a_boolean  result = TRUE;
 
+  if (con->implicit_cast && con->expr != NULL) {
+    /* If the constant includes an implicit cast, evaluate the constant
+       through the backing expression so that the cast is correctly applied. */
+    do_constexpr_full_expression(ips, con->expr, value, result);
+    goto done;
+  }  /* if */
   switch (con->kind) {
     case ck_error:
       result = FALSE;
@@ -2576,31 +2605,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         result = FALSE;
       }
   }  /* switch */
+done:
   return result;
 }  /* extract_value_from_constant */
-
-
-/*
-Macro to interpret a full-expression.
-*/
-#define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
-  {                                                                           \
-    a_storage_stack_state  saved_stack_for_full_expr;                         \
-    save_storage_stack(ips, saved_stack_for_full_expr);                       \
-    (result_flag) = do_constexpr_expression(ips, expr, result_storage);       \
-    restore_storage_stack(ips, saved_stack_for_full_expr);                    \
-  }
-
-static a_boolean do_constexpr_expression(
-                                       an_interpreter_state  *ips,
-                                       an_expr_node_ptr      expr,
-                                       a_byte                *result_storage);
-
-
-static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
-                                   a_dynamic_init_ptr    dip,
-                                   a_source_position     *pos,
-                                   a_byte                *result_storage);
 
 
 static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
@@ -6209,7 +6216,10 @@ type.  This includes checking the value of ovfl set by the operation.
             }  /* if */
             if (constant_glvalue_address(expr, con,
                                          /*address_escapes=*/FALSE)) {
-              clear_runtime_constant_address(result_storage, con);
+              if (!extract_value_from_constant(ips, con, result_storage)) {
+                /* The address of a run-time variable. */
+                clear_runtime_constant_address(result_storage, con);
+              }  /* if */
             } else {
               info_with_pos_sym(ec_variable_not_constant_addressed,
                                 &expr->position, symbol_for(var), ips);
