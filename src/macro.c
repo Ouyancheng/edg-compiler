@@ -410,6 +410,18 @@ static a_const_char
 			   the value returned in start_of_curr_token when
 			   the token is preceded by an inert-macro escape. */
 
+static unsigned long
+		macro_name_modif_seq;
+			/* During the execution of macro_invocation, this
+			   is the sequence id of the source line
+			   modification containing the name of the macro
+			   being expanded, or 0 if the macro name appears
+			   directly in the source code.  This is used by
+			   arg_get_token to distinguish between commas that
+			   appear directly in the macro argument list and
+			   those appearing in expansions of macro
+			   arguments. */
+
 #if DEBUG
 static unsigned long
 		num_macro_params_allocated,
@@ -2901,25 +2913,22 @@ an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
 }  /* choose_raw_or_expanded_arg */
 
 
-static a_token_kind arg_get_token(a_boolean     *any_white_space_skipped,
-                                  unsigned long macro_name_modif_seq)
+static a_token_kind arg_get_token(a_boolean     *any_white_space_skipped)
 /*
 Fetch and return a token as part of scanning a macro argument.  Return
 *any_white_space_skipped == TRUE if any white space was skipped (the white
-space will also be deleted).  macro_name_modif_seq is the sequence id of
-the source line modification containing the name of the macro whose
-arguments are being scanned, or 0 if the macro name appears directly in the
-source code.  The global variable arg_get_token_start_of_curr_token is set
-to the character position after the white-space skip, which differs from
-start_of_curr_token when the token is preceded by an inert-macro escape.
-The global variable comma_is_from_argument will be TRUE after the call if
-and only if the call to skip_white_space encountered an
-LE_COMMA_FROM_ARGUMENT marker.  The global variable comma_is_magic will be
-TRUE after the call if and only if the call to skip_white_space encountered
-an LE_MICROSOFT_MAGIC_COMMA followed by a comma; if so, skip the comma if
-it comes from a source modification newer than the one designated by
-macro_name_modif_seq, i.e., if it's embedded in the expansion of a macro
-argument rather than appearing directly in the argument list.
+space will also be deleted).  The global variable
+arg_get_token_start_of_curr_token is set to the character position after
+the white-space skip, which differs from start_of_curr_token when the token
+is preceded by an inert-macro escape.  The global variable
+comma_is_from_argument will be TRUE after the call if and only if the call
+to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.  The
+global variable comma_is_magic will be TRUE after the call if and only if
+the call to skip_white_space encountered an LE_MICROSOFT_MAGIC_COMMA
+followed by a comma; if so, skip the comma if it comes from a source
+modification newer than the one designated by macro_name_modif_seq, i.e.,
+if it's embedded in the expansion of a macro argument rather than appearing
+directly in the argument list.
 */
 {
   a_token_kind tok;
@@ -4567,7 +4576,6 @@ associated global variables will also have been set).
                   *feature;
   a_boolean       add_escape;
   a_boolean       saved_in_macro_arg_list = in_macro_arg_list;
-  unsigned long   macro_name_modif_seq;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5156,7 +5164,7 @@ make_inert_macro:
                                                 mdp, &start_pos, &this_mirp);
 #endif /* RECORD_MACRO_INVOCATIONS */
       /* Get the "(" as a token, and delete its characters. */
-      (void)arg_get_token(&any_white_space_skipped, macro_name_modif_seq);
+      (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
 #if FULLY_RESOLVED_MACRO_POSITIONS
       lparen_pos = pos_curr_token;
@@ -5169,7 +5177,7 @@ make_inert_macro:
         /* Set up for a potential call of choose_raw_or_expanded_arg. */
         use_raw_version_of_arg = param_list->is_operand_of_paste;
       }  /* if */
-      (void)arg_get_token(&any_white_space_skipped, macro_name_modif_seq);
+      (void)arg_get_token(&any_white_space_skipped);
       use_raw_version_of_arg = FALSE;
       pp = param_list;
       /* Check for empty argument list. */
@@ -5336,8 +5344,7 @@ do_argument_again:
             if (curr_token == tok_error) {
               pos_remark(err_code_for_error_token, &error_position);
             }  /* if */
-            (void)arg_get_token(&any_white_space_skipped,
-                                macro_name_modif_seq);
+            (void)arg_get_token(&any_white_space_skipped);
             if (comma_is_from_argument) {
               if (paren_count > 0) {
                 /* The Microsoft preprocessor ignores whether a comma
@@ -5446,8 +5453,7 @@ do_argument_again:
                Fixed in 7.1 */
             if (microsoft_bugs && microsoft_version < 1310 &&
                 curr_token == tok_comma && !comma_is_from_argument) {
-              (void)arg_get_token(&any_white_space_skipped,
-                                  macro_name_modif_seq);
+              (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
             /* A zero-length argument is empty (as opposed to omitted) if
@@ -5533,7 +5539,7 @@ do_argument_again:
              later use. */
           save_delete_source_from_loc = delete_source_from_loc;
           delete_source_from_loc = NULL;
-          (void)arg_get_token(&any_white_space_skipped, macro_name_modif_seq);
+          (void)arg_get_token(&any_white_space_skipped);
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
@@ -5614,8 +5620,7 @@ scan_expanded_tokens:
             } else {
               need_end_of_token_marker = TRUE;
             }  /* if */
-            (void)arg_get_token(&any_white_space_skipped,
-                                macro_name_modif_seq);
+            (void)arg_get_token(&any_white_space_skipped);
             if (ms_compat && token_ends_macro_expansion &&
                 !any_white_space_skipped) {
               /* Suppress the token separator to allow concatenation of the
@@ -5634,8 +5639,7 @@ scan_expanded_tokens:
             }  /* if */
             curr_char_loc= map->raw_text +
                            map->offset_in_raw_text_of_primary_source_line_text;
-            (void)arg_get_token(&any_white_space_skipped,
-                                macro_name_modif_seq);
+            (void)arg_get_token(&any_white_space_skipped);
             goto scan_expanded_tokens;
           }  /* if */
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
@@ -5719,7 +5723,7 @@ scan_expanded_tokens:
              invocation. */
           delete_source_from_loc = save_delete_source_from_loc;
           /* Re-get the "," or ")" that is next. */
-          (void)arg_get_token(&any_white_space_skipped, macro_name_modif_seq);
+          (void)arg_get_token(&any_white_space_skipped);
 end_arg_expansion:;
           /* Advance to the next argument (unless we've given an error about
              too many arguments). */
@@ -5734,8 +5738,7 @@ end_arg_expansion:;
               /* Set up for a potential call of choose_raw_or_expanded_arg. */
               use_raw_version_of_arg = pp->is_operand_of_paste;
             }  /* if */
-            (void)arg_get_token(&any_white_space_skipped,
-                                macro_name_modif_seq);
+            (void)arg_get_token(&any_white_space_skipped);
             use_raw_version_of_arg = FALSE;
           }  /* if */
         } while (not_done);
