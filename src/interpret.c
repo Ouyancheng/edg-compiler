@@ -1946,7 +1946,9 @@ Class type subobjects record the type of the next-more-derived subobject, or
 NULL for a most-derived object.  The following macro records that NULL (for
 proper base subobjects, the next-more-derived type is recorded when the base
 subobject is initializer).  For unions, the recorded pointer represents the
-active field rather than a base class entry.
+active field rather than a base class entry.  (This must therefore be
+invoked before placing a result in the indicated storage, because that result
+could set the active field.)
 */
 #define record_complete_object(utp, storage_ptr)                             \
   if (is_immediate_class_type(utp)) {                                        \
@@ -2462,11 +2464,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               /* Not all elements are covered.  Zero the remainder. */
               memzero(value, size_t_arg((n_elems-k)*elem_size));
               break;
-            } else if (!copy_val_from_constant(ips, elem_con, value)) {
-              result = FALSE;
-              break;
             } else {
               record_complete_object(etp, value);
+              if (!copy_val_from_constant(ips, elem_con, value)) {
+                result = FALSE;
+                break;
+              }  /* if */
             }  /* if */
             elem_con = elem_con->next;
             k += 1;
@@ -6498,9 +6501,9 @@ diagnostic in *ips.
         /* Retrieve the active field. */
         afp = (a_field_ptr)*(void**)object;
         if (afp == NULL) {
-          /* This should not currently be possible since all interpreter
-             objects are initialized. */
-          unexpected_condition();
+          /* This should only happen with unions that have no field (and
+             therefore cannot have an active field). */
+          check_assertion(fp == NULL);
         } else {
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
