@@ -1715,6 +1715,7 @@ redo:
     case tk_float:
       result = sizeof(an_internal_float_value);
       break;
+    case tk_routine:
     case tk_pointer:
       result = sizeof(a_constexpr_address);
       break;
@@ -1808,7 +1809,6 @@ redo:
       result = 0;
       *p_result = FALSE;
       break;
-    case tk_routine:
     default:
       /* These types should never be encountered by the interpreter. */
       /* The GNU optimizer complains if result is not assigned a value on
@@ -1856,7 +1856,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       a_source_position  *pos = &tp->source_corresp.decl_position;
       if (pos->seq == 0) pos = &ips->position;
       info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-      *p_result = TRUE;
+      *p_result = FALSE;
       total_size = MAX_CONSTEXPR_TYPE_SIZE;
       goto done;
     }  /* if */
@@ -1871,7 +1871,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         a_source_position  *pos = &tp->source_corresp.decl_position;
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-        *p_result = TRUE;
+        *p_result = FALSE;
         total_size = MAX_CONSTEXPR_TYPE_SIZE;
         goto done;
       }  /* if */
@@ -1888,7 +1888,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
           a_source_position  *pos = &tp->source_corresp.decl_position;
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          *p_result = TRUE;
+          *p_result = FALSE;
           total_size = MAX_CONSTEXPR_TYPE_SIZE;
           goto done;
         }  /* if */
@@ -6207,8 +6207,28 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     case enk_constant:
-      result = copy_val_from_constant(ips, node_constant(expr),
-                                      result_storage);
+      {
+        a_constant_ptr  con = node_constant(expr);
+        a_byte          *con_bytes;
+        if (tp->kind == (a_type_kind)tk_array &&
+            (expr->is_lvalue || expr->is_xvalue)) {
+          /* An array lvalue (normally: a string literal).  Allocate the
+             string statically and return its address. */
+          a_byte_count  n_bytes = f_value_bytes_for_type(ips, tp, &result);
+          if (!result) break;
+          if (!ips->static_storage_ready) {
+            /* This is the first time we allocate static storage: Initialize
+               the associated static storage stack. */
+            init_constexpr_stack(&ips->static_storage);
+            ips->static_storage_ready = TRUE;
+          }  /* if */
+          alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
+          clear_address(result_storage, con_bytes);
+        } else {
+          con_bytes = result_storage;
+        }  /* if */
+        result = copy_val_from_constant(ips, con, con_bytes);
+      }
       break;
     case enk_variable:
       {
@@ -6663,12 +6683,13 @@ return FALSE.
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-  if (result &&
-      !do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
-    result = FALSE;
-  } else if (!copy_interpreter_object_to_constant(
+  if (result) {
+    if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
+      result = FALSE;
+    } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-    result = FALSE;
+      result = FALSE;
+    }  /* if */
   }  /* if */
   release_interpreter_state(&ips);
 #if CHECKING
