@@ -4030,6 +4030,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              !(is_immediate_class_type((a_type_ptr)scp) &&
                ((a_type_ptr)scp)->
                                 variant.class_struct_union.is_nonreal_class) &&
+             !(((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
+               ((a_type_ptr)scp)->variant.typeref.is_dependent) &&
              !((options & GN_PTR_TO_DATA_MEMBER) &&
                octl.suppress_ptr_to_data_member_parens)) {
     /* This is a reference appearing in the prototype instantiation of a
