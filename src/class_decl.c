@@ -8472,7 +8472,8 @@ issue an error and return FALSE.
             okay = FALSE;
           }  /* if */
         }  /* if */
-        if (microsoft_version >= 1300) {
+        if (microsoft_version >= 1300 &&
+            !type->variant.class_struct_union.is_nonreal_class) {
           /* Recent Microsoft compilers apply the dllimport/dllexport
              attributes of a derived class to any base class type that is an
              implicit class template specialization (unless a DLL interface

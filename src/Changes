@@ -1,5 +1,28 @@
 Version 4.11
 
+1/14/16  [EDGcpfe/16767]
+dllimport/dllexport, template base classes, and prototype instantiations
+
+In Microsoft mode, if a dllimport or dllexport attribute is applied to a
+derived class, the same attribute is applied to all its instantiated base
+classes that have no dllimport/dllexport attributes yet.  Previously, this
+was sometimes also applied to prototype instantiations, cause all further
+instantiations of the affected template (not just the specific instantiation
+denoted as the base class) to be marked with the dllimport or dllexport
+attribute.  For example, in a configuration with PROTOTYPE_INSTANTIATION_IN_IL
+set to TRUE:
+
+  struct S {};
+  template<typename T = int> struct B {
+    template<typename U> B(U) {}
+  };
+  struct __declspec(dllimport) D: B<> {};
+  B<S> b(42);
+
+Previously, B<S>::B(S) was erroneously marked as dllimport (only B<int>::B(int)
+should be so marked).  This is now fixed.
+
+
 1/12/16  [EDGcpfe/16755]
 Microsoft compatibility: issue with use of "." in place of "::"
 

@@ -398,7 +398,7 @@ template class, its DLL interface may need to be adjusted implicitly.
              /*is_dll_directive=*/TRUE);
         }  /* if */
         for (; rp != NULL; rp = rp->next) {
-          if (!rp->is_specialized) {
+          if (!rp->is_specialized && !rp->is_prototype_instantiation) {
             if ((rp->decl_modifiers & DM_DLLFLAGS) != 0) {
               /* This can only happen in situations like the following:
                    template<class T> struct B {
