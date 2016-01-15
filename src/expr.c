@@ -29282,6 +29282,12 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           var_ptr = sym_ptr->variant.variable.ptr;
 variable:
           okay_for_integral_const_expr = TRUE;
+          if (!is_template_dependent_context()) {
+            /* If this is a reference to a static data member of a class
+               template, we may have to instantiate its initializer to know its
+               complete type. */
+            complete_variable_type_is_needed(var_ptr);
+          }  /* if */
           /* If we're inside a local class, we are not allowed to reference
              non-static variables of the containing function.  If we're
              inside a default argument expression, we're not allowed to

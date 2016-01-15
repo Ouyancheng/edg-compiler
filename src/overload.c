@@ -8550,42 +8550,48 @@ an argument of a call in gpp mode even though the standard says it's not.
 {
   a_boolean result = FALSE;
 
-  /* The cases we care about are "this->x" and "*(this->x)".  g++ sees
-     those as dependent even if the type of x is known.  Also a call
-     of a member function of the current class even if the return type
-     is known. */
+  /* Some of the cases we care about are "this->x" and "*(this->x)", as well
+     as the call of a member function of the current class.  g++ sees those as
+     dependent even if the type of x or the return type of the function is
+     known.  A different case is the use of a variable of array type whose
+     bound is unspecified (but it could be specified before a real
+     instantiation). */
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
-    if (is_operation_node(expr) &&
-        (node_operator_is(expr, eok_indirect) ||
-         node_operator_is(expr, eok_ref_indirect))) {
-      /* Drop "*" or the reference equivalent. */
-      expr = skip_parens(expr->variant.operation.operands);
-    }  /* if */
-    if (is_operation_node(expr) &&
-        !expr->variant.operation.compiler_generated) {
-      an_expr_node_ptr potential_this = NULL;
-      an_expr_node_ptr op1 = expr->variant.operation.operands;
-      an_expr_node_ptr op2 = op1->next;
-      op1 = skip_parens(op1);
-      if (node_operator_is(expr, eok_points_to_field)) {
-        potential_this = op1;
-      } else if (node_operator_is(expr, eok_points_to_member_call)) {
-        potential_this = skip_parens(op2);
-      } else if (node_operator_is(expr, eok_call)) {
-        /* Look for a call of a static member function of the current class.
-           Note that conv_expr_function_designator_to_ptr_to_function forces
-           such functions to be (value-)dependent. */
-        if (is_constant_node(op1) &&
-            node_constant(op1)->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
+    if (is_variable_node(expr) && is_incomplete_array_type(operand->type)) {
+      result = TRUE;
+    } else {
+      if (is_operation_node(expr) &&
+          (node_operator_is(expr, eok_indirect) ||
+           node_operator_is(expr, eok_ref_indirect))) {
+        /* Drop "*" or the reference equivalent. */
+        expr = skip_parens(expr->variant.operation.operands);
+      }  /* if */
+      if (is_operation_node(expr) &&
+          !expr->variant.operation.compiler_generated) {
+        an_expr_node_ptr potential_this = NULL;
+        an_expr_node_ptr op1 = expr->variant.operation.operands;
+        an_expr_node_ptr op2 = op1->next;
+        op1 = skip_parens(op1);
+        if (node_operator_is(expr, eok_points_to_field)) {
+          potential_this = op1;
+        } else if (node_operator_is(expr, eok_points_to_member_call)) {
+          potential_this = skip_parens(op2);
+        } else if (node_operator_is(expr, eok_call)) {
+          /* Look for a call of a static member function of the current class.
+             Note that conv_expr_function_designator_to_ptr_to_function forces
+             such functions to be (value-)dependent. */
+          if (is_constant_node(op1) &&
+              node_constant(op1)->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+        if (potential_this != NULL &&
+            is_variable_node(potential_this) &&
+            node_variable(potential_this)->is_this_parameter) {
           result = TRUE;
         }  /* if */
-      }  /* if */
-      if (potential_this != NULL &&
-          is_variable_node(potential_this) &&
-          node_variable(potential_this)->is_this_parameter) {
-        result = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
