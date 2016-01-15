@@ -276,6 +276,7 @@ be restored).
   dps->prescanned_initializer_levels_down = 0;
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
+  dps->strongest_alignment = NULL;
   dps->auto_params = NULL;
   dps->routine_fixup = NULL;
 }  /* clear_decl_parse_state_fields */
@@ -16286,68 +16287,118 @@ embedded struct declaration.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void record_std_alignment_attr(a_decl_parse_state_ptr  dps)
+void record_std_alignment_attr(a_decl_parse_state      *dps,
+                               an_il_entry_kind        kind,
+                               a_source_correspondence *scp,
+                               a_boolean               is_defined,
+                               a_boolean               is_definition)
+
 /*
 If applicable, record the explicit alignment specified by standard alignment
-attributes on the declaration described by *dps in the corresponding variable
-entry.  Issue an error if this alignment is invalid (e.g., inconsistent with
-previous declarations).
-If no attribute was specified and dps->is_definition is TRUE, issue an error
-if prior declarations specified an alignment attribute.
+attributes on the declaration described by *dps in the corresponding entity as
+specified by kind and scp.  is_defined is TRUE if the entity has already been
+defined previously; is_definition is TRUE if the current declaration is a
+definition.  Issue an error if this alignment is invalid (e.g., inconsistent
+with previous declarations).  If no attribute was specified and
+dps->is_definition is TRUE, issue an error if prior declarations specified an
+alignment attribute.
 */
 {
-  a_variable_ptr  vp = NULL;
+  a_type_ptr        tp = NULL;
+  a_targ_alignment  *entity_alignment, type_alignment;
+  a_boolean         has_alignment;
 
-  if (dps->sym->kind == (a_symbol_kind)sk_variable) {
-    vp = dps->sym->variant.variable.ptr;
-  } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-    vp = dps->sym->variant.static_data_member.variable;
+  if (kind == iek_variable) {
+    a_variable_ptr vp = (a_variable_ptr)scp;
+    entity_alignment = &vp->alignment;
+    type_alignment = alignment_of_type(vp->type);
+    has_alignment = vp->alignment != 0;
+  } else if (kind == iek_type) {
+    tp = (a_type_ptr)scp;
+    if (is_class_struct_union_type(tp) || is_enum_type(tp)) {
+      entity_alignment = &tp->alignment;
+      type_alignment = alignment_of_type(tp);
+      has_alignment = tp->alignment_set_explicitly;
+    } else {
+      entity_alignment = NULL;
+    }  /* if */
+  } else if (kind == iek_field) {
+    a_field_ptr fp = (a_field_ptr)scp;
+    entity_alignment = &fp->alignment;
+    type_alignment = alignment_of_type(fp->type);
+    has_alignment = fp->alignment != 0;
+  } else {
+    unexpected_condition();
   }  /* if */
   if (dps->alignment != 0) {
     /* At least one standard attribute was specified. */
-    an_attribute_ptr  ap = find_decl_attribute(ak_align, dps);
-    check_assertion(ap != NULL || vp == NULL);
+    check_assertion(dps->strongest_alignment != NULL ||
+                    entity_alignment == NULL);
     /* Check that the specified alignment is consistent with any previously
-       specified alignments for the declared variable, and, if so, record that
-       alignment in the variable entry. */
-    if (vp == NULL) {
+       specified alignments for the declared entity, and, if so, record that
+       alignment in the entity. */
+    if (entity_alignment == NULL) {
       expect_error();
-    } else if (alignment_of_type(vp->type) > dps->alignment) {
+    } else if (type_alignment > dps->alignment && !has_alignment) {
       /* The alignment (as specified by standard attributes) cannot be weaker
-         than the default alignment of the variable's type. */
-      pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
-    } else if (vp->alignment == 0) {
+         than the default alignment of the entity's type. */
+      pos_error(ec_invalid_alignment_reducing_attr,
+                &dps->strongest_alignment->position);
+    } else if (!has_alignment) {
       /* This is the first time an alignment attribute is explicitly specified
-         for this variable.  If a definition appeared previously, this is an
+         for this entity.  If a definition appeared previously, this is an
          error. */
-      if (!dps->is_definition && dps->sym->defined) {
+      if (is_defined) {
         pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
-                        &ap->position, &dps->sym->decl_position);
+                        &dps->strongest_alignment->position,
+                        &scp->decl_position);
       } else {
-        vp->alignment = dps->alignment;
+        /* Set the alignment. */
+        *entity_alignment = dps->alignment;
+        if (tp != NULL) {
+          /* For types, indicate that the alignment has been set explicitly. */
+          tp->alignment_set_explicitly = TRUE;
+        }  /* if */
       }  /* if */
-    } else if (vp->alignment != dps->alignment) {
+    } else if (*entity_alignment != dps->alignment) {
       /* A previous declaration specified an explicit alignment that is
-         inconsistent with the current declaration.  Issue an error. */
+         inconsistent with the current declaration.  Issue a diagnostic. */
+      an_error_severity severity = es_error;
       char  orig_align_str[100], new_align_str[100];
-      (void)sprintf(orig_align_str, "%d", vp->alignment);
+      (void)sprintf(orig_align_str, "%d", *entity_alignment);
       (void)sprintf(new_align_str, "%d", dps->alignment);
-      pos_st2_error(ec_inconsistent_alignment, &ap->group->position,
-                    new_align_str, orig_align_str);
+      if (!is_definition) {
+        /* The standard isn't clear on a case like:
+             struct alignas(8) A;
+             struct alignas(4) A;
+           Since there's no defining declaration, this appears to be
+           valid (though there's no subsequent defining declaration that
+           would be valid).  g++ accepts this; we give a warning in that
+           mode and an error otherwise. */
+        if (gnu_mode && !clang_mode) {
+          severity = es_warning;
+        } else {
+          severity = es_discretionary_error;
+        }  /* if */
+      }  /* if */
+      pos_st2_diagnostic(severity, ec_inconsistent_alignment,
+                         &dps->strongest_alignment->group->position,
+                         new_align_str, orig_align_str);
     }  /* if */
     /* Clear the alignment so that additional callbacks on this declaration
        will have no effect. */
     dps->alignment = 0;
-  } else if (dps->is_definition && vp != NULL && vp->alignment != 0) {
+  } else if (is_definition && has_alignment && entity_alignment != NULL) {
     /* The current declaration is a definition with no explicit alignment
-       specified through a standard attribute, but a prior variable
-       declaration did specify an explicit alignment.  If that explicit
-       alignment was the result of an attribute, issue an error. */
-    an_attribute_ptr  ap = find_attribute(ak_align,
-                                          vp->source_corresp.attributes);
+       specified through a standard attribute, but a prior declaration did
+       specify an explicit alignment.  If that explicit alignment was the
+       result of an attribute, issue a diagnostic. */
+    an_attribute_ptr  ap = find_attribute(ak_align, scp->attributes);
     if (ap != NULL && is_std_attribute(ap) && !ap->is_std_gcc_attribute) {
-      pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
-                      &ap->position, &dps->declarator_pos);
+      pos2_diagnostic(gnu_mode && !clang_mode ? es_warning :
+                                                es_error,
+                      ec_variable_align_attr_not_on_definition,
+                      &ap->position, &scp->decl_position);
     }  /* if */
   }  /* if */
 }  /* record_std_alignment_attr */
@@ -16887,7 +16938,13 @@ if one is present.
 #if DECL_MODIFIERS_IN_USE
     check_variable_decl_modifiers(var_ptr, state);
 #endif /* DECL_MODIFIERS_IN_USE */
-    record_std_alignment_attr(state);
+    if (var_ptr->source_corresp.attributes != NULL) {
+      /* If any declaration or definition of this variable contains a standard
+         alignment attribute, process it. */
+      record_std_alignment_attr(state, iek_variable, &var_ptr->source_corresp,
+                                !state->is_definition && state->sym->defined,
+                                state->is_definition);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG

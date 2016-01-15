@@ -3998,7 +3998,9 @@ be completed here.
       if (tssp_of_prototype->attributes != NULL) {
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
-        an_attribute_ptr  ap;
+        an_attribute_ptr   ap;
+        a_decl_parse_state dummy_dps;
+        init_decl_parse_state(&dummy_dps);
         ap = copy_of_attributes_with_substitution(
                    tssp_of_prototype->attributes, /*primary_only=*/TRUE,
                    template_sym,
@@ -4006,10 +4008,14 @@ be completed here.
                    template_arg_list, parent_class_or_null(class_type),
                    /*is_partial_instantiation=*/FALSE,
                    (a_boolean*)NULL);
-        attach_tag_attributes(ap, class_type, (a_decl_parse_state*)NULL,
+        attach_tag_attributes(ap, class_type, &dummy_dps,
                               /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
+        record_std_alignment_attr(&dummy_dps, iek_type,
+                                  &class_type->source_corresp,
+                                  /*is_defined=*/FALSE,
+                                  /*is_definition=*/TRUE);
       }  /* if */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
@@ -4707,9 +4713,11 @@ A pointer to the head of the list is returned in tcsp.
     /* When parsing the template, some attributes were encountered between the
        class-key ("class", "struct", or "union") and the template name. */
     attach_tag_attributes(tssp->attributes, prototype_type,
-                          (a_decl_parse_state*)NULL, /*is_definition=*/TRUE,
+                          &decl_state->decl_parse, /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
+    /* No call to record_std_alignment_attr is necessary for a prototype
+       instantiation. */
   }  /* if */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
@@ -7402,17 +7410,23 @@ a type in certain ways (see template_arg_list_is_dependent).
       prototype_type->source_corresp.attributes != NULL) {
     /* Apply any attributes that should be applied at partial instantiation
        time. */
-    an_attribute_ptr  ap;
+    an_attribute_ptr   ap;
+    a_decl_parse_state dummy_dps;
+    init_decl_parse_state(&dummy_dps);
     ap = copy_of_attributes_with_substitution(
             prototype_type->source_corresp.attributes,
             /*primary_only=*/TRUE, primary_template_sym,
             proto_template->variant.template_info->cache.decl_info->parameters,
             template_arg_list, parent_class_or_null(class_type),
             /*is_partial_instantiation=*/TRUE, (a_boolean*)NULL);
-    attach_tag_attributes(ap, class_type, (a_decl_parse_state*)NULL,
+    attach_tag_attributes(ap, class_type, &dummy_dps,
                           /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
+    record_std_alignment_attr(&dummy_dps, iek_type,
+                              &class_type->source_corresp,
+                              /*is_defined=*/FALSE,
+                              /*is_definition=*/TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (ms_extensions or_near_and_far_enabled()) {

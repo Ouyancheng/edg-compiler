@@ -16290,7 +16290,14 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  record_std_alignment_attr(decl_state);
+  if (var->source_corresp.attributes != NULL) {
+    /* If any declaration or definition of this static data member contains a
+       standard alignment attribute, process it. */
+    record_std_alignment_attr(decl_state, iek_variable, &var->source_corresp,
+                              !decl_state->is_definition &&
+                                                      decl_state->sym->defined,
+                              decl_state->is_definition);
+  }  /* if */
   if (!var->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);
@@ -17971,6 +17978,13 @@ Attach the attributes recorded in *dps to the given field.
     mark_primary_decl_attributes(dps->prefix_attributes);
     attach_attributes(dps->prefix_attributes, (char*)field, iek_field);
     detach_parse_state_from_attributes(dps);
+    /* If any declaration or definition of this field contains a standard
+       alignment attribute, process it.  Note that fields can only be
+       defined, so this processing is only needed when it's possible that
+       there are attributes on the field. */
+    record_std_alignment_attr(dps, iek_field, &field->source_corresp,
+                              /*is_declared=*/FALSE,
+                              /*is_definition=*/TRUE);
   }  /* if */
 }  /* attach_field_attributes */
 

@@ -4337,6 +4337,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+  if (class_type->source_corresp.attributes != NULL) {
+    /* If any declaration or definition of this class contains a standard
+       alignment attribute, process it. */
+    record_std_alignment_attr(dps, iek_type, &class_type->source_corresp,
+                              !is_incomplete_type(class_type),
+                              is_class_definition);
+  }  /* if */
   /* If the current token marks a removed template body, skip past that
      special token. */
   if (definition_removed) (void)get_token();
@@ -6310,6 +6317,12 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                         (is_opaque_enum_decl ||
                          (curr_token == tok_semicolon && !strict_ansi_mode)),
                         /*ignore_gnu_attributes=*/!is_definition);
+  if (enum_type->source_corresp.attributes != NULL) {
+      /* If any declaration or definition of this enum contains a standard
+         alignment attribute, process it. */
+    record_std_alignment_attr(dps, iek_type, &enum_type->source_corresp,
+                              is_redeclaration, is_definition);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_type_created && ms_extensions && !is_scoped_enum &&
       explicit_base_kind == (an_integer_kind)ik_none) {

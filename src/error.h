@@ -467,6 +467,11 @@ extern void pos_st2_error(an_error_code     error_code,
                           a_source_position *error_pos,
                           a_const_char      *error_string1,
                           a_const_char      *error_string2);
+extern void pos_st2_diagnostic(an_error_severity error_severity,
+                          an_error_code     error_code,
+                          a_source_position *error_pos,
+                          a_const_char      *error_string1,
+                          a_const_char      *error_string2);
 extern void pos_stty_error(an_error_code     error_code,
                            a_source_position *error_pos,
                            a_const_char      *error_string,

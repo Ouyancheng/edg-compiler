@@ -3782,11 +3782,13 @@ static char* apply_align_attr(an_attribute_ptr  ap,
 /*
 Apply the given "align" (or "aligned") attribute to the given entity and
 return that entity.  This is also the function called for the C++11 "alignas"
-specifier.
+and C11 _Alignas specifiers.
 */
 {
   a_const_char *constr;
-  a_boolean    std_specifier = is_std_attribute(ap);
+  a_boolean    std_specifier = is_std_attribute(ap) &&
+                               !ap->is_std_gcc_attribute;
+  a_boolean    use_last_attribute = gnu_mode && !clang_mode;
 
   if (is_gcc_attribute(ap)) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
@@ -3878,40 +3880,40 @@ specifier.
       }  /* if */
       if (!apply_value) {
         /* Nothing more to do. */
+      } else if (std_specifier) {
+        /* For standard alignment specifiers (i.e., alignas, _Alignas, and
+           the early draft [[align()]]), don't apply the attribute immediately
+           (i.e., here) because only the attribute with the strongest alignment
+           is the effective alignment.  Record the attribute that has the
+           strongest alignment here, then use that when
+           record_std_alignment_attr is later called after the
+           declaration/definition of the entity to make it effective (and issue
+           appropriate errors).  Note that GCC (but not clang) erroneously uses
+           the "last" attribute rather than the one with the strongest
+           alignment. */
+        check_assertion(dps != NULL);
+        if (alignment > dps->alignment || use_last_attribute) {
+          dps->alignment = alignment;
+          dps->strongest_alignment = ap;
+        }  /* if */
       } else if (entity_kind == iek_field) {
         a_field_ptr  fp = (a_field_ptr)entity;
-        if (std_specifier) {
-          if (field_alignment_for(fp->type) > alignment) {
-            pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
-            make_attr_unrecognized(ap);
-          } else if (alignment > fp->alignment) {
-            fp->alignment = alignment;
-          }  /* if */
-        } else {
-          /* Apply the specified alignment.  This may be an increase or a
-             decrease compared to the natural alignment of the type, but a
-             lower #pragma pack setting will take precedence in non-Microsoft
-             modes. */
-          a_targ_alignment  eff_alignment = alignment;
-          if (!microsoft_mode && current_pack_pragma_value() != 0 &&
-              alignment > current_pack_pragma_value()) {
-            eff_alignment = current_pack_pragma_value();
-          }  /* if */
-          fp->alignment = eff_alignment;
+        /* Apply the specified alignment.  This may be an increase or a
+           decrease compared to the natural alignment of the type, but a
+           lower #pragma pack setting will take precedence in non-Microsoft
+           modes. */
+        a_targ_alignment  eff_alignment = alignment;
+        if (!microsoft_mode && current_pack_pragma_value() != 0 &&
+            alignment > current_pack_pragma_value()) {
+          eff_alignment = current_pack_pragma_value();
         }  /* if */
+        fp->alignment = eff_alignment;
       } else if (entity_kind == iek_variable) {
         a_variable_ptr  vp = (a_variable_ptr)entity;
-        if (is_gcc_attribute(ap)) {
+        if (use_last_attribute || is_gcc_attribute(ap)) {
           /* GCC retains the "last" applied alignment.  Declarator attributes
              are applied before prefix attributes. */
           vp->alignment = alignment;
-        } else if (std_specifier) {
-          check_assertion(dps != NULL);
-          if (alignment > dps->alignment) {
-            /* The actual recording of the alignment in the variable entry will
-               be done by a call to record_std_alignment_attr later on. */
-            dps->alignment = alignment;
-          }  /* if */
         } else if (alignment > vp->alignment) {
           vp->alignment = alignment;
         }  /* if */
@@ -3939,8 +3941,8 @@ specifier.
           /* Apply the given alignment, but in the case of the standard
              "alignas" specifier (in non-GCC mode), ensure only the strictest
              alignment is recorded. */
-          if (!std_specifier || !tp->alignment_set_explicitly ||
-              alignment > tp->alignment || (gpp_mode && !clang_mode)) {
+          if (!tp->alignment_set_explicitly ||
+              alignment > tp->alignment || use_last_attribute) {
             /* Set the alignment along with an indication that the alignment
                has been explicitly set.  Note that for enum types the
                underlying type may not yet be known (and the type is

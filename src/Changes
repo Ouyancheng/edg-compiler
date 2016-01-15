@@ -1,5 +1,29 @@
 Version 4.11
 
+1/15/16  [EDGcpfe/16750,EDGcpfe/16762]
+Standard alignment attributes
+
+A number of changes have been made to the processing of standard alignment
+attributes, i.e., alignas, _Alignas and the early draft standard
+[[align(...)]].  As specified by the standard, only the strongest alignment on
+a particular declaration is now considered (except in GNU emulation mode where
+the last alignment attribute is the effective one).  That wasn't always the
+case for fields.  For example (with --c++11):
+
+  struct X {
+    alignas(short) alignas(long) int m;  // Previously a spurious error.
+  };
+
+Also, cases where a type declaration and it's definition disagree on the
+alignment are now diagnosed.  For example (with --c++11):
+
+  struct alignas(8) A;
+  struct A {};            // Previously accepted; now an error.
+
+  struct B {};
+  struct alignas(8) B;    // Previously accepted; now an error.
+
+
 1/15/16  [EDGcpfe/16770]
 Elided calls to deleted constructors and destructors
 

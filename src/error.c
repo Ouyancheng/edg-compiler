@@ -5069,7 +5069,6 @@ at the indicated position.
 }  /* pos_stty_diagnostic */
 
 
-static
 void pos_st2_diagnostic(an_error_severity error_severity,
                         an_error_code     error_code,
                         a_source_position *error_pos,
