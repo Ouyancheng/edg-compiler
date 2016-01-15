@@ -1,6 +1,6 @@
 Version 4.11
 
-1/15/15  [EDGcpfe/16227]
+1/15/16  [EDGcpfe/16227]
 Spurious error on braced initializer for explicit specialization
 
 The front end previously issued a spurious error on a braced initializer for a
