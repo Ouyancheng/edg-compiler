@@ -390,9 +390,9 @@ typedef int a_gen_name_options_set;
 #define GN_PTR_TO_DATA_MEMBER 0x2000
 			/* The name is the qualifier in a pointer to data
 			   member type. */
-#define GN_ELAB_TYPE_SPECIFIER 0x4000
-			/* The name is part of an
-			   elaborated-type-specifier. */
+#define GN_ELAB_TYPE_SPEC_AS_DECL 0x4000
+			/* The name is part of an elaborated-type-specifier
+			   that is used as a declaration. */
 
 /*
 The alignment specified by the most recent #pragma pack directive (0
@@ -3599,7 +3599,7 @@ the meaning of need_closing_paren.
 */
 {
   if (clang_is_generated_code_target && nsp->is_inline &&
-      (options & GN_DECLARATION) && (options & GN_ELAB_TYPE_SPECIFIER)) {
+      (options & GN_ELAB_TYPE_SPEC_AS_DECL)) {
     /* The clang compiler has a bug that issues a spurious error if a
        qualified name appears in an elaborated-type-specifier used as a
        type declaration, so we must be careful not to add a qualifier for
@@ -4361,8 +4361,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       } else {
         gen_namespace_qualifier(nsp,
                                 options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
-                                           GN_DECLARATION |
-                                           GN_ELAB_TYPE_SPECIFIER),
+                                           GN_ELAB_TYPE_SPEC_AS_DECL),
                                 need_closing_paren);
       }  /* if */
     } else if (scp->qualification_needed || force_qualified_name ||
@@ -5967,7 +5966,9 @@ al_tag_name attributes (if any).
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     a_const_char *tag_kind_str = tag_keyword(type);
-    options |= GN_ELAB_TYPE_SPECIFIER;
+    if (options & GN_DECLARATION) {
+      options |= GN_ELAB_TYPE_SPEC_AS_DECL;
+    }  /* if */
     if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
         integer_type_is_scoped_enum(type)) {
       /* A declaration of a scoped enumeration type: Use "enum class" rather
