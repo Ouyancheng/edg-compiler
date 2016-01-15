@@ -6213,7 +6213,7 @@ type.  This includes checking the value of ovfl set by the operation.
             (expr->is_lvalue || expr->is_xvalue)) {
           /* An array lvalue (normally: a string literal).  Allocate the
              string statically and return its address. */
-          a_byte_count  n_bytes = f_value_bytes_for_type(ips, tp, &result);
+          a_byte_count  na_bytes = f_value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           if (!ips->static_storage_ready) {
             /* This is the first time we allocate static storage: Initialize
@@ -6221,7 +6221,7 @@ type.  This includes checking the value of ovfl set by the operation.
             init_constexpr_stack(&ips->static_storage);
             ips->static_storage_ready = TRUE;
           }  /* if */
-          alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
+          alloc_bytes(&ips->static_storage, na_bytes, con_bytes);
           clear_address(result_storage, con_bytes);
         } else {
           con_bytes = result_storage;
