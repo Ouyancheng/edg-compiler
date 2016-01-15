@@ -4576,6 +4576,7 @@ associated global variables will also have been set).
                   *feature;
   a_boolean       add_escape;
   a_boolean       saved_in_macro_arg_list = in_macro_arg_list;
+  unsigned long   saved_macro_name_modif_seq = macro_name_modif_seq;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -6676,6 +6677,7 @@ return_point:
 #endif /* DEBUG */
   macro_depth = saved_macro_depth;
   in_macro_arg_list = saved_in_macro_arg_list;
+  macro_name_modif_seq = saved_macro_name_modif_seq;
   num_macro_invocations_in_process--;
   /* Restore the lexical state. */
   pop_lexical_state_stack();
