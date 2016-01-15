@@ -31238,8 +31238,8 @@ issue an error; otherwise, return TRUE.
     end_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (symbol_is(op_sym, sk_routine)) {
-      check_use_of_deleted_function(op_sym, /*elided_ref=*/FALSE,
-                                    &pos_curr_token);
+      (void)check_use_of_deleted_function(op_sym, /*elided_ref=*/FALSE,
+                                          &pos_curr_token);
     }  /* if */
     make_function_designator_operand(op_sym,
                                      /*is_qualified_name=*/FALSE,

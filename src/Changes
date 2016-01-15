@@ -1,5 +1,30 @@
 Version 4.11
 
+1/15/16  [EDGcpfe/16770]
+Elided calls to deleted constructors and destructors
+
+If a call to a constructor or destructor is about to be elided, the front end
+should still issue an error if the elided call is to a deleted member, or, if
+the call is in a SFINAE context, the candidate being considered should be
+discarded.  Previously, the front end ignored the fact that the call appeared
+in a SFINAE context (e.g., always triggering an actual error in strict mode).
+For example:
+
+  struct Zero { static constexpr int value = 0; };
+  struct One { static constexpr int value = 1; };
+  template <class T> T make();
+  template <typename T, typename = decltype(T(make<T>()))> One f(int);
+  template <typename> Zero f(...);
+  template<class T> using elided_copy_okay = decltype(f<T>(0));
+  struct S { S(const S &) = delete; };
+  static_assert(!elided_copy_okay<S>::value, "Unexpected");
+    // Previously failed; now okay.
+
+This is now fixed.  Furthermore, an elided call to a deleted function was
+simply ignored with a warning in all nonstrict modes.  Now, it is an error
+(or SFINAE disqualification) in GNU and Clang modes.
+
+
 1/15/16  [EDGcpfe/16402]
 Microsoft/Clang/GNU compatibility: Use of static array data member in template
 

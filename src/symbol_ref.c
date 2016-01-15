@@ -2030,38 +2030,47 @@ specifier.
 }  /* check_use_of_deprecated_entity */
 
 
-void check_use_of_deleted_function(a_symbol_ptr      rout_sym,
-                                   a_boolean         elided_ref,
-                                   a_source_position *pos)
+a_boolean check_use_of_deleted_function(a_symbol_ptr      rout_sym,
+                                        a_boolean         elided_ref,
+                                        a_source_position *pos)
 /*
-A reference is being made to the indicated function at the indicated source
-position.  It is not necessarily a call: it might be in unevaluated code,
-it might be taking the address of the function, it might be to an elided
-copy constructor, etc.  If the function is declared as deleted ("= delete"),
-issue an error.  elided_ref is TRUE if the reference is to an elided
-copy constructor.
+A reference is being made to the indicated function.  It is not necessarily a
+call: it might be in unevaluated code, it might be taking the address of the
+function, it might be to an elided copy constructor, etc.  If the function is
+declared as deleted ("= delete") return FALSE, and, if pos is non-NULL, issue
+an error at the position *pos.  elided_ref is TRUE if the reference is to an
+elided copy constructor.
 */
 {
   a_routine_ptr rout;
+  a_boolean     err = FALSE;
 
   check_assertion(is_simple_function_symbol(rout_sym));
   rout = rout_sym->variant.routine.ptr;
   if (rout->is_deleted) {
     an_error_severity sev = es_error;
-    if (elided_ref) sev = strict_ansi_discretionary_severity;
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+    an_error_code     err_code;
+    if (elided_ref && !clang_mode && !gpp_mode) {
+      sev = strict_ansi_discretionary_severity;
+    }  /* if */
+    if (special_kind_is(rout, sfk_constructor) &&
         is_default_constructor(rout, /*is_declarative_context=*/FALSE)) {
       /* Use a specific message for a default constructor.  This is clearer
          when the class is unnamed, as for a lambda. */
-      a_type_ptr class_type = parent_class_of(rout);
-      pos_ty_diagnostic(sev, ec_deleted_default_constructor, pos, class_type);
+      err_code = ec_deleted_default_constructor;
+      err = is_effective_error(err_code, sev);
+      if (pos != NULL) {
+        pos_ty_diagnostic(sev, err_code, pos, parent_class_of(rout));
+      }  /* if */
     } else {
-      pos_sy_diagnostic(sev,
-                        elided_ref ? ec_deleted_elided_cctor :
-                                     ec_deleted_function,
-                        pos, rout_sym);
+      err_code = elided_ref ? ec_deleted_elided_cctor : ec_deleted_function;
+      err = is_effective_error(err_code, sev);
+      if (pos != NULL) {
+        pos_sy_diagnostic(sev, err_code, pos, rout_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
+  return !err;
 }  /* check_use_of_deleted_function */
 
 
@@ -2421,8 +2430,8 @@ check_label_decl_seq:
     check_use_of_deprecated_entity(scptr, source_position);
   }  /* if */
   if (is_simple_function_symbol(sym_ptr)) {
-    check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
-                                  source_position);
+    (void)check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
+                                        source_position);
   }  /* if */
 done:;
 }  /* record_symbol_reference_full */

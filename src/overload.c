@@ -18835,6 +18835,25 @@ is_transparent.  conv_context describes the context of the conversion.
 }  /* prep_conversion_operand */
 
 
+static void expr_check_use_of_deleted_function(a_symbol_ptr      rout_sym,
+                                               a_boolean         elided_ref,
+                                               a_source_position *pos)
+/*
+Wrapper for check_use_of_deleted_function that inhibits an actual diagnostic
+if expr_stack->suppress_diagnostic is TRUE.
+*/
+{
+  if (expr_stack->suppress_diagnostics) {
+    pos = (a_source_position*)NULL;
+  }  /* if */
+  if (!check_use_of_deleted_function(rout_sym, elided_ref, pos)) {
+    if (expr_stack->suppress_diagnostics) {
+      record_suppressed_error();
+    }  /* if */
+  }  /* if */
+}  /* expr_check_use_of_deleted_function */
+
+
 static void handle_elided_destructor(a_type_ptr        type,
                                      a_source_position *err_pos)
 /*
@@ -18875,9 +18894,8 @@ source position to be used for any errors.
                             ec_inaccessible_elided_dtor, p_error_detected);
         if (error_detected) record_suppressed_error();
       }  /* if */
-      check_use_of_deleted_function(dtor_sym,
-                                    /*elided_ref=*/TRUE,
-                                    err_pos);
+      expr_check_use_of_deleted_function(dtor_sym, /*elided_ref=*/TRUE,
+                                         err_pos);
     }  /* if */
   }  /* if */
 }  /* handle_elided_destructor */
@@ -19039,7 +19057,8 @@ cases.
         mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
                                      instantiate, /*elided_reference=*/TRUE);
       }  /* if */
-      check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
+      expr_check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE,
+                                         err_pos);
     }  /* if */
     /* Do anything required for the elided destructor. */
     handle_elided_destructor(class_type, err_pos);
