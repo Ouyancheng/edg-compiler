@@ -1,5 +1,19 @@
 Version 4.11
 
+1/15/15  [EDGcpfe/16227]
+Spurious error on braced initializer for explicit specialization
+
+The front end previously issued a spurious error on a braced initializer for a
+the explicit specialization of a static data member.  For example:
+
+  template<typename> struct S {
+    static int n;
+  };
+  template<> int S<void>::n{0};  // Previously triggered a spurious error.
+
+This is now fixed.
+
+
 1/14/16  [EDGcpfe/16767]
 dllimport/dllexport, template base classes, and prototype instantiations
 

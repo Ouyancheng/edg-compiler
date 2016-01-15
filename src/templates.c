@@ -22059,7 +22059,7 @@ template symbol supplement for this template should be returned to the caller.
     }  /* if */
   }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
-     The initializer may be of the form "= ...;" or "(...);".
+     The initializer may be of the form "= ...;", "(...);", or "{ ... };".
      Anything else will not get cached and an error will be generated
      on this declaration. */
   if (curr_token != tok_end_of_source &&
@@ -25178,7 +25178,8 @@ that follows.
         /* The Microsoft compiler treats a static data member specialization
            declaration as a definition. */
         dps->is_definition = (microsoft_bugs || curr_token == tok_assign ||
-                              has_parenthesized_initializer);
+                              has_parenthesized_initializer ||
+                              (list_init_enabled && curr_token == tok_lbrace));
       } else {
         a_boolean  defaulted;
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
