@@ -6,7 +6,7 @@ dllimport/dllexport, template base classes, and prototype instantiations
 In Microsoft mode, if a dllimport or dllexport attribute is applied to a
 derived class, the same attribute is applied to all its instantiated base
 classes that have no dllimport/dllexport attributes yet.  Previously, this
-was sometimes also applied to prototype instantiations, cause all further
+was sometimes also applied to prototype instantiations, causing all further
 instantiations of the affected template (not just the specific instantiation
 denoted as the base class) to be marked with the dllimport or dllexport
 attribute.  For example, in a configuration with PROTOTYPE_INSTANTIATION_IN_IL
