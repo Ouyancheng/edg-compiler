@@ -3994,7 +3994,6 @@ of the prvalue result.
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
-  a_constant_ptr       con;
 
   if (!result) goto done;
   switch (expr->kind) {
@@ -6247,7 +6246,7 @@ type.  This includes checking the value of ovfl set by the operation.
               copy_address_structures(result_storage);
             }  /* if */
           } else {
-            con = var_constant_value(var);
+            a_constant_ptr  con = var_constant_value(var);
             if (con != NULL) {
               result = copy_val_from_constant(ips, con, result_storage);
             } else {
@@ -6267,7 +6266,8 @@ type.  This includes checking the value of ovfl set by the operation.
             get_mapped_byte_count(&ips->map, &var->storage_class,
                                   p_address->alloc_seq_number);
           } else {
-            a_byte  *con_ptr;
+            a_constant_ptr  con;
+            a_byte          *con_ptr;
             get_mapped_ptr(&ips->map, &var->storage_class, con_ptr);
             con = (a_constant_ptr)con_ptr;
             if (con == NULL) {
