@@ -11939,7 +11939,7 @@ a pointer over a reference type or creating an array of references.
                                         source_pos, options, copy_error,
                                         ctws_state);
         }  /* if */
-        this_class = type->variant.routine.extra_info->this_class;
+        this_class = rtsp->this_class;
         if (this_class == NULL) {
           new_this_class = NULL;
         } else {

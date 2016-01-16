@@ -11655,6 +11655,15 @@ make_new_comp_type:
             check_assertion(ptp2->passed_via_copy_constructor);
             new_ptp->passed_via_copy_constructor = TRUE;
           }  /* if */
+          if (ptp1->is_parameter_pack) {
+            check_assertion(ptp2->is_parameter_pack);
+            new_ptp->is_parameter_pack = TRUE;
+            new_ptp->pack_expansion_descr = ptp1->pack_expansion_descr;
+          }  /* if */
+          if (ptp1->is_pack_element) {
+            check_assertion(ptp2->is_pack_element);
+            new_ptp->is_pack_element = TRUE;
+          }  /* if */
           if (remove_qualifiers_from_param_types) {
             /* Arbitrarily select the qualifiers from one of the types for
                the composite. */

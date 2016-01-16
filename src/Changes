@@ -1,5 +1,22 @@
 Version 4.11
 
+1/15/16  [EDGcpfe/16763]
+Redeclarations of variadic function templates
+
+When a variadic function template is redeclared using a form that is slightly
+different from the original declaration, the front end sometimes corrupted the
+type of the function template, causing the variadic nature of parameters to
+be lost and incorrect deduction behavior later on.  For example:
+
+  template<typename ...  Ts> void f(Ts&&...);
+  template<typename ...  Ts> auto f(Ts&&...)->void {}
+  void g() {
+    f(1, 2);  // Previously triggered a spurious error.  Now okay.
+  }
+
+This is now fixed.
+
+
 1/15/16  [EDGcpfe/16750,EDGcpfe/16762]
 Standard alignment attributes
 
