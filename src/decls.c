@@ -16321,6 +16321,8 @@ alignment attribute.
       has_alignment = tp->alignment_set_explicitly;
     } else {
       entity_alignment = NULL;
+      type_alignment = 0;
+      has_alignment = FALSE;
     }  /* if */
   } else if (kind == iek_field) {
     a_field_ptr fp = (a_field_ptr)scp;
