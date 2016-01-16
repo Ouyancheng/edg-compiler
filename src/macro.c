@@ -2955,7 +2955,14 @@ directly in the argument list.
     } else {
       skip_comma = FALSE;
     }  /* if */
-    tok = get_token();
+    if (skip_comma) {
+      /* Step over the comma and loop again to skip any following white
+         space. */
+      ++curr_char_loc;
+    } else {
+      /* Get the next token and exit the loop. */
+      tok = get_token();
+    }  /* if */
   } while (skip_comma);
   return tok;
 }  /* arg_get_token */
