@@ -2582,7 +2582,7 @@ attribute ap applied to the given routine matches those constraints.
 
 static void check_simple_variable_constraints(a_const_char      *constr,
                                               an_attribute_ptr  ap,
-                                              a_variable_ptr     variable)
+                                              a_variable_ptr    variable)
 /*
 constr encodes a simple target constraint for a variable.  Check that the
 attribute ap applied to the given variable matches those constraints.
@@ -2621,6 +2621,7 @@ attribute ap applied to the given variable matches those constraints.
             err = ec_attr_requires_handler_param;
           }  /* if */
         }  /* if */
+        constr += 2;
       } else if (constr[1] == 'l') {
         /* Check for local variables. */
         if (variable->source_corresp.is_local_to_function &&
@@ -3799,7 +3800,7 @@ and C11 _Alignas specifiers.
       constr = "c|e|t|v:-r!|d";
     }  /* if */
   } else if (std_specifier) {
-    constr = "c|e|v:-r!|d:-b!";
+    constr = "c|e|v:-r!-h!|d:-b!";
     if (c11_mode && ap->family == (a_byte_attribute_family)af_alignas) {
       /* C11 allows _Alignas in syntactic locations different from C++11's
          alignas. */

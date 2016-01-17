@@ -1,5 +1,21 @@
 Version 4.11
 
+1/17/16  [EDGcpfe/16753]
+Error when alignas() applied to exception handler parameter variable
+
+The standard forbids an alignas() attribute to be applied to an exception
+handler parameter variable; an error is now issued.  For example (with
+--c++11):
+
+  void f() {
+    try { } catch (alignas(16) int) { }
+  }
+
+Also fixed was the use of "-h" as an attribute constraint for variables in the
+internal attribute processing mechanism (previously unused in the front end,
+but possibly used by customers).
+
+
 1/15/16  [EDGcpfe/16763]
 Redeclarations of variadic function templates
 
