@@ -2376,6 +2376,9 @@ this is a helper function.
     rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
     rtsp->ref_qualifiers = ref_qualifiers;
   }  /* if */
+  /* GCC allows attributes here.  Scan any that exist, but see below for
+     notes on attaching them. */
+  attributes = scan_attributes(al_post_func);
   esp = scan_exception_specification(state, func_info,
                                      !disallow_exception_spec, top_level);
 
@@ -2406,7 +2409,7 @@ this is a helper function.
   }  /* if */
   /* Scan any attributes now, but delay attaching them until we know if a
      trailing return type follows. */
-  attributes = scan_attributes(al_post_func);
+  attributes = composite_attributes(attributes, scan_attributes(al_post_func));
   if (curr_token == tok_arrow &&
       (trailing_return_types_enabled || state->is_lambda)) {
     /* A trailing return type. */

@@ -1,5 +1,14 @@
 Version 4.11
 
+1/17/16  [EDGcpfe/16737,EDGcpfe/16774]
+GNU Compatibility: Allow attributes on lambda before exception specification
+
+A change has been made to allow attributes on a lambda before an exception
+specification.  For example (with --g++ --c++11):
+
+  auto f = [] () __attribute__((noinline)) noexcept { };
+
+
 1/17/16  [EDGcpfe/16753]
 Error when alignas() applied to exception handler parameter variable
 
