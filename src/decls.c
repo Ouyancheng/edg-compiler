@@ -16305,8 +16305,8 @@ alignment attribute.
 */
 {
   a_type_ptr        tp = NULL;
-  a_targ_alignment  *entity_alignment, type_alignment;
-  a_boolean         has_alignment;
+  a_targ_alignment  *entity_alignment = NULL, type_alignment = 0;
+  a_boolean         has_alignment = FALSE;
 
   if (kind == iek_variable) {
     a_variable_ptr vp = (a_variable_ptr)scp;
@@ -16319,10 +16319,6 @@ alignment attribute.
       entity_alignment = &tp->alignment;
       type_alignment = alignment_of_type(tp);
       has_alignment = tp->alignment_set_explicitly;
-    } else {
-      entity_alignment = NULL;
-      type_alignment = 0;
-      has_alignment = FALSE;
     }  /* if */
   } else if (kind == iek_field) {
     a_field_ptr fp = (a_field_ptr)scp;
