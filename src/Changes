@@ -1,5 +1,14 @@
 Version 4.11
 
+1/17/16  [EDGcpfe/16777]
+Assertion failure in Microsoft mode with long macro expansions and pasting
+
+With certain patterns of long macro expansions and use of the ##
+token-pasting operator, the changes of EDGcpfe/15923 (in version 4.10.1)
+could cause the front end to abort in Microsoft modes with an assertion
+failure in expand_macro_buffer.  This is now fixed.
+
+
 1/17/16  [EDGcpfe/16737,EDGcpfe/16774]
 GNU Compatibility: Allow attributes on lambda before exception specification
 

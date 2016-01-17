@@ -79,6 +79,18 @@ static char	*macro_buffer_region_in_progress;
 			   though the region is not associated with a source
 			   line modification at the time that macro_buffer is
 			   reallocated. */
+static a_const_char
+		*discarded_pcc_top_level_begin,
+		*discarded_pcc_top_level_end;
+			/* Delimit the region of the macro buffer
+			   containing the top-level expansion being
+			   replaced by expand_top_level_pcc_macro.  Valid
+			   only during the period when the macro buffer may
+			   be expanded for copying the contents of the
+			   auxiliary buffer.  Allows expand_macro_buffer to
+			   verify that any orphaned source line
+			   modifications are being legitimately
+			   abandoned. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
 static a_macro_text_map
 		macro_text_map;
@@ -1454,6 +1466,7 @@ ensure_macro_buffer_space.
   char                    *new_start_for_remapping;
   a_source_line_modif_ptr slmp;
   a_source_line_modif_ptr nested_slmp;
+  a_source_line_modif_ptr next_slmp;
   char                    *old_start_of_uncompacted;
   sizeof_t                num_chars_to_copy;
 
@@ -1632,20 +1645,34 @@ ensure_macro_buffer_space.
     dst += num_chars_to_copy;
   }  /* if */
   /* Check to see if any of the source line modifications are replacements
-     for text in the old buffer that was not copied into the new buffer
-     and, if so, break that association.  (This occurs when
-     read_logical_source_line is called during a macro invocation.  In that
-     case, all source line modifications except those holding saved text
-     for scanned macro arguments are removed, and the line_loc for those
-     modifications can refer to text associated with modifications that
-     were removed.) */
-  for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+     for text in the old buffer that was not copied into the new buffer; if
+     so, break that association or remove the modification, as appropriate.
+     One way this occurs is when read_logical_source_line is called during
+     a macro invocation.  In that case, all source line modifications
+     except those holding saved text for scanned macro arguments are
+     removed, and the line_loc for those modifications can refer to text
+     associated with modifications that were removed.  Another case is when
+     expand_top_level_pcc_macro is in the process of replacing the
+     top-level expansion and the text being replaced has leftover deletions
+     from LE_RAW_OR_EXPANDED_ARGUMENT sequences. */
+  for (slmp = source_line_modif_list; slmp != NULL; slmp = next_slmp) {
+    next_slmp = slmp->next;
     if (ptr_in_range(slmp->line_loc, macro_buffer,
                      next_avail_in_macro_buffer)) {
-      check_assertion(slmp->contains_saved_macro_argument_text);
-      rem_source_line_modif_from_hash_table(slmp);
-      slmp->line_loc = NULL;
-      slmp->num_chars_to_delete = 0;
+      check_assertion(slmp->contains_saved_macro_argument_text ||
+                      ptr_in_range(slmp->line_loc,
+                                   discarded_pcc_top_level_begin,
+                                   discarded_pcc_top_level_end));
+      if (slmp->contains_saved_macro_argument_text) {
+        /* Break the modification's association with the buffer text. */
+        rem_source_line_modif_from_hash_table(slmp);
+        slmp->line_loc = NULL;
+        slmp->num_chars_to_delete = 0;
+      } else {
+        /* Remove the leftover raw/expanded text deletion. */
+        rem_source_line_modif(slmp);
+        free_source_line_modif(&slmp);
+      }  /* if */
     }  /* if */
   }  /* for */
   free_general((a_void_ptr)macro_buffer, (sizeof_t)(old_size+1));
@@ -3495,9 +3522,13 @@ end_loop:
        reclaimed during the next macro_buffer reallocation or truncation.  For
        now, just make the insertion appear empty, in case this call to
        ensure_macro_buffer_space() causes reallocation. */
+    discarded_pcc_top_level_begin = main_slmp->inserted_text;
+    discarded_pcc_top_level_end = main_slmp->end_inserted_text;
     main_slmp->inserted_text = main_slmp->end_inserted_text;
     len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
     ensure_macro_buffer_space(len_new);
+    discarded_pcc_top_level_begin = NULL;
+    discarded_pcc_top_level_end = NULL;
     /* Copy the new text into macro_buffer.  This will copy up to and
        including the final lexical escape. */
     (void)memcpy(next_avail_in_macro_buffer, aux_buffer_for_pcc_macros,
