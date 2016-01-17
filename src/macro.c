@@ -1670,8 +1670,9 @@ ensure_macro_buffer_space.
         slmp->num_chars_to_delete = 0;
       } else {
         /* Remove the leftover raw/expanded text deletion. */
-        rem_source_line_modif(slmp);
-        free_source_line_modif(&slmp);
+        a_source_line_modif_ptr slmp2 = slmp;
+        rem_source_line_modif(slmp2);
+        free_source_line_modif(&slmp2);
       }  /* if */
     }  /* if */
   }  /* for */
