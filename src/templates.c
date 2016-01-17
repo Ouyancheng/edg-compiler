@@ -3999,8 +3999,8 @@ be completed here.
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
         an_attribute_ptr   ap;
-        a_decl_parse_state dummy_dps;
-        init_decl_parse_state(&dummy_dps);
+        a_decl_parse_state dps_for_alignment;
+        init_decl_parse_state(&dps_for_alignment);
         ap = copy_of_attributes_with_substitution(
                    tssp_of_prototype->attributes, /*primary_only=*/TRUE,
                    template_sym,
@@ -4008,11 +4008,11 @@ be completed here.
                    template_arg_list, parent_class_or_null(class_type),
                    /*is_partial_instantiation=*/FALSE,
                    (a_boolean*)NULL);
-        attach_tag_attributes(ap, class_type, &dummy_dps,
+        attach_tag_attributes(ap, class_type, &dps_for_alignment,
                               /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
-        record_std_alignment_attr(&dummy_dps, iek_type,
+        record_std_alignment_attr(&dps_for_alignment, iek_type,
                                   &class_type->source_corresp,
                                   /*is_defined=*/FALSE,
                                   /*is_definition=*/TRUE);
@@ -7411,19 +7411,19 @@ a type in certain ways (see template_arg_list_is_dependent).
     /* Apply any attributes that should be applied at partial instantiation
        time. */
     an_attribute_ptr   ap;
-    a_decl_parse_state dummy_dps;
-    init_decl_parse_state(&dummy_dps);
+    a_decl_parse_state dps_for_alignment;
+    init_decl_parse_state(&dps_for_alignment);
     ap = copy_of_attributes_with_substitution(
             prototype_type->source_corresp.attributes,
             /*primary_only=*/TRUE, primary_template_sym,
             proto_template->variant.template_info->cache.decl_info->parameters,
             template_arg_list, parent_class_or_null(class_type),
             /*is_partial_instantiation=*/TRUE, (a_boolean*)NULL);
-    attach_tag_attributes(ap, class_type, &dummy_dps,
+    attach_tag_attributes(ap, class_type, &dps_for_alignment,
                           /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
-    record_std_alignment_attr(&dummy_dps, iek_type,
+    record_std_alignment_attr(&dps_for_alignment, iek_type,
                               &class_type->source_corresp,
                               /*is_defined=*/FALSE,
                               /*is_definition=*/TRUE);

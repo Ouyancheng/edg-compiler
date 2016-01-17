@@ -16290,14 +16290,12 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (var->source_corresp.attributes != NULL) {
-    /* If any declaration or definition of this static data member contains a
-       standard alignment attribute, process it. */
-    record_std_alignment_attr(decl_state, iek_variable, &var->source_corresp,
-                              !decl_state->is_definition &&
+  /* If any declaration or definition of this static data member contains a
+     standard alignment attribute, process it. */
+  record_std_alignment_attr(decl_state, iek_variable, &var->source_corresp,
+                            !decl_state->is_definition &&
                                                       decl_state->sym->defined,
-                              decl_state->is_definition);
-  }  /* if */
+                            decl_state->is_definition);
   if (!var->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);

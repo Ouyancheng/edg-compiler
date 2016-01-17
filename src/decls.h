@@ -1051,14 +1051,18 @@ typedef struct a_decl_parse_state {
 		alignment;
 			/* The explicit alignment specified for the declared
 			   entity in this declaration, or zero if no alignment
-			   has been specified explicitly. */
+			   has been specified explicitly.  Used only for
+			   standard alignment attributes (where the alignment
+			   isn't known until all attributes have been parsed).
+			   In other cases, the alignment attribute of the
+			   entity is adjusted directly. */
   an_attribute_ptr
 		strongest_alignment;
 			/* A pointer to the ak_align attribute with the
 			   "strongest" standard alignment, except in GCC mode
 			   where it points to the "last" alignment attribute
 			   (because GCC currently uses the "last" rather than
-			   the "strongest". */
+			   the "strongest".  Used only for error reporting. */
   a_upc_block_size
 		upc_block_size;
 			/* The UPC block size associated with any UPC shared
@@ -1549,11 +1553,20 @@ extern a_boolean decltype_auto_tokens_next(void);
 extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
                                                  a_symbol_locator    *locator);
 
-extern void record_std_alignment_attr(a_decl_parse_state      *dps,
-                                      an_il_entry_kind        kind,
-                                      a_source_correspondence *scp,
-                                      a_boolean               is_defined,
-                                      a_boolean               is_definition);
+/*
+Utility macro to avoid a function call in the common case where an entity
+has no standard alignment attribute.  Here we check only that the entity has
+an attribute.
+*/
+#define record_std_alignment_attr(dps, kind, scp, is_defined, is_definition)  \
+  if ((scp)->attributes != NULL) {                                            \
+    f_record_std_alignment_attr(dps, kind, scp, is_defined, is_definition);   \
+  }  /* if */
+extern void f_record_std_alignment_attr(a_decl_parse_state      *dps,
+                                        an_il_entry_kind        kind,
+                                        a_source_correspondence *scp,
+                                        a_boolean               is_defined,
+                                        a_boolean               is_definition);
  
 extern void decls_one_time_init(void);
 

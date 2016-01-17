@@ -16287,11 +16287,11 @@ embedded struct declaration.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void record_std_alignment_attr(a_decl_parse_state      *dps,
-                               an_il_entry_kind        kind,
-                               a_source_correspondence *scp,
-                               a_boolean               is_defined,
-                               a_boolean               is_definition)
+void f_record_std_alignment_attr(a_decl_parse_state      *dps,
+                                 an_il_entry_kind        kind,
+                                 a_source_correspondence *scp,
+                                 a_boolean               is_defined,
+                                 a_boolean               is_definition)
 
 /*
 If applicable, record the explicit alignment specified by standard alignment
@@ -16299,15 +16299,20 @@ attributes on the declaration described by *dps in the corresponding entity as
 specified by kind and scp.  is_defined is TRUE if the entity has already been
 defined previously; is_definition is TRUE if the current declaration is a
 definition.  Issue an error if this alignment is invalid (e.g., inconsistent
-with previous declarations).  If no attribute was specified and
-dps->is_definition is TRUE, issue an error if prior declarations specified an
-alignment attribute.
+with previous declarations).  If no attribute was specified and is_definition
+is TRUE, issue an error if prior declarations specified an alignment attribute.
+Should be called via record_std_alignment_attr.
+
+Note that this must be called at the end of a declaration/definition for
+any entity on which a standard alignment attribute may have been specified
+(to detect cases like: "struct alignas(8) A; struct A {};").
 */
 {
   a_type_ptr        tp = NULL;
   a_targ_alignment  *entity_alignment = NULL, type_alignment = 0;
   a_boolean         has_alignment = FALSE;
 
+  check_assertion(scp->attributes != NULL);
   if (kind == iek_variable) {
     a_variable_ptr vp = (a_variable_ptr)scp;
     entity_alignment = &vp->alignment;
@@ -16399,7 +16404,7 @@ alignment attribute.
                       &ap->position, &scp->decl_position);
     }  /* if */
   }  /* if */
-}  /* record_std_alignment_attr */
+}  /* f_record_std_alignment_attr */
 
 #if CHECKING
 
@@ -16936,13 +16941,11 @@ if one is present.
 #if DECL_MODIFIERS_IN_USE
     check_variable_decl_modifiers(var_ptr, state);
 #endif /* DECL_MODIFIERS_IN_USE */
-    if (var_ptr->source_corresp.attributes != NULL) {
-      /* If any declaration or definition of this variable contains a standard
-         alignment attribute, process it. */
-      record_std_alignment_attr(state, iek_variable, &var_ptr->source_corresp,
-                                !state->is_definition && state->sym->defined,
-                                state->is_definition);
-    }  /* if */
+    /* If any declaration or definition of this variable contains a standard
+       alignment attribute, process it. */
+    record_std_alignment_attr(state, iek_variable, &var_ptr->source_corresp,
+                              !state->is_definition && state->sym->defined,
+                              state->is_definition);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
