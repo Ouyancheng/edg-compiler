@@ -65,7 +65,7 @@ case for fields.  For example (with --c++11):
     alignas(short) alignas(long) int m;  // Previously a spurious error.
   };
 
-Also, cases where a type declaration and it's definition disagree on the
+Also, cases where a type declaration and its definition disagree on the
 alignment are now diagnosed.  For example (with --c++11):
 
   struct alignas(8) A;
