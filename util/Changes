@@ -1,13 +1,19 @@
 Version 4.11
 
 1/18/16  [EDGcpfe/16757]
-Cfront demangling of mangled names starting with "__li"
+Cfront demangling of names starting with "__li"
 
 As a result of demangling changes for demangling of user-defined literals
-(EDGcpfe/9252), demangling of a Cfront mangled name starting with "__li" had
-failed.  Now fixed.  For example,
-__libcpp_relaxed_load__tm__2_l__3stdFPCZ1Z_Z1Z now demangles properly (to
-"T1 std::__libcpp_relaxed_load<T1>(const T1 *) [with T1=long]".
+(EDGcpfe/9252), demangling of a Cfront name starting with "__li" had failed.
+Now fixed.  The following example produces the mangled name "__lib__1NFv"
+which had failed to be decoded:
+
+  namespace N {
+    void __lib();
+  }
+  int main() {
+    N::__lib();
+  }
 
 
 12/20/15 [EDGcpfe/16731]
