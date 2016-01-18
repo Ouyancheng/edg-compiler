@@ -2376,9 +2376,18 @@ this is a helper function.
     rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
     rtsp->ref_qualifiers = ref_qualifiers;
   }  /* if */
-  /* GCC allows attributes here.  Scan any that exist, but see below for
-     notes on attaching them. */
-  attributes = scan_attributes(al_post_func);
+  if (state->is_lambda) {
+    /* GCC allows all forms of attributes here; clang allows only GNU
+       attributes.  Scan any that exist, but see below for notes on attaching
+       them. */
+    if (gpp_mode) {
+      if (clang_mode) {
+        attributes = scan_gnu_attribute_groups(al_post_func);
+      } else {
+        attributes = scan_attributes(al_post_func);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   esp = scan_exception_specification(state, func_info,
                                      !disallow_exception_spec, top_level);
 
