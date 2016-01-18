@@ -2004,7 +2004,8 @@ by the caller).
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
-    if (*ud_suffix_follows) {
+    if (*ud_suffix_follows && end_ptr != NULL && !dctl->err_in_id &&
+        isdigit((unsigned char)get_char(end_ptr, dctl))) {
       /* If a ud-suffix follows, make sure its length is accounted for.
          Note that prev_end is restored here as this is just speculative
          look ahead. */
@@ -2012,13 +2013,17 @@ by the caller).
       a_const_char   *prev_end;
       end_ptr = get_length(end_ptr, &num, &prev_end, dctl);
       end_ptr = end_ptr + num;
+      /* Restore any fields that might have been changed by the speculative
+         lookahead. */
       dctl->end_of_name = prev_end;
+      dctl->err_in_id = FALSE;
     }  /* if */
     if (get_char(end_ptr, dctl) == '\0' ||
         (get_char(end_ptr, dctl) == '_' && get_char(end_ptr+1, dctl) == '_')) {
       /* Okay. */
     } else {
       s = NULL;
+      *ud_suffix_follows = FALSE;
     }  /* if */
   }  /* if */
   *demangled_name = s;
