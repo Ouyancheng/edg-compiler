@@ -37954,7 +37954,6 @@ wrap_up_coroutine_result_expression.)
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
-  a_type_ptr          routine_type;
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
@@ -37974,19 +37973,6 @@ wrap_up_coroutine_result_expression.)
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  routine_type = skip_typerefs(curr_routine->type);
-  if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
-    /* The current routine returns its value via a copy constructor. */
-    return_by_cctor_case = TRUE;
-    expr_stack->in_cctor_elision_initializer = TRUE;
-  } else if (curr_routine->has_deducible_return_type &&
-             !curr_routine->is_prototype_instantiation) {
-      /* The return type will be set from the returned expression's type.
-         Suppress addition of a destructor on any dynamic initialization until
-         we know whether it's going to be optimized away. */
-      deduced_return_type = TRUE;
-      expr_stack->in_cctor_elision_initializer = TRUE;
-  }  /* if */
   if (curr_token == tok_lbrace && (gpp_mode || list_init_enabled)) {
     /* A C++11 list initializer. */
     if (!list_init_enabled) {
@@ -38004,7 +37990,8 @@ wrap_up_coroutine_result_expression.)
       goto done;
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
-    if (deduced_return_type) {
+    if (curr_routine->has_deducible_return_type &&
+        !curr_routine->is_prototype_instantiation) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
       make_error_operand(&result);
@@ -38017,85 +38004,19 @@ wrap_up_coroutine_result_expression.)
                                    : ec_braced_list_for_implicit_return_type,
                      &result.position);
       arg_list_will_not_be_used_because_of_error(icp);
-      free_init_component_list(icp);
-      icp = NULL;
       goto handle_deduced_return_type;
     }  /* if */
     expr_clear_init_state(&init_state);
     /* init_state.elements_are_full_expressions is not set to TRUE because
        the expression stack has already been pushed for the full expression,
        and we'll handle the full-expression wrapup at this level. */
-    /* When the return is via copy constructor, get an operand back so
-       it can be fed into the elision optimization below.
-       Otherwise, get back either a dynamic init or a constant. */
     prep_list_initializer(icp, required_type,
-                          /*is_direct_init=*/FALSE,
-                          /*check_narrowing=*/TRUE,
-                          /*warning_on_narrowing=*/FALSE,
-                          conv_context,
+                          /*is_direct_init=*/FALSE, /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE, conv_context,
                           /*fill_in_dtor=*/return_by_cctor_case,
                           /*force_temp=*/return_by_cctor_case,
-                          /*make_lvalue_temp=*/FALSE,
-                          return_by_cctor_case ? &result : (an_operand *)NULL,
-                          return_by_cctor_case ? (an_init_state *)NULL :
-                                                 &init_state,
-                          (an_arg_match_summary *)NULL);
-  } else {
-    /* Normal case: Scan the expression. */
-    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-#if COROUTINES_ALLOWED
-    if (curr_routine->is_coroutine) {
-      /* Bypass the usual processing on return expressions, and handle this
-         as a coroutine return instead. */
-      *alep = alloc_arg_list_elem_for_operand(&result);
-      bundle_coroutine_result(*alep);
-      expression = NULL;
-      goto done;
-    }  /* if */
-#endif /* COROUTINES_ALLOWED */
-    if (deduced_return_type) {
-      /* Set the return type from the expression type. */
-handle_deduced_return_type:
-      if (!curr_routine->has_deducible_return_type) {
-        /* An error caused the flag to be cleared (e.g., because the routine
-           was called recursively in the return expression). */
-        expect_error();
-        required_type = error_type();
-      } else {
-        check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
-                                                       &required_type);
-        if (routine_type->variant.routine.extra_info
-                        ->value_returned_by_cctor) {
-          /* The routine is now known to return its value via copy
-             constructor. */
-          return_by_cctor_case = TRUE;
-        } else {
-          /* It turns out we didn't need to treat this as a cctor elision
-             context, so make sure we add destructors to any dynamic
-             initialization entries where they were partially suppressed. */
-          fix_up_dynamic_init_dtors();
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (return_by_cctor_case) {
-    /* The current routine returns its value via a copy constructor. */
-    /* Check for the possibility of the return value optimization. */
-    check_return_value_optimization(&result);
-    /* Build a dynamic initialization entry for the return statement. */
-    prep_elision_initializer_operand(&result, required_type,
-                                     /*fill_in_dtor=*/FALSE,
-                                     conv_context, err_code,
-                                     /*elision_done=*/(a_boolean *)NULL,
-                                     dip);
-    wrap_up_dynamic_init_full_expression(*dip);
-    /* Fix up destructor references in the overall expression. */
-    fix_up_dynamic_init_dtors();
-    expression = NULL;
-  } else if (icp != NULL) {
-    /* An initializer-list case, e.g., "return{x};".  However, when the
-       function returns its result via a copy constructor such cases
-       are handled above. */
+                          /*make_lvalue_temp=*/FALSE, (an_operand *)NULL,
+                          &init_state, (an_arg_match_summary *)NULL);
     if (init_state.init_dip != NULL) {
       *dip = init_state.init_dip;
       wrap_up_dynamic_init_full_expression(*dip);
@@ -38122,56 +38043,121 @@ handle_deduced_return_type:
       expression = NULL;
     }  /* if */
   } else {
-    /* Normal case. */
-    if (is_void_type(required_type)) {
-      /* A void expression is expected. */
-      void_return_case = TRUE;
-      /* We don't use process_void_operand here on purpose.  We don't want
-         to issue a warning on an expression with no side effects. */
-      do_void_operand_transformations(&result,
-                                      /*force_lvalue_to_rvalue=*/FALSE);
-      expression = make_node_from_void_expression_operand(
-                                      &result, /*result_of_stmt_expr=*/FALSE);
-      if (microsoft_mode && C_mode()) {
-        /* The type is not checked in Microsoft C mode. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcx_enabled &&
-                 special_kind_is(curr_routine, sfk_constructor) &&
-                 check_vccorlib_ctor_return_expr(curr_routine, &result)) {
-        /* Constructors declared in the special C++/CX header vccorlib.h can
-           return a pointer or handle to their class type. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (gcc_mode) {
-        /* In GNU C mode a type mismatch results in a warning only. */
-        if (!is_void_type(result.type)) {
-          expr_pos_warning(err_code, &result.position);
-        }  /* if */
+    /* Normal case: Scan the expression. */
+    a_type_ptr  routine_type = skip_typerefs(curr_routine->type);
+    if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
+      /* The current routine returns its value via a copy constructor. */
+      return_by_cctor_case = TRUE;
+      expr_stack->in_cctor_elision_initializer = TRUE;
+    } else if (curr_routine->has_deducible_return_type &&
+               !curr_routine->is_prototype_instantiation) {
+        /* The return type will be set from the returned expression's type.
+           Suppress addition of a destructor on any dynamic initialization
+           until we know whether it's going to be optimized away. */
+        deduced_return_type = TRUE;
+        expr_stack->in_cctor_elision_initializer = TRUE;
+    }  /* if */
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+#if COROUTINES_ALLOWED
+    if (curr_routine->is_coroutine) {
+      /* Bypass the usual processing on return expressions, and handle this
+         as a coroutine return instead. */
+      *alep = alloc_arg_list_elem_for_operand(&result);
+      bundle_coroutine_result(*alep);
+      expression = NULL;
+      goto done;
+    }  /* if */
+#endif /* COROUTINES_ALLOWED */
+    if (deduced_return_type) {
+      /* Set the return type from the expression type. */
+handle_deduced_return_type:
+      if (!curr_routine->has_deducible_return_type) {
+        /* An error caused the flag to be cleared (e.g., because the routine
+           was called recursively in the return expression). */
+        expect_error();
+        required_type = error_type();
       } else {
-        /* Check that the expression has void type. */
-        if (!is_void_type(result.type) &&
-            !is_template_param_type(result.type)) {
-          if (!is_error_operand(&result)) {
-            error_in_operand(err_code, &result);
-            expression = error_node();
-          }  /* if */
+        check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
+                                                       &required_type);
+        if (icp == NULL && routine_type->variant.routine.extra_info
+                                       ->value_returned_by_cctor) {
+          /* The routine is now known to return its value via copy
+             constructor. */
+          return_by_cctor_case = TRUE;
+        } else {
+          /* It turns out we didn't need to treat this as a cctor elision
+             context, so make sure we add destructors to any dynamic
+             initialization entries where they were partially suppressed. */
+          fix_up_dynamic_init_dtors();
         }  /* if */
-      }  /* if */
-    } else {
-      /* Convert to the required type. */
-      prep_initializer_operand(&result, required_type, 
-                               (a_boolean *)NULL,
-                               (a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/TRUE,
-                               conv_context,
-                               err_code);
-      expression = make_node_from_operand(&result);
-      if (!is_any_reference_type(required_type)) {
-        check_for_return_of_address_of_local_variable(expression,
-                                                      &result.position);
       }  /* if */
     }  /* if */
-    expression = wrap_up_full_expression(expression);
-    if (void_return_case) set_expr_result_not_used(expression);
+    if (return_by_cctor_case) {
+      /* The current routine returns its value via a copy constructor. */
+      /* Check for the possibility of the return value optimization. */
+      check_return_value_optimization(&result);
+      /* Build a dynamic initialization entry for the return statement. */
+      prep_elision_initializer_operand(&result, required_type,
+                                       /*fill_in_dtor=*/FALSE,
+                                       conv_context, err_code,
+                                       /*elision_done=*/(a_boolean *)NULL,
+                                       dip);
+      wrap_up_dynamic_init_full_expression(*dip);
+      /* Fix up destructor references in the overall expression. */
+      fix_up_dynamic_init_dtors();
+      expression = NULL;
+    } else {
+      /* Normal case. */
+      if (is_void_type(required_type)) {
+        /* A void expression is expected. */
+        void_return_case = TRUE;
+        /* We don't use process_void_operand here on purpose.  We don't want
+           to issue a warning on an expression with no side effects. */
+        do_void_operand_transformations(&result,
+                                        /*force_lvalue_to_rvalue=*/FALSE);
+        expression = make_node_from_void_expression_operand(
+                                      &result, /*result_of_stmt_expr=*/FALSE);
+        if (microsoft_mode && C_mode()) {
+          /* The type is not checked in Microsoft C mode. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcx_enabled &&
+                   special_kind_is(curr_routine, sfk_constructor) &&
+                   check_vccorlib_ctor_return_expr(curr_routine, &result)) {
+          /* Constructors declared in the special C++/CX header vccorlib.h can
+             return a pointer or handle to their class type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (gcc_mode) {
+          /* In GNU C mode a type mismatch results in a warning only. */
+          if (!is_void_type(result.type)) {
+            expr_pos_warning(err_code, &result.position);
+          }  /* if */
+        } else {
+          /* Check that the expression has void type. */
+          if (!is_void_type(result.type) &&
+              !is_template_param_type(result.type)) {
+            if (!is_error_operand(&result)) {
+              error_in_operand(err_code, &result);
+              expression = error_node();
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Convert to the required type. */
+        prep_initializer_operand(&result, required_type, 
+                                 (a_boolean *)NULL,
+                                 (a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/TRUE,
+                                 conv_context,
+                                 err_code);
+        expression = make_node_from_operand(&result);
+        if (!is_any_reference_type(required_type)) {
+          check_for_return_of_address_of_local_variable(expression,
+                                                        &result.position);
+        }  /* if */
+      }  /* if */
+      expression = wrap_up_full_expression(expression);
+      if (void_return_case) set_expr_result_not_used(expression);
+    }  /* if */
   }  /* if */
   if (curr_routine->is_constexpr && !relaxed_constexpr_enabled &&
       expr_stack->constant_expr_ruled_out) {
@@ -38202,7 +38188,7 @@ handle_deduced_return_type:
       expr_pos_diagnostic(sev, ec_constexpr_return_not_constant, pos);
     }  /* if */
   }  /* if */
-  free_init_component_list(icp);
+  if (icp != NULL) free_init_component_list(icp);
 #if COROUTINES_ALLOWED
 done:
 #endif /* COROUTINES_ALLOWED */

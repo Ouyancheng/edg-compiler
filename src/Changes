@@ -1,5 +1,28 @@
 Version 4.11
 
+1/18/16  [EDGcpfe/16778]
+Copy constructors and "return { ... };"
+
+Consider the following C++11 code:
+
+  struct X {};
+  struct S {
+    S(X const&);
+    S(S const&) = delete;
+  };
+  S g() {
+    return { X() };  // Previously an error; now okay.
+  }
+
+Previously, the return statement was handled as an elided copy of an implicit
+form of "S{X()}" (i.e., the conversion to S is implicit).  Since the copy
+constructor is deleted, an error was issued in various modes (despite the
+elision).  A close reading of the standard, however, indicates that the return
+value is list-initialized directly from the braced initializer, without any
+involvement of the copy constructor (and hence the example should be accepted).
+This is now fixed.
+
+
 1/17/16  [EDGcpfe/16777]
 Assertion failure in Microsoft mode with long macro expansions and pasting
 
