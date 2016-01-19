@@ -1,5 +1,20 @@
 Version 4.11
 
+1/19/16  [EDGcpfe/16749]
+Incorrect lookup of globally qualified name when using inline namespaces
+
+A globally qualified lookup could produce an incorrect result if the
+global scope contained an inline namespace.  Now fixed.
+
+  inline namespace IN1 {
+   void f(int);
+  }
+  void f();
+  int main() {
+   ::f(0);  // incorrectly attempted to call ::f()
+  }
+
+
 1/19/16  [EDGcpfe/15860,EDGcpfe/16756]
 Abort in C++14 mode on missing lifetime for default member initializer
 

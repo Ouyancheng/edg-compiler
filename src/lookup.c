@@ -5651,13 +5651,13 @@ file scope.
   a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS);
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
-  a_boolean	is_linkage_or_friend_lookup =
-                         (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+  a_boolean	is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
+  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
   a_boolean	check_decl_seq =
                                (options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
-                               !is_linkage_or_friend_lookup;
+                               !is_linkage_lookup && !is_friend_lookup;
   a_decl_sequence_number
 		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
   a_scope_number
@@ -5669,7 +5669,7 @@ file scope.
    space test is needed when searching the file scope so that macro symbols
    are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
+  ((!(fund_sym->is_invisible) || is_linkage_lookup || is_friend_lookup) && \
    (sym)->decl_scope == scope_number_to_use &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
@@ -5773,34 +5773,46 @@ file scope.
         }  /* if */
       }  /* if */
     }  /* if */
-    if ((sym == NULL || (gpp_mode && is_function_or_template_symbol(sym))) &&
-        !is_linkage_or_friend_lookup && !direct_namespace_members_only) {
+    if ((!is_linkage_lookup ||
+         (options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&
+        !direct_namespace_members_only) {
        /* If the symbol was not found in this namespace, look in namespaces
-          visible because of using directives.  Skip this process for a
-          linkage lookup.  A linkage or friend lookup should only find names
-          that are actually defined in a scope.  The using-directive lookup
-          is still done if a function symbol was found, because inline
-          namespaces (or g++ strong using-directives) can add names that
-          overload with the symbol found in the current namespace.  The
-          "inline_namespace_only" flag is TRUE in this case. */
+          visible because of an inline namespace.  Skip this process for a
+          linkage lookup.  A linkage lookup should only find names that are
+          actually defined in a scope.  The template-id exception is made
+          because class template declarations use a linkage lookup but should
+          do the inline namespace processing. */
       a_symbol_ptr	new_sym;
       new_sym = qualified_using_directive_lookup(
                              locator, (a_namespace_ptr)NULL, file_scope_to_use,
                              options, (a_namespace_ptr)NULL, &synth_sym,
                              &any_errors,
-                             /*inline_namespace_only=*/sym != NULL);
+                             /*inline_namespace_only=*/TRUE);
       /* For the inline namespace case, we may have to merge the result of the
          using-directive lookup and the lookup in the current namespace. */
       if (new_sym != NULL) {
         if (sym == NULL) {
           sym = new_sym;
         } else {
-          sym = add_symbol_to_lookup_set(new_sym, sym, locator,
+          sym = add_symbol_to_lookup_set(sym, new_sym, locator,
                                          /*qualified_lookup=*/TRUE,
                                          (a_namespace_ptr)NULL, options,
                                          &any_errors);
         }  /* if */
-      }  /* if*/
+      }  /* if */
+    }  /* if */
+    if (sym == NULL &&
+        !is_linkage_lookup && !is_friend_lookup &&
+        !direct_namespace_members_only) {
+       /* If the symbol was not found in this namespace, look in namespaces
+          visible because of using directives.  Skip this process for a
+          linkage lookup.  A linkage or friend lookup should only find names
+          that are actually defined in a scope. */
+      sym = qualified_using_directive_lookup(
+                             locator, (a_namespace_ptr)NULL, file_scope_to_use,
+                             options, (a_namespace_ptr)NULL, &synth_sym,
+                             &any_errors,
+                             /*inline_namespace_only=*/FALSE);
     }  /* if */
     locator->specific_symbol = sym;
   }  /* if */
