@@ -37954,6 +37954,7 @@ wrap_up_coroutine_result_expression.)
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
+  a_type_ptr          routine_type = skip_typerefs(curr_routine->type);
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
@@ -38044,7 +38045,6 @@ wrap_up_coroutine_result_expression.)
     }  /* if */
   } else {
     /* Normal case: Scan the expression. */
-    a_type_ptr  routine_type = skip_typerefs(curr_routine->type);
     if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
       /* The current routine returns its value via a copy constructor. */
       return_by_cctor_case = TRUE;

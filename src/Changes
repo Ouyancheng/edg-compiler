@@ -11,7 +11,7 @@ Consider the following C++11 code:
     S(S const&) = delete;
   };
   S g() {
-    return { X() };  // Previously an error; now okay.
+    return { X() };  // Previously an error in strict mode; now okay.
   }
 
 Previously, the return statement was handled as an elided copy of an implicit
