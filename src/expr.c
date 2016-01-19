@@ -4887,6 +4887,38 @@ match.
 }  /* report_this_param_mismatch */
 
 
+static void turn_mem_func_operand_into_unknown_function(an_operand  *opnd)
+/*
+The given operand represents a specific member function.  Turn it into a
+template-dependent unknown function (i.e., a tpck_unknown_function constant
+operand).
+*/
+{
+  a_constant_ptr  uf_con;
+  a_symbol_ptr    sym = opnd->symbol;
+
+  uf_con = fs_constant((a_constant_repr_kind)ck_template_param);
+  set_template_param_constant_kind(
+               uf_con, (a_template_param_constant_kind)tpck_unknown_function);
+  uf_con->type = type_of_unknown_templ_param_nontype;
+  uf_con->variant.template_param.is_qualified_name = opnd->is_qualified_name;
+  uf_con->variant.template_param.variant.unknown_function.opname_kind =
+                                                  sym->header->variant.opname;
+  set_source_corresp_name(&uf_con->source_corresp, sym->header);
+  if (sym->is_class_member) {
+    set_class_membership((a_symbol_ptr)NULL, &uf_con->source_corresp,
+                         sym_parent_class(sym));
+  } else {
+    a_namespace_ptr  parent_nsp = sym_parent_namespace(sym);
+    if (parent_nsp != NULL) {
+      set_namespace_membership((a_symbol_ptr)NULL, &uf_con->source_corresp,
+                               parent_nsp);
+    }  /* if */
+  }  /* if */
+  make_constant_operand(uf_con, opnd);
+}  /* turn_mem_func_operand_into_unknown_function */
+
+
 static void scan_function_call(an_operand             *operand,
                                an_operand             *bound_function_selector,
                                a_rescan_control_block *rcblock,
@@ -5166,50 +5198,58 @@ are expected to be NULL in that case.
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
-      a_symbol_ptr  member_func_sym = operand->symbol;
-      a_type_ptr    this_class = sym_parent_class(member_func_sym);
-      if (make_this_pointer_operand(member_func_sym,
-                                    member_func_sym,
-                                    &call_position,
-                                    (a_boolean)operand->
-                                                 access_control_error_reported,
-                                    bound_function_selector)) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        a_source_position saved_end_position;
-        saved_end_position = operand->end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (this_class
-                    ->variant.class_struct_union.is_prototype_instantiation) {
-          member_of_proto_inst = TRUE;
-        }  /* if */
-        /* Make an operand for the function bound to the "this" pointer. */
-        make_function_designator_operand(member_func_sym,
-                                         (a_boolean)operand->is_qualified_name,
-                                         /*compiler_generated=*/FALSE,
-                                         &call_position,
-                                         end_position_or_null(
-                                                          &saved_end_position),
-                                         operand->ref_entries_list, operand);
-        if (rcblock == NULL &&
-            !operand->name_reference_set &&
-            locator_for_curr_id.is_qualified_name &&
-            record_name_references_in_context()) {
-          /* Remember the form of the name reference (it was set in
-             scan_field_selection_operator for cases in which the object
-             expression is explicit). */
-          set_operand_name_reference_from_locator(operand,
-                                                  &locator_for_curr_id);
-        }  /* if */
-        /* Note that the function designator will be converted to a pointer
-           by the do_operand_transformations call just below. */
+      a_symbol_ptr    member_func_sym = operand->symbol;
+      a_type_ptr      this_class = sym_parent_class(member_func_sym);
+      if (((gpp_mode && !clang_mode) || microsoft_mode) &&
+          expr_stack != NULL && expr_stack->is_default_arg_expression &&
+          scope_stack_top().in_prototype_instantiation) {
+        /* GCC does not appear to bind the member function to "this" in the
+           prototype instantiation of a default argument.  Instead, it treats
+           it as an unknown function. */
+        turn_mem_func_operand_into_unknown_function(operand);
       } else {
-        /* There was some problem in constructing the "this" operand. */
-        conv_to_error_operand(operand);
-      }  /* if */
-      bind_member_function_operand_to_selector(
+        if (make_this_pointer_operand(member_func_sym, member_func_sym,
+                                      &call_position,
+                                      (a_boolean)operand->
+                                                 access_control_error_reported,
+                                      bound_function_selector)) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          a_source_position saved_end_position;
+          saved_end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          if (this_class
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+            member_of_proto_inst = TRUE;
+          }  /* if */
+          /* Make an operand for the function bound to the "this" pointer. */
+          make_function_designator_operand(
+                                    member_func_sym,
+                                    (a_boolean)operand->is_qualified_name,
+                                    /*compiler_generated=*/FALSE,
+                                    &call_position,
+                                    end_position_or_null(&saved_end_position),
+                                    operand->ref_entries_list, operand);
+          if (rcblock == NULL &&
+              !operand->name_reference_set &&
+              locator_for_curr_id.is_qualified_name &&
+              record_name_references_in_context()) {
+            /* Remember the form of the name reference (it was set in
+               scan_field_selection_operator for cases in which the object
+               expression is explicit). */
+            set_operand_name_reference_from_locator(operand,
+                                                    &locator_for_curr_id);
+          }  /* if */
+          /* Note that the function designator will be converted to a pointer
+             by the do_operand_transformations call just below. */
+        } else {
+          /* There was some problem in constructing the "this" operand. */
+          conv_to_error_operand(operand);
+        }  /* if */
+        bind_member_function_operand_to_selector(
                                            bound_function_selector,
                                            /*selector_is_object_pointer=*/TRUE,
                                            operand);
+      }  /* if */
     }  /* if */
     /* Do standard transformations on the operand. */
     { a_transformation_options_set options =

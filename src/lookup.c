@@ -682,7 +682,7 @@ in *unk_func_constant.
                                          opname_kind = sym_hdr->variant.opname;
   *unk_func_constant = constant;
   scp = &constant->source_corresp;
-  if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
+  set_source_corresp_with_scope_depth(scp, sym, depth);
   if (parent_class != NULL) {
     set_class_membership(sym, scp, parent_class);
   } else if (parent_namespace != NULL) {

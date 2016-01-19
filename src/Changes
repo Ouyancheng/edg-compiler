@@ -1,5 +1,22 @@
 Version 4.11
 
+1/19/16  [EDGcpfe/16780]
+GNU and Microsoft C++ compatibility: member calls in default arguments
+
+In GNU and Microsoft C++ modes, the front end now accepts in the prototype
+instantiation of default argument of a nonstatic member function declaration
+calls to other member functions of the same class with an implicit "this".
+For example:
+
+  template<typename> struct S {
+    void i();
+    void f(int = i());  // Now accepted in GNU and Microsoft C++ modes.
+  };
+
+(Such uses produce an error during a real instantiation of the default
+argument.)
+
+
 1/19/16  [EDGcpfe/16749]
 Incorrect lookup of globally qualified name when using inline namespaces
 

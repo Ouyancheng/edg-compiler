@@ -1624,7 +1624,7 @@ symbol entry pointed to by sym.
 #endif /* !RECORD_SCOPE_DEPTH_IN_IL */
 void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
                                          a_symbol_ptr            sp,
-			                 a_scope_depth		depth)
+                                         a_scope_depth           depth)
 /*
 Set the source correspondence to point to a given symbol for which
 the scope is not still active.  This routine works by temporarily
