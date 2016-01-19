@@ -4,8 +4,8 @@ Version 4.11
 GNU and Microsoft C++ compatibility: member calls in default arguments
 
 In GNU and Microsoft C++ modes, the front end now accepts in the prototype
-instantiation of default argument of a nonstatic member function declaration
-calls to other member functions of the same class with an implicit "this".
+instantiation of a default argument of a member function declaration calls
+to other member functions of the same class without a selector object.
 For example:
 
   template<typename> struct S {
