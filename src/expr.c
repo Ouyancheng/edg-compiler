@@ -12942,15 +12942,6 @@ id_case:
       goto general_case;
     }  /* if */
     *no_parens_matters = TRUE;
-  } else if (expr != NULL &&
-             (expr = strip_ref_indirect(expr, /*parens_also=*/TRUE),
-              is_call_node(expr))) {
-    /* Function or operator call: Produce the associated return type.
-       Parens around the call are ignored. */
-    result = type_of_call(expr);
-    if (result->kind == (a_type_kind)tk_routine) {
-      result = result->variant.routine.return_type;
-    }  /* if */
   } else {
 general_case:
     /* General case: The type T of the expression, or T& if the expression
