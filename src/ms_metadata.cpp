@@ -6941,7 +6941,7 @@ an override specifier.
                named override list. */
             goto done;
           }  /* if */
-          vector<a_const_method_definition_ptr> method_list;
+          a_const_method_definition_ptr ref_method;
           HCORENUM    enum_methods = nullptr;
           mdMethodDef methods[16];
           ULONG       count_of_methods;
@@ -6983,29 +6983,36 @@ an override specifier.
                                        other_function_type->generic_arity() &&
                     function_type->parameter_list().size() ==
                                other_function_type->parameter_list().size()) {
-                  method_list.emplace_back(move(method_definition));
+                  ref_method = move(method_definition);
+                  break;
                 }  /* if */
               }  /* if */
             }  /* for */
           } while (count_of_methods > 0);
           import_interface->CloseEnum(enum_methods);
-          /* Ideally, method_list should only contain one method at this point.
-             However, the code above is only checking for methods with the same
-             name, arity, and number of parameters rather than performing full
-             overload resolution.  Since we are only interested in the C++/CLI
-             name of the method and not its parameters, this is sufficient if
-             all of the methods are all "regular" virtual member functions or
-             all the same kind of virtual property or event accessor function,
-             because this call to get_overridden_name would return the same
-             name anyway.  However, it is technically possible for a virtual
-             member function and a virtual property or event accessor method to
-             have the same name, arity, and number of parameters.  This call to
-             get_overridden_name would potentially return the wrong method name
-             in that highly unlikely situation. */
-          overridden_name = import_scope.get_overridden_name(
-                                                      *method_list[0],
-                                                      method_list[0]->token(),
-                                                      enclosing_class_type);
+          if (ref_method != nullptr) {
+            /* Ideally, ref_method should be a unique method at this point.
+               However, the code above is only checking for methods with the
+               same name, arity, and number of parameters rather than
+               performing full overload resolution.  Since we are only
+               interested in the C++/CLI name of the method and not its
+               parameters, this is sufficient if all of the methods are all
+               "regular" virtual member functions or all the same kind of
+               virtual property or event accessor function, because this call
+               to get_overridden_name would return the same name anyway.
+               However, it is technically possible for a virtual member
+               function and a virtual property or event accessor method to have
+               the same name, arity, and number of parameters.  This call to
+               get_overridden_name would potentially return the wrong method
+               name in that highly unlikely situation. */
+            overridden_name = import_scope.get_overridden_name(
+                                                         *ref_method,
+                                                         ref_method->token(),
+                                                         enclosing_class_type);
+          } else {
+            /* ref_method could be null if all candidates were inaccessible. */
+            goto done;
+          }  /* if */
         } else {
           /* The assembly containing this method has not been imported.
              Return an empty name, which will result in the method not being

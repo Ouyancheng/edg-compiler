@@ -1,5 +1,34 @@
 Version 4.11
 
+1/19/16  [EDGcpfe/16764]
+Abort when importing an overriding method of a C++/CLI class
+
+In C++/CLI mode, importing an internal method with named overriding could lead
+to an abort in ms_metadata.cpp (due to an out-of-range vector subscript).
+For example:
+
+  // lib.cpp (compiled into an assembly):
+  namespace Lib {
+    generic <typename T> public ref class A {
+    internal:
+      virtual void f() {}
+    };
+    generic <typename S> public ref class B : A<S> {
+    internal:
+      virtual void f() new = A<S>::f {}
+    };
+  }
+
+  // t.cpp:
+  #using "lib.dll"
+  void g(Lib::B<int>^ b) {
+    b->f();  // Loading the metadata for B::f previously triggered an
+  }          // abort.  Now a normal error is issued.
+
+This is now fixed (in the example above, an error is issued since there is no
+usable declaration of B<int>::f for the call in g).
+
+
 1/18/16  [EDGcpfe/16778]
 Copy constructors and "return { ... };"
 
