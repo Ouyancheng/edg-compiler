@@ -1731,6 +1731,9 @@ redo:
                    n_elems > MAX_ARRAY_LENGTH) {
           /* Too many elements. */
           a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+          check_assertion(ips != NULL);
+#endif /* DEBUG */
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
           *p_result = FALSE;
@@ -1739,6 +1742,9 @@ redo:
         }  /* if */
       } else {
         a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos(ec_constexpr_vla, pos, ips);
         *p_result = FALSE;
@@ -1778,6 +1784,9 @@ redo:
                    n_elems > MAX_ARRAY_LENGTH) {
           /* Too many elements. */
           a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+          check_assertion(ips != NULL);
+#endif /* DEBUG */
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
           *p_result = FALSE;
@@ -1797,6 +1806,9 @@ redo:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* These types are not supported by the interpreter. */
       { a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
         *p_result = FALSE;
@@ -1996,6 +2008,7 @@ Output the contents of the interpreted object of type tp stored at addr.
 */
 {
   static int indent = 0;
+
   db_indent(indent);
   tp = skip_typerefs(tp);
   switch (tp->kind) {
@@ -2016,6 +2029,38 @@ Output the contents of the interpreted object of type tp stored at addr.
                                  /*neg_infinity=*/(a_boolean*)NULL,
                                  /*not_a_number=*/(a_boolean*)NULL));
      
+      break;
+    case tk_pointer:
+      { a_constexpr_address *cap = (a_constexpr_address*)addr;
+        (void)fprintf(f_debug, "address 0x%p:\n", cap->address);
+        db_indent(indent+2);
+        (void)fprintf(f_debug, "flags 0x%x:\n", cap->flags);
+        if (is_array_element(cap)) {
+          db_indent(indent+2);
+          (void)fprintf(f_debug, "length %d:\n", cap->length);
+        }  /* if */
+        db_indent(indent+2);
+        (void)fprintf(f_debug, "alloc seq# %d:\n", cap->alloc_seq_number);
+      }
+      break;
+    case tk_array:
+      { a_type_ptr    etp = skip_typerefs(tp->variant.array.element_type);
+        a_boolean     dummy = TRUE;
+        a_byte_count  n_bytes = value_bytes_for_type(
+                                    (an_interpreter_state*)NULL, tp, &dummy);
+        a_byte_count  e_bytes = value_bytes_for_type(
+                                    (an_interpreter_state*)NULL, etp, &dummy);
+        a_byte_count  offset;
+        (void)fprintf(f_debug, "[\n");
+        indent += 2;
+        for (offset = 0; offset < n_bytes; offset += e_bytes) {
+          (void)fprintf(f_debug, "%d:\n", offset/e_bytes);
+          db_object(addr+offset, etp);
+        }  /* for */
+        indent -= 2;
+        db_indent(indent);
+        (void)fprintf(f_debug, "]\n");
+      }
       break;
     case tk_struct:
     case tk_class:
@@ -6436,12 +6481,26 @@ diagnostic in *ips.
           /* Create an abk_constant or abk_temporary entry. */
           a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
           a_type_ptr      utp = skip_typerefs(type->variant.pointer.type);
+          set_constant_kind(con, (a_constant_repr_kind)ck_address);
+          if (is_array_element(cap)) {
+            /* If we're pointing into an array, a constant for the whole array
+               must be allocated. */
+            a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
+            a_byte_count  offset = cap->address - get_base_address(cap);
+            if (offset != 0) {
+              a_byte_count  n_bytes = value_bytes_for_type(ips, utp, &result);
+              con->variant.address.offset = utp->size * (offset/n_bytes);
+            }  /* if */
+            atp->variant.array.element_type = utp;
+            atp->variant.array.variant.number_of_elements = cap->length;
+            set_type_size(atp);
+            utp = atp;
+          }  /* if */
           if (!copy_interpreter_object_to_constant(
                                                 ips, cap->address, utp, cp)) {
             result = FALSE;
             break;
           }  /* if */
-          set_constant_kind(con, (a_constant_repr_kind)ck_address);
           if (utp->kind == (a_type_kind)tk_array ||
               is_immediate_class_type(utp)) {
             con->variant.address.kind = (an_address_base_kind)abk_constant;
