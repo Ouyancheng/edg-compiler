@@ -3892,6 +3892,16 @@ the body of the (constructor) function proper.
       map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
       p_arg_ptr += 1;
     }  /* for */
+    if (dip->variant.constructor.value_initialization) {
+      /* If this is for value initialization, clear the storage first.
+         Do not, however, override the first word (which may record the
+         inheritance hierarchy). */
+      a_byte_count  n_class_bytes;
+      a_boolean     dummy = TRUE;
+      n_class_bytes = f_value_bytes_for_type(ips, class_type, &dummy);
+      memzero(result_storage+sizeof(void*),
+              size_t_arg(n_class_bytes-sizeof(void*)));
+    }  /* if */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, pos, result_storage);
     /* Run the constructor initializers. */
