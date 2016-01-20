@@ -3652,7 +3652,7 @@ template.
   prototype_instantiation_type =
                   prototype_instantiation_sym->variant.class_struct_union.type;
   return prototype_instantiation_type;
-}  /* prototype_instantiation_for_class_template */
+}  /* prototype_instantiation_for_template */
 
 
 static void get_definition_of_generic_if_needed(a_symbol_ptr	template_sym)
