@@ -648,7 +648,7 @@ The output includes template arguments on template classes.
         type->variant.class_struct_union.extra_info != NULL) {
       tap = type->variant.class_struct_union.extra_info->template_arg_list;
     } else if (type->kind == (a_type_kind)tk_typeref) {
-      tap = type->variant.typeref.extra_info->template_arg_list;
+      tap = type->variant.typeref.extra_info->orig_template_arg_list;
     }  /* if */
     if (tap != NULL) {
       /* This is a template class name or template alias name.  Put out the

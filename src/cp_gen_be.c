@@ -3842,7 +3842,8 @@ is called.
     invisible = (ncp != NULL && in_nested_class);
   }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-  if (in_template_argument_list && !invisible
+  if (in_template_argument_list && !invisible &&
+      !type->variant.typeref.is_dependent
 #if GCC_BUILTIN_VARARGS
       && !type->is_builtin_va_list
 #endif /* GCC_BUILTIN_VARARGS */
@@ -3853,7 +3854,9 @@ is called.
        has something like X<int> but X<int> was previously instantiated using
        the long typedef member name.  However, we must be careful to keep a
        typedef that is needed for accessibility or where it supplies a
-       linkage specification. */
+       linkage specification.  The is_dependent flag is set for alias
+       references that include dependent types.  These need to be preserved
+       because they can affect SFINAE processing. */
     a_type_ptr underlying_type =
       skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
     a_boolean  for_all_scopes = TRUE;
