@@ -6469,6 +6469,7 @@ diagnostic in *ips.
     case tk_integer:
       set_constant_kind(con, (a_constant_repr_kind)ck_integer);
       con->variant.integer_value = *(an_integer_value *)object;
+      con->null_pointer_constant_ruled_out = TRUE;
       break;
     case tk_float:
       set_constant_kind(con, (a_constant_repr_kind)ck_float);
