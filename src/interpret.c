@@ -2398,9 +2398,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           {
             a_constant_ptr  cp = con->variant.address.variant.constant;
             a_byte          *con_bytes;
+            a_type_ptr      ctp = skip_typerefs(cp->type);
             get_stack_bytes(ips, cp, con_bytes);
             if (con_bytes == NULL) {
-              a_type_ptr    ctp = skip_typerefs(cp->type);
               a_byte_count  n_bytes;
               if (!ips->static_storage_ready) {
                 /* This is the first time we allocate static storage:
@@ -2414,9 +2414,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 result = extract_value_from_constant(ips, cp, con_bytes);
               }  /* if */
               if (!result) break;
+              /* Record a two-way mapping to ensure we always use the same
+                 storage, and that we reproduce the original constant if this
+                 becomes part of the interpretation result. */
               map_stack_bytes(ips, cp, con_bytes);
+              map_stack_bytes(ips, con_bytes, (a_byte*)cp);
             }  /* if */
             clear_address(value, con_bytes);
+            if (ctp->kind == (a_type_kind)tk_array) {
+              a_constexpr_address  *cap = (a_constexpr_address*)value;
+              cap->flags |= CA_ARRAY_ELEMENT;
+              cap->length = ctp->variant.array.variant.number_of_elements;
+              cap->variant.base_address = cap->address;
+            }  /* if */
           }
           break;
         default:
@@ -6458,7 +6468,7 @@ represents an address of interpreter storage) and record a corresponding
 diagnostic in *ips.
 */
 {
-/* FIXME: replace alloc_constant by local_constant? */
+/* FIXME: replace fs_constant by local_constant? */
   a_boolean  result = TRUE;
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
@@ -6480,6 +6490,7 @@ diagnostic in *ips.
         if (is_runtime_data_address(cap)) {
           /* Copy the address constant to result_con and release the local
              constant. */
+          /* FIXME: This should probably not be a deep copy? */
           copy_constant(cap->variant.addr_con, con);
         } else if (cap->address == NULL) {
           /* A NULL pointer constant. */
@@ -6490,28 +6501,38 @@ diagnostic in *ips.
           result = FALSE;
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
-          /* Create an abk_constant or abk_temporary entry. */
-          a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
-          a_type_ptr      utp = skip_typerefs(type->variant.pointer.type);
+          /* Check if this address is already mapped to a constant. */
+          a_type_ptr      utp;
+          a_byte          *mptr;
+          a_constant_ptr  cp;
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
-          if (is_array_element(cap)) {
-            /* If we're pointing into an array, a constant for the whole array
-               must be allocated. */
-            a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
-            a_byte_count  offset = cap->address - get_base_address(cap);
-            if (offset != 0) {
-              a_byte_count  n_bytes = value_bytes_for_type(ips, utp, &result);
-              con->variant.address.offset = utp->size * (offset/n_bytes);
+          get_stack_bytes(ips, cap->address, mptr);
+          if (mptr != NULL) {
+            cp = (a_constant_ptr)mptr;
+            utp = skip_typerefs(cp->type);
+          } else {
+            /* Create an abk_constant or abk_temporary entry. */
+            cp = fs_constant((a_constant_repr_kind)ck_error);
+            utp = skip_typerefs(type->variant.pointer.type);
+            if (is_array_element(cap)) {
+              /* If we're pointing into an array, a constant for the whole
+                 array must be allocated. */
+              a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
+              a_byte_count  offset = cap->address - get_base_address(cap);
+              if (offset != 0) {
+                con->variant.address.offset =
+                  utp->size * (offset/value_bytes_for_type(ips, utp, &result));
+              }  /* if */
+              atp->variant.array.element_type = utp;
+              atp->variant.array.variant.number_of_elements = cap->length;
+              set_type_size(atp);
+              utp = atp;
             }  /* if */
-            atp->variant.array.element_type = utp;
-            atp->variant.array.variant.number_of_elements = cap->length;
-            set_type_size(atp);
-            utp = atp;
-          }  /* if */
-          if (!copy_interpreter_object_to_constant(
+            if (!copy_interpreter_object_to_constant(
                                                 ips, cap->address, utp, cp)) {
-            result = FALSE;
-            break;
+              result = FALSE;
+              break;
+            }  /* if */
           }  /* if */
           if (utp->kind == (a_type_kind)tk_array ||
               is_immediate_class_type(utp)) {
@@ -6549,7 +6570,7 @@ diagnostic in *ips.
           a_byte_count    offset;
           a_constant_ptr  cp;
           if (!bcp->direct || bcp->is_virtual) continue;
-          cp = alloc_constant((a_constant_repr_kind)ck_error);
+          cp = fs_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, bcp, offset);
           if (!copy_interpreter_object_to_constant(
                                          ips, object+offset, bcp->type, cp)) {
@@ -6570,7 +6591,7 @@ diagnostic in *ips.
             continue;
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
-          cp = alloc_constant((a_constant_repr_kind)ck_error);
+          cp = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                           ips, object+offset, fp->type, cp)) {
             result = FALSE;
@@ -6598,7 +6619,7 @@ diagnostic in *ips.
         } else {
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
-          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          elem_con = fs_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
                                     ips, object+offset, afp->type, elem_con)) {
@@ -6606,7 +6627,7 @@ diagnostic in *ips.
           } else {
             if (fp != afp) {
               /* Add a designator for the active field. */
-              des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+              des_con = fs_constant((a_constant_repr_kind)ck_designator);
               des_con->variant.designator.field = afp;
               add_constant_to_aggregate(des_con, con);
             }  /* if */
@@ -6624,7 +6645,7 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
-          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                                ips, sub_obj, etp, elem_con)) {
             result = FALSE;
@@ -6644,7 +6665,7 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
-          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                                ips, sub_obj, etp, elem_con)) {
             result = FALSE;
