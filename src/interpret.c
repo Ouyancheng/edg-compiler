@@ -3435,6 +3435,59 @@ done_with_switch:
   return result;
 }  /* do_constexpr_statement */
 
+#if BUILTIN_FUNCTIONS_ENABLED
+
+static a_boolean do_constexpr_builtin_function(
+                                      an_interpreter_state    *ips,
+                                      a_routine_ptr           callee,
+                                      an_expr_node_ptr        call_node,
+                                      a_byte                  *result_storage,
+                                      a_boolean               *p_result)
+/*
+call_node represents a call to the given callee, which is a builtin function.
+If the call belongs to the class of builtin functions that can sometimes be
+folded (i.e., it is effectively "constexpr"), return TRUE; otherwise, return
+FALSE.  If TRUE if returned, but folding was not successful, *p_result is set
+to FALSE and the reason for the failure is recorded in *ips.
+*/
+{
+  a_boolean         interpreted, err = FALSE, depends_on_fp_mode;
+  an_expr_node_ptr  args = call_node->variant.operation.operands->next;
+  DECL_COMPACT_VALUE_BYTES(arg1_buf);
+  a_byte            *arg1_bytes = compact_value_bytes(arg1_buf);
+
+  ips->cost += 1;
+  switch (callee->variant.builtin_function_kind) {
+    case bfk_fabs:
+    case bfk_fabsf:
+    case bfk_fabsl:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL ||
+            !is_real_floating_type(args->type)) {
+          unexpected_condition();
+        } else if (do_constexpr_expression(ips, args, arg1_bytes)) {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_float_kind  fk = tp->variant.float_kind;
+          if (fp_is_negative(fk, fp_value(arg1_bytes))) {
+            fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
+                      &err, &depends_on_fp_mode);
+            check_assertion(!err);
+          } else {
+            *fp_value(result_storage) = *fp_value(arg1_bytes);
+          }  /* if */
+        } else {
+          *p_result = FALSE;
+        }  /* if */
+      }
+      break;
+    default:
+      interpreted = FALSE;
+  }  /* switch */
+  return interpreted;
+}  /* do_constexpr_builtin_function */
+
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static a_boolean adjust_this_address(an_interpreter_state    *ips,
                                      a_constexpr_address     *this_addr,
@@ -3519,6 +3572,7 @@ accordingly.
                     *pm_target = NULL;
   DECL_COMPACT_VALUE_BYTES(pm_buf);
 
+  /* First determine the actual callee. */
   callee_node = call_node->variant.operation.operands;
   if (is_routine_node(callee_node)) {
     callee = node_routine(callee_node);
@@ -3561,7 +3615,17 @@ accordingly.
       goto done;
     }  /* if */
   }  /* if */
-  /* Retrieve the routine scope, or issue an error. */
+  /* Now interpret the call if possible. */
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (special_kind_is(callee, sfk_none) &&
+      callee->variant.builtin_function_kind !=
+                                          (a_builtin_function_kind)bfk_none &&
+      do_constexpr_builtin_function(ips, callee, call_node, result_storage,
+                                    &result)) {
+    /* Nothing more to do. */
+  } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+  /* Do not insert code here. */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       &callee_node->position, symbol_for(callee), ips);
