@@ -6331,8 +6331,11 @@ type.  This includes checking the value of ovfl set by the operation.
               con->next = ips->constants;
               ips->constants = con;
             }  /* if */
-            if (constant_glvalue_address(expr, con,
-                                         /*address_escapes=*/FALSE)) {
+            if (variable_has_constant_address(var)) {
+              clear_constant(con, (a_constant_repr_kind)ck_address);
+              con->variant.address.kind = (an_address_base_kind)abk_variable;
+              con->variant.address.variant.variable = var;
+              con->type = make_reference_type(var->type);
               if (!extract_value_from_constant(ips, con, result_storage)) {
                 /* The address of a run-time variable. */
                 clear_runtime_constant_address(result_storage, con);
