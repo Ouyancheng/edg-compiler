@@ -1,5 +1,18 @@
 Version 4.11
 
+1/21/16  [EDGcpfe/16792]
+Closure types are nonliteral class types
+
+The front end did not previously systematically treat closure types as
+nonliteral class types (as required by the standard).  For example:
+
+  auto L = []{};
+  static_assert(!__is_literal_type(decltype(L)), "Unexpected!");
+    // This assertion failed previously.  Now okay.
+
+This is now fixed.
+
+
 1/19/16  [EDGcpfe/16785]
 Function calls and decltype
 

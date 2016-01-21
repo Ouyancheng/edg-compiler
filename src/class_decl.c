@@ -2228,6 +2228,7 @@ the fields implied by the lambda's capture list).
     cssp->lambda_subject_to_trans_unit_corresp =
         prp->is_inline || (prp->is_template_function && !prp->is_specialized);
   }  /* if */
+  cssp->known_not_to_be_a_literal_type = TRUE;
   return type;
 }  /* make_closure_class */
 
