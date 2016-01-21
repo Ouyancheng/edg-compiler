@@ -2037,10 +2037,10 @@ Output the contents of the interpreted object of type tp stored at addr.
         (void)fprintf(f_debug, "flags 0x%x:\n", cap->flags);
         if (is_array_element(cap)) {
           db_indent(indent+2);
-          (void)fprintf(f_debug, "length %d:\n", cap->length);
+          (void)fprintf(f_debug, "length %u:\n", cap->length);
         }  /* if */
         db_indent(indent+2);
-        (void)fprintf(f_debug, "alloc seq# %d:\n", cap->alloc_seq_number);
+        (void)fprintf(f_debug, "alloc seq# %u:\n", cap->alloc_seq_number);
       }
       break;
     case tk_array:
@@ -2054,7 +2054,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         (void)fprintf(f_debug, "[\n");
         indent += 2;
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
-          (void)fprintf(f_debug, "%d:\n", offset/e_bytes);
+          (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
           db_object(addr+offset, etp);
         }  /* for */
         indent -= 2;
