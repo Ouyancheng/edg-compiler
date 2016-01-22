@@ -4772,6 +4772,17 @@ returned set to TRUE.
     a_routine_ptr  dtor = NULL;
     /* Remember whether the initializer uses the "()" form or the "=" form. */
     vp->has_parenthesized_initializer = parenthesized_initializer;
+    if (dps->init_state.initializer_must_be_constant && init_con != NULL &&
+        constant_is(init_con, ck_address) &&
+        init_con->variant.address.kind == (an_address_base_kind)abk_variable &&
+        !var_has_static_or_thread_storage_duration(
+                                init_con->variant.address.variant.variable)) {
+      /* In some modes, a ck_address constant pointing to a local variable may
+         be created (to represent a "core constant expression").  However, such
+         a constant does not represent a valid "constant expression". */
+      pos_error(ec_expr_not_constant, &pos_first_token);
+      init_err = TRUE;
+    }  /* if */
     if (init_err) {
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure
