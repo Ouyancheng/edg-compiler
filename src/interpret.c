@@ -30,6 +30,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "folding.h"
 
+#include "templates.h"
+
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
@@ -3622,10 +3624,14 @@ accordingly.
                                           (a_builtin_function_kind)bfk_none &&
       do_constexpr_builtin_function(ips, callee, call_node, result_storage,
                                     &result)) {
-    /* Nothing more to do. */
-  } else
+    goto done;
+  } else if (!result) {
+    goto done;
+  }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  /* Do not insert code here. */
+  if (!callee->defined) {
+    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+  }  /* if */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       &callee_node->position, symbol_for(callee), ips);
@@ -3851,6 +3857,9 @@ the body of the (constructor) function proper.
   a_boolean         result = TRUE;
 
   /* Retrieve the routine scope, or issue an error. */
+  if (!callee->defined) {
+    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+  }  /* if */
   if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
                       symbol_for(callee), ips);
