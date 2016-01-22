@@ -694,6 +694,7 @@ Initialize the given interpreter state.
   init_data_map(&ips->map);
   init_constexpr_stack(&ips->storage_stack);
   init_live_set(&ips->live_set);
+  add_to_live_set(&ips->live_set, 1);
   ips->curr_alloc_seq_number = 1;
   ips->curr_call_frame = NULL;
   ips->extension_state = NULL;
