@@ -5272,7 +5272,7 @@ description of the parameters.
     opnd2_elem = constant_2;
   }  /* if */
   /* Initialize the result. */
-  clear_constant(result, ck_aggregate);
+  clear_constant(result, (a_constant_repr_kind)ck_aggregate);
   result->type = result_type;
   /* Step through the elements of the vector, calling binary_operation to
      compute the result vector elements. */
