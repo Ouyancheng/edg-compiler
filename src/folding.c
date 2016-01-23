@@ -2746,7 +2746,7 @@ compile-time constant.
    (constant)->implicit_cast &&                                       \
    is_integral_or_enum_type((constant)->type))
 
-#ifdef GNU_VECTOR_TYPES_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED
 static void decompose_vector_unary_operation(
                                       an_expr_operator_kind op,
                                       a_constant            *constant,
