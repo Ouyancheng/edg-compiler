@@ -2746,6 +2746,78 @@ compile-time constant.
    (constant)->implicit_cast &&                                       \
    is_integral_or_enum_type((constant)->type))
 
+#ifdef GNU_VECTOR_TYPES_ALLOWED
+static void decompose_vector_unary_operation(
+                                      an_expr_operator_kind op,
+                                      a_constant            *constant,
+                                      a_type_ptr            result_type,
+                                      a_constant            *result,
+                                      a_boolean             constant_context,
+                                      a_boolean             evaluated_context,
+                                      a_boolean             *did_not_fold,
+                                      a_boolean             *template_constant,
+                                      an_error_code         *error_detected,
+                                      a_source_position     *err_pos)
+/*
+Called by unary_operation when the result type is a GNU vector type to
+recursively perform the specified operation on each of the vector's
+elements.  Produces in *result a vector ck_aggregate constant with the
+number of elements specified by the vector type, allocating the element
+constants in the current memory region.  See unary_operation for a full
+description of the parameters.
+*/
+{
+  a_constant_ptr opnd_elem;
+  a_boolean      opnd_local_constant = FALSE;
+  a_boolean      local_not_folded = FALSE;
+  sizeof_t       num_result_elements;
+  a_type_ptr     result_elem_type;
+  sizeof_t       elem_no;
+
+  check_assertion(result_type->kind == (a_type_kind)tk_vector &&
+                  constant->kind == (a_constant_repr_kind)ck_aggregate);
+  result_elem_type = result_type->variant.vector.element_type;
+  num_result_elements = result_type->size / result_elem_type->size;
+  /* Clone the operand constant and remove the operand elements to form the
+     basis for the result. */
+  copy_constant(constant, result);
+  result->variant.aggregate.first_constant = NULL;
+  result->variant.aggregate.last_constant = NULL;
+  /* Loop over the operand elements, calling unary_operation to compute
+     the values of the result elements. */
+  opnd_elem = constant->variant.aggregate.first_constant;
+  for (elem_no = 0; elem_no < num_result_elements && !local_not_folded;
+       ++elem_no) {
+    a_constant_ptr result_elem = alloc_constant(result_elem_type->kind);
+    if (opnd_elem == NULL) {
+      /* A vector aggregate may be partially- or value-initialized.  If so,
+         the operand element will be NULL at this point if we've stepped
+         past the end of the list, and we need to create a zero of the
+         element type to use for the rest of the loop. */
+      opnd_elem = local_constant();
+      opnd_local_constant = TRUE;
+      make_zero_of_proper_type(result_elem_type, opnd_elem);
+    }  /* if */
+    /* Recursively call unary_operation to compute the result for this
+       element and add the element to the result aggregate. */
+    unary_operation(op, opnd_elem, opnd_elem->type, result_elem,
+                    constant_context, evaluated_context, &local_not_folded,
+                    template_constant, error_detected, err_pos);
+    add_constant_to_aggregate(result_elem, result);
+    /* Step to the next element, unless we already ran off the end of the
+       operand aggregate and are using a local zero. */
+    if (!opnd_local_constant) {
+      opnd_elem = opnd_elem->next;
+    }  /* if */
+  }  /* for */
+  /* Release the local constant, if one was created. */
+  if (opnd_local_constant) {
+    release_local_constant(&opnd_elem);
+  }  /* if */
+  /* Propagate the result back to the caller. */
+  *did_not_fold = local_not_folded;
+}  /* decompose_vector_unary_operation */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 void unary_operation(an_expr_operator_kind op,
 		     a_constant            *constant,
@@ -2809,6 +2881,15 @@ for any diagnostics issued.
     /* The representation for a GNU label difference (&&K-&&L) is not
        a constant known at compile time. */
     *did_not_fold = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (result_type->kind == (a_type_kind)tk_vector) {
+    /* Perform the operation recursively on each of the elements of the
+       vector. */
+    decompose_vector_unary_operation(op, constant, result_type, result,
+                                     constant_context, evaluated_context,
+                                     did_not_fold, template_constant,
+                                     error_detected, err_pos);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
@@ -5138,6 +5219,110 @@ then converting the result back to being THREADS-based if appropriate.
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+static void decompose_vector_binary_operation(an_expr_operator_kind op,
+                                          a_constant        *constant_1,
+                                          a_constant        *constant_2,
+                                          a_type_ptr        result_type,
+                                          a_constant        *result,
+                                          a_boolean         constant_context,
+                                          a_boolean         evaluated_context,
+                                          a_boolean         *did_not_fold,
+                                          a_boolean         *template_constant,
+                                          an_error_code     *error_detected,
+                                          a_source_position *err_pos)
+/*
+Called by binary_operation when the result type is a GNU vector type to
+recursively perform the specified operation on each of the vector's
+elements.  Produces in *result a vector ck_aggregate constant with the
+number of elements specified by the vector type, allocating the element
+constants in the current memory region.  See binary_operation for a full
+description of the parameters.
+*/
+{
+  a_constant_ptr opnd1_elem;
+  a_constant_ptr opnd2_elem;
+  a_boolean      opnd1_elem_from_aggr;
+  a_boolean      opnd2_elem_from_aggr;
+  a_boolean      opnd1_local_constant = FALSE;
+  a_boolean      opnd2_local_constant = FALSE;
+  a_boolean      local_not_folded = FALSE;
+  sizeof_t       num_result_elements;
+  a_type_ptr     result_elem_type;
+  sizeof_t       elem_no;
+
+  check_assertion(result_type->kind == (a_type_kind)tk_vector);
+  result_elem_type = result_type->variant.vector.element_type;
+  num_result_elements = result_type->size / result_elem_type->size;
+  /* Either of the operands may be a scalar or a vector.  If the operand
+     is an aggregate (vector), use the first element constant as the
+     operand; otherwise, use the constant itself. */
+  if (constant_1->kind == (a_constant_repr_kind)ck_aggregate) {
+    opnd1_elem_from_aggr = TRUE;
+    opnd1_elem = constant_1->variant.aggregate.first_constant;
+  } else {
+    opnd1_elem_from_aggr = FALSE;
+    opnd1_elem = constant_1;
+  }  /* if */
+  if (constant_2->kind == (a_constant_repr_kind)ck_aggregate) {
+    opnd2_elem_from_aggr = TRUE;
+    opnd2_elem = constant_2->variant.aggregate.first_constant;
+  } else {
+    opnd2_elem_from_aggr = FALSE;
+    opnd2_elem = constant_2;
+  }  /* if */
+  /* Initialize the result. */
+  clear_constant(result, ck_aggregate);
+  result->type = result_type;
+  /* Step through the elements of the vector, calling binary_operation to
+     compute the result vector elements. */
+  for (elem_no = 0; elem_no < num_result_elements && !local_not_folded;
+       ++elem_no) {
+    a_constant_ptr result_elem = alloc_constant(result_elem_type->kind);
+    /* A vector aggregate may be partially- or value-initialized.  If so,
+       the operand element will be NULL at this point if we've stepped past
+       the end of the list, and we need to create a zero of the element
+       type to use for the rest of the loop. */
+    if (opnd1_elem == NULL) {
+      opnd1_elem = local_constant();
+      opnd1_local_constant = TRUE;
+      opnd1_elem_from_aggr = FALSE;
+      make_zero_of_proper_type(result_elem_type, opnd1_elem);
+    }  /* if */
+    if (opnd2_elem == NULL) {
+      opnd2_elem = local_constant();
+      opnd2_local_constant = TRUE;
+      opnd2_elem_from_aggr = FALSE;
+      make_zero_of_proper_type(result_elem_type, opnd2_elem);
+    }  /* if */
+    /* Recursively call binary_operation to compute the result for this
+       element and add the element to the result aggregate. */
+    binary_operation(op, opnd1_elem, opnd2_elem, result_elem_type, result_elem,
+                     constant_context, evaluated_context, &local_not_folded,
+                     template_constant, error_detected, err_pos);
+    add_constant_to_aggregate(result_elem, result);
+    /* Step to the next element in both operands, unless the operand is a
+       scalar or we ran off the end of the operand aggregate and are using
+       a local zero. */
+    if (opnd1_elem_from_aggr) {
+      opnd1_elem = opnd1_elem->next;
+    }  /* if */
+    if (opnd2_elem_from_aggr) {
+      opnd2_elem = opnd2_elem->next;
+    }  /* if */
+  }  /* for */
+  /* Release any local constants. */
+  if (opnd1_local_constant) {
+    release_local_constant(&opnd1_elem);
+  }  /* if */
+  if (opnd2_local_constant) {
+    release_local_constant(&opnd2_elem);
+  }  /* if */
+  /* Propagate the result to the caller. */
+  *did_not_fold = local_not_folded;
+}  /* decompose_vector_binary_operation */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 void binary_operation(an_expr_operator_kind op,
 		      a_constant            *constant_1,
 		      a_constant            *constant_2,
@@ -5234,6 +5419,16 @@ error.  *err_pos is used as the position for any diagnostics issued.
        are not folded if the other operand is not also fixed-point. */
     *did_not_fold = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (result_type->kind == (a_type_kind)tk_vector) {
+    /* Perform the operation recursively on each of the elements of the
+       vector. */
+    decompose_vector_binary_operation(op, constant_1, constant_2, result_type,
+                                      result, constant_context,
+                                      evaluated_context, did_not_fold,
+                                      template_constant, error_detected,
+                                      err_pos);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
