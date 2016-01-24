@@ -1,5 +1,26 @@
 Version 4.11
 
+1/24/16  [EDGcpfe/16743]
+Alias template template argument substitution with invalid result
+
+When the argument for a template template parameter is an alias template,
+the expansion of the alias occurs in a SFINAE context, and the expansion
+is invalid, this now results in a substitution failure instead of a hard
+error.  The g++ 6.0 beta header files rely on this functionality.  We
+now implement this in all modes.
+
+  template <typename...> using __void_t = void;
+  struct A {};
+  template <typename T, template <typename...> class TT> struct B {
+    using type = void*;
+  };
+  template <template <class...> class TT> struct B<__void_t<TT<A>>, TT> {
+    using type = TT<A>;
+  };
+  template <typename T> using vp_alias = typename T::void_pointer;
+  using void_pointer =  typename B<void, vp_alias>::type;
+
+
 1/22/16  [EDGcpfe/14498,EDGcpfe/15550,EDGcpfe/16781]
 GNU compatibility: folding constant vector arithmetic expressions
 

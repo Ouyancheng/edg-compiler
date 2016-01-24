@@ -11096,10 +11096,12 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_nonreal_template;
   a_boolean				orig_is_prototype;
+  a_boolean				templ_param_is_alias = FALSE;
   a_symbol_ptr				orig_instance_sym;
   a_symbol_ptr				orig_template_sym;
   
   template_sym = primary_template_of(template_sym);
+  tssp = template_sym->variant.template_info;
   /* If the template symbol refers to a template template parameter, get
      the actual template to use from the template argument list. */
   if (template_sym->is_template_param) {
@@ -11110,8 +11112,9 @@ are looked up, if needed.  The symbol of the new instance is returned.
                                                 options, copy_error,
                                                 ctws_state);
     template_sym = (a_symbol_ptr)new_templ->source_corresp.assoc_info;
+    tssp = template_sym->variant.template_info;
+    templ_param_is_alias = tssp->variant.class_template.is_alias_template;
   }  /* if */
-  tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   orig_is_prototype = orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
@@ -11142,6 +11145,23 @@ are looked up, if needed.  The symbol of the new instance is returned.
        of the template arguments, don't try to find a matching template
        class. */
     new_sym = NULL;
+  } else if (templ_param_is_alias) {
+    /* If the result of a template template parameter substitution is
+       an alias template, do substitution on the prototype type so that
+       a failure is a substitution failure, not a hard error. */
+    a_type_ptr	proto_type;
+    a_type_ptr	tp;
+    proto_type = tssp->variant.class_template.prototype_instantiation->
+                                                              variant.type.ptr;
+    tp = copy_type_with_substitution(proto_type,
+                                   new_list, templ_param_list,
+                                   source_pos,
+                                   options, copy_error, ctws_state);
+    if (tp == proto_type) {
+      /* If no substitution was done, keep the original type. */
+      tp = orig_type;
+    }  /* if */
+    new_sym = symbol_for(tp);
   } else {
     new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                   (a_symbol_ptr)NULL,
