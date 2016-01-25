@@ -6922,7 +6922,9 @@ to match GNU's behavior).
       prev = find_attribute(ak_abi_tag, scp->attributes);
       check_assertion(prev != NULL);
       if (dps != NULL &&
-          ((entity_kind == iek_routine && !dps->first_decl) ||
+          ((entity_kind == iek_routine &&
+            !dps->first_decl &&
+            !dps->is_lambda) ||
            (entity_kind == iek_type &&
             dps->redeclares_tag &&
             dps->tag_def_or_forward_decl))) {

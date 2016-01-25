@@ -1,5 +1,16 @@
 Version 4.11
 
+1/25/16  [EDGcpfe/16798]
+GNU compatibility: Spurious error on abi_tag attribute applied to lambda
+
+A spurious error had been given when an abi_tag attribute appertained to
+a lambda.  Now fixed.  For example (with --c++11 --gnu_version 50000):
+
+  void f() {
+    []() __attribute__((abi_tag("test"))) {}();
+  }
+
+
 1/25/16  [EDGcpfe/16393]
 Default argument from template template argument to variadic parameter
 
