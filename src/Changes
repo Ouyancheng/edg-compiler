@@ -1,5 +1,22 @@
 Version 4.11
 
+1/25/16  [EDGcpfe/16393]
+Default argument from template template argument to variadic parameter
+
+If a class template with a default argument was passed to a template
+template parameter that takes a variadic template argument, the
+default argument of the template template argument was not used when
+needed.  Now fixed.
+
+  template<template<typename...> class T> struct A {
+    T<int> t;
+  };
+  template<typename, typename = void> struct B {};
+  void f() {
+    A<B> a;  // Formerly "too few arguments ..."
+ }
+
+
 1/24/16  [EDGcpfe/16743]
 Alias template template argument substitution with invalid result
 

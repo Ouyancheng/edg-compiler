@@ -15898,6 +15898,7 @@ all arguments were explicit.
   a_template_param_ptr             param_ptr = NULL;
   a_template_param_ptr             orig_param_ptr;
   a_symbol_ptr                     sym;
+  a_symbol_ptr                     argument_template;
   a_type_ptr                       argument_type;
   a_constant_ptr                   constant;
   a_template_arg_ptr               arg_ptr = NULL;
@@ -15962,7 +15963,6 @@ all arguments were explicit.
       /* For non-dependent argument lists, use the one from the argument
          template for param_ptr (except for error cases).  This is needed
          when the argument template is variadic. */
-      a_symbol_ptr	argument_template;
       argument_template = tssp->variant.class_template.argument_template;
       subst_param_tssp = argument_template->variant.template_info;
       /* We can get here in an instantiation of an alias template with a
@@ -16178,6 +16178,15 @@ all arguments were explicit.
   }  /* if */
   for (; param_ptr != NULL && orig_param_ptr != NULL;
          param_ptr = param_ptr->next, orig_param_ptr = orig_param_ptr->next) {
+    a_template_param_ptr	param_for_default = orig_param_ptr;
+    a_symbol_ptr		templ_sym_for_default = template_sym;
+    if (orig_param_ptr->is_pack && param_ptr->has_default_arg) {
+      /* If the template template parameter has an argument that is a pack
+         use a default argument, if any, from the template template
+         parameter. */
+      param_for_default = param_ptr;
+      templ_sym_for_default = argument_template;
+    }  /* if */
     /* There are still entries on the formal parameters list -- see if
        the remaining parameters have default values or are parameter packs. */
     if (param_ptr->is_pack) {
@@ -16189,7 +16198,7 @@ all arguments were explicit.
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-    } else if (orig_param_ptr->has_default_arg && first_pack == NULL) {
+    } else if (param_for_default->has_default_arg && first_pack == NULL) {
       /* The template has parameters with default values.  Fill in the
          remainder of the argument list with the defaults.  Don't add
          default arguments at this point if one of the arguments was
@@ -16198,28 +16207,28 @@ all arguments were explicit.
         *first_defaulted_arg = arg_number;
         any_default_args = TRUE;
       }  /* if */
-      if (orig_param_ptr->def_arg_has_not_been_scanned) {
+      if (param_for_default->def_arg_has_not_been_scanned) {
         /* In some cases the default will not have been scanned when the
            template was first declared.  In such cases, scan it on its first
            use. */
-        delayed_scan_of_template_param_default_arg(template_sym,
-                                                   orig_param_ptr);
+        delayed_scan_of_template_param_default_arg(templ_sym_for_default,
+                                                   param_for_default);
       }  /* if */
       sym = param_ptr->param_symbol;
       /* Determine the template argument kind for this parameter. */
       arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
       arg_ptr = alloc_template_arg(arg_kind);
       if (is_type_templ_arg(arg_ptr)) {
-        if (orig_param_ptr->has_default_arg) {
+        if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
           if (!template_in_prototype_instantiation) {
             arg_ptr->variant.type =
-                     rescan_template_type_default_arg(template_sym,
-                                                      orig_param_ptr,
+                     rescan_template_type_default_arg(templ_sym_for_default,
+                                                      param_for_default,
                                                       arg_list);
           } else {
-            arg_ptr->variant.type = orig_param_ptr->default_arg.type;
+            arg_ptr->variant.type = param_for_default->default_arg.type;
           }  /* if */
         } else {
           /* A type parameter with no default argument.  This occurs only
@@ -16228,15 +16237,15 @@ all arguments were explicit.
         }  /* if */
       } else if (is_template_templ_arg(arg_ptr)) {
         /* A template template argument. */
-        if (orig_param_ptr->has_default_arg) {
+        if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
           a_template_symbol_supplement_ptr  tssp1, tssp2;
           arg_ptr->variant.templ.ptr =
-                     rescan_template_template_default_arg(template_sym,
-                                                          orig_param_ptr,
-                                                          arg_list);
-          tssp1 = orig_param_ptr->variant.templ;
+                    rescan_template_template_default_arg(templ_sym_for_default,
+                                                         param_for_default,
+                                                         arg_list);
+          tssp1 = param_for_default->variant.templ;
           if (tssp1->variant.class_template
                             .def_templ_templ_arg_check_delayed) {
             /* The default template template argument has been scanned, but
@@ -16270,15 +16279,15 @@ all arguments were explicit.
       } else {
         /* A nontype argument. */
         check_assertion(is_nontype_templ_arg(arg_ptr));
-        if (orig_param_ptr->has_default_arg) {
+        if (param_for_default->has_default_arg) {
           /* A constant parameter.  The default value can be either a
              constant value or a token cache that needs to be scanned.
              Call a routine that will rescan the type declaration and/or
              default argument expression. */
           (void)rescan_template_constant_parameter(
-                                     template_sym, sym, orig_param_ptr,
-                                     arg_list, /*do_default_arg=*/TRUE,
-                                     &constant);
+                                 templ_sym_for_default, sym, param_for_default,
+                                 arg_list, /*do_default_arg=*/TRUE,
+                                 &constant);
           arg_ptr->variant.constant = constant;
         } else {
           /* A nontype constant without a default argument.  This also only
@@ -16305,7 +16314,7 @@ all arguments were explicit.
           /* Silently ignore this while caching tokens.  If the token cache
              is used, an error will be issued then. */
         } else {
-          sym_error(ec_too_few_template_args, template_sym);
+          sym_error(ec_too_few_template_args, templ_sym_for_default);
         }  /* if */
         /* Suppress any subsequent errors. */
         any_default_args = TRUE;
