@@ -318,6 +318,10 @@ typedef int an_equiv_templ_arg_options_set;
 #define ETA_IS_VARIADIC			0x20
 			/* TRUE if the template is variadic (so the number
 			   of arguments is not expected to be uniform). */
+#define ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x40
+			/* TRUE if, when dependent decltypes appear in a type,
+			   they must appear in both entities being compared
+			   and the expressions must match. */
 
 /*
 Flags used to specify options to equiv_template_param_lists.

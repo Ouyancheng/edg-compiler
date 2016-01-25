@@ -6162,6 +6162,10 @@ the same constant.
                             CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |
                             CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED)
                          : CC_NO_OPTIONS;
+  if (options & ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+    itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+    cc_options |= CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+  }  /* if */
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),

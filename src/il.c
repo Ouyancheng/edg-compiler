@@ -6487,7 +6487,7 @@ of constant comparison options.
     eta_options |= ETA_EXACT_MATCH_REQUIRED;
   }  /* if */
   if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
-    eta_options |= ETA_EXACT_MATCH_REQUIRED;
+    eta_options |= ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
   }  /* if */
   return eta_options;
 }  /* eta_flags_for_cc_options */
