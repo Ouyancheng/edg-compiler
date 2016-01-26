@@ -30108,6 +30108,7 @@ corresponding template declaration scope is pushed.
   dps->in_class_scope = TRUE;
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->is_lambda = TRUE;
+  dps->first_decl = TRUE;
   if (curr_token == tok_lparen) {
     /* A parameter list presumably follows. */
     add_stop_token(tok_lbrace);
