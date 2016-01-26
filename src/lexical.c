@@ -15898,7 +15898,7 @@ all arguments were explicit.
   a_template_param_ptr             param_ptr = NULL;
   a_template_param_ptr             orig_param_ptr;
   a_symbol_ptr                     sym;
-  a_symbol_ptr                     argument_template;
+  a_symbol_ptr                     argument_template = NULL;
   a_type_ptr                       argument_type;
   a_constant_ptr                   constant;
   a_template_arg_ptr               arg_ptr = NULL;
@@ -16186,6 +16186,7 @@ all arguments were explicit.
          list of the template template argument. */
       param_for_default = param_ptr;
       templ_sym_for_default = argument_template;
+      check_assertion(argument_template != NULL);
     }  /* if */
     /* There are still entries on the formal parameters list -- see if
        the remaining parameters have default values or are parameter packs. */
