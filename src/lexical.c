@@ -16181,9 +16181,9 @@ all arguments were explicit.
     a_template_param_ptr	param_for_default = orig_param_ptr;
     a_symbol_ptr		templ_sym_for_default = template_sym;
     if (orig_param_ptr->is_pack && param_ptr->has_default_arg) {
-      /* If the template template parameter has an argument that is a pack
-         use a default argument, if any, from the template template
-         parameter. */
+      /* If the template template parameter has an argument that is a pack,
+         use the default argument, if any, from the template parameter
+         list of the template template argument. */
       param_for_default = param_ptr;
       templ_sym_for_default = argument_template;
     }  /* if */

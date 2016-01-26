@@ -17,7 +17,10 @@ Default argument from template template argument to variadic parameter
 If a class template with a default argument was passed to a template
 template parameter that takes a variadic template argument, the
 default argument of the template template argument was not used when
-needed.  Now fixed.
+needed.  Now fixed.  This is core issue 2057, so it is possible the
+behavior of this case may change in the future.  But given that g++,
+clang, and Microsoft all accept this case, there is a good chance that
+something like this will eventually be adopted by the standards committee.
 
   template<template<typename...> class T> struct A {
     T<int> t;
