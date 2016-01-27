@@ -1,5 +1,12 @@
 Version 4.11
 
+1/27/16  [EDGcpfe/16805]
+GNU compatibility: return type of __builtin_va_arg_pack_len
+
+The return type of __builtin_va_arg_pack_len has been changed from "int" to
+"size_t" to match the documented interface of the function.
+
+
 1/27/16  [EDGcpfe/16804]
 Missing special_kind description in IL display program
 

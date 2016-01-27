@@ -2431,7 +2431,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_vararg_func0(_va_copy, no_return);
 #endif /* GCC_BUILTIN_VARARGS */
   enter_gnu_builtin_func0(_va_arg_pack, int);
-  enter_gnu_builtin_func0(_va_arg_pack_len, int);
+  enter_gnu_builtin_func0(_va_arg_pack_len, size_t);
   enter_gnu_builtin_func1(_bswap16, u2, u2);
   enter_gnu_builtin_func1(_bswap32, u4, u4);
   enter_gnu_builtin_func1(_bswap64, u8, u8);
