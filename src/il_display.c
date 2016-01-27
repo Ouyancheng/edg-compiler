@@ -3035,6 +3035,17 @@ Print the name of a special function kind.
     case sfk_event_remove:       s = "sfk_event_remove";       break;
     case sfk_event_raise:        s = "sfk_event_raise";        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+    case sfk_gnu_sync_concrete_function:
+                                s = "sfk_gnu_sync_concrete_function";
+                                                               break;
+    case sfk_gnu_atomic_nongeneric_function:
+                                s = "sfk_gnu_atomic_nongeneric_function";
+                                                               break;
+    case sfk_gnu_atomic_generic_function:
+                                s = "sfk_gnu_atomic_generic_function";
+                                                               break;
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
     default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
   (void)printf("%s", s);

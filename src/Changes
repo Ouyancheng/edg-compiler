@@ -1,5 +1,13 @@
 Version 4.11
 
+1/27/16  [EDGcpfe/16804]
+Missing special_kind description in IL display program
+
+An attempt to dump the "special_kind" field of some GNU __sync or __atomic
+builtins had resulted in "**BAD SPECIAL FUNCTION KIND**" when using the
+IL display program.  Now fixed.
+
+
 1/27/16  [EDGcpfe/16788]
 Bitwise copyability of class with deleted copy functions (ABI Change)
 
