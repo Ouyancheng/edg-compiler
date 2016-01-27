@@ -6385,7 +6385,8 @@ sizeof_cases:
       break;
     case enk_throw:
       write_tok_str("throw");
-      if (expr->variant.throw_info != NULL) {
+      if (expr->variant.throw_info != NULL &&
+          expr->variant.throw_info->expr != NULL) {
         write_tok_str(" ");
         dump_expr_with_parens(expr->variant.throw_info->expr);
       }  /* if */

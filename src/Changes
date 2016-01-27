@@ -1,5 +1,18 @@
 Version 4.11
 
+1/27/16  [EDGcpfe/16806]
+Assertion failure in dump_expr
+
+In C-generating configurations that do partial lowering of exception
+handling, an assertion failure (in dump_expr) had occurred on the following
+example (with --g++) and is now fixed:
+
+  struct A {};
+  void f() {
+    throw A();
+  }
+
+
 1/27/16  [EDGcpfe/16805]
 GNU compatibility: return type of __builtin_va_arg_pack_len
 
