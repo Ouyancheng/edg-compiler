@@ -1,5 +1,27 @@
 Version 4.11
 
+1/27/16  [EDGcpfe/16788]
+Bitwise copyability of class with deleted copy functions (ABI Change)
+
+Previously, a class with a deleted copy/move constructor was also marked as
+not being bitwise copyable.  This is no longer the case by default, but the
+former behavior can be restored by setting the configuration macro
+DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG to TRUE.  This change affects
+the "argument transfer method" for parameters of such a class type and
+therefore the ABI.  For example:
+
+  struct N {
+    N(N const&) = delete;
+  };
+  void f(N p) {}
+
+Previously, parameter p was marked as being "passes via copy constructor";
+that is no longer the case.  This is unimportant for standard-conforming
+C++ code, since a function like f cannot be invoked (due to the deleted
+copy constructor), but nonstandard code that relies on a specific argument
+transfer mechanism may be affected.
+
+
 1/25/16  [EDGcpfe/16798]
 GNU compatibility: Spurious error on abi_tag attribute applied to lambda
 

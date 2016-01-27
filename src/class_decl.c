@@ -20253,7 +20253,7 @@ deleted, disable bitwise copying.
 {
   a_type_ptr  class_type = class_state->class_type;
   a_class_symbol_supplement_ptr
-              cssp = symbol_supplement_for_class(class_type);
+              cssp = class_symbol_supp(symbol_for(class_type));
 
   /* At this point, cssp->assignment_by_bitwise_copy_allowed and
      cssp->construction_by_bitwise_copy_allowed only reflect whether the
@@ -20297,7 +20297,9 @@ deleted, disable bitwise copying.
                           is_move ? !cssp->makes_move_construction_nontrivial
                                   : !cssp->makes_copy_construction_nontrivial;
             if (rp->is_deleted) {
+#if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
               class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
+#endif /* DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG */
               if (gpp_mode && gnu_version < 40700) {
                 /* Early drafts of C++11 made deleted functions nontrivial, and
                    GCC versions from that era implemented that rule. */
@@ -20328,7 +20330,9 @@ deleted, disable bitwise copying.
                             is_move ? !cssp->makes_move_assignment_nontrivial
                                     : !cssp->makes_copy_assignment_nontrivial;
             if (rp->is_deleted) {
+#if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
               class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
+#endif /* DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG */
               if (gpp_mode && gnu_version < 40700) {
                 /* Early drafts of C++11 made deleted functions nontrivial, and
                    GCC versions from that era implemented that rule. */

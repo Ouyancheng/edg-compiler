@@ -6098,6 +6098,11 @@ file.
 #else /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
   comment_undefined_macro_name(DELETE_CAN_BE_FOLDED_INTO_DTOR);
 #endif /* defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
+#if defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG)
+  define_numeric_valued_macro(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG);
+#else /* !defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG) */
+  comment_undefined_macro_name(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG);
+#endif /* defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG) */
 #if defined(DEMO_VERSION_ID)
   define_string_valued_macro(DEMO_VERSION_ID);
 #else /* !defined(DEMO_VERSION_ID) */

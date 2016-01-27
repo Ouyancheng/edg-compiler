@@ -279,6 +279,19 @@ value as its value is target-specific).
 #endif /* defined(USE_X86_64) */
 
 /*
+Flag that is TRUE if declaring a deleted copy constructor or copy assignment
+operator causes the front end to set the corresponding "bitwise copy" flags
+(construction_by_bitwise_copy_allowed and assignment_by_bitwise_copy_allowed
+in a class symbol supplement) to FALSE.  This can change the argument transfer
+method of a function with a parameter of a class type with a deleted copy
+constructor (although such a function is not callable using standard code).
+*/
+#ifndef DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
+#define DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG FALSE
+#endif /* defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG) */
+
+
+/*
 Flag that is TRUE if support for exported templates can be enabled.
 */
 #ifndef EXPORT_ENABLING_POSSIBLE
