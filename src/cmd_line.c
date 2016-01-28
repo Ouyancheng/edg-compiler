@@ -2383,6 +2383,7 @@ option values if they were not already set by a command line option.
       if (!option_kind_used[(int)optk_variadic_templates]) {
         variadic_templates_enabled = TRUE;
       }  /* if */
+      this_in_trailing_return_types_enabled = TRUE;
     }  /* if */
     if (microsoft_version >= 1800) {
       deleted_functions_enabled = TRUE;
@@ -2423,7 +2424,6 @@ option values if they were not already set by a command line option.
       enumerator_attributes_enabled = TRUE;
       sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
       mixed_string_concat_enabled = TRUE;
-      this_in_trailing_return_types_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
 #if COROUTINES_ALLOWED

@@ -9385,6 +9385,16 @@ the expression reflects an implicit member access ("this->y"), so the
                               (a_boolean *)NULL);
         }  /* if */
       }  /* if */
+    } else if (msvc_is_generated_code_target &&
+               msvc_target_version_number <= 1900 &&
+               object_expr->kind == (an_expr_node_kind)enk_param_ref &&
+               object_expr->variant.param_ref.param_num == 0) {
+      /* The fact that "this" is represented by an enk_param_ref instead of
+         an enk_variable indicates that the context is something like a
+         decltype in a member function return type.  The Microsoft compiler
+         rejected use of "this" in such contexts up through early builds of
+         MSVC 13, although later versions accept it, so suppress the
+         "this->". */
     } else {
       /* Normal member selection. */
       gen_expr(object_expr,
@@ -10552,8 +10562,8 @@ static void gen_bound_function(an_expr_node_ptr object_expr,
 Generate a reference to the class member function identified by func_expr
 using object_expr as the object to be passed as "this".  If use_arrow is
 TRUE, the generated code will be of the form "p->mf" (except that implicit
-"this->" is suppressed); otherwise, object_expr is an lvalue or rvalue of
-class type and the "."  form will be used.  If suppress_virtual is TRUE,
+"this->" may be suppressed); otherwise, object_expr is an lvalue or rvalue
+of class type and the "."  form will be used.  If suppress_virtual is TRUE,
 the function's name will be qualified to suppress virtual-ness on the
 function reference.
 */
@@ -10628,6 +10638,16 @@ function reference.
       if (nrp != NULL && nrp->is_super_qualified) {
         /* The __super Microsoft extension does not work if "this->" is
            explicitly coded. */
+        suppress_this = TRUE;
+      } else if (msvc_is_generated_code_target &&
+                 msvc_target_version_number <= 1900 &&
+                 object_expr->kind == (an_expr_node_kind)enk_param_ref &&
+                 object_expr->variant.param_ref.param_num == 0) {
+        /* The fact that "this" is represented by an enk_param_ref instead
+           of an enk_variable indicates that the context is something like
+           a decltype in a member function return type.  The Microsoft
+           compiler rejected use of "this" in such contexts up through
+           early builds of MSVC 13, although later versions accept it. */
         suppress_this = TRUE;
       } else if (!msvc_is_generated_code_target ||
                  msvc_target_version_number != 1000) {
