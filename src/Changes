@@ -1,5 +1,33 @@
 Version 4.11
 
+1/27/16  [EDGcpfe/16793]
+Overload resolution and operator= templates
+
+The overload resolution algorithm for selecting an assignment operator has been
+slightly modified to discard some assignment operator templates earlier
+(before substituting the template), thereby avoiding instantiation errors.
+This causes the front end to accept code that other compilers also accept.
+For example:
+
+  template<class T> struct S {
+    typedef typename T::X Type;
+  };
+  struct X {
+    X& operator=(X const&);
+    template<class T> typename S<T>::Type operator=(T const&);
+  };
+  struct Y {
+    X x;
+  };
+
+The generation of the copy assignment operator for Y requires the selection
+of an assignment operator from X.  Previously, this required the substitution
+of T by X in the member template operator, which triggered an instantiation
+error.  Now, the front end determines early that no specialization of the
+member template could be a better match than the nontemplate operator,
+thereby avoiding the error.
+
+
 1/27/16  [EDGcpfe/16806]
 Assertion failure in dump_expr
 
