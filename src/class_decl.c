@@ -20992,7 +20992,7 @@ properties of generated special members.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (instantiate_extern_inline && !rp->is_deleted) {
+      if (instantiate_extern_inline && rp->is_inline && !rp->is_deleted) {
         add_to_inline_function_list(rp);
       }  /* if */
     }  /* if */
