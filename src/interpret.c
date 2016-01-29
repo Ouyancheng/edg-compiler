@@ -6612,10 +6612,12 @@ diagnostic in *ips.
             con->variant.address.kind = (an_address_base_kind)abk_constant;
           } else {
             con->variant.address.kind = (an_address_base_kind)abk_temporary;
-            /* Record the associated dynamic init entry so an escaping
-               temporary address can be caught. */
-            con->variant.address.assoc_dyn_init =
+            if (mptr != NULL) {
+              /* Record the associated dynamic init entry so an escaping
+                 temporary address can be caught. */
+              con->variant.address.assoc_dyn_init =
                        ((a_constant_ptr)mptr)->variant.address.assoc_dyn_init;
+            }  /* if */
           }  /* if */
           con->variant.address.variant.constant = cp;
         }  /* if */
