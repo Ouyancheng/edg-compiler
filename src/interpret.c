@@ -146,7 +146,7 @@ Macro to set the flag indicating that interpretation has failed.  In DEBUG
 configurations, a breakpoint on constexpr_fail_intercept is useful to find
 where interpretation fails. 
 */
-#if DEBUG
+#if DEBUG && !defined(_lint)
 #define do_constexpr_fail(flag) (constexpr_fail_intercept(), ((flag) = FALSE))
 
 static void constexpr_fail_intercept(void)
@@ -156,9 +156,9 @@ This function exists solely to intercept interpretation failure in a debugger.
 {
 }  /* constexpr_fail_intercept */
 
-#else /* !DEBUG */
+#else /* !(DEBUG  && !defined(_lint)) */
 #define do_constexpr_fail(flag) ((flag) = FALSE)
-#endif /* DEBUG */
+#endif /* DEBUG && !defined(_lint) */
 
 
 /*
