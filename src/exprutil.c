@@ -15723,7 +15723,7 @@ static an_expr_node_ptr func_call_expr(
                                   a_boolean         qualified_function_name,
                                   a_boolean         found_through_adl,
                                   a_boolean         uses_operator_syntax,
-                                  a_source_position *err_pos,
+                                  a_source_position *pos,
                                   an_expr_node_ptr  *function_call_node)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -15734,10 +15734,9 @@ NULL otherwise.  The arguments of the call are already attached to
 function_node.  A skip_typerefs need not have been done on function_type.
 function_type can be a template parameter type or class type in a case where
 the function to be called is not known because the call is dependent.
-Return a pointer to the call node.  *err_pos gives an error position
-for the case where the function return type is invalid (i.e.,
-incomplete); an error node is returned for that case.  If
-virtual_suppressed is TRUE, the function was named in some way that
+Return a pointer to the call node.  *pos gives the call position.  When the
+function return type is invalid (i.e., incomplete) an error node is returned.
+If virtual_suppressed is TRUE, the function was named in some way that
 would suppress calling it as virtual (if indeed it is virtual); that's
 also reflected in is_virtual, but knowing that the user did it
 explicitly controls whether a diagnostic is put out in some cases.
@@ -15787,7 +15786,7 @@ error cases.
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
   if (!unknown_dependent_function &&
-      !check_function_return_type(function_type, err_pos, /*is_expr_use=*/TRUE,
+      !check_function_return_type(function_type, pos, /*is_expr_use=*/TRUE,
                                   curr_expr_is_evaluated(),
                                   expr_stack
                                       ->allow_call_with_incomplete_return_type,
@@ -15804,7 +15803,7 @@ error cases.
       if (rout->is_virtual && !virtual_suppressed &&
           call_invokes_pure_virtual(rout, function_node)) {
         /* Call to pure virtual, e.g., from a constructor or destructor. */
-        expr_pos_warning(ec_call_of_pure_virtual, err_pos);
+        expr_pos_warning(ec_call_of_pure_virtual, pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15840,6 +15839,7 @@ error cases.
   if (function_call_node != NULL) {
     *function_call_node = call_node;
   }  /* if */
+  call_node->position = *pos;
   call_node->variant.operation.compiler_generated = compiler_generated;
   call_node->variant.operation.is_virtual_call = is_virtual;
   call_node->variant.operation.is_conversion_call = is_conversion;
@@ -15869,7 +15869,7 @@ error cases.
                                            /*suppress_abstract_test=*/TRUE,
                                            (a_dynamic_init_kind)
                                                     dik_class_result_via_ctor,
-                                           err_pos,
+                                           pos,
                                            &dip);
     dip->variant.expression = call_node;
     call_node = temp_init_node;

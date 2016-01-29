@@ -2430,6 +2430,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               cap->length = ctp->variant.array.variant.number_of_elements;
               cap->variant.base_address = cap->address;
             }  /* if */
+            if (con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary) {
+              /* The address of a temporary should not be allowed to escape
+                 from the evaluation.  By assigning the address an allocation
+                 sequence number larger than one, we ensure that such an
+                 attempted escape will be caught by
+                 copy_interpreter_object_to_constant. */
+              ((a_constexpr_address*)value)->alloc_seq_number = 2;
+            }  /* if */
           }
           break;
         default:
@@ -6562,8 +6571,7 @@ diagnostic in *ips.
     case tk_pointer:
       { a_constexpr_address *cap = (a_constexpr_address *)object;
         if (is_runtime_data_address(cap)) {
-          /* Copy the address constant to result_con and release the local
-             constant. */
+          /* Copy the address constant to result_con. */
           /* FIXME: This should probably not be a deep copy? */
           copy_constant(cap->variant.addr_con, con);
         } else if (cap->address == NULL) {
