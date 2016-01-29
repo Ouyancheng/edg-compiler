@@ -1252,9 +1252,6 @@ A set of flags to describe special kinds of interpreter addresses.
 #define CA_FUNCTION ((unsigned int)0x40)
 		/* This flag indicates that the address is that of a
 		   function. */
-#define CA_TEMPORARY ((unsigned int)0x80)
-		/* This flag indicates that the address was generated from an
-		   ck_address/abk_temporary constant. */
 
 /*
 Structure describing the representation of an address in the interpreter.
@@ -2424,7 +2421,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                  storage, and that we reproduce the original constant if this
                  becomes part of the interpretation result. */
               map_stack_bytes(ips, cp, con_bytes);
-              map_stack_bytes(ips, con_bytes, (a_byte*)cp);
+              map_stack_bytes(ips, con_bytes, (a_byte*)con);
             }  /* if */
             clear_address(value, con_bytes);
             if (ctp->kind == (a_type_kind)tk_array) {
@@ -2432,13 +2429,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               cap->flags |= CA_ARRAY_ELEMENT;
               cap->length = ctp->variant.array.variant.number_of_elements;
               cap->variant.base_address = cap->address;
-            }  /* if */
-            if (con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary) {
-              /* The address of a temporary should not be allowed to escape
-                 from the evaluation.  Mark it so that it can be identified
-                 by copy_interpreter_object_to_constant if needed. */
-              ((a_constexpr_address*)value)->flags |= CA_TEMPORARY;
             }  /* if */
           }
           break;
@@ -6583,9 +6573,6 @@ diagnostic in *ips.
              deallocated, and thus cannot be constant. */
           result = FALSE;
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
-        } else if (cap->flags & CA_TEMPORARY) {
-          result = FALSE;
-          info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
           /* Check if this address is already mapped to a constant. */
           a_type_ptr      utp;
@@ -6594,7 +6581,7 @@ diagnostic in *ips.
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
           get_stack_bytes(ips, cap->address, mptr);
           if (mptr != NULL) {
-            cp = (a_constant_ptr)mptr;
+            cp = ((a_constant_ptr)mptr)->variant.address.variant.constant;
             utp = skip_typerefs(cp->type);
           } else {
             /* Create an abk_constant or abk_temporary entry. */
@@ -6625,6 +6612,10 @@ diagnostic in *ips.
             con->variant.address.kind = (an_address_base_kind)abk_constant;
           } else {
             con->variant.address.kind = (an_address_base_kind)abk_temporary;
+            /* Record the associated dynamic init entry so an escaping
+               temporary address can be caught. */
+            con->variant.address.assoc_dyn_init =
+                       ((a_constant_ptr)mptr)->variant.address.assoc_dyn_init;
           }  /* if */
           con->variant.address.variant.constant = cp;
         }  /* if */
