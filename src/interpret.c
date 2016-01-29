@@ -142,6 +142,26 @@ typedef unsigned int a_byte_count;
 typedef unsigned int an_alloc_seq_number;
 
 /*
+Macro to set the flag indicating that interpretation has failed.  In DEBUG
+configurations, a breakpoint on constexpr_fail_intercept is useful to find
+where interpretation fails. 
+*/
+#if DEBUG
+#define do_constexpr_fail(flag) (constexpr_fail_intercept(), ((flag) = FALSE))
+
+static void constexpr_fail_intercept(void)
+/*
+This function exists solely to intercept interpretation failure in a debugger.
+*/
+{
+}  /* constexpr_fail_intercept */
+
+#else /* !DEBUG */
+#define do_constexpr_fail(flag) ((flag) = FALSE)
+#endif /* DEBUG */
+
+
+/*
 Macro defining the size of large blocks allocated for the storage stack.  These
 large blocks are then parceled out in smaller chunks as requested through the
 macro alloc_stack_bytes.  If an alloc_stack_bytes request is too large,
@@ -558,7 +578,7 @@ in_live_set.
       result = TRUE;
       break;
     } else if (stored_seq == 0) {
-      result = FALSE;
+      do_constexpr_fail(result);
       break;
     } else {
       idx = set->table[idx].next_index;
@@ -1761,7 +1781,7 @@ redo:
 #endif /* DEBUG */
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          *p_result = FALSE;
+          do_constexpr_fail(*p_result);
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
@@ -1772,7 +1792,7 @@ redo:
 #endif /* DEBUG */
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos(ec_constexpr_vla, pos, ips);
-        *p_result = FALSE;
+        do_constexpr_fail(*p_result);
         result = 0;
       }  /* if */
       break;
@@ -1814,7 +1834,7 @@ redo:
 #endif /* DEBUG */
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          *p_result = FALSE;
+          do_constexpr_fail(*p_result);
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
@@ -1836,7 +1856,7 @@ redo:
 #endif /* DEBUG */
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
-        *p_result = FALSE;
+        do_constexpr_fail(*p_result);
         result = 0;
       }
       break;
@@ -1844,7 +1864,7 @@ redo:
     case tk_unknown:
       /* Fail interpretation. */
       result = 0;
-      *p_result = FALSE;
+      do_constexpr_fail(*p_result);
       break;
     default:
       /* These types should never be encountered by the interpreter. */
@@ -1893,7 +1913,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       a_source_position  *pos = &tp->source_corresp.decl_position;
       if (pos->seq == 0) pos = &ips->position;
       info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-      *p_result = FALSE;
+      do_constexpr_fail(*p_result);
       total_size = MAX_CONSTEXPR_TYPE_SIZE;
       goto done;
     }  /* if */
@@ -1908,7 +1928,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         a_source_position  *pos = &tp->source_corresp.decl_position;
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-        *p_result = FALSE;
+        do_constexpr_fail(*p_result);
         total_size = MAX_CONSTEXPR_TYPE_SIZE;
         goto done;
       }  /* if */
@@ -1925,7 +1945,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
           a_source_position  *pos = &tp->source_corresp.decl_position;
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          *p_result = FALSE;
+          do_constexpr_fail(*p_result);
           total_size = MAX_CONSTEXPR_TYPE_SIZE;
           goto done;
         }  /* if */
@@ -2250,7 +2270,7 @@ completed.
     a_field_ptr  active_field = *(a_field_ptr*)vpep->base_address;
     a_field_ptr  selected_field = vpep->field;
     if (selected_field != active_field) {
-      result = FALSE;
+      do_constexpr_fail(result);
       info_with_pos_sym2(ec_constexpr_union_field_inactive, pos,
                          symbol_for(selected_field), symbol_for(active_field),
                          ips);
@@ -2366,7 +2386,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
   }  /* if */
   switch (con->kind) {
     case ck_error:
-      result = FALSE;
+      do_constexpr_fail(result);
       break;
     case ck_integer:
       *(an_integer_value *)value = con->variant.integer_value;
@@ -2547,7 +2567,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             } else {
               record_complete_object(etp, value);
               if (!copy_val_from_constant(ips, elem_con, value)) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 break;
               }  /* if */
             }  /* if */
@@ -2570,7 +2590,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* while */
               get_mapped_byte_count(&persistent_map, bcp, offset);
               if (!copy_val_from_constant(ips, elem_con, value+offset)) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 break;
               }  /* if */
               /* Record the derivation step (not really needed if this is for
@@ -2609,7 +2629,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* if */
               break;
             } else if (!copy_val_from_constant(ips, elem_con, value+offset)) {
-              result = FALSE;
+              do_constexpr_fail(result);
               break;
             } else if (fp->is_bit_field) {
               /* Fit the value in the bit field width. */
@@ -2640,7 +2660,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
           if (!copy_val_from_constant(ips, elem_con, value+offset)) {
-            result = FALSE;
+            do_constexpr_fail(result);
           } else {
             if (fp->is_bit_field) {
               /* Fit the value in the bit field width. */
@@ -2660,7 +2680,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (!copy_val_from_constant(ips, elem_con, value)) {
-              result = FALSE;
+              do_constexpr_fail(result);
               break;
             }  /* if */
             elem_con = elem_con->next;
@@ -2676,7 +2696,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* for */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         } else {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
       }
       break;
@@ -2686,7 +2706,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           diag_pos = &ips->position;
         }  /* if */
         info_with_pos(ec_constexpr_invalid_constant_kind, diag_pos, ips);
-        result = FALSE;
+        do_constexpr_fail(result);
       }
   }  /* switch */
 done:
@@ -2754,7 +2774,7 @@ Evaluate the given dynamic initialization for the given storage.
       /* Nothing to do, but check that there is no associated destructor. */
       if (dip->destructor != NULL) {
         info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
-        result = FALSE;
+        do_constexpr_fail(result);
       } else {
         result = TRUE;
       }  /* if */
@@ -2842,7 +2862,7 @@ Interpret the given for-statement.
   save_storage_stack(ips, saved_stack);
   /* Run the initialization statement (if any). */
   if (init != NULL && !do_constexpr_statement(ips, init)) {
-    result = FALSE;
+    do_constexpr_fail(result);
   } else {
     an_expr_node_ptr  expr = stmt->expr, incr = loop_info->increment;
     a_byte            *expr_value, *incr_value;
@@ -2888,7 +2908,7 @@ Interpret the given for-statement.
       if (cost_exceeded(ips)) {
         more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                              &ips->diag_list);
-        result = FALSE;
+        do_constexpr_fail(result);
       } else if (expr != NULL) {
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
@@ -2994,7 +3014,7 @@ Interpret the given range-based for-statement.
     dip = vp[k]->initializer.dynamic;
     if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
                                    var_storage[k])) {
-      result = FALSE;
+      do_constexpr_fail(result);
       break;
     }  /* if */
   }  /* for */
@@ -3028,7 +3048,7 @@ Interpret the given range-based for-statement.
       if (cost_exceeded(ips)) {
         more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                              &ips->diag_list);
-        result = FALSE;
+        do_constexpr_fail(result);
       } else {
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
@@ -3047,7 +3067,7 @@ Interpret the given range-based for-statement.
           /* Initialize the iterator variable: */
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
                                          var_storage[0])) {
-            result = FALSE;
+            do_constexpr_fail(result);
             break;
           }  /* if */
           /* Execute the dependent statement. */
@@ -3128,7 +3148,7 @@ successfully interpreted, FALSE otherwise.
         if (!result) {
           /* Stop interpretation. */
         } else if (!do_constexpr_expression(ips, expr, expr_value)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         } else {
           release_address_structures(expr, tp, expr_value);
         }  /* if */
@@ -3171,7 +3191,7 @@ successfully interpreted, FALSE otherwise.
           if (cost_exceeded(ips)) {
             more_info_diagnostic(ec_excessive_constexpr_complexity,
                                  &ips->position, &ips->diag_list);
-            result = FALSE;
+            do_constexpr_fail(result);
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_address_structures(expr, tp, expr_value);
@@ -3215,7 +3235,7 @@ successfully interpreted, FALSE otherwise.
         ips->curr_call_frame->continue_active = TRUE;
       } else {
         info_with_pos(ec_constexpr_goto, &stmt->position, ips);
-        result = FALSE;
+        do_constexpr_fail(result);
       }  /* if */
       break;
     case stmk_label:
@@ -3239,7 +3259,7 @@ successfully interpreted, FALSE otherwise.
           if (!is_void_type(fn_type->variant.routine.return_type)) {
             info_with_pos(ec_constexpr_missing_return_value, &stmt->position,
                           ips);
-            result = FALSE;
+            do_constexpr_fail(result);
           }  /* if */
         }  /* if */
         frame->return_active = TRUE;
@@ -3282,7 +3302,7 @@ successfully interpreted, FALSE otherwise.
           if (cost_exceeded(ips)) {
             more_info_diagnostic(ec_excessive_constexpr_complexity,
                                  &ips->position, &ips->diag_list);
-            result = FALSE;
+            do_constexpr_fail(result);
           } else {
             do_constexpr_full_expression(ips, expr, expr_value, result);
             release_address_structures(expr, tp, expr_value);
@@ -3450,12 +3470,12 @@ done_with_switch:
     case stmk_set_vla_size:
     case stmk_vla_decl:
       info_with_pos(ec_constexpr_vla, &stmt->position, ips);
-      result = FALSE;
+      do_constexpr_fail(result);
       break;
     default:
       info_with_pos(ec_constexpr_statement_cannot_be_interpreted,
                     &stmt->position, ips);
-      result = FALSE;
+      do_constexpr_fail(result);
   }  /* switch */
   return result;
 }  /* do_constexpr_statement */
@@ -3502,7 +3522,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             *fp_value(result_storage) = *fp_value(arg1_bytes);
           }  /* if */
         } else {
-          *p_result = FALSE;
+          do_constexpr_fail(*p_result);
         }  /* if */
       }
       break;
@@ -3566,7 +3586,7 @@ record a diagnostic in the interpreter state (using the position of expr).
       }  /* if */
       if (derived_class != NULL) {
         /* An invalid access. */
-        result = FALSE;
+        do_constexpr_fail(result);
         info_with_pos_sym_type(ec_constexpr_invalid_pm_access, &expr->position,
                                mem_sym, derived_class, ips);
       }  /* if */
@@ -3611,11 +3631,11 @@ accordingly.
       callee = pm_target->variant.routine;
       if (callee == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-        result = FALSE;
+        do_constexpr_fail(result);
         goto done;
       }  /* if */
     } else {
-      result = FALSE;
+      do_constexpr_fail(result);
       goto done;
     }  /* if */
   } else {
@@ -3625,18 +3645,18 @@ accordingly.
         callee = addr.variant.routine;
         if (callee == NULL) {
           info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-          result = FALSE;
+          do_constexpr_fail(result);
           goto done;
         }  /* if */
       } else if (addr.address == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-        result = FALSE;
+        do_constexpr_fail(result);
         goto done;
       } else {
         unexpected_condition();
       }  /* if */
     } else {
-      result = FALSE;
+      do_constexpr_fail(result);
       goto done;
     }  /* if */
   }  /* if */
@@ -3658,15 +3678,15 @@ accordingly.
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       &callee_node->position, symbol_for(callee), ips);
-    result = FALSE;
+    do_constexpr_fail(result);
   } else if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
-    result = FALSE;
+    do_constexpr_fail(result);
   } else if (cost_exceeded(ips)) {
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
-    result = FALSE;
+    do_constexpr_fail(result);
   } else {
     a_scope_ptr     callee_scope = scope_for_routine(callee);
     a_statement_ptr
@@ -3686,7 +3706,7 @@ accordingly.
        is not fully parsed (e.g., requested due to a recursive call in a
        constexpr function). */
     if (!callee_scope->is_constexpr_routine) {
-      result = FALSE;
+      do_constexpr_fail(result);
       info_with_pos_sym(ec_constexpr_call_not_interpretable,
                         &call_node->position, symbol_for(callee), ips);
       goto done;
@@ -3727,7 +3747,7 @@ accordingly.
           tp->kind == (a_type_kind)tk_pointer) {
         /* The usual case: An address is produced. */
         if (!do_constexpr_expression(ips, arg, this_bytes)) {
-          result = FALSE;
+          do_constexpr_fail(result);
           goto done;
         }  /* if */
       } else {
@@ -3737,7 +3757,7 @@ accordingly.
         if (!result) goto done;
         alloc_complete_object(ips, n_bytes, tp, class_bytes);
         if (!do_constexpr_expression(ips, arg, class_bytes)) {
-          result = FALSE;
+          do_constexpr_fail(result);
           goto done;
         }  /* if */
         /* Store the address of the class in *this_bytes. */
@@ -3746,7 +3766,7 @@ accordingly.
       if (pm_target != NULL &&
           !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
                                pm_target, this_var->type, call_node)) {
-        result = FALSE;
+        do_constexpr_fail(result);
         goto done;
       }  /* if */
       arg = arg->next;
@@ -3774,7 +3794,7 @@ accordingly.
           }  /* if */
         }  /* if */
         if (!do_constexpr_expression(ips, arg, arg_bytes)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
         if (restore_lvalue) {
           arg->is_lvalue = TRUE;
@@ -3809,7 +3829,7 @@ accordingly.
     if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
       info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
-      result = FALSE;
+      do_constexpr_fail(result);
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
@@ -3886,11 +3906,11 @@ the body of the (constructor) function proper.
   if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
                       symbol_for(callee), ips);
-    result = FALSE;
+    do_constexpr_fail(result);
   } else if (cost_exceeded(ips)) {
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
-    result = FALSE;
+    do_constexpr_fail(result);
   } else {
     a_scope_ptr       callee_scope = scope_for_routine(callee);
     a_statement_ptr   block_stmt = callee_scope->assoc_block;
@@ -3914,7 +3934,7 @@ the body of the (constructor) function proper.
        is not fully parsed (e.g., requested due to a recursive call in a
        constexpr function). */
     if (!callee_scope->is_constexpr_routine) {
-      result = FALSE;
+      do_constexpr_fail(result);
       info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                         symbol_for(callee), ips);
       goto done;
@@ -3923,7 +3943,7 @@ the body of the (constructor) function proper.
        attempt interpretation either since the lifetime won't be right. */
     cssp = class_symbol_supp(symbol_for(class_type));
     if (has_nontrivial_destructor(cssp)) {
-      result = FALSE;
+      do_constexpr_fail(result);
       info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
       goto done;
     }  /* if */
@@ -3966,7 +3986,7 @@ the body of the (constructor) function proper.
           }  /* if */
         }  /* if */
         if (!do_constexpr_expression(ips, arg, arg_bytes)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
         if (restore_lvalue) {
           arg->is_lvalue = TRUE;
@@ -4063,12 +4083,12 @@ the body of the (constructor) function proper.
              outside the current evaluation. */
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &args->position, ips);
-          result = FALSE;
+          do_constexpr_fail(result);
           break;
         } else {
            if (constexpr_copy_object(ips, tp, src_addr->address+offset,
                                      result_storage+offset)) {
-             result = FALSE;
+             do_constexpr_fail(result);
              break;
            }  /* if */
         }  /* if */
@@ -4076,7 +4096,7 @@ the body of the (constructor) function proper.
                                         ips, sub_dip,
                                         &callee->source_corresp.decl_position,
                                         result_storage+offset)) {
-        result = FALSE;
+        do_constexpr_fail(result);
         break;
       }  /* if */
     }  /* for */
@@ -4188,6 +4208,7 @@ of the prvalue result.
              result storage. */
           result = do_constexpr_expression(
                        ips, expr->variant.operation.operands, result_storage);
+          goto done;
         }  /* if */
 /*
 Macro to set result_storage from either the address in opnd or the value
@@ -4205,7 +4226,7 @@ nodes.
       /* Do the lvalue-to-rvalue conversion into the result. */               \
       if (cannot_dereference(opnd)) {                                         \
         /* This address cannot be dereferenced. */                            \
-        result = FALSE;                                                       \
+        do_constexpr_fail(result);                                            \
         info_one_past_end_of_array((a_constexpr_address*)opnd, expr, ips);    \
       } else if (is_runtime_data_address(opnd)) {                             \
         if (!get_value_from_address_constant(                                 \
@@ -4213,7 +4234,7 @@ nodes.
                    ((a_constexpr_address*)(opnd))->variant.addr_con,          \
                    result_storage)) {                                         \
           /* Not a compile-time constant value. */                            \
-          result = FALSE;                                                     \
+          do_constexpr_fail(result);                                          \
           info_with_pos(ec_constexpr_access_to_runtime_storage,               \
                         &expr->position, ips);                                \
         }  /* if */                                                           \
@@ -4221,16 +4242,16 @@ nodes.
                               ((a_constexpr_address*)(opnd))                  \
                                                       ->alloc_seq_number)) {  \
         /* An attempt to access storage that has expired. */                  \
-        result = FALSE;                                                       \
+        do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,\
                       ips);                                                   \
       } else if (is_variant_path(opnd) &&                                     \
                  !check_variant_path(ips, (a_constexpr_address*)opnd,         \
                                      /*release=*/TRUE, &expr->position)) {    \
         /* An attempt to dereference an inactive variant path. */             \
-        result = FALSE;                                                       \
+        do_constexpr_fail(result);                                            \
       } else if (((a_constexpr_address*)(opnd))->address == NULL) {           \
-        result = FALSE;                                                       \
+        do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);   \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
@@ -4293,7 +4314,7 @@ type.  This includes checking the value of ovfl set by the operation.
         }  /* if */
         record_complete_object(opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
         if (result && opnd2 != NULL &&
             !node_operator_is(expr, eok_land) &&
@@ -4320,7 +4341,7 @@ type.  This includes checking the value of ovfl set by the operation.
           }  /* if */
           record_complete_object(opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
-            result = FALSE;
+            do_constexpr_fail(result);
           }  /* if */
         } else {
           opnd2_value = compact_value_bytes(opnd2_bytes);
@@ -4365,7 +4386,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (err) {
                   info_with_pos(ec_constexpr_fp_conversion_failed,
                                 &expr->position, ips);
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
@@ -4378,14 +4399,14 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                       &expr->position, opnd1_type, tp, ips);
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_void) {
                 release_address_structures(opnd1, opnd1_type, opnd1_value);
               } else {
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_integer &&
                        tp->kind == (a_type_kind)tk_float) {
@@ -4398,7 +4419,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                           tp->variant.float_kind,
                                           &err);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
@@ -4406,7 +4427,7 @@ type.  This includes checking the value of ovfl set by the operation.
                        tp->kind == (a_type_kind)tk_integer) {
               unexpected_condition(); /* FIXME NYI */
             } else {
-              result = FALSE;
+              do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                   &expr->position, opnd1_type, tp, ips);
             }  /* if */
@@ -4417,7 +4438,7 @@ type.  This includes checking the value of ovfl set by the operation.
             if (tp != opnd1_type) {
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                   &expr->position, opnd1_type, tp, ips);
-              result = FALSE;
+              do_constexpr_fail(result);
             } else {
               set_result_val_from_operand_address(opnd1_value);
             }  /* if */
@@ -4469,7 +4490,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     derived_class = opnd1_type;
                   }  /* if */
                 }  /* if */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos_type(ec_constexpr_bad_derived_class_cast,
                                    &expr->position, derived_class, ips);
               }  /* if */
@@ -4670,7 +4691,7 @@ type.  This includes checking the value of ovfl set by the operation.
                  outside the current evaluation. */
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
-              result = FALSE;
+              do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
               set_result_val_from_operand_address(opnd1_value);
@@ -4698,7 +4719,7 @@ type.  This includes checking the value of ovfl set by the operation.
                        &one_flt[(int)tp->variant.float_kind],
                        fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
                 if (err) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
@@ -4710,7 +4731,7 @@ type.  This includes checking the value of ovfl set by the operation.
                      storage. */
                   info_with_pos(ec_constexpr_invalid_pointer,
                                 &expr->position, ips);
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else {
                   a_type_ptr    elem_type;
                   a_byte_count  elem_size;
@@ -4736,7 +4757,7 @@ type.  This includes checking the value of ovfl set by the operation.
                  outside the current evaluation. */
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
-              result = FALSE;
+              do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
               set_result_val_from_operand_address(opnd1_value);
@@ -4759,7 +4780,7 @@ type.  This includes checking the value of ovfl set by the operation.
                             fp_value_at(opnd1_value), &err,
                             &depends_on_fp_mode);
                 if (err) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
@@ -4770,7 +4791,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   /* Not a pointer to an array element in interpreter
                      storage. */
                   info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else {
                   a_type_ptr    elem_type;
                   a_byte_count  elem_size;
@@ -4782,7 +4803,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     /* The pointer cannot point ahead of the array. */
                     info_with_pos(ec_constexpr_invalid_pointer,
                                   &expr->position, ips);
-                    result = FALSE;
+                    do_constexpr_fail(result);
                   } else {
                     if (ptr->address == base_address+ptr->length*elem_size) {
                       /* We were "one past the end of the array", but that
@@ -4803,7 +4824,7 @@ type.  This includes checking the value of ovfl set by the operation.
               /* Cannot modify the value of an object whose lifetime began
                  outside the current evaluation. */
               /* FIXME: record a diagnostic. */
-              result = FALSE;
+              do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integral type. */
               if (tp->variant.integer.bool_type) {
@@ -4824,7 +4845,7 @@ type.  This includes checking the value of ovfl set by the operation.
                      &one_flt[(int)tp->variant.float_kind],
                      fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else if (tp->kind == (a_type_kind)tk_pointer) {
@@ -4835,7 +4856,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* Not a pointer to an array element in interpreter
                    storage. */
                 /* FIXME: record a diagnostic. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 a_type_ptr    elem_type;
                 a_byte_count  elem_size;
@@ -4864,7 +4885,7 @@ type.  This includes checking the value of ovfl set by the operation.
               /* Cannot modify the value of an object whose lifetime began
                  outside the current evaluation. */
               /* FIXME: record a diagnostic. */
-              result = FALSE;
+              do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integer. */
                 an_integer_value  *ival = int_value_at(opnd1_value);
@@ -4881,7 +4902,7 @@ type.  This includes checking the value of ovfl set by the operation.
                           fp_value_at(opnd1_value), &err,
                           &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else if (tp->kind == (a_type_kind)tk_pointer) {
@@ -4892,7 +4913,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* Not a pointer to an array element in interpreter
                    storage. */
                 /* FIXME: record a diagnostic. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 a_type_ptr    elem_type;
                 a_byte_count  elem_size;
@@ -4903,7 +4924,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (ptr->address == base_address) {
                   /* The pointer can point ahead of the array. */
                   /* FIXME: record a diagnostic. */
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else {
                   if (ptr->address == base_address + ptr->length*elem_size) {
                     /* We were "one past the end of the array", but that will
@@ -4940,7 +4961,7 @@ type.  This includes checking the value of ovfl set by the operation.
                      fp_value(opnd1_value), fp_value(opnd2_value),
                      fp_value(result_storage), &err, &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else {
@@ -4966,7 +4987,7 @@ type.  This includes checking the value of ovfl set by the operation.
                           fp_value(result_storage), &err,
                           &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else {
@@ -4991,7 +5012,7 @@ type.  This includes checking the value of ovfl set by the operation.
                           fp_value(result_storage), &err,
                           &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else {
@@ -5008,7 +5029,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                     (an_integer_value*)opnd2_value,
                                     is_signed, &ovfl);
               if (ovfl) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else if (expr->variant.operation.type_kind ==
@@ -5018,7 +5039,7 @@ type.  This includes checking the value of ovfl set by the operation.
                         fp_value(result_storage), &err,
                         &depends_on_fp_mode);
               if (err) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else {
@@ -5035,7 +5056,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                        (an_integer_value*)opnd2_value,
                                        is_signed, &ovfl);
               if (ovfl) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 /* FIXME: record a diagnostic. */
               }  /* if */
             } else {
@@ -5057,12 +5078,12 @@ type.  This includes checking the value of ovfl set by the operation.
                 elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
               }  /* if */
               if (ovfl) {
-                result = FALSE;  /* FIXME: diagnostic */
+                do_constexpr_fail(result);  /* FIXME: diagnostic */
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  result = FALSE;  /* FIXME: diagnostic */
+                  do_constexpr_fail(result);  /* FIXME: diagnostic */
                 } else {
                   a_byte_count  elem_size, pos, len;
                   a_byte        *base_address;
@@ -5076,7 +5097,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                       (len-pos < (a_byte_count)host_int_val)
                                     : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
-                    result = FALSE;  /* FIXME: diagnostic */
+                    do_constexpr_fail(result);  /* FIXME: diagnostic */
                   } else {
                     result_addr->address +=
                       host_int_val
@@ -5106,12 +5127,12 @@ type.  This includes checking the value of ovfl set by the operation.
                 elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
               }  /* if */
               if (ovfl) {
-                result = FALSE;  /* FIXME: diagnostic */
+                do_constexpr_fail(result);  /* FIXME: diagnostic */
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  result = FALSE;  /* FIXME: diagnostic */
+                  do_constexpr_fail(result);  /* FIXME: diagnostic */
                 } else {
                   a_byte_count  elem_size, pos, len;
                   a_byte        *base_address;
@@ -5125,7 +5146,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
-                    result = FALSE;  /* FIXME: diagnostic */
+                    do_constexpr_fail(result);  /* FIXME: diagnostic */
                   } else {
                     result_addr->address -=
                       host_int_val
@@ -5152,7 +5173,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* Nothing more to do. */
                 } else if (elem_size == 0) {
-                  result = FALSE;  /* FIXME: diagnostic */ 
+                  do_constexpr_fail(result);  /* FIXME: diagnostic */ 
                 } else {
                   set_integer_value(
                        (an_integer_value*)result_storage,
@@ -5165,7 +5186,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                   result, ovfl, &expr->position, ips);
                 }  /* if */
               } else {
-                result = FALSE;  /* FIXME: diagnostic */
+                do_constexpr_fail(result);  /* FIXME: diagnostic */
               }  /* if */
             }
             break;
@@ -5176,12 +5197,12 @@ type.  This includes checking the value of ovfl set by the operation.
             is_signed = int_kind_is_signed[int_kind];
             get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
             if (ovfl) {
-              result = FALSE;
+              do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
                            (a_host_large_integer)(tp->size * targ_char_bit)) {
               /* FIXME: record a diagnostic for invalid result. */
-              result = FALSE;
+              do_constexpr_fail(result);
             }  /* if */
             if (result) {
               shift_left_integer_value((an_integer_value *)opnd1_value,
@@ -5203,11 +5224,11 @@ type.  This includes checking the value of ovfl set by the operation.
             is_signed = int_kind_is_signed[int_kind];
             get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
             if (ovfl) {
-              result = FALSE;
+              do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
                            (a_host_large_integer)(tp->size * targ_char_bit)) {
-              result = FALSE;
+              do_constexpr_fail(result);
             }  /* if */
             if (result) {
               shift_right_integer_value((an_integer_value *)opnd1_value,
@@ -5284,10 +5305,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5332,10 +5353,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5380,10 +5401,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5428,10 +5449,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5476,10 +5497,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5524,10 +5545,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
               } else {
-                result = FALSE;
+                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5539,24 +5560,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Copy the value of the right operand to the indicated
                    address and return either the address or the value, as
@@ -5578,24 +5599,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Add the value of the right operand to the value stored at
                    the left operand and return the left operand (as an
@@ -5617,7 +5638,7 @@ type.  This includes checking the value of ovfl set by the operation.
                          fp_value(opnd2_value), dst_val, &err,
                          &depends_on_fp_mode);
                   if (err) {
-                    result = FALSE;
+                    do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
@@ -5632,24 +5653,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Subtract the value of the right operand from the value
                    stored at the left operand and return the left operand
@@ -5671,7 +5692,7 @@ type.  This includes checking the value of ovfl set by the operation.
                               fp_value(opnd2_value), dst_val, &err,
                               &depends_on_fp_mode);
                   if (err) {
-                    result = FALSE;
+                    do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
@@ -5686,24 +5707,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Multiply the value stored in the left operand with the
                    value of the right operand and leave the result in the
@@ -5725,7 +5746,7 @@ type.  This includes checking the value of ovfl set by the operation.
                               fp_value(opnd2_value), dst_val, &err,
                               &depends_on_fp_mode);
                   if (err) {
-                    result = FALSE;
+                    do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
@@ -5740,24 +5761,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Divide the value stored in the left operand with the
                    value of the right operand and leave the result in the
@@ -5779,7 +5800,7 @@ type.  This includes checking the value of ovfl set by the operation.
                             fp_value(opnd2_value), dst_val, &err,
                             &depends_on_fp_mode);
                   if (err) {
-                    result = FALSE;
+                    do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
@@ -5794,24 +5815,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (expr->variant.operation.type_kind ==
                                                     (a_type_kind)tk_integer) {
                 /* Compute the remainder of the value stored in the left
@@ -5837,24 +5858,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Shift the bits stored in the first operand left by the
                    number of bits indicated by the second operand.  Return
@@ -5864,11 +5885,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                  ovfl);
                 if (ovfl) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
                           (a_host_large_integer)(tp->size * targ_char_bit)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
                                   &expr->position, ips);
@@ -5893,24 +5914,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Shift the bits stored in the first operand left by the
                    number of bits indicated by the second operand.  Return
@@ -5920,11 +5941,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                  ovfl);
                 if (ovfl) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
                           (a_host_large_integer)(tp->size * targ_char_bit)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
                                   &expr->position, ips);
@@ -5950,24 +5971,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Bitwise "and" the value stored in the left operand with
                    the value of the right operand and leave the result in the
@@ -5982,24 +6003,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Bitwise "or" the value stored in the left operand with
                    the value of the right operand and leave the result in the
@@ -6014,24 +6035,24 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
-                result = FALSE;
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
-                result = FALSE;
+                do_constexpr_fail(result);
               } else {
                 /* Bitwise "xor" the value stored in the left operand with
                    the value of the right operand and leave the result in the
@@ -6061,7 +6082,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 /* FIXME: NYI, other source types. */
                 logical_and_result = FALSE;
-                result = FALSE;
+                do_constexpr_fail(result);
                 unexpected_condition();
               }  /* if */
               if (!logical_and_result) {
@@ -6081,7 +6102,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 record_complete_object(opnd2_type, opnd2_value);
                 if (result &&
                     !do_constexpr_expression(ips, opnd2, opnd2_value)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
                 if (!result) {
                   /* Interpretation of the second operand failed. */
@@ -6115,7 +6136,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 /* FIXME: NYI, other source types. */
                 logical_or_result = TRUE;
-                result = FALSE;
+                do_constexpr_fail(result);
                 unexpected_condition();
               }  /* if */
               if (logical_or_result) {
@@ -6135,7 +6156,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 record_complete_object(opnd2_type, opnd2_value);
                 if (result &&
                     !do_constexpr_expression(ips, opnd2, opnd2_value)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 }  /* if */
                 if (!result) {
                   /* Interpretation of the second operand failed. */
@@ -6178,14 +6199,14 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               /* Carefully add the two, if appropriate. */
               if (ovfl) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                   set_result_val_from_operand_address(&result_addr);
                 } else if (!is_array_element(&result_addr)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_non_array_subscript,
                                 &expr->position, ips);
                 } else {
@@ -6200,7 +6221,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
                                        : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
-                    result = FALSE;
+                    do_constexpr_fail(result);
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
                                        (unsigned long)(pos+host_int_val),
@@ -6263,11 +6284,11 @@ type.  This includes checking the value of ovfl set by the operation.
               pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
               field = pm_value->variant.field;
               if (is_runtime_data_address(&result_addr)) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else if (field == NULL) {
-                result = FALSE;
+                do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_ptr_to_member_data,
                               &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_union &&
@@ -6278,7 +6299,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 if (!adjust_this_address(ips, &result_addr, pm_value,
                                          opnd1_type, expr)) {
-                  result = FALSE;
+                  do_constexpr_fail(result);
                 } else {
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
@@ -6322,7 +6343,7 @@ type.  This includes checking the value of ovfl set by the operation.
             unexpected_condition();
             /*FALLTHROUGH*/
           default:
-            result = FALSE;
+            do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                           &expr->position, ips);
         }  /* switch */
@@ -6375,7 +6396,7 @@ type.  This includes checking the value of ovfl set by the operation.
             } else {
               info_with_pos_sym(ec_variable_not_constant_valued,
                                 &expr->position, symbol_for(var), ips);
-              result = FALSE;
+              do_constexpr_fail(result);
             }  /* if */
           }  /* if */
         } else {
@@ -6457,7 +6478,7 @@ type.  This includes checking the value of ovfl set by the operation.
           alloc_seq_number = 0;
         }  /* if */
         if (!do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           a_constexpr_address
@@ -6470,7 +6491,7 @@ type.  This includes checking the value of ovfl set by the operation.
       }
       break;
     default:
-      result = FALSE;
+      do_constexpr_fail(result);
       info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                     &expr->position, ips);
   }  /* switch */
@@ -6555,7 +6576,7 @@ diagnostic in *ips.
         } else if (cap->alloc_seq_number > 1) {
           /* The address designates an interpreter value that is already
              deallocated, and thus cannot be constant. */
-          result = FALSE;
+          do_constexpr_fail(result);
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
           /* Check if this address is already mapped to a constant. */
@@ -6587,7 +6608,7 @@ diagnostic in *ips.
             }  /* if */
             if (!copy_interpreter_object_to_constant(
                                                 ips, cap->address, utp, cp)) {
-              result = FALSE;
+              do_constexpr_fail(result);
               break;
             }  /* if */
           }  /* if */
@@ -6637,7 +6658,7 @@ diagnostic in *ips.
           get_mapped_byte_count(&persistent_map, bcp, offset);
           if (!copy_interpreter_object_to_constant(
                                          ips, object+offset, bcp->type, cp)) {
-            result = FALSE;
+            do_constexpr_fail(result);
             break;
           }  /* if */
           cp->constant_for_base_class_from_constexpr_folding = TRUE;
@@ -6657,7 +6678,7 @@ diagnostic in *ips.
           cp = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                           ips, object+offset, fp->type, cp)) {
-            result = FALSE;
+            do_constexpr_fail(result);
             break;
           }  /* if */
           add_constant_to_aggregate(cp, con);
@@ -6686,7 +6707,7 @@ diagnostic in *ips.
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
                                     ips, object+offset, afp->type, elem_con)) {
-            result = FALSE;
+            do_constexpr_fail(result);
           } else {
             if (fp != afp) {
               /* Add a designator for the active field. */
@@ -6711,7 +6732,7 @@ diagnostic in *ips.
           elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                                ips, sub_obj, etp, elem_con)) {
-            result = FALSE;
+            do_constexpr_fail(result);
             break;
           }  /* if */
           add_constant_to_aggregate(elem_con, con);
@@ -6731,7 +6752,7 @@ diagnostic in *ips.
           elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                                                ips, sub_obj, etp, elem_con)) {
-            result = FALSE;
+            do_constexpr_fail(result);
             break;
           }  /* if */
           add_constant_to_aggregate(elem_con, con);
@@ -6783,10 +6804,10 @@ return FALSE, and record diagnostic info in *diag_list.
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (!do_constexpr_call(&ips, call_expr, result_storage)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
@@ -6833,12 +6854,12 @@ return FALSE.
     ctor = dip->variant.constructor.ptr;
     if (ctor == NULL) {
       expect_error();
-      result = FALSE;
+      do_constexpr_fail(result);
       goto done;
     } else if (!ctor->is_constexpr) {
       info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                         &error_position, symbol_for(ctor), &ips);
-      result = FALSE;
+      do_constexpr_fail(result);
       goto done;
     }  /* if */
   }  /* if */
@@ -6847,10 +6868,10 @@ return FALSE.
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result) {
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     }  /* if */
   }  /* if */
   release_interpreter_state(&ips);
