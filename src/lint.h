@@ -423,6 +423,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_call_stack)*/
 /*lint -esym(765, db_rescan_list)*/
 /*lint -esym(714, db_rescan_list)*/
+/*lint -esym(765, db_live_set)*/
+/*lint -esym(714, db_live_set)*/
 #endif /* DEBUG */
 #if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/

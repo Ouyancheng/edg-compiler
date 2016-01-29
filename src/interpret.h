@@ -32,6 +32,9 @@ void db_object(a_byte      *addr,
                a_type_ptr  tp);
 
 void db_call_stack(void  *ips);
+
+void db_live_set(void  *interpreter_state);
+
 #endif /* DEBUG */
 
 void interpret_trans_unit_init(void);
