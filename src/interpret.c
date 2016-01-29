@@ -6563,8 +6563,8 @@ diagnostic in *ips.
       { a_constexpr_address *cap = (a_constexpr_address *)object;
         if (is_runtime_data_address(cap)) {
           /* Copy the address constant to result_con. */
-          /* FIXME: This should probably not be a deep copy? */
           copy_constant(cap->variant.addr_con, con);
+          con->type = type;
         } else if (cap->address == NULL) {
           /* A NULL pointer constant. */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
