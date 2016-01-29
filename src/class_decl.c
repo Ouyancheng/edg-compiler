@@ -1184,6 +1184,16 @@ typedef struct a_class_def_state {
   a_bit_field	rule_out_bitwise_assign_for_deleted_operator:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a copy/move assignment operator is deleted. */
+  a_bit_field	needs_constructor_symbol:1;
+			/* TRUE if constructors must be represented explicitly
+			   (for simple class types, constructors are not always
+			   generated, but some member or base types do require
+			   that generation). */
+  a_bit_field	needs_assignment_symbol:1;
+			/* TRUE if assignment operators must be represented
+			   explicitly (for simple class types, assignment
+			   operators are not always generated, but some member
+			   or base types do require that generation). */
   a_bit_field	has_inheriting_constructors:1;
 			/* TRUE if a using-declaration introducing inheriting
 			   constructors has been encountered. */
@@ -1287,6 +1297,8 @@ class being defined.
   cdsp->rule_out_bitwise_copy_for_deleted_ctor = FALSE;
   cdsp->rule_out_trivial_assign_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_assign_for_deleted_operator = FALSE;
+  cdsp->needs_constructor_symbol = FALSE;
+  cdsp->needs_assignment_symbol = FALSE;
   cdsp->has_inheriting_constructors = FALSE;
   cdsp->any_defaulted_special_members = FALSE;
   cdsp->access = (an_access_specifier)as_public;
@@ -8729,6 +8741,16 @@ to FALSE before returning).
   if ((is_virtual || !has_trivial_default_constructor(bcp_cssp)) &&
       !is_value_class) {
     class_state->default_ctor_is_nontrivial = TRUE;
+  }  /* if */
+  if (deleted_functions_enabled) {
+    /* If a copy constructor or assignment operator may be deleted, ensure it
+       will be represented explicitly. */
+    if (bcp_cssp->has_copy_constructor) {
+      class_state->needs_constructor_symbol = TRUE;
+    }  /* if */
+    if (bcp_cssp->assignment_operator != NULL) {
+      class_state->needs_assignment_symbol = TRUE;
+    }  /* if */
   }  /* if */
   if (has_nontrivial_destructor(bcp_cssp)) {
     class_state->base_destruction_required = TRUE;
@@ -18349,6 +18371,16 @@ be entered.
         if (!has_trivial_default_constructor(member_cssp)) {
           class_state->default_ctor_is_nontrivial = TRUE;
         }  /* if */
+        if (deleted_functions_enabled) {
+          /* If a copy constructor or assignment operator may be deleted,
+             ensure it will be represented explicitly. */
+          if (member_cssp->has_copy_constructor) {
+            class_state->needs_constructor_symbol = TRUE;
+          }  /* if */
+          if (member_cssp->assignment_operator != NULL) {
+            class_state->needs_assignment_symbol = TRUE;
+          }  /* if */
+        }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {
           class_state->member_destruction_required = TRUE;
         } else if (member_cssp->destructor != NULL &&
@@ -20035,6 +20067,7 @@ record that fact in *gsfd.
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
     if (!class_state->cpp03_POD_ruled_out &&
+        !class_state->needs_constructor_symbol &&
         cssp->construction_by_bitwise_copy_allowed &&
         !class_state->rule_out_trivial_copy_for_volatile_class_field &&
         !(deleted_functions_enabled && !gpp_mode &&
@@ -20307,6 +20340,9 @@ deleted, disable bitwise copying.
               }  /* if */
             }  /* if */
           }  /* if */
+          if (rp->is_deleted) {
+            cssp->has_deleted_copy_or_move_constructor = TRUE;
+          }  /* if */
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign &&
                    (cli_class ||
@@ -20339,6 +20375,9 @@ deleted, disable bitwise copying.
                 rp->is_trivial_copy_function = FALSE;
               }  /* if */
             }  /* if */
+          }  /* if */
+          if (rp->is_deleted) {
+            cssp->has_deleted_copy_or_move_assign_operator = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -21093,6 +21132,7 @@ The routine body is not generated until it is known to be needed.
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                          !ctsp->is_lambda_closure_class &&
                          (!any_cfront_mode() ||
+                          class_state->needs_assignment_symbol ||
                           cssp->assignment_operator == NULL);
   declare_move_asgn_op = generate_move_operations &&
                          !cssp->has_user_declared_move_assign_operator &&
@@ -21112,6 +21152,7 @@ The routine body is not generated until it is known to be needed.
                       (gsfd.suppress_copy_ctor ||
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
+                       class_state->needs_constructor_symbol ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
                        no_bit_copy);
@@ -21123,6 +21164,7 @@ The routine body is not generated until it is known to be needed.
                       cssp->destructor == NULL &&
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
+                       class_state->needs_constructor_symbol ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
                        no_bit_copy);

@@ -1133,6 +1133,8 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a move constructor has been user-provided
 			   (i.e., explicitly declared, and the first
 			   declaration was not defaulted). */
+  a_bit_field	has_deleted_copy_or_move_constructor:1;
+			/* TRUE if a copy/move constructor is deleted. */
   a_bit_field	has_trivial_destructor:1;
 			/* TRUE if the destructor is trivial.  This could be
 			   an implicitly-declared destructor (destructor will
@@ -1149,6 +1151,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a move assignment operator has been user-
 			   provided (i.e., explicitly declared, and the first
 			   declaration was not defaulted). */
+  a_bit_field	has_deleted_copy_or_move_assign_operator:1;
+			/* TRUE if a copy/move assignment operator is
+			   deleted. */
   a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
 			   copy rather than by calling an assignment operator

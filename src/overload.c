@@ -24550,7 +24550,8 @@ do access checking on the copy constructor.
   class_type = skip_typerefs(class_type);
   instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
-  if (cssp->construction_by_bitwise_copy_allowed ||
+  if ((cssp->construction_by_bitwise_copy_allowed &&
+       !cssp->has_deleted_copy_or_move_constructor) ||
       class_type->variant.class_struct_union.is_nonreal_class) {
     /* A bitwise copy is allowed.  Also used when the class is nonreal,
        because we don't know about constructors in that case. */
@@ -24664,13 +24665,24 @@ next_function:;
     }  /* if */
     /* Free the candidate functions list. */
     free_candidate_function_list(candidate_functions);
-    if (cctor_sym == NULL && uncallable_sym != NULL && !multiple_uncallable &&
-        uncallable != NULL) {
-      /* We have no copy constructor that is suitable, but we did find
-         exactly one copy constructor that would have been suitable except
-         that it's not callable. */
-      cctor_sym = uncallable_sym;
-      *uncallable = TRUE;
+    if (cctor_sym == NULL) {
+      if (uncallable_sym != NULL && !multiple_uncallable &&
+          uncallable != NULL) {
+        /* We have no copy constructor that is suitable, but we did find
+           exactly one copy constructor that would have been suitable except
+           that it's not callable. */
+        cctor_sym = uncallable_sym;
+        *uncallable = TRUE;
+      }  /* if */
+    } else {
+      /* Check if we found a nondeleted trivial copy constructor.  In that
+         case, we can use a bitwise copy instead. */
+      a_routine_ptr  ctor = cctor_sym->variant.routine.ptr;
+      if (ctor->is_trivial_copy_function && !ctor->is_deleted &&
+          cssp->construction_by_bitwise_copy_allowed) {
+        *class_bitwise_copy = TRUE;
+        cctor_sym = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -24747,7 +24759,8 @@ assignment operator.
   class_type = skip_typerefs(class_type);
   instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
-  if (cssp->assignment_by_bitwise_copy_allowed ||
+  if ((cssp->assignment_by_bitwise_copy_allowed &&
+       !cssp->has_deleted_copy_or_move_assign_operator) ||
       class_type->variant.class_struct_union.is_nonreal_class) {
     /* A bitwise assignment is allowed.  Also used when the class is nonreal,
        because we don't know about assignment operators in that case. */
@@ -24906,9 +24919,23 @@ next_function:;
       /* There are several equally desirable assignment operators. */
     } else if (candidate_functions == NULL) {
       /* There are no viable assignment operators. */
+      if (cssp->assignment_by_bitwise_copy_allowed) {
+        /* Even though we found no constructors, we've previously determined
+           that the class is bitwise copyable for assignment (this can, e.g.,
+           happen in some Microsoft modes). */
+        *bitwise_assign = TRUE;
+      }  /* if */
     } else {
       /* There is exactly one best assignment operator. */
+      a_routine_ptr  rp;
       assign_sym = candidate_functions->function_symbol;
+      rp = assign_sym->variant.routine.ptr;
+      if (rp->is_trivial_copy_function && !rp->is_deleted &&
+          cssp->assignment_by_bitwise_copy_allowed) {
+        /* The selected operator can be used for bitwise assignment. */
+        *bitwise_assign = TRUE;
+        assign_sym = NULL;
+      }  /* if */
     }  /* if */
     /* Free the candidate functions list. */
     free_candidate_function_list(candidate_functions);

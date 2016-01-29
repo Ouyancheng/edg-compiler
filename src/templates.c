@@ -15405,8 +15405,7 @@ and create a function instantiation entry to bind the two symbols together.
     a_symbol_list_entry_ptr   slep;
 
     sym = NULL;
-    for (slep = corresp_prototype_tag_sym->
-                      variant.class_struct_union.extra_info->conversion_list;
+    for (slep = class_symbol_supp(corresp_prototype_tag_sym)->conversion_list;
          slep != NULL;
          slep = slep->next) {
       if (slep->symbol->kind != (a_symbol_kind)sk_projection) {
@@ -15573,11 +15572,13 @@ found_sym:
      instantiation.  Create the function instantiation entry and set the
      pointers to bind them together. */
   { a_template_symbol_supplement_ptr  tssp;
+    a_routine_ptr                     rp, proto_rp;
+    rp = rout_sym->variant.routine.ptr;
+    proto_rp = sym->variant.routine.ptr;
     tip = alloc_template_instance();
     tip->template_sym = sym;
     tssp = sym->variant.routine.instance_ptr->template_info;
-    update_befriending_classes_for_function(tssp,
-  					    rout_sym->variant.routine.ptr);
+    update_befriending_classes_for_function(tssp, rp);
     /* Link the new entry to the start of the instantiation list of the
        function template. */
     tip->next = tssp->variant.function.instantiations;
@@ -15587,17 +15588,18 @@ found_sym:
     tip->instance_sym = rout_sym;
     rout_sym->variant.routine.instance_ptr = tip;
     /* Mark the routine entry as an instance of a member function template. */
-    rout_sym->variant.routine.ptr->is_template_function = TRUE;
+    rp->is_template_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    rout_sym->variant.routine.ptr->is_generic_instance = tssp->is_generic;
+    rp->is_generic_instance = tssp->is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
-    rout_sym->variant.routine.ptr->assoc_template =
-                                     sym->variant.routine.ptr->assoc_template;
+    rp->assoc_template = proto_rp->assoc_template;
+    if (proto_rp->is_deleted) rp->is_deleted = TRUE;
+    if (proto_rp->is_defaulted) rp->is_defaulted = TRUE;
     check_for_function_template_default_args(
                                            tssp->variant.function.routine,
-                                           rout_sym->variant.routine.ptr,
+                                           rp,
                                            tssp);
   }
 error_exit:

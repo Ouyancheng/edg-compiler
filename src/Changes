@@ -93,7 +93,7 @@ therefore the ABI.  For example:
   };
   void f(N p) {}
 
-Previously, parameter p was marked as being "passes via copy constructor";
+Previously, parameter p was marked as being "passed via copy constructor";
 that is no longer the case.  This is unimportant for standard-conforming
 C++ code, since a function like f cannot be invoked (due to the deleted
 copy constructor), but nonstandard code that relies on a specific argument
