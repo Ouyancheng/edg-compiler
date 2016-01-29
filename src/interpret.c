@@ -2056,7 +2056,7 @@ Output the contents of the interpreted object of type tp stored at addr.
       break;
     case tk_pointer:
       { a_constexpr_address *cap = (a_constexpr_address*)addr;
-        (void)fprintf(f_debug, "address 0x%p:\n", cap->address);
+        (void)fprintf(f_debug, "address %p:\n", cap->address);
         db_indent(indent+2);
         (void)fprintf(f_debug, "flags 0x%x:\n", cap->flags);
         if (is_array_element(cap)) {
@@ -4180,9 +4180,8 @@ of the prvalue result.
              up a little differently. */
           result = do_constexpr_call(ips, expr, result_storage);
           goto done;
-        } else if (node_operator_is(expr, eok_parens) ||
-                   node_operator_is(expr, eok_class_rvalue_adjust)) {
-          /* These are pass-through operators for prvalues.  So we cannot just
+        } else if (node_operator_is(expr, eok_class_rvalue_adjust)) {
+          /* These is a pass-through operator for prvalues.  So we cannot just
              copy the operand, since it could invalidate internal addresses.
              Instead, the operand must be evaluated directly into the final
              result storage. */
@@ -4718,7 +4717,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     a_byte_count  elem_size;
                     a_byte        *base_address;
                     elem_type =
-                              skip_typerefs(opnd1->type->variant.pointer.type);
+                              skip_typerefs(opnd1_type->variant.pointer.type);
                     elem_size = value_bytes_for_type(ips, elem_type, &result);
                     ptr->address += elem_size;
                     base_address = get_base_address(ptr);
@@ -4780,7 +4779,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     a_byte_count  elem_size;
                     a_byte        *base_address;
                     elem_type =
-                              skip_typerefs(opnd1->type->variant.pointer.type);
+                              skip_typerefs(opnd1_type->variant.pointer.type);
                     elem_size = value_bytes_for_type(ips, elem_type, &result);
                     base_address = get_base_address(ptr);
                     if (ptr->address == base_address) {
@@ -4846,7 +4845,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   a_type_ptr    elem_type;
                   a_byte_count  elem_size;
                   a_byte        *base_address;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
                   ptr->address += elem_size;
                   base_address = get_base_address(ptr);
@@ -4903,7 +4902,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   a_type_ptr    elem_type;
                   a_byte_count  elem_size;
                   a_byte        *base_address;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
                   base_address = get_base_address(ptr);
                   if (ptr->address == base_address) {
@@ -5060,12 +5059,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                    ovfl);
                   *result_addr = *(a_constexpr_address *)opnd1_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                 } else {
                   get_int_val_from(opnd1_value, opnd1_type, host_int_val,
                                    ovfl);
                   *result_addr = *(a_constexpr_address *)opnd2_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
                 }  /* if */
                 if (ovfl) {
                   result = FALSE;  /* FIXME: diagnostic */
@@ -5111,12 +5110,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                    ovfl);
                   *result_addr = *(a_constexpr_address *)opnd1_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                 } else {
                   get_int_val_from(opnd1_value, opnd1_type, host_int_val,
                                    ovfl);
                   *result_addr = *(a_constexpr_address *)opnd2_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
                 }  /* if */
                 if (ovfl) {
                   result = FALSE;  /* FIXME: diagnostic */
@@ -6204,12 +6203,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_int_val_from(opnd2_value, opnd2_type, host_int_val,
                                    ovfl);
                   result_addr = *(a_constexpr_address *)opnd1_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                 } else {
                   get_int_val_from(opnd1_value, opnd1_type, host_int_val,
                                    ovfl);
                   result_addr = *(a_constexpr_address *)opnd2_value;
-                  elem_type = skip_typerefs(opnd1->type->variant.pointer.type);
+                  elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
                 }  /* if */
                 /* Carefully add the two, if appropriate. */
                 if (ovfl) {
