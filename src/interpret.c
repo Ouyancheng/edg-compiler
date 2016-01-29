@@ -567,6 +567,7 @@ in_live_set.
   return result;
 }  /* f_in_live_set */
 
+
 /*
 Structure maintaining data about the IL interpreter across a complete
 interpretation of a constexpr function and its callees.
@@ -685,6 +686,26 @@ Release the storage stack pointed to by ips for reuse.
   }  /* if */
 }  /* release_constexpr_stack */
 
+#if DEBUG
+
+void db_live_set(an_interpreter_state  *ips)
+/*
+Output the current live set record in ips.
+*/
+{
+  an_alloc_seq_number  num = 0;
+
+  (void)fprintf(f_debug, "live set:");
+  while (num <= ips->curr_alloc_seq_number+10) {
+    if (in_live_set(&ips->live_set, num)) {
+      (void)fprintf(f_debug, "  %lu", (unsigned long)num);
+    }  /* if */
+    num += 1;
+  }  /* while */
+  (void)fprintf(f_debug, "\n");
+}  /* db_live_set */
+
+#endif /* DEBUG */
 
 static void init_interpreter_state(an_interpreter_state  *ips)
 /*
@@ -3957,11 +3978,12 @@ the body of the (constructor) function proper.
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
-    /* Associate with the parameter variables the allocation sequence number
-       that is about to be created for the top-level block (since the
-       parameters technically expire when that block expires, even though in
-       our implementation they are allocated in the caller's context). */
-    alloc_seq_number = ips->curr_alloc_seq_number+1;
+    /* Associate with the parameter variables a new allocation number.  For
+       ordinary calls, we just use the allocation number about to be created
+       for the function scope, but for constructors that is not an option
+       because constructor initializers must first be evaluated. */
+    alloc_seq_number = ++ips->curr_alloc_seq_number;
+    add_to_live_set(&ips->live_set, alloc_seq_number);
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       map_stack_bytes(ips, this_var, result_storage);
@@ -4057,6 +4079,7 @@ the body of the (constructor) function proper.
         break;
       }  /* if */
     }  /* for */
+    remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
@@ -6918,6 +6941,8 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(persistent_map);
   useful_constants_initialized = FALSE;
 }  /* interpret_one_time_init */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
