@@ -1252,6 +1252,9 @@ A set of flags to describe special kinds of interpreter addresses.
 #define CA_FUNCTION ((unsigned int)0x40)
 		/* This flag indicates that the address is that of a
 		   function. */
+#define CA_TEMPORARY ((unsigned int)0x80)
+		/* This flag indicates that the address was generated from an
+		   ck_address/abk_temporary constant. */
 
 /*
 Structure describing the representation of an address in the interpreter.
@@ -2433,11 +2436,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             if (con->variant.address.kind ==
                                         (an_address_base_kind)abk_temporary) {
               /* The address of a temporary should not be allowed to escape
-                 from the evaluation.  By assigning the address an allocation
-                 sequence number larger than one, we ensure that such an
-                 attempted escape will be caught by
-                 copy_interpreter_object_to_constant. */
-              ((a_constexpr_address*)value)->alloc_seq_number = 2;
+                 from the evaluation.  Mark it so that it can be identified
+                 by copy_interpreter_object_to_constant if needed. */
+              ((a_constexpr_address*)value)->flags |= CA_TEMPORARY;
             }  /* if */
           }
           break;
@@ -6580,6 +6581,9 @@ diagnostic in *ips.
         } else if (cap->alloc_seq_number > 1) {
           /* The address designates an interpreter value that is already
              deallocated, and thus cannot be constant. */
+          result = FALSE;
+          info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
+        } else if (cap->flags & CA_TEMPORARY) {
           result = FALSE;
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
