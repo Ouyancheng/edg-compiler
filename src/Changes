@@ -1,5 +1,21 @@
 Version 4.11
 
+1/31/16  [EDGcpfe/16378]
+Microsoft compatibility: visibility of template parameters
+
+A change made in version 4.6 (see EDGcpfe/13170 on 12/13/12) made template
+parameters visible in their own default arguments (except for some type
+argument cases in Microsoft mode).  In Microsoft mode, however, default
+template arguments are not scanned until they are used.  The EDGcpfe/13170
+did not work properly when in Microsoft mode.  Now fixed.
+
+  template <typename T> struct A {
+    static const bool value = true;
+  };
+  template <typename T, bool A = A<T>::value> struct B {};
+  B<int> b;
+
+
 1/28/16  [EDGcpfe/16716]
 Microsoft compatibility, C++-generating back end: "this" in member function
 return type

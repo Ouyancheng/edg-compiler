@@ -511,7 +511,8 @@ extern a_template_ptr rescan_template_template_default_arg
 
 extern void delayed_scan_of_template_param_default_arg(
 					a_symbol_ptr		template_sym,
-					a_template_param_ptr	tpp);
+					a_template_param_ptr	tpp,
+					a_template_param_ptr	param_list);
 
 /*
 Bit vector used to pass flags into matches_template_type.

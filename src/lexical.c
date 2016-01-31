@@ -15897,6 +15897,7 @@ all arguments were explicit.
 {
   a_template_param_ptr             param_ptr = NULL;
   a_template_param_ptr             orig_param_ptr;
+  a_template_param_ptr             param_list;
   a_symbol_ptr                     sym;
   a_symbol_ptr                     argument_template = NULL;
   a_type_ptr                       argument_type;
@@ -15975,6 +15976,7 @@ all arguments were explicit.
       }  /* if */
     }  /* if */
   }  /* if */
+  param_list = param_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (internal_templates_enabled) {
     /* Record the starting positions of the argument(s) in case they are needed
@@ -16213,7 +16215,8 @@ all arguments were explicit.
            template was first declared.  In such cases, scan it on its first
            use. */
         delayed_scan_of_template_param_default_arg(templ_sym_for_default,
-                                                   param_for_default);
+                                                   param_for_default,
+                                                   param_list);
       }  /* if */
       sym = param_ptr->param_symbol;
       /* Determine the template argument kind for this parameter. */

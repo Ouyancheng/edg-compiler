@@ -1713,18 +1713,21 @@ TRUE, nondeduced contexts are excluded from the check.
 static void get_template_arg_value_from_default(
 					a_symbol_ptr		template_sym,
 					a_template_arg_ptr	tap,
-					a_template_param_ptr	tpp)
+					a_template_param_ptr	tpp,
+					a_template_param_ptr	param_list)
 /*
 If the template parameter pointed to by tpp has a default value, use that as
 the value for the tap.  template_sym is the template of which tpp
-is a parameter.
+is a parameter.  param_list is the template parameter list of which tpp is
+an element.
 */
 {
   if (tpp->has_default_arg) {
     if (tpp->def_arg_has_not_been_scanned) {
       /* In some cases the default argument will not have been scanned yet.
          If it has not been scanned yet, do so now. */
-      delayed_scan_of_template_param_default_arg(template_sym, tpp);
+      delayed_scan_of_template_param_default_arg(template_sym, tpp,
+                                                 param_list);
     }  /* if */
     switch (tap->kind) {
       case tak_type:
@@ -1801,7 +1804,8 @@ symbol supplement.
     if (function_template_default_args_allowed && !has_value &&
         !is_partial_order_check) {
       /* See if the template parameter has a default value that can be used. */
-      get_template_arg_value_from_default(template_sym, tap, tpp);
+      get_template_arg_value_from_default(template_sym, tap, tpp,
+                                          templ_param_list);
       has_value = template_arg_has_value(tap);
       if (has_value && tpp->def_arg_involves_template_param) {
         /* If a default argument value was used, substitute the argument
@@ -8528,10 +8532,12 @@ tak_start_of_pack_expansion delimiter entries).
   a_template_arg_ptr    *tap = arg_list, sop_entry;
   a_template_param_ptr  tpp;
   a_boolean             in_pack = FALSE;
+  a_template_param_ptr	param_list;
 
   tpp = class_templ->variant.template_info
                    ->variant.class_template.initial_decl_cache.decl_info
                    ->parameters;
+  param_list = tpp;
   for (;;) {
     if (tpp == NULL) {
       break;
@@ -8543,7 +8549,8 @@ tak_start_of_pack_expansion delimiter entries).
           a_templ_arg_kind  arg_kind;
           arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
           *tap = alloc_template_arg(arg_kind);
-          get_template_arg_value_from_default(class_templ, *tap, tpp);
+          get_template_arg_value_from_default(class_templ, *tap, tpp,
+                                              param_list);
         }  /* if */
       }  /* if */
       tpp = tpp->next;
@@ -10952,7 +10959,8 @@ associated parameter.
       a_templ_arg_kind		arg_kind;
       arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
       tap = alloc_template_arg(arg_kind);
-      get_template_arg_value_from_default(template_sym, tap, tpp);
+      get_template_arg_value_from_default(template_sym, tap, tpp,
+                                          param_list_for_copy);
       /* The default argument could make use of earlier template
          arguments.  Do substitution on the argument using the
          new list created so far.  This is used for cases like:
@@ -21379,16 +21387,20 @@ existing type is simply used.
 
 void delayed_scan_of_template_param_default_arg(
 					a_symbol_ptr		template_sym,
-					a_template_param_ptr	tpp)
+					a_template_param_ptr	tpp,
+					a_template_param_ptr	param_list)
 /*
 In some cases a template parameter default argument is not scanned when
 the template parameter list was processed.  This routine is called
 when the default argument value is needed and scans the default argument
 value.  template_sym is the template with which the parameter is associated,
-and tpp is the parameter whose default is to be scanned.
+and tpp is the parameter whose default is to be scanned.  param_list is
+the template parameter list of which tpp is an element.
 */
 {
   a_template_arg_ptr	arg_list = NULL;
+  a_template_param_ptr	tpp_to_mark;
+  a_boolean		should_be_invisible = FALSE;
 
   /* Get the prototype instantiation argument list for the template. */
   if (is_class_template_symbol(template_sym)) {
@@ -21404,6 +21416,14 @@ and tpp is the parameter whose default is to be scanned.
     arg_list = template_sym->variant.template_info->
                                    variant.function.routine->template_arg_list;
   }  /* if */
+  /* Mark the current parameter any any subsequent ones as invisible for
+     purposes of the rescan.  Note that template_param_not_visible is
+     intentionally not used for this case. */
+  for (tpp_to_mark = param_list; tpp_to_mark != NULL;
+       tpp_to_mark = tpp_to_mark->next) {
+    if (tpp_to_mark == tpp) should_be_invisible = TRUE;
+    tpp_to_mark->param_symbol->is_invisible = should_be_invisible;
+  }  /* for */
   if (arg_list != NULL) {
     switch (tpp->param_symbol->kind) {
       case sk_type:
@@ -21431,6 +21451,10 @@ and tpp is the parameter whose default is to be scanned.
         break;
     }  /* switch */
   }  /* if */
+  for (tpp_to_mark = param_list; tpp_to_mark != NULL;
+       tpp_to_mark = tpp_to_mark->next) {
+    tpp_to_mark->param_symbol->is_invisible = FALSE;
+  }  /* for */
 }  /* delayed_scan_of_template_param_default_arg */
 
 
