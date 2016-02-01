@@ -3485,6 +3485,52 @@ done_with_switch:
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
+static a_boolean do_constexpr_builtin_fptest(
+                                      a_routine_ptr            callee,
+                                      a_float_kind             fpkind,
+                                      an_internal_float_value  *fpval,
+                                      a_byte                   *result_storage)
+/*
+callee is a GNU floating-point test function to which the floating-point value
+fpval of the given kind is passed.  Place in *result_storage the result of the
+test function (a boolean integer value) and return TRUE, or, if the test
+cannot be evaluated, return FALSE.
+*/
+{
+  a_boolean  val, result = TRUE;
+
+  switch (callee->variant.builtin_function_kind) {
+    case bfk_isnan:
+    case bfk_isnanf:
+    case bfk_isnanl:
+      val = fp_is_nan(fpval, fpkind);
+      break;
+    case bfk_isinf:
+    case bfk_isinff:
+    case bfk_isinfl:
+      val = fp_is_infinity(fpval, fpkind);
+      break;
+    case bfk_isfinite:
+      val = !fp_is_infinity(fpval, fpkind) && !fp_is_nan(fpval, fpkind);
+      break;
+    case bfk_isnormal:
+      { a_boolean  unknown_result;
+        val = fp_is_normalized(fpval, fpkind, &unknown_result);
+        if (unknown_result) {
+          do_constexpr_fail(result);
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (result) {
+    *(an_integer_value *)result_storage = val ? one_int : zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_fptest */
+
+
 static a_boolean do_constexpr_builtin_function(
                                       an_interpreter_state    *ips,
                                       a_routine_ptr           callee,
@@ -3523,6 +3569,32 @@ to FALSE and the reason for the failure is recorded in *ips.
             check_assertion(!err);
           } else {
             *fp_value(result_storage) = *fp_value(arg1_bytes);
+          }  /* if */
+        } else {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }
+      break;
+    case bfk_isnan:
+    case bfk_isnanf:
+    case bfk_isnanl:
+    case bfk_isinf:
+    case bfk_isinff:
+    case bfk_isinfl:
+    case bfk_isfinite:
+    case bfk_isnormal:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL ||
+            !is_real_floating_type(args->type)) {
+          unexpected_condition();
+        } else if (do_constexpr_expression(ips, args, arg1_bytes)) {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_float_kind  fk = tp->variant.float_kind;
+          if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
+                                           result_storage)) {
+            info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
+            do_constexpr_fail(*p_result);
           }  /* if */
         } else {
           do_constexpr_fail(*p_result);
