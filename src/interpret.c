@@ -1042,6 +1042,7 @@ Double the size of the overflow area of the given map.
   map->overflow_size *= 2;
 }  /* expand_map */
 
+
 /*
 Macro to add a (pointer, pointer) entry to a data map.
 */
@@ -4353,11 +4354,16 @@ type.  This includes checking the value of ovfl set by the operation.
         switch (expr->variant.operation.kind) {
           case eok_address_of:
           case eok_reference_to:
-            /* The result is an a_constexpr_address designating the
-               object, and the operand is already an a_constexpr_address
-               (glvalue or temporary), so just copy the operand. */
-            *(a_constexpr_address *)result_storage =
+            /* The result is an a_constexpr_address designating the object,
+               and the operand is already an a_constexpr_address (glvalue or
+               temporary), so just copy the operand.  An exception exists:
+               eok_reference_to can be applied to a class prvalue. */
+            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
+            } else {
+              clear_address(result_storage, opnd1_value);
+            }  /* if */
             break;
           case eok_indirect:
           case eok_ref_indirect:
@@ -6567,6 +6573,19 @@ diagnostic in *ips.
     case tk_pointer:
       { a_constexpr_address *cap = (a_constexpr_address *)object;
         if (is_runtime_data_address(cap)) {
+          a_constant_ptr  rt_con = cap->variant.addr_con;
+          /* Catch the case of a pointer or reference to a variable that is
+             not constant-valued. */
+          if (rt_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+            a_variable_ptr  vp = rt_con->variant.address.variant.variable;
+            if (!vp->constant_valued) {
+              do_constexpr_fail(result);
+              info_with_pos_sym(ec_variable_not_constant_valued,
+                                &ips->position, symbol_for(vp), ips);
+              break;
+            }  /* if */
+          }  /* if */
           /* Copy the address constant to result_con. */
           copy_constant(cap->variant.addr_con, con);
           con->type = type;
