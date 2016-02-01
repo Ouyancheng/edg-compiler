@@ -7,7 +7,7 @@ A change made in version 4.6 (see EDGcpfe/13170 on 12/13/12) made template
 parameters visible in their own default arguments (except for some type
 argument cases in Microsoft mode).  In Microsoft mode, however, default
 template arguments are not scanned until they are used.  The EDGcpfe/13170
-did not work properly when in Microsoft mode.  Now fixed.
+change did not work properly when in Microsoft mode.  Now fixed.
 
   template <typename T> struct A {
     static const bool value = true;

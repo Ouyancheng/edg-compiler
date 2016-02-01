@@ -21416,7 +21416,7 @@ the template parameter list of which tpp is an element.
     arg_list = template_sym->variant.template_info->
                                    variant.function.routine->template_arg_list;
   }  /* if */
-  /* Mark the current parameter any any subsequent ones as invisible for
+  /* Mark the current parameter and any subsequent ones as invisible for
      purposes of the rescan.  Note that template_param_not_visible is
      intentionally not used for this case. */
   for (tpp_to_mark = param_list; tpp_to_mark != NULL;
