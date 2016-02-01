@@ -2835,7 +2835,9 @@ Interpret the given block statement and its associated scope (if any).
       if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
         a_byte          *var_bytes;
         get_stack_bytes(ips, vp, var_bytes);
-        release_variant_path_if_needed(var_bytes);
+        if (var_bytes != NULL) {
+          release_variant_path_if_needed(var_bytes);
+        }  /* if */
       }  /* if */
       unmap_stack_bytes(ips, vp);
       unmap_ptr(&ips->map, &vp->storage_class);
