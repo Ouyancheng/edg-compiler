@@ -2647,7 +2647,22 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_constant_ptr  elem_con;
           a_byte_count    offset;
           elem_con = con->variant.aggregate.first_constant;
-          if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+          if (elem_con == NULL) {
+            fp = tp->variant.class_struct_union.field_list;
+            if (fp == NULL) {
+              /* An empty union: Nothing more to do. */
+              break;
+            } else {
+              a_source_position  *diag_pos =
+                                           &con->source_corresp.decl_position;
+              if (diag_pos->seq == 0) {
+                diag_pos = &ips->position;
+              }  /* if */
+              info_with_pos_sym(ec_constexpr_missing_initializer_for_field,
+                                diag_pos, symbol_for(fp), ips);
+              do_constexpr_fail(result);
+            }  /* if */
+          } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
             fp = elem_con->variant.designator.field;
             elem_con = elem_con->next;
           } else {
