@@ -3552,6 +3552,15 @@ to FALSE and the reason for the failure is recorded in *ips.
 
   ips->cost += 1;
   switch (callee->variant.builtin_function_kind) {
+    case bfk_constant_p:
+      /* FIXME: The only practical (but still potentially expensive) way to do
+         this is to deep-save the entire interpreter state, run the
+         interpreter on the argument yielding a true or false answer, and
+         the restore the interpreter state.  Trying the start a new instance
+         of the interpreter doesn't work because we need the variable store
+         and mappings of the current interpreter. */
+      unexpected_condition();
+      break;
     case bfk_fabs:
     case bfk_fabsf:
     case bfk_fabsl:
