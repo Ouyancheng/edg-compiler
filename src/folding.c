@@ -10266,6 +10266,7 @@ ceblock gives context information for the evaluation.
     a_constant_ptr        op2_constant = local_constant();
     a_constant_ptr        obj_expr_con;
     a_boolean             op1_folded = FALSE, op2_folded = FALSE;
+    a_type_ptr            tp;
     switch (op) {
       case eok_indirect:
       case eok_ref_indirect:
@@ -10484,14 +10485,27 @@ pm_field_selection:
            know the address of the underlying glvalue, we can look and see if
            we have a constant there.  (A reinterpret_cast cannot be part of a
            C++11 constant expression.) */
+        if (op == (an_expr_operator_kind)eok_ref_cast) {
+          /* Use the referenced type for the comparison. */
+          tp = type_pointed_to(expr->type);
+        } else {
+          tp = expr->type;
+        }  /* if */
         if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
-            identical_types_ignoring_qualifiers(expr->type, op1->type) &&
-            fold_glvalue_expr(op1, ceblock, op1_constant) &&
-            constant_value_at_address(op1_constant,
-                                      (a_constexpr_evaluation_block *)NULL,
-                                      result_con) != NULL) {
-          folded = TRUE;
-          result_con->type = expr->type;
+            identical_types_ignoring_qualifiers(tp, op1->type) &&
+            fold_glvalue_expr(op1, ceblock, op1_constant)) {
+          if (skip_typerefs(tp)->kind == (a_type_kind)tk_routine) {
+            /* The operand constant designates the function being cast. */
+            copy_constant_for_constexpr_evaluation(op1_constant, result_con);
+            folded = TRUE;
+          } else if (constant_value_at_address(
+                                          op1_constant,
+                                          (a_constexpr_evaluation_block *)NULL,
+                                          result_con) != NULL) {
+            /* The address designates a constant value, now in result. */
+            folded = TRUE;
+            result_con->type = expr->type;
+          }  /* if */
         }  /* if */
         break;
       case eok_base_class_cast:
