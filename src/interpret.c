@@ -3756,14 +3756,16 @@ accordingly.
     goto done;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (!callee->defined) {
-    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
-  }  /* if */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       &callee_node->position, symbol_for(callee), ips);
     do_constexpr_fail(result);
-  } else if (callee->function_def_number == NULL_function_def_number) {
+    goto done;
+  }  /* if */
+  if (!callee->defined) {
+    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+  }  /* if */
+  if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
@@ -3984,6 +3986,12 @@ the body of the (constructor) function proper.
   a_boolean         result = TRUE;
 
   /* Retrieve the routine scope, or issue an error. */
+  if (!callee->is_constexpr) {
+    info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
+                      pos, symbol_for(callee), ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   if (!callee->defined) {
     set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
   }  /* if */
@@ -4524,7 +4532,16 @@ type.  This includes checking the value of ovfl set by the operation.
           case eok_lvalue_cast:
           case eok_ref_cast:
           case eok_lvalue_adjust:
-            if (tp != opnd1_type) {
+            /* If the type (other than qualification doesn't change), this is
+               is not a reinterpret-like cast and we can interpret the result.
+               In the case of casting a function lvalue to a reference to
+               function type, it is possible that the type of this node was
+               later "decayed" to a pointer-to-function type; that case is
+               valid too. */
+            if (tp != opnd1_type &&
+                !(opnd1_type->kind == (a_type_kind)tk_routine &&
+                  tp->kind == (a_type_kind)tk_pointer &&
+                  skip_typerefs(tp->variant.pointer.type) == opnd1_type)) {
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                   &expr->position, opnd1_type, tp, ips);
               do_constexpr_fail(result);

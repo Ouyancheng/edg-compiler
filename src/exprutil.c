@@ -5680,9 +5680,7 @@ in *diag_list).  pos is the source position of the call.
     a_constant_ptr  result_con = local_constant();
     an_error_code   failure_warning = ec_no_error;
     if (relaxed_constexpr_enabled) {
-      folded = (expr_stack == NULL ||
-                curr_expr_kind_is_const() || curr_expr_is_evaluated()) &&
-               interpret_constexpr_call(call_expr, result_con, diag_list);
+      folded = interpret_constexpr_call(call_expr, result_con, diag_list);
     } else {
       a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();

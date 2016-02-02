@@ -11559,9 +11559,7 @@ fold_constexpr_ctor should usually be called instead.
   if (is_error_dynamic_init(ctor_dip)) goto end_of_routine;
   check_assertion(ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   if (relaxed_constexpr_enabled) {
-    folded = (expr_stack == NULL ||
-              curr_expr_kind_is_const() || curr_expr_is_evaluated()) &&
-             interpret_constexpr_ctor(ctor_dip, result_con);
+    folded = interpret_constexpr_ctor(ctor_dip, result_con);
     goto end_of_routine;
   }  /* if */
   ctor_routine = ctor_dip->variant.constructor.ptr;
@@ -11713,9 +11711,7 @@ backing expression for the resulting constant.
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   if (relaxed_constexpr_enabled) {
-    folded = (expr_stack == NULL ||
-              curr_expr_kind_is_const() || curr_expr_is_evaluated()) &&
-             interpret_constexpr_ctor(ctor_dip, result_con);
+    folded = interpret_constexpr_ctor(ctor_dip, result_con);
   } else {
     clear_constexpr_evaluation_block(&ceblock, pos);
     folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
