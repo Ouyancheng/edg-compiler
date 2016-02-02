@@ -10487,10 +10487,10 @@ pm_field_selection:
            C++11 constant expression.) */
         if (op == (an_expr_operator_kind)eok_ref_cast &&
             is_pointer_type(expr->type) &&
-            skip_typerefs(type_pointed_to(expr->type))->kind ==
+            f_skip_typerefs(type_pointed_to(expr->type))->kind ==
                                                      (a_type_kind)tk_routine) {
           /* Use the referenced function type for the comparison. */
-          tp = skip_typerefs(type_pointed_to(expr->type));
+          tp = f_skip_typerefs(type_pointed_to(expr->type));
         } else {
           tp = expr->type;
         }  /* if */
