@@ -10485,16 +10485,19 @@ pm_field_selection:
            know the address of the underlying glvalue, we can look and see if
            we have a constant there.  (A reinterpret_cast cannot be part of a
            C++11 constant expression.) */
-        if (op == (an_expr_operator_kind)eok_ref_cast) {
-          /* Use the referenced type for the comparison. */
-          tp = type_pointed_to(expr->type);
+        if (op == (an_expr_operator_kind)eok_ref_cast &&
+            is_pointer_type(expr->type) &&
+            skip_typerefs(type_pointed_to(expr->type))->kind ==
+                                                     (a_type_kind)tk_routine) {
+          /* Use the referenced function type for the comparison. */
+          tp = skip_typerefs(type_pointed_to(expr->type));
         } else {
           tp = expr->type;
         }  /* if */
         if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
             identical_types_ignoring_qualifiers(tp, op1->type) &&
             fold_glvalue_expr(op1, ceblock, op1_constant)) {
-          if (skip_typerefs(tp)->kind == (a_type_kind)tk_routine) {
+          if (tp->kind == (a_type_kind)tk_routine) {
             /* The operand constant designates the function being cast. */
             copy_constant_for_constexpr_evaluation(op1_constant, result_con);
             folded = TRUE;
