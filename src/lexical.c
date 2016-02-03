@@ -18015,11 +18015,11 @@ a field selection.
       equiv_symbols = TRUE;
     } else if (is_type_symbol(normal_fund_sym) &&
                is_type_symbol(class_fund_sym)) {
-      if (microsoft_mode || (gpp_mode && gnu_version >= 30300)) {
-        /* Microsoft and g++ (versions 3.3 and newer) prefer the class symbol
-           over the normal lookup symbol.  The symbols are not really
-           equivalent, but we use that flag to indicate whether this case
-           should be diagnosed below. */
+      if (cpp11_mode || microsoft_mode || (gpp_mode && gnu_version >= 30300)) {
+        /* In C++11, and in Microsoft and g++ (versions 3.3 and newer) modes
+           prefer the class symbol over the normal lookup symbol.  The
+           symbols are not really equivalent, but we use that flag to
+           indicate whether this case should be diagnosed below. */
         equiv_symbols = TRUE;
         use_normal_if_equiv = FALSE;
       } else {
@@ -18063,7 +18063,19 @@ a field selection.
       } else {
         diag_class_sym = class_fund_sym;
       }  /* if */
-      if (might_be_template || prefer_class_member) {
+      /* In C++11 mode, the dual lookup is no longer "officially" done, so
+         no diagnostic is issued.  Because of the need to handle things
+         in template contexts properly, we still use the normal symbol
+         in some cases in C++11 mode, but in no case is it diagnosed.  As
+         part of the change to use the class member in C++11 mode, older
+         modes have also been changed because we already used the class
+         symbol in Microsoft and g++ modes, and to eliminate this as a
+         unnecessary change in default behavior between C++03 mode and C++11
+         mode.  A warning (or error, in strict mode) is still issued in
+         normal C++03 mode. */
+      if (might_be_template || prefer_class_member ||
+          (!symbol_is(normal_fund_sym, sk_namespace) &&
+           class_fund_sym == class_sym)) {
         sym_to_use = class_fund_sym;
         diag_sym_to_use = diag_class_sym;
         specific_symbol = class_sym;
@@ -18075,8 +18087,10 @@ a field selection.
         specific_symbol = normal_sym;
         sym_to_ignore = diag_class_sym;
       }  /* if */
-      pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
-                         &error_position, diag_sym_to_use, sym_to_ignore);
+      if (!cpp11_mode) {
+        pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
+                           &error_position, diag_sym_to_use, sym_to_ignore);
+      }  /* if */
       result_sym = sym_to_use;
     }  /* if */
   } else {
@@ -18834,7 +18848,8 @@ selection operator, in which case it points to the type of the left operand.
 				   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
                                    in_if_exists,
-                                   qualified_conversion_operator,
+                                   cpp11_mode ? is_conversion_type :
+                                                qualified_conversion_operator,
                                    is_cli_typeid);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
