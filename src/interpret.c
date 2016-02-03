@@ -6295,7 +6295,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
                 logical_and_result = ovfl || bool_val;
               } else {
-                /* FIXME: NYI, other source types. */
+                /* The operands should always be normalized to bool. */
                 logical_and_result = FALSE;
                 do_constexpr_fail(result);
                 unexpected_condition();
@@ -6327,7 +6327,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
                   logical_and_result = ovfl || bool_val;
                 } else {
-                  /* FIXME: NYI, other source types. */
+                  /* The operands should always be normalized to bool. */
                   unexpected_condition();
                 }  /* if */
               }  /* if */
@@ -6349,7 +6349,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
                 logical_or_result = ovfl || bool_val;
               } else {
-                /* FIXME: NYI, other source types. */
+                /* The operands should always be normalized to bool. */
                 logical_or_result = TRUE;
                 do_constexpr_fail(result);
                 unexpected_condition();
@@ -6381,7 +6381,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
                   logical_or_result = ovfl || bool_val;
                 } else {
-                  /* FIXME: NYI, other source types. */
+                  /* The operands should always be normalized to bool. */
                   unexpected_condition();
                 }  /* if */
               }  /* if */
@@ -6762,7 +6762,6 @@ represents an address of interpreter storage) and record a corresponding
 diagnostic in *ips.
 */
 {
-/* FIXME: replace fs_constant by local_constant? */
   a_boolean  result = TRUE;
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
