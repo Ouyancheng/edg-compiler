@@ -5330,7 +5330,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   do_constexpr_fail(result);
                   info_with_pos(err_code, &expr->position, ips);
                 } else {
-                  copy_val_from_constant(ips, diff_con, result_storage);
+                  result = copy_val_from_constant(ips, diff_con,
+                                                  result_storage);
                 }  /* if */
                 release_local_constant(&diff_con);
               } else if (is_array_element(addr1) && is_array_element(addr2) &&
