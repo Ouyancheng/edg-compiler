@@ -6879,9 +6879,9 @@ diagnostic in *ips.
         /* Retrieve the active field. */
         afp = (a_field_ptr)*(void**)object;
         if (afp == NULL) {
-          /* This should only happen with unions that have no field (and
-             therefore cannot have an active field). */
-          check_assertion(fp == NULL);
+          /* This should only happen with unions that have no field (other
+             than empty anonymous union parent objects), and therefore cannot
+             have an active field. */
         } else {
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
