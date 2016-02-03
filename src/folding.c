@@ -10505,7 +10505,7 @@ pm_field_selection:
                                           op1_constant,
                                           (a_constexpr_evaluation_block *)NULL,
                                           result_con) != NULL) {
-            /* The address designates a constant value, now in result. */
+            /* The address designates a constant value, now in result_con. */
             folded = TRUE;
             result_con->type = expr->type;
           }  /* if */
