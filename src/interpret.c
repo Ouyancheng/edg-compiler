@@ -2560,6 +2560,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           set_integer_value((an_integer_value*)value,
                             (a_host_large_integer)char_val);
           value += elem_size;
+          char_ptr += char_size;
         }  /* for */
       }
       break;
