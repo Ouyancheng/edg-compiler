@@ -5503,6 +5503,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = one_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -5551,6 +5554,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = zero_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -5599,6 +5605,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = zero_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -5647,6 +5656,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = zero_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -5695,6 +5707,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = one_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -5743,6 +5758,9 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = one_int;
             } else {
               unexpected_condition();
             }  /* if */
@@ -6984,6 +7002,11 @@ diagnostic in *ips.
       }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_nullptr:
+      set_constant_kind(con, (a_constant_repr_kind)ck_integer);
+      con->variant.integer_value = zero_int;
+      con->implicit_cast = TRUE;
+      break;
     case tk_void:
       set_constant_kind(con, (a_constant_repr_kind)ck_void);
       break;
