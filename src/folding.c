@@ -4857,12 +4857,12 @@ have_result:
 }  /* do_padd */
 
 
-static void do_pdiff(a_constant        *constant_1,
-		     a_constant        *constant_2,
-		     a_constant        *result,
-		     a_boolean         *did_not_fold,
-		     an_error_code     *err_code,
-		     an_error_severity *err_severity)
+void do_pdiff(a_constant        *constant_1,
+              a_constant        *constant_2,
+              a_constant        *result,
+              a_boolean         *did_not_fold,
+              an_error_code     *err_code,
+              an_error_severity *err_severity)
 /*
 Do the pointer subtraction "pointer - pointer": pointer difference.
 constant_1 and constant_2 are the two pointer constants.  The result

@@ -1366,6 +1366,22 @@ typedef struct a_constexpr_address {
                         : (cap)->variant.base_address)
 
 /*
+Produce the offset and element size in bytes for a constant representing the
+address in an array.  This macro applies to both interpreter addresses and
+run-time addresses.
+*/
+#define get_array_offset(cap, elem_type, off, e_size, p_result)              \
+  if (is_runtime_data_address(cap)) {                                        \
+    *(e_size) = (a_byte_count)elem_type->size;                               \
+    *(off) = (a_byte_count)(cap)->variant.addr_con->variant.address.offset;  \
+  } else {                                                                   \
+    *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
+    if (*p_result) {                                                         \
+      *(off) = (a_byte_count)((cap)->address - get_base_address(cap));       \
+    }  /* if */                                                              \
+  }  /* if */
+
+/*
 Convenience macro to get a pointer to the value addressed by the
 a_constexpr_address addr.
 */
@@ -4714,7 +4730,15 @@ type.  This includes checking the value of ovfl set by the operation.
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
                 result_addr->length = length;
-                if (is_variant_path(result_addr)) {
+                if (is_runtime_data_address(result_addr)) {
+                  a_constant_ptr  orig_con = result_addr->variant.addr_con;
+                  a_constant_ptr  new_con = local_constant();
+                  *new_con = *orig_con;
+                  new_con->next = ips->constants;
+                  ips->constants = new_con;
+                  new_con->type = tp;
+                  result_addr->variant.addr_con = new_con;
+                } else if (is_variant_path(result_addr)) {
                   result_addr->variant.variant_path->base_address =
                                                          result_addr->address;
                 } else {
@@ -5206,23 +5230,25 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else if (!is_array_element(result_addr)) {
                   do_constexpr_fail(result);  /* FIXME: diagnostic */
                 } else {
-                  a_byte_count  elem_size, pos, len;
-                  a_byte        *base_address;
+                  a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  get_array_offset(result_addr, elem_type,
+                                   &byte_pos, &elem_size, &result);
                   if (!result) break;
+                  pos = byte_pos / elem_size;
                   len = result_addr->length;
-                  base_address = get_base_address(result_addr);
-                  pos = (a_byte_count)(result_addr->address - base_address)
-                                      / elem_size;
                   if (host_int_val > 0 ?
                                       (len-pos < (a_byte_count)host_int_val)
                                     : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);  /* FIXME: diagnostic */
                   } else {
-                    result_addr->address +=
-                      host_int_val
-                              * value_bytes_for_type(ips, elem_type, &result);
+                    if (is_runtime_data_address(result_addr)) {
+                      result_addr->variant.addr_con->variant.address.offset +=
+                        host_int_val * elem_size;
+                    } else {
+                      result_addr->address += host_int_val * elem_size;
+                    }  /* if */
                     if (pos+host_int_val == len) {
                       result_addr->flags |= CA_CANNOT_DEREFERENCE;
                     } else {
@@ -5255,23 +5281,25 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else if (!is_array_element(result_addr)) {
                   do_constexpr_fail(result);  /* FIXME: diagnostic */
                 } else {
-                  a_byte_count  elem_size, pos, len;
-                  a_byte        *base_address;
+                  a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  get_array_offset(result_addr, elem_type,
+                                   &byte_pos, &elem_size, &result);
                   if (!result) break;
+                  pos = byte_pos / elem_size;
                   len = result_addr->length;
-                  base_address = get_base_address(result_addr);
-                  pos = (a_byte_count)(result_addr->address - base_address)
-                                      / elem_size;
                   if (host_int_val > 0 ?
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);  /* FIXME: diagnostic */
                   } else {
-                    result_addr->address -=
-                      host_int_val
-                            * value_bytes_for_type(ips, elem_type, &result);
+                    if (is_runtime_data_address(result_addr)) {
+                      result_addr->variant.addr_con->variant.address.offset -=
+                        host_int_val * elem_size;
+                    } else {
+                      result_addr->address -= host_int_val * elem_size;
+                    }  /* if */
                     if (pos - host_int_val == len) {
                       result_addr->flags |= CA_CANNOT_DEREFERENCE;
                     } else {
@@ -5286,8 +5314,27 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  *addr1, *addr2;
               addr1 = (a_constexpr_address*)opnd1_value;
               addr2 = (a_constexpr_address*)opnd2_value;
-              if (is_array_element(addr1) && is_array_element(addr2) &&
-                  get_base_address(addr1) == get_base_address(addr2)) {
+              if (is_runtime_data_address(addr1) !=
+                                             is_runtime_data_address(addr2)) {
+                info_with_pos(ec_constexpr_invalid_pdiff, 
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_runtime_data_address(addr1)) {
+                a_constant_ptr     diff_con = local_constant();
+                a_boolean          did_not_fold;
+                an_error_code      err_code;
+                an_error_severity  sev;
+                do_pdiff(addr1->variant.addr_con, addr2->variant.addr_con,
+                         diff_con, &did_not_fold, &err_code, &sev);
+                if (did_not_fold) {
+                  do_constexpr_fail(result);
+                  info_with_pos(err_code, &expr->position, ips);
+                } else {
+                  copy_val_from_constant(ips, diff_con, result_storage);
+                }  /* if */
+                release_local_constant(&diff_con);
+              } else if (is_array_element(addr1) && is_array_element(addr2) &&
+                         get_base_address(addr1) == get_base_address(addr2)) {
                 a_type_ptr    etp = opnd1_type->variant.array.element_type;
                 a_byte_count  elem_size = value_bytes_for_type(
                                                            ips, etp, &result);
@@ -6331,14 +6378,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   info_with_pos(ec_constexpr_non_array_subscript,
                                 &expr->position, ips);
                 } else {
-                  a_byte_count  elem_size, pos, len;
-                  a_byte        *base_address;
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  a_byte_count  elem_size, byte_pos, pos, len;
+                  get_array_offset(&result_addr, elem_type,
+                                   &byte_pos, &elem_size, &result);
                   if (!result) break;
+                  pos = byte_pos / elem_size;
                   len = result_addr.length;
-                  base_address = get_base_address(&result_addr);
-                  pos = (a_byte_count)(result_addr.address - base_address)
-                                      / elem_size;
                   if (host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
                                        : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
@@ -6348,10 +6393,12 @@ type.  This includes checking the value of ovfl set by the operation.
                                        (unsigned long)(pos+host_int_val),
                                        (unsigned long)len, ips);
                   } else {
-                    result_addr.address +=
-                      host_int_val
-                              * value_bytes_for_type(ips, elem_type, &result);
-                    if (!result) break;
+                    if (is_runtime_data_address(&result_addr)) {
+                      result_addr.variant.addr_con->variant.address.offset +=
+                        host_int_val * elem_size;
+                    } else {
+                      result_addr.address += host_int_val * elem_size;
+                    }  /* if */
                     if (pos+host_int_val == len) {
                       result_addr.flags |= CA_CANNOT_DEREFERENCE;
                     } else {

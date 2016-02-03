@@ -159,6 +159,13 @@ extern void trunc_and_set_integer(an_integer_value  *result_value,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity);
 
+extern void do_pdiff(a_constant        *constant_1,
+                     a_constant        *constant_2,
+                     a_constant        *result,
+                     a_boolean         *did_not_fold,
+                     an_error_code     *err_code,
+                     an_error_severity *err_severity);
+
 /*
 Entry used to record a remapping from a parameter variable to an argument 
 value for the constexpr evaluation process.
