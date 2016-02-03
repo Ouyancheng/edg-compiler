@@ -514,6 +514,74 @@ conversion_done:;
 }  /* conv_integer_to_float */
 
 
+a_boolean conv_float_value_to_int_value(
+                                  an_internal_float_value  *float_value,
+                                  a_float_kind             float_kind,
+                                  an_integer_value         *result_value,
+                                  a_boolean                is_signed,
+                                  a_boolean                *depends_on_fp_mode)
+/*
+Convert the given floating-point value (of the given kind) to an integer value
+of the given signedness stored in *result_value if possible.  If successful,
+return TRUE and set *depends_on_fp_mode to indicate whether the result depends
+on the floating-point mode.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  err = FALSE;
+  a_boolean  is_negative = fp_is_negative(float_kind, float_value);
+
+  if (is_signed || is_negative) {
+    /* Destination is a signed integer or the source value is negative.
+       When the source value is negative, we convert to a signed value
+       because we may use the resulting bit pattern as an unsigned value. */
+    a_host_large_integer  int_value;
+    fp_to_host_large_integer(float_kind, float_value,
+                             &int_value, &err, depends_on_fp_mode);
+    /* We set the result value even if an error occurred.  This value
+       is used in some modes. */
+    set_integer_value(result_value, int_value);
+    /* Set the error flag if we the source value is negative and the result
+       was intended to be unsigned. */
+    if (!is_signed) err = TRUE;
+  } else {
+    /* Destination is an unsigned integer. */
+    a_host_large_unsigned  unsigned_int_value;
+    fp_to_host_large_unsigned(float_kind, float_value,
+                              &unsigned_int_value, &err,
+                              depends_on_fp_mode);
+    /* We set the result value even if an error occurred.  This value
+       is used in some modes. */
+    set_unsigned_integer_value(result_value, unsigned_int_value);
+  }  /* if */
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  if (err) {
+    /* Try again with larger precision by converting the float to a
+       character string then converting the string to an integer value. */
+    a_boolean pos_infinity, neg_infinity, not_a_number;
+    char *str = fp_to_string(float_kind, float_value,
+                             &pos_infinity, &neg_infinity, &not_a_number);
+    if (pos_infinity || neg_infinity || not_a_number) {
+      err = TRUE;
+    } else {
+      if (!is_signed && is_negative) {
+        /* The source value is negative but the result value is unsigned
+           do the conversion to a signed value because the resulting bit
+           pattern may be used later in some modes. */
+        conv_float_string_to_integer_value(str, result_value,
+                                           /*is_signed=*/TRUE, &err);
+        /* Always set the error flag in this case. */
+        err = TRUE;
+      } else {
+        conv_float_string_to_integer_value(str, result_value,
+                                           is_signed, &err);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  return !err;
+}  /* conv_float_value_to_int_value */
+
+
 void conv_float_to_integer(a_constant        *old_constant,
                            a_constant        *new_constant,
                            an_error_code     *err_code,
@@ -530,17 +598,11 @@ depending on the floating-point mode.  If constant_context is FALSE, this
 operation is being evaluated as part of a nonconstant expression.
 */
 {
-  a_host_large_integer    int_value;
-  a_host_large_unsigned   unsigned_int_value;
   an_integer_value        result_value;
   a_boolean               err, is_signed;
   a_type_ptr              float_tp = skip_typerefs(old_constant->type);
   a_float_kind            float_kind = float_tp->variant.float_kind;
   an_internal_float_value *float_value;
-  a_boolean		  is_negative;
-#if C99_IL_EXTENSIONS_SUPPORTED
-  an_internal_float_value zero;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
   if (float_tp->kind == (a_type_kind)tk_complex) {
@@ -550,6 +612,7 @@ operation is being evaluated as part of a nonconstant expression.
     float_value = &old_constant->variant.complex_value->real;
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting from imaginary to integer.  The result is zero. */
+    an_internal_float_value zero;
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &zero, &err);
     float_value = &zero;
@@ -564,53 +627,8 @@ operation is being evaluated as part of a nonconstant expression.
   *err_severity = es_warning;
 
   is_signed = int_constant_is_signed(new_constant);
-  is_negative = fp_is_negative(float_kind, float_value);
-  if (is_signed || is_negative) {
-    /* Destination is a signed integer or the source value is negative.
-       When the source value is negative, we convert to a signed value
-       because we may use the resulting bit pattern as an unsigned value. */
-    fp_to_host_large_integer(float_kind, float_value,
-                             &int_value, &err, depends_on_fp_mode);
-    /* We set the result value even if an error occurred.  This value
-       is used in some modes. */
-    set_integer_value(&result_value, int_value);
-    /* Set the error flag if we the source value is negative and the result
-       was intended to be unsigned. */
-    if (!is_signed) err = TRUE;
-  } else {
-    /* Destination is an unsigned integer. */
-    fp_to_host_large_unsigned(float_kind, float_value,
-                              &unsigned_int_value, &err,
-                              depends_on_fp_mode);
-    /* We set the result value even if an error occurred.  This value
-       is used in some modes. */
-    set_unsigned_integer_value(&result_value, unsigned_int_value);
-  }  /* if */
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  if (err) {
-    /* Try again with larger precision by converting the float to a
-       character string then converting the string to an integer value. */
-    a_boolean pos_infinity, neg_infinity, not_a_number;
-    char *str = fp_to_string(float_kind, float_value,
-                             &pos_infinity, &neg_infinity, &not_a_number);
-    if (pos_infinity || neg_infinity || not_a_number) {
-      err = TRUE;
-    } else {
-      if (!is_signed && is_negative) {
-        /* The source value is negative but the result value is unsigned
-           do the conversion to a signed value because the resulting bit
-           pattern may be used later in some modes. */
-        conv_float_string_to_integer_value(str, &result_value,
-                                           /*is_signed=*/TRUE, &err);
-        /* Always set the error flag in this case. */
-        err = TRUE;
-      } else {
-        conv_float_string_to_integer_value(str, &result_value,
-                                           is_signed, &err);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  err = !conv_float_value_to_int_value(float_value, float_kind, &result_value,
+                                       is_signed, depends_on_fp_mode);
   if (err && gcc_mode && gnu_version >= 30400) {
     /* The float value cannot be represented as an integer value (or an
        unsigned integer value).  Use the largest or smallest (depending on

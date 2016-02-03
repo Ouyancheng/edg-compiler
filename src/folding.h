@@ -98,6 +98,13 @@ extern void conv_integer_to_integer(a_constant        *old_constant,
                                     an_error_code     *err_code,
                                     an_error_severity *err_severity);
 
+extern a_boolean conv_float_value_to_int_value(
+                                 an_internal_float_value  *float_value,
+                                 a_float_kind             float_kind,
+                                 an_integer_value         *result_value,
+                                 a_boolean                is_signed,
+                                 a_boolean                *depends_on_fp_mode);
+
 extern void conv_float_to_integer(a_constant        *old_constant,
                                   a_constant        *new_constant,
                                   an_error_code     *err_code,

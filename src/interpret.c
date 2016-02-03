@@ -4553,7 +4553,21 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_float &&
                        tp->kind == (a_type_kind)tk_integer) {
-              unexpected_condition(); /* FIXME NYI */
+              int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              if (conv_float_value_to_int_value(
+                                            fp_value(opnd1_value),
+                                            opnd1_type->variant.float_kind,
+                                            (an_integer_value*)result_storage,
+                                            is_signed, &depends_on_fp_mode)) {
+                ovfl = FALSE;
+                check_int_range((an_integer_value*)(result_storage), tp,
+                                result, ovfl, &expr->position, ips);
+              } else {
+                do_constexpr_fail(result);
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
+              }  /* if */
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
