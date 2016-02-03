@@ -4728,8 +4728,16 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+              a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap) || is_function_address(cap) ||
+                  cap->address != NULL) {
+                *(an_integer_value *)result_storage = one_int;
+              } else {
+                *(an_integer_value *)result_storage = zero_int;
+              }  /* if */
             } else {
-              unexpected_condition();  /* FIXME: NYI, other source types. */
+              unexpected_condition();
             }  /* if */
             break;
           case eok_array_to_pointer:
