@@ -4524,8 +4524,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
                 a_type_ptr  utp2;
                 utp2 = skip_typerefs(opnd1_type->variant.pointer.type);
-                if (identical_types(utp1, utp2)) {
-                  /* E.g., a conversion from X* to X const*. */
+                if (identical_types(utp1, utp2) ||
+                    utp1->kind == (a_type_kind)tk_void) {
+                  /* E.g., a conversion from X* to X const* or X* to void*. */
                   *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
                 } else {
@@ -6786,7 +6787,7 @@ diagnostic in *ips.
           if (rt_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
             a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-            if (!vp->constant_valued) {
+            if (!variable_has_constant_address(vp)) {
               do_constexpr_fail(result);
               info_with_pos_sym(ec_variable_not_constant_valued,
                                 &ips->position, symbol_for(vp), ips);
