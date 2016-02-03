@@ -6766,10 +6766,30 @@ diagnostic in *ips.
           a_byte          *mptr;
           a_constant_ptr  cp;
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
-          get_stack_bytes(ips, cap->address, mptr);
+          if (is_array_element(cap)) {
+            /* If we're pointing into an array, use the base address of the
+               array to check if we already have a constant representing that
+               array. */
+            get_stack_bytes(ips, get_base_address(cap), mptr);
+          } else {
+            get_stack_bytes(ips, cap->address, mptr);
+          }  /* if */
           if (mptr != NULL) {
+            /* A constant was already allocated for the pointed-to object. */
             cp = ((a_constant_ptr)mptr)->variant.address.variant.constant;
             utp = skip_typerefs(cp->type);
+            if (is_array_element(cap)) {
+              /* If we're pointing into an array, we may have to compute a
+                 nonzero offset into it. */
+              a_byte_count  offset = cap->address - get_base_address(cap);
+              if (offset != 0) {
+                a_type_ptr  elem_type =
+                               skip_typerefs(utp->variant.array.element_type);
+                con->variant.address.offset =
+                  elem_type->size *
+                       (offset/value_bytes_for_type(ips, elem_type, &result));
+              }  /* if */
+            }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
             cp = fs_constant((a_constant_repr_kind)ck_error);
