@@ -4736,8 +4736,11 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
-              if (is_runtime_data_address(cap) || is_function_address(cap) ||
-                  cap->address != NULL) {
+              if (is_runtime_data_address(cap)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              } else if (is_function_address(cap) || cap->address != NULL) {
                 *(an_integer_value *)result_storage = one_int;
               } else {
                 *(an_integer_value *)result_storage = zero_int;
@@ -5230,10 +5233,10 @@ type.  This includes checking the value of ovfl set by the operation.
                                        is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
               }  /* if */
             } else {
-              /* FIXME: Other type kinds NYI. */
+              unexpected_condition();
             }  /* if */
             break;
           case eok_padd:
@@ -5251,12 +5254,15 @@ type.  This includes checking the value of ovfl set by the operation.
                 elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
               }  /* if */
               if (ovfl) {
-                do_constexpr_fail(result);  /* FIXME: diagnostic */
+                do_constexpr_fail(result);
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  do_constexpr_fail(result);  /* FIXME: diagnostic */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
@@ -5269,7 +5275,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                       (len-pos < (a_byte_count)host_int_val)
                                     : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
-                    do_constexpr_fail(result);  /* FIXME: diagnostic */
+                    do_constexpr_fail(result);
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position,
+                                       (unsigned long)(pos+host_int_val),
+                                       (unsigned long)len, ips);
                   } else {
                     if (is_runtime_data_address(result_addr)) {
                       result_addr->variant.addr_con->variant.address.offset +=
@@ -5302,12 +5312,15 @@ type.  This includes checking the value of ovfl set by the operation.
                 elem_type = skip_typerefs(opnd2_type->variant.pointer.type);
               }  /* if */
               if (ovfl) {
-                do_constexpr_fail(result);  /* FIXME: diagnostic */
+                do_constexpr_fail(result);
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  do_constexpr_fail(result);  /* FIXME: diagnostic */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
@@ -5320,7 +5333,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
-                    do_constexpr_fail(result);  /* FIXME: diagnostic */
+                    do_constexpr_fail(result);
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position,
+                                       (unsigned long)(pos-host_int_val),
+                                       (unsigned long)len, ips);
                   } else {
                     if (is_runtime_data_address(result_addr)) {
                       result_addr->variant.addr_con->variant.address.offset -=
@@ -5370,7 +5387,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 if (!result) {
                   /* Nothing more to do. */
                 } else if (elem_size == 0) {
-                  do_constexpr_fail(result);  /* FIXME: diagnostic */ 
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_divide_by_zero, &expr->position, ips);
                 } else {
                   set_integer_value(
                        (an_integer_value*)result_storage,
@@ -5383,7 +5401,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                   result, ovfl, &expr->position, ips);
                 }  /* if */
               } else {
-                do_constexpr_fail(result);  /* FIXME: diagnostic */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                              &expr->position, ips);
               }  /* if */
             }
             break;
@@ -6279,12 +6299,146 @@ type.  This includes checking the value of ovfl set by the operation.
             }
             break;
           case eok_padd_assign:
-            /* FIXME: NYI. */
-            unexpected_condition();
+            if (opnd1_type->kind == (a_type_kind)tk_integer) {
+              /* Only possible with "bool_value += ptr_value". */
+              a_host_large_integer  bool_val;
+              check_assertion(is_bool_type(opnd1_type));
+              is_signed = FALSE;
+              get_int_val_from(int_value_at(opnd1_value), opnd1_type,
+                               bool_val, ovfl);
+              if (bool_val == 0) {
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd2_value;
+                if (is_runtime_data_address(cap)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                  break;
+                } else if (is_function_address(cap) || cap->address != NULL) {
+                  bool_val = 1;
+                }  /* if */
+              }  /* if */
+              *int_value_at(opnd1_value) = bool_val ? one_int : zero_int;
+            } else {
+              /* ptr_lvalue += integer_rvalue. */
+              a_constexpr_address  *dst = (a_constexpr_address*)result_storage;
+              a_type_ptr           elem_type;
+              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+              *dst = *(a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(dst)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                break;
+              }  /* if */
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
+              } else {
+                a_constexpr_address
+                                *ptr_val = (a_constexpr_address*)dst->address;
+                if (host_int_val == 0) {
+                  /* Leave the address unchanged. */
+                } else if (!is_array_element(ptr_val)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                } else {
+                  a_byte_count  elem_size, byte_pos, pos, len;
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  get_array_offset(ptr_val, elem_type,
+                                   &byte_pos, &elem_size, &result);
+                  if (!result) break;
+                  pos = byte_pos / elem_size;
+                  len = ptr_val->length;
+                  if (host_int_val > 0 ?
+                                      (len-pos < (a_byte_count)host_int_val)
+                                    : (pos < (a_byte_count)-host_int_val)) {
+                    /* Out of bounds. */
+                    do_constexpr_fail(result);
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position,
+                                       (unsigned long)(pos+host_int_val),
+                                       (unsigned long)len, ips);
+                  } else {
+                    if (is_runtime_data_address(ptr_val)) {
+                      ptr_val->variant.addr_con->variant.address.offset +=
+                        host_int_val * elem_size;
+                    } else {
+                      ptr_val->address += host_int_val * elem_size;
+                    }  /* if */
+                    if (pos+host_int_val == len) {
+                      ptr_val->flags |= CA_CANNOT_DEREFERENCE;
+                    } else {
+                      ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address*)opnd1_value;
             break;
           case eok_psubtract_assign:
-            /* FIXME: NYI. */
-            unexpected_condition();
+            { /* ptr_lvalue += integer_rvalue. */
+              a_constexpr_address  *dst = (a_constexpr_address*)result_storage;
+              a_type_ptr           elem_type;
+              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+              *dst = *(a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(dst)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                break;
+              }  /* if */
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
+              } else {
+                a_constexpr_address
+                                *ptr_val = (a_constexpr_address*)dst->address;
+                if (host_int_val == 0) {
+                  /* Leave the address unchanged. */
+                } else if (!is_array_element(ptr_val)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                } else {
+                  a_byte_count  elem_size, byte_pos, pos, len;
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  get_array_offset(ptr_val, elem_type,
+                                   &byte_pos, &elem_size, &result);
+                  if (!result) break;
+                  pos = byte_pos / elem_size;
+                  len = ptr_val->length;
+                  if (host_int_val > 0 ?
+                                    (pos < (a_byte_count)host_int_val)
+                                  : (len-pos < (a_byte_count)-host_int_val)) {
+                    /* Out of bounds. */
+                    do_constexpr_fail(result);
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position,
+                                       (unsigned long)(pos-host_int_val),
+                                       (unsigned long)len, ips);
+                  } else {
+                    if (is_runtime_data_address(ptr_val)) {
+                      ptr_val->variant.addr_con->variant.address.offset -=
+                        host_int_val * elem_size;
+                    } else {
+                      ptr_val->address -= host_int_val * elem_size;
+                    }  /* if */
+                    if (pos - host_int_val == len) {
+                      ptr_val->flags |= CA_CANNOT_DEREFERENCE;
+                    } else {
+                      ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            }
+            *(a_constexpr_address *)result_storage =
+                                           *(a_constexpr_address*)opnd1_value;
             break;
           case eok_land:
             { a_boolean             logical_and_result;

@@ -2813,6 +2813,7 @@ ec_deduced_return_types_is_cpp14;;"deduced return types are a C++14 feature"
 ec_constexpr_ctor_with_dtor;;"cannot evaluate a constructor with an associated destructor"
 ec_constexpr_missing_initializer_for_field;;"%n not initialized during constexpr evaluation"
 ec_constexpr_invalid_pdiff;;"invalid pointer difference in constexpr evaluation"
+ec_constexpr_non_array_pointer_arithmetic;;"invalid arithmetic on non-array pointer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
