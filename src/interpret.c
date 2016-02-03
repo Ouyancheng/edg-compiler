@@ -6790,7 +6790,7 @@ diagnostic in *ips.
             a_variable_ptr  vp = rt_con->variant.address.variant.variable;
             if (!variable_has_constant_address(vp)) {
               do_constexpr_fail(result);
-              info_with_pos_sym(ec_variable_not_constant_valued,
+              info_with_pos_sym(ec_variable_not_constant_addressed,
                                 &ips->position, symbol_for(vp), ips);
               break;
             }  /* if */
