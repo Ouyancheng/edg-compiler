@@ -603,6 +603,9 @@ operation is being evaluated as part of a nonconstant expression.
   a_type_ptr              float_tp = skip_typerefs(old_constant->type);
   a_float_kind            float_kind = float_tp->variant.float_kind;
   an_internal_float_value *float_value;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  an_internal_float_value zero;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
   if (float_tp->kind == (a_type_kind)tk_complex) {
@@ -612,7 +615,6 @@ operation is being evaluated as part of a nonconstant expression.
     float_value = &old_constant->variant.complex_value->real;
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting from imaginary to integer.  The result is zero. */
-    an_internal_float_value zero;
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &zero, &err);
     float_value = &zero;
