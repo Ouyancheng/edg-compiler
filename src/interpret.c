@@ -3879,6 +3879,8 @@ accordingly.
         }  /* if */
         /* Store the address of the class in *this_bytes. */
         clear_address(this_bytes, class_bytes);
+        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+                                                   ips->curr_alloc_seq_number;
       }  /* if */
       if (pm_target != NULL &&
           !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
@@ -4485,6 +4487,8 @@ type.  This includes checking the value of ovfl set by the operation.
                                           *(a_constexpr_address *)opnd1_value;
             } else {
               clear_address(result_storage, opnd1_value);
+              ((a_constexpr_address *)result_storage)->alloc_seq_number =
+                                                   ips->curr_alloc_seq_number;
             }  /* if */
             break;
           case eok_indirect:
