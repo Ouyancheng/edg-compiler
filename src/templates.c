@@ -11092,12 +11092,18 @@ static a_symbol_ptr copy_template_class_reference_with_substitution(
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
 			a_boolean			*copy_error,
-			a_ctws_state_ptr		ctws_state)
+			a_ctws_state_ptr		ctws_state,
+			a_type_ptr			*new_type)
 /*
 Copy, with substitution, the template argument list from orig_type and
 find the corresponding instance of the template indicated by
 template_sym.  options is a set of bit flags used to control how names
 are looked up, if needed.  The symbol of the new instance is returned.
+If the substitution results in a type with no associated symbol, which can
+occur if it turns out to be a template template parameter that refers
+to an alias template, the substituted type is returned in *new_type
+(and new_type must not be NULL).  Otherwise, if new_type is not NULL,
+*new_type is set to NULL.
 */
 {
   a_template_arg_ptr			new_list;
@@ -11111,7 +11117,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_boolean				templ_param_is_alias = FALSE;
   a_symbol_ptr				orig_instance_sym;
   a_symbol_ptr				orig_template_sym;
-  
+
+  if (new_type != NULL) *new_type = NULL;  
   template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
   /* If the template symbol refers to a template template parameter, get
@@ -11166,7 +11173,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
     proto_type = tssp->variant.class_template.prototype_instantiation->
                                                               variant.type.ptr;
     tp = copy_type_with_substitution(proto_type,
-                                   new_list, templ_param_list,
+                                   new_list, tpp,
                                    source_pos,
                                    options, copy_error, ctws_state);
     if (tp == proto_type) {
@@ -11174,6 +11181,12 @@ are looked up, if needed.  The symbol of the new instance is returned.
       tp = orig_type;
     }  /* if */
     new_sym = symbol_for(tp);
+    if (new_sym == NULL) {
+      /* If the substituted type has no symbol, return the type in
+         *new_type. */
+      check_assertion(new_type != NULL);
+      *new_type = tp;
+    }  /* if */
   } else {
     new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                   (a_symbol_ptr)NULL,
@@ -11564,7 +11577,8 @@ is_type is TRUE if the child entity is known to be a type.
         fund_sym = copy_template_class_reference_with_substitution(
                                fund_sym, sym->variant.class_struct_union.type,
                                templ_arg_list, templ_param_list, source_pos,
-                               options, copy_error, ctws_state);
+                               options, copy_error, ctws_state,
+                               (a_type_ptr*)NULL);
         new_sym = fund_sym;
       }  /* if */
     }  /* if */
@@ -12287,8 +12301,11 @@ done_with_routine:
             new_sym = copy_template_class_reference_with_substitution(
                             cssp->class_template, type, templ_arg_list,
                             templ_param_list, source_pos, options, copy_error,
-                            ctws_state);
-            if (new_sym == NULL || !is_type_symbol(new_sym)) {
+                            ctws_state, &new_type);
+            if (new_type != NULL) {
+              /* The substitution resulted in a type without a symbol.
+                 Use the new_type returned. */
+            } else if (new_sym == NULL || !is_type_symbol(new_sym)) {
               /* The type was specified as something like A<T>::B, but the
                  substituted "A<T>" does not contain a B, or the B found is not
                  a type. */
