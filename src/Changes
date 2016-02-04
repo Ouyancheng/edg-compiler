@@ -5,7 +5,7 @@ Elimination of dual lookup of certain names in class member accesses
 
 In C++98/03, certain names in class member access expressions were looked
 up in both the class of the member access and the current context.  If
-both lookups succeeded and produced different result, the program was
+both lookups succeeded and produced different results, the program was
 ill-formed.  In C++11 (as a result of core issue 1111), if the lookup in
 the class succeeds, the lookup in the current context is not done.  We
 now implement the new rules in C++11 (and newer) modes.
