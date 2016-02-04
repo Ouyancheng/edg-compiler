@@ -4858,7 +4858,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 *(an_integer_value *)result_storage = one_int;
               }  /* if */
             } else {
-              unexpected_condition();  /* FIXME: NYI, other source types. */
+              /* Other types. */
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_post_incr:
@@ -4999,8 +5001,9 @@ type.  This includes checking the value of ovfl set by the operation.
             if (is_runtime_data_address(opnd1_value)) {
               /* Cannot modify the value of an object whose lifetime began
                  outside the current evaluation. */
-              /* FIXME: record a diagnostic. */
               do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, ips);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integral type. */
               if (tp->variant.integer.bool_type) {
@@ -5022,7 +5025,7 @@ type.  This includes checking the value of ovfl set by the operation.
                      fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else if (tp->kind == (a_type_kind)tk_pointer) {
               /* A pointer. */
@@ -5031,8 +5034,16 @@ type.  This includes checking the value of ovfl set by the operation.
               if (!is_array_element(ptr) || cannot_dereference(ptr)) {
                 /* Not a pointer to an array element in interpreter
                    storage. */
-                /* FIXME: record a diagnostic. */
                 do_constexpr_fail(result);
+                if (!is_array_element(ptr)) {
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                } else {
+                  info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(ptr->length+1),
+                                      (unsigned long)ptr->length, ips);
+                }  /* if */
               } else {
                 a_type_ptr    elem_type;
                 a_byte_count  elem_size;
@@ -5060,8 +5071,9 @@ type.  This includes checking the value of ovfl set by the operation.
             if (is_runtime_data_address(opnd1_value)) {
               /* Cannot modify the value of an object whose lifetime began
                  outside the current evaluation. */
-              /* FIXME: record a diagnostic. */
               do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, ips);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integer. */
                 an_integer_value  *ival = int_value_at(opnd1_value);
@@ -5079,7 +5091,7 @@ type.  This includes checking the value of ovfl set by the operation.
                           &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else if (tp->kind == (a_type_kind)tk_pointer) {
               /* A pointer. */
@@ -5088,7 +5100,8 @@ type.  This includes checking the value of ovfl set by the operation.
               if (!is_array_element(ptr)) {
                 /* Not a pointer to an array element in interpreter
                    storage. */
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                              &expr->position, ips);
                 do_constexpr_fail(result);
               } else {
                 a_type_ptr    elem_type;
@@ -5099,8 +5112,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 base_address = get_base_address(ptr);
                 if (ptr->address == base_address) {
                   /* The pointer can point ahead of the array. */
-                  /* FIXME: record a diagnostic. */
                   do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                &expr->position, ips);
                 } else {
                   if (ptr->address == base_address + ptr->length*elem_size) {
                     /* We were "one past the end of the array", but that will
@@ -5138,11 +5152,12 @@ type.  This includes checking the value of ovfl set by the operation.
                      fp_value(result_storage), &err, &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else {
-              /* FIXME: Other type kinds NYI. */
-              unexpected_condition();
+              /* Other types. */
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_subtract:
@@ -5164,10 +5179,12 @@ type.  This includes checking the value of ovfl set by the operation.
                           &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else {
-              /* FIXME: Other type kinds NYI. */
+              /* Other types. */
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_multiply:
@@ -5189,10 +5206,12 @@ type.  This includes checking the value of ovfl set by the operation.
                           &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else {
-              /* FIXME: Other type kinds NYI. */
+              /* Other types. */
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_divide:
@@ -5206,7 +5225,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                     is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
               }  /* if */
             } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
@@ -5216,10 +5235,13 @@ type.  This includes checking the value of ovfl set by the operation.
                         &depends_on_fp_mode);
               if (err) {
                 do_constexpr_fail(result);
-                /* FIXME: record a diagnostic. */
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
             } else {
-              /* FIXME: Other type kinds NYI. */
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_remainder:
@@ -5276,10 +5298,16 @@ type.  This includes checking the value of ovfl set by the operation.
                                     : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);
-                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position,
-                                       (unsigned long)(pos+host_int_val),
-                                       (unsigned long)len, ips);
+                    if (host_int_val > 0) {
+                      info_with_pos_num2(
+                                      ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(pos+host_int_val),
+                                      (unsigned long)len, ips);
+                    } else {
+                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                    &expr->position, ips);
+                    }  /* if */
                   } else {
                     if (is_runtime_data_address(result_addr)) {
                       result_addr->variant.addr_con->variant.address.offset +=
@@ -5334,10 +5362,16 @@ type.  This includes checking the value of ovfl set by the operation.
                                   : (len-pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);
-                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position,
-                                       (unsigned long)(pos-host_int_val),
-                                       (unsigned long)len, ips);
+                    if (host_int_val < 0) {
+                      info_with_pos_num2(
+                                      ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(pos-host_int_val),
+                                      (unsigned long)len, ips);
+                    } else {
+                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                    &expr->position, ips);
+                    }  /* if */
                   } else {
                     if (is_runtime_data_address(result_addr)) {
                       result_addr->variant.addr_con->variant.address.offset -=
@@ -5418,7 +5452,6 @@ type.  This includes checking the value of ovfl set by the operation.
             } else if (host_int_val < 0 ||
                        host_int_val >=
                            (a_host_large_integer)(tp->size * targ_char_bit)) {
-              /* FIXME: record a diagnostic for invalid result. */
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
@@ -5431,7 +5464,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                              *(an_integer_value *)opnd1_value;
               }  /* if */
             } else {
-              /* FIXME: record a diagnostic for invalid opnd2. */
+              info_with_pos(ec_integer_overflow, &expr->position, ips);
             }  /* if */
             break;
           case eok_shiftr:
@@ -5458,7 +5491,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                              *(an_integer_value *)opnd1_value;
               }  /* if */
             } else {
-              /* FIXME: record a diagnostic for invalid opnd2. */
+              info_with_pos(ec_integer_overflow, &expr->position, ips);
             }  /* if */
             break;
           case eok_and:
@@ -5676,9 +5709,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5727,9 +5764,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5778,9 +5819,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -5877,8 +5922,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
+                  /* Other types. */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                                &expr->position, ips);
                 }  /* if */
                 *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
@@ -5931,8 +5978,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
+                  /* Other types. */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                                &expr->position, ips);
                 }  /* if */
                 *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
@@ -5985,8 +6034,10 @@ type.  This includes checking the value of ovfl set by the operation.
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
+                  /* Other types. */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                                &expr->position, ips);
                 }  /* if */
                 *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
@@ -6039,8 +6090,9 @@ type.  This includes checking the value of ovfl set by the operation.
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
                   }  /* if */
                 } else {
-                  /* FIXME: Other type kinds NYI. */
-                  unexpected_condition();
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                                &expr->position, ips);
                 }  /* if */
                 *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
@@ -6084,8 +6136,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                 &expr->position, ips);
                 *(a_constexpr_address *)result_storage = *dst;
               } else {
-                /* FIXME: Other type kinds NYI. */
-                unexpected_condition();
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                              &expr->position, ips);
               }  /* if */
             }
             break;
@@ -6356,10 +6409,16 @@ type.  This includes checking the value of ovfl set by the operation.
                                     : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);
-                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position,
-                                       (unsigned long)(pos+host_int_val),
-                                       (unsigned long)len, ips);
+                    if (host_int_val > 0) {
+                      info_with_pos_num2(
+                                      ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(pos+host_int_val),
+                                      (unsigned long)len, ips);
+                    } else {
+                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                    &expr->position, ips);
+                    }  /* if */
                   } else {
                     if (is_runtime_data_address(ptr_val)) {
                       ptr_val->variant.addr_con->variant.address.offset +=
@@ -6417,10 +6476,16 @@ type.  This includes checking the value of ovfl set by the operation.
                                   : (len-pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);
-                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position,
-                                       (unsigned long)(pos-host_int_val),
-                                       (unsigned long)len, ips);
+                    if (host_int_val < 0) {
+                      info_with_pos_num2(
+                                      ec_constexpr_out_of_bounds_array_access,
+                                      &expr->position,
+                                      (unsigned long)(pos-host_int_val),
+                                      (unsigned long)len, ips);
+                    } else {
+                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                    &expr->position, ips);
+                    }  /* if */
                   } else {
                     if (is_runtime_data_address(ptr_val)) {
                       ptr_val->variant.addr_con->variant.address.offset -=
