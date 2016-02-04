@@ -6890,6 +6890,8 @@ code at *insert_location and update *insert_location accordingly.
   /* Make an unnamed static variable for the descriptive structure. */
   var = make_unnamed_local_static_variable(make_needed_destruction_type(),
                                            /*in_function_scope=*/FALSE);
+  /* Make sure the temporary is thread_local if the variable is. */
+  var->is_thread_local = ipdp->variable->is_thread_local;
   /* Make the top-level aggregate constant that will be its initial value. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->type = var->type;

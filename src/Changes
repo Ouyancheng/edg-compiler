@@ -1,5 +1,20 @@
 Version 4.11
 
+2/4/16   [EDGcpfe/16838]
+Cfront ABI: issue with thread_local destructions
+
+In the Cfront ABI, the lowered code to generate needed destructions of
+objects with thread_local storage had inadvertently neglected to mark as
+thread_local one of the temporaries used in the destruction, potentially
+resulting in undefined behavior during the destruction of such entities.
+Now fixed.  For example (with --c++11):
+
+  struct A {
+    ~A() { while(0); }
+  };
+  thread_local A a;
+
+
 2/4/16   [EDGcpfe/16829]
 Operator functions with incomplete return types and decltype
 
