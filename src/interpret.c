@@ -4583,12 +4583,12 @@ type.  This includes checking the value of ovfl set by the operation.
           case eok_lvalue_cast:
           case eok_ref_cast:
           case eok_lvalue_adjust:
-            /* If the type (other than qualification doesn't change), this is
+            /* If the type (other than qualification) doesn't change, this is
                is not a reinterpret-like cast and we can interpret the result.
                In the case of casting a function lvalue to a reference to
                function type, it is possible that the type of this node was
-               later "decayed" to a pointer-to-function type; that case is
-               valid too. */
+               later "decayed" to a pointer-to-function type (to match the
+               expectations of a parent node); that case is valid too. */
             if (tp != opnd1_type &&
                 !(opnd1_type->kind == (a_type_kind)tk_routine &&
                   tp->kind == (a_type_kind)tk_pointer &&
