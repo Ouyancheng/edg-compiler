@@ -1,6 +1,6 @@
 Version 4.11
 
-2/1/16   [EDGcpfe/11673,EDGcpfe/14193,EDGcpfe/16381]
+2/1/16   [EDGcpfe/11673,EDGcpfe/14193,EDGcpfe/16381,EDGcpfe/16813]
 Elimination of dual lookup of certain names in class member accesses
 
 In C++98/03, certain names in class member access expressions were looked
