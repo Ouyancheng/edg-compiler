@@ -17303,7 +17303,7 @@ initially used when processing the declaration of a partial specialization.
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
       prototype_type->variant.typeref.extra_info->orig_template_arg_list
-                                                              = templ_arg_list;
+                                      = copy_template_arg_list(templ_arg_list);
     } else if (is_partial_specialization) {
       /* This is the initial declaration of a partial specialization.
          The template argument list for the partial specialization should
