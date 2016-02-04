@@ -31435,6 +31435,8 @@ see expr.h).
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean         allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_expr_full");
 #if DEBUG
@@ -32711,6 +32713,8 @@ end_expr:
     curr_expr_ref_entries = saved_ref_list;
   }  /* if */
 end_of_routine:
+  expr_stack->allow_call_with_incomplete_return_type =
+                                       allow_call_with_incomplete_return_type;
   db_exit();
 }  /* scan_expr_full */
 
