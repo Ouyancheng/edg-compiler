@@ -8808,7 +8808,6 @@ to FALSE before returning).
   if (is_virtual ||
       bcp_type->variant.class_struct_union.any_virtual_base_classes) {
     class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
-    cssp->standard_layout = FALSE;
   }  /* if */
   if (bcp_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes) {
@@ -27841,7 +27840,11 @@ from TRUE to FALSE.
                     cssp = class_sym->variant.class_struct_union.extra_info;
 
   if (class_type->variant.class_struct_union
-                           .any_virtual_functions_including_in_base_classes) {
+                         .any_virtual_functions_including_in_base_classes ||
+      class_type->variant.class_struct_union.any_virtual_base_classes ||
+      cssp->any_ref_member) {
+    /* A class with a virtual function, a virtual base, or a reference
+       member is not a standard-layout class. */
     cssp->standard_layout = FALSE;
   }  /* if */
   if (cssp->standard_layout &&
@@ -27852,7 +27855,12 @@ from TRUE to FALSE.
     for (; bcp != NULL; bcp = bcp->next) {
       a_class_symbol_supplement_ptr  bcssp = symbol_for(bcp->type)
                                       ->variant.class_struct_union.extra_info;
-      if (bcp->direct && bcssp->any_nonstatic_data_members) {
+      if (bcp->ambiguous) {
+        /* A standard-layout class can have at most one base class subobject
+           of any type. */
+        cssp->standard_layout = FALSE;
+        break;
+      } else if (bcp->direct && bcssp->any_nonstatic_data_members) {
         if (first_field != NULL || bcp_with_data != NULL) {
           /* If the derivation includes nonstatic data members, a base class
              cannot.  Otherwise, at most one base class can do so. */
@@ -27862,9 +27870,10 @@ from TRUE to FALSE.
           bcp_with_data = bcp;
         }  /* if */
       }  /* if */
-      if (first_field != NULL) {
+      if (first_field != NULL && (bcp->direct || !(gpp_mode || clang_mode))) {
         /* The first field of a standard layout type cannot have the same type
-           as a base class. */
+           as a base class.  (GCC and Clang don't consider indirect base
+           classes in this case.) */
         a_type_ptr  etype = skip_array_types(first_field->type);
         if (identical_types(bcp->type, etype)) {
           cssp->standard_layout = FALSE;
