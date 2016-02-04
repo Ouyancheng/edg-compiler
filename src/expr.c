@@ -32345,7 +32345,7 @@ bad_start_of_primary:
      return to its caller (also scan_expr_full). */
   for (;;) {
     a_boolean op2_was_braced_init_list;
-    a_boolean allow_call_with_incomplete_return_type =
+    a_boolean allow_call_with_incomplete_return_type2 =
                            expr_stack->allow_call_with_incomplete_return_type;
     /* For most operations, don't permit a call with an incomplete return
        type.  If this is a call, a member access, or a comma operator, the
@@ -32469,7 +32469,7 @@ bad_start_of_primary:
         break;
       case tok_lparen:
         /* Routine call. */
-        if (allow_call_with_incomplete_return_type) {
+        if (allow_call_with_incomplete_return_type2) {
           expr_stack->allow_call_with_incomplete_return_type = TRUE;
         }  /* if */
         scan_function_call(&operand, &local_bound_function_selector,
@@ -32478,7 +32478,7 @@ bad_start_of_primary:
       case tok_period:
       case tok_arrow:
         /* Field selectors. */
-        if (allow_call_with_incomplete_return_type) {
+        if (allow_call_with_incomplete_return_type2) {
           expr_stack->allow_call_with_incomplete_return_type = TRUE;
         }  /* if */
         scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
@@ -32576,7 +32576,7 @@ bad_start_of_primary:
         }  /* if */
         break;
       case tok_comma:
-        if (allow_call_with_incomplete_return_type) {
+        if (allow_call_with_incomplete_return_type2) {
           expr_stack->allow_call_with_incomplete_return_type = TRUE;
         }  /* if */
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
@@ -32713,6 +32713,11 @@ end_expr:
     curr_expr_ref_entries = saved_ref_list;
   }  /* if */
 end_of_routine:
+  /* For nested calls to scan_expr_full, restore the original setting of the
+     alloc_call_with_incomplete_return_type.  For example, in an expression
+     '*p', scanning p will clear the flag, but when we get back to processing
+     the '*', which may be an overloaded operator, the flag may need to
+     become TRUE again. */
   expr_stack->allow_call_with_incomplete_return_type =
                                        allow_call_with_incomplete_return_type;
   db_exit();
