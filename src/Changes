@@ -3,10 +3,10 @@ Version 4.11
 2/4/16   [EDGcpfe/16826,EDGcpfe/16827]
 __is_standard_layout
 
-The front end previously treated as "standard-layout" class a class with a
-nonstatic member of reference type.  That is now fixed.  A class whose first
-declared nonstatic data member has the same type as one of the base classes
-of that class is not a "standard-layout" class.  However, GCC and Clang
+The front end previously treated some classes with a nonstatic data member of
+reference type as being "standard-layout" classes.  That is now fixed.  A class
+whose first declared nonstatic data member has the same type as one of the base
+classes of that class is not a "standard-layout" class.  However, GCC and Clang
 appear to only consider direct base classes for that criterion: The front end
 now emulates that behavior in GNU and Clang modes.  For example:
 
