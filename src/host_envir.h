@@ -30,7 +30,10 @@ typedef struct a_text_buffer *a_text_buffer_ptr;
 
 /*
 A sequence number is assigned to each token fetched from the input.
-This is the type used to represent the sequence number.
+This is the type used to represent the sequence number.  Consecutive
+tokens do not necessarily have consecutive sequence numbers; currently,
+most tokens have even sequence numbers (and in the rare case of a token
+being split, the second token of the split then uses an odd number).
 */
 typedef uint32_t a_token_sequence_number;
 

@@ -12855,7 +12855,10 @@ restart:
   /* A new token is being scanned from the input stream.  Assign a token
      sequence number to this token.  The value is incremented by two to
      reserve a slot in case the token is a ">>" that needs to be split into
-     two tokens because it closes two template argument lists. */
+     two tokens because it closes two template argument lists.  This
+     availability is also taken advantage of when associating token sequence
+     numbers with calls to "begin(...)" and "end(...)" in some cases of
+     range-based for loops. */
   last_token_sequence_number_used += 2;
   curr_token_sequence_number = last_token_sequence_number_used;
   last_token_sequence_number_of_token = curr_token_sequence_number;

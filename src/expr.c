@@ -37030,11 +37030,14 @@ is template dependent.
                                                          &rbflp->begin)) {
     passed = FALSE;
   }  /* if */
-  /* Even if we didn't find a suitable "begin", look also for an "end". */
+  /* Even if we didn't find a suitable "begin", look also for an "end".
+     Note that we cannot reuse the same token sequence number as for the
+     call to "begin", since argument-dependent lookup ignores the name
+     and only uses that sequence number during template instantiations. */
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "end",
                                                          expr_position,
-                                                         tok_seq_number,
+                                                         tok_seq_number+1,
                                                          /*add_await=*/FALSE,
                                                          &rbflp->end)) {
     passed = FALSE;

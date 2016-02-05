@@ -1,5 +1,15 @@
 Version 4.11
 
+2/5/16   [EDGcpfe/16808]
+Range-based for loops in template instantiations
+
+In template instantiations, range-based for loops that determine the bounds
+of the range through an argument-dependent lookup of "begin(...)" and
+"end(...)" incorrectly resolved the "end(...)" call to the corresponding
+"begin(...)".  That resulted in the range always being treated as empty.
+This is now fixed.
+
+
 2/4/16   [EDGcpfe/16826,EDGcpfe/16827]
 __is_standard_layout
 
