@@ -1,5 +1,25 @@
 Version 4.11
 
+2/7/16   [EDGcpfe/16843]
+GNU C++ Compatibility: default arguments on referenced function templates
+
+g++ versions before 5.0 allow a function template that has already been
+used to have a default argument added (although the default argument
+is ignored).  We now accept this (with a warning) in g++ mode when
+gnu_version < 50000.
+
+  template <class T> struct A {};
+  template <class U> struct B {
+    template <class T> friend void f(A<T>&, int = 1);
+    static void g() { }
+  };
+  template <class T> void f(A<T>&, int) { T::g(); }
+  int main() {
+    A<B<int> > ab;
+    f(ab, 2);
+  }
+
+
 2/5/16   [EDGcpfe/16808]
 Range-based for loops in template instantiations
 
