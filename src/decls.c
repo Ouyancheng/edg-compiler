@@ -10070,7 +10070,8 @@ definition of a member function of a class template.
           an_error_severity  severity;
           an_error_code      error_code;
           if (tssp->variant.function.instantiations != NULL) {
-            severity = es_error;
+            severity = (gpp_mode && !clang_mode) && gnu_version < 50001
+                                                       ? es_warning : es_error;
             error_code = ec_default_arg_on_function_template_not_allowed;
           } else {
             if (strict_ansi_mode) {
