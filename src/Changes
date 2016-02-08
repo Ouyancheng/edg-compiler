@@ -1,5 +1,27 @@
 Version 4.11
 
+2/8/16   [EDGcpfe/16850]
+Inadvertent removal of thread_local variable use
+
+In configurations that use USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+to initialize thread_local variables, lowering had inadvertently removed
+lvalue references to thread_local variables that had no other effect, resulting
+in a failure to initialize the variable (if it had any initialization).  In
+the example below, the constructor had not been called (and is now).
+With --c++11:
+
+  extern "C" int printf(const char *,...);
+  int result = 1;
+  struct A {
+    A() { result = 0; }
+  };
+  thread_local A a;
+  int main() {
+    (void)a;
+    return result;
+  }
+
+
 2/7/16   [EDGcpfe/16843]
 GNU C++ Compatibility: default arguments on referenced function templates
 

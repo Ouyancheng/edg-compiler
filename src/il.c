@@ -20085,7 +20085,14 @@ doing nothing should be suppressed.
       has_side_effects = operation_has_side_effects(node, tblock);
       break;
     case enk_variable:
-      /* No side effects at this level.  See below for volatile fetch. */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+      if (node->variant.variable.ptr->is_thread_local) {
+        /* When lazy initialization is used for thread_local variables, the
+           node may have a side-effect. */
+        has_side_effects = TRUE;
+      }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+      /* See below for volatile fetch. */
       break;
     case enk_temp_init:
       /* There is always at least the side effect of initializing the
