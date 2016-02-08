@@ -2021,9 +2021,7 @@ static a_flag_name
     &force_ms_type_info_not_in_namespace_std },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { "terse_range_based_for_enabled", &terse_range_based_for_enabled },
-#if /*FIXME: delete once relaxed constexpr is enabled in C++14 mode.*/1
   { "relaxed_constexpr", &relaxed_constexpr_enabled },
-#endif /*FIXME*/
   { "constexpr_implies_const", &constexpr_implies_const },
   { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
 #if COROUTINES_ALLOWED
@@ -3171,9 +3169,7 @@ default mode (e.g., exception handling).
     if (rvalue_references_enabled && !gpp_mode && !clang_mode) {
       selection_from_prvalue_is_xvalue = TRUE;
     }  /* if */
-#if /*FIXME*/0
     relaxed_constexpr_enabled = TRUE;
-#endif /*FIXME*/
     sized_deallocation_enabled = RUNTIME_SUPPORTS_SIZED_DEALLOCATION;
     if (gpp_mode && !clang_mode && gnu_version < 50000) {
       constexpr_implies_const = TRUE;
