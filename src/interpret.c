@@ -1782,7 +1782,9 @@ redo:
       result = sizeof(a_constexpr_address);
       break;
     case tk_array:
-      if (!tp->variant.array.is_variable_size_array) {
+      if (!has_unknown_specified_bound(tp) &&
+          (tp->variant.array.variant.number_of_elements != 0 ||
+           tp->variant.array.bound_is_zero)) {
         a_targ_size_t  n_elems = num_array_elements(tp);
         a_type_ptr     etp = underlying_array_element_type(tp);
         etp = skip_typerefs(etp);
@@ -1804,10 +1806,20 @@ redo:
         }  /* if */
       } else {
         a_source_position  *pos = &tp->source_corresp.decl_position;
+        an_error_code      err_code;
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
         if (pos->seq == 0) pos = &ips->position;
+        if (tp->variant.array.is_variable_size_array) {
+          err_code = ec_constexpr_vla;
+        } else if (tp->variant.array.is_template_dependent_size_array) {
+          err_code = ec_constexpr_type_invalid;
+        } else if (tp->variant.array.variant.number_of_elements == 0) {
+          err_code = ec_constexpr_access_to_runtime_storage;
+        } else {
+          unexpected_condition();
+        }  /* if */
         info_with_pos(ec_constexpr_vla, pos, ips);
         do_constexpr_fail(*p_result);
         result = 0;
