@@ -1820,7 +1820,7 @@ redo:
         } else {
           unexpected_condition();
         }  /* if */
-        info_with_pos(ec_constexpr_vla, pos, ips);
+        info_with_pos(err_code, pos, ips);
         do_constexpr_fail(*p_result);
         result = 0;
       }  /* if */
