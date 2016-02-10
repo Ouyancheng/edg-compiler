@@ -5990,13 +5990,6 @@ The syntax is:
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
-  /* Ignore the initial "return". */
-  check_assertion_str(
-#if COROUTINES_ALLOWED
-                      curr_token == tok_coroutine_return ||
-#endif /* COROUTINES_ALLOWED */
-                      curr_token == tok_return,
-                      "return_statement: expected return");
   /* Save the position of the beginning of the return statement. */
   return_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6024,6 +6017,7 @@ The syntax is:
       pos_error(ec_invalid_co_return, &pos_curr_token);
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
+  /* Skip the return or co_return token. */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* See if there is an expression after "return". */

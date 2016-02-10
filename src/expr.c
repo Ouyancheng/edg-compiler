@@ -38361,9 +38361,6 @@ rcblock parameter for this function).
   /* Scan the operand. */
   (void)get_token();
   yield_opnd = scan_yield_operand();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand.end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (rout->has_deducible_return_type) {
     a_coroutine_fixup_ptr  cfp;
     /* Create a placeholder enk_yield node.  It will be completed later on.
@@ -38401,8 +38398,8 @@ rcblock parameter for this function).
       pos_error(ec_invalid_yield_value_type, &operator_position);
     }  /* if */
   }  /* if */
-  set_operand_position(result, &operator_position, &operand.end_position,
-                       &operator_position);
+  set_operand_position(result, &operator_position,
+                       &curr_construct_end_position, &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_yield_expression */
 
@@ -38414,7 +38411,6 @@ determined.  Complete it now that that that type is known.  *alep represents
 the operand of the co_yield expression.
 */
 {
-  an_operand            yield_op;
   an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
   an_expr_node_ptr      node = (an_expr_node_ptr)cfp->entity.ptr, yield_call;
 
@@ -38422,7 +38418,8 @@ the operand of the co_yield expression.
   if (!is_void_type(yield_call->type)) {
     /* The call to yield_value in a coroutine whose return type is deduced is
        assumed to produce a void result. */
-    pos_ty_error(ec_nonvoid_yield_value_type, &cfp->position, yield_op.type);
+    pos_ty_error(ec_nonvoid_yield_value_type, &cfp->position,
+                 yield_call->type);
     *node = *error_node();
   } else {
     node->variant.await_info.operand = yield_call;
