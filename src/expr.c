@@ -31557,8 +31557,8 @@ repeat_switch:
           goto handle_coroutine_yield;
         }  /* if */
 #endif /* COROUTINES_ALLOWED */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 handle_identifier:
       { a_boolean okay_after_typename;
         /* Watch out for something like "S::*". */
