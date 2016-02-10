@@ -1784,9 +1784,8 @@ the current statement sequence.
   } else if (kind == (a_statement_kind)stmk_return
 #if COROUTINES_ALLOWED
              || kind == (a_statement_kind)stmk_coroutine_return
-             || kind == (a_statement_kind)stmk_yield
 #endif /* COROUTINES_ALLOWED */
-                                                    ) {
+                                                               ) {
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1818,7 +1817,6 @@ the current statement sequence.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
       kind == (a_statement_kind)stmk_coroutine_return ||
-      kind == (a_statement_kind)stmk_yield ||
 #endif /* COROUTINES_ALLOWED */
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
@@ -4732,7 +4730,7 @@ The affinity can be an expression or the keyword "continue".
                       "for_statement: expected for");
   (void)get_token();
 #if COROUTINES_ALLOWED
-  if (is_range_based_for && curr_token == tok_await) {
+  if (is_range_based_for && curr_token == tok_coroutine_await) {
     rbflp->use_await = TRUE;
     (void)get_token();
   }  /* if */
@@ -5573,7 +5571,10 @@ represented by *sssep.
 }  /* has_nested_finally_clause */
 
 
-static a_boolean inside_finally_clause()
+#if !COROUTINES_ALLOWED
+static
+#endif /* !COROUTINES_ALLOWED */
+a_boolean inside_finally_clause()
 /*
 Return TRUE if the top structured statement is nested in a C++/CLI finally
 clause.
@@ -5826,7 +5827,9 @@ in which such a return is undefined.
     ssep->il_scope->variant.routine.return_value_variable = NULL;
   }
 #if COROUTINES_ALLOWED
-  if (rout->is_coroutine) cdp = get_coroutine_descr(rout);
+  if (rout->is_coroutine) {
+    cdp = get_coroutine_descr(rout, (a_source_position*)NULL);
+  }  /* if */
 #endif /* COROUTINES_ALLOWED */
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
@@ -5988,11 +5991,9 @@ The syntax is:
   db_enter(3, "return_statement");
   check_for_unreachable_code();
   /* Ignore the initial "return". */
-#if CHECKING
-  if (curr_token != tok_return) {
-    internal_error("return_statement: expected return");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(curr_token == tok_return ||
+                      curr_token == tok_coroutine_return,
+                      "return_statement: expected return");
   /* Save the position of the beginning of the return statement. */
   return_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6011,6 +6012,15 @@ The syntax is:
   rout = current_routine_entry();
   rout_type = skip_typerefs(rout->type);
   return_type = rout_type->variant.routine.return_type;
+#if COROUTINES_ALLOWED
+  if (rout->is_coroutine) {
+    if (curr_token == tok_return && !microsoft_mode) {
+      pos_error(ec_return_in_coroutine, &pos_curr_token);
+    }  /* if */
+  } else if (curr_token == tok_coroutine_return) {
+      pos_error(ec_invalid_co_return, &pos_curr_token);
+  }  /* if */
+#endif /* COROUTINES_ALLOWED */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* See if there is an expression after "return". */
@@ -6233,7 +6243,8 @@ The syntax is:
       }  /* if */
 #if COROUTINES_ALLOWED
     } else if (rout->is_coroutine) {
-      a_coroutine_descr_ptr  cdp = get_coroutine_descr(rout);
+      a_coroutine_descr_ptr  cdp = get_coroutine_descr(
+                                              rout, (a_source_position*)NULL);
       a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
       cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
       cfp->entity.ptr = (char*)sp;
@@ -6275,98 +6286,6 @@ Return TRUE if we are currently inside a catch clause.
   }  /* for */
   return result;
 }  /* in_catch_clause */
-
-
-static void yield_statement(void)
-/*
-Scan a "yield" statement in a C++ coroutine.  The following forms
-are possible:
-	yield <expr> ;
-	yield { ... } ;
-Add a corresponding stmk_yield statement to the current statement sequence.
-*/
-{
-  an_arg_list_elem_ptr   yield_opnd = NULL;
-  a_routine_ptr          rout;
-  a_source_position      stmt_pos;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-                         src_seq_entry = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_coroutine_descr_ptr  cdp;
-  a_statement_ptr        sp;
-
-  /* Save the position of the beginning of the yield statement. */
-  stmt_pos = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Skip the "yield" (or "__yield") token. */
-  check_assertion(curr_token == tok_yield);
-  (void)get_token();
-  /* Get a pointer to the current routine entry, and its return type. */
-  rout = current_routine_entry();
-  add_stop_token(tok_semicolon);
-  if (special_kind_is(rout, sfk_constructor) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      special_kind_is(rout, sfk_static_constructor) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      special_kind_is(rout, sfk_destructor)) {
-    pos_error(ec_yield_in_special_member, &stmt_pos);
-  } else if (rout == il_header.main_routine) {
-    pos_sy_error(ec_yield_in_main, &stmt_pos, symbol_for(rout));
-  } else if (rout->is_constexpr) {
-    pos_error(ec_yield_in_constexpr_function, &stmt_pos);
-  } else if (in_catch_clause()) {
-    pos_error(ec_yield_in_catch, &stmt_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cli_or_cx_enabled && inside_finally_clause()) {
-    /* This is a return statement inside of a finally block. */
-    pos_error(ec_return_from_finally, &stmt_pos);
-    discard_curr_construct_pragmas();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    src_seq_entry = add_empty_source_sequence_entry();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  }  /* if */
-  cdp = get_coroutine_descr(rout);
-  /* Scan the operand (if any) and produce a corresponding call to the
-     appropriate member of the coroutine's promise. */
-  yield_opnd = scan_yield_operand();
-  /* Allocate the statement. */
-  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_yield, &stmt_pos);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Do processing required for any pragmas that are bound to the current
-     statement. */
-  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  if (rout->is_coroutine) {
-    /* Record a fixup to revisit the statement when we've seen the completed
-       coroutine body. */
-    a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
-    cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
-    cfp->entity.ptr = (char*)sp;
-    cfp->position = stmt_pos;
-    cfp->operand = (void*)yield_opnd;
-    /* Note the presence of a yield statement. */
-    cdp->has_yield = TRUE;
-  } else {
-    unexpected_condition();
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  sp->end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (curr_token == tok_semicolon) {
-    curr_construct_end_position = end_pos_curr_token;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and ignore the final semicolon. */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
-  remove_stop_token(tok_semicolon);
-}  /* yield_statement */
 
 #endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -6959,6 +6878,7 @@ rescan_statement:
       break_statement();
       break;
     case tok_return:
+    case tok_coroutine_return:
       /* Return statement. */
       return_statement();
       if (current_routine_entry()->is_constexpr &&
@@ -6967,12 +6887,6 @@ rescan_statement:
         can_appear_in_constexpr_body = TRUE;
       }  /* if */
       break;
-#if COROUTINES_ALLOWED
-    case tok_yield:
-yield_case:
-      yield_statement();
-      break;
-#endif /* COROUTINES_ALLOWED */
     case tok_asm:
     case tok_microsoft_asm:
       /* Asm "declaration" or Microsoft mode asm block. */
@@ -7040,12 +6954,6 @@ default_label_case:
             get_another_statement = TRUE;
             break;
           }  /* if */
-#if COROUTINES_ALLOWED
-        } else if (coroutines_enabled && next_tok != tok_lparen &&
-                   coroutine_keywords_enabled &&
-                   check_context_sensitive_keyword(tok_yield, "yield")) {
-          goto yield_case;
-#endif /* COROUTINES_ALLOWED */
         }  /* if */
       }  /* if */
       /* Other cases are expression statements. */

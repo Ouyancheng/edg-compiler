@@ -1787,7 +1787,7 @@ Return TRUE if it is a ranged-based-for, FALSE if it is not.
   check_assertion(curr_token == tok_for);
   (void)get_token();
 #if COROUTINES_ALLOWED
-  if (curr_token == tok_await) {
+  if (curr_token == tok_coroutine_await) {
     /* The await token actually implies a range-based-for statement, but it
        doesn't hurt to just ignore it for disambiguation purposes. */
     (void)get_token();

@@ -1256,8 +1256,9 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_complex,
   tok_c11_generic,
 #if COROUTINES_ALLOWED
-  tok_yield,
-  tok_await,
+  tok_coroutine_yield,
+  tok_coroutine_return,
+  tok_coroutine_await,
 #endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_assignable,
@@ -1429,7 +1430,7 @@ EXTERN a_const_char
    "__builtin_complex",
    "_Generic",
 #if COROUTINES_ALLOWED
-   "__yield", "__await",
+   "co_yield", "co_return", "co_await",
 #endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
@@ -14582,7 +14583,8 @@ enum an_expr_node_kind_tag {
 			   construct. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
-  enk_await,		/* An "await" operation. */
+  enk_yield,		/* A "yield" expression. */
+  enk_await,		/* An "await" expression. */
 #endif /* COROUTINES_ALLOWED */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
@@ -16201,11 +16203,13 @@ typedef struct an_expr_node {
     } builtin_choose_expr;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
-    /* When kind == enk_await: */
+    /* When kind == enk_await or enk_yield: */
     struct {
       an_expr_node_ptr
 		operand;
-			/* The operand of the await operator. */
+			/* The operand of the co_await operator.  (A call to a
+			   yield_value member of the promise type in the case
+			   of a "co_yield" operation.) */
       an_expr_node_ptr
 		resume_ready_suspend;
 			/* A list of two or three expressions representing the
@@ -16242,7 +16246,6 @@ enum a_statement_kind_tag {
   stmk_coroutine,	/* Coroutine information. */
   stmk_coroutine_return,
 			/* Return (for a coroutine). */
-  stmk_yield,		/* Yield. */
 #endif /* COROUTINES_ALLOWED */
   stmk_block,		/* A list of statements, possibly one with its
 			   own declarations and scope. */
@@ -16864,6 +16867,10 @@ typedef struct a_coroutine_descr {
 			   fixup entries (used to update IL entries for
 			   coroutine entries when the complete coroutine
 			   function body has been seen). */
+  a_source_position
+		position;
+			/* The position of the construct (co_yield or co_await)
+			   that triggered the creation of this entry. */
   a_bit_field	eventual_value:1;
 			/* TRUE if the promise type has a member function
 			   set_result. */

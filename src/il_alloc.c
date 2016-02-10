@@ -3410,6 +3410,7 @@ fields to default values.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
+    case enk_yield:
       node->variant.await_info.operand = NULL;
       node->variant.await_info.resume_ready_suspend = NULL;
       break;
@@ -3802,7 +3803,6 @@ fields to default values.
     case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
-    case stmk_yield:
     case stmk_coroutine_return:
 #endif /* COROUTINES_ALLOWED */
       /* No variant fields. */

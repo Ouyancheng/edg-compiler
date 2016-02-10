@@ -8418,25 +8418,12 @@ member.
                          rtp = skip_typerefs(rp->type);
   a_template_arg_ptr     tap_list, *p_tap;
   a_param_type_ptr       ptp;
-  a_source_position      *diag_pos;
-  a_coroutine_fixup_ptr  cfp;
 
-  check_assertion(rp->is_coroutine && cdp != NULL && cdp->fixups != NULL);
-  /* Use as a diagnostic position the position of the first yield or await
-     construct. */
-  cfp = cdp->fixups;
-  for (; cfp != NULL; cfp = cfp->next) {
-    if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node ||
-        (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement &&
-         ((a_statement_ptr)cfp->entity.ptr)->kind ==
-                                              (a_statement_kind)stmk_yield)) {
-      diag_pos = &cfp->position;
-    }  /* if */
-  }  /* for */
+  check_assertion(rp->is_coroutine && cdp != NULL);
   /* First look up std::experimental::coroutine_traits. */
   traits_sym = look_up_class_template_in_std_experimental("coroutine_traits");
   if (traits_sym == NULL) {
-    pos_st_error(ec_special_class_template_not_found, diag_pos,
+    pos_st_error(ec_special_class_template_not_found, &cdp->position,
                  "std::experimental::coroutine_traits");
     traits = NULL;
   } else {
@@ -8468,7 +8455,7 @@ member.
     promise_sym = look_up_name_string_in_class("promise_type", traits,
                                                IDL_TYPENAME_LOOKUP);
     if (promise_sym == NULL || !is_type_symbol(promise_sym)) {
-      pos_stsy_error(ec_not_a_member, diag_pos, "promise_type",
+      pos_stsy_error(ec_not_a_member, &cdp->position, "promise_type",
                      traits_inst_sym);
       promise_type = error_type();
     } else {

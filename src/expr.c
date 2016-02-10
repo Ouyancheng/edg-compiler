@@ -101,8 +101,8 @@ static a_boolean process_runtime_checked_safe_cast(
                                             a_cast_source_form source_form);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
-static void scan_await_expression(a_rescan_control_block *rcblock,
-                                  an_operand             *result);
+static void scan_yield_expression(an_operand  *result);
+static void scan_await_expression(an_operand  *result);
 #endif /* COROUTINES_ALLOWED */
 
 /* Interface to scan_expr_full for the simple case where a bound function
@@ -31537,15 +31537,28 @@ repeat_switch:
       goto handle_identifier;
     case tok_identifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled &&
-          locator_for_curr_id.symbol_header == safe_cast_symbol_header) {
-        /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
-           else here. */
-        if (turn_safe_cast_into_keyword_if_appropriate()) {
-          goto handle_safe_cast;
+      if (microsoft_mode) {
+        if (cli_or_cx_enabled &&
+            locator_for_curr_id.symbol_header == safe_cast_symbol_header) {
+          /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
+             else here. */
+          if (turn_safe_cast_into_keyword_if_appropriate()) {
+            goto handle_safe_cast;
+          }  /* if */
         }  /* if */
-      }  /* if */
+#if COROUTINES_ALLOWED
+        if (coroutines_enabled && coroutine_keywords_enabled &&
+            curr_token == tok_identifier &&
+            locator_for_curr_id.symbol_header == yield_symbol_header &&
+            next_token() != tok_lparen &&
+            check_context_sensitive_keyword(tok_coroutine_yield, "yield")) {
+          /* In Microsoft mode, "yield" not followed by a left parenthesis is
+             treated like the co_yield keyword. */
+          goto handle_coroutine_yield;
+        }  /* if */
+#endif /* COROUTINES_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
 handle_identifier:
       { a_boolean okay_after_typename;
         /* Watch out for something like "S::*". */
@@ -31862,8 +31875,13 @@ handle_identifier:
       break;
 
 #if COROUTINES_ALLOWED
-    case tok_await:
-      scan_await_expression((a_rescan_control_block *) NULL, &local_result);
+    case tok_coroutine_yield:
+handle_coroutine_yield:
+      scan_yield_expression(&local_result);
+      break;
+
+    case tok_coroutine_await:
+      scan_await_expression(&local_result);
       break;
 #endif /* COROUTINES_ALLOWED */
 
@@ -34707,12 +34725,14 @@ variable.
 static void add_await_to_operand(an_operand              *operand,
                                  a_source_position       *pos,
                                  a_token_sequence_number tok_seq_number,
+                                 a_boolean               for_yield,
                                  an_operand              *result)
 /*
 If *operand represents an expression "X", produce an operand in *result
 representing "await X".  Use pos as the position for diagnostics, and
 tok_seq_number to decide which token position to look up associated
-functions (like await_resume) from.
+functions (like await_resume) from.  for_yield is TRUE if this is called
+to implement a co_yield expression.
 */
 {
   an_operand        ready_operand, ready_call;
@@ -34721,8 +34741,10 @@ functions (like await_resume) from.
   a_type_ptr        utp;
   a_symbol_locator  loc;
   a_boolean         temp_init_used, use_member_calls;
-  an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_await);
+  an_expr_node_ptr  node;
 
+  node = alloc_expr_node(for_yield ? (an_expr_node_kind)enk_yield
+                                   : (an_expr_node_kind)enk_await);
   /* "await <expr>" is implemented using three calls to functions await_ready,
      await_suspend, and await_resume.  If <expr> produces a glvalue, that
      glvalue is used as an argument in those calls.  If it produces a prvalue,
@@ -34778,13 +34800,21 @@ functions (like await_resume) from.
   node->variant.await_info.resume_ready_suspend->next =
                                          make_node_from_operand(&resume_call);
   make_expression_operand(node, result);
-  if (expr_stack->potentially_evaluated && !is_error_operand(result)) {
-    if (innermost_function_scope == NULL) {
-      expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
-      conv_to_error_operand(operand);
-    } else {
-      a_routine_ptr          curr_routine = current_routine_entry();
-      a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine);
+  if (is_error_operand(result)) {
+    /* Nothing more to do. */
+  } else if (!expr_stack->potentially_evaluated) {
+    pos_error(ec_await_in_unevaluated_operand, pos);
+  } else if (innermost_function_scope == NULL) {
+    expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
+    conv_to_error_operand(operand);
+  } else if (in_catch_clause()) {
+    expr_pos_error(ec_await_not_allowed_in_catch_clause, pos);
+    conv_to_error_operand(operand);
+  } else {
+    a_routine_ptr          curr_routine = current_routine_entry();
+    a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine, pos);
+    if (curr_routine->has_deducible_return_type &&
+        !curr_routine->has_deduced_return_type) {
       a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
       cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
       cfp->entity.ptr = (char*)node;
@@ -34793,9 +34823,12 @@ functions (like await_resume) from.
       cfp->tok_seq_number = tok_seq_number;
       cfp->await_uses_member_calls = use_member_calls;
       cdp->has_potentially_evaluated_await = TRUE;
-      if (in_catch_clause()) {
-        expr_pos_error(ec_await_not_allowed_in_catch_clause, pos);
-      }  /* if */
+    } else {
+      init_coroutine_descr_if_needed(curr_routine, cdp);
+      determine_suspend_call_for_await(
+                     node, alloc_arg_list_elem_for_operand(&suspend_operand),
+                     use_member_calls, tok_seq_number, cdp);
+
     }  /* if */
   }  /* if */
 }  /* add_await_to_operand */
@@ -35026,7 +35059,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   }  /* if */
 #if COROUTINES_ALLOWED
   if (use_await) {
-    add_await_to_operand(&operand, expr_position, tok_seq_number, &operand);
+    add_await_to_operand(&operand, expr_position, tok_seq_number,
+                         /*for_yield=*/FALSE, &operand);
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
   if (passed) {
@@ -35318,7 +35352,8 @@ initializer of *loop_var.
 #if COROUTINES_ALLOWED
     if (use_await) {
       add_await_to_operand(&member_call_operand, &member_call_operand.position,
-                           tok_seq_number, &member_call_operand);
+                           tok_seq_number, /*for_yield=*/FALSE,
+                           &member_call_operand);
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
     /* Make the variable and initialize it from the expression just made. */
@@ -36977,7 +37012,8 @@ initializer of *variable.
                             &result, &func_call_node);
 #if COROUTINES_ALLOWED
     if (use_await) {
-      add_await_to_operand(&result, &result.position, tok_seq_number, &result);
+      add_await_to_operand(&result, &result.position, tok_seq_number,
+                           /*for_yield=*/FALSE, &result);
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
     if (func_call_node != NULL) {
@@ -37923,7 +37959,9 @@ This routine frees *alep.
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
 
-  check_assertion(curr_routine->is_coroutine || is_yield);
+  cdp = get_coroutine_descr(curr_routine, &null_source_position);
+  check_assertion(curr_routine->is_coroutine);
+  init_coroutine_descr_if_needed(curr_routine, cdp);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -37936,7 +37974,6 @@ This routine frees *alep.
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
   end_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  cdp = get_coroutine_descr(curr_routine);
   make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
                                (a_ref_entry *)NULL);
   if (alep != NULL) {
@@ -38252,38 +38289,149 @@ done:
 
 #if COROUTINES_ALLOWED
 
-an_arg_list_elem_ptr scan_yield_operand(void)
+static an_arg_list_elem_ptr scan_yield_operand(void)
 /*
-Scan the operand (if any) of a yield statement in a coroutine:
-	yield <expr> ;
-	yield { ... } ;
+Scan the operand (if any) of a yield expression in a coroutine:
+	co_yield <expr>
+	co_yield { ... }
 and return a component representing the underlying call on the promise
 associated with the coroutine.  (The component will eventually be deallocated
 by wrap_up_coroutine_result_expression.)
 */
 {
   an_arg_list_elem_ptr  alep;
-  an_expr_stack_entry   *saved_expr_stack;
-  an_expr_stack_entry   expr_stack_entry;
 
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
   if (curr_token == tok_lbrace && list_init_enabled) {
     alep = parse_braced_init_list(/*bundle=*/FALSE);
   } else {
     alep = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
   }  /* if */
   bundle_coroutine_result(alep);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
   return alep;
 }  /* scan_yield_operand */
 
 
-static void scan_await_expression(a_rescan_control_block *rcblock,
-                                  an_operand             *result)
+static void scan_yield_expression(an_operand  *result)
+/*
+Scan a coroutine "yield" expression of the form
+
+	co_yield <expr>
+	co_yield { ... }
+
+and return its representation in *result (or an error indication in *rcblock
+if applicable).  In Microsoft modes, some alternatives are available for the
+"co_yield" keyword.)
+
+A yield expression cannot appear in a rescan context (hence the lack of an
+rcblock parameter for this function).
+*/
+{
+  an_arg_list_elem_ptr     yield_opnd = NULL;
+  a_source_position        operator_position;
+  a_token_sequence_number  operator_tok_seq_number;
+  a_routine_ptr            rout = current_routine_entry();
+  a_coroutine_descr_ptr    cdp;
+  an_expr_node_ptr         node;
+
+  operator_position = pos_curr_token;
+  if (special_kind_is(rout, sfk_constructor) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      special_kind_is(rout, sfk_static_constructor) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      special_kind_is(rout, sfk_destructor)) {
+    pos_error(ec_yield_in_special_member, &operator_position);
+  } else if (rout == il_header.main_routine) {
+    pos_sy_error(ec_yield_in_main, &operator_position, symbol_for(rout));
+  } else if (rout->is_constexpr) {
+    pos_error(ec_yield_in_constexpr_function, &operator_position);
+  } else if (in_catch_clause()) {
+    pos_error(ec_yield_in_catch, &operator_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_or_cx_enabled && inside_finally_clause()) {
+    /* This is a return statement inside of a finally block. */
+    pos_error(ec_return_from_finally, &operator_position);
+    discard_curr_construct_pragmas();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  operator_tok_seq_number = curr_token_sequence_number;
+  /* Note the presence of a yield expression. */
+  cdp = get_coroutine_descr(rout, &operator_position);
+  check_assertion(rout->is_coroutine);
+  cdp->has_yield = TRUE;
+  /* Scan the operand. */
+  (void)get_token();
+  yield_opnd = scan_yield_operand();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand.end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (rout->has_deducible_return_type) {
+    a_coroutine_fixup_ptr  cfp;
+    /* Create a placeholder enk_yield node.  It will be completed later on.
+       However, the promise associated with a deduced return type coroutine
+       must have a yielding function that returns no value: We can therefore
+       proceed with a void type for this expression. */
+    node = alloc_expr_node((an_expr_node_kind)enk_yield);
+    node->type = void_type();
+    make_expression_operand(node, result);
+    /* Record a fixup to revisit the expression when we've seen the completed
+       coroutine body. */
+    cfp = add_coroutine_fixup(cdp);
+    cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
+    cfp->entity.ptr = (char*)node;
+    cfp->position = operator_position;
+    cfp->tok_seq_number = operator_tok_seq_number;
+    cfp->operand = (void*)yield_opnd;
+    if (!microsoft_mode) {
+      /* As of this writing the committee is inclined to disallow deduced
+         return types for coroutines.  (See document P0057R1.) */
+      pos_diagnostic(es_discretionary_error,
+                     ec_coroutine_with_deduced_return_type,
+                     &operator_position);
+    }  /* if */
+  } else {
+    node = wrap_up_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE);
+    make_expression_operand(node, result);
+    if (is_error_operand(result)) {
+      /* Don't take actions that are likely to trigger unhelpful additional
+         diagnostics. */
+    } else if (!is_void_type(result->type)) {
+      add_await_to_operand(result, &operator_position, operator_tok_seq_number,
+                           /*for_yield=*/TRUE, result);
+    } else if (!microsoft_mode) {
+      pos_error(ec_invalid_yield_value_type, &operator_position);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &operator_position, &operand.end_position,
+                       &operator_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+}  /* scan_yield_expression */
+
+
+void wrap_up_yield_expression(a_coroutine_fixup_ptr  cfp)
+/*
+The given node was created when the return type of a coroutine had not yet been
+determined.  Complete it now that that that type is known.  *alep represents
+the operand of the co_yield expression.
+*/
+{
+  an_operand            yield_op;
+  an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
+  an_expr_node_ptr      node = (an_expr_node_ptr)cfp->entity.ptr, yield_call;
+
+  yield_call = wrap_up_coroutine_result_expression(alep, /*is_yield=*/TRUE);
+  if (!is_void_type(yield_call->type)) {
+    /* The call to yield_value in a coroutine whose return type is deduced is
+       assumed to produce a void result. */
+    pos_ty_error(ec_nonvoid_yield_value_type, &cfp->position, yield_op.type);
+    *node = *error_node();
+  } else {
+    node->variant.await_info.operand = yield_call;
+    node->type = yield_call->type;
+  }  /* if */
+}  /* wrap_up_yield_expression */
+
+
+static void scan_await_expression(an_operand  *result)
 /*
 Scan a coroutine "await" expression of the form
 
@@ -38292,37 +38440,24 @@ Scan a coroutine "await" expression of the form
 and return its representation in *result (or an error indication in *rcblock
 if applicable).
 
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned "await"
-expression.
+An await expression cannot appear in a rescan context (hence the lack of an
+rcblock parameter for this function).
 */
 {
   an_operand              operand;
   a_source_position       operator_position;
   a_token_sequence_number operator_tok_seq_number;
 
-  if (rcblock != NULL) {
-    /* Redoing semantic analysis on a previously-scanned expression. */
-    check_assertion(rcblock->operator_token == tok_await);
-    make_rescan_operands(rcblock, &operand,
-                         (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number,
-                         (a_source_position *)NULL);
-  } else {
-    /* Normal, non-rescan, processing. */
-    operator_position = pos_curr_token;
-    operator_tok_seq_number = curr_token_sequence_number;
-    /* Scan the operand. */
-    (void)get_token();
-    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
-  }  /* if */
+  /* Normal, non-rescan, processing. */
+  operator_position = pos_curr_token;
+  operator_tok_seq_number = curr_token_sequence_number;
+  /* Scan the operand. */
+  (void)get_token();
+  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   add_await_to_operand(&operand, &operator_position, operator_tok_seq_number,
-                       result);
+                       /*for_yield=*/FALSE, result);
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info(result,
-                                          &operator_position,
-                                          operator_tok_seq_number,
-                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_await_expression */
 
@@ -39635,11 +39770,6 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
     /* A braced-init-list. */
     operator_token = tok_lbrace;
-#if COROUTINES_ALLOWED
-  } else if (expr->kind == (an_expr_node_kind)enk_await) {
-    /* An await expression. */
-    operator_token = tok_await;
-#endif /* COROUTINES_ALLOWED */
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -39788,11 +39918,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_not:
         scan_arith_prefix_operator(rcblock, result);
         break;
-#if COROUTINES_ALLOWED
-      case tok_await:
-        scan_await_expression(rcblock, result);
-        break;
-#endif /* COROUTINES_ALLOWED */
       case tok_sizeof:
         scan_sizeof_operator(rcblock, result);
         break;

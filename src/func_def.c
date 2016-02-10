@@ -991,10 +991,12 @@ return type.  Diagnose certain constraint violations if needed (e.g., a
 coroutine cannot have an ellipsis parameter).
 */
 {
-  a_coroutine_descr_ptr  cdp = get_coroutine_descr(rp);
-  a_coroutine_fixup_ptr  cfp, fixups = cdp->fixups;
+  a_coroutine_descr_ptr  cdp;
+  a_coroutine_fixup_ptr  cfp, fixups;
 
-  check_assertion(rp->is_coroutine && fixups != NULL);
+  check_assertion(rp->is_coroutine);
+  cdp = get_coroutine_descr(rp, (a_source_position*)NULL);
+  fixups = cdp->fixups;
   if (rp->has_deducible_return_type && !rp->is_prototype_instantiation) {
     /* Deduce a coroutine return type.  This is done in two phases.  First we
        deduce a return type T based on the coroutine result operands.  Once
@@ -1002,7 +1004,7 @@ coroutine cannot have an ellipsis parameter).
            std::experimental::async_stream<T>
            std::experimental::task<T>
            std::experimental::generator<T>
-       depending on the presence of "yield" and/or "await".
+       depending on the presence of "co_yield" and/or "co_await".
     */
     a_const_char  *ct_name;
     a_type_ptr    return_type, utp;
@@ -1018,34 +1020,36 @@ coroutine cannot have an ellipsis parameter).
     /* First determine T.  This will trigger errors if the coroutine result
        types are inconsistent. */
     for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
-      if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
-        a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
-        a_boolean        is_yield = sp->kind == (a_statement_kind)stmk_yield;
-        an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
-        check_assertion(is_yield ||
-                        sp->kind == (a_statement_kind)stmk_coroutine_return);
-        if (alep == NULL) {
-          if (cdp->has_potentially_evaluated_await) {
-            deduce_return_type_from_void_operand(
+      an_arg_list_elem_ptr  alep;
+      if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node &&
+          ((an_expr_node_ptr)cfp->entity.ptr)->kind == 
+                                               (an_expr_node_kind)enk_await) {
+        /* Ordinary co_await expressions do not affect the deduced return
+           type. */
+        continue;
+      }  /* if */
+      alep = (an_arg_list_elem_ptr)cfp->operand;
+      if (alep == NULL) {
+        if (cdp->has_potentially_evaluated_await) {
+          deduce_return_type_from_void_operand(
                               rp, /*keep_placeholder=*/FALSE, &cfp->position);
-            return_type = skip_typerefs(rp->type)->variant.routine.return_type;
-          }  /* if */
-        } else if (is_expression_component(alep)) {
-          check_and_adjust_deduced_return_type_if_needed(
+          return_type = skip_typerefs(rp->type)->variant.routine.return_type;
+        }  /* if */
+      } else if (is_expression_component(alep)) {
+        check_and_adjust_deduced_return_type_if_needed(
                             rp, operand_of_arg_list_elem(alep), &return_type);
-        } else if (is_braced_init_component(alep)) {
-          /* A braced initializer list cannot be used for return type
-             deduction. */
-          pos_error(rp->is_lambda_body ?
+      } else if (is_braced_init_component(alep)) {
+        /* A braced initializer list cannot be used for return type
+           deduction. */
+        pos_error(rp->is_lambda_body ?
                                      ec_braced_list_for_implicit_lambda_type
                                    : ec_braced_list_for_implicit_return_type,
-                    &cfp->position);
-          return_type = error_type();
-          rp->has_deduced_return_type = TRUE;
-          rp->type->variant.routine.return_type = return_type;
-        } else {
-          unexpected_condition();
-        }  /* if */
+                  &cfp->position);
+        return_type = error_type();
+        rp->has_deduced_return_type = TRUE;
+        rp->type->variant.routine.return_type = return_type;
+      } else {
+        unexpected_condition();
       }  /* if */
     }  /* for */
     /* Now replace the deduced return type by the appropriate class template
@@ -1072,16 +1076,12 @@ coroutine cannot have an ellipsis parameter).
   /* Now that the type of the coroutine is established, we can determine the
      promise type, which in turn allows us to complete the expressions needed
      to implement the coroutine operations. */
-  init_coroutine_descr(rp, cdp);
+  init_coroutine_descr_if_needed(rp, cdp);
   for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
     an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
     if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
-      if (sp->kind == (a_statement_kind)stmk_yield) {
-        /* Call yield_value with the yield statement's operand. */
-        sp->expr = wrap_up_coroutine_result_expression(
-                                                     alep, /*is_yield=*/TRUE);
-      } else if (sp->kind == (a_statement_kind)stmk_coroutine_return) {
+      if (sp->kind == (a_statement_kind)stmk_coroutine_return) {
         /* Call return_void or return_value with the coroutine-return
            statement's operand (unless there is no operand and this coroutine
            has no "eventual value"). */
@@ -1089,21 +1089,28 @@ coroutine cannot have an ellipsis parameter).
           sp->expr = wrap_up_coroutine_result_expression(
                                                     alep, /*is_yield=*/FALSE);
         }  /* if */
+      } else {
+        unexpected_condition();
       }  /* if */
     } else if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
-      if (!cdp->eventual_value) {
-        if (rp->is_prototype_instantiation) {
-          /* The eventual_value flag is unreliable in prototype
-             instantiations. */
+      an_expr_node_ptr  node = (an_expr_node_ptr)cfp->entity.ptr;
+      if (node->kind == (an_expr_node_kind)enk_yield) {
+        wrap_up_yield_expression(cfp);
+      } else if (node->kind == (an_expr_node_kind)enk_await) {
+        if (!cdp->eventual_value) {
+          if (rp->is_prototype_instantiation) {
+            /* The eventual_value flag is unreliable in prototype
+               instantiations. */
+          } else {
+            pos_ty_error(ec_await_no_eventual_value, &cfp->position,
+                         cdp->promise->type);
+          }  /* if */
         } else {
-          pos_ty_error(ec_await_no_eventual_value, &cfp->position,
-                       cdp->promise->type);
+          /* Resolve the suspend_call. */
+          determine_suspend_call_for_await((an_expr_node_ptr)cfp->entity.ptr,
+                                           alep, cfp->await_uses_member_calls,
+                                           cfp->tok_seq_number, cdp);
         }  /* if */
-      } else {
-        /* Resolve the suspend_call. */
-        determine_suspend_call_for_await((an_expr_node_ptr)cfp->entity.ptr,
-                                         alep, cfp->await_uses_member_calls,
-                                         cfp->tok_seq_number, cdp);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -3407,12 +3414,14 @@ in case it's useful.
 
 #if COROUTINES_ALLOWED
 
-a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr  rp)
+a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr      rp,
+                                          a_source_position  *pos)
 /*
 Return a coroutine description for the given routine (which must have a
 definition).  If no description was allocated for this routine yet, one is
-allocated at this time, recorded in the definition through a leading
-stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
+allocated at this time (associated with the given position), recorded in the
+definition through a leading stmk_coroutine statement, and rp->is_coroutine
+is set to TRUE.
 */
 {
   a_coroutine_descr_ptr   cdp;
@@ -3446,6 +3455,7 @@ stmk_coroutine statement, and rp->is_coroutine is set to TRUE.
     /* Allocate a new description and associated stmk_coroutine entry. */
     a_statement_ptr  csp = alloc_statement((a_statement_kind)stmk_coroutine);
     cdp = alloc_coroutine_descr();
+    cdp->position = *pos;
     csp->variant.coroutine.descr = cdp;
     csp->next = body_stmt->variant.block.statements;
     body_stmt->variant.block.statements = csp;

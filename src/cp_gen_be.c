@@ -13457,6 +13457,24 @@ sizeof_cases:
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
+    case enk_yield:
+      /* yield expression: generate "co_yield <expr>". */
+      expr = expr->variant.await_info.operand;
+      write_tok_str("co_yield ");
+      check_assertion(expr != NULL && is_operation_node(expr) &&
+                      node_operator_is(expr, eok_dot_member_call));
+      /* Process any tags declared within the expression (e.g., in casts). */
+      skip_embedded_declarations();
+      /* expr is of the form _Pr.yield_value(...).  Render the operand of
+         that call (only). */
+      expr = skip_parens(expr->variant.operation.operands);
+      /* The first operand is the routine entry for "yield_value", the second
+         operand is the promise variable ("_Pr" above).  Move to the third
+         operand (which corresponds to the actual operand of the yield
+         statement). */
+      expr = expr->next->next;
+      gen_expression(expr);
+      break;
     case enk_await:
       write_tok_str("await ");
       gen_expression(expr->variant.await_info.operand);
@@ -15585,26 +15603,6 @@ one that yields the value) of a statement expression.
           skip_embedded_declarations();
           gen_expression(expr);
         }  /* if */
-        write_tok_ch(';');
-      }
-      break;
-    case stmk_yield:
-      /* "yield" statement: generate "yield <expr>;". */
-      { an_expr_node_ptr  expr = statement->expr;
-        write_tok_str("yield ");
-        check_assertion(expr != NULL && is_operation_node(expr) &&
-                        node_operator_is(expr, eok_dot_member_call));
-        /* Process any tags declared within the expression (e.g., in casts). */
-        skip_embedded_declarations();
-        /* expr is of the form _Pr.yield_value(...).  Render the operand of
-           that call (only). */
-        expr = skip_parens(expr->variant.operation.operands);
-        /* The first operand is the routine entry for "yield_value", the second
-           operand is the promise variable ("_Pr" above).  Move to the third
-           operand (which corresponds to the actual operand of the yield
-           statement). */
-        expr = expr->next->next;
-        gen_expression(expr);
         write_tok_ch(';');
       }
       break;

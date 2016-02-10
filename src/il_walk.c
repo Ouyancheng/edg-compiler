@@ -3359,7 +3359,10 @@ as specified in the control block.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
-      traverse_expr(expr->variant.await_info.operand, tblock);
+    case enk_yield:
+      if (expr->variant.await_info.operand != NULL) {
+        traverse_expr(expr->variant.await_info.operand, tblock);
+      }  /* if */
       traverse_expr_list(expr->variant.await_info.resume_ready_suspend,
                          tblock);
       break;
@@ -3488,7 +3491,6 @@ as specified in the control block.
       break;
 #if COROUTINES_ALLOWED
     case stmk_coroutine_return:
-    case stmk_yield:
       if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
       }  /* if */

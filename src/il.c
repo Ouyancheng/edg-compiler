@@ -2048,7 +2048,10 @@ sizeof_cases:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
-      fputs("await:\n", f_debug);
+    case enk_yield:
+      fputs(node->kind == (an_expr_node_kind)enk_await ? "await:\n"
+                                                       : "yield:\n",
+            f_debug);
       for (a = 0; a < level; a++) fputs(" ", f_debug);
       fprintf(f_debug, "<operand> =\n");
       db_expr_node(node->variant.await_info.operand, level + 2);
@@ -2399,7 +2402,6 @@ Dump a statement kind, for debug purposes.
     case stmk_return:           s = "return";            break;
 #if COROUTINES_ALLOWED
     case stmk_coroutine:        s = "coroutine";         break;
-    case stmk_yield:            s = "yield";             break;
     case stmk_coroutine_return: s = "coroutine return";  break;
 #endif /* COROUTINES_ALLOWED */
     case stmk_block:            s = "block";             break;
@@ -20199,6 +20201,12 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if COROUTINES_ALLOWED
+    case enk_await:
+    case enk_yield:
+      has_side_effects = TRUE;
+      break;
+#endif /* COROUTINES_ALLOWED */
     case enk_braced_init_list:
     case enk_param_ref:
     default:

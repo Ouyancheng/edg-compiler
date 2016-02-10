@@ -528,6 +528,10 @@ extern a_boolean inside_statement_expression(void);
 
 #if COROUTINES_ALLOWED
 extern a_boolean in_catch_clause(void);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean inside_finally_clause(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* COROUTINES_ALLOWED */
 
 extern void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym);

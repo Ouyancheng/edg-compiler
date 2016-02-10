@@ -1184,10 +1184,22 @@ Install the keywords in the symbol table.
     }  /* if */
 #if COROUTINES_ALLOWED
     if (coroutines_enabled) {
-      enter_keyword((a_token_kind)tok_yield, "__yield_value");
-      enter_keyword((a_token_kind)tok_await, "__await");
-      if (coroutine_keywords_enabled) {
-        enter_keyword((a_token_kind)tok_await, "await");
+      enter_keyword((a_token_kind)tok_coroutine_yield, "co_yield");
+      enter_keyword((a_token_kind)tok_coroutine_return, "co_return");
+      enter_keyword((a_token_kind)tok_coroutine_await, "co_await");
+      if (microsoft_mode) {
+        a_symbol_locator locator;
+        /* yield is a contextual keyword.  Initialize a symbol header for it
+           to allow for faster checking later on. */
+        clear_locator(&locator, &null_source_position);
+        yield_symbol_header = find_symbol_header("yield", sizeof("yield")-1,
+                                                 &locator);
+        /* Enter nonstandard keyword alternatives for co_yield and co_await. */
+        enter_keyword((a_token_kind)tok_coroutine_yield, "__yield_value");
+        enter_keyword((a_token_kind)tok_coroutine_await, "__await");
+        if (coroutine_keywords_enabled) {
+          enter_keyword((a_token_kind)tok_coroutine_await, "await");
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* COROUTINES_ALLOWED */

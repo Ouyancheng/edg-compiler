@@ -1797,6 +1797,7 @@ do_set_proper_definition_needed_flag:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
           case enk_await:
+          case enk_yield:
             walk_ptr(ptr->variant.await_info.operand, an_expr_node_ptr,
                      iek_expr_node);
             walk_list(ptr->variant.await_info.resume_ready_suspend,
@@ -2007,7 +2008,6 @@ do_set_proper_definition_needed_flag:
           case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
-          case stmk_yield:
           case stmk_coroutine_return:
 #endif /* COROUTINES_ALLOWED */
             /* No additional pointers. */

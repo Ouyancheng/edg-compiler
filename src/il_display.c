@@ -4529,7 +4529,9 @@ cleanup_state_common:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
     case enk_await:
-      (void)printf("enk_await\n");
+    case enk_yield:
+      (void)printf(ptr->kind == (an_expr_node_kind)enk_await ? "enk_await\n"
+                                                             : "enk_yield\n");
       disp_ptr("await_info.operand", (char *)ptr->variant.await_info.operand,
                iek_expr_node);
       disp_ptr("await_info.resume_ready_suspend",
@@ -4884,10 +4886,6 @@ Display the indicated statement.
 #if COROUTINES_ALLOWED
     case stmk_coroutine_return:
       (void)printf("stmk_coroutine_return\n");
-      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-      break;
-    case stmk_yield:
-      (void)printf("stmk_yield\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_coroutine:
