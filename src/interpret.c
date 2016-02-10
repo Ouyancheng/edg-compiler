@@ -1818,6 +1818,7 @@ redo:
         } else if (tp->variant.array.variant.number_of_elements == 0) {
           err_code = ec_constexpr_access_to_runtime_storage;
         } else {
+          err_code = ec_no_error;
           unexpected_condition();
         }  /* if */
         info_with_pos(err_code, pos, ips);
