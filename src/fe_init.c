@@ -1187,6 +1187,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_coroutine_yield, "co_yield");
       enter_keyword((a_token_kind)tok_coroutine_return, "co_return");
       enter_keyword((a_token_kind)tok_coroutine_await, "co_await");
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
         a_symbol_locator locator;
         /* yield is a contextual keyword.  Initialize a symbol header for it
@@ -1201,6 +1202,7 @@ Install the keywords in the symbol table.
           enter_keyword((a_token_kind)tok_coroutine_await, "await");
         }  /* if */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #endif /* COROUTINES_ALLOWED */
   }  /* if */

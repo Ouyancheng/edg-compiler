@@ -4119,9 +4119,11 @@ EXTERN sizeof_t	size_scope_stack;
 EXTERN a_symbol_header_ptr
 		safe_cast_symbol_header;
 
+#if COROUTINES_ALLOWED
 /* Header for the contextual keyword "yield" used in some Microsoft modes. */
 EXTERN a_symbol_header_ptr
 		yield_symbol_header;
+#endif /* COROUTINES_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
