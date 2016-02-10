@@ -5991,8 +5991,11 @@ The syntax is:
   db_enter(3, "return_statement");
   check_for_unreachable_code();
   /* Ignore the initial "return". */
-  check_assertion_str(curr_token == tok_return ||
-                      curr_token == tok_coroutine_return,
+  check_assertion_str(
+#if COROUTINES_ALLOWED
+                      curr_token == tok_coroutine_return ||
+#endif /* COROUTINES_ALLOWED */
+                      curr_token == tok_return,
                       "return_statement: expected return");
   /* Save the position of the beginning of the return statement. */
   return_pos = pos_curr_token;
@@ -6878,8 +6881,10 @@ rescan_statement:
       break_statement();
       break;
     case tok_return:
+#if COROUTINES_ALLOWED
     case tok_coroutine_return:
-      /* Return statement. */
+#endif /* COROUTINES_ALLOWED */
+      /* Return or co-return statement. */
       return_statement();
       if (current_routine_entry()->is_constexpr &&
           !special_kind_is(current_routine_entry(), sfk_constructor)) {
