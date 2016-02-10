@@ -995,7 +995,7 @@ coroutine cannot have an ellipsis parameter).
   a_coroutine_fixup_ptr  cfp, fixups;
 
   check_assertion(rp->is_coroutine);
-  cdp = get_coroutine_descr(rp, (a_source_position*)NULL);
+  cdp = get_coroutine_descr(rp, &null_source_position);
   fixups = cdp->fixups;
   if (rp->has_deducible_return_type && !rp->is_prototype_instantiation) {
     /* Deduce a coroutine return type.  This is done in two phases.  First we
