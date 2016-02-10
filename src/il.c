@@ -20086,7 +20086,7 @@ doing nothing should be suppressed.
       break;
     case enk_variable:
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-      if (node->variant.variable.ptr->is_thread_local) {
+      if (node_variable(node)->is_thread_local) {
         /* When lazy initialization is used for thread_local variables, the
            node may have a side-effect. */
         has_side_effects = TRUE;
