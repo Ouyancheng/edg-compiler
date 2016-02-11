@@ -7029,6 +7029,10 @@ diagnostic in *ips.
           /* Copy the address constant to result_con. */
           copy_constant(cap->variant.addr_con, con);
           con->type = type;
+        } else if (is_function_address(cap)) {
+          set_routine_address_constant(cap->variant.routine, con,
+                                       /*set_address_taken_flag=*/TRUE);
+          con->type = type;
         } else if (cap->address == NULL) {
           /* A NULL pointer constant. */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
