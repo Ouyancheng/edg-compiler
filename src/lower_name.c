@@ -6039,7 +6039,6 @@ is TRUE.
   unsigned long    cli_subscript_op_count = 0;
 #else /* !IA64_ABI */
   unsigned long    num_operands;
-  a_boolean        need_close = FALSE;
 #endif /* IA64_ABI */
 
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
@@ -6558,11 +6557,6 @@ is TRUE.
       unexpected_condition_str(
                              "mangled_encoding_for_expression_full: bad kind");
   }  /* switch */
-#if !IA64_ABI
-  if (need_close) {
-    add_to_mangled_name('O', mctl);
-  }  /* if */
-#endif /* !IA64_ABI */
 done:;
 }  /* mangled_encoding_for_expression_full */
 
