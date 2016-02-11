@@ -1969,6 +1969,8 @@ If the first few characters are not an operator encoding, return NULL.
        demangled by the caller. */
     s = "\"\"";
     *ud_suffix_follows = TRUE;
+  } else if (start_of_id_is("aw", ptr, dctl)) {
+    s = "co_await";
   } else {
     s = NULL;
   }  /* if */
@@ -5570,6 +5572,10 @@ be copied quickly.
           str = "alignof(";
           *num_operands = 0;
           *close_str = ")";
+        } else if (ch2 == 'w') {
+          /* co_await */
+          str = "co_await";
+          *num_operands = 1;
         } else if (ch2 == 'z') {
           /* alignof(expression) -- newer mangling form */
           str = "alignof(";

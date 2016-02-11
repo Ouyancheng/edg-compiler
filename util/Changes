@@ -1,5 +1,12 @@
 Version 4.11
 
+2/11/16  [EDGcpfe/16687]
+Demangling of co_await operator
+
+A change has been made to demangle the co_await operator in both Cfront and
+IA-64 ABIs.
+
+
 1/18/16  [EDGcpfe/16757]
 Cfront demangling of names starting with "__li"
 
