@@ -6530,6 +6530,7 @@ is TRUE.
                                (a_constant_ptr)NULL,
                                (a_type_ptr)NULL, mctl);
       break;
+#if COROUTINES_ALLOWED
     case enk_await:
       /* Mangling for "co_await <operand>". */
 #if !IA64_ABI
@@ -6547,6 +6548,7 @@ is TRUE.
       add_to_mangled_name('O', mctl);
 #endif /* IA64_ABI */
       break;
+#endif /* COROUTINES_ALLOWED */
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
