@@ -1255,11 +1255,9 @@ typedef enum /*a_token_kind*/ {
   tok_noreturn,
   tok_builtin_complex,
   tok_c11_generic,
-#if COROUTINES_ALLOWED
   tok_coroutine_yield,
   tok_coroutine_return,
   tok_coroutine_await,
-#endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1429,9 +1427,7 @@ EXTERN a_const_char
    "_Noreturn",
    "__builtin_complex",
    "_Generic",
-#if COROUTINES_ALLOWED
    "co_yield", "co_return", "co_await",
-#endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
