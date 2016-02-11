@@ -626,7 +626,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if COROUTINES_ALLOWED
    (an_opname_kind)onk_none,          /* tok_coroutine_yield */
    (an_opname_kind)onk_none,          /* tok_coroutine_return */
-   (an_opname_kind)onk_none,          /* tok_coroutine_await */
+   (an_opname_kind)onk_await,         /* tok_coroutine_await */
 #endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_is_assignable */

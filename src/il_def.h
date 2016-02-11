@@ -10302,8 +10302,7 @@ typedef struct a_field {
 /*
 An enumeration of C++ operator kinds to identify user-defined overloaded
 operators; they apply only to functions with a special function kind of
-sfk_operator.  This enumeration corresponds to the list of operators in
-ARM 13.4.
+sfk_operator.
 */
 enum an_opname_kind_tag {
   onk_none,
@@ -10330,7 +10329,7 @@ enum an_opname_kind_tag {
   onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
   onk_question,          /* "?" -- only used in front end. */
   onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
-  onk_last
+  onk_await,             /* co_await */ onk_last
 };
 
 #define is_new_operator(op)                                         \

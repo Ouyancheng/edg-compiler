@@ -10896,6 +10896,7 @@ static a_byte overloadable_operator_precedence[] = {
   PREC_QUEST_MARK,	/* onk_question */
   PREC_GNU_MIN_MAX,	/* onk_gnu_min */
   PREC_GNU_MIN_MAX,	/* onk_gnu_max */
+  PREC_PLUS_MINUS,	/* onk_await */
   PREC_LOWEST		/* onk_last */
 };  /* overloadable_operator_precedence */
 

@@ -1742,8 +1742,11 @@ new fields are set properly.
          allowed. */
       error_code = ec_ellipsis_on_operator_function;
     } else if (opname == (an_opname_kind)onk_compl ||
-        opname == (an_opname_kind)onk_not ||
-        opname == (an_opname_kind)onk_arrow) {
+               opname == (an_opname_kind)onk_not ||
+#if COROUTINES_ALLOWED
+               opname == (an_opname_kind)onk_await ||
+#endif /* COROUTINES_ALLOWED */
+               opname == (an_opname_kind)onk_arrow) {
       /* Unary operator must have exactly one argument. */
       if (param_count > 1) {
         error_code = ec_too_many_args_for_operator;

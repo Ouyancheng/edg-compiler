@@ -130,6 +130,9 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "ix"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qu"
+#if COROUTINES_ALLOWED
+#define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "v23min"
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "v23max"
@@ -269,6 +272,9 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "vc"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qs"
+#if COROUTINES_ALLOWED
+#define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "mn"
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "mx"
@@ -6524,6 +6530,23 @@ is TRUE.
                                (a_constant_ptr)NULL,
                                (a_type_ptr)NULL, mctl);
       break;
+    case enk_await:
+      /* Mangling for "co_await <operand>". */
+#if !IA64_ABI
+      /* Put out the initial "O". */
+      add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_AWAIT, mctl);
+#if !IA64_ABI
+      add_to_mangled_name('1', mctl);
+#endif /* !IA64_ABI */
+      mangled_encoding_for_expression(expr->variant.await_info.operand,
+                                      in_dependent_expr, mctl);
+#if !IA64_ABI
+      /* Put out the closing "O". */
+      add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -10071,6 +10094,11 @@ binary versions of operators are mangled differently.
     case onk_question:          /* "?" */
       name = MANGLING_STRING_FOR_OPERATOR_QUESTION;
       break;
+#if COROUTINES_ALLOWED
+    case onk_await:             /* "co_await" */
+      name = MANGLING_STRING_FOR_OPERATOR_AWAIT;
+      break;
+#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case onk_gnu_min:           /* "<?" */
       name = MANGLING_STRING_FOR_OPERATOR_GNU_MIN;
