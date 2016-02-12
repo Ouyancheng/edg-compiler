@@ -41,7 +41,7 @@ expr.c -- Expression scanning routines.
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
-/* Needed for GNU statement expression, ({...}).  Also for checking await
+/* Needed for GNU statement expression, ({...}).  Also for checking co_await
    expressions. */
 #include "statements.h"
 #endif /* GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
@@ -34729,7 +34729,7 @@ static void add_await_to_operand(an_operand              *operand,
                                  an_operand              *result)
 /*
 If *operand represents an expression "X", produce an operand in *result
-representing "await X".  Use pos as the position for diagnostics, and
+representing "co_await X".  Use pos as the position for diagnostics, and
 tok_seq_number to decide which token position to look up associated
 functions (like await_resume) from.  for_yield is TRUE if this is called
 to implement a co_yield expression.
@@ -34740,22 +34740,37 @@ to implement a co_yield expression.
   an_operand        resume_operand, resume_call;
   a_type_ptr        utp;
   a_symbol_locator  loc;
-  a_boolean         temp_init_used, use_member_calls;
+  a_boolean         temp_init_used, use_member_calls, processed;
   an_expr_node_ptr  node;
 
   node = alloc_expr_node(for_yield ? (an_expr_node_kind)enk_yield
                                    : (an_expr_node_kind)enk_await);
-  /* "await <expr>" is implemented using three calls to functions await_ready,
-     await_suspend, and await_resume.  If <expr> produces a glvalue, that
-     glvalue is used as an argument in those calls.  If it produces a prvalue,
-     a temporary lvalue is initialized from that prvalue and the temporary is
+  /* In "co_await <expr>", <expr> is first transformed by a call to a matching
+     user-defined "operator co_await" if there is one.  The operation is then
+     implemented using three calls to functions await_ready, await_suspend,
+     and await_resume.  After that, if <expr> produces a glvalue, that glvalue 
+     is used as an argument in those calls.  If it produces a prvalue, a
+     temporary lvalue is initialized from that prvalue and the temporary is
      used in the calls. */
-  if (is_a_prvalue(operand)) {
-    temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
-  }  /* if */
-  utp = skip_typerefs(operand->type);
+  /* Prepare an argument operand for the call to await_resume. */
   clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
+  check_for_operator_overloading((an_opname_kind)onk_await,
+                                 /*unary_operator=*/TRUE,
+                                 /*must_be_member_function=*/FALSE,
+                                 /*try_conversions=*/FALSE,
+                                 /*has_predef_meaning=*/TRUE,
+                                 &resume_operand, (an_operand*)NULL,
+                                 pos, tok_seq_number,
+                                 (a_nondependent_call_depth)0,
+                                 (a_source_position *)NULL,
+                                 &resume_operand, &processed);
+  if (is_a_prvalue(&resume_operand)) {
+    temp_init_from_operand(&resume_operand, /*result_is_lvalue*/TRUE);
+  }  /* if */
+  utp = skip_typerefs(resume_operand.type);
+  /* Create clones of this operand for the calls to await_ready and
+     await_suspend. */
   clone_operand(&resume_operand, &ready_operand, /*vars_can_change=*/TRUE,
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   clone_operand(&resume_operand, &suspend_operand, /*vars_can_change=*/TRUE,
@@ -34840,7 +34855,7 @@ void determine_suspend_call_for_await(an_expr_node_ptr         node,
                                       a_token_sequence_number  tok_seq_number,
                                       a_coroutine_descr_ptr    cdp)
 /*
-The given node represents an "await" operation whose "await_suspend" call has
+The given node represents a "co_await" operation whose "await_suspend" call has
 not been determined yet.  Determine it now (and record its representation).
 suspend_arg is the first operand (or the selector operand, if use_member_call
 is TRUE) of the call.  tok_seq_number is the token sequence number of the
@@ -35329,7 +35344,7 @@ found; otherwise issues an error message (and *loop_var is unmodified).
 Returns FALSE (without issuing any error messages) in the template
 dependent case.
 
-When use_await is TRUE, the "await" operator should be applied to the
+When use_await is TRUE, the "co_await" operator should be applied to the
 initializer of *loop_var.
 */
 {
@@ -36979,7 +36994,7 @@ was found; otherwise reports an error and returns FALSE (with *variable
 unmodified).  Note also that this routine will return FALSE (and not issue any
 errors) in the case where the expression is template dependent.
 
-When use_await is TRUE, the "await" operator should be applied to the
+When use_await is TRUE, the "co_await" operator should be applied to the
 initializer of *variable.
 */
 {
@@ -37938,14 +37953,14 @@ an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               a_boolean             is_yield)
 /*
 alep points to a representation of a "yield" (if is_yield is TRUE) or "return"
-(if is_yield is FALSE) operand in a coroutine.  For a yield statement, create
-and return an expression
+(if is_yield is FALSE) operand in a coroutine.  For a co_yield expressions,
+create and return an expression
     _Pr.yield_value(_V)
 where _V is the expression or braced initializer just scanned, and _Pr is the
 variable recorded for the current routine's promise.  Similarly, create one of
-the following expressions for the various forms of return statements:
-    _Pr.return_void()     for "return ;"
-    _V, _Pr.return_void() for "return <expr> ;" where <expr> has type void
+the following expressions for the various forms of co_return statements:
+    _Pr.return_void()     for "co_return ;"
+    _V, _Pr.return_void() for "co_return <expr> ;" where <expr> has type void
     _Pr.return_value(_V)  otherwise
 This routine frees *alep.
 */
@@ -38430,9 +38445,9 @@ the operand of the co_yield expression.
 
 static void scan_await_expression(an_operand  *result)
 /*
-Scan a coroutine "await" expression of the form
+Scan a coroutine "co_await" expression of the form
 
-	await <expr>
+	co_await <expr>
 
 and return its representation in *result (or an error indication in *rcblock
 if applicable).

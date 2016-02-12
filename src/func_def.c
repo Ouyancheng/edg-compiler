@@ -3463,7 +3463,7 @@ is set to TRUE.
       /* There are no statements recorded in the top-level block yet (because
          we're still parsing the first statement; there must be one since
          coroutine definitions are the result of specific constructs like
-         "yield" statements or "await" expressions).  Record the stmk_coroutine
+         "co_yield" and "co_await" expressions).  Record the stmk_coroutine
          entry as the last statement on the list for now. */
       root_sssep->last_dep_statement = csp;
     }  /* if */

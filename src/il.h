@@ -2815,8 +2815,8 @@ literal-operator-id (operator ""suffix).
 
 /*
 Structure used to keep track of IL entries that need fixing at the end of a
-coroutine function definition.  These are entries representing coroutine return
-statements, yield statements, and await expressions.
+coroutine function definition.  These are entries representing co_return
+statements, co_yield expressions, and co_await expressions.
 */
 typedef struct a_coroutine_fixup *a_coroutine_fixup_ptr;
 typedef struct a_coroutine_fixup {
@@ -2829,15 +2829,15 @@ typedef struct a_coroutine_fixup {
   void		*operand;
 			/* An opaque pointer to a representation of the
 			   operand associated with this fixup (i.e., the
-			   operand for a yield, coroutine return, or await). */
+			   operand for a co_return, co_yield, or co_await). */
   a_source_position
 		position;
 			/* The position to use for diagnostics. */
   a_token_sequence_number
 		tok_seq_number;
-			/* The token sequence number of "await" keyword.
-			   (NO_TOKEN_SEQUENCE_NUMBER if this entry is not for
-			   an await expression.) */
+			/* The token sequence number of the "co_await" or
+			   "co_yield" keyword.  (NO_TOKEN_SEQUENCE_NUMBER if
+			   this entry is for co_return statement.) */
   a_bit_field	await_uses_member_calls:1;
 			/* TRUE if this is a fixup for an await expression
 			   that is transformed using calls to class member

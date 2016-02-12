@@ -13477,7 +13477,7 @@ sizeof_cases:
       gen_expression(expr);
       break;
     case enk_await:
-      write_tok_str("await ");
+      write_tok_str(msvc_is_generated_code_target ? "__await " : "co_await ");
       gen_expression(expr->variant.await_info.operand);
       break;
 #endif /* COROUTINES_ALLOWED */

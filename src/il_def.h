@@ -14578,8 +14578,8 @@ enum an_expr_node_kind_tag {
 			   construct. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
-  enk_yield,		/* A "yield" expression. */
-  enk_await,		/* An "await" expression. */
+  enk_yield,		/* A "co_yield" expression. */
+  enk_await,		/* A "co_await" expression. */
 #endif /* COROUTINES_ALLOWED */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
@@ -16209,12 +16209,8 @@ typedef struct an_expr_node {
 		resume_ready_suspend;
 			/* A list of two or three expressions representing the
 			   calls to await_resume, await_ready, and (sometimes)
-			   await_suspend needed to implement the "await"
-			   operation.  The call to await_suspend is not
-			   recorded in unevaluated contexts (because that call
-			   is dependent on context that need not exist for
-			   unevaluated calls).  The operand should be evaluated
-			   first. */
+			   await_suspend needed to implement the "co_await"
+			   operation. */
     } await_info;
 #endif /* COROUTINES_ALLOWED */
   } variant;
@@ -16870,12 +16866,13 @@ typedef struct a_coroutine_descr {
 			/* TRUE if the promise type has a member function
 			   set_result. */
   a_bit_field	has_yield:1;
-			/* TRUE if the coroutine includes a yield statement. */
+			/* TRUE if the coroutine includes a co_yield
+			   expression . */
   a_bit_field	has_potentially_evaluated_await:1;
 			/* TRUE if the coroutine includes a potentially-
 			   evaluated await expression. */
   a_bit_field	has_coroutine_return:1;
-			/* TRUE if the coroutine includes a coroutine return
+			/* TRUE if the coroutine includes a co_return
 			   statement. */
 } a_coroutine_descr;
 
