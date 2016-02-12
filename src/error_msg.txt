@@ -2821,6 +2821,7 @@ ec_invalid_yield_value_type;;"yield_value produces void type"
 ec_nonvoid_yield_value_type;;"yield_value produces value (of type %t), which is not permitted in a coroutine with a deduced return type"
 ec_return_in_coroutine;;"\"return\" is not permitted in a coroutine (use \"co_return\" instead)"
 ec_invalid_co_return;;"\"co_return\" is only allowed in coroutines"
+ec_constexpr_fp_values_not_comparable;;"floating-point values cannot be compared"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

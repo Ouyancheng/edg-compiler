@@ -1448,20 +1448,6 @@ value at targ_addr.
   memzero((char *)(addr), sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr);
 
-#if 0
-/* FIXME -- Not needed yet: disabled so lint won't complain. */
-/*
-Macro to initialize a constant address at addr referring to the array
-element at targ_addr, which is a member of the interpreter array of len
-elements starting at base.
-*/
-#define clear_array_address(addr, targ_addr, len, base)           \
-  clear_address((addr), targ_addr);                               \
-  ((a_constexpr_address *)(addr))->is_array = TRUE;               \
-  ((a_constexpr_address *)(addr))->length = (len);                \
-  ((a_constexpr_address *)(addr))->variant.base_address = (base);
-#endif /* 0 */
-
 
 /*
 Macro to initialize a constant address at addr referring to the function
@@ -4443,10 +4429,14 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = value_bytes_for_type(ips, opnd1_type, &result);
-        if (!is_compact_value_size(opnd_n_bytes) &&
-            !opnd1->is_lvalue && !opnd1->is_xvalue) {
-          /* The value is larger than a scalar type, so allocate
-             space for it on the stack. */
+        if (!opnd1->is_lvalue && !opnd1->is_xvalue &&
+            (!is_compact_value_size(opnd_n_bytes) ||
+             node_operator_is(expr, eok_reference_to))) {
+          /* The value is larger than a scalar type, so allocate space for it
+             on the storage stack.  Also allocate it on the storage stack if
+             we're evaluation a eok_reference_to that produces a reference for
+             a (class) prvalue since that prvalue must survive the full
+             expression. */
           alloc_stack_bytes(ips, opnd_n_bytes, opnd1_value);
         } else {
           opnd1_value = compact_value_bytes(opnd1_bytes);
@@ -4500,9 +4490,9 @@ type.  This includes checking the value of ovfl set by the operation.
               *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
             } else {
-              /* FIXME: This is probably a problem.  If the class is small,
-                 its bytes are in this call frame's opnd1_bytes, but we end
-                 up passing that address to the caller. */
+              /* Return the address of the (class) prvalue: We made sure above
+                 that opnd1_value is allocated in the storage stack (rather
+                 than via a local variable) in this case. */
               clear_address(result_storage, opnd1_value);
               ((a_constexpr_address *)result_storage)->alloc_seq_number =
                                           ips->storage_stack.alloc_seq_number;
@@ -5557,7 +5547,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -5608,7 +5603,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -5659,7 +5659,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -5710,7 +5715,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -5765,7 +5775,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
@@ -5820,7 +5835,12 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-              /* FIXME: handle NaNs (unord == TRUE)? */
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                info_with_pos(ec_constexpr_fp_values_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
