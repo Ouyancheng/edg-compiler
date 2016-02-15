@@ -7153,6 +7153,7 @@ diagnostic in *ips.
         } else if (cap->address == NULL) {
           /* A NULL pointer constant. */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
+          con->implicit_cast = TRUE;
         } else if (cap->alloc_seq_number > 1) {
           /* The address designates an interpreter value that is already
              deallocated, and thus cannot be constant. */
