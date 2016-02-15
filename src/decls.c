@@ -1715,9 +1715,11 @@ new fields are set properly.
                    of size_t, issue a diagnostic. */
                 tp = skip_typerefs(ptp->type);
                 if (!is_error_type(tp)) {
-                  if (class_type != NULL && is_integral_type(tp) &&
-                      tp->variant.integer.int_kind == targ_size_t_int_kind) {
-                    /* No warning for X::operator delete(void *, size_t). */
+                  if (is_integral_type(tp) &&
+                      tp->variant.integer.int_kind == targ_size_t_int_kind &&
+                      (class_type != NULL || sized_deallocation_enabled)) {
+                    /* No warning for X::operator delete(void *, size_t) or
+                       when sized deallocation is enabled. */
                   } else {
                     pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
                                    ec_useless_placement_delete,

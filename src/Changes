@@ -1,5 +1,13 @@
 Version 4.11
 
+2/15/16  [EDGcpfe/16874]
+Spurious remark when sized deallocation is enabled and exceptions are disabled
+
+In modes where exceptions are disabled and sized deallocation is enabled
+(i.e., C++-14 mode or when microsoft_version >= 1900), a spurious
+"support for placement delete is disabled" remark had been issued.  Now fixed.
+
+
 2/8/16   [EDGcpfe/16850]
 Inadvertent removal of thread_local variable use
 
