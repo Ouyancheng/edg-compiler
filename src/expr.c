@@ -34753,6 +34753,9 @@ to implement a co_yield expression.
      temporary lvalue is initialized from that prvalue and the temporary is
      used in the calls. */
   /* Prepare an argument operand for the call to await_resume. */
+  if (is_a_prvalue(operand)) {
+    temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
+  }  /* if */
   clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   check_for_operator_overloading((an_opname_kind)onk_await,
