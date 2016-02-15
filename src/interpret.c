@@ -678,6 +678,7 @@ Initialize stack storage for the given storage stack.
   *(a_byte**)(new_block+ptr_size) = NULL;
   /* Leave space for the bookkeeping information (three pointers). */
   sss->top = sss->curr_block+3*ptr_size;
+  sss->large_blocks = NULL;
   sss->alloc_seq_number = 1;
 }  /* init_constexpr_stack */
 
