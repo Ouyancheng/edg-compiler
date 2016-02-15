@@ -5907,7 +5907,16 @@ type.  This includes checking the value of ovfl set by the operation.
                 } else {
                   trim_bit_field_if_needed(dst);
                 }  /* if */
-                *(a_constexpr_address *)result_storage = *dst;
+                if (expr->is_lvalue || expr->is_xvalue ||
+                    is_function_address(dst)) {
+                  /* The assignment produces an lvalue-like result. */
+                  *(a_constexpr_address*)result_storage = *dst;
+                } else {
+                  /* The assignment produces an rvalue.  Copy the value once
+                     more. */
+                  (void)memcpy(result_storage, dst_storage,
+                               size_t_arg(n_bytes));
+                }  /* if */
               }  /* if */
             }
             break;
@@ -5947,6 +5956,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                   an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -5956,6 +5972,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -5963,7 +5985,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                                 &expr->position, ips);
                 }  /* if */
-                *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
             }
             break;
@@ -6003,6 +6024,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                   an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -6012,6 +6040,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -6019,7 +6053,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                                 &expr->position, ips);
                 }  /* if */
-                *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
             }
             break;
@@ -6059,6 +6092,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 } else if (expr->variant.operation.type_kind ==
                                                     (a_type_kind)tk_float) {
                   an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -6068,6 +6108,12 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -6075,7 +6121,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                                 &expr->position, ips);
                 }  /* if */
-                *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
             }
             break;
@@ -6115,6 +6160,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
                   an_internal_float_value  *dst_val = fp_value_at(dst);
@@ -6124,13 +6176,18 @@ type.  This includes checking the value of ovfl set by the operation.
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                                 &expr->position, ips);
                 }  /* if */
-                *(a_constexpr_address *)result_storage = *dst;
               }  /* if */
             }
             break;
@@ -6170,7 +6227,13 @@ type.  This includes checking the value of ovfl set by the operation.
                 trim_bit_field_if_needed(dst);
                 check_int_range(int_value_at(dst), tp, result, ovfl,
                                 &expr->position, ips);
-                *(a_constexpr_address *)result_storage = *dst;
+                if (expr->is_lvalue || expr->is_xvalue) {
+                  /* The assignment produces an lvalue-like result. */
+                  *(a_constexpr_address*)result_storage = *dst;
+                } else {
+                  /* The assignment produces an rvalue.  Copy the value. */
+                  *(an_integer_value*)result_storage = *int_value_at(dst);
+                }  /* if */
               } else {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -6229,7 +6292,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   trim_bit_field_if_needed(dst);
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
-                  *(a_constexpr_address *)result_storage = *dst;
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }
@@ -6286,7 +6355,13 @@ type.  This includes checking the value of ovfl set by the operation.
                   check_int_range(int_value_at(dst), tp, result, ovfl,
                                   &expr->position, ips);
                   trim_bit_field_if_needed(dst);
-                  *(a_constexpr_address *)result_storage = *dst;
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }
@@ -6319,7 +6394,13 @@ type.  This includes checking the value of ovfl set by the operation.
                    left operand.  Return the left operand (as an lvalue). */
                 and_integer_values(int_value_at(dst),
                                    (an_integer_value*)opnd2_value);
-                *(a_constexpr_address *)result_storage = *dst;
+                if (expr->is_lvalue || expr->is_xvalue) {
+                  /* The assignment produces an lvalue-like result. */
+                  *(a_constexpr_address*)result_storage = *dst;
+                } else {
+                  /* The assignment produces an rvalue.  Copy the value. */
+                  *(an_integer_value*)result_storage = *int_value_at(dst);
+                }  /* if */
               }  /* if */
             }
             break;
@@ -6351,7 +6432,13 @@ type.  This includes checking the value of ovfl set by the operation.
                    left operand.  Return the left operand (as an lvalue). */
                 or_integer_values(int_value_at(dst),
                                   (an_integer_value*)opnd2_value);
-                *(a_constexpr_address *)result_storage = *dst;
+                if (expr->is_lvalue || expr->is_xvalue) {
+                  /* The assignment produces an lvalue-like result. */
+                  *(a_constexpr_address*)result_storage = *dst;
+                } else {
+                  /* The assignment produces an rvalue.  Copy the value. */
+                  *(an_integer_value*)result_storage = *int_value_at(dst);
+                }  /* if */
               }  /* if */
             }
             break;
@@ -6383,7 +6470,13 @@ type.  This includes checking the value of ovfl set by the operation.
                    left operand.  Return the left operand (as an lvalue). */
                 xor_integer_values(int_value_at(dst),
                                    (an_integer_value*)opnd2_value);
-                *(a_constexpr_address *)result_storage = *dst;
+                if (expr->is_lvalue || expr->is_xvalue) {
+                  /* The assignment produces an lvalue-like result. */
+                  *(a_constexpr_address*)result_storage = *dst;
+                } else {
+                  /* The assignment produces an rvalue.  Copy the value. */
+                  *(an_integer_value*)result_storage = *int_value_at(dst);
+                }  /* if */
               }  /* if */
             }
             break;
