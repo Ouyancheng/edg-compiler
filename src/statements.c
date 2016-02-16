@@ -6014,7 +6014,9 @@ The syntax is:
       pos_error(ec_return_in_coroutine, &pos_curr_token);
     }  /* if */
   } else if (curr_token == tok_coroutine_return) {
+    if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
       pos_error(ec_invalid_co_return, &pos_curr_token);
+    }  /* if */
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
   /* Skip the return or co_return token. */
@@ -6227,8 +6229,6 @@ The syntax is:
              body and capture a pointer to return expression or dynamic
              init here (a copy is made later so that if IL lowering is
              being done an unlowered copy is preserved). */
-          scope_stack[depth_innermost_function_scope].has_at_least_one_return =
-                                                                          TRUE;
           if (return_expr != NULL) {
             scope->has_constexpr_return_expr = TRUE;
             scope->variant.routine.variant.constexpr_return_expr = return_expr;
@@ -6249,6 +6249,10 @@ The syntax is:
       cfp->operand = (void*)alep;
       cdp->has_coroutine_return = TRUE;
 #endif /* COROUTINES_ALLOWED */
+    }  /* if */
+    if (sp->kind == (a_statement_kind)stmk_return) {
+      scope_stack[depth_innermost_function_scope].has_at_least_one_return =
+                                                                          TRUE;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
