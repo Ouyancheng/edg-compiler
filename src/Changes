@@ -10,7 +10,7 @@ example because a constexpr function returns no value:
     constexpr T f() { return; }  // Previously triggered an error; now okay.
   };
   void g() {
-    A<void>().f();
+    S<void>().f();
   }
 
 Now, the example is accepted (but the A<void>().f() is not a constant-
