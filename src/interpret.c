@@ -1343,6 +1343,11 @@ typedef struct a_constexpr_address {
 			   path of the subobject.  The path is checked against
 			   active fields at the point of dereference. */
   } variant;
+  a_byte
+		*complete_object;
+			/* Pointer to the complete object into which this
+			   address is pointing.  This is needed to validate
+			   pointer comparisons (p < q, etc.). */
 } a_constexpr_address;
 
 
@@ -1442,12 +1447,14 @@ representation to fit in the bit field length.
 
 
 /*
-Macro to initialize a constant address at addr referring to the interpreter
-value at targ_addr.
+Macro to initialize a constant address at addr referring to the complete
+interpreter value at targ_addr (or a null pointer).
 */
 #define clear_address(addr, targ_addr)                    \
   memzero((char *)(addr), sizeof(a_constexpr_address));   \
-  ((a_constexpr_address *)(addr))->address = (targ_addr);
+  ((a_constexpr_address *)(addr))->address = (targ_addr); \
+  ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
+  
 
 
 /*
@@ -5682,7 +5689,11 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address < ptr2->address) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  } else if (ptr1->address < ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
@@ -5738,7 +5749,11 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address > ptr2->address) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  } else if (ptr1->address > ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
@@ -5798,7 +5813,11 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address <= ptr2->address) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  } else if (ptr1->address <= ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
@@ -5858,7 +5877,11 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address >= ptr2->address) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  } else if (ptr1->address >= ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
@@ -6975,13 +6998,12 @@ type.  This includes checking the value of ovfl set by the operation.
         } else {
           /* A variable used as a glvalue; the result is its address. */
           if (var_bytes != NULL) {
-            a_constexpr_address
-                            *p_address = (a_constexpr_address*)result_storage;
+            a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
             clear_address(result_storage, var_bytes);
             /* Record the allocation sequence number for this variable in the
                address record. */
             get_mapped_byte_count(&ips->map, &var->storage_class,
-                                  p_address->alloc_seq_number);
+                                  cap->alloc_seq_number);
           } else {
             /* A reference to a run-time variable. */
             a_constant_ptr  con;
@@ -7054,12 +7076,11 @@ type.  This includes checking the value of ovfl set by the operation.
           do_constexpr_fail(result);
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
-          a_constexpr_address
-                            *p_address = (a_constexpr_address*)result_storage;
-          clear_address(p_address, tmp_bytes);
+          a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+          clear_address(cap, tmp_bytes);
           /* Record the allocation sequence number for this temporary in the
              address record. */ 
-          p_address->alloc_seq_number = alloc_seq_number;
+          cap->alloc_seq_number = alloc_seq_number;
         }  /* if */
       }
       break;
