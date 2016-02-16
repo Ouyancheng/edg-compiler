@@ -2375,7 +2375,8 @@ reasons.
 */
 #define copy_val_from_constant(ips, con, result_storage)                      \
   (                                                                           \
-    ((con)->kind == (a_constant_repr_kind)ck_integer) ?                       \
+    ((con)->kind == (a_constant_repr_kind)ck_integer &&                       \
+     !(con)->implicit_cast) ?                                                 \
       (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
        TRUE):                                                                 \
     ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
@@ -2406,7 +2407,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       do_constexpr_fail(result);
       break;
     case ck_integer:
-      *(an_integer_value *)value = con->variant.integer_value;
+      if (con->type->kind == (a_type_kind)tk_pointer) {
+        /* Various expressions for null pointer constants are expressed as
+           ck_integer. */
+        clear_address(value, (void*)0);
+      } else if (con->type->kind == (a_type_kind)tk_integer) {
+        *(an_integer_value *)value = con->variant.integer_value;
+      } else {
+        unexpected_condition();
+      }  /* if */
       break;
     case ck_float:
       *fp_value(value) = con->variant.float_value;
