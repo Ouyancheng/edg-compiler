@@ -2417,7 +2417,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       if (con->type->kind == (a_type_kind)tk_pointer) {
         /* Various expressions for null pointer constants are expressed as
            ck_integer. */
-        clear_address(value, (void*)0);
+        clear_address(value, (a_byte*)0);
       } else if (con->type->kind == (a_type_kind)tk_integer) {
         *(an_integer_value *)value = con->variant.integer_value;
       } else {
