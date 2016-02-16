@@ -701,6 +701,7 @@ check_abbreviation()
 --long_long
 --long_preserving_rules
 --macro_positions_in_diagnostics
+--max_constexpr_call_cost
 --max_constexpr_call_depth
 --microsoft
 --microsoft_16
@@ -1597,6 +1598,7 @@ process_option()
          --diag_error | \
          --diag_once | \
          --inline_statement_limit | \
+         --max_constexpr_call_cost | \
          --max_constexpr_call_depth | \
          --microsoft_build_number | \
          --microsoft_version | \
@@ -1686,6 +1688,7 @@ process_option()
           --diag_error=* | \
           --diag_once=* | \
           --inline_statement_limit=* | \
+          --max_constexpr_call_cost=* | \
           --max_constexpr_call_depth=* | \
           --mmap_address=* | \
           --microsoft_build_number=* | \
