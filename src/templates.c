@@ -6686,6 +6686,7 @@ dependent, A1<A2, A3> is returned.
 {
   a_type_ptr           type;
   a_template_arg_ptr   tap = template_arg_list, prev, new_template_arg_list;
+  a_template_arg_ptr   con_tap;
   a_template_ptr       templ;
   a_type_ptr           int_type;
   a_constant_ptr       con;
@@ -6700,10 +6701,11 @@ dependent, A1<A2, A3> is returned.
   templ = tap->variant.templ.ptr;
   advance_to_next_template_arg_simple(&tap);
   check_assertion(tap != NULL && is_type_templ_arg(tap));
-  int_type = tap->variant.type;
+  int_type = skip_typerefs(tap->variant.type);
   advance_to_next_template_arg_simple(&tap);
   check_assertion(tap != NULL && is_nontype_templ_arg(tap));
   con = tap->variant.constant;
+  con_tap = tap;
   /* Look for various cases in which an error has already been issued. */
   if (templ->kind != (a_template_kind)templk_class) {
     expect_error();
@@ -6724,7 +6726,7 @@ dependent, A1<A2, A3> is returned.
     tap = alloc_template_arg((a_templ_arg_kind)tak_type);
     tap->variant.type = int_type;
     new_template_arg_list = tap;
-    if (is_template_param_type(con->type)) {
+    if (template_arg_is_dependent(con_tap)) {
       /* If the constant has a nonreal type, pass a copy of the template
          argument; the template will need to be re-processed during later
          substitution. */
