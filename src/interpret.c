@@ -4228,8 +4228,8 @@ the body of the (constructor) function proper.
           do_constexpr_fail(result);
           break;
         } else {
-           if (constexpr_copy_object(ips, tp, src_addr->address+offset,
-                                     result_storage+offset)) {
+           if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
+                                      result_storage+offset)) {
              do_constexpr_fail(result);
              break;
            }  /* if */
@@ -4645,7 +4645,18 @@ type.  This includes checking the value of ovfl set by the operation.
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
             } else {
-              /* FIXME: NYI, slicing. */
+              /* "Slicing. */
+              a_base_class_ptr     bcp;
+              a_byte_count         offset;
+              bcp = find_direct_base_class_of(opnd1_type, tp);
+              get_mapped_byte_count(&persistent_map, bcp, offset);
+              if (!result) break;
+              if (constexpr_copy_object(ips, tp, opnd1_value+offset,
+                                        result_storage)) {
+                record_subobject_derivation(result_storage, NULL);
+              } else {
+                do_constexpr_fail(result);
+              }  /* if */
             }  /* if */
             break;
           case eok_derived_class_cast:
