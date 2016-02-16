@@ -13,8 +13,8 @@ standardization committee's paper P0057R1.  These changes include:
     "await protocol" to a different object.
 
 In Microsoft modes that accept coroutines, the Microsoft keywords are still
-accepted and the keyword "await" and context-sensitive keyword "yield" is still
-recognized if the option --set_flag=coroutine_keywords is specified.
+accepted and the keyword "await" and context-sensitive keyword "yield" are
+still recognized if the option --set_flag=coroutine_keywords is specified.
 
 Support for this feature is still considered "preliminary" (the committee's
 specification remains in flux).

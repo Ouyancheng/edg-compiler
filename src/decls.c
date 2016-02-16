@@ -1111,7 +1111,7 @@ of declarations that are permitted.
         if (coroutines_enabled && microsoft_mode && next_tok != tok_lparen &&
             locator_for_curr_id.symbol_header == yield_symbol_header &&
             check_context_sensitive_keyword(tok_coroutine_yield, "yield")) {
-          /* In some Microsoft modes, "yield x" where x doesn't start with a
+          /* In some Microsoft modes, "yield x", where x doesn't start with a
              left parenthesis, is an expression equivalent to "co_yield x". */
         } else            
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && COROUTINES_ALLOWED */
