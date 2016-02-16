@@ -6635,6 +6635,39 @@ of Microsoft-mode member functions).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
+static a_boolean check_gpp_template_redecl_match(a_type_ptr	type_1,
+						 a_type_ptr	type_2)
+/*
+We have types such as:
+
+  type_1: typeref "B<T1, T2, 0>::value_type" template-param T1::value_type
+  type_2: template-param B<T1, T2, 0>::value_type
+
+Normally we strip the typeref off of type_1, and the tptk_member comparison
+in identical_types makes sure the name of value_type is the same in each
+type and the parent type is the same.
+
+In this routine we make sure the name of value_type is the same, but we
+compare the parent type of the typeref with the parent type of the
+template parameter type.  This is done because g++ and clang allow
+this kind of redeclaration.
+*/
+{
+  a_symbol_ptr	sym_1 = symbol_for(type_1);
+  a_symbol_ptr	sym_2 = symbol_for(type_2);
+  a_boolean	result = FALSE;
+
+  if (sym_1 != NULL && sym_2 != NULL &&
+      type_1->source_corresp.is_class_member &&
+      type_2->source_corresp.is_class_member) {
+    result = sym_1->header == sym_2->header &&
+                identical_types(parent_class_of(type_1),
+                                parent_class_of(type_2));
+  }  /* if */
+  return result;
+}  /* check_gpp_template_redecl_match */
+
+
 a_boolean f_types_are_compatible_full(a_type_ptr                   type_1,
                                       a_type_ptr                   type_2,
                                       a_type_compat_flags_set      flags,
@@ -6661,6 +6694,7 @@ pointer equality.
   a_boolean                     is_impl_conv;
   a_boolean                     top_level_for_redeclaration = FALSE;
   a_boolean			allow_base_derived_this_match;
+  a_type_ptr			orig_type_1 = type_1;
 
   db_enter(5, "f_types_are_compatible_full");
 
@@ -6738,10 +6772,20 @@ check_typerefs:
       }  /* if */
       type_1 = skip_typerefs(type_1);
       type_2 = skip_typerefs(type_2);
+      if (gpp_mode && orig_type_1->kind != type_2->kind &&
+          type_2->kind == (a_type_kind)tk_template_param) {
+        /* g++ and clang allow some dependent types that are specified
+           differently to match between declarations.  See
+           check_gpp_template_redecl_match for more information. */
+        compat = check_gpp_template_redecl_match(orig_type_1, type_2);
+      }  /* if */
     } else {
       qualifier_mismatch = FALSE;
     }  /* if */
-    if (error_matches_anything && (is_error(type_1) || is_error(type_2))) {
+    if (compat) {
+      /* Determined to be compatible above.  Don't check further. */
+    } else if (error_matches_anything &&
+               (is_error(type_1) || is_error(type_2))) {
       /* An error type is compatible with anything under the right setting
          of the input flags. */
       compat = TRUE;

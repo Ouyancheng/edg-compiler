@@ -1,5 +1,26 @@
 Version 4.11
 
+2/16/16  [EDGcpfe/16592]
+GNU/clang C++ compatibility: function template redeclarations
+
+g++ and clang allow certain dependent types to be specified differently
+in the declaration of a member function template.  In the example
+below, the second template argument of f() uses "tp**" while the
+definition uses "B<T1, T2, 0>::tp", but that that point the class type
+is not yet known to name the partial specialization.  We now emulate
+this behavior in g++ and clang modes.
+
+  template <class> struct A;
+  template <class T1, template <class> class, int = A<T1>::value> class B;
+  template <class T1, template <class> class T2> class B<T1, T2, 0> {
+    typedef typename T1::tp tp;
+    template <class U, int (tp **, U)> void f();
+  };
+  template <class T1,
+            template <class> class T2> template <class U,
+            int (typename B<T1, T2, 0>::tp **, U)> void B<T1, T2, 0>::f(){}
+
+
 2/15/16  [EDGcpfe/16687]
 Revised preliminary coroutine support
 
