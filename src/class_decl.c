@@ -15862,9 +15862,9 @@ specific information about the member declaration, respectively.
         pos_error(ec_standard_array_member_in_managed_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
-      } else if (is_standard_class_type(member_type)) {
+      } else if (is_standard_class_type(member_type) && cppcli_enabled) {
         /* Members of managed class types cannot be of a standard class
-           type. */
+           type in C++/CLI (unlike C++/CX). */
         pos_error(ec_standard_class_member_in_managed_class,
                   &decl_state->declarator_pos);
         member_type = error_type();

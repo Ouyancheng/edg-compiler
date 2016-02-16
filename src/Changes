@@ -1,5 +1,17 @@
 Version 4.11
 
+2/16/16  [EDGcpfe/16411]
+C++/CX: Allow static data of standard class type in managed class
+
+The front end now accepts static data members of standard class types in
+managed classes in C++/CX (but not C++/CLI) mode.  For example:
+
+  struct A {};
+  ref class B {
+    static A a;  // Previously an error in C++/CX mode; now okay.
+  };
+
+
 2/16/16  [EDGcpfe/16876]
 C++11 constexpr: Template function returning no value
 
