@@ -1,5 +1,22 @@
 Version 4.11
 
+2/16/16  [EDGcpfe/16876]
+C++11 constexpr: Template function returning no value
+
+Previously, in C++11 mode, the front end issued an error for the following
+example because a constexpr function returns no value:
+
+  template<typename T> struct S {
+    constexpr T f() { return; }  // Previously triggered an error; now okay.
+  };
+  void g() {
+    A<void>().f();
+  }
+
+Now, the example is accepted (but the A<void>().f() is not a constant-
+expression).
+
+
 2/16/16  [EDGcpfe/16592]
 GNU/clang C++ compatibility: function template redeclarations
 

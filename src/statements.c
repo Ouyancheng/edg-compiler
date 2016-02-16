@@ -6222,8 +6222,11 @@ The syntax is:
         pos_error(ec_invalid_constexpr_body, &return_pos);
       } else {
         if (return_expr == NULL && dip == NULL) {
-          /* A void return in a constexpr function; an error has been issued
-             above -- ignore this for constexpr return processing. */
+          /* A void return in a C++11-style constexpr function is not valid.
+             For a template instance this makes the function non-constexpr;
+             in other cases, an error should have been issued already. */
+          scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
+                                                                         TRUE;
         } else {
           /* Assume this will be the only return statement in the function
              body and capture a pointer to return expression or dynamic
