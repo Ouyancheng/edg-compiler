@@ -6693,8 +6693,8 @@ pointer equality.
   a_boolean                     error_matches_anything;
   a_boolean                     is_impl_conv;
   a_boolean                     top_level_for_redeclaration = FALSE;
-  a_boolean			allow_base_derived_this_match;
-  a_type_ptr			orig_type_1 = type_1;
+  a_boolean                     allow_base_derived_this_match;
+  a_type_ptr                    orig_type_1 = type_1;
 
   db_enter(5, "f_types_are_compatible_full");
 

@@ -35,11 +35,11 @@ is not a constant-expression).
 GNU/clang C++ compatibility: function template redeclarations
 
 g++ and clang allow certain dependent types to be specified differently
-in the declaration of a member function template.  In the example
-below, the second template argument of f() uses "tp**" while the
-definition uses "B<T1, T2, 0>::tp", but that that point the class type
-is not yet known to name the partial specialization.  We now emulate
-this behavior in g++ and clang modes.
+in the declaration and definition of a member function template.  In the
+example below, the second template argument in the declaration of f() uses
+"tp**" while the definition uses "B<T1, T2, 0>::tp", but at that point the
+class type is not yet known to name the partial specialization.  We now
+emulate this behavior in g++ and clang modes.
 
   template <class> struct A;
   template <class T1, template <class> class, int = A<T1>::value> class B;
