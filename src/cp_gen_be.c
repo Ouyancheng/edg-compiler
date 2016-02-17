@@ -4891,17 +4891,27 @@ static void gen_attribute(an_attribute_ptr  ap)
 Generate the given attribute (not including the attribute group delimiters).
 */
 {
-  if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
-    if (ap->namespace_name != NULL) {
-      check_assertion(ap->family == (a_byte_attribute_family)af_std);
-      write_tok_str(ap->namespace_name);
-      write_tok_str("::");
+#if GNU_EXTENSIONS_ALLOWED
+  if (ap->kind == (a_byte_attribute_kind)ak_abi_tag &&
+      ap->is_implicit_abi_tag_attribute) {
+    /* This attribute has been added during name mangling and doesn't appear
+       in the source. */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+      if (ap->namespace_name != NULL) {
+        check_assertion(ap->family == (a_byte_attribute_family)af_std);
+        write_tok_str(ap->namespace_name);
+        write_tok_str("::");
+      }  /* if */
+      write_tok_str(ap->name);
+      if (ap->arguments != NULL) {
+        gen_attribute_arg_list(ap);
+      }  /* if */
+      if (ap->is_pack_expansion) write_tok_str("...");
     }  /* if */
-    write_tok_str(ap->name);
-    if (ap->arguments != NULL) {
-      gen_attribute_arg_list(ap);
-    }  /* if */
-    if (ap->is_pack_expansion) write_tok_str("...");
   }  /* if */
 }  /* gen_attribute */
 

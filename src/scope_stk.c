@@ -2817,11 +2817,20 @@ the scope being pushed.
     ssep->implicit_typename = implicit_typename_enabled;
     ssep->in_disambiguation = FALSE;
     ssep->in_field_initializer = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+    ssep->in_gnu_abi_tag_namespace = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
     ssep->in_disambiguation= (ssep-1)->in_disambiguation;
     ssep->in_field_initializer = (ssep-1)->in_field_initializer;
+#if GNU_EXTENSIONS_ALLOWED
+    ssep->in_gnu_abi_tag_namespace =
+                                 (ssep-1)->in_gnu_abi_tag_namespace ||
+                                  (assoc_namespace != NULL &&
+                                   assoc_namespace->has_gnu_abi_tag_attribute);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->in_decltype_context = FALSE;

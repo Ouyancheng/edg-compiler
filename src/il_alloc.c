@@ -1610,7 +1610,6 @@ class is available.
   ctsp->ELF_visibility                    =
                                       (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-  ctsp->has_gnu_abi_tag_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
   ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
@@ -2152,6 +2151,10 @@ variant fields to default values.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   pte->visited_for_vla_lowering = FALSE;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if GNU_EXTENSIONS_ALLOWED
+  pte->has_gnu_abi_tag_attribute = FALSE;
+  pte->in_gnu_abi_tag_namespace = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
@@ -2390,6 +2393,7 @@ Clear the fields of the given variable to default values.
   vp->is_gnu_alias                = FALSE;
   vp->has_gnu_unused_attribute    = FALSE;
   vp->has_gnu_used_attribute      = FALSE;
+  vp->has_gnu_abi_tag_attribute   = FALSE;
   vp->is_not_common               = FALSE;
   vp->is_common                   = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2806,6 +2810,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->has_gnu_abi_tag_attribute   = FALSE;
+  rp->in_gnu_abi_tag_namespace    = FALSE;
+  rp->implicit_abi_tags_added     = FALSE;
   rp->allocates_memory            = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -4274,6 +4280,9 @@ is_alias is TRUE.
 #if BACK_END_IS_CP_GEN_BE
   nsp->shadowed_by_class = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+  nsp->has_gnu_abi_tag_attribute = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_alias) {
     nsp->variant.assoc_namespace = NULL;
   } else {
@@ -5358,6 +5367,9 @@ Allocate an attribute in file scope memory and return a pointer to it.
   ap->must_be_preserved_in_trans_unit_copy = FALSE;
   ap->is_pack_expansion = FALSE;
   ap->is_std_gcc_attribute = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  ap->is_implicit_abi_tag_attribute = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;
@@ -5752,6 +5764,9 @@ in il_alloc_init.)
   def_source_corresp.mangled_name_cannot_be_included_in_other_name = FALSE;
   def_source_corresp.final_name_mangling_pending = FALSE;
   def_source_corresp.unnamed_entity_given_fabricated_name = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  def_source_corresp.entity_marked = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.qualification_needed = FALSE;

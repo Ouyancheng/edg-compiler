@@ -992,6 +992,14 @@ typedef struct a_scope_stack_entry {
   a_bit_field	make_access_errors_warnings:1;
 			/* Turn access errors into warnings while this flag
 			   is set. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	in_gnu_abi_tag_namespace:1;
+			/* TRUE if this scope is an inline namespace with
+			   the abi_tag attribute, or the scope has some parent
+			   that is an inline namespace with the abi_tag
+			   attribute (this has an effect on the mangled
+			   name). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

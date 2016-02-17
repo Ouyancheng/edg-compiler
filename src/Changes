@@ -1,5 +1,30 @@
 Version 4.11
 
+2/17/16  [EDGcpfe/16776]
+GNU compatibility: Expanded abi_tag attribute compatibility
+
+Support for the GNU abi_tag attribute (originally introduced by EDGcpfe/15897)
+has been expanded.  In particular, mangled names for functions and variables
+now (when ABI_COMPATIBILITY_VERSION >= 411) will contain "implicit" abi_tags
+(as well as any applicable explicit abi_tags).  The documentation for the
+determination of "implicit" abi_tags, consists of this single sentence: "When a
+type involving an ABI tag is used as the type of a variable or return type of a
+function where that tag is not already present in the signature of the
+function, the tag is automatically applied to the variable or function."
+Also, the abi_tag attribute is now accepted on variables and enum types.
+Additionally, when a string is not specified in an abi_tag attribute that
+appertains to an inline namespace, the inline namespace name is now used for
+the abi_tag string.  For example (with --gnu_version 50000 --c++11):
+
+  inline namespace N __attribute((abi_tag)) {
+    struct A {};
+  }
+  A a;    // mangled as: _Z1aB1N (IA-64) or __ab1Na (Cfront)
+  A f() { // mangled as: _Z1fB1Nv (IA-64) or __ab1Nf__Fv (Cfront)
+    return A();
+  }
+
+
 2/16/16  [EDGcpfe/16411]
 C++/CX: Allow static data of standard class type in managed class
 

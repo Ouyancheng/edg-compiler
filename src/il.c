@@ -25244,6 +25244,88 @@ might be referenced from an exported template.
 }  /* variable_should_be_externalized_for_exported_templates */
 
 #endif /* DO_IL_LOWERING */
+#if DO_IL_LOWERING || NEED_NAME_MANGLING
+
+static a_boolean is_or_will_be_extern_inline(a_routine_ptr routine)
+/*
+Return TRUE if the indicated function is or will be extern inline.
+It might become extern inline because it's potentially referenced
+from an exported template.  See externalize_statics_for_exported_templates.
+*/
+{
+  a_boolean is_extern_inline =
+            (routine->is_inline &&
+             (treat_as_extern_inline(routine)
+#if DO_IL_LOWERING
+              || routine_should_be_externalized_for_exported_templates(routine)
+#endif /* DO_IL_LOWERING */
+                                                                            ));
+  return is_extern_inline;
+}  /* is_or_will_be_extern_inline */
+
+
+a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout)
+/*
+Return TRUE if the indicated routine might exist in multiple copies at
+link time or run time.  For example, it might be an extern inline routine
+that is expanded in more than one translation unit, or a template that
+is instantiated in more than one translation unit.
+*/
+{
+  a_boolean multiple_copies = FALSE;
+
+  /* For member functions of local classes, move out to the ultimate
+     enclosing function. */
+  if (rout->source_corresp.is_local_to_function) {
+    a_routine_ptr  enclosing_rout = NULL;
+    if (rout->source_corresp.is_class_member) {
+      enclosing_rout = enclosing_routine_for_local_type_or_null(
+                                                        parent_class_of(rout));
+    }  /* if */
+    if (enclosing_rout != NULL) {
+      rout = enclosing_rout;
+    } else {
+      /* This should only happen with types defined in local function prototype
+         scopes, and such definitions elicit errors in C++.  (In error recovery
+         mode the result of this function does not really matter.) */
+      expect_error();
+    }  /* if */
+  }  /* if */
+  if (!C_mode() && is_or_will_be_extern_inline(rout)) {
+    /* An extern inline routine might be expanded in more than one
+       translation unit.  This might be true even if extern inline
+       routines are instantiated. */
+    multiple_copies = TRUE;
+#if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+  } else if (rout->is_template_function && !rout->is_specialized) {
+    /* A template instance, in a mode where the linker can merge
+       multiple definitions (in other words, where we have COMDATs).
+       This handling is required for the strict IA-64 ABI, but it's
+       probably also a good idea in any environment where COMDATs are
+       used, because we assume that where users *can* generate
+       multiple instances and get no linker error, they *will*
+       generate such instances, and the merging had better work
+       right. */
+    multiple_copies = TRUE;
+#endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN && DO_IL_LOWERING
+  } else if (rout->covariant_return_virtual_override ||
+             rout->overriding_function_for_wrapper != NULL) {
+    /* For a covariant overriding virtual function and its wrapper routines,
+       promote the local statics in case the implementation technique is
+       to replicate the body of the primary function. */
+    multiple_copies = TRUE;
+  } else if (rout->next != NULL &&
+             rout->next->overriding_function_for_wrapper == rout) {
+    /* Also, if the routine has a thunk the thunk might be implemented by
+       replicating the function body. */
+    multiple_copies = TRUE;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN && DO_IL_LOWERING */
+  }  /* if */
+  return multiple_copies;
+}  /* routine_might_exist_in_multiple_copies */
+
+#endif /* DO_IL_LOWERING || NEED_NAME_MANGLING */
 
 #if DEBUG
 unsigned long show_il_space_used(void)

@@ -655,7 +655,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_warning, "r", NO_APPL_FN },
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
-  { ak_abi_tag, "r|c|n", apply_abi_tag_attr },
+  { ak_abi_tag, "r|c|n|v|e", apply_abi_tag_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
@@ -2989,7 +2989,7 @@ Output the given source position form to f_debug.
 }  /* db_source_position */
 
 
-static void db_attribute(an_attribute_ptr  ap)
+void db_attribute(an_attribute_ptr  ap)
 /*
 Output the given attribute to f_debug.
 */
@@ -6824,40 +6824,24 @@ to match GNU's behavior).
        it affects only mangling). */
     pos_warning(ec_abi_tag_ignored_in_C_mode, &ap->position);
     make_attr_unrecognized(ap);
-  } else if (entity_kind == iek_namespace) {
-    /* The abi_tag is being applied to a (presumably inline) namespace. */
-    if (gnu_version < 50000) {
-      /* Support for abi_tag attributes on inline namespaces was added in
-         GNU 5.0.0. */
-      pos_warning(ec_attributes_ignored, &ap->position);
-      make_attr_unrecognized(ap);
-    } else {
-      /* When used on an inline namespace, -Wabi-tag considers declarations
-         in that namespace to have an ABI tag that is based on the namespace
-         name; it does not affect mangling.  Until the -Wabi-tag option is
-         emulated, ignore the attribute. */
-      if (ap->arguments != NULL) {
-        /* Arguments are allowed by GNU, but have no effect. */
-        pos_remark(ec_attributes_ignored, &ap->position);
-      }  /* if */
-    }  /* if */
-  } else if (ap->arguments == NULL) {
+  } else if (ap->arguments == NULL && entity_kind != iek_namespace) {
     /* abi_tag attributes can have no arguments for inline namespaces, but
        not for routines or types. */
     pos_st_error(ec_invalid_empty_attribute_arg_list, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   } else {
-    /* Do processing for abi_tag attributes that are applied to routines
-       or class types. */
+    /* Do processing for abi_tag attributes. */
     a_source_correspondence_ptr scp = (a_source_correspondence*)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-    a_boolean           redeclaration = FALSE;
     a_routine_ptr       rp = NULL;
-    a_type_ptr          class_type = NULL;
+    a_namespace_ptr     nsp = NULL;
+    a_type_ptr          tp = NULL;
+    a_variable_ptr      vp = NULL;
     an_attribute_ptr    prev;
 #if CHECKING
-    /* GNU accepts more than just narrow string literals, but that seems to
-       be a bug, so limit the arguments to narrow string literals. */
+    /* Older versions of GNU accept more than just narrow string literals, but
+       that seems to be a bug, so limit the arguments to narrow string
+       literals. */
     an_attribute_arg_ptr  aap;
     for (aap = ap->arguments; aap != NULL; aap = aap->next) {
       check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
@@ -6867,10 +6851,54 @@ to match GNU's behavior).
 #endif /* CHECKING */
     if (entity_kind == iek_routine) {
       rp = (a_routine_ptr)entity;
+    } else if (entity_kind == iek_variable) {
+      vp = (a_variable_ptr)entity;
+    } else if (entity_kind == iek_namespace) {
+      /* The abi_tag is being applied to a (presumably inline) namespace. */
+      nsp = (a_namespace_ptr)entity;
+      if (gnu_version < 50000) {
+        /* Support for abi_tag attributes on inline namespaces was added in
+           GNU 5.0.0. */
+        pos_warning(ec_attributes_ignored, &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (!nsp->is_inline) {
+        /* Ignore abi_tag attributes on non-inline namespaces. */
+        pos_warning(ec_ignoring_attribute_on_non_inline_namespace,
+                    &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (nsp->source_corresp.name == NULL) {
+        /* Ignore abi_tag attributes on anonymous namespaces. */
+        pos_warning(ec_ignoring_attribute_on_anonymous_namespace,
+                    &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (ap->arguments == NULL) {
+        /* If no arguments are specified, e.g., __attribute__((abi_tag)), GCC
+           uses the namespace name as the abi_tag name.  Create a string
+           constant and point a new attribute argument to it. */
+        a_memory_region_number  region_to_switch_back_to;
+        a_constant_ptr          constant = local_constant();
+        a_targ_size_t           name_length =
+                                          strlen(nsp->source_corresp.name) + 1;
+        char *name = alloc_text_of_string_literal((sizeof_t)name_length);
+        (void)strcpy(name, nsp->source_corresp.name);
+        clear_constant(constant, ck_string);
+        constant->type = string_type(name_length);
+        constant->variant.string.length = name_length;
+        constant->variant.string.value  = name;
+        aap = alloc_attribute_arg();
+        aap->kind = (an_attribute_arg_kind)aak_constant;
+        /* No source position is recorded for this case. */
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        aap->variant.constant = alloc_shareable_constant(constant);
+        switch_back_to_original_region(region_to_switch_back_to);
+        ap->arguments = aap;
+        release_local_constant(&constant);
+      }  /* if */
     } else {
       check_assertion(entity_kind == iek_type);
-      class_type = (a_type_ptr)entity;
-      check_assertion(is_immediate_class_type(class_type));
+      tp = (a_type_ptr)entity;
+      check_assertion(is_immediate_class_type(tp) ||
+                      is_immediate_enum_type(tp));
     }  /* if */
     /* There appears to have been some major tweaking of the way the abi_tag
        was handled between the 4.8.0 and 4.9.0 releases of g++; the code
@@ -6880,8 +6908,10 @@ to match GNU's behavior).
         /* It appears that abi_tag attributes are silently ignored on
            function templates before version 4.9.0. */
         make_attr_unrecognized(ap);
-      } else if (entity_kind == iek_type && !ap->on_primary_declaration &&
-                 class_type->variant.class_struct_union.is_template_class) {
+      } else if (entity_kind == iek_type &&
+                 is_immediate_class_type(tp) &&
+                 !ap->on_primary_declaration &&
+                 tp->variant.class_struct_union.is_template_class) {
         /* In GCC 4.8.x the attribute is ignored on class declarations that
            result from template instantiations or specializations, unless
            the instantiation/specialization provides a definition.  For
@@ -6901,8 +6931,9 @@ to match GNU's behavior).
     } else {
       if (dps != NULL &&
           entity_kind == iek_type &&
+          is_immediate_class_type(tp) &&
           (dps->is_explicit_instantiation ||
-           class_type->variant.class_struct_union.is_specialized)) {
+           tp->variant.class_struct_union.is_specialized)) {
         /* Ignore attributes (with a warning) on explicit specializations
            (they had been accepted prior to 4.9.0). */
         pos_warning(ec_abi_tag_ignored_on_specialization, &ap->position);
@@ -6921,55 +6952,142 @@ to match GNU's behavior).
          should at least be the current abi_tag attribute). */
       prev = find_attribute(ak_abi_tag, scp->attributes);
       check_assertion(prev != NULL);
-      if (dps != NULL &&
-          ((entity_kind == iek_routine && !dps->first_decl) ||
-           (entity_kind == iek_type &&
-            dps->redeclares_tag &&
-            dps->tag_def_or_forward_decl))) {
-        /* This is a redeclaration of a function or class. */
-        redeclaration = TRUE;
-      }  /* if */
-      if (!redeclaration) {
-        if (prev == ap) {
-          /* Usual case: not a redeclaration and a single abi_tag attribute. */
-        } else {
-          /* There are at least two abi_tag attributes on a single declaration;
-             ignore the first (with a warning), then "remove" it. */
-          pos_warning(ec_abi_tag_ignored, &prev->position);
-          make_attr_unrecognized(prev);
-        }  /* if */
+      if (entity_kind == iek_namespace && prev != ap) {
+        /* Inline namespaces seem to "collect" attribute names.  Just make sure
+           this attribute isn't already on the list. */
+        /* FIXME: Add code to remove duplicates. */
       } else {
-        /* A redeclaration. */
-        if (prev == ap) {
-          /* Previous declaration didn't have an abi_tag attribute, but this
-             one does; report the mismatch. */
-          pos_sy_error(ec_no_abi_tag_on_declaration, &ap->position,
-                       (a_symbol_ptr)scp->assoc_info);
-          make_attr_unrecognized(ap);
-        } else {
-          /* Make sure that every string in the new abi_tag list is also
-             on the previous attribute list. */
-          if (!abi_tag_list_is_subset_of(prev, ap)) {
-            make_attr_unrecognized(ap);
+        a_boolean redeclaration = FALSE;
+        if (dps != NULL &&
+            ((entity_kind == iek_routine && !dps->first_decl) ||
+             (entity_kind == iek_type &&
+              dps->redeclares_tag &&
+              dps->tag_def_or_forward_decl))) {
+          /* This is a redeclaration of a function or class. */
+          redeclaration = TRUE;
+        }  /* if */
+        if (!redeclaration) {
+          if (prev == ap) {
+            /* Usual case: not a redeclaration and a single abi_tag
+               attribute. */
+          } else {
+            /* There are at least two abi_tag attributes on a single
+               declaration; ignore the first (with a warning), then "remove"
+               it. */
+            pos_warning(ec_abi_tag_ignored, &prev->position);
+            make_attr_unrecognized(prev);
           }  /* if */
-          /* Get rid of the previous abi_tag attribute in any case (g++ only
-             acts on the last one). */
-          make_attr_unrecognized(prev);
+        } else {
+          /* A redeclaration. */
+          if (prev == ap) {
+            /* Previous declaration didn't have an abi_tag attribute, but this
+               one does; report the mismatch. */
+            pos_sy_error(ec_no_abi_tag_on_declaration, &ap->position,
+                         (a_symbol_ptr)scp->assoc_info);
+            make_attr_unrecognized(ap);
+          } else {
+            /* Make sure that every string in the new abi_tag list is also
+               on the previous attribute list. */
+            if (!abi_tag_list_is_subset_of(prev, ap)) {
+              make_attr_unrecognized(ap);
+            }  /* if */
+            /* Get rid of the previous abi_tag attribute in any case (g++ only
+               acts on the last one). */
+            make_attr_unrecognized(prev);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
     if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
       /* If the attribute hasn't been marked as unrecognized, set the
          corresponding flag in the entity. */
+      gnu_abi_tag_attribute_seen = TRUE;
       if (entity_kind == iek_routine) {
         rp->has_gnu_abi_tag_attribute = TRUE;
+      } else if (entity_kind == iek_variable) {
+        vp->has_gnu_abi_tag_attribute = TRUE;
+      } else if (entity_kind == iek_namespace) {
+        /* Mark the namespace as having abi_tag attributes. */
+        check_assertion(nsp != NULL);
+        nsp->has_gnu_abi_tag_attribute = TRUE;
+        /* Also indicate that entities defined in this namespace scope are
+           subject to the attributes defined by this namespace. */
+        assert_is_valid_scope_depth(depth_scope_stack);
+        check_assertion(scope_stack_top().assoc_namespace == nsp);
+        scope_stack_top().in_gnu_abi_tag_namespace = TRUE;
       } else {
-        class_type_supp(class_type)->has_gnu_abi_tag_attribute = TRUE;
+        tp->has_gnu_abi_tag_attribute = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   return entity;
 }  /* apply_abi_tag_attr */
+
+
+void add_implicit_abi_tag_attribute(a_source_correspondence *scp,
+                                    an_il_entry_kind        entity_kind,
+                                    a_constant_ptr          con)
+/*
+Add an implicit abi_tag attribute to the entity described by scp and
+entity_kind.  con is a string constant to be used for the attribute.  Note that
+all implicit abi_tag attributes are collected in a single attribute (at the
+head of the attribute list for the entity).
+*/
+{
+  an_attribute_ptr      ap, implicit_ap;
+  an_attribute_arg_ptr  aap;
+
+  check_assertion(gnu_abi_tag_attribute_seen &&
+                  con->kind == (a_constant_repr_kind)ck_string);
+  for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == (an_attribute_kind)ak_abi_tag) {
+      for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+        check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                        aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+        if (con == aap->variant.constant ||
+            (con->variant.string.length ==
+                                aap->variant.constant->variant.string.length &&
+             memcmp(con->variant.string.value,
+                    aap->variant.constant->variant.string.value,
+                    size_t_arg(con->variant.string.length)) == 0)) {
+          /* Don't add a duplicate abi_tag. */
+          goto done;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  /* Maintain all implicit abi_tag attributes in a single attribute entry at
+     the head of the attribute list for this entity (with potentially multiple
+     attribute arguments).  There is no source position information (since
+     these are implicit). */
+  if (scp->attributes == NULL ||
+      !scp->attributes->is_implicit_abi_tag_attribute) {
+    implicit_ap = make_attribute((an_attribute_family)af_gnu);
+    implicit_ap->kind = ak_abi_tag;
+    implicit_ap->name = copy_string_to_region(file_scope_region_number,
+                                              "abi_tag");
+    implicit_ap->is_implicit_abi_tag_attribute = TRUE;
+    implicit_ap->next = scp->attributes;
+    scp->attributes = implicit_ap;
+  } else {
+    implicit_ap = scp->attributes;
+  }  /* if */
+  aap = alloc_attribute_arg();
+  aap->kind = (an_attribute_arg_kind)aak_constant;
+  aap->variant.constant = con;
+  aap->next = implicit_ap->arguments;
+  implicit_ap->arguments = aap;
+  if (entity_kind == iek_routine) {
+    a_routine_ptr rp = (a_routine_ptr)scp;
+    rp->has_gnu_abi_tag_attribute = TRUE;
+  } else {
+    check_assertion(entity_kind == iek_variable);
+    a_variable_ptr vp = (a_variable_ptr)scp;
+    vp->has_gnu_abi_tag_attribute = TRUE;
+  }  /* if */
+done:;
+}  /* add_implicit_abi_tag_attribute */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8320,6 +8438,7 @@ be initialized for each compilation.
   num_ELF_visibility_stack_entries_allocated = 0;
 #endif /* DEBUG */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  gnu_abi_tag_attribute_seen = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;

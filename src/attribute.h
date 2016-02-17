@@ -19,6 +19,8 @@ attribute.h -- Declarations related to attribute.c (having to do with
 #define ATTRIBUTE_H 1
 
 #if DEBUG
+extern void db_attribute(an_attribute_ptr  ap);
+
 extern void db_attribute_list(an_attribute_ptr  ap);
 #endif /* DEBUG */
 
@@ -133,6 +135,13 @@ EXTERN a_source_position
 			   holds the position of the last token of that
 			   attribute group (until the next attribute group is
 			   scanned). */
+
+#if GNU_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+                gnu_abi_tag_attribute_seen;
+                        /* TRUE if an abi_tag attribute has been seen in the
+                           source (triggers additional mangling work). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void skip_over_attributes(void);
 
@@ -286,6 +295,10 @@ extern a_boolean compare_for_attr_name_map(a_void_ptr  entry,
 #if GNU_EXTENSIONS_ALLOWED
 extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
                                           a_void_ptr  key);
+
+extern void add_implicit_abi_tag_attribute(a_source_correspondence *scp,
+                                           an_il_entry_kind        entity_kind,
+                                           a_constant_ptr          con);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if GNU_FUNCTION_MULTIVERSIONING

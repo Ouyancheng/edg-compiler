@@ -3719,16 +3719,20 @@ static void mangled_variable_name(a_variable_ptr            variable,
 Add to the mangled name the name of the variable.  Used in cfront ABI only.
 */
 {
-  a_length_reservation    length_reservation;
   a_const_char            *str;
 
   str = unmangled_or_fabricated_name_of_variable(variable);
   check_assertion(str != NULL);
-  reserve_space_for_length(&length_reservation, mctl);
   if (is_class_or_namespace_member(variable)) {
     /* Static data member or namespace member variable. */
     mangled_member_variable_name(variable, mctl);
   } else {
+#if GNU_EXTENSIONS_ALLOWED
+    if (variable->has_gnu_abi_tag_attribute) {
+      /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
+      add_abi_tag_mangling(variable->source_corresp.attributes, mctl);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     add_str_to_mangled_name(str, mctl);
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (entity_needs_to_be_individuated(&variable->source_corresp,
@@ -3742,7 +3746,6 @@ Add to the mangled name the name of the variable.  Used in cfront ABI only.
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* if */
-  fill_in_length(&length_reservation, mctl);
 }  /* mangled_variable_name */
 
 #endif /* IA64_ABI */
@@ -6278,7 +6281,12 @@ is TRUE.
                                  (a_routine_info_block *)NULL,
                                  /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
+        /* Encode the variable name, but precede it with a length
+           indication. */
+        a_length_reservation    length_reservation;
+        reserve_space_for_length(&length_reservation, mctl);
         mangled_variable_name(node_variable(expr), mctl);
+        fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
       }  /* if */
       break;
@@ -7611,8 +7619,7 @@ often be unknown at the time of the call, requiring a length reservation).
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
 #if !IA64_ABI && GNU_EXTENSIONS_ALLOWED
-  if (is_immediate_class_type(type) &&
-      type->variant.class_struct_union.extra_info->has_gnu_abi_tag_attribute) {
+  if (type->has_gnu_abi_tag_attribute) {
     /* The Cfront ABI adds a prefix to indicate the presence of "abi_tag"
        attributes. */
     add_abi_tag_mangling(type->source_corresp.attributes, mctl);
@@ -7629,8 +7636,7 @@ often be unknown at the time of the call, requiring a length reservation).
     add_str_to_mangled_name(name, mctl);
   }  /* if */
 #if IA64_ABI && GNU_EXTENSIONS_ALLOWED
-  if (is_immediate_class_type(type) &&
-      type->variant.class_struct_union.extra_info->has_gnu_abi_tag_attribute) {
+  if (type->has_gnu_abi_tag_attribute) {
     /* The IA-64 ABI adds a suffix to indicate the presence of "abi_tag"
        attributes. */
     add_abi_tag_mangling(type->source_corresp.attributes, mctl);
@@ -10455,43 +10461,47 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
   an_attribute_arg_ptr  aap;
 
   check_assertion(ap != NULL);
-  ap = find_attribute((a_byte_attribute_kind)ak_abi_tag, ap);
-  check_assertion(ap != NULL);
-  for (aap = ap->arguments; aap != NULL; aap = aap->next) {
-    an_abi_tag_string_ptr atsp, prev = NULL;
-    check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
-                    aap->variant.constant->kind ==
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->kind != (an_attribute_kind)ak_abi_tag) {
+      /* Ignore non-abi_tag attributes. */
+    } else {
+      for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+        an_abi_tag_string_ptr atsp, prev = NULL;
+        check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                        aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
-    if (avail_abi_tag_strings != NULL) {
-      atsp = avail_abi_tag_strings;
-      avail_abi_tag_strings = atsp->next;
-    } else {
-      atsp = alloc_general_of_type(an_abi_tag_string);
-    }  /* if */
-    atsp->constant = aap->variant.constant;
-    if (list == NULL) {
-      /* First attribute on the list. */
-      list = atsp;
-      atsp->next = NULL;
-    } else {
-      /* Keep the abi_tag attributes in ascending order.  It is expected
-         that the number of "abi_tag" strings will be small, so an in-line
-         "sort" is used. */
-      for (ptr = list; ptr != NULL; ptr = ptr->next) {
-        if (strcmp(atsp->constant->variant.string.value,
-                   ptr->constant->variant.string.value) <= 0) {
-          break;
+        if (avail_abi_tag_strings != NULL) {
+          atsp = avail_abi_tag_strings;
+          avail_abi_tag_strings = atsp->next;
+        } else {
+          atsp = alloc_general_of_type(an_abi_tag_string);
         }  /* if */
-        prev = ptr;
+        atsp->constant = aap->variant.constant;
+        if (list == NULL) {
+          /* First attribute on the list. */
+          list = atsp;
+          atsp->next = NULL;
+        } else {
+          /* Keep the abi_tag attributes in ascending order.  It is expected
+             that the number of "abi_tag" strings will be small, so an in-line
+             "sort" is used. */
+          for (ptr = list; ptr != NULL; ptr = ptr->next) {
+            if (strcmp(atsp->constant->variant.string.value,
+                       ptr->constant->variant.string.value) <= 0) {
+              break;
+            }  /* if */
+            prev = ptr;
+          }  /* for */
+          if (ptr == list) {
+            atsp->next = list;
+            list = atsp;
+          } else {
+            check_assertion(prev != NULL);
+            prev->next = atsp;
+            atsp->next = ptr;
+          }  /* if */
+        }  /* if */
       }  /* for */
-      if (ptr == list) {
-        atsp->next = list;
-        list = atsp;
-      } else {
-        check_assertion(prev != NULL);
-        prev->next = atsp;
-        atsp->next = ptr;
-      }  /* if */
     }  /* if */
   }  /* for */
   /* Now that the abi_tag strings have been identified and sorted, add them
@@ -10506,10 +10516,398 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
     last = ptr;
   }  /* for */
   /* Return entries to the available list. */
-  check_assertion(last != NULL);
-  last->next = avail_abi_tag_strings;
-  avail_abi_tag_strings = list;
+  if (last != NULL) {
+    last->next = avail_abi_tag_strings;
+    avail_abi_tag_strings = list;
+  }  /* if */
 }  /* add_abi_tag_mangling */
+
+
+static a_source_correspondence
+                *ttt_scp_for_implicit_abi_tags;
+                        /* Used by calculate_implicit_abi_tags during a
+                           type traversal to store the source correspondence
+                           for the IL entity whose implicit abi_tags are
+                           being computed. */
+static an_il_entry_kind
+                ttt_kind_for_implicit_abi_tags;
+                        /* Used by calculate_implicit_abi_tags during a
+                           type traversal to store the IL entity kind
+                           (either iek_routine or iek_variable). */
+static a_boolean
+                ttt_mark_value;
+                        /* Used during the walk of entities in the mangled
+                           signature to store the value to set the
+                           entity_marked field to (TRUE during marking, FALSE
+                           when un-marking). */
+
+/*
+Shorthand for a_type_tree_traversal_flag_set used during abi_tag processing.
+*/
+#define ABI_TAG_TTT_FLAGS                                                     \
+  (TTT_SKIP_TYPEREFS | TTT_RETURN_TYPE | TTT_PARAM_TYPES | TTT_TEMPLATE_ARGS)
+
+/*
+Utility that returns TRUE if the given IL entity is "marked".  Note that for
+the purposes of this test, a class template is considered "marked" if its
+associated template is marked.  This is to catch cases like:
+  X<int> f(X<double>);
+where any abi_tags for "X" would not be implicitly added.
+*/
+#define entity_is_marked(scp, kind)                                           \
+  ((scp)->entity_marked ? TRUE :                                              \
+     ((kind) == iek_type &&                                                   \
+      is_immediate_class_type((a_type_ptr)(scp)) &&                           \
+      ((a_type_ptr)(scp))->variant.class_struct_union.is_template_class &&    \
+      class_type_supp((a_type_ptr)(scp))->                                    \
+                                 assoc_template->source_corresp.entity_marked))
+
+/* Typedef for callback from walk_entity_and_parents. */
+typedef void (*a_walk_parent_callback)(a_source_correspondence *scp,
+                                       an_il_entry_kind        kind);
+
+
+static void walk_parents(a_source_correspondence *scp,
+                         an_il_entry_kind        kind,
+                         a_walk_parent_callback  callback,
+                         a_boolean               unmarked_only)
+/*
+This routine walks through all of the parents of scp and invokes the callback
+routine on each of its parents in turn (including enclosing routines).  When
+unmarked_only is TRUE, callbacks are only performed on entities that are
+unmarked (and the walk is discontinued once a marked entity is found).
+*/
+{
+  /* Visit each of the parents that will appear in the mangled name. */
+  while (scp->parent_scope != NULL &&
+         scp->parent_scope->kind != (a_scope_kind)sck_file) {
+    if (scp->is_class_member) {
+      a_type_ptr parent_class = scp_parent_class(scp);
+      check_assertion(parent_class != NULL);
+      scp = &parent_class->source_corresp;
+      kind = iek_type;
+      if (!scp->is_local_to_function &&
+          !((a_type_ptr)scp)->in_gnu_abi_tag_namespace) {
+        /* Parents don't have abi_tags. */
+        break;
+      }  /* if */
+    } else {
+      a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
+      check_assertion(nsp != NULL);
+      scp = &nsp->source_corresp;
+      kind = iek_namespace;
+    }  /* if */
+    if (unmarked_only && entity_is_marked(scp, kind)) {
+      /* No need to continue if we've hit a marked entity. */
+      break;
+    }  /* if */
+    callback(scp, kind);
+    if (scp->parent_via_local_scope_ref) {
+      check_assertion(scp->enclosing_routine != NULL);
+      if ((unmarked_only && entity_is_marked(scp, kind))) {
+        /* No need to continue if we've hit a marked entity. */
+        break;
+      }  /* if */
+      scp = &scp->enclosing_routine->source_corresp;
+      callback(scp, iek_routine);
+    }  /* if */
+  }  /* while */
+}  /* walk_entity_and_parents */
+
+
+static void walk_entity_and_parents(a_source_correspondence *scp,
+                                    an_il_entry_kind        kind,
+                                    a_walk_parent_callback  callback,
+                                    a_boolean               unmarked_only)
+/*
+This routine walks through all of the parents of scp and invokes the callback
+routine on the entity and each of its parents in turn (including enclosing
+routines).  When unmarked_only is TRUE, callbacks are only performed on
+entities that are unmarked (and the walk is discontinued once a marked entity
+is found).
+*/
+{
+  if (unmarked_only && entity_is_marked(scp, kind)) {
+    /* Caller only wants unmarked entities. */
+  } else {
+    /* Visit the entity itself first. */
+    callback(scp, kind);
+    /* Then its parents. */
+    walk_parents(scp, kind, callback, unmarked_only);
+  }  /* if */
+}  /* walk_entity_and_parents */
+
+
+static void apply_implicit_abi_tags_from_entity(a_source_correspondence *scp,
+                                                an_il_entry_kind        kind)
+/*
+The given entity is not marked as part of the signature; apply any applicable
+abi_tags to the entity given by ttt_scp_for_implicit_abi_tags.
+*/
+{
+  a_boolean has_gnu_abi_tag_attribute;
+
+#if DEBUG
+  if (db_flag_is_set("abi_tag")) {
+    (void)fputs("Considering unmarked entity ", f_debug);
+    db_name(scp);
+    (void)fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  check_assertion(!entity_is_marked(scp, kind));
+  if (kind == iek_type) {
+    has_gnu_abi_tag_attribute = ((a_type_ptr)scp)->has_gnu_abi_tag_attribute;
+  } else if (kind == iek_namespace) {
+    has_gnu_abi_tag_attribute =
+                             ((a_namespace_ptr)scp)->has_gnu_abi_tag_attribute;
+  } else {
+    check_assertion(kind == iek_routine &&
+                    ((a_routine_ptr)scp)->storage_class !=
+                                                   (a_storage_class)sc_static);
+    has_gnu_abi_tag_attribute= ((a_routine_ptr)scp)->has_gnu_abi_tag_attribute;
+  }  /* if */
+  if (has_gnu_abi_tag_attribute) {
+    /* Apply any abi_tag attributes from scp as implicit abi_tag attributes
+       for ttt_scp_for_implicit_abi_tags. */
+    an_attribute_arg_ptr  aap;
+    an_attribute_ptr      ap;
+#if DEBUG
+    if (db_flag_is_set("abi_tag")) {
+      (void)fputs("Adding implicit abi_tags from ", f_debug);
+      db_name(scp);
+      (void)fputs("\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+      if (ap->kind == (an_attribute_kind)ak_abi_tag) {
+        for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+          check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                          aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+          add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
+                                         ttt_kind_for_implicit_abi_tags,
+                                         aap->variant.constant);
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* apply_implicit_abi_tags_from_entity */
+
+
+/* ARGSUSED */ /* end_traversal is not used. */
+static a_boolean ttt_add_implicit_abi_tags_for_type(a_type_ptr type,
+                                                    a_boolean  *end_traversal)
+/*
+Called during a type traversal by calculate_implicit_abi_tags.  If the
+type has not previously been marked as part of the mangled signature, and
+the type has abi_tags, or may be in an inline namespace whose abi_tags apply,
+then apply those abi_tags as implicit abi_tags to the entity described by
+ttt_scp_for_implicit_abi_tags.
+*/
+{
+  if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+    /* Only class and enum types can have abi_tag attributes. */
+    if ((type->has_gnu_abi_tag_attribute || type->in_gnu_abi_tag_namespace)) {
+      /* This type has an explicit abi_tag or some parent that is an inline
+         namespace with an abi_tag attribute. */
+      walk_entity_and_parents(&type->source_corresp, iek_type,
+                              apply_implicit_abi_tags_from_entity,
+                              /*unmarked_only=*/TRUE);
+    }  /* if */
+  }  /* if */
+  return TRUE;
+}  /* ttt_add_implicit_abi_tags_for_type */
+
+
+static void mark_entry(a_source_correspondence *scp,
+                       an_il_entry_kind        kind);
+
+
+/* ARGSUSED */ /* end_traversal is not used. */
+static a_boolean ttt_mark_entry(a_type_ptr type,
+                                a_boolean  *end_traversal)
+/*
+Called during a type traversal from mark_entry to set the entity_marked field
+of the specified type to ttt_mark_value.
+*/
+{
+#if DEBUG
+  if (db_flag_is_set("abi_tag")) {
+    (void)fprintf(f_debug, "%s type ", ttt_mark_value ? "Marking" :
+                                                        "Unmarking");
+    db_name(&type->source_corresp);
+    (void)fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  type->source_corresp.entity_marked = ttt_mark_value;
+  if (is_immediate_class_type(type)) {
+    a_class_type_supplement_ptr   ctsp = class_type_supp(type);
+    if (type->variant.class_struct_union.is_template_class) {
+      /* Also mark the template class to catch cases like:
+           X<int> f(X<double>);
+         where X has an abi_tag.  The abi_tag for X<int> does not appear
+         in the implicit abi_tags for "f" in this case. */
+      check_assertion(ctsp->assoc_template != NULL);
+      ctsp->assoc_template->source_corresp.entity_marked = ttt_mark_value;
+    }  /* if */
+  }  /* if */
+  /* Walk the parents of this entry (the entry itself is marked here to
+     prevent an unbounded loop). */
+  walk_parents(&type->source_corresp, iek_type, mark_entry,
+               /*unmarked_only=*/FALSE);
+  return TRUE;
+}  /* ttt_mark_entry */
+
+
+static void mark_entry(a_source_correspondence *scp,
+                       an_il_entry_kind        kind)
+/*
+Mark (or unmark, depending on the value of ttt_mark_value) the IL entity
+specified by scp and kind, as well as any related entities that would appear
+in the mangled name of the entity.
+*/
+{
+  scp->entity_marked = ttt_mark_value;
+#if DEBUG
+  if (db_flag_is_set("abi_tag")) {
+    (void)fprintf(f_debug, "%s entity ", ttt_mark_value ? "Marking" :
+                                                          "Unmarking");
+    db_name(scp);
+    (void)fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  if (scp == ttt_scp_for_implicit_abi_tags) {
+    /* If we're marking the entity for which we're computing the implicit
+       abi_tags, don't mark that in the signature. */
+  } else if (kind == iek_routine) {
+    (void)traverse_type_tree(((a_routine_ptr)scp)->type, ttt_mark_entry,
+                             ABI_TAG_TTT_FLAGS);
+  } else if (kind == iek_type) {
+    /* Also include any types referenced in this type (e.g., "A*"), but
+       also class templates. */
+    (void)traverse_type_tree((a_type_ptr)scp, ttt_mark_entry,
+                             ABI_TAG_TTT_FLAGS);
+  }  /* if */
+}  /* mark_entry */
+
+
+static void set_signature_mark(a_source_correspondence *scp,
+                               an_il_entry_kind        kind,
+                               a_boolean               mark)
+/*
+Identify every element of the "mangled signature" for scp and mark those
+elements with the value specified by "mark".  scp can be either a variable or
+a routine.
+*/
+{
+  a_variable_ptr      vp;
+  a_routine_ptr       rp;
+  a_template_arg_ptr  template_arg = NULL;
+
+  ttt_mark_value = mark;
+  check_assertion(!scp->name_has_been_mangled);
+  walk_entity_and_parents(scp, kind, mark_entry, /*unmarked_only=*/FALSE);
+  if (kind == iek_variable) {
+    /* For variables, only template arguments (for variable templates) appear
+       as part of the signature. */
+    /* FIXME: add code to handle variable templates. */
+    vp = (a_variable_ptr)scp;
+  } else {
+    /* For routines, the parameters and template arguments are part of the
+       mangled signature. */
+    check_assertion(kind == iek_routine);
+    a_param_type_ptr param;
+    rp = (a_routine_ptr)scp;
+    template_arg = rp->template_arg_list;
+    for (param = rp->type->variant.routine.extra_info->param_type_list;
+         param != NULL;
+         param = param->next) {
+      walk_entity_and_parents(&param->type->source_corresp, iek_type,
+                              mark_entry, /*unmarked_only=*/FALSE);
+    }  /* for */
+  }  /* if */
+  for (; template_arg != NULL; template_arg = template_arg->next) {
+    if (is_type_templ_arg(template_arg)) {
+      walk_entity_and_parents(&template_arg->variant.type->source_corresp,
+                              iek_type, mark_entry, /*unmarked_only=*/FALSE);
+    }  /* if */
+  }  /* for */
+}  /* set_signature_mark */
+
+
+static void calculate_implicit_abi_tags(a_source_correspondence *scp,
+                                        an_il_entry_kind        kind)
+/*
+Determine the implicit abi_tags that apply to the given IL entity (a variable
+or routine -- as specified by "kind"), if any, and create a new abi_tag
+attribute with their values.
+
+The method for determining how to compute implicit abi_tags is not well
+documented, consisting of a single sentence: "When a type involving an ABI tag
+is used as the type of a variable or return type of a function where that tag
+is not already present in the signature of the function, the tag is
+automatically applied to the variable or function."
+
+As implemented here, this involves three steps:
+
+  1. Marking every entity that contributes to the "mangled signature" of
+     the entity.
+  2. Visiting all components of the type (return type for routines and variable
+     type for variables) and adding implicit abi_tags for any component that
+     is not marked in step 1 and has an explicit abi_tag.
+  3. Re-visiting the entities in step 1 to reset the marks.
+*/
+{
+#if ABI_COMPATIBILITY_VERSION >= 411
+  a_variable_ptr      vp;
+  a_routine_ptr       rp;
+  a_type_ptr          tp;
+
+  /* Implicit attributes need be computed only once. */
+  check_assertion(scp->attributes == NULL ||
+                  !scp->attributes->is_implicit_abi_tag_attribute);
+  if (kind == iek_variable) {
+    vp = (a_variable_ptr)scp;
+    tp = vp->type;
+  } else {
+    check_assertion(kind == iek_routine);
+    rp = (a_routine_ptr)scp;
+    tp = rp->type->variant.routine.return_type;
+  }  /* if */
+  tp = skip_typedefs(tp);
+  if (is_void_type(tp) || is_integral_type(tp) || is_floating_type(tp) ||
+      is_void_star_type(tp)) {
+    /* These types will never have abi_tag components, so skip the expensive
+       processing. */
+  } else {
+    /* Mark entities in the signature. */
+    ttt_scp_for_implicit_abi_tags = scp;
+    ttt_kind_for_implicit_abi_tags = kind;
+    set_signature_mark(scp, kind, TRUE);
+    /* Add implicit abi_tag attributes for the type. */
+    (void)traverse_type_tree(tp, ttt_add_implicit_abi_tags_for_type,
+                             ABI_TAG_TTT_FLAGS);
+    /* Unmark entries in the signature. */
+    set_signature_mark(scp, kind, FALSE);
+    ttt_scp_for_implicit_abi_tags = NULL;
+    ttt_kind_for_implicit_abi_tags = iek_none;
+#if DEBUG
+    if (db_flag_is_set("abi_tag")) {
+      (void)fputs("Implicit abi_tags for ", f_debug);
+      db_name(scp);
+      (void)fputs(": ", f_debug);
+      if (scp->attributes == NULL ||
+          !scp->attributes->is_implicit_abi_tag_attribute) {
+        (void)fputs("none\n", f_debug);
+      } else {
+        db_attribute(scp->attributes);
+        (void)fputs("\n", f_debug);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 */
+}  /* calculate_implicit_abi_tags */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -10916,12 +11314,28 @@ determination is made by the callee.
 #if GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI
   if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
 #endif /* GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI */
-#if !IA64_ABI && GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_abi_tag_attribute_seen && !routine->implicit_abi_tags_added) {
+    routine->implicit_abi_tags_added = TRUE;
+    if (mangle_as_template) {
+      /* Note that this processing is skipped for templates because the return
+         type is included in the mangled name, so it's already part of the
+         function's signature. */
+    } else if (routine->storage_class == (a_storage_class)sc_static &&
+               !routine_might_exist_in_multiple_copies(routine)) {
+      /* GNU doesn't generate implicit abi_tags for local routines, except
+         those with vague linkage. */
+    } else {
+      calculate_implicit_abi_tags(&routine->source_corresp, iek_routine);
+    }  /* if */
+  }  /* if */
+#if !IA64_ABI
   if (routine->has_gnu_abi_tag_attribute) {
     /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
     add_abi_tag_mangling(routine->source_corresp.attributes, mctl);
   }  /* if */
-#endif /* !IA64_ABI && GNU_EXTENSIONS_ALLOWED */
+#endif /* !IA64_ABI */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
                              num_operands, conversion_type,
@@ -11492,6 +11906,13 @@ scoped enumerators, and class and namespace member constants.
     name = scp->name;
     check_assertion(name != NULL);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (kind == iek_variable &&
+      ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+    /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
+    add_abi_tag_mangling(scp->attributes, mctl);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
   if (scp->member_of_unknown_base) {
@@ -11526,6 +11947,12 @@ scoped enumerators, and class and namespace member constants.
                                 mctl);
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
+#if GNU_EXTENSIONS_ALLOWED
+  if (kind == iek_variable &&
+      ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+    add_abi_tag_mangling(scp->attributes, mctl);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_member_name */
@@ -11954,29 +12381,41 @@ encoding if suppress_parent_encoding is TRUE.
 static a_boolean variable_name_mangling_needed(a_variable_ptr variable)
 /*
 Return TRUE if the name of the indicated variable needs to be mangled.
+Also determines any implicit abi_tags for the variable when mangling is needed.
 */
 {
   a_boolean mangling_needed = FALSE;
 
   if (!has_name(variable)) {
     /* Unnamed variables do not need mangled names. */
+  } else if (!is_name_linkage_kind_subject_to_name_mangling(
+                                      variable->source_corresp.name_linkage)) {
+    /* Do not mangle namespace members with extern "C" linkage. */
   } else if (is_class_or_namespace_member(variable)) {
     /* Static data members and members of namespaces need mangled names. */
     mangling_needed = TRUE;
-    /* But do not mangle namespace members with extern "C" linkage. */
-    if (!is_name_linkage_kind_subject_to_name_mangling(
-                                      variable->source_corresp.name_linkage)) {
-      mangling_needed = FALSE;
+#if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
+    if (gnu_abi_tag_attribute_seen) {
+      /* Determine implicit abi_tags in preparation for mangling. */
+      calculate_implicit_abi_tags(&variable->source_corresp, iek_variable);
     }  /* if */
+  } else if (gnu_abi_tag_attribute_seen) {
+    /* Generally speaking, file-scope variables do not need mangling, but they
+       do if they have explicit or implicit abi_tags. */
+    calculate_implicit_abi_tags(&variable->source_corresp, iek_variable);
+    if (variable->has_gnu_abi_tag_attribute) {
+      mangling_needed = TRUE;
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   return mangling_needed;
 }  /* variable_name_mangling_needed */
 
 
-static void mangle_member_variable_name(a_variable_ptr variable)
+static void mangle_variable_name(a_variable_ptr variable)
 /*
-Mangle the name of the indicated static data member or namespace member
-variable.
+Mangle the name of the indicated static data member, namespace member variable,
+or file scope variable with abi_tags (explicit or implicit).
 */
 {
   a_mangling_control_block mctl;
@@ -11985,13 +12424,18 @@ variable.
       variable_name_mangling_needed(variable)) {
     start_mangling(&mctl);
     add_mangled_name_prefix(&mctl);
+    /* FIXME: Should consolidate these. */
+#if IA64_ABI
     mangled_member_variable_name(variable, &mctl);
+#else /* !IA64_ABI */
+    mangled_variable_name(variable, &mctl);
+#endif /* IA64_ABI */
     /* Note final=FALSE to prevent compression and truncation at this
        time, in case the name is externalized later.  do_final_name_mangling
        will do the compression or truncation if necessary. */
     (void)end_mangling_full(&variable->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
-}  /* mangle_member_variable_name */
+}  /* mangle_variable_name */
 
 
 void do_scope_other_name_mangling(a_scope_ptr scope)
@@ -12024,6 +12468,18 @@ also does type name mangling.
         mangle_member_constant_name(con);
       }  /* if */
     }  /* for */
+#if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
+    if (gnu_abi_tag_attribute_seen) {
+      /* Mangle file-scope variables with abi_tags. */
+      for (variable = scope->variables;
+           variable != NULL;
+           variable = variable->next) {
+        if (!variable->source_corresp.name_has_been_mangled) {
+          mangle_variable_name(variable);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -12062,7 +12518,7 @@ also does type name mangling.
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
-      mangle_member_variable_name(variable);
+      mangle_variable_name(variable);
     }  /* for */
     /* Look for member constants (an extension in classes) and mangle their
        names. */
@@ -12776,6 +13232,12 @@ be embedded in other mangled names.
       }  /* if */
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_abi_tag_attribute_seen) {
+    /* Determine any implicit abi_tags for this promoted static variable. */
+    calculate_implicit_abi_tags(scp, kind);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!scp->name_has_been_mangled &&
       (scp->name != NULL || is_string /*lint --e(845)*/)) {
@@ -12826,6 +13288,13 @@ be embedded in other mangled names.
         unique_number = search_scope_list(scope, rout_scope, &found);
         check_assertion_str(found,
                             "mangle_promoted_entity_name: scope not found");
+#if GNU_EXTENSIONS_ALLOWED
+        if (kind == iek_variable &&
+            ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+          /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
+          add_abi_tag_mangling(scp->attributes, &mctl);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         add_str_to_mangled_name(scp->name, &mctl);
       } else {
         /* String literal -- add "__string", and the sequence number is
@@ -12879,6 +13348,13 @@ be embedded in other mangled names.
         add_to_mangled_name('E', &mctl);
       } else {
         mangled_name_with_length(scp->name, &mctl);
+#if GNU_EXTENSIONS_ALLOWED
+        if (kind == iek_variable &&
+            ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+          /* The IA-64 ABI adds "abi_tag" mangling as a suffix. */
+          add_abi_tag_mangling(scp->attributes, &mctl);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
       add_discriminator_if_necessary(scp, &mctl);
     } else {
@@ -13377,6 +13853,9 @@ Do one-time initialization of variables related to name mangling.
 #endif /* !IA64_ABI */
 #if GNU_EXTENSIONS_ALLOWED
   avail_abi_tag_strings = NULL;
+  ttt_scp_for_implicit_abi_tags = NULL;
+  ttt_kind_for_implicit_abi_tags = iek_none;
+  ttt_mark_value = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Save variables from lower_name.c that are needed for precompiled
      headers. */

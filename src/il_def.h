@@ -2649,6 +2649,12 @@ typedef struct an_attribute {
 			/* TRUE if the attribute is a "[[gnu::...]]" standard
 			   attribute.  Its family is af_std, but it is treated
 			   as though it were an af_gnu attribute. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	is_implicit_abi_tag_attribute:1;
+			/* TRUE if the attribute is an "implicit" abi_tag
+			   attribute.  Such attributes have been added during
+			   the mangling process. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_const_char	*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   a_const_char	*namespace_name;
@@ -2847,6 +2853,12 @@ typedef struct a_source_correspondence {
 			   fabricated name is used (if this field is TRUE), but
 			   other parts of the compiler use the unmangled name
 			   (NULL). */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	entity_marked:1;
+			/* General-purpose flag used during the computation
+			   of implicit "abi_tag"s.  Nominally FALSE.  Could
+			   be used for other purposes. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;
@@ -3149,6 +3161,11 @@ typedef struct a_namespace {
 			   a namespace alias that can be used in qualifiers
 			   to work around a g++ bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field   has_gnu_abi_tag_attribute:1;
+			/* TRUE if this is an inline namespace declared with a
+			   GNU "abi_tag" attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   union {
     /* When is_namespace_alias == FALSE: */
     a_scope_ptr	assoc_scope;
@@ -7603,9 +7620,6 @@ typedef struct a_class_type_supplement {
 			/* The visibility of the class members in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-  a_bit_field   has_gnu_abi_tag_attribute:1;
-			/* TRUE if this class was declared with the
-			   GNU "abi_tag" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
@@ -8459,6 +8473,14 @@ typedef struct a_type {
 			   was defined at the point where <stdarg.h> was
 			   included. */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	has_gnu_abi_tag_attribute:1;
+			/* TRUE if this class or enum type was declared with
+			   the GNU "abi_tag" attribute. */
+  a_bit_field	in_gnu_abi_tag_namespace:1;
+			/* TRUE if this type has some parent that is an inline
+			   namespace with a GNU "abi_tag" attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   a_bit_field	process_for_ordering:1;
@@ -9651,6 +9673,10 @@ typedef struct a_variable {
   a_bit_field   has_gnu_used_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "used" attribute. */
+  a_bit_field   has_gnu_abi_tag_attribute:1;
+			/* TRUE if this variable was explicitly declared with a
+			   GNU "abi_tag" attribute, or has implicit "abi_tag"
+			   attributes. */
   a_bit_field   is_not_common:1;
 			/* TRUE if this variable was marked with the GNU
 			   "nocommon" attribute, which indicates is should not
@@ -13669,8 +13695,16 @@ typedef struct a_routine {
 			/* TRUE if this routine was declared with the
 			   GNU "used" attribute. */
   a_bit_field   has_gnu_abi_tag_attribute:1;
-			/* TRUE if this routine was declared with the
-			   GNU "abi_tag" attribute. */
+			/* TRUE if this routine was declared with an explicit
+			   GNU "abi_tag" attribute, or has implicit "abi_tag"
+			   attributes. */
+  a_bit_field	in_gnu_abi_tag_namespace:1;
+			/* TRUE if this routine has a parent inline namespace
+			   with a GNU "abi_tag" attribute. */
+  a_bit_field	implicit_abi_tags_added:1;
+			/* TRUE if the processing to determine implicit
+			   "abi_tag" attributes has been performed for this
+			   routine. */
   a_bit_field	allocates_memory:1;
 			/* TRUE if this routine was declared with the
 			   malloc attribute.  Such a routine should

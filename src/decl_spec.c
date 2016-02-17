@@ -4387,8 +4387,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode() && is_immediate_class_type(class_type)) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       /* If no ELF visibility was explicitly specified, use that of the
          enclosing class or namespace (if any). */
       a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
@@ -4396,8 +4396,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       update_for_default_ELF_visibility(
                      &visibility, class_type->source_corresp.is_class_member);
       ctsp->ELF_visibility = visibility;
-    }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      /* Record whether or not the class has an inline namespace with an
+         abi_tag as a parent. */
+      class_type->in_gnu_abi_tag_namespace =
+                                    scope_stack_top().in_gnu_abi_tag_namespace;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -6335,6 +6339,12 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     set_type_size(enum_type);
     enum_type->incomplete = FALSE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Record whether or not the enum has an inline namespace with an abi_tag as
+     a parent. */
+  enum_type->in_gnu_abi_tag_namespace =
+                                    scope_stack_top().in_gnu_abi_tag_namespace;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_removed_template_body) {
     /* A scoped enum defined in a class template has its enumerator list

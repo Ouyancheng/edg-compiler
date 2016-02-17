@@ -2626,6 +2626,10 @@ extern a_boolean variable_should_be_externalized_for_exported_templates(
                                                            a_variable_ptr var);
 #endif /* DO_IL_LOWERING */
 
+#if DO_IL_LOWERING || NEED_NAME_MANGLING
+extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
+#endif /* DO_IL_LOWERING || NEED_NAME_MANGLING */
+
 /*
 Given a namespace pointer, return a pointer to the actual namespace,
 skipping any namespace aliases that might be present.

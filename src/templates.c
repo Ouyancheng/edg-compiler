@@ -7584,6 +7584,10 @@ a type in certain ways (see template_arg_list_is_dependent).
     ctsp->is_cppcx_box = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  class_type->in_gnu_abi_tag_namespace =
+                                    scope_stack_top().in_gnu_abi_tag_namespace;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_sym_trace("instantiations", sym)) {
     fprintf(f_debug, "Partial instantiation of: ");

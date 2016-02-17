@@ -1917,6 +1917,14 @@ Display the indicated type entry.
     disp_boolean("va_list_guard_macro2_was_defined", TRUE);
   }  /* if */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->has_gnu_abi_tag_attribute) {
+    disp_boolean("has_gnu_abi_tag_attribute", TRUE);
+  }  /* if */
+  if (ptr->in_gnu_abi_tag_namespace) {
+    disp_boolean("in_gnu_abi_tag_namespace", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (ptr->typeinfo_var != NULL) {
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
@@ -2692,6 +2700,9 @@ Display the indicated variable.
   if (ptr->has_gnu_used_attribute) { 
     disp_boolean("has_gnu_used_attribute", TRUE);
   }  /* if */
+  if (ptr->has_gnu_abi_tag_attribute) {
+    disp_boolean("has_gnu_abi_tag_attribute", TRUE);
+  }  /* if */
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
@@ -3463,6 +3474,12 @@ Display the indicated routine.
   }  /* if */
   if (ptr->has_gnu_used_attribute) { 
     disp_boolean("has_gnu_used_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_abi_tag_attribute) {
+    disp_boolean("has_gnu_abi_tag_attribute", TRUE);
+  }  /* if */
+  if (ptr->in_gnu_abi_tag_namespace) {
+    disp_boolean("in_gnu_abi_tag_namespace", TRUE);
   }  /* if */
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);
@@ -5583,6 +5600,11 @@ Display the indicated attribute entry.
   if (ap->is_std_gcc_attribute) {
     disp_boolean("is_std_gcc_attribute", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ap->is_implicit_abi_tag_attribute) {
+    disp_boolean("is_implicit_abi_tag_attribute", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
     disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,
@@ -6200,6 +6222,11 @@ Display the indicated namespace entry.
     disp_boolean("shadowed_by_class", TRUE);
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_ BE */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->has_gnu_abi_tag_attribute) {
+    disp_boolean("has_gnu_abi_tag_attribute", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
     disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
