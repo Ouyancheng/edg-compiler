@@ -2414,15 +2414,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       do_constexpr_fail(result);
       break;
     case ck_integer:
-      if (con->type->kind == (a_type_kind)tk_pointer) {
-        /* Various expressions for null pointer constants are expressed as
-           ck_integer. */
-        clear_address(value, (a_byte*)0);
-      } else if (con->type->kind == (a_type_kind)tk_integer) {
-        *(an_integer_value *)value = con->variant.integer_value;
-      } else {
-        unexpected_condition();
-      }  /* if */
+      { a_type_ptr  tp = skip_typerefs(con->type);
+        if (tp->kind == (a_type_kind)tk_pointer) {
+          /* Various expressions for null pointer constants are expressed as
+             ck_integer. */
+          clear_address(value, (a_byte*)0);
+        } else if (tp->kind == (a_type_kind)tk_integer) {
+          *(an_integer_value *)value = con->variant.integer_value;
+        } else {
+          unexpected_condition();
+        }  /* if */
+      }
       break;
     case ck_float:
       *fp_value(value) = con->variant.float_value;
