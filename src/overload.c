@@ -13017,7 +13017,7 @@ binding is to an rvalue reference.
 {
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
   a_routine_ptr             conversion_routine;
-  a_type_ptr                conv_routine_type, return_type;
+  a_type_ptr                conv_routine_type, return_type, unqual_return_type;
   a_type_ptr                raw_return_type, eff_this_param_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
@@ -13219,6 +13219,7 @@ not_direct_binding_case:
       check_assertion(eff_dest_type != NULL);  /* For Coverity. */
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
+      unqual_return_type = skip_typerefs(return_type);
       if (is_reference_binding && !need_lvalue_result &&
           is_class_struct_union_type(eff_dest_type) &&
           !is_any_reference_type(il_return_type_of(conv_routine_type))) {
@@ -13247,13 +13248,15 @@ not_direct_binding_case:
            function-to-pointer decay on P, or drop cv-qualifiers on P
            (that last bit is done directly in the call below).
            See Core Issue 913. */
-        if (is_array_type(return_type)) {
+        if (unqual_return_type->kind == (a_type_kind)tk_array) {
           return_type = type_after_array_to_pointer_transformation(
                                                                   return_type);
-        } else if (is_function_type(return_type)) {
+          unqual_return_type = return_type;
+        } else if (unqual_return_type->kind == (a_type_kind)tk_routine) {
           return_type = type_after_function_to_pointer_transformation(
                                                            return_type,
                                                            (an_operand *)NULL);
+          unqual_return_type = return_type;
         }  /* if */
         /* g++ uses old [temp.deduct.conv] rules predating core issue 976
            and therefore doesn't drop the cv-qualifiers on P when A is not
@@ -13324,6 +13327,7 @@ not_direct_binding_case:
     compatible = FALSE;
     conv_routine_type = skip_typerefs(conv_routine_type);
     return_type = return_type_of(conv_routine_type);
+    unqual_return_type = skip_typerefs(return_type);
     raw_return_type = conv_routine_type->variant.routine.return_type;
     result_is_a_reference = is_any_reference_type(raw_return_type);
     result_is_an_lvalue = result_is_a_reference &&
@@ -13331,7 +13335,7 @@ not_direct_binding_case:
     if (result_is_a_reference && is_rvalue_reference_type(raw_return_type)) {
       result_is_an_xvalue = TRUE;
       if (rvalue_ref_can_be_bound_to_function_lvalue() &&
-          is_function_type(return_type)) {
+          unqual_return_type->kind == (a_type_kind)tk_routine) {
         result_is_an_xvalue = FALSE;
         result_is_an_lvalue = TRUE;
       }  /* if */
@@ -13343,7 +13347,7 @@ not_direct_binding_case:
       /* compatible = FALSE; -- already set. */
     } else if (need_rvalue_ref_compat_result && result_is_an_lvalue &&
                !(rvalue_ref_can_be_bound_to_function_lvalue() &&
-                 is_function_type(return_type))) {
+                 unqual_return_type->kind == (a_type_kind)tk_routine)) {
       /* We need a result we can bind to an rvalue reference but the
          conversion function returns an lvalue.  (But allow binding an
          rvalue reference to function to a function lvalue.) */
@@ -13351,21 +13355,22 @@ not_direct_binding_case:
     } else if (is_direct_binding &&
                !result_is_an_lvalue &&
                !result_is_an_xvalue &&
-               !is_class_struct_union_type(return_type)) {
+               !is_immediate_class_type(unqual_return_type)) {
       /* We can only bind directly to a prvalue if it has class type. */
       /* compatible = FALSE; -- already set. */
     } else if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
       /* We're looking for a specific type. */
       a_boolean types_match_ignoring_qualifiers =
               types_are_compatible_ignoring_qualifiers(dest_type, return_type);
-      if (is_class_struct_union_type(return_type)) {
+      if (is_immediate_class_type(unqual_return_type)) {
         /* The conversion function returns a class type. */
         bcp = NULL;
         if (types_match_ignoring_qualifiers ||
             ((is_reference_binding || is_copy_initialization) &&
              is_class_struct_union_type(dest_type) &&
-             is_class_struct_union_type(return_type) &&
-             (bcp = find_base_class_of(return_type, dest_type)) != NULL)) {
+             is_immediate_class_type(unqual_return_type) &&
+             (bcp = find_base_class_of(unqual_return_type,
+                                       dest_type)) != NULL)) {
           /* The source and destination types are the same, ignoring
              qualifiers. */
           /* Or ... */
@@ -13392,7 +13397,31 @@ not_direct_binding_case:
             }  /* if */
           }  /* if */
           if (compatible) {
-            if (bcp != NULL) {
+            if (result_is_a_reference && !is_reference_binding) {
+              /* Since a reference is returned but we are not binding a
+                 reference, a copy/move is needed.  The copy/move constructor
+                 needed for that operation may be deleted, which would make
+                 the conversion incompatible. */
+              a_class_symbol_supplement_ptr
+                    rcssp = class_symbol_supp(symbol_for(unqual_return_type));
+              if (rcssp->has_deleted_copy_or_move_constructor) {
+                a_symbol_ptr  ctor_sym;
+                a_boolean     ambiguous, uncallable, bitwise_copy;
+                ctor_sym = select_overloaded_copy_constructor(
+                                   unqual_return_type,
+                                   get_type_qualifiers(return_type),
+                                   result_is_an_xvalue,
+                                   &source_operand->position,
+                                   &ambiguous, &uncallable,
+                                   /*inaccessible_match=*/(a_symbol **)NULL,
+                                   &bitwise_copy);
+                if (ctor_sym == NULL ||
+                    ctor_sym->variant.routine.ptr->is_deleted) {
+                  compatible = FALSE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            if (compatible && bcp != NULL) {
               /* Now that we know the conversion is okay, set other information
                  on the conversion for the derived --> base case. */
               class_object_adjustment_required = TRUE;
@@ -13409,15 +13438,17 @@ not_direct_binding_case:
             (!is_reference_binding || !types_match_ignoring_qualifiers)) {
           /* If the conversion function returns a reference to an array or
              function type, account for the type decay that follows. */
-          if (is_array_type(return_type)) {
+          if (unqual_return_type->kind == (a_type_kind)tk_array) {
             return_type =
                        type_after_array_to_pointer_transformation(return_type);
+            unqual_return_type = return_type;
             result_is_a_reference = FALSE;
             result_is_an_lvalue = FALSE;
-          } else if (is_function_type(return_type)) {
+          } else if (unqual_return_type->kind == (a_type_kind)tk_routine) {
             return_type =
              type_after_function_to_pointer_transformation(return_type,
                                                            (an_operand *)NULL);
+            unqual_return_type = return_type;
             result_is_a_reference = FALSE;
             result_is_an_lvalue = FALSE;
           }  /* if */
@@ -13447,8 +13478,8 @@ not_direct_binding_case:
                    rvalue reference, or when you're binding a reference
                    directly to the result. */
                 compatible = FALSE;
-              } else if (is_array_type(return_type) ||
-                         is_function_type(return_type)) {
+              } else if (unqual_return_type->kind == (a_type_kind)tk_array ||
+                         unqual_return_type->kind == (a_type_kind)tk_routine) {
                 /* You can't convert array and function lvalues, because
                    they decay to pointers and that destroys the type match. */
                 compatible = FALSE;
@@ -13475,9 +13506,9 @@ not_direct_binding_case:
           compatible = TRUE;
           result_is_an_lvalue = FALSE;
         } else if ((conv_context & CCO_ANY_CV_QUAL_ON_PTR_ALLOWED) &&
-                   is_pointer_type(return_type) &&
+                   is_pointer_type(unqual_return_type) &&
                    is_pointer_type(dest_type) &&
-                   f_identical_types(type_pointed_to(return_type),
+                   f_identical_types(type_pointed_to(unqual_return_type),
                                      type_pointed_to(dest_type),
                                      ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
           /* In some cases (e.g., first operand for "->*") we need a particular
@@ -13511,14 +13542,16 @@ not_direct_binding_case:
       if (result_is_a_reference && !is_reference_binding) {
         /* If the conversion function returns a reference to an array or
            function type, account for the type decay that follows. */
-        if (is_array_type(return_type)) {
+        if (unqual_return_type->kind == (a_type_kind)tk_array) {
           return_type =
                        type_after_array_to_pointer_transformation(return_type);
+          unqual_return_type = return_type;
           result_is_an_lvalue = FALSE;
-        } else if (is_function_type(return_type)) {
+        } else if (unqual_return_type->kind == (a_type_kind)tk_routine) {
           return_type =
              type_after_function_to_pointer_transformation(return_type,
                                                            (an_operand *)NULL);
+          unqual_return_type = return_type;
           result_is_an_lvalue = FALSE;
         }  /* if */
       }  /* if */
@@ -16856,8 +16889,8 @@ error.  conv_context describes the context of the conversion.
   /* If the class is a template class, instantiate it so that its
      constructors are visible. */
   instantiate_template_class(class_type);
-  class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
-  cssp = class_symbol->variant.class_struct_union.extra_info;
+  class_symbol = symbol_for(class_type);
+  cssp = class_symbol_supp(class_symbol);
   if (alep != NULL) {
     /* Use the given argument list element as the source operand. */
     if (is_expression_component(alep)) {
@@ -16899,7 +16932,7 @@ error.  conv_context describes the context of the conversion.
     source_type = skip_typerefs(source_type);
     /* Look for a relationship between the source and destination type. */
     type_is_same = identical_types(source_type, class_type);
-    source_is_class = is_class_struct_union_type(source_type);
+    source_is_class = is_immediate_class_type(source_type);
     bcp = (source_is_class && !type_is_same) ?
                             find_base_class_of(source_type, class_type) : NULL;
     pos = &source_operand->position;
@@ -17074,7 +17107,7 @@ error.  conv_context describes the context of the conversion.
            conversion functions visible. */
         a_class_symbol_supplement_ptr  src_cssp;
         instantiate_template_class(source_type);
-        src_cssp = symbol_supplement_for_class(source_type);
+        src_cssp = class_symbol_supp(symbol_for(source_type));
         if (cssp->target_of_conversion_function ||
             src_cssp->has_auto_conversion_function ||
             src_cssp->conversion_template_list != NULL) {
