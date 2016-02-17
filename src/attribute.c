@@ -6838,11 +6838,11 @@ to match GNU's behavior).
     a_type_ptr          tp = NULL;
     a_variable_ptr      vp = NULL;
     an_attribute_ptr    prev;
+    an_attribute_arg_ptr aap;
 #if CHECKING
     /* Older versions of GNU accept more than just narrow string literals, but
        that seems to be a bug, so limit the arguments to narrow string
        literals. */
-    an_attribute_arg_ptr  aap;
     for (aap = ap->arguments; aap != NULL; aap = aap->next) {
       check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                       aap->variant.constant->kind ==
