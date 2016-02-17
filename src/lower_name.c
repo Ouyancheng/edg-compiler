@@ -10462,7 +10462,7 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
 
   check_assertion(ap != NULL);
   for (; ap != NULL; ap = ap->next) {
-    if (ap->kind != (an_attribute_kind)ak_abi_tag) {
+    if (ap->kind != (a_byte_attribute_kind)ak_abi_tag) {
       /* Ignore non-abi_tag attributes. */
     } else {
       for (aap = ap->arguments; aap != NULL; aap = aap->next) {
@@ -10679,7 +10679,7 @@ abi_tags to the entity given by ttt_scp_for_implicit_abi_tags.
     }  /* if */
 #endif /* DEBUG */
     for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-      if (ap->kind == (an_attribute_kind)ak_abi_tag) {
+      if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
         for (aap = ap->arguments; aap != NULL; aap = aap->next) {
           check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                           aap->variant.constant->kind ==
@@ -10800,7 +10800,6 @@ elements with the value specified by "mark".  scp can be either a variable or
 a routine.
 */
 {
-  a_variable_ptr      vp;
   a_routine_ptr       rp;
   a_template_arg_ptr  template_arg = NULL;
 
@@ -10811,12 +10810,11 @@ a routine.
     /* For variables, only template arguments (for variable templates) appear
        as part of the signature. */
     /* FIXME: add code to handle variable templates. */
-    vp = (a_variable_ptr)scp;
   } else {
     /* For routines, the parameters and template arguments are part of the
        mangled signature. */
-    check_assertion(kind == iek_routine);
     a_param_type_ptr param;
+    check_assertion(kind == iek_routine);
     rp = (a_routine_ptr)scp;
     template_arg = rp->template_arg_list;
     for (param = rp->type->variant.routine.extra_info->param_type_list;

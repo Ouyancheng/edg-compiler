@@ -702,6 +702,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_no_abi_tag_on_declaration)*/
 /*lint -esym(769,ec_abi_tag_prev_declaration)*/
 /*lint -esym(769,ec_abi_tag_ignored_on_specialization)*/
+/*lint -esym(769,ec_ignoring_attribute_on_non_inline_namespace)*/
+/*lint -esym(769,ec_ignoring_attribute_on_anonymous_namespace)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

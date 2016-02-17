@@ -6881,7 +6881,7 @@ to match GNU's behavior).
                                           strlen(nsp->source_corresp.name) + 1;
         char *name = alloc_text_of_string_literal((sizeof_t)name_length);
         (void)strcpy(name, nsp->source_corresp.name);
-        clear_constant(constant, ck_string);
+        clear_constant(constant, (a_constant_repr_kind)ck_string);
         constant->type = string_type(name_length);
         constant->variant.string.length = name_length;
         constant->variant.string.value  = name;
@@ -7040,7 +7040,7 @@ head of the attribute list for the entity).
   check_assertion(gnu_abi_tag_attribute_seen &&
                   con->kind == (a_constant_repr_kind)ck_string);
   for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-    if (ap->kind == (an_attribute_kind)ak_abi_tag) {
+    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
       for (aap = ap->arguments; aap != NULL; aap = aap->next) {
         check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                         aap->variant.constant->kind ==
@@ -7064,7 +7064,7 @@ head of the attribute list for the entity).
   if (scp->attributes == NULL ||
       !scp->attributes->is_implicit_abi_tag_attribute) {
     implicit_ap = make_attribute((an_attribute_family)af_gnu);
-    implicit_ap->kind = ak_abi_tag;
+    implicit_ap->kind = (a_byte_attribute_kind)ak_abi_tag;
     implicit_ap->name = copy_string_to_region(file_scope_region_number,
                                               "abi_tag");
     implicit_ap->is_implicit_abi_tag_attribute = TRUE;
@@ -7082,8 +7082,8 @@ head of the attribute list for the entity).
     a_routine_ptr rp = (a_routine_ptr)scp;
     rp->has_gnu_abi_tag_attribute = TRUE;
   } else {
-    check_assertion(entity_kind == iek_variable);
     a_variable_ptr vp = (a_variable_ptr)scp;
+    check_assertion(entity_kind == iek_variable);
     vp->has_gnu_abi_tag_attribute = TRUE;
   }  /* if */
 done:;
