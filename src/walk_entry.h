@@ -2499,7 +2499,7 @@ do_set_proper_definition_needed_flag:
           remap_next_ptr(ptr->next, a_generic_constraint_clause_ptr,
                          iek_generic_constraint_clause);
           remap_ptr(ptr->type, a_type_ptr, iek_type);
-          walk_list(ptr->constraints, a_generic_constraint_ptr,
+          remap_ptr(ptr->constraints, a_generic_constraint_ptr,
                     iek_generic_constraint);
         }
         break;
