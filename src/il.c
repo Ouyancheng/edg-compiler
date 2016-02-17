@@ -6797,7 +6797,7 @@ definition of the CC flags in il.h for more information.
 {
   a_boolean  eq = FALSE;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
-  a_boolean  same_types;
+  a_boolean  same_types = FALSE;
   a_boolean  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
   a_boolean  strict_template_constant_identity =
            strictly_identical ||
@@ -6848,9 +6848,18 @@ definition of the CC flags in il.h for more information.
       eff_cp2_type = type_pointed_to(eff_cp2_type);
       eff_cp2_type = skip_typerefs(eff_cp2_type);
     }  /* if */
-    same_types = f_types_are_compatible(eff_cp1_type,
-                                        eff_cp2_type,
-                                        TCF_REDECLARATION);
+    if (gpp_mode && cp1_type->kind != cp2_type->kind &&
+        cp2_type->kind == (a_type_kind)tk_template_param) {
+      /* g++ and clang allow some dependent types that are specified
+         differently to match between declarations.  See
+         check_gpp_template_redecl_match for more information. */
+      same_types = check_gpp_template_redecl_match(cp1_type, eff_cp2_type);
+    }  /* if */
+    if (!same_types) {
+      same_types = f_types_are_compatible(eff_cp1_type,
+                                          eff_cp2_type,
+                                          TCF_REDECLARATION);
+    }  /* if */
   } else {
     /* strictly_identical is TRUE. */
     /* The types must be pointer-identical. */

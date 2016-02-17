@@ -955,6 +955,9 @@ circuit some of the processing in common cases.
                           TCF_IGNORE_TYPE_QUALIFIERS |                \
                           TCF_IMPLICIT_CONVERSION))
 
+extern a_boolean check_gpp_template_redecl_match(a_type_ptr	type_1,
+						 a_type_ptr	type_2);
+
 extern a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  error_matches_anything,

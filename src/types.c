@@ -6635,8 +6635,8 @@ of Microsoft-mode member functions).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
-static a_boolean check_gpp_template_redecl_match(a_type_ptr	type_1,
-						 a_type_ptr	type_2)
+a_boolean check_gpp_template_redecl_match(a_type_ptr	type_1,
+					  a_type_ptr	type_2)
 /*
 We have types such as:
 
