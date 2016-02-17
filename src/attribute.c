@@ -6878,7 +6878,7 @@ to match GNU's behavior).
         a_memory_region_number  region_to_switch_back_to;
         a_constant_ptr          constant = local_constant();
         a_targ_size_t           name_length =
-                            strlen(nsp->source_corresp.name) + 1/*lint !e776*/;
+                            strlen(nsp->source_corresp.name) + 1;/*lint !e776*/
         char *name = alloc_text_of_string_literal((sizeof_t)name_length);
         (void)strcpy(name, nsp->source_corresp.name);
         clear_constant(constant, (a_constant_repr_kind)ck_string);
