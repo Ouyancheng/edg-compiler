@@ -1,5 +1,14 @@
 Version 4.11
 
+2/17/16  [EDGcpfe/16776]
+Demangling of abi_tag attribute
+
+A change has been made to be more consistent with the way GNU abi_tag
+attributes are displayed in mangled names.  Tags are now annotated as
+'[abi:tag]' rather than '__attribute((abi_tag("tag")))'.  The change
+affects both IA-64 and Cfront ABIs.
+
+
 2/11/16  [EDGcpfe/16687]
 Demangling of co_await operator
 

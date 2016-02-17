@@ -2344,7 +2344,7 @@ template parameters.
          "abi_tag" attributes can be specified. */
       unsigned long count;
       p = p+2;
-      write_id_str("attribute(abi_tag((\"", dctl);
+      write_id_str("[abi:", dctl);
       for (;;) {
         p = get_number(p, &count, dctl);
         if (count == 0 || p+count > dctl->end_of_name) {
@@ -2354,15 +2354,14 @@ template parameters.
         while (count--) {
           write_id_ch(*p++, dctl);
         }  /* while */
-        write_id_ch('"', dctl);
         if (start_of_id_is("__ab", p, dctl)) {
           p = p+4;
-          write_id_str(",\"", dctl);
+          write_id_ch(',', dctl);
         } else {
           break;
         }  /* if */
       }  /* for */
-      write_id_str("))) ", dctl);
+      write_id_ch(']', dctl);
       if (!dctl->err_in_id) {
         /* This mangling is basically a prefix; what remains is still a name
            (possibly with special names that are checked for above); recurse
@@ -6080,7 +6079,7 @@ GNU-specific extension uses 'B' as a suffix.
 {
   long num;
 
-  write_id_str(" __attribute((abi_tag(", dctl);
+  write_id_str("[abi:", dctl);
   while (*ptr == 'B') {
     ptr++;
     ptr = get_number(ptr, &num, dctl);
@@ -6088,7 +6087,6 @@ GNU-specific extension uses 'B' as a suffix.
       bad_mangled_name(dctl);
       break;
     } else {
-      write_id_ch('"', dctl);
       for (; num > 0; ptr++, num--) {
         if (*ptr == '\0') {
           bad_mangled_name(dctl);
@@ -6097,14 +6095,13 @@ GNU-specific extension uses 'B' as a suffix.
           write_id_ch(*ptr, dctl);
         }  /* if */
       }  /* for */
-      write_id_ch('"', dctl);
       if (*ptr == 'B') {
         /* Another "abi_tag" attribute follows. */
         write_id_ch(',', dctl);
       }  /* if */
     }  /* if */
   }  /* while */
-  write_id_str("))) ", dctl);
+  write_id_ch(']', dctl);
   return ptr;
 }  /* demangle_abi_tag_attribute */
 
