@@ -43,7 +43,8 @@ The Interpreter
 The interpreter itself traverses the IL in typical "recursive descent" fashion.
 The principal entry points are interpret_constexpr_call and
 interpret_constexpr_ctor, which set up an "interpreter state" that is carried
-through the interpretation process.
+through the interpretation process (this state includes local allocations and
+mappings, the call stack, diagnostic records, etc.).
 
 An interpreter invocation can end for one of three reasons:
   (1) the call is completed with a valid result (normal case),
@@ -56,13 +57,24 @@ calls and the number of loop-back branches.  When that number reaches a certain
 large value, the interpretation is deemed too expensive.  Deeply nested
 recursion is also limited.
 
+Currently, operations not in a constexpr call are not folded in the interpreter
+but by the code implementing C++11 folding.  E.g.:
+
+  constexpr int g(int) { return 3; }
+  constexpr int v = g(g(2)) * g(2);
+
+In this example, all three calls to g are handled by interpret_constexpr_call,
+but the multiplication is done elsewhere (in folding.c).
+
 
 Storage
 -------
-The interpreter manages two pools of storage.
-  (1) Local variables and temporaries, and
-  (2) Permanent data associated with declarative entities
-      (e.g., field offsets).
+The interpreter manages several pools of storage:
+  (1) automatic variables and temporaries;
+  (2) static data storage;
+  (3) permanent data associated with declarative entities
+      (e.g., field offsets); and
+  (4) maps (see below).
 
 The first kind of storage is allocated/deallocated in strict last-in/first-out
 (LIFO) manner, and so is efficiently implemented using a storage stack.  It is
@@ -78,27 +90,51 @@ the macro alloc_stack_bytes.  Deallocation, on the other hand, is batched
 "per scope" (for variables) or "per full expression" (for temporaries).  The
 macros save_storage_stack and restore_storage_stack support this.
 
-The second kind of storage persists across interpreter invocations.  It also
-uses a storage stack (static variable persistent_data), although the ability to
-efficiently deallocate is not exploited in that case.  The macro alloc_bytes
-can be used for these allocations.
+An wrinkle in this mechanism are temporaries whose lifetime is extended because
+they are bound to a reference.  This is handled by starting a new storage stack
+when the reference is encountered while recording the original stack in the
+interpreter state (see an_interpreter_state::extension_state).  When the
+temporary to be bound is encountered, it is allocated in the original stack,
+which ensures it will live as long as the reference.
+
+The second kind of storage (static data) is similar to the first in that it is
+associated with a specific interpreter invocation, but it persists until the
+end of that invocation.  This is used, e.g., for string literal storage.  It
+also uses the a_storage_stack_state structure, but is only initialized if it
+is actually needed during interpretation (see the fields static_storage_ready
+and static_storage in an_interpreter_state).
+
+The third kind of storage persists across interpreter invocations.  It also
+uses a storage stack (see the static variable persistent_data), although the
+ability to efficiently deallocate is not exploited in that case.  The macro
+alloc_bytes can be used for these allocations.
+
+This fourth kind of storage is that held managed by maps (see below).  This
+uses a separate allocation strategy.
 
 
 Mappings
 --------
-Storage can be associated with a particular address in IL memory through a
-data map (an efficient pointer-to-pointer hash table).  An association is
-established by invoking the macro map_ptr, and revoked by invoking unmap_ptr.
-A mapping can be retrieved with the macro get_mapped_ptr.  The macros
-map_byte_count and get_mapped_byte_count can similarly be used to associate an
-unsigned integer with an IL address.
+The interpret makes use of an efficient hash table data structure that maps
+pointers (the "key") to either pointers or byte counts (the "value").  The
+type describing such a "map" is a_data_map.  A new (key, value) pair can be
+added with macro map_ptr or map_byte_count.  A mapping can then be retrieved
+with get_mapper_ptr or get_mapped_byte_count.  An recorded mapping for a given
+key can be revoked with unmap_ptr.  (Most of the time, the key is a pointer
+into IL.)
 
 The interpreter state includes a data map for automatic variables and
 temporaries; convenience macros map_stack_bytes, unmap_stack_bytes, and
-get_stack_bytes can be used to manage that data map.  This map is also used
-to map run-time namespace-scope variables to a_constant entries representing
-their address (this is done by mapping the storage class field of the
-variable).
+get_stack_bytes can be used to manage that data map.  For example, if a
+stmk_init statement entry is interpreted, storage is allocated for the variable
+and the pointer to the associated a_variable entry is mapped to that storage
+address; in addition, the address of the a_variable::storage_class field is
+mapped to an allocation sequence number (of type a_byte_count) used to track
+whether the storage for a variable has expired.
+
+This map tracking automatic variables and temporaries is also used to map
+run-time namespace-scope variables to a_constant entries representing their
+address (this is done by mapping the storage class field of the variable).
 
 If a pointer is mapped multiple times (e.g., a local variable entry during a
 recursive function invocation), the last mapping is returned by get_mapped_ptr
@@ -114,26 +150,53 @@ target architecture).
 
 Object Layout
 -------------
-FIXME
 The non-address scalar data members of stored objects are the value
 representations used elsewhere in the front end (i.e., an_integer_value, etc.).
 Bit fields occupy a whole integer value, but every "store" to a bit field is
 appropriately trimmed.
 
-Class types objects and subobjects start with an IL pointer (described below),
+Class type objects and subobjects start with an IL pointer (described below),
 followed by storage for the fields, and that followed by storage for direct
 base classes (in declaration order).  A derived-to-base class cast therefore
 always corresponds to a positive offset of the "this" pointer, whereas a
 base-to-derived class cast involves negative offset.
 
-The storage for a union object starts with a pointer to an IL entry for a
-field.  That pointer reflects which field is the active field in the union.
+For objects of union type, the leading pointer points to the a_field
+corresponding to the "active field" (attempting to read a non-active field
+results in interpretation failure).  
 
 The storage of a non-union class type ("class" or "struct") starts with a
 pointer to an IL entry for the type of the next-derived subobject, or NULL
 for the most-derived subobject.  This is used to catch invalid base-to-derived
 casts (or certain invalid accesses to a derived-object member through a
 pointer-to-member value).
+
+Pointers (and references, lvalues, and xvalues) are represented with type
+a_constexpr_address.  Often, all that is needed is a pointer into interpreter
+storage.  However, there are many variations:
+
+  - pointers to array elements, for which bounds must be maintained;
+  - pointers to items in unions, for which the access path (see type
+    a_variant_path) must be maintained so that it can be checked
+    against active fields when the address is read from;
+  - pointers to functions or entities not known at compile time;
+  - etc.
+
+In addition, when comparing pointers using, e.g., the '<' operator, the
+interpreter must ensure that the pointers point to the same complete
+object.  a_constexpr_address therefore includes a pointer to the complete
+object it points to (assuming it is a pointer to interpreter storage).
+
+When reading through a_constexpr_address, the front end must ensure that the
+storage it points to is still valid.  To this end, every variable and temporary
+allocated in the interpreter has an associated allocation sequence number, and
+that number is recorded when an address for that entity is formed (for a
+pointer, lvalue, or xvalue).  When an allocation sequence number is created, it
+is also recorded in a hash table described by a_live_set (see field live_set in
+an_interpreter_state); it is removed when the associated storage is reclaimed.
+Every read through a_constexpr_address therefore just has to check that the
+recorded allocation sequence number is still in the live table (if not,
+interpretation fails).
 
 */
 
@@ -640,6 +703,16 @@ typedef struct an_interpreter_state {
   a_bit_field
 		static_storage_ready:1;
 			/* TRUE if static_storage has been initialized. */
+  a_bit_field
+		side_effects_disabled:1;
+			/* TRUE if side-effects (specifically: assignments,
+			   increments/decrements, and diagnostic records) are
+			   disabled.  Any such side-effects cause
+			   interpretation failure (without a diagnostic
+			   record), but interpretation can be restarted from
+			   any point since side-effects were disabled (this is
+			   used to implement __builtin_constant_p (a GCC
+			   extension). */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -746,6 +819,7 @@ Initialize the given interpreter state.
   ips->position = null_source_position;
   ips->cost = 0;
   ips->static_storage_ready = FALSE;
+  ips->side_effects_disabled = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -1525,8 +1599,10 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  more_info_diagnostic(err_code, pos, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_diagnostic(err_code, pos, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos */
 
 
@@ -1540,8 +1616,10 @@ for interpretation failure.  Also record annotations describing the call
 stack.  Use the given type to replace fill-ins.
 */
 {
-  more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_type */
 
 
@@ -1556,8 +1634,10 @@ for interpretation failure.  Also record annotations describing the call
 stack.  Use the given types to replace fill-ins.
 */
 {
-  more_info_type2_diagnostic(err_code, pos, tp1, tp2, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_type2_diagnostic(err_code, pos, tp1, tp2, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_type2 */
 
 
@@ -1571,8 +1651,10 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_num */
 
 
@@ -1587,8 +1669,10 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_num2 */
 
 
@@ -1602,8 +1686,10 @@ for interpretation failure.  Use sym for placeholder substitution in the
 diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_sym */
 
 
@@ -1618,8 +1704,10 @@ for interpretation failure.  Use sym and type for placeholder substitution in
 the diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
-  info_call_stack(ips);
+  if (!ips->side_effects_disabled) {
+    more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
 }  /* info_with_pos_sym_type */
 
 
@@ -1634,9 +1722,11 @@ for interpretation failure.  Use sym1 and sym2 for placeholder substitution in
 the diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
-  info_call_stack(ips);
-}  /* info_with_pos_sym */
+  if (!ips->side_effects_disabled) {
+    more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
+    info_call_stack(ips);
+  }  /* if */
+}  /* info_with_pos_sym2 */
 
 
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
@@ -2779,7 +2869,6 @@ Copy an object of the given type from one interpreter storage location
 
   if (result) {
     (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
-    /* FIXME: Adjust addresses in object? */
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
@@ -3603,13 +3692,48 @@ to FALSE and the reason for the failure is recorded in *ips.
   ips->cost += 1;
   switch (callee->variant.builtin_function_kind) {
     case bfk_constant_p:
-      /* FIXME: The only practical (but still potentially expensive) way to do
-         this is to deep-save the entire interpreter state, run the
-         interpreter on the argument yielding a true or false answer, and
-         the restore the interpreter state.  Trying the start a new instance
-         of the interpreter doesn't work because we need the variable store
-         and mappings of the current interpreter. */
-      unexpected_condition();
+      if (ips->curr_call_frame == NULL) {
+        /* Do not attempt interpreting __builtin_constant_p as an argument to
+           a top-level call, because we don't want to fold such a call
+           permanently.  E.g.:
+             constexpr int g(int x) { return __builtin_constant_p(x); }
+             constexpr int v = g(3);
+           While generating the IL for the call __builtin_constant_p(x), we
+           don't want to interpret the call (which would yield a false value
+           since x is not a constant at that point) because that would freeze
+           the result for any invocation of g.  However, during the evaluation
+           of g(3), we do want to interpret __builtin_constant_p(x) and that
+           will yield a true value since x is the known constant 3 at that
+           point. */
+        interpreted = FALSE;
+      } else {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          /* A malformed __builtin_constant_p construct.  Treat that as not
+             being constant. */
+          *(an_integer_value*)result_storage = zero_int;
+        } else {
+          /* Put the interpreter in "no side-effects" mode and interpret the
+             argument.  If successful, the argument is considered "constant"
+             (i.e., __builtin_constant_p produces a true value).  If
+             unsuccessful, we can still continue interpretation because no
+             side-effects took place. */
+          a_boolean     saved_side_effects_disabled;
+          a_type_ptr    arg_type = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, arg_type,
+                                                       p_result);
+          if (!*p_result) break;
+          saved_side_effects_disabled = ips->side_effects_disabled;
+          ips->side_effects_disabled = TRUE;
+          alloc_stack_bytes(ips, n_bytes, arg1_bytes);
+          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+            *(an_integer_value*)result_storage = one_int;
+          } else {
+            *(an_integer_value*)result_storage = zero_int;
+          }  /* if */
+          ips->side_effects_disabled = saved_side_effects_disabled;
+        }  /* if */
+      }  /* if */
       break;
     case bfk_fabs:
     case bfk_fabsf:
@@ -4906,6 +5030,9 @@ type.  This includes checking the value of ovfl set by the operation.
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
               do_constexpr_fail(result);
+            } else if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
               set_result_val_from_operand_address(opnd1_value);
@@ -4971,6 +5098,9 @@ type.  This includes checking the value of ovfl set by the operation.
                  outside the current evaluation. */
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
+              do_constexpr_fail(result);
+            } else if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
               do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
@@ -5040,6 +5170,9 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
+            } else if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integral type. */
               if (tp->variant.integer.bool_type) {
@@ -5110,6 +5243,9 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
+            } else if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integer. */
                 an_integer_value  *ival = int_value_at(opnd1_value);
@@ -5940,6 +6076,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else {
                 /* Copy the value of the right operand to the indicated
                    address and return either the address or the value, as
@@ -5987,6 +6126,9 @@ type.  This includes checking the value of ovfl set by the operation.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
               } else {
                 /* Add the value of the right operand to the value stored at
@@ -6056,6 +6198,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else {
                 /* Subtract the value of the right operand from the value
                    stored at the left operand and return the left operand
@@ -6123,6 +6268,9 @@ type.  This includes checking the value of ovfl set by the operation.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
               } else {
                 /* Multiply the value stored in the left operand with the
@@ -6192,6 +6340,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else {
                 /* Divide the value stored in the left operand with the
                    value of the right operand and leave the result in the
@@ -6259,6 +6410,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else if (expr->variant.operation.type_kind ==
                                                     (a_type_kind)tk_integer) {
                 /* Compute the remainder of the value stored in the left
@@ -6308,6 +6462,9 @@ type.  This includes checking the value of ovfl set by the operation.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
               } else {
                 /* Shift the bits stored in the first operand left by the
@@ -6370,6 +6527,9 @@ type.  This includes checking the value of ovfl set by the operation.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
               } else {
                 /* Shift the bits stored in the first operand left by the
@@ -6434,6 +6594,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else {
                 /* Bitwise "and" the value stored in the left operand with
                    the value of the right operand and leave the result in the
@@ -6471,6 +6634,9 @@ type.  This includes checking the value of ovfl set by the operation.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
               } else {
                 /* Bitwise "or" the value stored in the left operand with
@@ -6510,6 +6676,9 @@ type.  This includes checking the value of ovfl set by the operation.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
               } else {
                 /* Bitwise "xor" the value stored in the left operand with
                    the value of the right operand and leave the result in the
@@ -6527,7 +6696,11 @@ type.  This includes checking the value of ovfl set by the operation.
             }
             break;
           case eok_padd_assign:
-            if (opnd1_type->kind == (a_type_kind)tk_integer) {
+            if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
+              break;
+            } else if (opnd1_type->kind == (a_type_kind)tk_integer) {
               /* Only possible with "bool_value += ptr_value". */
               a_host_large_integer  bool_val;
               check_assertion(is_bool_type(opnd1_type));
@@ -6614,7 +6787,12 @@ type.  This includes checking the value of ovfl set by the operation.
                                            *(a_constexpr_address*)opnd1_value;
             break;
           case eok_psubtract_assign:
-            { /* ptr_lvalue += integer_rvalue. */
+            /* ptr_lvalue += integer_rvalue. */
+            if (ips->side_effects_disabled) {
+              /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
+              break;
+            } else {
               a_constexpr_address  *dst = (a_constexpr_address*)result_storage;
               a_type_ptr           elem_type;
               elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
@@ -6676,7 +6854,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   }  /* if */
                 }  /* if */
               }  /* if */
-            }
+            }  /* if */
             *(a_constexpr_address *)result_storage =
                                            *(a_constexpr_address*)opnd1_value;
             break;
