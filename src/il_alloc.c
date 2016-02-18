@@ -2142,6 +2142,10 @@ variant fields to default values.
 #ifdef GUARD_MACRO2_FOR_VA_LIST
   pte->va_list_guard_macro2_was_defined = FALSE;
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+#if GNU_EXTENSIONS_ALLOWED
+  pte->has_gnu_abi_tag_attribute = FALSE;
+  pte->in_gnu_abi_tag_namespace = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   pte->process_for_ordering = FALSE;
@@ -2151,10 +2155,6 @@ variant fields to default values.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   pte->visited_for_vla_lowering = FALSE;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-#if GNU_EXTENSIONS_ALLOWED
-  pte->has_gnu_abi_tag_attribute = FALSE;
-  pte->in_gnu_abi_tag_namespace = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
