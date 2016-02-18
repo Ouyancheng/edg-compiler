@@ -6339,13 +6339,13 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     set_type_size(enum_type);
     enum_type->incomplete = FALSE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* Record whether or not the enum has an inline namespace with an abi_tag as
      a parent. */
   enum_type->in_gnu_abi_tag_namespace =
                                     scope_stack_top().in_gnu_abi_tag_namespace;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_removed_template_body) {
     /* A scoped enum defined in a class template has its enumerator list
        replaced with a tok_removed_template_body token (it is thus treated as
