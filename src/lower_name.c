@@ -13231,10 +13231,10 @@ be embedded in other mangled names.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_abi_tag_attribute_seen) {
-    /* Determine any implicit abi_tags for this promoted static variable. */
-    calculate_implicit_abi_tags(scp, kind);
-  }  /* if */
+    if (gnu_abi_tag_attribute_seen) {
+      /* Determine any implicit abi_tags for this promoted static variable. */
+      calculate_implicit_abi_tags(scp, kind);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!scp->name_has_been_mangled &&
