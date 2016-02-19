@@ -1933,7 +1933,7 @@ that position.  If the given type is an array or routine type (which are valid
 cases), the type is replaced by the corresponding decayed pointer type.
 */
 {
-  aan_error_code  err_code;
+  an_error_code  err_code;
   a_type_ptr      type = skip_typerefs(*p_type);
 
   switch (type->kind) {
