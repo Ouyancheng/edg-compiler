@@ -2260,6 +2260,28 @@ Output the contents of the interpreted object of type tp stored at addr.
         (void)fprintf(f_debug, "}\n");
       }
       break;
+    case tk_union:
+      {
+        a_field_ptr   fp;
+        a_byte_count  offset;
+        (void)fprintf(f_debug, "{\n");
+        indent += 2;
+        /* Output the active field and its value. */
+        fp = *(a_field_ptr*)addr;
+        if (fp == NULL) {
+          (void)fprintf(f_debug, "no active field\n");
+        } else {
+          (void)fprintf(f_debug, "active field = %s\n",
+                        db_name_str(&fp->source_corresp, iek_none));
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          (void)fprintf(f_debug, " (offset %u)= \n", offset);
+          db_object(addr+offset, fp->type);
+        }  /* if */
+        indent -= 2;
+        db_indent(indent);
+        (void)fprintf(f_debug, "}\n");
+      }
+      break;
     default:
       (void)fprintf(f_debug, "db_object: unimplemented type:");
       db_type_name(tp);
@@ -7034,7 +7056,15 @@ type.  This includes checking the value of ovfl set by the operation.
             { a_constexpr_address  result_addr;
               a_field_ptr          field = node_field(opnd2);
               a_byte_count         offset;
-              result_addr = *(a_constexpr_address*)opnd1_value;
+              if (opnd1->is_lvalue || opnd1->is_xvalue ||
+                  opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* The first operand is already an address. */
+                result_addr = *(a_constexpr_address*)opnd1_value;
+              } else {
+                /* The first operand is a class rvalue: Create an address for
+                   it. */
+                clear_address(&result_addr, opnd1_value);
+              }  /* if */
               if (opnd1_type->kind == (a_type_kind)tk_union &&
                   !is_runtime_data_address(&result_addr) &&
                   !add_to_variant_path(&result_addr, field)) {

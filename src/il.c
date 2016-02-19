@@ -294,7 +294,7 @@ template classes.
   } else {
     fprintf(f_debug, "%s", db_name_str(sc, kind));
   }  /* if */
-}  /* db_name */
+}  /* db_name_full */
 
 
 void db_name(a_source_correspondence *sc)
