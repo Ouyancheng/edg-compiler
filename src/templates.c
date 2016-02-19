@@ -1924,6 +1924,83 @@ Return TRUE if there is a match, FALSE otherwise.
 }  /* template_template_arg_matches_param */
 
 
+static a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
+                                                   a_source_position  *pos)
+/*
+If the given type is a valid type for a nontype template parameter return TRUE.
+Otherwise, return FALSE, and, if pos is non-NULL, issue an appropriate error at
+that position.  If the given type is an array or routine type (which are valid
+cases), the type is replaced by the corresponding decayed pointer type.
+*/
+{
+  a_boolean   err_code;
+  a_type_ptr  type = skip_typerefs(*p_type);
+
+  switch (type->kind) {
+    case tk_void:
+      /* A parameter type of void is not allowed. */
+      err_code = ec_void_template_parameter;
+      break;
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:
+      /* A template parameter cannot have a fixed point type, if enabled in
+         C++ mode. */
+      err_code = ec_fixed_template_parameter;
+      break;
+#endif /* FIXED_POINT_ALLOWED */
+    case tk_float:
+      if (!floating_point_template_parameters_allowed) {
+        /* A floating-point template parameter type is no longer allowed
+           as of 3/94. */
+        err_code = ec_float_template_parameter;
+      } else {
+        err_code = ec_no_error;
+      }  /* if */
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+      err_code = ec_complex_template_parameter;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_pointer:
+      if (type->variant.pointer.is_rvalue_reference) {
+        /* A template parameter cannot have an rvalue reference type as there
+           is no way it could be used. */
+        err_code = ec_rvalue_ref_template_parameter;
+      } else {
+        err_code = ec_no_error;
+      }  /* if */
+      break;
+    case tk_routine:
+    case tk_array:
+      /* Array and routine types are valid, but are replaced by the
+         corresponding decayed result type in this context. */
+      err_code = ec_no_error;
+      adjust_parameter_type(p_type);
+      break;
+    case tk_struct:
+    case tk_class:
+    case tk_union:
+      /* A template parameter cannot have class type. */
+      err_code = ec_template_parameter_has_class_type;
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      err_code = ec_vector_template_parameter;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    default:
+      /* All other types are valid. */
+      err_code = ec_no_error;
+  }  /* switch */
+  if (err_code != ec_no_error && pos != NULL) {
+    pos_error(err_code, pos);
+  }  /* if */
+  return err_code == ec_no_error;
+}  /* check_nontype_template_param_type */
+
+
 static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         template_sym,
@@ -1999,7 +2076,11 @@ during wrapup processing by compare_function_templates.
                                   templ_param_list,
                                   &template_sym->decl_position,
                                   CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-          if (copy_error) match = FALSE;
+          if (copy_error || !check_nontype_template_param_type(
+                                  &constant_type, (a_source_position*)NULL)) {
+            match = FALSE;
+            continue;
+          }  /* if */
         } else {
           constant_type = tpp->variant.constant.ptr->type;
         }  /* if */
@@ -19953,7 +20034,6 @@ additional position information about the components of the declaration.
 */
 {
   a_decl_parse_state           state;
-  a_type_ptr                   tp;
 
   /* Scan the declaration specifiers. */
   init_decl_parse_state(&state);
@@ -19991,52 +20071,13 @@ additional position information about the components of the declaration.
        dependencies could be eliminated. */
     *template_dependent = is_instantiation_dependent_type(state.type);
   }  /* if */
-  /* Adjust the type if necessary (for example, "array of x"
-     becomes "pointer to x"). */
-  adjust_parameter_type(&state.type);
-  /* Check for illegal nontype parameter types.  Template parameters of
-     void type, class type, and floating point type are not permitted
-     by the standard.  Floating point template parameters are still
-     accepted when floating_point_template_parameters_allowed is TRUE.
-     Template parameters of array type are permitted even though there
-     is no way to make use of them.  GNU vector types are not permitted
-     either. */
-  tp = skip_typerefs(state.type);
-  if (is_void_type(tp)) {
-    /* A parameter type of void is not allowed. */
-    pos_error(ec_void_template_parameter, &state.start_pos);
+  /* Check for invalid nontype parameter types and adjust those types if
+     needed (array and function type decay). */
+  if (!check_nontype_template_param_type(&state.type, &state.start_pos)) {
     /* Change the parameter type to an error type.  This is done to prevent
-       template parameters from having unexpected types. */
+       template parameters from having unexpected types.  (Incomplete types
+       are a problem in  particular.) */
     invalidate_type(&state);
-  } else if (is_class_struct_union_type(tp)) {
-    /* A template parameter cannot have class type. */
-    pos_error(ec_template_parameter_has_class_type, &state.start_pos);
-    /* Change the parameter type to an error type.  This is done to prevent
-       template parameters from having unexpected types.  In particular,
-       nontype parameters with incomplete class types are problematic. */
-    invalidate_type(&state);
-  } else if (rvalue_references_enabled && is_rvalue_reference_type(tp)) {
-    /* A template parameter cannot have an rvalue reference type as there is
-       no way it could be used. */
-    pos_error(ec_rvalue_ref_template_parameter, &state.start_pos);
-    invalidate_type(&state);
-  } else if (tp->kind == (a_type_kind)tk_float) {
-    if (!floating_point_template_parameters_allowed) {
-      /* A floating-point template parameter type is no longer allowed
-         as of 3/94. */
-      pos_error(ec_float_template_parameter, &state.start_pos);
-    }  /* if */
-#if FIXED_POINT_ALLOWED
-  } else if (tp->kind == (a_type_kind)tk_fixed_point) {
-    /* A template parameter cannot have a fixed point type, if enabled in
-       C++ mode. */
-    pos_error(ec_fixed_template_parameter, &state.start_pos);
-#endif /* FIXED_POINT_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-  } else if (tp->kind == (a_type_kind)tk_vector) {
-    pos_error(ec_vector_template_parameter, &state.start_pos);
-    invalidate_type(&state);
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
   *param_type_ptr = state.type;
   run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);

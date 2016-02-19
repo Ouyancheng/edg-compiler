@@ -1,5 +1,26 @@
 Version 4.11
 
+2/19/16  [EDGcpfe/16828]
+Invalid substituted types of nontype template parameters
+
+Consider the following example:
+
+  struct L { char x[2]; };
+  template<typename U, U N = 0> char f(int);
+  template<typename> L f(...);
+  static_assert((sizeof(f<double>(0)) == sizeof(L)), "Unexpected");
+
+Ordinarily, this should be accepted because a nontype template parameter (N in
+this case) cannot have type "double" according to the standard.  The front end
+previously failed to check that constraint -- now it does.
+
+Note that the front end does in some modes and configurations accept nontype
+template parameters of floating-point type (see configuration macro
+DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED); in those cases the
+static assertion above fails since the first candidate would then be preferred
+in the call f<double>(0).
+
+
 2/17/16  [EDGcpfe/16776]
 GNU compatibility: Expanded abi_tag attribute compatibility
 

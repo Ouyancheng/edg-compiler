@@ -127,7 +127,9 @@ Set the test version flags to FALSE for demo versions.
 #endif /* ifdef DEMO_VERSION */
 
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
+#ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 
 #define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 1
+#endif /* ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED */
 
 #ifndef USE_POINTER_TO_CONST_CHAR
 /* Typedef a_const_char to const char to check for violations of const
