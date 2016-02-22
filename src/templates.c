@@ -20076,7 +20076,7 @@ additional position information about the components of the declaration.
   if (!check_nontype_template_param_type(&state.type, &state.start_pos)) {
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types.  (Incomplete types
-       are a problem in  particular.) */
+       are a problem in particular.) */
     invalidate_type(&state);
   }  /* if */
   *param_type_ptr = state.type;
