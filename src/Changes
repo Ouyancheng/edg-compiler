@@ -7,10 +7,10 @@ The C++ Standard requires that in a member access expression like x.y or
 p->y, where "y" is a member that is not a nonstatic data member, the object
 expression is evaluated and discarded.  As a result, in standard C++, such
 expressions can only appear in constant expressions if both the member and
-the object expression are constant.  g++ does not enforce this rule for an
-object expression with no side effects, and the front end has now been
-changed to emulate this behavior in g++ mode.  For example, with --g++
---c++11:
+the object expression are constant.  In C++11 mode, g++ does not enforce
+this rule for an object expression with no side effects, and the front end
+has now been changed to emulate this behavior in g++ mode.  For example,
+with --g++ --c++11:
 
   struct S {
     enum { z, y };

@@ -14066,18 +14066,19 @@ the positions of the "?" and ":" operators.
 static a_boolean potential_gnu_ignored_object_expr(an_expr_node_ptr obj_expr,
                                                    a_token_kind     tok)
 /*
-g++ allows a non-constant object expression in a member access expression
-appearing in a constant expression context if the expression has no side
-effects and the member is a constant.  Return TRUE if we are in g++ (but
-not clang) mode, obj_expr has no side effects, and tok, the token following
-the expression, is either "." or "->" so that the error that would normally
-be issued for this case can be suppressed.  (An error will be reported
-later if the member is not constant.)
+In C++11 mode, g++ allows a non-constant object expression in a member
+access expression appearing in a constant expression context if the
+expression has no side effects and the member is a constant.  Return TRUE
+if we are in g++ (but not clang) C++11 mode, obj_expr has no side effects,
+and tok, the token following the expression, is either "." or "->" so that
+the error that would normally be issued for this case can be suppressed.
+(An error will be reported later if the member is not constant.)
 */
 {
   a_boolean result = FALSE;
 
-  if (gpp_mode && !clang_mode && (tok == tok_period || tok == tok_arrow) &&
+  if (gpp_mode && cpp11_mode && !clang_mode &&
+      (tok == tok_period || tok == tok_arrow) &&
       !node_has_side_effects(obj_expr, (a_boolean *)NULL)) {
     /* Return TRUE so no error will be reported until the kind of the
        member is known. */
@@ -18609,7 +18610,7 @@ it might produce an error).
           if (allow_folding != NULL &&
               is_constant_node(op2) &&
               (current_mode_allows_dot_static_folding(op1) ||
-               (gpp_mode && !clang_mode &&
+               (gpp_mode && cpp11_mode && !clang_mode &&
                 !node_has_side_effects(op1, (a_boolean *)NULL)))) {
             /* In modes that allow folding of static field selection to
                a constant, do so. */
