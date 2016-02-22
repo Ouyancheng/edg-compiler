@@ -1,5 +1,16 @@
 Version 4.11
 
+2/22/16  [EDGcpfe/16894]
+Microsoft C++/CLI compatibility: preusings processed when doing preprocessing
+
+In C++/CLI mode, assemblies specified as "preusings" were loaded even when
+only doing preprocessing.  This could result in code being executed that
+expects certain initializations to have been performed that are not done
+in this case.  In addition, the combination of "-E --no_preproc_only"
+did not work properly (the preusings and explicit #using directives
+would be ignored when they should not have been).  Now fixed.
+
+
 2/20/16  [EDGcpfe/16854,EDGcpfe/16891]
 GNU C++ compatibility: member access expressions for constant members
 

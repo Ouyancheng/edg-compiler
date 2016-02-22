@@ -1792,9 +1792,8 @@ referenced.
 
   /* We don't update the include file guard state because the file imported
      is always imported just once. */
-  if (generate_pp_output) {
-    /* Generating preprocessing output.  Pass the directive to the output. */
-    pass_directive_to_output();
+  if (do_preprocessing_only) {
+    /* Don't process the #using in this case. */
   } else if (!get_header_name()) {
     /* Missing include file name. */
     catastrophe(ec_exp_file_name);
@@ -1828,6 +1827,10 @@ referenced.
       import_metadata(name, as_friend, is_system_include, FALSE,
                       directive_start_pos);
     }  /* if */
+  }  /* if */
+  if (generate_pp_output) {
+    /* Generating preprocessing output.  Pass the directive to the output. */
+    pass_directive_to_output();
   }  /* if */
 }  /* proc_using */
 

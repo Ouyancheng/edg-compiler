@@ -1690,7 +1690,7 @@ scan of a file to build the PCH prefix information.
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (!pch_prefix_scan && !using_a_pch_file) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cli_or_cx_enabled) {
+    if (cli_or_cx_enabled && !do_preprocessing_only) {
       /* If there were any preusing directives to implicitly #using one
          or more assemblies, process them now.  Note, #using do not
          depend on macro states.  Thus, they can be processed before the
