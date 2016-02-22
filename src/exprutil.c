@@ -14063,6 +14063,30 @@ the positions of the "?" and ":" operators.
 }  /* template_question_operation */
 
 
+static a_boolean potential_gnu_ignored_object_expr(an_expr_node_ptr obj_expr,
+                                                   a_token_kind     tok)
+/*
+g++ allows a non-constant object expression in a member access expression
+appearing in a constant expression context if the expression has no side
+effects and the member is a constant.  Return TRUE if we are in g++ (but
+not clang) mode, obj_expr has no side effects, and tok, the token following
+the expression, is either "." or "->" so that the error that would normally
+be issued for this case can be suppressed.  (An error will be reported
+later if the member is not constant.)
+*/
+{
+  a_boolean result = FALSE;
+
+  if (gpp_mode && !clang_mode && (tok == tok_period || tok == tok_arrow) &&
+      !node_has_side_effects(obj_expr, (a_boolean *)NULL)) {
+    /* Return TRUE so no error will be reported until the kind of the
+       member is known. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* potential_gnu_ignored_object_expr */
+
+
 void add_reference_indirection(an_operand *result)
 /*
 *result has a C++ reference (or C++/CLI tracking reference) type; add an
@@ -14108,6 +14132,7 @@ on output it will be an lvalue.
                                             &result->position);
         if (!in_potential_constant_constexpr_context() &&
             !constant_addr &&
+            !potential_gnu_ignored_object_expr(node, next_token()) &&
             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                          &result->position)) {
           /* Reference indirection is not allowed in C++11 constant
@@ -18583,7 +18608,9 @@ it might produce an error).
           /* No skip_parens needed on op2. */
           if (allow_folding != NULL &&
               is_constant_node(op2) &&
-              current_mode_allows_dot_static_folding(op1)) {
+              (current_mode_allows_dot_static_folding(op1) ||
+               (gpp_mode && !clang_mode &&
+                !node_has_side_effects(op1, (a_boolean *)NULL)))) {
             /* In modes that allow folding of static field selection to
                a constant, do so. */
             check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL) ||
@@ -19058,6 +19085,7 @@ cases so we don't do it here.
            expression. */
         error_in_operand(ec_expr_not_constant, operand);
       } else if (!possibly_constant_with_constexpr &&
+                 !potential_gnu_ignored_object_expr(node, curr_token) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                          ec_expr_not_constant,
                                                          &operand->position)) {

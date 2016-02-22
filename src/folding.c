@@ -10468,7 +10468,9 @@ pm_field_selection:
         }  /* if */
         break;
       case eok_dot_static:
-        if (constant_dot_static_object_expr(op1, ceblock)) {
+        if (constant_dot_static_object_expr(op1, ceblock) ||
+            (gpp_mode && !clang_mode &&
+             !node_has_side_effects(op1, (a_boolean *)NULL))) {
           /* The object expression satisfies the requirements for appearing
              in a constant dot-static expression; the result is a constant
              if the second operand is. */
@@ -10476,9 +10478,11 @@ pm_field_selection:
         }  /* if */
         break;
       case eok_points_to_static:
-        if (fold_expr(op1, ceblock, op1_constant)) {
-          /* The first operand is a constant; the result is a constant if
-             the second operand is. */
+        if (fold_expr(op1, ceblock, op1_constant) ||
+            (gpp_mode && !clang_mode &&
+             !node_has_side_effects(op1, (a_boolean *)NULL))) {
+          /* The first operand is a constant or can be ignored; the result
+             is a constant if the second operand is. */
           folded = fold_expr(op2, ceblock, result_con);
         }  /* if */
         break;
