@@ -2496,11 +2496,11 @@ do_set_proper_definition_needed_flag:
         {
           a_generic_constraint_clause_ptr ptr =
                                     (a_generic_constraint_clause_ptr)entry_ptr;
-          remap_next_ptr(ptr->next, a_generic_constraint_clause_ptr,
-                         iek_generic_constraint_clause);
+          /* The next pointer is handled by the walk_list for the
+             a_template_decl entry. */
           remap_ptr(ptr->type, a_type_ptr, iek_type);
-          remap_ptr(ptr->constraints, a_generic_constraint_ptr,
-                    iek_generic_constraint);
+          walk_ptr(ptr->constraints, a_generic_constraint_ptr,
+                   iek_generic_constraint);
         }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3187,8 +3187,13 @@ after_entry_from_class:
         remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
         conditionally_clear_fe_pointer(ptr->template_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
-                 iek_generic_constraint);
+        if (all_template_info_in_il) {
+          remap_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
+                    iek_generic_constraint);
+        } else {
+          walk_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
+                   iek_generic_constraint);
+        }  /*if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
