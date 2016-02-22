@@ -1416,12 +1416,12 @@ Initialize the option information table.
   add_option_description(optk_unrestricted_unions, "no_unrestricted_unions",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_max_constexpr_call_depth,
-                         "max_constexpr_call_depth",
+  add_option_description(optk_max_depth_constexpr_call,
+                         "max_depth_constexpr_call",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
-  add_option_description(optk_max_constexpr_call_cost,
-                         "max_constexpr_call_cost",
+  add_option_description(optk_max_cost_constexpr_call,
+                         "max_cost_constexpr_call",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
   add_option_description(optk_delegating_constructors,
@@ -2984,8 +2984,8 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_variadic_templates]) {
     command_line_error(ec_cl_variadic_templates_only_in_cplusplus);
   }  /* if */
-  if (option_kind_used[(int)optk_max_constexpr_call_depth] ||
-      option_kind_used[(int)optk_max_constexpr_call_cost]) {
+  if (option_kind_used[(int)optk_max_depth_constexpr_call] ||
+      option_kind_used[(int)optk_max_cost_constexpr_call]) {
     command_line_error(ec_cl_max_constexpr_option_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_unrestricted_unions]) {
@@ -5681,21 +5681,21 @@ file.
 #else /* !defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
   comment_undefined_macro_name(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
 #endif /* defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
-#if defined(DEFAULT_MAX_CONSTEXPR_CALL_COST)
-  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_COST);
-#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_COST) */
-  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_COST);
-#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_COST) */
-#if defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT)
-  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_COUNT);
-#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT) */
-  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_COUNT);
-#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_COUNT) */
-#if defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH)
-  define_numeric_valued_macro(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH);
-#else /* !defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH) */
-  comment_undefined_macro_name(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH);
-#endif /* defined(DEFAULT_MAX_CONSTEXPR_CALL_DEPTH) */
+#if defined(DEFAULT_MAX_COST_CONSTEXPR_CALL)
+  define_numeric_valued_macro(DEFAULT_MAX_COST_CONSTEXPR_CALL);
+#else /* !defined(DEFAULT_MAX_COST_CONSTEXPR_CALL) */
+  comment_undefined_macro_name(DEFAULT_MAX_COST_CONSTEXPR_CALL);
+#endif /* defined(DEFAULT_MAX_COST_CONSTEXPR_CALL) */
+#if defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL)
+  define_numeric_valued_macro(DEFAULT_MAX_COUNT_CONSTEXPR_CALL);
+#else /* !defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL) */
+  comment_undefined_macro_name(DEFAULT_MAX_COUNT_CONSTEXPR_CALL);
+#endif /* defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL) */
+#if defined(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL)
+  define_numeric_valued_macro(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL);
+#else /* !defined(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL) */
+  comment_undefined_macro_name(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL);
+#endif /* defined(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL) */
 #if defined(DEFAULT_MAX_MANGLED_NAME_LENGTH)
   define_numeric_valued_macro(DEFAULT_MAX_MANGLED_NAME_LENGTH);
 #else /* !defined(DEFAULT_MAX_MANGLED_NAME_LENGTH) */
@@ -9817,11 +9817,11 @@ enable_microsoft_mode:
       case optk_unrestricted_unions:
         unrestricted_unions_enabled = opt_value;
         break;
-      case optk_max_constexpr_call_depth:
-        max_constexpr_call_depth = scan_opt_arg_number(opt_arg);
+      case optk_max_depth_constexpr_call:
+        max_depth_constexpr_call = scan_opt_arg_number(opt_arg);
         break;
-      case optk_max_constexpr_call_cost:
-        max_constexpr_call_cost = scan_opt_arg_number(opt_arg);
+      case optk_max_cost_constexpr_call:
+        max_cost_constexpr_call = scan_opt_arg_number(opt_arg);
         break;
       case optk_delegating_constructors:
         delegating_constructors_enabled = opt_value;
@@ -10286,11 +10286,11 @@ enable_microsoft_mode:
     delegating_constructors_enabled = FALSE;
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION < 407 && DO_IL_LOWERING && ... */
-  if (constexpr_enabled && max_constexpr_call_cost == 0) {
+  if (constexpr_enabled && max_cost_constexpr_call == 0) {
     if (relaxed_constexpr_enabled) {
-      max_constexpr_call_cost = DEFAULT_MAX_CONSTEXPR_CALL_COST;
+      max_cost_constexpr_call = DEFAULT_MAX_COST_CONSTEXPR_CALL;
     } else {
-      max_constexpr_call_cost = DEFAULT_MAX_CONSTEXPR_CALL_COUNT;
+      max_cost_constexpr_call = DEFAULT_MAX_COUNT_CONSTEXPR_CALL;
     }  /* if */
   }  /* if */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
@@ -10993,8 +10993,8 @@ variables declared in cmd_line.h.
   stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
   stdc_zero_in_system_headers = DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
-  max_constexpr_call_depth = DEFAULT_MAX_CONSTEXPR_CALL_DEPTH;
-  max_constexpr_call_cost = 0;
+  max_depth_constexpr_call = DEFAULT_MAX_DEPTH_CONSTEXPR_CALL;
+  max_cost_constexpr_call = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -722,7 +722,7 @@ typedef struct an_interpreter_state {
 
 
 #define cost_exceeded(ips)                                                   \
-  (++(ips)->cost > max_constexpr_call_cost)
+  (++(ips)->cost > max_cost_constexpr_call)
 
 
 static a_byte	*free_stack_blocks;
@@ -3996,7 +3996,7 @@ accordingly.
     /* Account a relatively high cost for the call up-front, to limit the
        overall call depth.  When the call returns, that cost will be reduced
        to just "one". */
-    up_front_cost = max_constexpr_call_cost/max_constexpr_call_depth+1;
+    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
     ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
@@ -4240,7 +4240,7 @@ the body of the (constructor) function proper.
     /* Account a relatively high cost for the call up-front, to limit the
        overall call depth.  When the call returns, that cost will be reduced
        to just "one". */
-    up_front_cost = max_constexpr_call_cost/max_constexpr_call_depth+1;
+    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
     ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be

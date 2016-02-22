@@ -299,8 +299,8 @@ typedef enum /*an_option_kind*/ {
   optk_fixed_address_for_mmap,
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
   optk_unrestricted_unions,
-  optk_max_constexpr_call_depth,
-  optk_max_constexpr_call_cost,
+  optk_max_depth_constexpr_call,
+  optk_max_cost_constexpr_call,
   optk_delegating_constructors,
   optk_lossy_warning,
   optk_deprecated_string_conv,
@@ -1747,12 +1747,12 @@ EXTERN unsigned long
 			   runaway recursive instantiations. */
 
 EXTERN unsigned long
-		max_constexpr_call_depth;
+		max_depth_constexpr_call;
 			/* The maximum depth of constexpr function and
 			   constructor call nesting permitted. */
 
 EXTERN unsigned long
-		max_constexpr_call_cost;
+		max_cost_constexpr_call;
 			/* The maximum cost for a top-level constexpr
 			   function or constructor evaluation.  A unit of
 			   cost is accounted for each call and for each

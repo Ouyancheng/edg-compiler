@@ -929,11 +929,11 @@ The maximum depth of constexpr function and constructor call nesting.
 If we reach the maximum, the next call is considered non-foldable,
 which probably makes the overall expression non-constant.
 The C++11 standard requires at least 512.
-Initial value for the global variable max_constexpr_call_depth.
+Initial value for the global variable max_depth_constexpr_call.
 */
-#ifndef DEFAULT_MAX_CONSTEXPR_CALL_DEPTH
-#define DEFAULT_MAX_CONSTEXPR_CALL_DEPTH 1000
-#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_DEPTH */
+#ifndef DEFAULT_MAX_DEPTH_CONSTEXPR_CALL
+#define DEFAULT_MAX_DEPTH_CONSTEXPR_CALL 1000
+#endif /* ifndef DEFAULT_MAX_DEPTH_CONSTEXPR_CALL */
 
 /*
 The default maximum number of C++11 constexpr function and constructor call
@@ -942,9 +942,9 @@ call is considered non-foldable, which probably makes the overall expression
 non-constant.  The C++11 standard has no specific minimum value.  Initial
 value for the global variable max_constexpr_call_cost in C++11 mode.
 */
-#ifndef DEFAULT_MAX_CONSTEXPR_CALL_COUNT
-#define DEFAULT_MAX_CONSTEXPR_CALL_COUNT 50000
-#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_COUNT */
+#ifndef DEFAULT_MAX_COUNT_CONSTEXPR_CALL
+#define DEFAULT_MAX_COUNT_CONSTEXPR_CALL 50000
+#endif /* ifndef DEFAULT_MAX_COUNT_CONSTEXPR_CALL */
 
 /*
 The default maximum cost of a C++14-style ("relaxed") constexpr function or
@@ -954,9 +954,9 @@ considered non-foldable, which probably makes the overall expression
 non-constant.  The C++14 standard has no specific minimum value.  Initial
 value for the global variable max_constexpr_call_cost in C++14 mode.
 */
-#ifndef DEFAULT_MAX_CONSTEXPR_CALL_COST
-#define DEFAULT_MAX_CONSTEXPR_CALL_COST 2000000
-#endif /* ifndef DEFAULT_MAX_CONSTEXPR_CALL_COST */
+#ifndef DEFAULT_MAX_COST_CONSTEXPR_CALL
+#define DEFAULT_MAX_COST_CONSTEXPR_CALL 2000000
+#endif /* ifndef DEFAULT_MAX_COST_CONSTEXPR_CALL */
 
 
 /*
