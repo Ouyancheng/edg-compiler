@@ -570,25 +570,6 @@ the current class.  Otherwise free it for later use.
 }  /* dispose_of_curr_routine_fixup */
 
 
-void add_routine_fixup_for_exception_spec(a_type_ptr         class_type,
-                                          a_symbol_ptr       symbol,
-                                          a_func_info_block  *func_info)
-/*
-Create a routine fixup entry for a specialization and add it to the routine
-fixup list.  This is used for Microsoft mode specializations that can appear
-in class contexts.
-*/
-{
-  a_routine_fixup_ptr	rfp;
-
-  rfp = alloc_routine_fixup(class_type);
-  rfp->symbol = symbol;
-  rfp->func_info = *func_info;
-  rfp->process_exception_spec = TRUE;
-  add_to_routine_fixup_list(rfp);
-}  /* add_routine_fixup_for_exception_spec */
-
-
 void add_routine_fixup_for_specialization(a_type_ptr		class_type,
 					  a_symbol_ptr		symbol,
 					  a_func_info_block	*func_info,
