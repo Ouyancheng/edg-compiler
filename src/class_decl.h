@@ -143,9 +143,10 @@ extern a_boolean is_lambda(void);
 
 extern a_lambda_ptr scan_lambda(void);
 
-extern void default_argument_fixup_for_class(a_type_ptr  class_type,
-                                             a_boolean   is_template_based,
-                                             a_boolean   template_second_pass);
+extern void def_arg_and_eh_spec_fixup_for_class(
+                                            a_type_ptr  class_type,
+                                            a_boolean   is_template_based,
+                                            a_boolean   template_second_pass);
 
 extern void scan_field_initializer_if_needed(a_field_ptr  field,
                                              a_type_ptr   class_type);
@@ -169,6 +170,7 @@ extern void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			prototype_scope_symbols,
 		a_type_ptr			class_type,
 		a_boolean			is_definition,
+		a_boolean			process_exception_spec,
 		a_def_arg_expr_fixup_ptr	default_args);
 
 extern void check_member_decl_is_copy_constructor(

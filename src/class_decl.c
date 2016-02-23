@@ -81,29 +81,28 @@ typedef struct a_routine_fixup {
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
-  a_byte_boolean
-		is_specialization;
+  a_bit_field	is_specialization:1;
 			/* TRUE if this entry is for a Microsoft mode
 			   explicit specialization that appeared within
 			   the class definition. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_byte_boolean
-		is_partial_instantiation;
+  a_bit_field	is_partial_instantiation:1;
 			/* TRUE if a secondary-decl source sequence entry,
 			   created to represent a partial instantiation,
 			   needs to be added to the source sequence list
 			   during fixup. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_byte_boolean
-		is_template;
+  a_bit_field	is_template:1;
 			/* TRUE if this is a fixup entry for a function
 			   template declaration. */
-  a_byte_boolean
-		is_definition;
+  a_bit_field	is_definition:1;
 			/* When is_template is TRUE, this is TRUE if the
 			   declaration is a definition. */
+  a_bit_field	process_exception_spec:1;
+			/* When TRUE, the operand of an noexcept specifier
+			   must be scanned. */
 } a_routine_fixup;
 
 
@@ -232,6 +231,7 @@ initialize it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rfp->is_template = FALSE;
   rfp->is_definition = FALSE;
+  rfp->process_exception_spec = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -540,7 +540,8 @@ the current class.  Otherwise free it for later use.
     /* A class definition in an unexpected place.  Don't fixup the routines. */
   } else if (sym != NULL && !sym->is_error) {
     if (curr_routine_fixup->function_body_token_cache.first_token != NULL  ||
-        curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+        curr_routine_fixup->def_arg_expr_fixup_list != NULL ||
+        curr_routine_fixup->process_exception_spec) {
       needed = TRUE;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -567,6 +568,25 @@ the current class.  Otherwise free it for later use.
   }  /* if */
   curr_routine_fixup = NULL;
 }  /* dispose_of_curr_routine_fixup */
+
+
+void add_routine_fixup_for_exception_spec(a_type_ptr         class_type,
+                                          a_symbol_ptr       symbol,
+                                          a_func_info_block  *func_info)
+/*
+Create a routine fixup entry for a specialization and add it to the routine
+fixup list.  This is used for Microsoft mode specializations that can appear
+in class contexts.
+*/
+{
+  a_routine_fixup_ptr	rfp;
+
+  rfp = alloc_routine_fixup(class_type);
+  rfp->symbol = symbol;
+  rfp->func_info = *func_info;
+  rfp->process_exception_spec = TRUE;
+  add_to_routine_fixup_list(rfp);
+}  /* add_routine_fixup_for_exception_spec */
 
 
 void add_routine_fixup_for_specialization(a_type_ptr		class_type,
@@ -612,6 +632,7 @@ void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			prototype_scope_symbols,
 		a_type_ptr			class_type,
 		a_boolean			is_definition,
+		a_boolean			process_exception_spec,
 		a_def_arg_expr_fixup_ptr	default_args)
 				
 /*
@@ -627,6 +648,7 @@ is a list of default arguments to be fixed up.
   rfp->symbol = symbol;
   rfp->is_template = TRUE;
   rfp->is_definition = is_definition;
+  rfp->process_exception_spec = process_exception_spec;
   rfp->prototype_scope_symbols = prototype_scope_symbols;
   rfp->def_arg_expr_fixup_list = default_args;
   add_to_routine_fixup_list(rfp);
@@ -1227,12 +1249,6 @@ typedef struct a_class_def_state {
 			   checked only after the complete class has been seen
 			   (and any implicit exception specifications have
 			   been established). */
-  a_symbol_list_entry_ptr
-		members_requiring_exception_spec_instantiation;
-			/* A list of symbol list entries pointing to members
-			   of this class that have an exception specification
-			   that was cached for instantiation when the class
-			   definition is complete. */
 #if IA64_ABI
   a_covariant_override_ptr
 		covariant_overrides, last_covariant_override;
@@ -1309,7 +1325,6 @@ class being defined.
   cdsp->end_of_field_list = NULL;
   cdsp->corresp_prototype_tag_sym = NULL;
   cdsp->override_exception_check_entries = NULL;
-  cdsp->members_requiring_exception_spec_instantiation = NULL;
 #if IA64_ABI
   cdsp->covariant_overrides = NULL;
   cdsp->last_covariant_override = NULL;
@@ -2327,11 +2342,13 @@ Return TRUE if the given routine fixup is for a friend declaration.
 }  /* fixup_is_for_friend */
 
 
-void default_argument_fixup_for_class(a_type_ptr  class_type,
-				      a_boolean   is_template_based,
-				      a_boolean   template_second_pass)
+void def_arg_and_eh_spec_fixup_for_class(a_type_ptr  class_type,
+                                         a_boolean   is_template_based,
+                                         a_boolean   template_second_pass)
 /*
-Process the default argument expressions for the indicated class.
+Process the default argument expressions for the indicated class, as well as
+the operands of exception specifications that were delayed.
+
 is_template_based is TRUE if the class is the result of a template
 instantiation.  When nonclass prototype instantiations are performed this
 routine is called twice for each class.   The second pass (when
@@ -2356,7 +2373,7 @@ and for member functions of template classes.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  db_enter(3, "default_argument_fixup_for_class");
+  db_enter(3, "def_arg_and_eh_spec_fixup_for_class");
   /* Go through all the routine fixup entries created for the class twice,
      once for the default arguments, then for the function bodies.  This
      is desirable to control dependencies, e.g.:
@@ -2477,22 +2494,27 @@ and for member functions of template classes.
       }  /* if */
       daefp = rfp->def_arg_expr_fixup_list;
       if (rfp->is_template) {
-        /* A routine fixup for a template function declaration.  The default
+        /* A routine fixup for a function template declaration.  The default
            arguments have already been attached to the template.  Do the
            prototype instantiations of those default arguments.  This
            is not done for real template instantiations -- they get their
            default information from the information saved during the
            prototype instantiation. */
-        if (!fixup_class_is_real_template_instantiation) {
+        if (!fixup_class_is_real_template_instantiation &&
+            template_second_pass) {
           sym = rfp->symbol;
-          if (daefp != NULL && nonclass_prototype_instantiations &&
-              template_second_pass) {
+          if (daefp != NULL && nonclass_prototype_instantiations) {
             default_arg_prototype_instantiation(
                                      sym, daefp, rfp->prototype_scope_symbols,
                                      /*update_declared_type=*/TRUE);
           }  /* if */
+          if (rfp->process_exception_spec) {
+            a_routine_ptr  proto_rp = sym->variant.template_info
+                                         ->variant.function.routine;
+            instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+          }  /* if */
         }  /* if */
-      } else if (daefp != NULL) {
+      } else if (daefp != NULL || rfp->process_exception_spec) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         a_boolean  do_declared_type_fixup = is_function_symbol(rfp->symbol);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2508,7 +2530,7 @@ and for member functions of template classes.
         if (fixup_class_is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
-            if (!template_second_pass) {
+            if (!template_second_pass && daefp != NULL) {
               a_def_arg_expr_fixup_ptr  daefp_end;
               a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
               a_cached_token_ptr        first_token_ptr;
@@ -2556,6 +2578,9 @@ and for member functions of template classes.
                 default_arg_prototype_instantiation(
                            sym, daefp, rfp->func_info.prototype_scope_symbols,
                            /*update_declared_type=*/FALSE);
+              }  /* if */
+              if (rfp->process_exception_spec) {
+                instantiate_exception_spec_if_needed(sym);
               }  /* if */
             }  /* if */
             if (template_second_pass || !nonclass_prototype_instantiations) {
@@ -2652,6 +2677,20 @@ and for member functions of template classes.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             }  /* if */
           }  /* for */
+          if (rfp->process_exception_spec) {
+            /* Scan the exception specification argument. */
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            an_exception_specification_ptr
+                           esp = rp->type->variant.routine.extra_info
+                                         ->exception_specification;
+            if (esp->arg_cached) {
+              a_token_cache  *cache = esp->variant.token_cache;
+              esp->arg_cached = FALSE;
+              esp->variant.token_cache = NULL;
+              delayed_scan_of_exception_spec(rp, cache);
+              free_token_cache(cache);
+            }  /* if */
+          }  /* if */
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
@@ -2685,7 +2724,7 @@ fixup_declared_type: ;
 
   }  /* if */
   db_exit();
-}  /* default_argument_fixup_for_class */
+}  /* def_arg_and_eh_spec_fixup_for_class */
 
 
 static void defer_routine_fixup_until_use(a_routine_fixup_ptr	rfp)
@@ -3394,7 +3433,7 @@ type must be complete.
        actually recorded in the outermost enclosing class. */
     class_type = parent_class_of(class_type);
   }  /* if */
-  cssp = symbol_supplement_for_class(class_type);
+  cssp = class_symbol_supp(symbol_for(class_type));
   fixup_list = cssp->initializer_fixup_list;
   if (fixup_list != NULL) {
     /* Clear the list early to avoid recursion. */
@@ -3756,9 +3795,9 @@ after a class instantiation.
     for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
       /* Make sure we are in the right translation unit. */
       check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
-      default_argument_fixup_for_class(cfp->class_type,
-                                       cfp->is_template_instantiation,
-                                       /*template_second_pass=*/FALSE);
+      def_arg_and_eh_spec_fixup_for_class(cfp->class_type,
+                                          cfp->is_template_instantiation,
+                                          /*template_second_pass=*/FALSE);
     }  /* for */
     if (nonclass_prototype_instantiations) {
       /* Do the second pass of default argument fixup to do prototype
@@ -3766,9 +3805,9 @@ after a class instantiation.
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
-        default_argument_fixup_for_class(cfp->class_type,
-                                         cfp->is_template_instantiation,
-                                         /*template_second_pass=*/TRUE);
+        def_arg_and_eh_spec_fixup_for_class(cfp->class_type,
+                                            cfp->is_template_instantiation,
+                                            /*template_second_pass=*/TRUE);
       }  /* for */
     }  /* if */
     /* cfhp points into the scope_stack, so refresh the pointer after
@@ -14315,10 +14354,12 @@ implicitly declared member functions.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if ((class_type->variant.class_struct_union.is_nonreal_class ||
-       class_state->is_generic_definition) &&
-      !class_type->variant.class_struct_union.
-                                            is_ms_instantiated_nonreal_class) {
+  if (class_type->variant.class_struct_union
+                         .is_ms_instantiated_nonreal_class) {
+    /* Don't perform some of the following processing for members of Microsoft
+       "nonreal" instantiations. */
+  } else if (class_type->variant.class_struct_union.is_nonreal_class ||
+             class_state->is_generic_definition) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that.  Microsoft/Sun in-class specializations
@@ -14342,17 +14383,14 @@ implicitly declared member functions.
            template cache information, as well as an entry to perform a
            prototype instantiation when the complete definition of the
            enclosing class has been seen. */
-        a_symbol_list_entry_ptr		slep = alloc_symbol_list_entry();
         a_template_decl_info_ptr	tdip;
         tdip = get_specified_template_decl_info(/*innermost=*/TRUE);
         set_template_cache_info(
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
                         tdip);
-        slep->symbol = sym;
-        slep->next =
-                  class_state->members_requiring_exception_spec_instantiation;
-        class_state->members_requiring_exception_spec_instantiation = slep;
+        check_assertion(curr_routine_fixup != NULL);
+        curr_routine_fixup->process_exception_spec = TRUE;
       }  /* if */
       tssp->is_variadic = scope_stack_top().in_variadic_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14396,6 +14434,16 @@ implicitly declared member functions.
         }  /* if */
         rtn->assoc_template = templ;
       }  /* if */
+    }  /* if */
+  } else {
+    /* Not a member of a nonreal instantiation. */ 
+    if (member_type->kind == (a_type_kind)tk_routine &&
+        rtsp->exception_specification != NULL &&
+        rtsp->exception_specification->arg_cached) {
+      /* Record a fixup entry to make sure the exception specification operand
+         is scanned when the enclosing class definitions have been scanned. */
+      check_assertion(curr_routine_fixup != NULL);
+      curr_routine_fixup->process_exception_spec = TRUE;
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
@@ -14844,26 +14892,6 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->param_id_list =
                                 tssp->variant.function.func_info.param_id_list;
   func_info->keep_param_id_list = TRUE;
-  if (dps->type->kind == (a_type_kind)tk_routine &&
-      !is_real_instantiation_context()) {
-    /* If necessary, register the prototype routine to have its exception
-       specification instantiated when the class is completed.  (Don't do this
-       when doing a real instantiation of an enclosing class template since it
-       could trigger premature diagnostics.) */
-    a_routine_type_supplement_ptr
-             rtsp = dps->type->variant.routine.extra_info;
-    if (rtsp->exception_specification != NULL &&
-        rtsp->exception_specification->arg_cached) {
-      /* The member function was declared with an exception specification
-         whose arguments were cached for later instantiation.  Record an entry
-         to perform a prototype instantiation when the complete definition of
-         the enclosing class has been seen. */
-      a_symbol_list_entry_ptr		slep = alloc_symbol_list_entry();
-      slep->symbol = prototype_sym;
-      slep->next = class_state->members_requiring_exception_spec_instantiation;
-      class_state->members_requiring_exception_spec_instantiation = slep;
-    }  /* if */
-  }  /* if */
   cssp = symbol_supplement_for_class(class_type);
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_declared_constexpr = TRUE;
@@ -15753,18 +15781,18 @@ in the context of the completed class later on.
     check_assertion(scope_is(ssep, sck_class_struct_union));
     /* Indicate that unprocessed initializer fixups are associated with this
        class (e.g., to delay the generation of a default constructor body). */
-    symbol_supplement_for_class(ssep->assoc_type)->has_initializer_fixups =
-                                                                         TRUE;
+    class_symbol_supp(symbol_for(ssep->assoc_type))
+                                               ->has_initializer_fixups = TRUE;
     /* There's only one class-fixup-list, and it's associated with the
        outermost enclosing class.  If this is a nested class, move up the
        scope stack to find the appropriate entry. */
     while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
     if (ssep->last_initializer_fixup == NULL) {
-      symbol_supplement_for_class(ssep->assoc_type)
-                                               ->initializer_fixup_list = ifp;
+      class_symbol_supp(symbol_for(ssep->assoc_type))
+                                                ->initializer_fixup_list = ifp;
     } else {
       ssep->last_initializer_fixup->next = ifp;
-      check_assertion(symbol_supplement_for_class(ssep->assoc_type)
+      check_assertion(class_symbol_supp(symbol_for(ssep->assoc_type))
                                             ->initializer_fixup_list != NULL);
     }  /* if */
     ssep->last_initializer_fixup = ifp;
@@ -25983,10 +26011,12 @@ flag if error recovery should be performed as if the specifier didn't occur.
         /* This should not be a cached function body. */
         check_assertion(curr_routine_fixup->
                         function_body_token_cache.first_token == NULL);
-        if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+        if (curr_routine_fixup->def_arg_expr_fixup_list != NULL ||
+            curr_routine_fixup->process_exception_spec) {
            /* The previous one must have been a routine declaration with
-              default arguments, so we have to save the routine fixup entry
-              onto the fixup list. */
+              default arguments or an exception specification whose operand
+              still needs processing, so we have to save the routine fixup
+              entry onto the fixup list. */
           add_to_routine_fixup_list(curr_routine_fixup);
           /* Make a new one fixup entry for the current declarator. */
           curr_routine_fixup = alloc_routine_fixup(class_type);
@@ -26865,7 +26895,8 @@ passed via template_decl.
                    &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
-          curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+          (curr_routine_fixup->def_arg_expr_fixup_list != NULL ||
+           curr_routine_fixup->process_exception_spec)) {
         /* Update the symbol pointer in the fixup entry -- it's needed when
            the default args are scanned (once the entire class has been
            scanned). */
@@ -27896,27 +27927,6 @@ from TRUE to FALSE.
   }  /* if */
 }  /* wrapup_standard_layout_flag */
 
-
-static void instantiate_delayed_exception_spec_args_if_needed(
-                                              a_class_def_state  *class_state)
-/*
-In a prototype instantiation, the arguments of exception specifications are
-cached for later "prototype instantiation".  Perform these instantiations now
-(when the class has been completed), as appropriate.
-*/
-{
-  if (!class_state->class_type->variant.class_struct_union.
-                                           is_ms_instantiated_nonreal_class) {
-    a_symbol_list_entry_ptr  slep;
-    slep = class_state->members_requiring_exception_spec_instantiation;
-    for (; slep != NULL; slep = slep->next) {
-      instantiate_exception_spec_if_needed(slep->symbol);
-    }  /* for */
-  }  /* if */
-  free_list_of_symbol_list_entries(
-                 class_state->members_requiring_exception_spec_instantiation);
-}  /* instantiate_delayed_exception_spec_args_if_needed */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void check_cppcx_value_type_symbol(a_symbol_ptr sym)
@@ -28537,7 +28547,6 @@ wrap_up_class_definition.
          rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
     }  /* if */
-    instantiate_delayed_exception_spec_args_if_needed(class_state);
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* Report errors in virtual function declarations that result from
          the failure to redeclare a virtual function originally declared in

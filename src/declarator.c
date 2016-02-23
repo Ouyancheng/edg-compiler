@@ -1368,14 +1368,23 @@ given position.
 }  /* scan_eh_spec_type */
 
 
-void scan_noexcept_arg(an_exception_specification  *esp,
-                       a_boolean                   cache_in_template)
+static void scan_noexcept_arg(an_exception_specification  *esp,
+                              a_boolean                   may_cache)
 /*
 The noexcept token of a noexcept-specification has just been scanned.  Scan a
-noexcept argument if any, and update *esp as appropriate.  If cache_in_template
-is TRUE, cache the argument tokens if this is a template-dependent context.
+noexcept argument if any, and update *esp as appropriate.  If may_cache
+is TRUE, cache the argument tokens if appropriate (i.e., if this is a
+template-dependent context or a member of a class).
 */
 {
+  a_boolean  is_inclass_member_function_decl = FALSE;
+
+  if (scope_is(&scope_stack_top(), sck_func_prototype)) {
+    a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
+    if (dps != NULL && dps->is_inclass_member_function_decl) {
+      is_inclass_member_function_decl = TRUE;
+    }  /* if */
+  }  /* if */
   if (curr_token == tok_removed_expr) {
     /* An exception specification in a template context that has been
        removed and replaced with a placeholder.  Just ignore the
@@ -1389,15 +1398,14 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
          declaration in a template context. */
       expect_error();
     }  /* if */
-  } else if (cache_in_template &&
-             (is_template_dependent_context() ||
-              is_nonspecialized_instantiation_context())) {
+  } else if (may_cache && (is_inclass_member_function_decl ||
+                           is_template_dependent_context() ||
+                           is_nonspecialized_instantiation_context())) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
        cache segment to extract the tokens later on. */
     a_token_set_array             stop_tokens;
     a_token_sequence_number       first_tsn, last_tsn;
-    a_template_cache_segment_ptr  tcsp;
     /* The caller ensured that an exception specification entry was
        allocated. */
     check_assertion(esp != NULL);
@@ -1410,6 +1418,7 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
     clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
     cache_token_stream(esp->variant.token_cache, stop_tokens);
     if (is_template_dependent_context()) {
+      a_template_cache_segment_ptr  tcsp;
       last_tsn = curr_token_sequence_number - 1;
       tcsp = alloc_template_cache_segment(
                    (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
@@ -1446,6 +1455,50 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* scan_noexcept_arg */
+
+
+void delayed_scan_of_exception_spec(a_routine_ptr  rp,
+                                    a_token_cache  *tokens)
+/*
+The given routine has an exception specification with an operand that hasn't
+been parsed yet.  The tokens of the operand are described by the given cache.
+Parse the operand now.
+*/
+{
+  an_exception_specification_ptr  esp;
+  a_scope_stack_entry_ptr         ssep = &scope_stack_top();
+  a_decl_parse_state              dps;
+
+  check_assertion(rp->type->kind == (a_type_kind)tk_routine &&
+                  scope_is(ssep, sck_func_prototype));
+  /* Recreate a declaration parse state for the routine. */
+  init_decl_parse_state(&dps);
+  dps.sym = symbol_for(rp);
+  dps.type = rp->type;
+  dps.is_inclass_member_function_decl = TRUE;
+  ssep->decl_parse_state = &dps;
+  ssep->outside_parameter_list = TRUE;
+  esp = rp->type->variant.routine.extra_info->exception_specification;
+  rescan_reusable_cache(tokens);
+  begin_deferral_of_access_checks();
+  if (esp->is_noexcept) {
+    scan_noexcept_arg(esp, /*may_cache=*/FALSE);
+  } else {
+    /* Delayed instantiation of dynamic exception specifications is not yet
+       implemented.  (So we should never get here.) */
+    unexpected_condition();
+  }  /* if */
+  perform_deferred_access_checks_for_function(rp);
+  end_deferral_of_access_checks();
+  if (curr_token != tok_end_of_source) {
+    /* Tokens remain in the cache: Issue an error. */
+    pos_error(ec_exp_rparen, &pos_curr_token);
+    /* Flush to the end of the cache. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+  }  /* if */
+  /* Skip past the tok_end_of_source. */
+  (void)get_token();
+}  /* delayed_scan_of_exception_spec */
 
 
 static an_exception_specification_ptr scan_exception_specification(
@@ -1571,21 +1624,21 @@ actually declares a function, member function, or function template).
   if (curr_token == tok_lparen) {
     (void)get_token();
     if (is_noexcept) {
-      a_boolean  cache_in_template = FALSE;
+      a_boolean  may_cache = FALSE;
       if (is_top_level_declarator && 
           !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
           func_info->lambda == NULL &&
           !scope_stack_top().inside_local_class) {
         /* A noexcept argument should generally be cached for later
-           instantiation if we are in a template.  However, that's not the
-           case if we're in an ordinary friend function declaration (for a
-           friend template, dps->in_class_scope is FALSE), nor for lambdas
-           (which aren't "members" or any enclosing templates), nor for
-           members of local class types.  It's also not the case for pointers
-           to functions and the like. */
-        cache_in_template = TRUE;
+           instantiation if we are in a template or class definition.  However,
+           that's not the case if we're in an ordinary friend function
+           declaration (for a friend template, dps->in_class_scope is FALSE),
+           nor for lambdas (which aren't "members" or any enclosing templates),
+           nor for members of local class types.  It's also not the case for
+           pointers to functions and the like. */
+        may_cache = TRUE;
       }  /* if */
-      scan_noexcept_arg(esp, cache_in_template);
+      scan_noexcept_arg(esp, may_cache);
       goto finish_list;
     } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by

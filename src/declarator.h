@@ -355,8 +355,8 @@ extern a_boolean check_return_type(a_type_ptr          type,
                                    a_decl_parse_state  *dps,
                                    a_source_position   *diag_pos);
 
-extern void scan_noexcept_arg(an_exception_specification  *esp,
-                              a_boolean                   cache_in_template);
+extern void delayed_scan_of_exception_spec(a_routine_ptr  rp,
+                                           a_token_cache  *tokens);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean f_check_cli_or_cx_type_pointed_to(

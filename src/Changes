@@ -1,5 +1,20 @@
 Version 4.11
 
+2/23/16  [EDGcpfe/16617]
+Noexcept specifiers and member function declarations
+
+The front end now delays the parsing of the operand of a noexcept specifier for
+a member function declaration until the enclosing class has been completed
+(similar to the processing of default arguments).  This allows the noexcept
+specifier to depend on members of the class that have not been seen yet at the
+point where the noexcept specifier is encountered.  For example:
+
+  struct S {
+    void f() noexcept(noexcept(cond));  // Previously an error; now okay.
+    bool cond;
+  };
+
+
 2/22/16  [EDGcpfe/16892]
 Constexpr call cost control options renamed
 

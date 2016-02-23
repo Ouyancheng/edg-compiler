@@ -3968,12 +3968,12 @@ be completed here.
         /* If a nested class is instantiated before the enclosing class has
            been completed, it may not have been fixed up yet.  Do any
            default argument fixup now. */
-        default_argument_fixup_for_class(proto_type,
-                                         /*is_template_based=*/TRUE,
-                                         /*template_second_pass=*/FALSE);
-        default_argument_fixup_for_class(proto_type,
-                                         /*is_template_based=*/TRUE,
-                                         /*template_second_pass=*/TRUE);
+        def_arg_and_eh_spec_fixup_for_class(proto_type,
+                                            /*is_template_based=*/TRUE,
+                                            /*template_second_pass=*/FALSE);
+        def_arg_and_eh_spec_fixup_for_class(proto_type,
+                                            /*is_template_based=*/TRUE,
+                                            /*template_second_pass=*/TRUE);
       }  /* if */
       /* Save the position of the reference that caused the instantiation. */
       cssp->instantiation_position = pos_curr_token;
@@ -12924,25 +12924,7 @@ accordingly.
       }  /* if */
       scope_stack_top().param_id_list = tip->param_id_list;
       /* Rescan the exception specification argument from the cache. */
-      rescan_reusable_cache(&es_cache->tokens);
-      begin_deferral_of_access_checks();
-      if (esp->is_noexcept) {
-        scan_noexcept_arg(esp, /*cache_in_template=*/FALSE);
-      } else {
-        /* Delayed instantiation of dynamic exception specifications is not
-           yet implemented.  (So we should never get here.) */
-        unexpected_condition();
-      }  /* if */
-      perform_deferred_access_checks_for_function(rp);
-      end_deferral_of_access_checks();
-      if (curr_token != tok_end_of_source) {
-        /* Tokens remain in the cache: Issue an error. */
-        pos_error(ec_exp_rparen, &pos_curr_token);
-        /* Flush to the end of the cache. */
-        while (curr_token != tok_end_of_source) (void)get_token();
-      }  /* if */
-      /* Skip past the tok_end_of_source. */
-      (void)get_token();
+      delayed_scan_of_exception_spec(rp, &es_cache->tokens);
       /* Pop the reactivated function prototype scope off the stack. */
       pop_scope();
       /* Pop the template instantiation scope. */
@@ -22778,6 +22760,7 @@ caller.
                                            decl_state->decl_info->parameters;
   a_routine_ptr                    rout_ptr = NULL;
   a_boolean                        first_decl = FALSE;
+  a_boolean                        fixup_for_exception_spec = FALSE;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -22861,8 +22844,13 @@ caller.
                         &tssp->variant.function.exception_spec_arg_cache,
                         rtsp->exception_specification->variant.token_cache,
                         decl_state->decl_info);
-        if (decl_state->class_declared_in == NULL &&
-            !decl_state->decl_scope_err) {
+        if (decl_state->decl_scope_err) {
+          /* Don't attempt a prototype instantiation. */
+        } else if (decl_state->class_declared_in != NULL) {
+          /* For member templates, the prototype instantiation occurs when the
+             associated fixup is processed. */
+          fixup_for_exception_spec = TRUE;
+        } else {
           instantiate_exception_spec_if_needed(symbol_for(rout_ptr));
         }  /* if */
       }  /* if */
@@ -22984,6 +22972,7 @@ caller.
                                           decl_state->prototype_scope_symbols,
                                           decl_state->class_declared_in,
 					  decl_state->defines_something,
+					  fixup_for_exception_spec,
 					  curr_default_args);
     }  /* if */
     /* Update the exported flag, if necessary. */

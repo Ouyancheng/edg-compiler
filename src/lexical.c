@@ -1291,18 +1291,17 @@ Allocate a token cache entry.  Reuse a freed entry if possible.
   return tcp;
 }  /* alloc_token_cache */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void free_token_cache(a_token_cache_ptr tcp)
 /*
 Free a token cache entry.
 */
 {
+  discard_token_cache(tcp);
   tcp->next = avail_token_cache_entries;
   avail_token_cache_entries = tcp;
 }  /* free_token_cache */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
 /*
