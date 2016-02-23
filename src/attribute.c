@@ -6949,9 +6949,10 @@ to match GNU's behavior).
       prev = find_attribute(ak_abi_tag, scp->attributes);
       check_assertion(prev != NULL);
       if (entity_kind == iek_namespace && prev != ap) {
-        /* Inline namespaces seem to "collect" attribute names.  Just make sure
-           this attribute isn't already on the list. */
-        /* FIXME: Add code to remove duplicates. */
+        /* Inline namespaces seem to "collect" attribute names.  We could
+           check for and remove duplicates here, but that might cause problems
+           in C++-generating configurations, so leave any duplicates at this
+           point (any duplicates are removed during the mangling process). */
       } else {
         a_boolean redeclaration = FALSE;
         if (dps != NULL &&
