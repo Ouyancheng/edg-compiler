@@ -4173,7 +4173,7 @@ U-literal support (including char16_t and char32_t keywords) is now enabled
 when microsoft_version >= 1900 in both C and C++ modes.
 
 
-8/10/15  [EDGcpfe/16406]
+8/10/15  [EDGcpfe/15514,EDGcpfe/16406]
 GNU/Clang compatibility: Trivial designators into non-POD class types
 
 In GNU and Clang modes, the front end now accepts "trivial designators" for
