@@ -6780,12 +6780,8 @@ requiring an exhaustive search.
                       super_aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
 #endif /* EXPENSIVE_CHECKING */
-      if (sub_aap->variant.constant->variant.string.length ==
-                          super_aap->variant.constant->variant.string.length &&
-          memcmp(sub_aap->variant.constant->variant.string.value,
-                 super_aap->variant.constant->variant.string.value,
-                 size_t_arg(sub_aap->variant.constant->variant.string.length))
-                                                                        == 0) {
+      if (string_constants_are_the_same(sub_aap->variant.constant,
+                                        super_aap->variant.constant)) {
         /* Found this item on both lists; continue to the next item. */
         break;
       }  /* if */
@@ -7045,12 +7041,7 @@ head of the attribute list for the entity).
         check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                         aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
-        if (con == aap->variant.constant ||
-            (con->variant.string.length ==
-                                aap->variant.constant->variant.string.length &&
-             memcmp(con->variant.string.value,
-                    aap->variant.constant->variant.string.value,
-                    size_t_arg(con->variant.string.length)) == 0)) {
+        if (string_constants_are_the_same(con, aap->variant.constant)) {
           /* Don't add a duplicate abi_tag. */
           goto done;
         }  /* if */

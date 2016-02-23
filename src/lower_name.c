@@ -10579,13 +10579,18 @@ unmarked (and the walk is discontinued once a marked entity is found).
 */
 {
   /* Visit each of the parents that will appear in the mangled name. */
-  while (scp->parent_scope != NULL &&
-         scp->parent_scope->kind != (a_scope_kind)sck_file) {
-    if (scp->is_class_member) {
+  while ((scp->parent_scope != NULL &&
+          scp->parent_scope->kind != (a_scope_kind)sck_file) ||
+          scp->is_local_to_function) {
+    if (scp->enclosing_routine != NULL) {
+      scp = &scp->enclosing_routine->source_corresp;
+      kind = iek_routine;
+    } else if (scp->is_class_member) {
       a_type_ptr parent_class = scp_parent_class(scp);
       check_assertion(parent_class != NULL);
       scp = &parent_class->source_corresp;
       kind = iek_type;
+      /* FIXME: is this right? */
       if (!scp->is_local_to_function &&
           !((a_type_ptr)scp)->in_gnu_abi_tag_namespace) {
         /* Parents don't have abi_tags. */
@@ -10602,15 +10607,6 @@ unmarked (and the walk is discontinued once a marked entity is found).
       break;
     }  /* if */
     callback(scp, kind);
-    if (scp->parent_via_local_scope_ref) {
-      check_assertion(scp->enclosing_routine != NULL);
-      if ((unmarked_only && entity_is_marked(scp, kind))) {
-        /* No need to continue if we've hit a marked entity. */
-        break;
-      }  /* if */
-      scp = &scp->enclosing_routine->source_corresp;
-      callback(scp, iek_routine);
-    }  /* if */
   }  /* while */
 }  /* walk_entity_and_parents */
 
@@ -10755,7 +10751,7 @@ of the specified type to ttt_mark_value.
      prevent an unbounded loop). */
   walk_parents(&type->source_corresp, iek_type, mark_entry,
                /*unmarked_only=*/FALSE);
-  return TRUE;
+  return FALSE;
 }  /* ttt_mark_entry */
 
 

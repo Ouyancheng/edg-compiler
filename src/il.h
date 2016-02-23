@@ -2854,6 +2854,15 @@ extern a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp);
 extern void release_coroutine_fixups(a_coroutine_descr_ptr  cdp);
 #endif /* COROUTINES_ALLOWED */
 
+/*
+Utility that returns TRUE if the two ck_string constants have the same value.
+*/
+#define string_constants_are_the_same(con1, con2)                             \
+  ((con1) == (con2) ||                                                        \
+   ((con1)->variant.string.length == (con2)->variant.string.length &&         \
+    memcmp((con1)->variant.string.value, (con2)->variant.string.value,        \
+           size_t_arg((con1)->variant.string.length)) == 0))
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************
