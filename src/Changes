@@ -1,6 +1,6 @@
 Version 4.11
 
-2/23/16  [EDGcpfe/16617]
+2/23/16  [EDGcpfe/15632,EDGcpfe/16617]
 Noexcept specifiers and member function declarations
 
 The front end now delays the parsing of the operand of a noexcept specifier for
@@ -10,9 +10,19 @@ specifier to depend on members of the class that have not been seen yet at the
 point where the noexcept specifier is encountered.  For example:
 
   struct S {
-    void f() noexcept(noexcept(cond));  // Previously an error; now okay.
-    bool cond;
+    void f() noexcept(noexcept(g()));  // Previously an error; now okay.
+    void g();
   };
+
+The checking of exception specifications for overriding virtual functions has
+been delayed accordingly.  In Microsoft mode with microsoft_version == 1800
+this avoids spurious warnings on defaulted virtual destructors in some cases.
+For example:
+
+  struct B { virtual ~B() = default; };
+  struct D: B {
+    virtual ~D () = default;  // Previously triggered a spurious warning;
+  };                          // now silently accepted.
 
 
 2/22/16  [EDGcpfe/16892]
