@@ -5880,12 +5880,9 @@ return_types_are_override_compatible.
   a_type_ptr              class_type = class_state->class_type;
   a_routine_ptr           rout = overrider_sym->variant.routine.ptr;
   a_routine_ptr           rp = overridden_sym->variant.routine.ptr;
-  a_routine_type_supplement_ptr
-                          rtsp = NULL;
 
   rout->is_virtual = TRUE;
   if (rout->type->kind == (a_type_kind)tk_routine) {
-    rtsp = rout->type->variant.routine.extra_info;
     if (has_indeterminate_exception_spec(rout)) {
       resolve_indeterminate_exception_specification(rout);
     }  /* if */
