@@ -15603,7 +15603,7 @@ one that yields the value) of a statement expression.
       /* "return" statement in a coroutine: generate "return <expr>;" or
          "return ;". */
       { an_expr_node_ptr  expr = statement->expr;
-        write_tok_str("return ");
+        write_tok_str("co_return ");
         if (expr != NULL) {
           if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
             /* Skip over a top-level object lifetime. */

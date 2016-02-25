@@ -6016,6 +6016,8 @@ The syntax is:
   } else if (curr_token == tok_coroutine_return) {
     if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
       pos_error(ec_invalid_co_return, &pos_curr_token);
+    } else {
+      rout->is_coroutine = TRUE;
     }  /* if */
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
