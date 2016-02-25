@@ -1,5 +1,20 @@
 Version 4.11
 
+2/25/16  [EDGcpfe/16836]
+thread-local and anonymous unions/structs
+
+A number of changes have been made to the handling of thread-local specifiers
+(i.e., _Thread_local in C11 mode, or thread_local in C++11 mode) and
+anonymous unions/structs.  These changes are bring the front end closer to
+standard compliance as well as to emulating the behavior of other compilers.
+For example, with --c++11:
+
+  static thread_local union {
+    char x;
+    int y;
+  };
+
+
 2/23/16  [EDGcpfe/15632,EDGcpfe/16617,EDGcpfe/16810]
 Noexcept specifiers and member function declarations
 

@@ -8296,9 +8296,46 @@ otherwise.
   a_symbol_ptr  sym = dps->sym;
 
   if (sym == NULL) {
-    /* No declaration is associated with "thread_local/_Thread_local":
-       Issue an error. */
-    pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+    if (dps->type != NULL &&
+        is_immediate_class_type(dps->type) &&
+        dps->type->source_corresp.name == NULL) {
+      /* "thread_local/_Thread_local" applied to an unnamed union/struct. */
+      if (class_type_supp(dps->type)->anonymous_union_kind ==
+                                           (an_anonymous_union_kind)auk_none) {
+        if (C_mode()) {
+          /* A case like:
+               void f() { _Thread_local union { char x; int y; }; }
+             This ends up declaring nothing because anonymous unions/structs
+             can only appear as members.  Ignore it (an error has already been
+             issued in strict mode). */
+        } else {
+          /* A case like:
+               struct A { static thread_local union { char x; int y; }; }; */
+          if (microsoft_mode) {
+            /* Microsoft seems to ignore thread_local (with a warning) in this
+               case. */
+            pos_warning(ec_thread_local_ignored, &dps->storage_class_pos);
+          } else {
+            /* Issue a discretionary error. */
+            pos_diagnostic(es_discretionary_error, ec_thread_local_not_allowed,
+                           &dps->storage_class_pos);
+          }  /* if */
+        }  /* if */
+      } else if (class_type_supp(dps->type)->anonymous_union_kind ==
+                                       (an_anonymous_union_kind)auk_variable) {
+        /* Something like:
+             static thread_local union { char x; int y; };
+           is allowed in all modes. */
+      } else {
+        check_assertion(class_type_supp(dps->type)->anonymous_union_kind ==
+                                           (an_anonymous_union_kind)auk_field);
+        unexpected_condition();
+      }  /* if */
+    } else {
+      /* No declaration is associated with "thread_local/_Thread_local":
+         Issue an error. */
+      pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+    }  /* if */
   } else if (sym->is_error ||
              (dps->type != NULL && is_error_type(dps->type))) {
     /* An error has presumably already been reported for this declaration.
@@ -8348,6 +8385,20 @@ otherwise.
     }  /* if */
     vp->is_thread_local = TRUE;
     check_assertion_or_expect_error(var_has_thread_storage_duration(vp));
+  } else if (symbol_is(sym, sk_field) &&
+             sym->variant.field.ptr->is_anonymous_parent_object) {
+    /* An anonymous union in a structure, i.e., something like:
+         struct A { thread_local union { char x; int y; }; }; */
+    if (strict_ansi_mode) {
+      /* Don't allow this in strict mode. */
+      pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+    } else if (microsoft_mode) {
+      /* Microsoft seems to ignore thread_local (with a warning) in this
+         case. */
+      pos_warning(ec_thread_local_ignored, &dps->storage_class_pos);
+    } else {
+      /* GNU and clang seem to silently accept this (and ignore it). */
+    }  /* if */
   } else {
     pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
   }  /* if */
