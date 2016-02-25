@@ -1641,13 +1641,14 @@ actually declares a function, member function, or function template).
       a_boolean  may_cache = FALSE;
       if (is_top_level_declarator && 
           !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
-          func_info->lambda == NULL) {
+          (!dps->is_lambda || dps->auto_params != NULL)) {
         /* A noexcept argument should generally be cached for later
            instantiation if we are in a template or class definition.  However,
            that's not the case if we're in an ordinary friend function
            declaration (for a friend template, dps->in_class_scope is FALSE),
-           nor for lambdas (which aren't "members" of any enclosing templates).
-           It's also not the case for pointers to functions and the like. */
+           nor for nongeneric lambdas (which aren't "members" of any enclosing
+           templates).  It's also not the case for pointers to functions and
+           the like. */
         may_cache = TRUE;
       }  /* if */
       scan_noexcept_arg(esp, may_cache);
