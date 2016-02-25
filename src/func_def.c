@@ -1060,6 +1060,14 @@ coroutine cannot have an ellipsis parameter).
       ct_name = "task";
     } else {
       ct_name = "generator";
+      if (!cdp->has_yield && !cdp->has_potentially_evaluated_await) {
+        /* A coroutine with only a co_return construct cannot have its return
+           type deduced.  (Proceed with generator<error-type> for recovery.) */
+        pos_error(ec_cannot_deduce_coroutine_return_type, &cdp->position);
+        return_type = error_type();
+        rp->has_deduced_return_type = TRUE;
+        rp->type->variant.routine.return_type = return_type;
+      }  /* if */
     }  /* if */
     return_type = instantiate_std_experimental_class_template_with_one_type(
                                                         ct_name, return_type);
