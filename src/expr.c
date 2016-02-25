@@ -37997,7 +37997,9 @@ This routine frees *alep.
   make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
                                (a_ref_entry *)NULL);
   if (alep != NULL) {
-    curr_expr_ref_entries = operand_of_arg_list_elem(alep)->ref_entries_list;
+    if (!is_yield) {
+      curr_expr_ref_entries = operand_of_arg_list_elem(alep)->ref_entries_list;
+    }  /* if */
     unbundle_init_component_expressions(alep);
   }  /* if */
   if (is_yield) {
