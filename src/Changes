@@ -1,5 +1,34 @@
 Version 4.11
 
+2/25/16  [EDGcpfe/16889]
+Empty virtual function table entries in some construction vtables (IA-64 only)
+
+In cases outlined in EDGcpfe/15864 where references to virtual destructors
+in construction vtables are eliminated, if such a destructor appeared before
+other virtual functions in the construction vtable, then those virtual
+function table entries were also inadvertently eliminated.  Affects only the
+IA-64 ABI.  The following example, with --gnu_version 40900, had a segmentation
+fault when attempting to invoke vf at run time and is now fixed:
+
+  struct B {
+    virtual ~B() {}       // ~B occurs before vf:
+    virtual void vf() {}
+    void f() {
+      vf();
+    }
+  };
+  struct D: virtual B {
+    D() {
+      f();
+    }
+  };
+  struct DD : D { };
+  int main() {
+    DD dd;
+    return 0;
+  }
+
+
 2/25/16  [EDGcpfe/16836]
 thread-local and anonymous unions/structs
 

@@ -7289,7 +7289,7 @@ table.
   a_routine_ptr                      thunk_to_call;
   a_base_class_ptr                   sharing_bcp, imm_bcp;
   a_virtual_table_index              vcall_index;
-  a_boolean                          use_null_function = FALSE;
+  a_boolean                          use_null_function;
 #if IA64_ABI
   a_routine_ptr                      second_func_to_call;
   a_base_class_ptr                   vcall_bcp;
@@ -7425,6 +7425,7 @@ table.
   primary_function = NULL;
   /*lint --e{850} entry_number modified in loop */
   for (; entry_number <= highest_entry_number; entry_number++) {
+    use_null_function = FALSE;
     /* Find the virtual function with the number "entry_number". */
     primary_function = find_virtual_function(entry_number,
                                              ctsp, primary_function);
