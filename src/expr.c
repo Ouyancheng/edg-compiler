@@ -34747,7 +34747,15 @@ to implement a co_yield expression.
                     cdp;
 
   if (innermost_function_scope == NULL) {
-    expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
+    pos_error(ec_await_not_allowed_outside_function_scope, pos);
+    make_error_operand(result);
+    goto done;
+  } else if (!expr_stack->potentially_evaluated) {
+    pos_error(ec_await_in_unevaluated_operand, pos);
+    make_error_operand(result);
+    goto done;
+  } else if (in_catch_clause()) {
+    pos_error(ec_await_not_allowed_in_catch_clause, pos);
     make_error_operand(result);
     goto done;
   }  /* if */
@@ -34837,9 +34845,6 @@ to implement a co_yield expression.
     /* Nothing more to do. */
   } else if (!expr_stack->potentially_evaluated) {
     pos_error(ec_await_in_unevaluated_operand, pos);
-  } else if (in_catch_clause()) {
-    expr_pos_error(ec_await_not_allowed_in_catch_clause, pos);
-    conv_to_error_operand(operand);
   } else {
     if (curr_routine->has_deducible_return_type &&
         !curr_routine->has_deduced_return_type) {
