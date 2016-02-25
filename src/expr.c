@@ -37980,10 +37980,12 @@ This routine frees *alep.
   cdp = get_coroutine_descr(curr_routine, &null_source_position);
   check_assertion(curr_routine->is_coroutine);
   init_coroutine_descr_if_needed(curr_routine, cdp);
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  if (!is_yield) {
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+  }  /* if */
   /* Use the position of the given operand if one is given, and that of the
      current token otherwise. */
   pos = alep == NULL ? pos_curr_token : *init_component_pos(alep);
@@ -38020,10 +38022,14 @@ This routine frees *alep.
   if (void_expr != NULL) {
     result = make_comma_node(void_expr, result);
   }  /* if */
-  result = wrap_up_full_expression(result);
+  if (!is_yield) {
+    result = wrap_up_full_expression(result);
+  }  /* if */
   free_arg_list(alep);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  if (!is_yield) {
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
   return result;
 }  /* wrap_up_coroutine_result_expression */
 
@@ -38324,7 +38330,6 @@ by wrap_up_coroutine_result_expression.)
   } else {
     alep = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
   }  /* if */
-  bundle_coroutine_result(alep);
   return alep;
 }  /* scan_yield_operand */
 
@@ -38347,10 +38352,17 @@ rcblock parameter for this function).
   an_arg_list_elem_ptr     yield_opnd = NULL;
   a_source_position        operator_position;
   a_token_sequence_number  operator_tok_seq_number;
-  a_routine_ptr            rout = current_routine_entry();
+  a_routine_ptr            rout;
   a_coroutine_descr_ptr    cdp;
   an_expr_node_ptr         node;
 
+  if (innermost_function_scope == NULL) {
+    pos_error(ec_yield_outside_of_function, &pos_curr_token);
+    make_error_operand(result);
+    flush_tokens();
+    goto done;
+  }  /* if */
+  rout = current_routine_entry();
   operator_position = pos_curr_token;
   if (special_kind_is(rout, sfk_constructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -38416,6 +38428,7 @@ rcblock parameter for this function).
       pos_error(ec_invalid_yield_value_type, &operator_position);
     }  /* if */
   }  /* if */
+done:
   set_operand_position(result, &operator_position,
                        &curr_construct_end_position, &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);

@@ -13470,8 +13470,24 @@ sizeof_cases:
 #if COROUTINES_ALLOWED
     case enk_yield:
       /* yield expression: generate "co_yield <expr>". */
-      expr = expr->variant.await_info.operand;
       write_tok_str("co_yield ");
+      expr = expr->variant.await_info.operand;
+      /* Skip nodes implementing the binding of the operand to the call. */
+      for (;;) {
+        expr = skip_parens(expr);
+        if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+          a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+          check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+          expr = dip->variant.expression;
+        } else if (is_operation_node(expr) &&
+                   (node_operator_is(expr, eok_indirect) ||
+                    node_operator_is(expr, eok_address_of))) {
+          expr = expr->variant.operation.operands;
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
+      expr = skip_parens(expr);
       check_assertion(expr != NULL && is_operation_node(expr) &&
                       node_operator_is(expr, eok_dot_member_call));
       /* Process any tags declared within the expression (e.g., in casts). */
