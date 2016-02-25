@@ -1266,6 +1266,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_nonvoid_yield_value_type)*/
 /*lint -esym(769,ec_return_in_coroutine)*/
 /*lint -esym(769,ec_invalid_co_return)*/
+/*lint -esym(769,ec_yield_outside_of_function)*/
 #endif /* !COROUTINES_ALLOWED */
 /* This should be conditional on !CPPCLI_ENABLING_POSSIBLE, but we don't
    include *.cpp files when running lint, so make it unconditional. */
