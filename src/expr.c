@@ -37997,9 +37997,7 @@ This routine frees *alep.
   make_lvalue_variable_operand(cdp->promise, &pos, &end_pos, &selector_operand,
                                (a_ref_entry *)NULL);
   if (alep != NULL) {
-    if (!is_yield) {
-      curr_expr_ref_entries = operand_of_arg_list_elem(alep)->ref_entries_list;
-    }  /* if */
+    curr_expr_ref_entries = operand_of_arg_list_elem(alep)->ref_entries_list;
     unbundle_init_component_expressions(alep);
   }  /* if */
   if (is_yield) {
@@ -38410,6 +38408,13 @@ rcblock parameter for this function).
     cfp->position = operator_position;
     cfp->tok_seq_number = operator_tok_seq_number;
     cfp->operand = (void*)yield_opnd;
+    if (is_expression_component(yield_opnd)) {
+      /* Copy the ref entries list.  Otherwise, it will be freed twice: Once
+         when the current expression stack is popped, and once more when the
+         expression stack created during wrap-up is popped. */
+      an_operand_ptr  opnd = operand_of_arg_list_elem(yield_opnd);
+      detach_ref_entries_from_curr_expr(opnd);
+    }  /* if */
     if (!microsoft_mode) {
       /* As of this writing the committee is inclined to disallow deduced
          return types for coroutines.  (See document P0057R1.) */
