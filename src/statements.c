@@ -6017,7 +6017,8 @@ The syntax is:
     if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
       pos_error(ec_invalid_co_return, &pos_curr_token);
     } else {
-      rout->is_coroutine = TRUE;
+      /* Ensure this function is marked as a coroutine. */
+      (void)get_coroutine_descr(rout, &pos_curr_token);
     }  /* if */
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
