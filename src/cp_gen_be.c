@@ -13476,7 +13476,7 @@ sizeof_cases:
       for (;;) {
         expr = skip_parens(expr);
         if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-          a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+          dip = expr->variant.init.dynamic_init;
           check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
           expr = dip->variant.expression;
         } else if (is_operation_node(expr) &&
