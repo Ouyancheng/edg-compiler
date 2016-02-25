@@ -1,6 +1,6 @@
 Version 4.11
 
-2/23/16  [EDGcpfe/15632,EDGcpfe/16617]
+2/23/16  [EDGcpfe/15632,EDGcpfe/16617,EDGcpfe/16810]
 Noexcept specifiers and member function declarations
 
 The front end now delays the parsing of the operand of a noexcept specifier for
@@ -23,6 +23,19 @@ For example:
   struct D: B {
     virtual ~D () = default;  // Previously triggered a spurious warning;
   };                          // now silently accepted.
+
+In GNU C++ mode, parsing of the noexcept operand is not delayed; not even in
+template contexts.  The front end already attempted to emulate the GCC
+behavior in template contexts, but in some cases where a member function is
+defined outside the class (template) definition, this resulted in spurious
+errors.  For example:
+
+  template<typename T> struct X { void f() noexcept(T()); };
+  template<typename T> void X<T>::f() noexcept(T()) {}
+    // Previously triggered spurious errors ("T" is undefined) in
+    // GNU C++11 mode.
+
+This is now fixed.
 
 
 2/22/16  [EDGcpfe/16892]

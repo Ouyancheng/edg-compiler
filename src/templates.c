@@ -12872,7 +12872,6 @@ accordingly.
        a "cached" state. */
     a_template_cache_ptr      es_cache;
     a_push_scope_options_set  ps_options = PS_EXCEPTION_SPEC;
-    a_decl_parse_state        dps;
     esp->arg_cached = FALSE;
     esp->variant.token_cache = NULL;
     es_cache = &tssp->variant.function.exception_spec_arg_cache;
@@ -12911,14 +12910,7 @@ accordingly.
         scope_stack_top().exception_specification = TRUE;
         scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
       }  /* if */
-      init_decl_parse_state(&dps);
-      dps.sym = sym;
-      dps.type = rp->type;
-      if (sym->is_class_member) {
-        dps.is_inclass_member_function_decl = TRUE;
-      }  /* if */
       scope_stack_top().outside_parameter_list = TRUE;
-      scope_stack_top().decl_parse_state = &dps;
       if (tip->prototype_scope_symbols != NULL) {
         reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
       }  /* if */

@@ -1475,7 +1475,21 @@ Parse the operand now.
   init_decl_parse_state(&dps);
   dps.sym = symbol_for(rp);
   dps.type = rp->type;
-  dps.is_inclass_member_function_decl = TRUE;
+  if (rp->source_corresp.is_class_member) {
+    a_type_ptr  parent_class = parent_class_of(rp);
+    a_class_symbol_supplement_ptr
+                cssp = class_symbol_supp(symbol_for(parent_class));
+    if (cssp->routine_fixup_list != NULL ||
+        (rp->is_template_function && !rp->is_prototype_instantiation &&
+         !rp->is_specialized)) {
+      /* If the routine fixup list for this class is still present this must
+         be an exception specification appearing in the class definition.
+         For real instantiations of class members, the in-class exception
+         specification is used too (even though by then the routine fixup list
+         is likely processed already). */
+      dps.is_inclass_member_function_decl = TRUE;
+    }  /* if */
+  }  /* if */
   ssep->decl_parse_state = &dps;
   ssep->outside_parameter_list = TRUE;
   esp = rp->type->variant.routine.extra_info->exception_specification;

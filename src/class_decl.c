@@ -1360,8 +1360,9 @@ static void record_override_exception_check(
                                          a_symbol_ptr           overridden_sym,
                                          a_source_position      *diag_pos)
 /*
-Allocate a override exception check entry.  Initialize the record with the
-given information.
+Allocate an override exception check entry and add it to the list pointed to
+by the file-scope variable override_exception_check_entries.  Initialize the
+record with the given information.
 */
 {
   an_override_exception_check_entry_ptr  oecp;
