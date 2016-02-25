@@ -38444,8 +38444,16 @@ the operand of the co_yield expression.
 {
   an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
   an_expr_node_ptr      node = (an_expr_node_ptr)cfp->entity.ptr, yield_call;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
 
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   yield_call = wrap_up_coroutine_result_expression(alep, /*is_yield=*/TRUE);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   if (!is_void_type(yield_call->type)) {
     /* The call to yield_value in a coroutine whose return type is deduced is
        assumed to produce a void result. */
