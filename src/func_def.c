@@ -3476,6 +3476,17 @@ is set to TRUE.
       root_sssep->last_dep_statement = csp;
     }  /* if */
     rp->is_coroutine = TRUE;
+    if (special_kind_is(rp, sfk_constructor) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        special_kind_is(rp, sfk_static_constructor) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        special_kind_is(rp, sfk_destructor)) {
+      pos_error(ec_special_member_coroutine, &cdp->position);
+      cdp->error_descr = TRUE; 
+    } else if (rp == il_header.main_routine) {
+      pos_sy_error(ec_main_coroutine, &cdp->position, symbol_for(rp));
+      cdp->error_descr = TRUE; 
+    }  /* if */
   }  /* if */
   return cdp;
 }  /* get_coroutine_descr */

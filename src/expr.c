@@ -34742,7 +34742,22 @@ to implement a co_yield expression.
   a_symbol_locator  loc;
   a_boolean         temp_init_used, use_member_calls, processed;
   an_expr_node_ptr  node;
+  a_routine_ptr     curr_routine;
+  a_coroutine_descr_ptr
+                    cdp;
 
+  if (innermost_function_scope == NULL) {
+    expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
+    make_error_operand(result);
+    goto done;
+  }  /* if */
+  curr_routine = current_routine_entry();
+  cdp = get_coroutine_descr(curr_routine, pos);
+  if (cdp->error_descr) {
+    expect_error();
+    make_error_operand(result);
+    goto done;
+  }  /* if */
   node = alloc_expr_node(for_yield ? (an_expr_node_kind)enk_yield
                                    : (an_expr_node_kind)enk_await);
   /* In "co_await <expr>", <expr> is first transformed by a call to a matching
@@ -34822,15 +34837,10 @@ to implement a co_yield expression.
     /* Nothing more to do. */
   } else if (!expr_stack->potentially_evaluated) {
     pos_error(ec_await_in_unevaluated_operand, pos);
-  } else if (innermost_function_scope == NULL) {
-    expr_pos_error(ec_await_not_allowed_outside_function_scope, pos);
-    conv_to_error_operand(operand);
   } else if (in_catch_clause()) {
     expr_pos_error(ec_await_not_allowed_in_catch_clause, pos);
     conv_to_error_operand(operand);
   } else {
-    a_routine_ptr          curr_routine = current_routine_entry();
-    a_coroutine_descr_ptr  cdp = get_coroutine_descr(curr_routine, pos);
     if (curr_routine->has_deducible_return_type &&
         !curr_routine->has_deduced_return_type) {
       a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
@@ -34849,6 +34859,7 @@ to implement a co_yield expression.
 
     }  /* if */
   }  /* if */
+done:;
 }  /* add_await_to_operand */
 
 
@@ -37980,6 +37991,11 @@ This routine frees *alep.
   cdp = get_coroutine_descr(curr_routine, &null_source_position);
   check_assertion(curr_routine->is_coroutine);
   init_coroutine_descr_if_needed(curr_routine, cdp);
+  if (cdp->error_descr) {
+    expect_error();
+    result = error_node();
+    goto done;
+  }  /* if */
   if (!is_yield) {
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -38025,11 +38041,12 @@ This routine frees *alep.
   if (!is_yield) {
     result = wrap_up_full_expression(result);
   }  /* if */
-  free_arg_list(alep);
   if (!is_yield) {
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
+done:
+  free_arg_list(alep);
   return result;
 }  /* wrap_up_coroutine_result_expression */
 
@@ -38364,15 +38381,7 @@ rcblock parameter for this function).
   }  /* if */
   rout = current_routine_entry();
   operator_position = pos_curr_token;
-  if (special_kind_is(rout, sfk_constructor) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      special_kind_is(rout, sfk_static_constructor) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      special_kind_is(rout, sfk_destructor)) {
-    pos_error(ec_yield_in_special_member, &operator_position);
-  } else if (rout == il_header.main_routine) {
-    pos_sy_error(ec_yield_in_main, &operator_position, symbol_for(rout));
-  } else if (rout->is_constexpr) {
+  if (rout->is_constexpr) {
     pos_error(ec_yield_in_constexpr_function, &operator_position);
   } else if (in_catch_clause()) {
     pos_error(ec_yield_in_catch, &operator_position);

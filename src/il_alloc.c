@@ -3765,6 +3765,7 @@ a pointer to it.
   cdp->handle = NULL;
   cdp->promise = NULL;
   cdp->fixups = NULL;
+  cdp->error_descr = FALSE;
   cdp->eventual_value = FALSE;
   cdp->has_yield = FALSE;
   cdp->has_potentially_evaluated_await = FALSE;

@@ -16896,6 +16896,10 @@ typedef struct a_coroutine_descr {
 		position;
 			/* The position of the construct (co_yield or co_await)
 			   that triggered the creation of this entry. */
+  a_bit_field	error_descr:1;
+			/* TRUE if an error occurred in the processing of the
+ 			   coroutine, such that additional processing is likely
+			   to produce more errors and should be inhibited. */
   a_bit_field	eventual_value:1;
 			/* TRUE if the promise type has a member function
 			   set_result. */

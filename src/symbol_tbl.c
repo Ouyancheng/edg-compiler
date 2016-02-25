@@ -8422,7 +8422,10 @@ member.
   check_assertion(rp->is_coroutine && cdp != NULL);
   /* First look up std::experimental::coroutine_traits. */
   traits_sym = look_up_class_template_in_std_experimental("coroutine_traits");
-  if (traits_sym == NULL) {
+  if (cdp->error_descr) {
+    expect_error();
+    traits = NULL;
+  } else if (traits_sym == NULL) {
     pos_st_error(ec_special_class_template_not_found, &cdp->position,
                  "std::experimental::coroutine_traits");
     traits = NULL;

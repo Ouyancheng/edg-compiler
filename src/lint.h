@@ -1248,8 +1248,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,tok_coroutine_yield)*/
 /*lint -esym(769,tok_coroutine_return)*/
 /*lint -esym(769,tok_coroutine_await)*/
-/*lint -esym(769,ec_yield_in_special_member)*/
-/*lint -esym(769,ec_yield_in_main)*/
+/*lint -esym(769,ec_special_member_coroutine)*/
+/*lint -esym(769,ec_main_coroutine)*/
 /*lint -esym(769,ec_yield_in_catch)*/
 /*lint -esym(769,ec_yield_in_constexpr_function)*/
 /*lint -esym(769,ec_await_no_matching_overload)*/
