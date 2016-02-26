@@ -3701,6 +3701,7 @@ C and C++.
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         scope_stack_top().exception_specification &&
+        scope_stack_top().decl_parse_state != NULL &&
         scope_stack_top().decl_parse_state->is_inclass_member_function_decl) {
       lookup_state.inclass_exception_spec = TRUE;
     }  /* if */

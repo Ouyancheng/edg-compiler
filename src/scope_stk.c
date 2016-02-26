@@ -2769,6 +2769,7 @@ the scope being pushed.
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_generic_definition    = FALSE;
   ssep->alias_in_template_decl   = (options & PS_ALIAS_IN_TEMPLATE_DECL) != 0;
+  ssep->exception_specification  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->instantiation_from_metadata = FALSE;
   ssep->in_generic_instantiation = FALSE;
