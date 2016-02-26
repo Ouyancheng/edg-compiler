@@ -32182,8 +32182,7 @@ instantiation.
                                    tssp = template_supplement_for_symbol(sym);
           if (tssp != NULL &&
               !calling_conventions_are_compatible(
-                             tssp->variant.function.routine->type, state.type,
-                             /*strict_check=*/TRUE)) {
+                          tssp->variant.function.routine->type, state.type)) {
             pos_error(ec_conflicting_calling_conventions,
                       &state.specifiers_pos);
           }  /* if */

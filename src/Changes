@@ -9,22 +9,6 @@ the field itself is present in all configurations, therefore it was
 uninitialized in configurations that don't support GNU or Microsoft emulation.
 
 
-2/26/16  [EDGcpfe/16898]
-Microsoft x86-64 compatibility: Overloading on effectless calling conventions
-
-THe changes for EDGcpfe/16136 (see entry of 5/14/15) went a little too far in
-completely ignoring some calling conventions when targ_supports_x86_64 is set
-to TRUE.  It turns out the Microsoft compiler still takes the effectless
-calling convention into account to allow overloading functions.  For example:
-
-  void g(int (__cdecl *pf)()) {}
-  void g(int (__stdcall *pf)()) {}  // (1)
-
-The changes for EDGcpfe/16136 made this a redefinition error in some modes
-since the two calling conventions were ignored.  Now this is accepted even
-in Microsoft modes with targ_supports_x86_64.
-
-
 2/25/16  [EDGcpfe/16889]
 Empty virtual function table entries in some construction vtables (IA-64 only)
 

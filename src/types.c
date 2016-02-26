@@ -6234,8 +6234,7 @@ check_typerefs:
                 !ignore_ms_calling_convention) {
               /* The types are identical so far.  Check the calling
                  conventions. */
-              identical = calling_conventions_are_compatible(
-                                       type_1, type_2, /*strict_check=*/TRUE);
+              identical = calling_conventions_are_compatible(type_1, type_2);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
           }  /* if */
@@ -6583,15 +6582,12 @@ done:;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
-                                             a_type_ptr type2,
-                                             a_boolean  strict_check)
+                                             a_type_ptr type2)
 /*
 Return TRUE if the calling conventions of the two given function types
 are compatible.  That means they are identical or one is cc_default and
 the other matches default_calling_convention (or cc_thiscall in the case
-of Microsoft-mode member functions).  On x86-64, the conventions cc_cdecl,
-cc_fastcall, and cc_stdcall are treated like cc_default when strict_check
-is FALSE.
+of Microsoft-mode member functions).
 */
 {
   a_calling_convention          cc1, cc2;
@@ -6604,10 +6600,10 @@ is FALSE.
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
-  if (ms_extensions && targ_supports_x86_64 && !strict_check) {
+  if (ms_extensions && targ_supports_x86_64) {
     /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
        from other conventions.  All other conventions (__cdecl, __fastcall,
-       etc.) are accepted but have no effect in non-declarative contexts. */
+       etc.) are accepted but have no effect. */
     if (cc1 != (a_calling_convention)cc_vectorcall &&
         cc1 != (a_calling_convention)cc_clrcall) {
       cc1 = (a_calling_convention)cc_default;
@@ -7041,11 +7037,7 @@ check_typerefs:
                 /* Check calling conventions, either because it affects
                    compatibility, or because the caller is interested in a
                    record of differences. */
-                a_boolean  strict_cc_check =
-                                         (flags & TCF_STRICT_CC_CHECK) != 0 &&
-                                         !top_level_for_redeclaration;
-                if (!calling_conventions_are_compatible(
-                                           type_1, type_2, strict_cc_check)) {
+                if (!calling_conventions_are_compatible(type_1, type_2)) {
                   if ((flags & TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS) &&
                       diffs != NULL) {
                     /* Calling convention differences don't affect
@@ -12097,7 +12089,6 @@ the old list.  Only callable in C++ mode.  See ARM 13.
             (old_param->is_parameter_pack !=
                            new_param->is_parameter_pack) ||
             !f_types_are_compatible(old_param->type, new_param->type,
-                                    TCF_STRICT_CC_CHECK |
                                     TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
           distinguishable = TRUE;
           goto distinguishable_determined;

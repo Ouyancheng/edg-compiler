@@ -8923,7 +8923,7 @@ the latter will be NULL for variables.
           other_type = skip_typerefs(other_type);
           rout_type = skip_typerefs(rout_type);
           if (param_types_are_compatible(rout_type, other_type,
-                                         TCF_STRICT_CC_CHECK)) {
+                                         TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match. */
             break;
           }  /* if */

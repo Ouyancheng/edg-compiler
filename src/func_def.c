@@ -2038,8 +2038,7 @@ member declaration (allowed in some Microsoft modes only).
              nonstatic member functions. */
           pos_error(ec_thiscall_requires_nonstatic_member,
                     &locator->source_position);
-        } else if (!calling_conventions_are_compatible(
-                               *old_type, rout_type, /*decl_context=*/TRUE)) {
+        } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
           /* An out-of-class definition should not change the calling
              convention declared in the class definition (not specifying a
              calling convention never amounts to a change).  (A similar GNU-
