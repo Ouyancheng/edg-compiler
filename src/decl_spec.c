@@ -8327,8 +8327,7 @@ otherwise.
              static thread_local union { char x; int y; };
            is allowed in all modes. */
       } else {
-        check_assertion(class_type_supp(dps->type)->anonymous_union_kind ==
-                                           (an_anonymous_union_kind)auk_field);
+        /* An auk_field case (which is handled in the sk_field case below). */
         unexpected_condition();
       }  /* if */
     } else {

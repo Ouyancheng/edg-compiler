@@ -30,7 +30,7 @@ fault when attempting to invoke vf at run time and is now fixed:
 
 
 2/25/16  [EDGcpfe/16836]
-thread-local and anonymous unions/structs
+Thread-local specifiers and anonymous unions/structs
 
 A number of changes have been made to the handling of thread-local specifiers
 (i.e., _Thread_local in C11 mode, or thread_local in C++11 mode) and
