@@ -138,6 +138,8 @@ delete_unneeded_entries()
   unneeded="$unneeded __CHAR16_TYPE__"
   unneeded="$unneeded __CHAR32_TYPE__"
   unneeded="$unneeded __EXCEPTIONS"
+  unneeded="$unneeded __has_include(STR)"
+  unneeded="$unneeded __has_include_next(STR)"
   for name in $unneeded
   do
     sed -e "/:$name:/ d" output.tmp >$$
