@@ -38423,7 +38423,7 @@ rcblock parameter for this function).
     cfp->tok_seq_number = operator_tok_seq_number;
     cfp->operand = (void*)yield_opnd;
     if (is_expression_component(yield_opnd)) {
-      /* Copy the ref entries list.  Otherwise, it will be freed twice: Once
+      /* Detach the ref entries list.  Otherwise, it will be freed twice: once
          when the current expression stack is popped, and once more when the
          expression stack created during wrap-up is popped. */
       an_operand_ptr  opnd = operand_of_arg_list_elem(yield_opnd);
