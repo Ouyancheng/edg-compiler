@@ -2120,9 +2120,7 @@ variant fields to default values.
   pte->emit_microsoft_class_decl_modifiers = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   pte->alignment_set_explicitly = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   pte->variables_are_implicitly_referenced = FALSE;
   pte->may_alias = FALSE;

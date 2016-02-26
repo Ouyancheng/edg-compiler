@@ -1,5 +1,14 @@
 Version 4.11
 
+2/26/16  [EDGcpfe/16784]
+Initialization of a_type::alignment_set_explicitly
+
+The initialization of the field alignment_set_explicitly in a_type was
+conditional on GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED, but
+the field itself is present in all configurations, therefore it was
+uninitialized in configurations that don't support GNU or Microsoft emulation.
+
+
 2/26/16  [EDGcpfe/16898]
 Microsoft x86-64 compatibility: Overloading on effectless calling conventions
 
