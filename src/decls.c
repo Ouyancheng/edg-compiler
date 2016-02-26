@@ -4365,7 +4365,7 @@ created; the caller must set it.
           if (rp->source_corresp.name_linkage ==
                                      (a_name_linkage_kind)nlk_external &&
               !routine_types_are_redecl_compatible(
-                                          type_ptr, rp->type, TCF_NO_FLAGS)) {
+                                   type_ptr, rp->type, TCF_STRICT_CC_CHECK)) {
             /* Illegal overloading involving two extern "C" functions with
                the same name.  Microsoft and GNU C++ compilers let this
                through if the two declarations are in different namespaces. */
@@ -8499,8 +8499,8 @@ for use in generating cross-reference output describing this declaration.
           routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
         } else if (ms_extensions &&
-                   !calling_conventions_are_compatible(routine_ptr->type,
-                                                       type_ptr)) {
+                   !calling_conventions_are_compatible(
+                        routine_ptr->type, type_ptr, /*strict_check=*/FALSE)) {
           /* Error -- calling conventions are not compatible.  (The GNU mode
              test is delayed until attributes are applied.) */
           routines_compat = FALSE;

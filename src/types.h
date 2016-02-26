@@ -880,7 +880,15 @@ Bit flags for calls of f_types_are_compatible et al.
 			   placeholder should be considered compatible with
 			   a tk_typeref entry indicating a deduced type for
 			   such a placeholder. */
-#define TCF_LAST TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH
+#define TCF_STRICT_CC_CHECK 0x40000
+			/* TRUE if calling conventions in Microsoft should be
+			   checked "strictly" on 64-bit targets (where the
+			   conventions __cdecl, __stdcall, and __fastcall are
+			   the same as the default calling convention).  (Note
+			   that this flag is meaningful even in combination
+			   with TCF_IGNORE_CALLING_CONVENTIONS because the
+			   latter only applies to the top-level type. */
+#define TCF_LAST TCF_STRICT_CC_CHECK
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0
@@ -904,7 +912,8 @@ extern a_boolean param_types_are_compatible_full(
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
-                                                    a_type_ptr type2);
+                                                    a_type_ptr type2,
+                                                    a_boolean  decl_context);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
@@ -925,6 +934,7 @@ circuit some of the processing in common cases.
 	 ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_REDECLARATION |                  \
+                                 TCF_STRICT_CC_CHECK |                \
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
 /* Use types_are_strictly_compatible when an error type is incompatible with
    any type, including an error type. */
@@ -945,6 +955,7 @@ circuit some of the processing in common cases.
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_IGNORE_CALLING_CONVENTIONS |     \
+                                 TCF_STRICT_CC_CHECK |                \
                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
                                  (extra_flags)/*lint --e(835)*/))
 
