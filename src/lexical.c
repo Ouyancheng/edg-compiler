@@ -6093,6 +6093,7 @@ directive.
   /* Copy all the data from the cloned input file, updating as necessary. */
   *new_file = *old_file;
   new_file->first_seq_number = seq_number;
+  new_file->last_seq_number = MAX_SEQ_NUMBER;
   new_file->first_line_number = line_number;
   new_file->first_child_file = NULL;
   new_file->last_child_file = NULL;
