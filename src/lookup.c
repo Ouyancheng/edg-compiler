@@ -1709,21 +1709,20 @@ scope lookup.  options specifies the options being used for the lookup.
 */
 {
   a_boolean	err = FALSE;
-  a_decl_sequence_number
-		decl_seq_of_symbol;
 
   /* Make sure the lookup set points to the fundamental symbol. */
   new_sym = fundamental_symbol_of(new_sym);
-  /* Get the declaration sequence number to be used for this symbol.  For
-     most symbols it is just the declaration sequence number of the symbol.
-     For overloaded function symbols though, it is the declaration sequence
-     number of the symbol most recently added to the overload list, which
-     is the symbol at the front of the list. */
-  decl_seq_of_symbol = new_sym->kind == (a_symbol_kind)sk_overloaded_function
-                      ? new_sym->variant.overloaded_function.symbols->decl_seq
-                      : new_sym->decl_seq;
 #if DEBUG
   if (db_flag_is_set("lookup_set")) {
+    a_decl_sequence_number decl_seq_of_symbol;
+    /* Get the declaration sequence number to be used for this symbol.  For
+       most symbols it is just the declaration sequence number of the symbol.
+       For overloaded function symbols though, it is the declaration sequence
+       number of the symbol most recently added to the overload list, which
+       is the symbol at the front of the list. */
+    decl_seq_of_symbol = new_sym->kind == (a_symbol_kind)sk_overloaded_function
+                      ? new_sym->variant.overloaded_function.symbols->decl_seq
+                      : new_sym->decl_seq;
     fprintf(f_debug,
             "add_symbol_to_lookup_set: symbols at start - curr=%lu, new=%lu\n",
             functions_represented_by_symbol(curr_sym),
