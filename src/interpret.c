@@ -3444,23 +3444,22 @@ successfully interpreted, FALSE otherwise.
         do {
           /* Execute the dependent statement. */
           result = do_constexpr_statement(ips, stmt->variant.loop_statement);
-          if (result) {
-            /* Execution of the dependent statement succeeded.  Check for a
-                pending branching statement. */
-            if (ips->curr_call_frame->return_active) {
-              /* Break out of the loop (leave the flag active since we may
-                 have to break out of other constructs). */
-              break;
-            } else if (ips->curr_call_frame->break_active) {
-              /* Break out of the loop (which completes the execution of the
-                 break statement). */
-              ips->curr_call_frame->break_active = FALSE;
-              break;
-            } else if (ips->curr_call_frame->continue_active) {
-              /* Continue, but clear the continue_active flag since we've
-                 reached the point of continuation. */
-              ips->curr_call_frame->continue_active = FALSE;
-            }  /* if */
+          if (!result) break;
+          /* Execution of the dependent statement succeeded.  Check for a
+             pending branching statement. */
+          if (ips->curr_call_frame->return_active) {
+            /* Break out of the loop (leave the flag active since we may
+               have to break out of other constructs). */
+            break;
+          } else if (ips->curr_call_frame->break_active) {
+            /* Break out of the loop (which completes the execution of the
+               break statement). */
+            ips->curr_call_frame->break_active = FALSE;
+            break;
+          } else if (ips->curr_call_frame->continue_active) {
+            /* Continue, but clear the continue_active flag since we've
+               reached the point of continuation. */
+            ips->curr_call_frame->continue_active = FALSE;
           }  /* if */
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
@@ -3502,6 +3501,9 @@ successfully interpreted, FALSE otherwise.
         is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
         do_constexpr_full_expression(ips, expr, expr_value, result);
         release_address_structures(expr, tp, expr_value);
+        if (!result) {
+          goto done_with_switch;
+        }  /* if */
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
@@ -3509,6 +3511,9 @@ successfully interpreted, FALSE otherwise.
           a_byte  *case_bytes = compact_value_bytes(case_buffer);
           int cmp;
           result = copy_val_from_constant(ips, scep->case_value, case_bytes);
+          if (!result) {
+            goto done_with_switch;
+          }  /* if */
           cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
                                    (an_integer_value*)case_bytes, is_signed);
           if (cmp == 0) {
@@ -3521,6 +3526,9 @@ successfully interpreted, FALSE otherwise.
 #if GNU_EXTENSIONS_ALLOWED
           } else if (scep->range_end != NULL) {
             result = copy_val_from_constant(ips, scep->range_end, case_bytes);
+            if (!result) {
+              goto done_with_switch;
+            }  /* if */
             cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
                                      (an_integer_value*)case_bytes, is_signed);
             if (cmp <= 0) {
@@ -3559,9 +3567,6 @@ successfully interpreted, FALSE otherwise.
             /* Other branching statements end the execution of the switch, but
                they are not completed by the switch. */
             break;
-          } else if (!result) {
-            /* Some interpretation error occurred. */
-            goto done_with_switch;
           } else if (substmt->next != NULL) {
             /* The statement just interpreted is followed by another one.
                We'll interpret it next. */
@@ -3582,6 +3587,9 @@ successfully interpreted, FALSE otherwise.
             }  /* for */
           }  /* if */
           result = do_constexpr_statement(ips, substmt);
+          if (!result) {
+            goto done_with_switch;
+          }  /* if */
         }  /* for */
       }
 done_with_switch:
