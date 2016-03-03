@@ -639,7 +639,7 @@ be read into memory so that an array of strings can still be used here.
 {
   check_assertion_str2((int)error_code < (int)ec_last,
                        "error_text: ", "invalid error code");
-  return (message_text[(int)error_code]);
+  return ((a_const_char *)message_text[(int)error_code]);
 }  /* error_text */
 
 

@@ -886,8 +886,10 @@ of GNU.
   /* Early versions of GCC use "signed char" for QI mode, but later versions
      appear to be plain "char". */
   a_type_ptr  qi_type = gnu_version < 40300 ? signed_char_type : char_type;
-  a_type_ptr  hi_type = get_type_with_mode(int_type, tmk_HI, no_pos);
-  a_type_ptr  si_type = get_type_with_mode(int_type, tmk_SI, no_pos);
+  a_type_ptr  hi_type = get_type_with_mode(int_type, (a_type_mode_kind)tmk_HI,
+                                           no_pos);
+  a_type_ptr  si_type = get_type_with_mode(int_type, (a_type_mode_kind)tmk_SI,
+                                           no_pos);
   /* The DI mode in GCC is "long"/"unsigned long" in 64-bit configurations.
      However, the type denoted by "di" in the GNU documentation appears to be
      "unsigned long long" and the types denoted "v1di" and "v2di" appear to be

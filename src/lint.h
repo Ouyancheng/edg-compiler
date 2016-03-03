@@ -403,6 +403,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_intermediate_language_7)*/
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 /*lint -esym(756,an_il_entry_number)*/
+/*lint -esym(759,init_memory_region)*/
+/*lint -esym(765,init_memory_region)*/
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #if DEBUG
 /*lint -esym(765, db_sym_list)*/
@@ -1282,6 +1284,35 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_named_register_tag::anr_19)*/
 /*lint -esym(769,a_named_register_tag::anr_20)*/
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugepd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugeps)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugesd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugess)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugtpd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugtps)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugtsd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugtss)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comulepd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comuleps)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comulesd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comuless)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comultpd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comultps)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comultsd)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comultss)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_protb_imm)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_protd_imm)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_protq_imm)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_protw_imm)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rolsi)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_roldi)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rorsi)*/
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rordi)*/
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+/*lint -esym(755,gnu_routine_supp)*/
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 #endif /* ifndef LINT_H */
 

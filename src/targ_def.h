@@ -1317,7 +1317,7 @@ typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
 #endif /* ifndef MAX_INTEGER_VALUE */
 #ifndef MIN_INTEGER_VALUE
 #if LONG_LONG_ALLOWED
-#if defined(LLONG_MIN) && LLONG_MIN < LLONG_MAX
+#if defined(LLONG_MIN) && LLONG_MIN < LLONG_MAX /*lint !e30*/
 /* The preceding condition detects an incorrect definition of LLONG_MIN
    in MSVC 7.1. */
 #define MIN_INTEGER_VALUE LLONG_MIN
