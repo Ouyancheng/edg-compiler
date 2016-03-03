@@ -1050,7 +1050,7 @@ define a version that will work for self-compilation.
 #define __builtin_offsetof(t, memb) ((size_t)__INTADDR__(&(((t *)0)->memb)))
 #else /* !defined(__EDG__) */
 #ifdef _lint
-#define __builtin_offsetof(t, memb) ((size_t)&(((t *)0)->memb))
+#define __builtin_offsetof(t, memb) ((size_t)&(((t *)0)->memb)) /*lint -e755*/
 #endif /* ifdef _lint */
 #endif /* ifdef __EDG__ */
 #endif /* ifndef offsetof */
