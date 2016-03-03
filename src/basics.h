@@ -1041,6 +1041,14 @@ one.
 #else /* ifndef __EDG__ */
 #define offsetof(t, memb) ((size_t)&(((t *)0)->memb))
 #endif /* ifdef __EDG__ */
+#else /* defined(offsetof) */
+#ifdef __EDG__
+/*
+Newer GNU headers define offsetof in terms of __builtin_offsetof, so
+define a version that will work for self-compilation.
+*/
+#define __builtin_offsetof(t, memb) ((size_t)__INTADDR__(&(((t *)0)->memb)))
+#endif /* ifdef __EDG__ */
 #endif /* ifndef offsetof */
 
 #if defined(__sun) && defined(__i386__)
