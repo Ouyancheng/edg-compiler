@@ -4812,7 +4812,8 @@ cases return zero (in error cases, also set ap->kind to ak_unrecognized).
   a_host_large_integer  attr_priority;
 
   if (aap != NULL &&
-      get_attr_arg_integer(aap, ap, min_priority, 65535, &attr_priority)) {
+      get_attr_arg_integer(aap, ap, (a_host_large_integer)min_priority,
+                           (a_host_large_integer)65535, &attr_priority)) {
     if (attr_priority < 101) {
       /* Priorities less than 101 are reserved for internal use. */
       pos_warning(ap->kind == (a_byte_attribute_kind)ak_init_priority ?

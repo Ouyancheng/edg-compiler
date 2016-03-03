@@ -1048,6 +1048,10 @@ Newer GNU headers define offsetof in terms of __builtin_offsetof, so
 define a version that will work for self-compilation.
 */
 #define __builtin_offsetof(t, memb) ((size_t)__INTADDR__(&(((t *)0)->memb)))
+#else /* !defined(__EDG__) */
+#ifdef _lint
+#define __builtin_offsetof(t, memb) ((size_t)&(((t *)0)->memb))
+#endif /* ifdef _lint */
 #endif /* ifdef __EDG__ */
 #endif /* ifndef offsetof */
 

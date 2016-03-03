@@ -1272,6 +1272,15 @@ extern int fileno(FILE *);
 /* This should be conditional on !CPPCLI_ENABLING_POSSIBLE, but we don't
    include *.cpp files when running lint, so make it unconditional. */
 /*lint -esym(769,ec_ms_metadata_init_failed)*/
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
+/*lint -esym(769,a_named_register_tag::anr_fpsr)*/
+/*lint -esym(769,a_named_register_tag::anr_dirflag)*/
+/*lint -esym(769,a_named_register_tag::anr_16)*/
+/*lint -esym(769,a_named_register_tag::anr_17)*/
+/*lint -esym(769,a_named_register_tag::anr_18)*/
+/*lint -esym(769,a_named_register_tag::anr_19)*/
+/*lint -esym(769,a_named_register_tag::anr_20)*/
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
 

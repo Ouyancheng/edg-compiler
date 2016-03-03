@@ -5830,9 +5830,9 @@ This is done before command line processing.
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
 #if DO_IL_LOWERING
    all_template_info_in_il = prototype_instantiations_in_il;
-#else
+#else /* !DO_IL_LOWERING */
   all_template_info_in_il = ALL_TEMPLATE_INFO_IN_IL;
-#endif
+#endif /* DO_IL_LOWERING */
   in_front_end = FALSE;
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
@@ -5876,7 +5876,7 @@ This is done before command line processing.
   /* If the host environment and the front end configuration did not provide a
      definition for UINT32_MAX, we defaulted that macro to UINT_MAX.  Check
      that this does not exceed the capacity of the uint32_t type. */
-  check_assertion(sizeof(UINT32_MAX) <= sizeof(uint32_t));
+  check_assertion(sizeof(UINT32_MAX) <= sizeof(uint32_t)); /*lint !e866*/
 }  /* host_envir_early_init */
 
 
