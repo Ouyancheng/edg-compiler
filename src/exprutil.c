@@ -43,7 +43,7 @@ static a_boolean is_bit_field_expr(an_expr_node_ptr node);
 static a_boolean check_for_taking_the_address_of_a_bit_field(
                                                   an_operand        *operand,
                                                   a_source_position *err_pos);
-static a_constant_ptr value_of_constant_var_lvalue_expr(
+static a_constant_ptr value_of_constant_var_glvalue_expr(
                                                an_expr_node_ptr node,
                                                a_boolean        copy_for_reuse,
                                                a_variable_ptr   *p_var);
@@ -7738,9 +7738,9 @@ was an lvalue or rvalue, etc.
 
   if (is_expression_operand(operand) &&
       is_an_lvalue(operand) &&
-      value_of_constant_var_lvalue_expr(operand->variant.expression,
-                                        /*copy_for_reuse=*/FALSE,
-                                        &var) != NULL &&
+      value_of_constant_var_glvalue_expr(operand->variant.expression,
+                                         /*copy_for_reuse=*/FALSE,
+                                         &var) != NULL &&
       var->source_corresp.is_local_to_function) {
     /* Convert a use of a function-local const variable to its value so
        that we don't end up with memory region problems.   You can't use
@@ -18108,19 +18108,19 @@ lvalue.
 }  /* rvalue_ref_can_be_bound_to */
 
 
-static a_constant_ptr value_of_constant_var_lvalue_expr(
+static a_constant_ptr value_of_constant_var_glvalue_expr(
                                                an_expr_node_ptr node,
                                                a_boolean        copy_for_reuse,
                                                a_variable_ptr   *p_var)
 /*
-node is an expression for an lvalue.  If it is an lvalue for a constant-valued
+node is an expression for a glvalue.  If it is a glvalue for a constant-valued
 variable, return a pointer to the constant that is the variable's value.
 Otherwise, return NULL.  If copy_for_reuse is TRUE, copy the constant if
 necessary so it's suitable for later incorporation in the IL tree, and not
 merely for short-term inspection.  The constant is not copied merely
 to clear its backing expression; it's assumed the caller will put the
 constant in an_operand and clear the backing expression in that copy.
-If p_var is non-NULL and the expression is an lvalue for a variable,
+If p_var is non-NULL and the expression is a glvalue for a variable,
 *p_var is set to point to the variable.
 */
 {
@@ -18128,7 +18128,7 @@ If p_var is non-NULL and the expression is an lvalue for a variable,
 
   if (p_var != NULL) *p_var = NULL;
   node = skip_parens(node);
-  check_assertion(node->is_lvalue || is_error_node(node));
+  check_assertion(node->is_lvalue || node->is_xvalue || is_error_node(node));
   if (is_variable_node(node)) {
     /* The expression is an lvalue for a variable. */
     a_variable_ptr var = node_variable(node);
@@ -18140,7 +18140,7 @@ If p_var is non-NULL and the expression is an lvalue for a variable,
                                             /*allow_C_mode_const_var=*/FALSE);
   }  /* if */
   return con_var_value;
-}  /* value_of_constant_var_lvalue_expr */
+}  /* value_of_constant_var_glvalue_expr */
 
 
 a_constant_ptr value_of_constant_var_lvalue_operand(an_operand *operand)
@@ -18155,7 +18155,7 @@ and not linked into the IL tree.
 
   if (is_expression_operand(operand)) {
     con_var_value =
-                 value_of_constant_var_lvalue_expr(operand->variant.expression,
+                value_of_constant_var_glvalue_expr(operand->variant.expression,
                                                    /*copy_for_reuse=*/FALSE,
                                                    (a_variable **)NULL);
   }  /* if */
@@ -18376,7 +18376,7 @@ it might produce an error).
     if (constant_case != NULL && !C_mode()) {
       /* Look for constant-valued variables in C++. */
       a_variable_ptr variable;
-      con_expr_value = value_of_constant_var_lvalue_expr(
+      con_expr_value = value_of_constant_var_glvalue_expr(
                                                        node,
                                                        /*copy_for_reuse=*/TRUE,
                                                        &variable);
