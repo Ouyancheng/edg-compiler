@@ -4753,6 +4753,14 @@ type.  This includes checking the value of ovfl set by the operation.
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_integer &&
+                       tp->kind == (a_type_kind)tk_pointer &&
+                       cmp_integer_values((an_integer_value *)opnd1_value,
+                                          /*op_1_signed=*/FALSE,
+                                          (an_integer_value *)&zero_int,
+                                          /*op_2_signed=*/FALSE) == 0) {
+              /* A null pointer. */
+              clear_address(result_storage, (a_byte*)0);
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
