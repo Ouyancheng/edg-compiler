@@ -7437,9 +7437,11 @@ diagnostic in *ips.
                                        /*set_address_taken_flag=*/TRUE);
           con->type = type;
         } else if (cap->address == NULL) {
-          /* A NULL pointer constant. */
+          /* A NULL pointer (since it has a pointer type, it is not a null
+             pointer constant). */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
           con->implicit_cast = TRUE;
+          con->null_pointer_constant_ruled_out = TRUE;
         } else if (cap->alloc_seq_number > 1) {
           /* The address designates an interpreter value that is already
              deallocated, and thus cannot be constant. */
