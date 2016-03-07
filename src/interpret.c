@@ -1885,6 +1885,7 @@ redo:
           if (pos->seq == 0) pos = &ips->position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
           do_constexpr_fail(*p_result);
+          result = MAX_CONSTEXPR_TYPE_SIZE+1;
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
@@ -1915,12 +1916,20 @@ redo:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
         result = lay_out_class_type(ips, tp, p_result);
+      } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        do_constexpr_fail(*p_result);
       }  /* if */
       break;
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
         result = lay_out_union_type(ips, tp, p_result);
+      } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        do_constexpr_fail(*p_result);
       }  /* if */
       break;
     case tk_typeref:
@@ -2023,12 +2032,12 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     do_host_alignment(total_size);
     map_byte_count(&persistent_map, fp, total_size);
     total_size += value_bytes_for_type(ips, fp->type, p_result);
-    if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
+    if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       a_source_position  *pos = &tp->source_corresp.decl_position;
       if (pos->seq == 0) pos = &ips->position;
       info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
       do_constexpr_fail(*p_result);
-      total_size = MAX_CONSTEXPR_TYPE_SIZE;
+      total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
       goto done;
     }  /* if */
   }  /* for */
