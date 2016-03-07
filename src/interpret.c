@@ -7079,6 +7079,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* We should not return from the failure of adding a variant
                    path entry. */
                 unexpected_condition();
+              } else if (result_addr.address == NULL) {
+                /* An attempt to offset a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else {
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
@@ -7112,6 +7117,11 @@ type.  This includes checking the value of ovfl set by the operation.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (result_addr.address == NULL) {
+                /* An attempt to offset a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (field == NULL) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_ptr_to_member_data,
