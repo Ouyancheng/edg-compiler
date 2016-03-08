@@ -7508,9 +7508,18 @@ diagnostic in *ips.
                                          (an_address_base_kind)abk_variable) {
             a_variable_ptr  vp = rt_con->variant.address.variant.variable;
             if (!variable_has_constant_address(vp)) {
+              a_symbol_ptr  var_sym = symbol_for(vp);
               do_constexpr_fail(result);
-              info_with_pos_sym(ec_variable_not_constant_addressed,
-                                &ips->position, symbol_for(vp), ips);
+              if (var_sym == NULL) {
+                /* A variable with no associated symbol (likely an anonymous
+                   union parent object). */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &vp->source_corresp.decl_position, ips);
+                
+              } else {
+                info_with_pos_sym(ec_variable_not_constant_addressed,
+                                  &ips->position, var_sym, ips);
+              }  /* if */
               break;
             }  /* if */
           }  /* if */
