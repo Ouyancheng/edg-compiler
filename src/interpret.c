@@ -7352,25 +7352,22 @@ type.  This includes checking the value of ovfl set by the operation.
             /* A reference to a run-time variable. */
             a_constant_ptr  con;
             a_byte          *con_ptr;
-            a_boolean       add_constant_to_list;
             get_mapped_ptr(&ips->map, &var->storage_class, con_ptr);
             con = (a_constant_ptr)con_ptr;
             if (con == NULL) {
+              /* No address constant is associated with this variable yet.
+                 Create one and associated it with the variable so it can be
+                 reused in the future. */
               con = local_constant();
+              clear_constant(con, (a_constant_repr_kind)ck_address);
+              con->next = ips->constants;
+              ips->constants = con;
               map_ptr(&ips->map, &var->storage_class, (a_byte*)con);
-              add_constant_to_list = TRUE;
-            } else {
-              add_constant_to_list = FALSE;
             }  /* if */
-            clear_constant(con, (a_constant_repr_kind)ck_address);
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = var;
             con->type = make_reference_type(var->type);
             result = extract_value_from_constant(ips, con, result_storage);
-            if (add_constant_to_list) {
-              con->next = ips->constants;
-              ips->constants = con;
-            }  /* if */
           }  /* if */
         }  /* if */
       }
