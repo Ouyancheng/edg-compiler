@@ -632,21 +632,26 @@ in_live_set.
 */
 {
   a_boolean            result;
-  an_alloc_seq_number  stored_seq;
-  a_live_set_index     idx = hash_alloc_seq_number(seq);
 
-  for (;;) {
-    stored_seq = set->table[idx].alloc_seq_number;
-    if (stored_seq == seq) {
-      result = TRUE;
-      break;
-    } else if (stored_seq == 0) {
-      do_constexpr_fail(result);
-      break;
-    } else {
-      idx = set->table[idx].next_index;
-    }  /* if */
-  }  /* for */
+  if (seq == 0) {
+    /* Sequence number zero (static storage) is always "live". */
+    result = TRUE;
+  } else {
+    an_alloc_seq_number  stored_seq;
+    a_live_set_index     idx = hash_alloc_seq_number(seq);
+    for (;;) {
+      stored_seq = set->table[idx].alloc_seq_number;
+      if (stored_seq == seq) {
+        result = TRUE;
+        break;
+      } else if (stored_seq == 0) {
+        do_constexpr_fail(result);
+        break;
+      } else {
+        idx = set->table[idx].next_index;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return result;
 }  /* f_in_live_set */
 
