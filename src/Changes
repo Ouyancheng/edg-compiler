@@ -104,14 +104,13 @@ This is now fixed.
 2/22/16  [EDGcpfe/16892]
 Constexpr call cost control options renamed
 
-The command-line options to control the maximum cost of evaluation a call to
+The command-line options to control the maximum cost of evaluating a call to
 a constexpr function are renamed from --max_constexpr_call_count and
 --max_constexpr_call_depth to, respectively, --max_cost_constexpr_call and
---max_depth_constexpr_call.  This is both improve usability with abbreviated
-command-line options, and to better reflect the C++14 "relaxed constexpr"
-rules (where "cost" is not conveniently reduced to a count of calls).  Macros
-and global variables associated with these options have been similarly
-renamed.
+--max_depth_constexpr_call.  This is both to improve usability with abbreviated
+command-line options and to better reflect the C++14 "relaxed constexpr" rules
+(where "cost" is not conveniently reduced to a count of calls).  Macros and
+global variables associated with these options have been similarly renamed.
 
 
 2/22/16  [EDGcpfe/16894]
