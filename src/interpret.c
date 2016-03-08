@@ -5014,6 +5014,15 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+              if (fp_compare(opnd1_type->variant.float_kind,
+                             fp_value(opnd1_value),
+                             &zero_flt[(int)opnd1_type->variant.float_kind],
+                             &unord) == 0) {
+                *(an_integer_value *)result_storage = zero_int;
+              } else {
+                *(an_integer_value *)result_storage = one_int;
+              }  /* if */
             } else {
               unexpected_condition();
             }  /* if */
