@@ -4451,6 +4451,23 @@ done:
 }  /* do_constexpr_ctor */
 
 
+static a_constant_ptr make_interpreter_copy_of_constant(
+                                                   an_interpreter_state  *ips,
+                                                   a_constant_ptr        con)
+/*
+Copy the given constant to a new ("local") entry and record it on a list
+pointed to by ips->constants.
+*/
+{
+  a_constant_ptr  new_con = local_constant();
+
+  *new_con = *con;
+  new_con->next = ips->constants;
+  ips->constants = new_con;
+  return new_con;
+}  /* make_interpreter_copy_of_constant */
+
+
 static a_boolean get_value_from_address_constant(
                                                an_interpreter_state  *ips,
                                                a_constant_ptr        addr_con,
@@ -4636,7 +4653,7 @@ type.  This includes checking the value of ovfl set by the operation.
         }  /* if */
         record_complete_object(opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
-          do_constexpr_fail(result);
+          result = FALSE;
         }  /* if */
         if (result && opnd2 != NULL &&
             !node_operator_is(expr, eok_land) &&
@@ -4663,7 +4680,7 @@ type.  This includes checking the value of ovfl set by the operation.
           }  /* if */
           record_complete_object(opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
-            do_constexpr_fail(result);
+            result = FALSE;
           }  /* if */
         } else {
           opnd2_value = compact_value_bytes(opnd2_bytes);
@@ -4981,10 +4998,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 result_addr->length = length;
                 if (is_runtime_data_address(result_addr)) {
                   a_constant_ptr  orig_con = result_addr->variant.addr_con;
-                  a_constant_ptr  new_con = local_constant();
-                  *new_con = *orig_con;
-                  new_con->next = ips->constants;
-                  ips->constants = new_con;
+                  a_constant_ptr  new_con;
+                  new_con = make_interpreter_copy_of_constant(ips, orig_con);
                   new_con->type = tp;
                   result_addr->variant.addr_con = new_con;
                 } else if (is_variant_path(result_addr)) {
@@ -7101,9 +7116,23 @@ type.  This includes checking the value of ovfl set by the operation.
                    it. */
                 clear_address(&result_addr, opnd1_value);
               }  /* if */
-              if (opnd1_type->kind == (a_type_kind)tk_union &&
-                  !is_runtime_data_address(&result_addr) &&
-                  !add_to_variant_path(&result_addr, field)) {
+              if (is_runtime_data_address(&result_addr)) {
+                if (!(expr->is_lvalue || expr->is_xvalue) ||
+                    field->is_bit_field) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else {
+                  a_constant_ptr  new_con = local_constant();
+                  fold_field_selection(
+                                    result_addr.variant.addr_con, field,
+                                    make_reference_type(expr->type), new_con);
+                  clear_runtime_constant_address(result_storage, new_con);
+                  new_con->next = ips->constants;
+                  ips->constants = new_con;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_union &&
+                         !add_to_variant_path(&result_addr, field)) {
                 /* We should not return from the failure of adding a variant
                    path entry. */
                 unexpected_condition();
@@ -7141,19 +7170,29 @@ type.  This includes checking the value of ovfl set by the operation.
               result_addr = *(a_constexpr_address*)opnd1_value;
               pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
               field = pm_value->variant.field;
-              if (is_runtime_data_address(&result_addr)) {
+              if (field == NULL) {
                 do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                info_with_pos(ec_constexpr_null_ptr_to_member_data,
                               &expr->position, ips);
+              } else if (is_runtime_data_address(&result_addr)) {
+                if (!(expr->is_lvalue || expr->is_xvalue)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else {
+                  a_constant_ptr  new_con = local_constant();
+                  fold_field_selection(
+                                    result_addr.variant.addr_con, field,
+                                    make_reference_type(expr->type), new_con);
+                  clear_runtime_constant_address(result_storage, new_con);
+                  new_con->next = ips->constants;
+                  ips->constants = new_con;
+                }  /* if */
               } else if (result_addr.address == NULL) {
                 /* An attempt to offset a null pointer. */
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
-              } else if (field == NULL) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_null_ptr_to_member_data,
-                              &expr->position, ips);
               } else if (opnd1_type->kind == (a_type_kind)tk_union &&
                          !add_to_variant_path(&result_addr, field)) {
                 /* We should not return from the failure of adding a variant
@@ -7716,10 +7755,10 @@ return FALSE, and record diagnostic info in *diag_list.
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (!do_constexpr_call(&ips, call_expr, result_storage)) {
-      do_constexpr_fail(result);
+      result = FALSE;
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-      do_constexpr_fail(result);
+      result = FALSE;
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;

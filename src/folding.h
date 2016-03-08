@@ -154,6 +154,11 @@ extern void fold_base_class_cast(a_constant        *constant_1,
                                  a_source_position *err_pos,
                                  an_error_code     *error_detected);
 
+extern a_boolean fold_field_selection(a_constant  *constant_1,
+                                      a_field_ptr field,
+                                      a_type_ptr  result_type,
+                                      a_constant  *result);
+
 extern void get_integer_attributes(a_constant      *cp,
                                    an_integer_kind *ikind,
                                    a_boolean       *is_signed,

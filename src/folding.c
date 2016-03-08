@@ -5939,10 +5939,10 @@ and set *ovflo to TRUE if an overflow occurred.
 }  /* accum_field_offset */
 
 
-static a_boolean fold_field_selection(a_constant  *constant_1,
-                                      a_field_ptr field,
-                                      a_type_ptr  result_type,
-                                      a_constant  *result)
+a_boolean fold_field_selection(a_constant  *constant_1,
+                               a_field_ptr field,
+                               a_type_ptr  result_type,
+                               a_constant  *result)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
 struct/union; field is the selected field.  The result type (pointer to the
