@@ -7124,9 +7124,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                 &expr->position, ips);
                 } else {
                   a_constant_ptr  new_con = local_constant();
-                  fold_field_selection(
-                                    result_addr.variant.addr_con, field,
-                                    make_reference_type(expr->type), new_con);
+                  if (!fold_field_selection(
+                                  result_addr.variant.addr_con, field,
+                                  make_reference_type(expr->type), new_con)) {
+                    unexpected_condition();
+                  }  /* if */
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
@@ -7181,9 +7183,11 @@ type.  This includes checking the value of ovfl set by the operation.
                                 &expr->position, ips);
                 } else {
                   a_constant_ptr  new_con = local_constant();
-                  fold_field_selection(
-                                    result_addr.variant.addr_con, field,
-                                    make_reference_type(expr->type), new_con);
+                  if (!fold_field_selection(
+                                  result_addr.variant.addr_con, field,
+                                  make_reference_type(expr->type), new_con)) {
+                    unexpected_condition();
+                  }  /* if */
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
