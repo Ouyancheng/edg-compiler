@@ -2497,7 +2497,8 @@ static a_boolean do_constexpr_expression(
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
-                                   a_byte                *result_storage);
+                                   a_byte                *result_storage,
+                                   a_byte                *implied_src);
 
 
 static a_boolean do_constexpr_dynamic_init(
@@ -2939,7 +2940,8 @@ Evaluate the given dynamic initialization for the given storage.
                                        result_storage);
       break;
     case dik_constructor:
-      result = do_constexpr_ctor(ips, dip, pos, result_storage);
+      result = do_constexpr_ctor(ips, dip, pos, result_storage,
+                                 /*implied_src=*/NULL);
       break;
     case dik_bitwise_copy:
       { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
@@ -4197,11 +4199,15 @@ of the original *p_fp field in the representation of the returned *p_fp field.
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
-                                   a_byte                *result_storage)
+                                   a_byte                *result_storage,
+                                   a_byte                *implied_src)
 /*
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
-*ips accordingly.  pos is the position of the call.
+*ips accordingly.  pos is the position of the call.  The object is constructed
+at the location indicated by result_storage.  If implied_src is non-NULL, this
+is a copy constructor invocation and the source object is stored at the
+location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreter prior to interpreting
@@ -4230,22 +4236,22 @@ the body of the (constructor) function proper.
                          &ips->diag_list);
     do_constexpr_fail(result);
   } else {
-    a_scope_ptr       callee_scope = scope_for_routine(callee);
-    a_statement_ptr   block_stmt = callee_scope->assoc_block;
-    a_call_frame      frame;
-    an_expr_node_ptr  args = dip->variant.constructor.args, arg;
-    a_variable_ptr    params = callee_scope->variant.routine.parameters,
-                      param, this_var;
+    a_scope_ptr          callee_scope = scope_for_routine(callee);
+    a_statement_ptr      block_stmt = callee_scope->assoc_block;
+    a_call_frame         frame;
+    an_expr_node_ptr     args = dip->variant.constructor.args, arg;
+    a_variable_ptr       params = callee_scope->variant.routine.parameters,
+                         param, this_var;
     a_constructor_init_ptr
-                      ctor_init;
-    a_byte_count      n_args = 0;
-    a_byte            *arg_ptrs, **p_arg_ptr;
-    an_alloc_seq_number
-                      alloc_seq_number;
-    a_type_ptr        class_type = parent_class_of(callee);
+                         ctor_init;
+    a_byte_count         n_args = 0;
+    a_byte               *arg_ptrs, **p_arg_ptr;
+    a_constexpr_address  implied_src_address;
+    an_alloc_seq_number  alloc_seq_number;
+    a_type_ptr           class_type = parent_class_of(callee);
     a_class_symbol_supplement_ptr
-                      cssp;
-    unsigned long     up_front_cost;
+                         cssp;
+    unsigned long        up_front_cost;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -4278,6 +4284,7 @@ the body of the (constructor) function proper.
     for (arg = args; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
+    if (implied_src != NULL) n_args += 1;
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
@@ -4316,6 +4323,10 @@ the body of the (constructor) function proper.
         goto done;
       }  /* if */
     }  /* for */
+    if (implied_src != NULL) {
+      clear_address(&implied_src_address, implied_src);
+      *(a_constexpr_address**)p_arg_ptr = &implied_src_address;
+    }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
     /* Associate with the parameter variables a new allocation number.  For
        ordinary calls, we just use the allocation number about to be created
@@ -4404,18 +4415,36 @@ the body of the (constructor) function proper.
           do_constexpr_fail(result);
           break;
         } else {
-           if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
-                                      result_storage+offset)) {
-             do_constexpr_fail(result);
-             break;
-           }  /* if */
+          if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
+                                     result_storage+offset)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
         }  /* if */
-      } else if (!do_constexpr_dynamic_init(
-                                        ips, sub_dip,
-                                        &callee->source_corresp.decl_position,
-                                        result_storage+offset)) {
-        do_constexpr_fail(result);
-        break;
+      } else {
+        if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+            sub_dip->variant.constructor
+                            .is_copy_constructor_with_implied_source) {
+          /* Constructor invocations for the mem-initializers of copy
+             constructors don't always have an explicit source expression.
+             Pass the source location of the top-level call through to the
+             subobject constructor (adjusted for the offset). */
+          a_constexpr_address  *src_addr;
+          src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
+          if (!do_constexpr_ctor(ips, sub_dip,
+                                 &callee->source_corresp.decl_position,
+                                 result_storage+offset,
+                                 src_addr->address+offset)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+        } else if (!do_constexpr_dynamic_init(
+                                       ips, sub_dip,
+                                       &callee->source_corresp.decl_position,
+                                       result_storage+offset)) {
+          do_constexpr_fail(result);
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
     remove_from_live_set(&ips->live_set, alloc_seq_number);
@@ -4653,7 +4682,7 @@ type.  This includes checking the value of ovfl set by the operation.
         }  /* if */
         record_complete_object(opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
-          result = FALSE;
+          do_constexpr_fail(result);
         }  /* if */
         if (result && opnd2 != NULL &&
             !node_operator_is(expr, eok_land) &&
@@ -4680,7 +4709,7 @@ type.  This includes checking the value of ovfl set by the operation.
           }  /* if */
           record_complete_object(opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
-            result = FALSE;
+            do_constexpr_fail(result);
           }  /* if */
         } else {
           opnd2_value = compact_value_bytes(opnd2_bytes);
@@ -7759,10 +7788,10 @@ return FALSE, and record diagnostic info in *diag_list.
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (!do_constexpr_call(&ips, call_expr, result_storage)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-      result = FALSE;
+      do_constexpr_fail(result);
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
@@ -7823,7 +7852,8 @@ return FALSE.
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result) {
-    if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage)) {
+    if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
+                           /*implied_src=*/NULL)) {
       do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
