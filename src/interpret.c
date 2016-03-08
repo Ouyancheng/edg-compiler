@@ -7765,7 +7765,8 @@ return FALSE.
   } else {
     ctor = dip->variant.constructor.ptr;
     if (ctor == NULL) {
-      expect_error();
+      /* In template-dependent contexts, the invoked constructor may not be
+         known. */
       do_constexpr_fail(result);
       goto done;
     } else if (!ctor->is_constexpr) {
