@@ -1980,7 +1980,7 @@ redo:
         if (pos->seq == 0) pos = &ips->position;
         info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
         do_constexpr_fail(*p_result);
-        result = 0;
+        result = MAX_CONSTEXPR_TYPE_SIZE+1;
       }
       break;
     case tk_template_param:
@@ -2033,10 +2033,12 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     map_byte_count(&persistent_map, fp, total_size);
     total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
-      a_source_position  *pos = &tp->source_corresp.decl_position;
-      if (pos->seq == 0) pos = &ips->position;
-      info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-      do_constexpr_fail(*p_result);
+      if (*p_result) {
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        do_constexpr_fail(*p_result);
+      }  /* if */
       total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
       goto done;
     }  /* if */
@@ -2047,12 +2049,14 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       do_host_alignment(total_size);
       map_byte_count(&persistent_map, bcp, total_size);
       total_size += value_bytes_for_type(ips, bcp->type, p_result);
-      if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
-        if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-        do_constexpr_fail(*p_result);
-        total_size = MAX_CONSTEXPR_TYPE_SIZE;
+      if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
+        if (*p_result) {
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          if (pos->seq == 0) pos = &ips->position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          do_constexpr_fail(*p_result);
+        }  /* if */
+        total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
         goto done;
       }  /* if */
     }  /* if */
@@ -2064,12 +2068,14 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         do_host_alignment(total_size);
         map_byte_count(&persistent_map, bcp, total_size);
         total_size += value_bytes_for_type(ips, bcp->type, p_result);
-        if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-          a_source_position  *pos = &tp->source_corresp.decl_position;
-          if (pos->seq == 0) pos = &ips->position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          do_constexpr_fail(*p_result);
-          total_size = MAX_CONSTEXPR_TYPE_SIZE;
+        if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
+          if (*p_result) {
+            a_source_position  *pos = &tp->source_corresp.decl_position;
+            if (pos->seq == 0) pos = &ips->position;
+            info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+            do_constexpr_fail(*p_result);
+          }  /* if */
+          total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
           goto done;
         }  /* if */
       }  /* if */
@@ -2102,6 +2108,10 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   fp = tp->variant.class_struct_union.field_list;
   for (; fp != NULL; fp = fp->next) {
     a_byte_count  field_size = value_bytes_for_type(ips, fp->type, p_result);
+    if (!*p_result) {
+      total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+      goto done;
+    }  /* if */
     map_byte_count(&persistent_map, fp, prefix_size);
     if (field_size > max_field_size) max_field_size = field_size;
   }  /* for */
@@ -2111,9 +2121,10 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     if (pos->seq == 0) pos = &ips->position;
     info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
     *p_result = TRUE;
-    total_size = MAX_CONSTEXPR_TYPE_SIZE;
+    total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
   map_byte_count(&persistent_map, tp, total_size);
+done:
   return total_size;
 }  /* lay_out_union_type */
 
