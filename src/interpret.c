@@ -4917,29 +4917,35 @@ type.  This includes checking the value of ovfl set by the operation.
             break;
           case eok_derived_class_cast:
             { a_constexpr_address  *src = (a_constexpr_address*)opnd1_value;
-              a_base_class_ptr     bcp = *(a_base_class_ptr*)src->address;
-              if (bcp != NULL && bcp->type == tp) {
-                a_byte_count  offset;
-                a_constexpr_address  *dst =
-                              (a_constexpr_address*)result_storage;
-                get_mapped_byte_count(&persistent_map, bcp, offset);
-                *dst = *src;
-                dst->address -= offset;
-              } else {
-                a_type_ptr  derived_class;
-                if (bcp != NULL) {
-                  derived_class = bcp->derived_class;
-                } else {
-                  if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                    derived_class =
-                            skip_typerefs(opnd1_type->variant.pointer.type);
-                  } else {
-                    derived_class = opnd1_type;
-                  }  /* if */
-                }  /* if */
+              if (is_runtime_data_address(src)) {
                 do_constexpr_fail(result);
-                info_with_pos_type(ec_constexpr_bad_derived_class_cast,
-                                   &expr->position, derived_class, ips);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              } else {
+                a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
+                if (bcp != NULL && bcp->type == tp) {
+                  a_byte_count  offset;
+                  a_constexpr_address  *dst =
+                                (a_constexpr_address*)result_storage;
+                  get_mapped_byte_count(&persistent_map, bcp, offset);
+                  *dst = *src;
+                  dst->address -= offset;
+                } else {
+                  a_type_ptr  derived_class;
+                  if (bcp != NULL) {
+                    derived_class = bcp->derived_class;
+                  } else {
+                    if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                      derived_class =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                    } else {
+                      derived_class = opnd1_type;
+                    }  /* if */
+                  }  /* if */
+                  do_constexpr_fail(result);
+                  info_with_pos_type(ec_constexpr_bad_derived_class_cast,
+                                     &expr->position, derived_class, ips);
+                }  /* if */
               }  /* if */
             }
             break;
