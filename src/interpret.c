@@ -4384,11 +4384,6 @@ the body of the (constructor) function proper.
       memzero(result_storage+sizeof(void*),
               size_t_arg(n_class_bytes-sizeof(void*)));
     }  /* if */
-    if (class_type->kind == (a_type_kind)tk_union) {
-      /* For unions, make sure the active field is cleared initially.  (It
-         may never be changed if the union has no fields.) */
-      *(void**)result_storage = NULL;
-    }  /* if */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, pos, result_storage);
     /* Run the constructor initializers. */
@@ -4418,6 +4413,12 @@ the body of the (constructor) function proper.
         if (class_type->kind == (a_type_kind)tk_union) {
           /* Record the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = fp;
+        }  /* if */
+        if (tp->kind == (a_type_kind)tk_union) {
+          /* For union subobjects, make sure the active field is cleared
+             initially.  (It may never be changed if the union has no
+             fields.) */
+          *(void**)result_storage = NULL;
         }  /* if */
       } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
