@@ -2599,7 +2599,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
                     cp = vp->initializer.dynamic->variant.constant;
                   } else {
-                    unexpected_condition();
+                    an_init_kind    init_kind;
+                    an_initializer  *initializer;
+                    get_variable_initializer(vp, (a_scope*)NULL, &init_kind,
+                                             &initializer);
+                    if (init_kind == (an_init_kind)initk_static) {
+                      cp = initializer->constant;
+                    } else if (init_kind == (an_init_kind)initk_dynamic) {
+                      cp = initializer->dynamic->variant.constant;
+                    } else {
+                      unexpected_condition();
+                    }  /* if */
                   }  /* if */
                   result = extract_value_from_constant(ips, cp, var_bytes);
                 }  /* if */
