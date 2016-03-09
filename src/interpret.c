@@ -3191,6 +3191,12 @@ Interpret the given range-based for-statement.
   vp[1] = loop_info->range;
   vp[2] = loop_info->begin;
   vp[3] = loop_info->end;
+  if (vp[0] == NULL || vp[1] == NULL || vp[2] == NULL || vp[3] == NULL) {
+    /* This can only occur in error cases. */
+    expect_error();
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   for (k = 0; k<4; ++k) {
     a_type_ptr    vtp = skip_typerefs(vp[k]->type);
     a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
@@ -3303,6 +3309,7 @@ unmap_storage:
     unmap_ptr(&ips->map, &vp[k]->storage_class);
   }  /* if */
   restore_storage_stack(ips, saved_stack);
+done:
   return result;
 }  /* do_constexpr_range_based_for_statement */
 
