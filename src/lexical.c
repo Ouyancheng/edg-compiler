@@ -14962,7 +14962,8 @@ Determine whether dtor_or_finalizer_type is an acceptable type to be used in
 an explicit destructor/finalizer call for an object of field_sel_type.
 
 Normally the types must be identical, but if field_sel_type is a proxy
-class, we should accept any type.
+class, we should accept any type, and in error cases dtor_or_finalizer_type
+can be an error type.
 */
 {
   a_class_symbol_supplement_ptr	cssp;
@@ -14970,7 +14971,9 @@ class, we should accept any type.
 
   check_assertion(is_immediate_class_type(field_sel_type));
   cssp = symbol_supplement_for_class(field_sel_type);
-  if (cssp->template_param_for_proxy_class != NULL) {
+  if (is_error_type(dtor_or_finalizer_type)) {
+    result = FALSE;
+  } else if (cssp->template_param_for_proxy_class != NULL) {
     result = TRUE;
   } else if (is_template_param_type(dtor_or_finalizer_type)) {
     /* The destructor/finalizer type is a template parameter.  This could
