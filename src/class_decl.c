@@ -17434,9 +17434,12 @@ be updated on return.
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
     err = TRUE;
-  } else if (size_constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* A template parameter during the prototype instantiation.  The value
-       is not known.  Use a small value that is not 1. */
+  } else if (size_constant->kind != (a_constant_repr_kind)ck_integer &&
+             is_template_dependent_context()) {
+    /* During the prototype instantiation, the size constant may not be an
+       integer (it could be a template parameter or even an aggregate
+       constant).  Since the actual value is not known, use a small value
+       that is not 1. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
   } else {
     a_boolean  ovflo = FALSE;
