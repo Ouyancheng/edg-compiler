@@ -13502,7 +13502,7 @@ typedef struct a_routine {
 			   completed.  (While the function body is being
 			   scanned, "defined" remains FALSE.)  Note that
 			   for some functions (e.g., trivial default
-			   constructors), the body is removed immediately
+			   constructors), the body is removed immediately after
 			   it has been processed, so defined is TRUE when
 			   assoc_scope == NULL_region_number. */
   a_bit_field	called:1;
