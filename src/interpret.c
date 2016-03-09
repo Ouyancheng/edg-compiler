@@ -2553,7 +2553,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       break;
     case ck_integer:
       { a_type_ptr  tp = skip_typerefs(con->type);
-        if (tp->kind == (a_type_kind)tk_pointer) {
+        if (tp->kind == (a_type_kind)tk_pointer ||
+            tp->kind == (a_type_kind)tk_nullptr) {
           /* Various expressions for null pointer constants are expressed as
              ck_integer. */
           clear_address(value, (a_byte*)0);
