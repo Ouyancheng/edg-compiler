@@ -134,7 +134,7 @@ whether the storage for a variable has expired.
 
 This map tracking automatic variables and temporaries is also used to map
 run-time namespace-scope variables to a_constant entries representing their
-address (this is done by mapping the storage class field of the variable).
+address (this is done by mapping a_variable::initializer).
 
 If a pointer is mapped multiple times (e.g., a local variable entry during a
 recursive function invocation), the last mapping is returned by get_mapped_ptr
@@ -7365,17 +7365,17 @@ type.  This includes checking the value of ovfl set by the operation.
             /* A reference to a run-time variable. */
             a_constant_ptr  con;
             a_byte          *con_ptr;
-            get_mapped_ptr(&ips->map, &var->storage_class, con_ptr);
+            get_mapped_ptr(&ips->map, &var->initializer, con_ptr);
             con = (a_constant_ptr)con_ptr;
             if (con == NULL) {
               /* No address constant is associated with this variable yet.
-                 Create one and associated it with the variable so it can be
+                 Create one and associate it with the variable so it can be
                  reused in the future. */
               con = local_constant();
               clear_constant(con, (a_constant_repr_kind)ck_address);
               con->next = ips->constants;
               ips->constants = con;
-              map_ptr(&ips->map, &var->storage_class, (a_byte*)con);
+              map_ptr(&ips->map, &var->initializer, (a_byte*)con);
             }  /* if */
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = var;
