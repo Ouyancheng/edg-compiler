@@ -2844,8 +2844,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* if */
           if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
             /* Unions should have only one actual initializer constant
-               (possibly following a designator). */
-            unexpected_condition();
+               (possibly following a designator).  This can happen with
+               severe errors, however. */
+            expect_error();
+            do_constexpr_fail(result);
+            break;
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
           if (!copy_val_from_constant(ips, elem_con, value+offset)) {
