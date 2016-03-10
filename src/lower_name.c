@@ -12369,6 +12369,9 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
 */
 {
   a_boolean mangling_needed = FALSE;
+#if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
+  a_boolean file_scope_case = FALSE;
+#endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
 
   if (!has_name(variable)) {
     /* Unnamed variables do not need mangled names. */
@@ -12379,11 +12382,12 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
     /* Static data members and members of namespaces need mangled names. */
     mangling_needed = TRUE;
 #if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
-    if (gnu_abi_tag_attribute_seen) {
-      /* Determine implicit abi_tags in preparation for mangling. */
-      calculate_implicit_abi_tags(&variable->source_corresp, iek_variable);
-    }  /* if */
-  } else if (gnu_abi_tag_attribute_seen) {
+  } else {
+    /* A file-scope variable that usually wouldn't need mangling, but it may
+       have a GNU abi_tag attribute. */
+    file_scope_case = TRUE;
+  }  /* if */
+  if (gnu_abi_tag_attribute_seen && (file_scope_case || mangling_needed)) {
     /* Generally speaking, file-scope variables do not need mangling, but they
        do if they have explicit or implicit abi_tags. */
     calculate_implicit_abi_tags(&variable->source_corresp, iek_variable);
