@@ -7825,9 +7825,8 @@ return FALSE, and record diagnostic info in *diag_list.
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
   if (is_prototype_instantiation_context()) {
-    /* Don't attempt interpretation in template contexts; just build the
-       expression into a tpck_expression constant entry. */
-    make_template_param_expr_constant(call_expr, result_con);
+    /* Don't attempt interpretation in template contexts. */
+    result = FALSE;
     goto done;
   }  /* if */
   if (trans_unit_initialization_needed) {
@@ -7880,6 +7879,11 @@ return FALSE.
   a_byte_count          n_bytes;
   a_type_ptr            result_type;
 
+  if (is_prototype_instantiation_context()) {
+    /* Don't attempt interpretation in template contexts. */
+    result = FALSE;
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
