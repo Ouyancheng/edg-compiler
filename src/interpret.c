@@ -4358,16 +4358,18 @@ the body of the (constructor) function proper.
        ordinary calls, we just use the allocation number about to be created
        for the function scope, but for constructors that is not an option
        because constructor initializers must first be evaluated. */
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (this_var == NULL) {
+      /* A constructor should always have a "this" parameter, but in some
+         error cases, it may not have been created. */
+      expect_error();
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     alloc_seq_number = ++ips->curr_alloc_seq_number;
     add_to_live_set(&ips->live_set, alloc_seq_number);
-    this_var = callee_scope->variant.routine.this_param_variable;
-    if (this_var != NULL) {
-      map_stack_bytes(ips, this_var, result_storage);
-      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
-    } else {
-      /* A constructor should always have a "this" parameter. */
-      unexpected_condition();
-    }  /* if */
+    map_stack_bytes(ips, this_var, result_storage);
+    map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
     p_arg_ptr = (a_byte**)arg_ptrs;
     for (param = params; param != NULL; param = param->next) {
       map_stack_bytes(ips, param, *p_arg_ptr);
