@@ -26646,8 +26646,7 @@ be used, but there are exceptions.
         /* If the variable is a class or namespace member, get its mangled
            name; otherwise use its unmangled name. */
         if (scp_is_class_or_namespace_member(module_id_scp)) {
-          name = get_mangled_member_variable_name(
-                                                (a_variable_ptr)module_id_scp);
+          name = get_mangled_variable_name((a_variable_ptr)module_id_scp);
         } else {
           name = module_id_scp->name;
         }  /* if */

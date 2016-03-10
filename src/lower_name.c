@@ -521,8 +521,9 @@ static void mangled_function_name_externalized_if_necessary(
                              a_boolean                force_primary_name,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl);
-static void mangled_member_variable_name(a_variable_ptr           variable,
-                                         a_mangling_control_block *mctl);
+static void mangled_variable_name_with_possible_qualification(
+                                             a_variable_ptr           variable,
+                                             a_mangling_control_block *mctl);
 static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                                 a_boolean        *bad_operator,
                                                 a_boolean        *is_cast);
@@ -542,9 +543,10 @@ static void mangled_encoding_for_expression_full(
                                   a_boolean                in_dependent_expr,
                                   a_boolean                suppress_address_of,
                                   a_mangling_control_block *mctl);
-static void mangled_member_name(a_source_correspondence  *scp,
-                                an_il_entry_kind         kind,
-                                a_mangling_control_block *mctl);
+static void mangled_name_with_possible_qualification(
+                                               a_source_correspondence  *scp,
+                                               an_il_entry_kind         kind,
+                                               a_mangling_control_block *mctl);
 static void mangled_encoding_for_constant(
                                   a_constant_ptr           con,
                                   a_boolean                old_form,
@@ -3072,7 +3074,7 @@ template classes.
 #endif /* IA64_ABI */
     if (is_class_or_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
-      mangled_member_variable_name(variable, mctl);
+      mangled_variable_name_with_possible_qualification(variable, mctl);
     } else {
       /* Normal variable. */
 #if !IA64_ABI
@@ -3712,42 +3714,6 @@ Add to the mangled name the name of the routine.  Used in cfront ABI only.
   fill_in_length(&length_reservation, mctl);
 }  /* mangled_routine_name */
 
-
-static void mangled_variable_name(a_variable_ptr            variable,
-                                  a_mangling_control_block *mctl)
-/*
-Add to the mangled name the name of the variable.  Used in cfront ABI only.
-*/
-{
-  a_const_char            *str;
-
-  str = unmangled_or_fabricated_name_of_variable(variable);
-  check_assertion(str != NULL);
-  if (is_class_or_namespace_member(variable)) {
-    /* Static data member or namespace member variable. */
-    mangled_member_variable_name(variable, mctl);
-  } else {
-#if GNU_EXTENSIONS_ALLOWED
-    if (variable->has_gnu_abi_tag_attribute) {
-      /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
-      add_abi_tag_mangling(variable->source_corresp.attributes, mctl);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    add_str_to_mangled_name(str, mctl);
-#if ABI_COMPATIBILITY_VERSION >= 402
-    if (entity_needs_to_be_individuated(&variable->source_corresp,
-                                        iek_variable)) {
-      /* Add two underscores after the name. */
-      add_str_to_mangled_name("__", mctl);
-      r_mangled_parent_qualifier(&variable->source_corresp, iek_variable,
-                                 /*nesting_level=*/1,
-                                 /*needs_to_be_individuated=*/TRUE,
-                                 (a_source_correspondence **)NULL, mctl);
-    }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-  }  /* if */
-}  /* mangled_variable_name */
-
 #endif /* IA64_ABI */
 
 #if IA64_ABI
@@ -4162,7 +4128,8 @@ do_unknown_function:
 #if !IA64_ABI
           { a_length_reservation length_reservation;
             reserve_space_for_length(&length_reservation, mctl);
-            mangled_member_name(&con->source_corresp, iek_constant, mctl);
+            mangled_name_with_possible_qualification(&con->source_corresp,
+                                                     iek_constant, mctl);
             fill_in_length(&length_reservation, mctl);
           }
 #else /* IA64_ABI */
@@ -6285,7 +6252,8 @@ is TRUE.
            indication. */
         a_length_reservation    length_reservation;
         reserve_space_for_length(&length_reservation, mctl);
-        mangled_variable_name(node_variable(expr), mctl);
+        mangled_variable_name_with_possible_qualification(node_variable(expr),
+                                                          mctl);
         fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
       }  /* if */
@@ -11873,15 +11841,18 @@ a constructor or destructor, return the primary entry point name.
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
           MODULE_ID_NEEDED */
 
-static void mangled_member_name(a_source_correspondence  *scp,
-                                an_il_entry_kind         kind,
-                                a_mangling_control_block *mctl)
+static void mangled_name_with_possible_qualification(
+                                                a_source_correspondence  *scp,
+                                                an_il_entry_kind         kind,
+                                                a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the name of the class, 
-namespace member, or scoped enum type whose source correspondence is
-given by scp and whose kind is given by "kind".  This routine must be called
-only for static data member variables, namespace member variables,
-scoped enumerators, and class and namespace member constants.
+Add to the mangled name the encoding for the name of the class, namespace
+member, scoped enum type, or variable whose source correspondence is given by
+scp and whose kind is given by "kind".  This routine is called for static data
+member variables, namespace member variables, some file scope variables, scoped
+enumerators, and class and namespace member constants.  If the entity is a
+namespace or class member, appropriate qualification is added to the mangled
+name.
 */
 {
 #if !IA64_ABI
@@ -11909,26 +11880,43 @@ scoped enumerators, and class and namespace member constants.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  if (scp->member_of_unknown_base) {
-    /* We're pretending that we found the member in a dependent
-       base class.  That means the original form of reference
-       was unqualified.  Don't put out the parent qualifier. */
+  if (scp->parent_scope == NULL && !scp->parent_via_local_scope_ref) {
+    /* Entity needs no qualification (because it's not a member of a
+       class or namespace). */
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (kind == iek_variable &&
+        entity_needs_to_be_individuated(scp, iek_variable)) {
+      /* A file-scope variable that needs to be to be individuated gets a
+         special suffix. */
+      add_str_to_mangled_name("__", mctl);
+      r_mangled_parent_qualifier(scp, iek_variable,
+                                 /*nesting_level=*/1,
+                                 /*needs_to_be_individuated=*/TRUE,
+                                 (a_source_correspondence **)NULL, mctl);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   } else {
-    a_boolean is_specialization = FALSE;
-    if (kind == iek_variable) {
-      a_variable_ptr variable = (a_variable_ptr)scp;
-      is_specialization = (variable->is_specialized &&
-                           !variable->specialized_with_old_syntax);
+    if (scp->member_of_unknown_base) {
+      /* We're pretending that we found the member in a dependent
+         base class.  That means the original form of reference
+         was unqualified.  Don't put out the parent qualifier. */
+    } else {
+      a_boolean is_specialization = FALSE;
+      if (kind == iek_variable) {
+        a_variable_ptr variable = (a_variable_ptr)scp;
+        is_specialization = (variable->is_specialized &&
+                             !variable->specialized_with_old_syntax);
+      }  /* if */
+      if (distinct_template_signatures && is_specialization) {
+        /* Put out an indication of the fact that a static data member is
+           specialized. */
+        mangled_specialization_indication(mctl);
+      }  /* if */
+      /* Add two underscores after the name. */
+      add_str_to_mangled_name("__", mctl);
+      /* Output the mangled parent name. */
+      mangled_parent_qualifier(scp, kind, mctl);
     }  /* if */
-    if (distinct_template_signatures && is_specialization) {
-      /* Put out an indication of the fact that a static data member is
-         specialized. */
-      mangled_specialization_indication(mctl);
-    }  /* if */
-    /* Add two underscores after the name. */
-    add_str_to_mangled_name("__", mctl);
-    /* Output the mangled parent name. */
-    mangled_parent_qualifier(scp, kind, mctl);
   }  /* if */
 #else /* IA64_ABI */
   a_boolean               need_nested_name_close = FALSE;
@@ -11949,14 +11937,16 @@ scoped enumerators, and class and namespace member constants.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #endif /* !IA64_ABI */
-}  /* mangled_member_name */
+}  /* mangled_name_with_possible_qualification */
 
 
-static void mangled_member_variable_name(a_variable_ptr           variable,
-                                         a_mangling_control_block *mctl)
+static void mangled_variable_name_with_possible_qualification(
+                                             a_variable_ptr           variable,
+                                             a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the name of the member variable
-"variable" (a static data member or namespace member variable).
+Add to the mangled name the encoding for the name of the variable
+"variable" (a static data member, namespace member variable, or file scope
+variable).
 */
 {
   if (!has_name(variable)) {
@@ -11965,21 +11955,20 @@ Add to the mangled name the encoding for the name of the member variable
            static union {float bf;};
          }
     */
-    check_assertion_str(!variable->source_corresp.is_class_member,
-                        "mangled_member_variable_name: unnamed class member");
+    check_assertion(!variable->source_corresp.is_class_member);
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
-  mangled_member_name(&variable->source_corresp, iek_variable, mctl);
-}  /* mangled_member_variable_name */
+  mangled_name_with_possible_qualification(&variable->source_corresp,
+                                           iek_variable, mctl);
+}  /* mangled_variable_name_with_possible_qualification */
 
 
-a_const_char *get_mangled_member_variable_name(a_variable_ptr variable)
+a_const_char *get_mangled_variable_name(a_variable_ptr variable)
 /*
 Get the mangled name for the indicated variable or static data member, and
 return a pointer to it.  If the variable name has not been mangled yet,
 create a copy of the mangled name in a temporary buffer but do not change
-the name in the variable entry.  The variable must be a namespace member
-or a static data member (e.g., not a file scope variable).
+the name in the variable entry.
 */
 {
   a_mangling_control_block mctl;
@@ -12010,7 +11999,7 @@ or a static data member (e.g., not a file scope variable).
                               &mctl);
     }  /* if */
 #endif /* DO_IL_LOWERING */
-    mangled_member_variable_name(variable, &mctl);
+    mangled_variable_name_with_possible_qualification(variable, &mctl);
 #if DO_IL_LOWERING
     if (needs_to_be_externalized) {
       end_externalized_name(&variable->source_corresp, &mctl);
@@ -12019,7 +12008,7 @@ or a static data member (e.g., not a file scope variable).
     mangled_name = end_mangling(/*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
-}  /* get_mangled_member_variable_name */
+}  /* get_mangled_variable_name */
 
 
 char *make_prefixed_object_name(a_const_char            *prefix,
@@ -12053,7 +12042,7 @@ Can be used in C mode (though that's not typical).
       if (scp_is_class_or_namespace_member(scp)) {
         /* A static data member or member of a namespace needs to be
            appropriately qualified. */
-        mangled_name = get_mangled_member_variable_name((a_variable_ptr)scp);
+        mangled_name = get_mangled_variable_name((a_variable_ptr)scp);
       } else {
         /* A file-scope variable needs no qualification, so provide the
            appropriate mangled encoding for the variable name here. */
@@ -12264,7 +12253,8 @@ member constant, or (as an extension) a declared class member constant.
        be demangled and matches the mangling for promoted entities of the
        same type. */
     add_mangled_name_prefix(&mctl);
-    mangled_member_name(&con->source_corresp, iek_constant, &mctl);
+    mangled_name_with_possible_qualification(&con->source_corresp,
+                                             iek_constant, &mctl);
 #if IA64_ABI
     if (scp_is_enum_member(&con->source_corresp) &&
         con->source_corresp.is_local_to_function &&
@@ -12418,12 +12408,7 @@ or file scope variable with abi_tags (explicit or implicit).
       variable_name_mangling_needed(variable)) {
     start_mangling(&mctl);
     add_mangled_name_prefix(&mctl);
-    /* FIXME: Should consolidate these. */
-#if IA64_ABI
-    mangled_member_variable_name(variable, &mctl);
-#else /* !IA64_ABI */
-    mangled_variable_name(variable, &mctl);
-#endif /* IA64_ABI */
+    mangled_variable_name_with_possible_qualification(variable, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this
        time, in case the name is externalized later.  do_final_name_mangling
        will do the compression or truncation if necessary. */

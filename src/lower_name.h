@@ -75,7 +75,7 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
           MODULE_ID_NEEDED */
 
 #if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
-extern a_const_char *get_mangled_member_variable_name(a_variable_ptr variable);
+extern a_const_char *get_mangled_variable_name(a_variable_ptr variable);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
 extern void do_scope_other_name_mangling(a_scope_ptr scope);
