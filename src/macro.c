@@ -434,6 +434,15 @@ static unsigned long
 			   those appearing in expansions of macro
 			   arguments. */
 
+static a_boolean
+		single_param_macro;
+			/* During the execution of macro_invocation, this
+			   will be TRUE if and only if the macro being
+			   expanded is a function-style macro with exactly
+			   one parameter.  This is used by arg_get_token to
+			   determine whether a Microsoft-mode "magic" comma
+			   should be suppressed or included. */
+
 #if DEBUG
 static unsigned long
 		num_macro_params_allocated,
@@ -2956,7 +2965,9 @@ the call to skip_white_space encountered an LE_MICROSOFT_MAGIC_COMMA
 followed by a comma; if so, skip the comma if it comes from a source
 modification newer than the one designated by macro_name_modif_seq, i.e.,
 if it's embedded in the expansion of a macro argument rather than appearing
-directly in the argument list.
+directly in the argument list, unless the macro being expanded has exactly
+one parameter.  (Macros with multiple parameters do suppress magic
+commas.).
 */
 {
   a_token_kind tok;
@@ -2971,15 +2982,17 @@ directly in the argument list.
       /* The skip traversed an LE_MICROSOFT_MAGIC_COMMA lexical escape, so
          curr_char_loc now points to a comma that preceded an empty
          __VA_ARGS__ expansion.  Such commas are suppressed unless they
-         appear directly in a macro argument list.  Check to see if the
+         appear directly in a macro argument list and the macro currently
+         being expanded has exactly one parameter.  Check to see if the
          comma at curr_char_loc is embedded in the expansion of one of this
          macro's arguments, i.e., if its source modification is newer than
-         the one containing the name of the macro.  If so, it's an ordinary
-         magic comma that needs to be skipped; otherwise, it appears
-         directly in the macro argument list and should not be
-         suppressed. */
+         the one containing the name of the macro.  If so, or if the
+         current macro has more than one parameter, it's an ordinary magic
+         comma that needs to be skipped; otherwise, it appears directly in
+         the macro argument list and should not be suppressed. */
       a_source_line_modif_ptr slmp = assoc_source_line_modif(curr_char_loc);
-      skip_comma = (slmp->sequence_id > macro_name_modif_seq);
+      skip_comma = (slmp->sequence_id > macro_name_modif_seq ||
+                    !single_param_macro);
     } else {
       skip_comma = FALSE;
     }  /* if */
@@ -4616,6 +4629,7 @@ associated global variables will also have been set).
   a_boolean       add_escape;
   a_boolean       saved_in_macro_arg_list = in_macro_arg_list;
   unsigned long   saved_macro_name_modif_seq = macro_name_modif_seq;
+  a_boolean       saved_single_param_macro = single_param_macro;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -4780,6 +4794,8 @@ end_scan_for_macro_modifs:;
     } else {
       macro_name_modif_seq = 0;
     }  /* if */
+    single_param_macro = (mdp->param_list != NULL &&
+                          mdp->param_list->next == NULL);
 #if RECORD_MACRO_INVOCATIONS
     parent_macro_invocation_record = slmp->invocation_record;
     macro_invocation_stack_depth = slmp->invocation_depth + 1;
@@ -6717,6 +6733,7 @@ return_point:
   macro_depth = saved_macro_depth;
   in_macro_arg_list = saved_in_macro_arg_list;
   macro_name_modif_seq = saved_macro_name_modif_seq;
+  single_param_macro = saved_single_param_macro;
   num_macro_invocations_in_process--;
   /* Restore the lexical state. */
   pop_lexical_state_stack();
