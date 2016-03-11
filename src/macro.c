@@ -8750,8 +8750,7 @@ pointer to the symbol entry is returned.
     /* Insert predefined macros into the macro list.  Predefined macros that
        have a varying replacement list (like __LINE__ and __FILE__) will have
        an empty replacement text in the IL entry. */
-    { a_source_position pos;
-      pos.seq = 0;
+    { a_source_position pos = null_source_position;
       pos.column = SP_COL_PREDEFINED_MACRO;
       (void)make_il_macro_entry(sym_ptr, &pos);
     }
