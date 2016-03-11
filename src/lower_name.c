@@ -11880,7 +11880,7 @@ name.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  if (scp->parent_scope == NULL && !scp->parent_via_local_scope_ref) {
+  if (!scp_is_class_or_namespace_member(scp)) {
     /* Entity needs no qualification (because it's not a member of a
        class or namespace). */
 #if ABI_COMPATIBILITY_VERSION >= 402
