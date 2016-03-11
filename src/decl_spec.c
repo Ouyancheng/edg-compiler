@@ -4397,10 +4397,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                      &visibility, class_type->source_corresp.is_class_member);
       ctsp->ELF_visibility = visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-      /* Record whether or not the class has an inline namespace with an
-         abi_tag as a parent. */
-      class_type->in_gnu_abi_tag_namespace =
+      if (!class_type->variant.class_struct_union.is_template_class) {
+        /* Record whether or not the class has an inline namespace with an
+           abi_tag as a parent (in the template case, this has already been
+           set from the prototype template). */
+        class_type->in_gnu_abi_tag_namespace =
                                     scope_stack_top().in_gnu_abi_tag_namespace;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

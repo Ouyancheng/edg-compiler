@@ -7667,7 +7667,7 @@ a type in certain ways (see template_arg_list_is_dependent).
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   class_type->in_gnu_abi_tag_namespace =
-                                    scope_stack_top().in_gnu_abi_tag_namespace;
+                                      prototype_type->in_gnu_abi_tag_namespace;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_sym_trace("instantiations", sym)) {
@@ -17465,6 +17465,10 @@ initially used when processing the declaration of a partial specialization.
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  prototype_type->in_gnu_abi_tag_namespace =
+                                    scope_stack_top().in_gnu_abi_tag_namespace;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* create_prototype_type */
 
 
