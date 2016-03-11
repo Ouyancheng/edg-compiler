@@ -8011,8 +8011,7 @@ Scan and process a #define directive.
       }  /* if */
       if (discard_new_definition) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-        if (curr_cmd_line_or_predef_macro_def == NULL &&
-            assoc_symbol != NULL) {
+        if (curr_cmd_line_or_predef_macro_def == NULL) {
           /* Terminate the tracker (and just abandon the text map entries
              added to macro_text_map: they'll be discarded the next time
              macro_buffer is truncated). */
