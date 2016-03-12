@@ -2962,12 +2962,10 @@ comma_is_from_argument will be TRUE after the call if and only if the call
 to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.  The
 global variable comma_is_magic will be TRUE after the call if and only if
 the call to skip_white_space encountered an LE_MICROSOFT_MAGIC_COMMA
-followed by a comma; if so, skip the comma if it comes from a source
-modification newer than the one designated by macro_name_modif_seq, i.e.,
-if it's embedded in the expansion of a macro argument rather than appearing
-directly in the argument list, unless the macro being expanded has exactly
-one parameter.  (Macros with multiple parameters do suppress magic
-commas.).
+followed by a comma.  In that case, whether the comma is skipped or
+included depends on the context.  If the comma appears directly in the
+argument to a macro that takes exactly one parameter, it is included; in
+all other cases, it is skipped.
 */
 {
   a_token_kind tok;
@@ -2982,14 +2980,14 @@ commas.).
       /* The skip traversed an LE_MICROSOFT_MAGIC_COMMA lexical escape, so
          curr_char_loc now points to a comma that preceded an empty
          __VA_ARGS__ expansion.  Such commas are suppressed unless they
-         appear directly in a macro argument list and the macro currently
-         being expanded has exactly one parameter.  Check to see if the
-         comma at curr_char_loc is embedded in the expansion of one of this
-         macro's arguments, i.e., if its source modification is newer than
-         the one containing the name of the macro.  If so, or if the
-         current macro has more than one parameter, it's an ordinary magic
-         comma that needs to be skipped; otherwise, it appears directly in
-         the macro argument list and should not be suppressed. */
+         appear directly in a macro argument list and that macro has
+         exactly one parameter.  Check to see if the comma at curr_char_loc
+         is embedded in the expansion of one of this macro's arguments,
+         i.e., if its source modification is newer than the one containing
+         the name of the macro.  If so, or if the macro whose arguments are
+         being fetched has more than one parameter, it's an ordinary magic
+         comma that needs to be skipped; otherwise, it should not be
+         suppressed. */
       a_source_line_modif_ptr slmp = assoc_source_line_modif(curr_char_loc);
       skip_comma = (slmp->sequence_id > macro_name_modif_seq ||
                     !single_param_macro);
