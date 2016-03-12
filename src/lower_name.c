@@ -11880,22 +11880,8 @@ name.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  if (!scp_is_class_or_namespace_member(scp)) {
-    /* Entity needs no qualification (because it's not a member of a
-       class or namespace). */
-#if ABI_COMPATIBILITY_VERSION >= 402
-    if (kind == iek_variable &&
-        entity_needs_to_be_individuated(scp, iek_variable)) {
-      /* A file-scope variable that needs to be to be individuated gets a
-         special suffix. */
-      add_str_to_mangled_name("__", mctl);
-      r_mangled_parent_qualifier(scp, iek_variable,
-                                 /*nesting_level=*/1,
-                                 /*needs_to_be_individuated=*/TRUE,
-                                 (a_source_correspondence **)NULL, mctl);
-    }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-  } else {
+  if (scp_is_class_or_namespace_member(scp) ||
+      scp_is_enum_member(scp)) {
     if (scp->member_of_unknown_base) {
       /* We're pretending that we found the member in a dependent
          base class.  That means the original form of reference
@@ -11917,6 +11903,21 @@ name.
       /* Output the mangled parent name. */
       mangled_parent_qualifier(scp, kind, mctl);
     }  /* if */
+  } else {
+    /* Entity needs no qualification (because it's not a member of a
+       class or namespace or a scoped enum). */
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (kind == iek_variable &&
+        entity_needs_to_be_individuated(scp, iek_variable)) {
+      /* A file-scope variable that needs to be to be individuated gets a
+         special suffix. */
+      add_str_to_mangled_name("__", mctl);
+      r_mangled_parent_qualifier(scp, iek_variable,
+                                 /*nesting_level=*/1,
+                                 /*needs_to_be_individuated=*/TRUE,
+                                 (a_source_correspondence **)NULL, mctl);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* if */
 #else /* IA64_ABI */
   a_boolean               need_nested_name_close = FALSE;
