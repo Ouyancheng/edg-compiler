@@ -7666,8 +7666,10 @@ a type in certain ways (see template_arg_list_is_dependent).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  class_type->in_gnu_abi_tag_namespace =
+  if (prototype_type != NULL) {
+    class_type->in_gnu_abi_tag_namespace =
                                       prototype_type->in_gnu_abi_tag_namespace;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_sym_trace("instantiations", sym)) {
