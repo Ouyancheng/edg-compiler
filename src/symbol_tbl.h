@@ -5827,12 +5827,6 @@ symbol found by the lookup is semantically valid.
      is_cppcli_fundamental_system_type(sym))) ||		      \
    is_valid_enum_qualifier_symbol(sym))
   
-
-/* Return TRUE if the symbol is an instance of a variable template. */
-#define is_template_variable_symbol(sym)				\
-  ((sym)->kind == (a_symbol_kind)sk_variable &&				\
-   (sym)->variant.variable.ptr->is_template_variable)
-
 /* Return TRUE if a symbol is a class symbol, a class template symbol,
    a template parameter symbol, or a typedef to a template parameter.
    Note that a template parameter symbol is considered even if the type
