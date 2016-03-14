@@ -12488,7 +12488,11 @@ also does type name mangling.
         mangle_member_constant_name(con);
       }  /* if */
     }  /* for */
-    if (variable_templates_enabled || gnu_abi_tag_attribute_seen) {
+    if (
+#if GNU_EXTENSIONS_ALLOWED
+        gnu_abi_tag_attribute_seen ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        variable_templates_enabled) {
       /* Generally, file-scope variables are not mangled, but variable
          templates and variables with the GNU abi_tag attribute require
          mangling. */
