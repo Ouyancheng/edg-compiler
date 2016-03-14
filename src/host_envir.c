@@ -5513,11 +5513,14 @@ string from a portable assembly if so configured.
 */
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  a_boolean  is_delegate;
+
   /* The class declarations for the assembly are stored in the first entry
      (with a scope index of zero and a type-def token of zero): Return that
      entry. */
   import_class_definition(make_assembly_scope_index(assembly_index, 0), 0,
-                          buffer, buffer_size);
+                          buffer, buffer_size, &is_delegate);
+  check_assertion(!is_delegate);
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* import_all_types */
 
@@ -5526,7 +5529,8 @@ string from a portable assembly if so configured.
 void import_class_definition(an_assembly_scope_index assembly_scope_index,
                              a_cpp_cli_token         metadata_type_def_token,
                              char                    *buffer,
-                             size_t                  *buffer_size)
+                             size_t                  *buffer_size,
+                             a_boolean               *is_delegate)
 /*
 Import a specific class definition (as defined by metadata_type_def_token) from
 the specified assembly into the buffer whose size is in *buffer_size.  This
@@ -5541,6 +5545,7 @@ so configured.
   unsigned int              i;
   an_assembly_index         assembly_index;
   a_scope_index             scope_index;
+  char                      *class_def_str;
 
   assembly_index = assembly_index_from_assembly_scope_index(
                                                         assembly_scope_index);
@@ -5555,10 +5560,23 @@ so configured.
   }  /* for */
   check_assertion(i < entry->header.num_entries);
   size = entry->table[i].size;
+  class_def_str = (char *)entry->mmap_addr + entry->table[i].offset;
+  if (size > sizeof(PORTABLE_ASSEMBLY_DELEGATE_PREFIX) &&
+      strncmp(class_def_str, PORTABLE_ASSEMBLY_DELEGATE_PREFIX,
+              sizeof(PORTABLE_ASSEMBLY_DELEGATE_PREFIX)) == 0) {
+    /* The string starts with a prefix indicating that a delegate definition
+       follows.  (That prefix isn't part of a C++/CLI definition, but is added
+       when the portable assembly file is written.) */
+    *is_delegate = TRUE;
+    class_def_str += sizeof(PORTABLE_ASSEMBLY_DELEGATE_PREFIX);
+    size -= sizeof(PORTABLE_ASSEMBLY_DELEGATE_PREFIX);
+  } else {
+    *is_delegate = FALSE;
+  }  /* if */
   if (size > *buffer_size) {
     *buffer = '\0';
   } else {
-    strncpy(buffer, (char *)entry->mmap_addr + entry->table[i].offset, size);
+    strncpy(buffer, class_def_str, size);
   }  /* if */
   *buffer_size = size;
 #else /* !READ_CPPCLI_PORTABLE_ASSEMBLIES */

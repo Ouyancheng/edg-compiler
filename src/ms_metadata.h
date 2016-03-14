@@ -68,7 +68,8 @@ extern void import_class_definition(
                                  an_assembly_scope_index assembly_scope_index,
                                  a_cpp_cli_token         typedef_token,
                                  char                    *buffer,
-                                 size_t                  *buffer_size);
+                                 size_t                  *buffer_size,
+                                 a_boolean               *is_delegate);
 extern void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);
@@ -112,6 +113,13 @@ typedef struct a_portable_assembly_table_entry {
                            metadata string associated with token. */
   uint32_t      size;   /* Size (in bytes) of the associated metadata. */
 } a_portable_assembly_table_entry;
+
+/*
+A string prepended to delegate definitions in portable assembly files.
+(This is needed to reliably return the "is_delegate" flag in the version
+of import_class_definition for portable assemblies.
+*/
+#define PORTABLE_ASSEMBLY_DELEGATE_PREFIX "delegate "
 
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
 #endif /* CPPCLI_ENABLING_POSSIBLE */
