@@ -22325,8 +22325,8 @@ and returned.  Otherwise, NULL is returned.
     /* FIXME: partial specialization case is a template id. */
 #endif /* 0 */
     /* An error should have already been issued for this case. */
-    unexpected_condition();
     err = TRUE;
+    unexpected_condition();
   } else if (locator_for_curr_id.is_operator_name ||
              locator_for_curr_id.is_conversion_name) {
     /* Issue an error for something like "operator+" or "operator int". */
@@ -28580,9 +28580,6 @@ data member specified by tip.
   curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* instantiate_entity */
-
-/* Forward declaration. */
-static void find_or_create_master_instance(a_template_instance_ptr	tip);
 
 
 void complete_template_variable_type_is_needed(a_variable_ptr vp)
