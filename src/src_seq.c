@@ -2819,7 +2819,7 @@ for an out-of-class definition of a static data member).
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
     !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      check_assertion(vp->is_template_static_data_member);
+      check_assertion(vp->is_template_variable);
       /* In this configuration a secondary source sequence entry was created
          for the static data member in the class (instance) definition, but
          none for the instantiated definition.  In such cases there is nothing

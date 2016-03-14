@@ -7178,7 +7178,7 @@ location is the insert_location2 value (after the assignment statement).
          template classes, too.  This routine is only called if the static
          data member has external linkage, in which case the guard variable
          must have external linkage too. */
-      || guarded_var->is_template_static_data_member
+      || guarded_var->is_template_variable
 #endif /* IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
                                                                          ) {
     /* The current routine is extern inline, so the guard variable has to
@@ -16969,7 +16969,7 @@ enough to cause the back end to invoke the routine at initialization.
         /* Don't lower prototype instantiations of static data members. */
         continue;
       }  /* if */
-      if (var->is_template_static_data_member) {
+      if (var->is_template_variable) {
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
         /* This is the initialization of a static data member in a template.
            Add guard code around the initialization if necessary. */

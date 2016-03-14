@@ -14439,7 +14439,7 @@ be returned for a C mode const variable.
     /* In some modes, in-class initializers for static data members are not
        scanned immediately. */
     if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
-        var->is_template_static_data_member &&
+        var->is_template_variable &&
         !var->is_prototype_instantiation) {
       ensure_inclass_static_member_constant_initializer_is_scanned(var);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14463,7 +14463,7 @@ be returned for a C mode const variable.
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = init->constant;
   } else if (microsoft_bugs && var->source_corresp.is_class_member &&
-             !var->is_member_constant && var->is_template_static_data_member &&
+             !var->is_member_constant && var->is_template_variable &&
              !(cpp11_mode && !implicit_microsoft_cpp11_mode)) {
     /* The variable is a static data member but it's not initialized within
        the class (it might be initialized outside the class).  Core issue 721
@@ -14474,12 +14474,13 @@ be returned for a C mode const variable.
   } else if ((!C_mode() || allow_C_mode_const_var) &&
               is_potentially_constant_valued_variable(var)) {
     if (var->source_corresp.is_class_member &&
-        var->is_template_static_data_member &&
+        var->is_template_variable &&
         !var->is_member_constant &&
         !parent_class_of(var)->variant.class_struct_union.is_nonreal_class) {
-      /* Instantiate a template static data member to get its out-of-class
-         definition (but don't force a definition in the object file). */
-      complete_template_static_data_member_type_is_needed(var);
+      /* Instantiate a variable template instance or template static data
+         member to get its definition (but don't force a definition in the
+         object file). */
+      complete_template_variable_type_is_needed(var);
     }  /* if */
     /* initk_function_local initialization can come up with local static
        variables when recording a constant expression (the expression is

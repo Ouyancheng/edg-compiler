@@ -695,6 +695,7 @@ typedef enum /*an_il_entry_kind*/ {
 #if COROUTINES_ALLOWED
   iek_coroutine_descr,	/* a_coroutine_descr */
 #endif /* COROUTINES_ALLOWED */
+  iek_variable_template_info,
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -859,6 +860,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if COROUTINES_ALLOWED
 /* iek_coroutine_descr */		"coroutine-descr",
 #endif /* COROUTINES_ALLOWED */
+/* iek_variable_template_info */        "variable-template-info",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -9549,6 +9551,39 @@ typedef struct a_vla_dimension {
 } a_vla_dimension;
 
 
+/*
+Entry containing additional information about variables that are
+template-based (variable template instances and static data members of
+class templates).
+*/
+typedef struct a_variable_template_info *a_variable_template_info_ptr;
+typedef struct a_variable_template_info {
+  a_template_arg_ptr
+		template_arg_list;
+			/* For variables that are instantiations of a variable
+			   template, a list of entries describing the "actual
+			   arguments" on which the instantiation is based.
+			   If the variable is an instantiation of a partial
+			   specialization, this argument list corresponds with
+			   the template parameter list of the primary template.
+			   This is NULL for static data members of class
+			   templates. */
+  a_template_arg_ptr
+		partial_spec_template_arg_list;
+			/* For variables that are instantiations of partial
+			   specializations of a variable template, a list of
+			   entries describing the arguments on which the
+			   instantiation is based, with respect to the
+			   template parameter list of the partial
+			   specialization.  This is NULL for for variables
+			   generated from the primary template, and for
+			   static data members of class templates. */
+  a_template_ptr
+		assoc_template;
+			/* The template on which the variable is based. */
+} a_variable_template_info;
+
+
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
   /* The source_corresp field must be first. */
@@ -9723,8 +9758,9 @@ typedef struct a_variable {
 			   containing that try block.  This flag enables a
 			   back end to treat such variables as requiring
 			   immediate store after a modification.  C++ only. */
-  a_bit_field	is_template_static_data_member:1;
-			/* TRUE if this is a static data member that is a
+  a_bit_field	is_template_variable:1;
+			/* TRUE if this is an instance of a variable
+			   template or a static data member that is a
 			   member of a class generated from a template,
 			   including both the case where the static data member
 			   is generated from the template and the case where a
@@ -9734,11 +9770,11 @@ typedef struct a_variable {
 			   is a specialization of a template class. */
   a_bit_field	is_prototype_instantiation:1;
 			/* TRUE if this variable represents the prototype
-			   instantiation of a static data member of
-			   a class template.  Also TRUE for a variable declared
-			   during the prototype instantiation of a function
-			   template, unless that variable has linkage and a
-			   a nondependent type. */
+			   instantiation of a variable template or a static
+			   data member of a class template.  Also TRUE for a
+			   variable declared during the prototype
+			   instantiation of a function template, unless that
+			   variable has linkage and a nondependent type. */
   a_bit_field	is_specialized:1;
 			/* TRUE when is_template_static_data_member is TRUE
 			   but the definition is supplied independently of
@@ -9766,40 +9802,39 @@ typedef struct a_variable {
 			   a do_not_instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
-			/* TRUE if this is a template static data member
-			   that could be instantiated by this compilation.
-			   FALSE if is_template_static_data_member is FALSE.
-			   This flag is provided in the IL so that a
-			   back end can pass the information along to
-			   a link-time automatic instantiation mechanism.
-			   The flag is only set very late in the compilation
-			   process and should not be relied upon for any
-			   other purpose. */
+			/* TRUE if this is a variable template instance or
+			   template static data member that could be
+			   instantiated by this compilation.  FALSE if
+			   is_template_variable is FALSE.  This flag is
+			   provided in the IL so that a back end can pass the
+			   information along to a link-time automatic
+			   instantiation mechanism.  The flag is only set
+			   very late in the compilation process and should
+			   not be relied upon for any other purpose. */
   a_bit_field	do_not_instantiate:1;
-			/* TRUE if a do_not_instantiate pragma was present
-			   for this template static data member.
-			   FALSE if is_template_static_data_member is FALSE.
-			   This flag is provided in the IL so that a
-			   back end can pass the information along to
-			   a link-time automatic instantiation mechanism.
-			   The flag is only set very late in the compilation
-			   process and should not be relied upon for any
-			   other purpose. */
+			/* TRUE if a do_not_instantiate pragma or "extern
+			   template" directive was present for this variable
+			   template instance or template static data member.
+			   FALSE if is_template_variable is FALSE.  This flag
+			   is provided in the IL so that a back end can pass
+			   the information along to a link-time automatic
+			   instantiation mechanism.  The flag is only set very
+			   late in the compilation process and should not be
+			   relied upon for any other purpose. */
   a_bit_field	instance_required:1;
-			/* TRUE for a static data member of a
-			   template class for which a definition (either
-			   template generated or a specific definition)
-			   must be supplied in this compilation unit or in
-			   another compilation unit with which this unit
-			   will be linked.  Implies that the static data
-			   member is referenced in this compilation.
-			   FALSE if is_template_static_data_member is FALSE.
-			   This flag is provided in the IL so that a
-			   back end can pass the information along to
-			   a link-time automatic instantiation mechanism.
-			   The flag is only set very late in the compilation
-			   process and should not be relied upon for any
-			   other purpose. */
+			/* TRUE for a variable template instance or static
+			   data member of a template class for which a
+			   definition (either template generated or a specific
+			   definition) must be supplied in this compilation
+			   unit or in another compilation unit with which this
+			   unit will be linked.  Implies that the static data
+			   member is referenced in this compilation.  FALSE if
+			   is_template_variable is FALSE.  This flag is
+			   provided in the IL so that a back end can pass the
+			   information along to a link-time automatic
+			   instantiation mechanism.  The flag is only set very
+			   late in the compilation process and should not be
+			   relied upon for any other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   a_bit_field	param_value_has_been_changed:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
@@ -10028,11 +10063,11 @@ typedef struct a_variable {
 			   or property (only non-NULL for static C++/CLI events
 			   and properties). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_template_ptr
-		assoc_template;
-			/* For instantiated entities, this points to the
-			   the template from which they were generated;
-			   otherwise, this is NULL. */
+  a_variable_template_info_ptr
+		template_info;
+			/* For instances of variable templates and static
+			   data members of class templates, this points to
+			   additional information.  NULL otherwise. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_const_char	*section;
 			/* If non-NULL, the GNU "section" or Microsoft "segment
@@ -17647,11 +17682,12 @@ The kind of template that is recorded in the IL template representation
 enum a_template_kind_tag {
   templk_none,		/* Undefined. */
   templk_class,		/* Class template. */
-  templk_function,	/* (Non-member) function template. */
+  templk_function,	/* Function template. */
+  templk_variable,	/* Variable template. */
   templk_member_function,
-			/* Member function template. */
+			/* Member function of class template. */
   templk_static_data_member,
-			/* Static data member template. */
+			/* Static data member of class template. */
   templk_member_class,
 			/* A class nested within a class template. */
   templk_member_enum,
@@ -17780,11 +17816,12 @@ typedef struct a_template {
 			/* A pointer to the prototype instantiation of the
 			   class, member class template, or member enum
 			   template. */
-    /* When kind == templk_static_data_member: */
+    /* When kind == templk_static_data_member or templk_variable: */
     a_variable_ptr
 		variable;
 			/* A pointer to the prototype instantiation of the
-			   static data member definition of a class template */
+			   static data member definition of a class template
+			   or a variable template. */
   } prototype_instantiation;
   a_template_ptr
 		canonical_template;
@@ -19557,6 +19594,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if COROUTINES_ALLOWED
   sizeof(a_coroutine_descr),
 #endif /* COROUTINES_ALLOWED */
+  sizeof(a_variable_template_info),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

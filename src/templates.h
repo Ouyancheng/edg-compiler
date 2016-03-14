@@ -134,6 +134,9 @@ typedef struct a_tmpl_decl_state {
   a_boolean	is_alias_redecl;
 			/* TRUE if this is a redeclaration of an alias
 			   template. */
+  a_boolean	is_var_templ_initial_decl;
+			/* TRUE if this is the initial declaration of
+			   a variable template. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -466,6 +469,10 @@ extern a_symbol_ptr find_class_template_instance(
                                               a_template_arg_ptr  *arg_list);
 #endif /* COROUTINES_ALLOWED */
 
+extern a_symbol_ptr find_template_variable(
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	*new_templ_arg_list);
+
 extern a_namespace_ptr determine_referencing_namespace(void);
 
 extern void set_template_arg_to_error(a_template_arg_ptr	tap);
@@ -686,7 +693,7 @@ extern void find_enum_member(a_symbol_ptr		alias_sym,
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern
-void complete_template_static_data_member_type_is_needed(a_variable_ptr vp);
+void complete_template_variable_type_is_needed(a_variable_ptr vp);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
@@ -858,6 +865,8 @@ extern void set_master_instance_for_new_canonical_variable(
 					a_variable_ptr	secondary_variable);
 
 extern void set_master_instance_information(void);
+
+extern a_template_instance_ptr template_instance_for_symbol(a_symbol_ptr sym);
 
 extern void additional_instantiation_wrapup_processing_needed(void);
 

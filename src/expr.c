@@ -6710,10 +6710,13 @@ to the given locator.
   a_boolean            copy_error = FALSE;
 
   check_assertion(sym != NULL);
-  if (sym->kind == (a_symbol_kind)sk_function_template) {
+  if (symbol_is(sym, sk_function_template)) {
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
                                      function.decl_cache.decl_info->parameters;
-  } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+  } else if (symbol_is(sym, sk_variable_template)) {
+    rescan_orig_templ_param_list = sym->variant.template_info->variant.
+                                     variable.decl_cache.decl_info->parameters;
+  } else if (symbol_is(sym, sk_class_template)) {
     if (!sym->variant.template_info->is_nonreal_member) {
       rescan_orig_templ_param_list = sym->variant.template_info->
                                                    cache.decl_info->parameters;

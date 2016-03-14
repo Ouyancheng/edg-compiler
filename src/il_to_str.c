@@ -4322,8 +4322,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* BACK_END_IS_C_GEN_BE */
     /* Do not insert code here. */
     if (msvc_is_generated_code_target &&
-        constant->variant.address.variant.variable->
-                                              is_template_static_data_member &&
+        constant->variant.address.variant.variable->is_template_variable &&
         constant->variant.address.offset == 0) {
       /* The Microsoft compiler cannot complete the type of a static data
          member of a template instance in cases like the following:

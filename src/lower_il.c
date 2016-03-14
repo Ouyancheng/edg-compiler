@@ -9578,6 +9578,13 @@ Do IL lowering of the indicated variable and everything under it.
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
+#if IA64_ABI
+    if (variable->is_template_variable &&
+        variable->storage_class == (a_storage_class)sc_unspecified) {
+      /* Ensure that a variable template is put into its own COMDAT group. */
+      put_variable_into_comdat_group(variable);
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
 }  /* lower_variable */
 
@@ -18829,7 +18836,7 @@ Promote the static variables on the variables list of the indicated scope
 #endif /* DEBUG */
     add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
 #if IA64_ABI
-    if (variable->is_template_static_data_member && 
+    if (variable->is_template_variable && 
         variable->storage_class == (a_storage_class)sc_unspecified) {
       put_variable_into_comdat_group(variable);
     }  /* if */

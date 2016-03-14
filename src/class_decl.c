@@ -3586,7 +3586,7 @@ constant-expression.
 
   check_assertion(symbol_is(var_sym, sk_static_data_member));
   if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
-      var->is_template_static_data_member) {
+      var->is_template_variable) {
     /* For GNU static data members, we record a cache in the static data
        member supplement. */
     a_static_data_member_supplement_ptr
@@ -16230,27 +16230,30 @@ specific information about the member declaration, respectively.
         /* A member of a prototype instantiation. */
         a_template_ptr		 templ;
         a_template_instance_ptr  tip = alloc_template_instance();
+        a_template_symbol_supplement_ptr tssp;
         sym->variant.static_data_member.instance_ptr = tip;
         tip->instance_sym = sym;
         tip->template_sym = sym;
-        tip->template_info = alloc_template_symbol_supplement(
-                                       (a_symbol_kind)sk_static_data_member);
+        tssp = alloc_template_symbol_supplement(sym->kind);
+        tip->template_info = tssp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         tip->template_info->is_generic =
                   class_type->variant.class_struct_union.is_generic_instance;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         tip->template_info->token_sequence_number = curr_token_sequence_number;
-        var->is_template_static_data_member = TRUE;
+        var->is_template_variable = TRUE;
         var->is_prototype_instantiation = TRUE;
+        var->template_info = alloc_variable_template_info();
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
-        var->assoc_template = templ = alloc_template();
+        var->template_info->assoc_template = templ = alloc_template();
         templ->kind = (a_template_kind)templk_static_data_member;
         set_source_corresp(&templ->source_corresp, sym);
         templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
         set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
                               class_type);
+        tssp->variant.variable.prototype_variable = var;
         templ->source_corresp.access = var->source_corresp.access;
         /* Update the IL template pointer in the template symbol supplement. */
         tip->template_info->il_template_entry = templ;

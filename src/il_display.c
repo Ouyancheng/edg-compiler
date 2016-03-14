@@ -2613,6 +2613,24 @@ Display an ELF_visibility field.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                 
+static void disp_variable_template_info(a_variable_template_info_ptr ptr)
+/*
+Display the indicated variable template information entry.
+*/
+{
+  if (ptr->template_arg_list != NULL) {
+    disp_template_arg_list("template_arg_list", ptr->template_arg_list);
+  }  /* if */
+  if (ptr->partial_spec_template_arg_list != NULL) {
+    disp_template_arg_list("partial_spec_template_arg_list",
+                           ptr->partial_spec_template_arg_list);
+  }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
+  }  /* if */
+}  /* disp_variable_template_info */
+
+
 static void disp_variable(a_variable_ptr ptr)
 /*
 Display the indicated variable.
@@ -2767,8 +2785,9 @@ Display the indicated variable.
   disp_ptr("property_or_event_descr", (char*)ptr->property_or_event_descr,
            iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (ptr->assoc_template != NULL) {
-    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
+  if (ptr->template_info != NULL) {
+    disp_ptr("template_info", (char*)ptr->template_info,
+             iek_variable_template_info);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->section != NULL) {
@@ -2812,8 +2831,8 @@ Display the indicated variable.
   if (ptr->modified_within_try_block) {
     disp_boolean("modified_within_try_block", TRUE);
   }  /* if */
-  if (ptr->is_template_static_data_member) {
-    disp_boolean("is_template_static_data_member", TRUE);
+  if (ptr->is_template_variable) {
+    disp_boolean("is_template_variable", TRUE);
   }  /* if */
   if (ptr->is_prototype_instantiation) {
     disp_boolean("is_prototype_instantiation", TRUE);
@@ -7269,6 +7288,9 @@ This routine is called during IL walking.
           break;
         case iek_variable:
           disp_variable((a_variable_ptr)entry_ptr);
+          break;
+        case iek_variable_template_info:
+          disp_variable_template_info((a_variable_template_info_ptr)entry_ptr);
           break;
         case iek_routine:
           disp_routine((a_routine_ptr)entry_ptr);

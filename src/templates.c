@@ -458,6 +458,8 @@ static a_boolean
 #endif /* CHECKING */
 
 /* Forward declarations. */
+static void find_or_create_master_instance(a_template_instance_ptr	tip);
+
 static void update_instantiation_required_flag(
 			a_template_instance_ptr			tip,
 			a_boolean				value,
@@ -507,6 +509,7 @@ Initialize a template declaration state block.
   tdsp->generic_constraints_pending = FALSE;
   tdsp->friend_depth_known = FALSE;
   tdsp->is_alias_redecl = FALSE;
+  tdsp->is_var_templ_initial_decl = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -1112,7 +1115,7 @@ have already existed.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-static a_template_instance_ptr template_instance_for_symbol(a_symbol_ptr sym)
+a_template_instance_ptr template_instance_for_symbol(a_symbol_ptr sym)
 /*
 If "sym" is an entity with an associated template instance, return the
 template instance pointer.  Otherwise, return NULL.
@@ -1122,8 +1125,10 @@ template instance pointer.  Otherwise, return NULL.
 
   if (is_function_symbol(sym)) {
     tip = sym->variant.routine.instance_ptr;
-  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+  } else if (symbol_is(sym, sk_static_data_member)) {
     tip = sym->variant.static_data_member.instance_ptr;
+  } else if (symbol_is(sym, sk_variable)) {
+    tip = sym->variant.variable.instance_ptr;
   }  /* if */
   return tip;
 }  /* template_instance_for_symbol */
@@ -3385,6 +3390,8 @@ enclosing template.
     a_template_instance_ptr	tip;
     if (is_function_symbol(instance_sym)) {
       tip = instance_sym->variant.routine.instance_ptr;
+    } else if (symbol_is(instance_sym, sk_variable)) {
+      tip = instance_sym->variant.variable.instance_ptr;
     } else {
       check_assertion(instance_sym->kind ==
                                         (a_symbol_kind)sk_static_data_member);
@@ -5130,13 +5137,13 @@ user later during real instantiations.
 }  /* default_arg_prototype_instantiation */
 
 
-static void static_data_member_prototype_instantiation(
+static void variable_template_prototype_instantiation(
                                           a_tmpl_decl_state_ptr  decl_state,
                                           a_symbol_ptr           template_sym)
 /*
-This routine is called to do a "prototype instantiation" of a template
-static data member.  The template is identified by *template_sym and
-further described by *decl_state.
+This routine is called to do a "prototype instantiation" of a variable
+template or static data member of a class template.  The template is
+identified by template_sym and further described by decl_state.
 
 This is done to detect those errors that can be diagnosed at template
 definition time and to record information about nondependent calls for
@@ -5150,9 +5157,15 @@ user later during real instantiations.
   a_boolean			    instantiation_scope_needed;
   a_boolean			    scope_pushed = FALSE;
   a_decl_parse_state                *dps = &decl_state->decl_parse;
+  a_boolean                         is_variable_template;
+  a_symbol_ptr                      proto_sym;
 
-  db_enter(3, "static_data_member_prototype_instantiation");
-  var_ptr = template_sym->variant.static_data_member.variable;
+  is_variable_template = symbol_is(template_sym, sk_variable_template);
+  tssp = template_supplement_for_symbol(template_sym);
+  var_ptr = tssp->variant.variable.prototype_variable;
+  proto_sym = symbol_for(var_ptr);
+  check_assertion(proto_sym != NULL);
+  decl_state->decl_parse.sym = proto_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   var_ptr->declared_type = dps->declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5161,14 +5174,14 @@ user later during real instantiations.
   var_ptr->storage_class = (a_storage_class)sc_unspecified;
   var_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
-  var_ptr->is_template_static_data_member = TRUE;
-  /* Set the referencing namespace for the prototype instantiation. */
-  tip = template_sym->variant.static_data_member.instance_ptr;
-  check_assertion(tip != NULL);
-  tip->referencing_namespace = parent_namespace_for_symbol(template_sym);
-  tssp = template_sym->variant.static_data_member.instance_ptr->template_info;
-  /* If the type of the static data member is a template class, make sure
-     it is instantiated. */
+  var_ptr->is_template_variable = TRUE;
+  if (!is_variable_template) {
+    /* Set the referencing namespace for the prototype instantiation. */
+    tip = template_sym->variant.static_data_member.instance_ptr;
+    check_assertion(tip != NULL);
+    tip->referencing_namespace = parent_namespace_for_symbol(template_sym);
+  }  /* if */
+  /* If the variable type is a template class, make sure it is instantiated. */
   complete_type_is_needed(var_ptr->type);
   /* We don't need to push an instantiation scope if we are in the prototype
      instantiation of the enclosing class. */
@@ -5180,14 +5193,14 @@ user later during real instantiations.
        push_template_instantiation_scope. */
     tcp = cache_for_template(tssp);
     scope_pushed = push_template_instantiation_scope(
-                                      tcp->decl_info,
-                                      (a_type_ptr)NULL,
-                                      (a_routine_ptr)NULL,
-				      template_sym,
-                                      template_sym,
-                                      (a_template_arg_ptr)NULL,
-                                      /*push_lex_state=*/TRUE,
-                                      PS_PROTOTYPE_INSTANTIATION);
+                                    tcp->decl_info,
+                                    (a_type_ptr)NULL,
+                                    (a_routine_ptr)NULL,
+                                    proto_sym,
+                                    template_sym,
+                                    var_ptr->template_info->template_arg_list,
+                                    /*push_lex_state=*/TRUE,
+                                    PS_PROTOTYPE_INSTANTIATION);
   }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
@@ -5213,14 +5226,14 @@ user later during real instantiations.
        in the cache. */
     (void)get_token();
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
-    /* The static data is already initialized (presumably by an in-class
+    /* The variable is already initialized (possibly by an in-class
        initializer). */
   } else {
     a_boolean	def_init_okay;
     /* There's no explicit initializer.  See if the static data member
        can be default-initialized. */
-    def_init_okay = def_initializer(template_sym,
-                                    &template_sym->decl_position);
+    def_init_okay = def_initializer(proto_sym,
+                                    &proto_sym->decl_position);
     if (!def_init_okay) {
       /* It could not be default initialized.  See if an initializer is
          required. */
@@ -5233,8 +5246,7 @@ user later during real instantiations.
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
-  db_exit();
-}  /* static_data_member_prototype_instantiation */
+}  /* variable_template_prototype_instantiation */
 
 
 static void check_for_definition_in_friend_declaration(
@@ -5843,7 +5855,7 @@ in one-instantiation-per-object mode.
       is_primary_translation_unit &&
       variable->storage_class == (a_storage_class)sc_unspecified &&
       !is_member_of_unnamed_namespace(&variable->source_corresp) &&
-      variable->is_template_static_data_member &&
+      variable->is_template_variable &&
       !variable->is_specialized) {
     check_assertion(!in_secondary_trans_unit(variable));
     /* Get a "needed bit number" for the variable if it doesn't have one
@@ -5863,73 +5875,68 @@ static a_boolean is_template_param_from_list(
 		        a_template_param_coordinate_ptr	coordinates,
 			a_template_param_ptr		templ_param_list);
 
-static void rescan_static_data_member_declaration(
+static void scan_template_variable_declaration(
 				a_template_instance_ptr			tip,
 				a_symbol_ptr				sym,
-				a_template_symbol_supplement_ptr	tssp);
+				a_template_symbol_supplement_ptr	tssp,
+				a_decl_parse_state_ptr			dps);
 
 
-static void define_template_static_data_member(a_template_instance_ptr  tip)
+static void instantiate_template_variable(a_template_instance_ptr  tip)
 /*
-Generate a definition of a static data member of a template class.  The
-definition may be based on a template definition of the static data
-member or may be a default initialization.  Checking for runaway
-instantiation is not necessary for static data members because 
-static data members are instantiated as result of class instantiations --
-and the class instantiation will detect the runaway case.
+Generate a definition of an instance of a variable template or a static
+data member of a class template.  The definition may be based on a
+the template definition or may be a default initialization.
 */
 {
-  a_symbol_ptr                      static_data_member_sym;
-  a_template_symbol_supplement_ptr  tssp;
-  a_variable_ptr		    var_ptr;
+  a_symbol_ptr				var_sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_variable_ptr			var_ptr;
+  a_decl_parse_state			dps;
+  a_symbol_ptr				template_sym;
+  a_boolean				is_var_templ_instance;
+  a_variable_ptr			proto_var;
 
-  db_enter(3, "define_template_static_data_member");
-  tssp = tip->template_sym->
-                 variant.static_data_member.instance_ptr->template_info;
-  static_data_member_sym = tip->instance_sym;
+  template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  var_sym = tip->instance_sym;
+  is_var_templ_instance = symbol_is(var_sym, sk_variable);
+  proto_var = tssp->variant.variable.prototype_variable;
 #if CHECKING
   if (!tip->template_sym->defined ||
       tssp->cache.decl_info->parameters == NULL) {
-    internal_error("define_template_static_data_member: undef'd template");
-  } else if (static_data_member_sym->defined) {
-    internal_error("define_template_static_data_member: sym already def'd");
+    internal_error("instantiate_template_variable: undef'd template");
+  } else if (var_sym->defined) {
+    internal_error("instantiate_template_variable: sym already def'd");
   }  /* if */
 #endif /* CHECKING */
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
-     attempting to instantiate this static data member again. */
+     attempting to instantiate this variable again. */
+  find_or_create_master_instance(tip);
   master_instance_of(tip)->already_instantiated = TRUE;
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
-       of the same static data member.  When the number of such instantiations
+       of the same variable.  When the number of such instantiations
        exceeds a specified limit, we assume this to be a runaway recursion. */
-    sym_error(ec_runaway_recursive_instantiation, static_data_member_sym);
+    sym_error(ec_runaway_recursive_instantiation, var_sym);
     goto done;
   }  /* if */
-  /* If the type of the static data member is a template class, make sure
-     it is instantiated. */
-  var_ptr = tip->instance_sym->variant.static_data_member.variable;
-  if (var_ptr->initializer_in_class &&
-      gpp_mode && gnu_version >= 40100 && !clang_mode) {
-    /* In GNU C++ mode, in-class initializers are instantiated only when
-       needed.  Since we're about to instantiate the definition, ensure it
-       will have an associated initializer. */
-    ensure_inclass_static_member_constant_initializer_is_scanned(var_ptr);
-  }  /* if */
-  complete_type_is_needed(var_ptr->type);
+  var_ptr = variable_for_symbol(var_sym);
   if (instantiation_mode == tim_local) {
-    /* In -tlocal mode, put out the static data member with internal
-       linkage. */
+    /* In -tlocal mode, put out the variable with internal linkage. */
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   } else {
-    /* In other modes, the static data member should have external linkage.
-       Change it storage class from sc_extern to sc_unspecified. */
+    /* In other modes, the variable should have external linkage.
+       Change it storage class from sc_extern to sc_unspecified.  For
+       variable template instances, this may be updated later if the
+       variable template has some other storage class. */
     check_assertion_str(var_ptr->storage_class == (a_storage_class)sc_extern,
-                        "define_template_static_data_member: bad linkage");
+                        "instantiate_template_variable: bad linkage");
     check_assertion_str2(var_ptr->source_corresp.name_linkage ==
                                   (a_name_linkage_kind)nlk_cplusplus_external,
-                         "define_template_static_data_member:",
+                         "instantiate_template_variable:",
                          "bad name linkage");
     var_ptr->storage_class = (a_storage_class)sc_unspecified;
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -5942,19 +5949,30 @@ and the class instantiation will detect the runaway case.
      class that is reactivated by push_template_instantiation_scope.
      Class reactivations are ignored for the initial portion of the
      static data member rescan.  They are considered once the declarator
-     portion of the declaration is reached. */
-  (void)push_template_instantiation_scope(tssp->cache.decl_info,
-                                          (a_type_ptr)NULL,
-                                          (a_routine_ptr)NULL,
-                                          static_data_member_sym,
-                                          tip->template_sym,
-                                          (a_template_arg_ptr)NULL,
-                                          /*push_lex_state=*/TRUE,
-                                          PS_IGNORE_CLASS_CONTEXT);
-  /* Rescan the declaration of the static data member.  This should result
-     in the same type as the declaration in the class, except in the case
-     where the class declared an incomplete array type. */
-  rescan_static_data_member_declaration(tip, static_data_member_sym, tssp);
+     portion of the declaration is reached.  For variable template
+     instances the template_arg_list of the variable will be non-NULL. */
+  (void)push_template_instantiation_scope(
+                                   tssp->cache.decl_info,
+                                   (a_type_ptr)NULL,
+                                   (a_routine_ptr)NULL,
+                                   var_sym,
+                                   tip->template_sym,
+                                   var_ptr->template_info->template_arg_list,
+                                   /*push_lex_state=*/TRUE,
+                                   PS_IGNORE_CLASS_CONTEXT);
+  /* Scan or rescan the declaration of the variable template or static
+     data member. */
+  scan_template_variable_declaration(tip, var_sym, tssp, &dps);
+  if (var_ptr->initializer_in_class &&
+      gpp_mode && gnu_version >= 40100 && !clang_mode) {
+    /* FIXME: is this correct for variable templates? */
+    /* In GNU C++ mode, in-class initializers are instantiated only when
+       needed.  Since we're about to instantiate the definition, ensure it
+       will have an associated initializer. */
+    ensure_inclass_static_member_constant_initializer_is_scanned(var_ptr);
+  }  /* if */
+  /* If the variable type is a template class, make sure it is instantiated. */
+  complete_type_is_needed(var_ptr->type);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -5963,7 +5981,7 @@ and the class instantiation will detect the runaway case.
      is pushed -- correct behavior for source sequence entry generation
      depends on it. */
   record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
-                            static_data_member_sym,
+                            var_sym,
                             &tip->template_sym->decl_position,
                             (a_source_sequence_entry_ptr)NULL);
   if (tssp->cache.tokens.first_token != NULL) {
@@ -5986,7 +6004,7 @@ and the class instantiation will detect the runaway case.
       dps.has_direct_initializer = has_parenthesized_initializer;
       (void)get_token();
     }  /* if */
-    dps.sym = static_data_member_sym;
+    dps.sym = var_sym;
     initializer(&dps, &tip->template_sym->decl_position, idl_external,
                 has_parenthesized_initializer, &incomplete_type_error_reported,
                 (a_decl_pos_block_ptr)NULL);
@@ -5998,41 +6016,45 @@ and the class instantiation will detect the runaway case.
        in the cache. */
     (void)get_token();
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
-    /* The static data is already initialized (presumably by an in-class
+    /* The variable is already initialized (possibly by an in-class
        initializer). */
   } else {
     a_boolean	def_init_okay;
-    /* There's no explicit initializer.  See if the static data member
-       can be default-initialized. */
-    def_init_okay = def_initializer(static_data_member_sym,
+    /* There's no explicit initializer.  See if the variable can be
+       default-initialized. */
+    def_init_okay = def_initializer(var_sym,
                                     &tip->template_sym->decl_position);
     if (!def_init_okay) {
       /* It could not be default initialized.  See if an initializer is
          required. */
-      check_for_missing_initializer(static_data_member_sym, var_ptr->type);
+      check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
-  process_curr_construct_pragmas(static_data_member_sym,
+  process_curr_construct_pragmas(var_sym,
                                  (a_statement_ptr)NULL);
   pop_template_instantiation_scope();
   --(tssp->pending_instantiations);
-  /* Usually template static data members are instantiated "on demand" and
+  /* Usually template variable are instantiated "on demand" and
      so the referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
      a reference, we should set the referenced flag anyway, so that
      the back-end will be sure to generate the function. */ 
   var_ptr->source_corresp.referenced = TRUE;
-  var_ptr->is_template_static_data_member = TRUE;
+  var_ptr->is_template_variable = TRUE;
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
-  var_ptr->assoc_template = tssp->il_template_entry;
+  /* FIXME: should something be done for variable template instances? */
+  var_ptr->template_info->assoc_template = tssp->il_template_entry;
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
+  if (is_var_templ_instance) {
+    add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
+  }  /* if */
 done:
-  db_exit();
-}  /* define_template_static_data_member */
+  return;
+}  /* instantiate_template_variable */
 
 
 a_boolean equiv_templates_given_supplement(
@@ -8672,6 +8694,110 @@ tak_start_of_pack_expansion delimiter entries).
 }  /* find_class_template_instance */
 
 #endif /* COROUTINES_ALLOWED */
+
+static a_symbol_ptr make_template_variable(
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	templ_arg_list)
+/*
+Given the variable template symbol template_sym and templ_arg_list,
+create a new variable template instance entry.  Return a pointer to the new
+instance symbol.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_variable_ptr			var;
+  a_variable_template_info_ptr		vtip;
+  a_symbol_ptr				new_sym;
+  a_template_instance_ptr		tip;
+
+  check_assertion(symbol_is(template_sym, sk_variable_template));
+  tssp = template_sym->variant.template_info;
+  /* Create the symbol for the prototype instantiation. */
+  new_sym = make_template_variable_symbol(template_sym);
+  var = alloc_variable((a_storage_class)sc_extern);
+  var->is_template_variable = TRUE;
+  var->template_info = alloc_variable_template_info();
+  var->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  vtip = var->template_info;
+  new_sym->variant.variable.ptr = var;
+  vtip->assoc_template = tssp->il_template_entry;
+  var->source_corresp.access = access_for_symbol(template_sym);
+  set_source_corresp(&(var->source_corresp), new_sym);
+  set_membership_in_source_corresp(&(var->source_corresp),
+                                   new_sym);
+  tip = alloc_template_instance();
+  tip->template_sym = template_sym;
+  tip->instance_sym = new_sym;
+  new_sym->variant.variable.instance_ptr = tip;
+  vtip->template_arg_list = templ_arg_list;
+  var->template_info->assoc_template = tssp->il_template_entry;
+  return new_sym;
+}  /* make_template_variable */
+
+
+a_symbol_ptr find_template_variable(
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	*new_templ_arg_list)
+/*
+Given a variable template symbol (template_sym) and a template argument
+list (*new_templ_arg_list), look for an existing variable template
+instance, or create a new instance if none is found.  Return the symbol
+for the instance.
+
+If a new template instance is created, the template argument list is
+attached to that new instance.  If an existing instance is found, the
+template argument list passed by the caller is discarded.  In either case,
+the pointer provided by the caller is set to NULL to prevent subsequent
+use of the argument list in case it has been freed.
+*/
+{
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_instance_ptr		tip = NULL;
+  a_template_arg_ptr			tap = *new_templ_arg_list;
+
+  check_assertion(symbol_is(template_sym, sk_variable_template));
+  template_sym = fundamental_symbol_of(template_sym);
+  tssp = template_sym->variant.template_info;
+  { a_symbol_ptr	*hash_table_sym = NULL;
+    /* Look for a previously created instantiation. */
+    hash_table_sym = find_instantiation(template_sym, tssp, tap,
+                                        /*create=*/FALSE);
+    /* hash_table_sym will be NULL if no entry is found, otherwise it will
+       point to the symbol in the hash table. */
+    sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+  }
+  if (sym != NULL) {
+    tip = template_instance_for_symbol(sym);
+  }  /* if */
+  if (tip == NULL) {
+    /* No match was found, so create a new template variable.  That means
+       create a symbol entry, a variable entry, and a template instance
+       entry, and linking all these appropriately. */
+    sym = make_template_variable(template_sym, tap);
+    tip = sym->variant.variable.instance_ptr;
+    /* Instantiate the type and initializer of the variable. */
+    instantiate_template_variable(tip);
+    set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+#if DEBUG
+    if (db_flag_is_set("instantiations")) {
+      db_symbol(sym, "created: ", 2);
+      db_symbol(template_sym, "template: ", 2);
+    }  /* if */
+#endif /* DEBUG */
+  } else {
+    /* We are reusing a template function that already exists, so
+       *new_templ_arg_list will not be used. */
+    free_template_arg_list(*new_templ_arg_list);
+    sym = tip->instance_sym;
+  }  /* if */
+  /* The list is cleared in all cases.  The caller cannot use the list
+     after we return because it may have been freed. */
+  *new_templ_arg_list = NULL;
+  return sym;
+}  /* find_template_variable */
+
 
 static a_boolean tentatively_matching_template_param_lists(
 			a_template_param_ptr	list1,
@@ -14038,36 +14164,50 @@ information.
 }  /* scan_template_declaration */
 
 
-static void rescan_static_data_member_declaration(
+static void scan_template_variable_declaration(
 				a_template_instance_ptr			tip,
 				a_symbol_ptr				sym,
-				a_template_symbol_supplement_ptr	tssp)
+				a_template_symbol_supplement_ptr	tssp,
+				a_decl_parse_state_ptr			dps)
 /*
-Rescan the declaration of the static data member.  This should result
-in the same type as the declaration in the class, except in the case
-where the class declared an incomplete array type.
+Scan the declaration of a variable template instance, or rescan the
+declaration of a template static data member.  For static data members
+this should result in the same type as the declaration in the class,
+except in the case where the class declared an incomplete array type.
+dps is a decl_parse_state provided by the caller.  It is initialized
+by this routine.
 */
 {
   a_func_info_block		func_info;
   a_symbol_locator		locator;
   a_decl_pos_block		decl_pos_block;
-  a_decl_parse_state		state;
+  a_variable_ptr		var;
 
   clear_func_info(&func_info);
   clear_decl_pos_block(&decl_pos_block);
-  init_decl_parse_state(&state);
-  state.trailing_return_type_allowed = trailing_return_types_enabled;
-  state.is_definition = TRUE;
-  state.sym = sym;
-  rescan_reusable_cache(&tssp->variant.static_data_member.decl_cache.tokens);
-  scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
+  init_decl_parse_state(dps);
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
+  dps->is_definition = TRUE;
+  dps->sym = sym;
+  rescan_reusable_cache(&tssp->variant.variable.decl_cache.tokens);
+  scan_template_declaration(dps, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
                             /*decl_scope_err=*/FALSE,
                             /*is_specialization=*/FALSE, &locator, &func_info,
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
-  (void)reconcile_static_data_member_types(sym, state.type,
-                                           &locator.source_position);
-  attach_decl_attributes(&state, /*primary_decl=*/TRUE);
+  var = variable_for_symbol(sym);
+  if (symbol_is(sym, sk_variable)) {
+    /* FIXME: check after decl_variable refactoring. */
+    var->storage_class = dps->storage_class;
+  }  /* if */
+  if (var->type == NULL) {
+    var->type = dps->type;
+  } else {
+    /* FIXME: Is this right for variable templates? */
+    (void)reconcile_static_data_member_types(sym, dps->type,
+                                             &locator.source_position);
+  }  /* if */
+  attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 }  /* rescan_static_data_member_declaration */
 
 
@@ -14103,7 +14243,8 @@ instantiations from the IL.
     if (mip->already_instantiated &&
         !mip->automatically_instantiated &&
         !tip->explicit_instantiation) {
-      if (symbol_is(instance_sym, sk_static_data_member) &&
+      if ((symbol_is(instance_sym, sk_static_data_member) ||
+           symbol_is(instance_sym, sk_variable)) &&
           (mip->instance_required_count == 0 ||
            instantiation_mode != tim_used ||
            tip->explicit_do_not_instantiate)) {
@@ -15801,15 +15942,16 @@ Also, add the instance to the definitions list for the template.
     /* Link the new entry to the start of the definition list of the static
        data member template. */
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
-    tip->next = tssp->variant.static_data_member.definitions;
-    tssp->variant.static_data_member.definitions = tip;
+    tip->next = tssp->variant.variable.definitions;
+    tssp->variant.variable.definitions = tip;
     /* Mark the variable entry as an instance of a static data member
        template. */
-    vp->is_template_static_data_member = TRUE;
+    vp->is_template_variable = TRUE;
+    vp->template_info = alloc_variable_template_info();
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
-    vp->assoc_template =
-                     sym->variant.static_data_member.variable->assoc_template;
+    vp->template_info->assoc_template =
+       sym->variant.static_data_member.variable->template_info->assoc_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (vp->decl_modifiers & DM_DLLIMPORT) {
       /* A static data member declared with __declspec(dllimport) should not
@@ -18134,6 +18276,33 @@ because the extra parameter clause is not in fact ignored.
   return result;
 }  /* allow_extra_gpp_mode_param_clauses */
 
+static void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
+				       a_symbol_ptr		sym)
+/*
+Set the class or namespace membership of the template specified by sym.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_scope_stack_entry_ptr		ssep;
+
+  check_assertion(symbol_is(sym, sk_class_template) ||
+                  symbol_is(sym, sk_function_template) ||
+                  symbol_is(sym, sk_variable_template));
+  tssp = sym->variant.template_info;
+  ssep = &scope_stack[decl_state->effective_decl_level];
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             ssep->il_scope->variant.assoc_namespace);
+  } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         decl_state->class_declared_in);
+    if (symbol_is(sym, sk_class_template)) {
+      tssp->variant.class_template.access = decl_state->access;
+    }  /* if */
+  }  /* if */
+}  /* set_membership_of_template */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void check_for_use_of_pending_constraints(a_source_position_ptr	pos)
@@ -18427,15 +18596,7 @@ delegate.
   tssp->is_generic = TRUE;
   tssp->is_delegate = TRUE;
   ssep = &scope_stack[decl_state->effective_decl_level];
-  if (ssep->kind == (a_scope_kind)sck_namespace ||
-      ssep->kind == (a_scope_kind)sck_namespace_extension) {
-    set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             ssep->il_scope->variant.assoc_namespace);
-  } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    set_class_membership(sym, (a_source_correspondence *)NULL,
-                         decl_state->class_declared_in);
-    tssp->variant.class_template.access = decl_state->access; 
-  }  /* if */
+  set_membership_of_template(decl_state, sym);
   /* Save the IL template entry pointer for this symbol. */
   set_il_template_entry(decl_state, sym, tssp);
   /* Save the information needed to create an instantiation based
@@ -19349,8 +19510,6 @@ friend_template_checks_done:
                           decl_state->is_partial_specialization);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
-    a_scope_stack_entry_ptr	ssep =
-                                &scope_stack[decl_state->effective_decl_level];
     a_boolean			add_sym_to_symbol_table = FALSE;
     if (decl_state->is_partial_specialization &&
         partial_spec_nonreal_sym == NULL) {
@@ -19393,15 +19552,7 @@ friend_template_checks_done:
         sym->is_invisible = decl_state->is_template_friend;
       }  /* if */
       tssp = sym->variant.template_info;
-      if (ssep->kind == (a_scope_kind)sck_namespace ||
-          ssep->kind == (a_scope_kind)sck_namespace_extension) {
-        set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                 ssep->il_scope->variant.assoc_namespace);
-      } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-        set_class_membership(sym, (a_source_correspondence *)NULL,
-                             decl_state->class_declared_in);
-        tssp->variant.class_template.access = decl_state->access; 
-      }  /* if */
+      set_membership_of_template(decl_state, sym);
     }  /* if */
     /* Save the type kind on the initial declaration.  This may be modified
        later on a definition. */
@@ -21875,9 +22026,38 @@ set, and its source sequence entry, if any, has been put out.)
           /* An out-of-class static data member declaration is always a
              definition. */
           il_template_entry->canonical_template =
-                     sym->variant.static_data_member.variable->assoc_template;
+                        sym->variant.static_data_member.variable->
+                                                 template_info->assoc_template;
           il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
+          break;
+        case sk_variable_template:
+          {
+            a_variable_ptr	var;
+            il_template_entry->kind = (a_template_kind)templk_variable;
+            proto_sym = prototype_template_of(sym);
+            proto_tssp = template_supplement_for_symbol(proto_sym);
+            var = tssp->variant.variable.prototype_variable;
+            check_assertion(proto_tssp != NULL);
+            if (proto_tssp != tssp) {
+              /* This is an instance of a member template of a class template.
+                 Record a pointer to the template entry from the prototype
+                 instantiation of the enclosing class template. */
+              il_template_entry->prototype_template =
+                                                 proto_tssp->il_template_entry;
+            }  /* if */
+            if (prototype_instantiations_in_il) {
+              il_template_entry->prototype_instantiation.variable = var;
+            } else {
+              il_template_entry->prototype_instantiation.variable = NULL;
+            }  /* if */
+            il_template_entry->canonical_template =
+                                            var->template_info->assoc_template;
+            if (decl_state->defines_something) {
+              il_template_entry->canonical_template->definition_template =
+                                                            il_template_entry;
+            }  /* if */
+          }
           break;
         case sk_enum_tag:
           il_template_entry->kind = (a_template_kind)templk_member_enum;
@@ -22047,45 +22227,214 @@ it in the IL template entry.
 }  /* record_cache_checksum */
 
 
-static a_symbol_ptr template_static_data_member_declaration(
+static void create_prototype_variable(a_tmpl_decl_state_ptr	decl_state,
+				      a_symbol_ptr		template_sym)
+/*
+Create the variable entry variable template specified by template_sym.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_variable_ptr			var;
+  a_template_param_ptr			templ_param_list;
+  a_template_arg_ptr			templ_arg_list;
+  a_symbol_ptr				prototype_sym;
+  a_decl_parse_state			*dps = &decl_state->decl_parse;
+
+  check_assertion(symbol_is(template_sym, sk_variable_template));
+  tssp = template_sym->variant.template_info;
+  templ_param_list = decl_state->decl_info->parameters;
+  /* Create a template argument list that corresponds to the template
+     parameter list. */
+  templ_arg_list = create_prototype_arg_list(template_sym, templ_param_list);
+  prototype_sym = make_template_variable(template_sym, templ_arg_list);
+  var = prototype_sym->variant.variable.ptr;
+  tssp->variant.variable.prototype_variable = var;
+  var->is_prototype_instantiation = TRUE;
+  var->type = dps->type;
+  /* FIXME: check after decl_variable refactoring. */
+  var->storage_class = dps->storage_class;
+  if (prototype_instantiations_in_il || tssp->is_generic) {
+    if (decl_state->decl_scope_err) {
+      /* Don't add the type to the type list in error cases.  This is done
+         to prevent what might be an erroneous local type from being added
+         to a non-local list. */
+      check_assertion(total_errors != 0);
+    } else if (template_sym->is_class_member &&
+               sym_parent_class(template_sym)->variant.class_struct_union.
+                                             extra_info->assoc_scope == NULL) {
+      /* An error occurred earlier resulting in an invalid parent class
+         (one that is incomplete and not in the process of being defined). */
+      decl_state->decl_scope_err = TRUE;
+      check_assertion(total_errors != 0);
+    } else {
+      add_to_variables_list(var, NO_SCOPE_DEPTH);
+    }  /* if */
+  }  /* if */
+}  /* create_prototype_variable */
+
+
+static a_symbol_ptr create_variable_template_symbol(
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_symbol_locator                 *locator)
+/*
+Create the symbol entry, template symbol supplement, etc. for the
+variable template specified by locator.  Return the symbol.
+*/
+{
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  sym = enter_symbol((a_symbol_kind)sk_variable_template, locator,
+                     decl_state->effective_decl_level,
+                     /*suppress_error=*/FALSE);
+  set_membership_of_template(decl_state, sym);
+  tssp = sym->variant.template_info;
+  set_il_template_entry(decl_state, sym, tssp);
+  create_prototype_variable(decl_state, sym);
+  return sym;
+}  /* create_variable_template_symbol */
+
+
+static a_symbol_ptr check_variable_template_declaration(
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_symbol_locator                 *locator)
+/*
+The beginning of a template declaration or definition has been scanned,
+e.g.,
+
+  template <class T> T x = y;
+                         ^current position is here
+
+and this declaration has been determined to be either a definition of
+a template static data member or the declaration or definition of a
+variable template.
+
+This routine is called when the name in the declarator is not qualified
+(i.e., for a new declaration of a variable template).
+
+locator is set to a locator that describes the identifier being declared.
+If the declaration is valid, a new variable template symbol is created
+and returned.  Otherwise, NULL is returned.
+*/
+{
+  a_symbol_ptr	sym = NULL;
+  a_boolean	err = FALSE;
+
+  if (is_error_locator(locator_for_curr_id)) {
+    /* An incorrectly formed identifier. */
+    err = TRUE;
+  } else if (locator_for_curr_id.is_qualified_name ||
+             locator_for_curr_id.is_template_id) {
+#if 0
+    /* FIXME: partial specialization case is a template id. */
+#endif /* 0 */
+    /* An error should have already been issued for this case. */
+    unexpected_condition();
+    err = TRUE;
+  } else if (locator_for_curr_id.is_operator_name ||
+             locator_for_curr_id.is_conversion_name) {
+    /* Issue an error for something like "operator+" or "operator int". */
+    pos_error(ec_operator_name_not_allowed,
+              &locator_for_curr_id.source_position);
+    err = TRUE;
+  } else {
+    /* Look up the identifier.  If it's a qualified name there will be an
+       error down the line.  The options used when coalescing the 
+       identifier are specified above. */
+    a_scope_depth	saved_decl_scope_level = decl_scope_level;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Look up the symbol in the current scope.  To do this we must
+       temporarily change the decl_scope_level to the effective
+       level for this declaration because decl_scope_level currently
+       points to the template declaration scope. */
+    decl_scope_level = decl_state->orig_decl_level;
+    sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    decl_scope_level = saved_decl_scope_level;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    *locator = locator_for_curr_id;
+    if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
+      /* The symbol found is not a variable template.  Ignore it and a
+         redeclaration error will be issued when the new symbol is
+         entered. */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Some sort of error occurred above. */
+    set_to_error_locator(*locator);
+  } else if (sym == NULL) {
+    /* Create the symbol and associated entries for the variable template. */
+    sym = create_variable_template_symbol(decl_state, locator);
+    decl_state->is_var_templ_initial_decl = TRUE;
+  }  /* if */
+  return sym;
+}  /* check_variable_template_declaration */
+
+
+static a_symbol_ptr variable_template_declaration(
                                   a_tmpl_decl_state_ptr            decl_state,
                                   a_symbol_locator                 *locator,
                                   a_template_symbol_supplement_ptr *p_tssp)
 /*
-Scan a template static data member declaration.  locator identifies the static
-data member being declared.  template_param_list points to the parameter list
-for this template declaration.  p_tssp points to the location in which the
+Scan a variable template declaration or the definition of a static
+data member of a class template.  locator identifies the entity being
+declared.  template_param_list points to the parameter list for this
+template declaration.  p_tssp points to the location in which the
 template symbol supplement for this template should be returned to the caller.
 */
 {
-  /* Name is a member of a class template (or a class nested within a class
-     template).  It is not a function, so (in a legal program) it must be
-     a static data member. */
-  /* Special processing for static data member template declarations. */
   a_boolean                        err = FALSE;
   a_token_cache                    local_token_cache;
   a_token_cache                    *p_token_cache = NULL;
   a_symbol_ptr                     sym;
+  a_symbol_ptr                     var_sym = NULL;
   a_boolean                        has_parenthesized_initializer = FALSE;
   a_template_symbol_supplement_ptr tssp = NULL;
   a_decl_parse_state               *dps = &decl_state->decl_parse;
+  a_boolean                        is_variable_template;
+  a_boolean                        is_initial_decl = FALSE;
+  a_variable_ptr                   var = NULL;
 
-  db_enter(4, "template_static_data_member_declaration");
-  sym = locator->specific_symbol;
-  has_parenthesized_initializer = 
-                          (dps->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
       !is_const_qualified_type(dps->type)) {
     /* constexpr variables are implicitly const. */
     dps->type = make_qualified_type(dps->type, (a_type_qualifier_set)TQ_CONST);
   }  /* if */
-  if (is_error_locator(*locator)) {
+  sym = locator->specific_symbol;
+  if (sym == NULL) {
+    /* The declaration did not refer to a previously declared variable
+       template or static data member. */
+    sym = check_variable_template_declaration(decl_state, locator);
+    /* This is the initial declaration if it has not been entered into a
+       scope yet. */
+    is_initial_decl = decl_state->is_var_templ_initial_decl;
+  }  /* if */
+  is_variable_template = sym != NULL && symbol_is(sym, sk_variable_template);
+  if (sym != NULL) {
+    tssp = template_supplement_for_symbol(sym);
+    if (tssp != NULL) {
+      var = tssp->variant.variable.prototype_variable;
+      check_assertion(var != NULL);
+      var_sym = symbol_for(var);
+    } else {
+      /* tssp should only be NULL in error cases. */
+      expect_error();
+    }  /* if */
+  }  /* if */
+  has_parenthesized_initializer = 
+                          (dps->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+  if (is_error_locator(*locator) || sym == NULL) {
     /* An error occurred while scanning the declarator of what we assume
        is a static data member.  We make this assumption because the
        declarator is not a function and is followed by an equals sign. */
     err = TRUE;
-  } else if (sym->kind != (a_symbol_kind)sk_static_data_member) {
-    /* Not a static data member. */
+  } else if (!(symbol_is(sym, sk_variable_template) ||
+               symbol_is(sym, sk_static_data_member))) {
+    /* Not a variable template or static data member. */
     if (sym->kind == (a_symbol_kind)sk_field) {
       pos_error(ec_nonstatic_member_def_not_allowed,
 		&locator->source_position);
@@ -22099,48 +22448,48 @@ template symbol supplement for this template should be returned to the caller.
     err = TRUE;
   } else if (!namespace_is_enclosed_by_scope(
                          sym, &scope_stack[depth_innermost_namespace_scope])) {
-    /* Static data member template is being defined in a scope that does not
-       enclose the scope in which the parent class was defined. */
+    /* The template is being defined in a scope that does not enclose the
+       scope in which the variable template or parent class was defined. */
     sym_error(ec_bad_scope_for_definition, sym);
     err = TRUE;
   } else if (sym->defined) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
-  } else if (!types_are_redecl_compatible(
-                            dps->type,
-                            sym->variant.static_data_member.variable->type)) {
+  } else if (!is_variable_template &&
+             !types_are_redecl_compatible(dps->type, var->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
-  } else if (sym->variant.static_data_member.variable->is_thread_local !=
-             ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
+  } else if (var->is_thread_local !=
+                                  ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
     /* If "thread_local" is specified on one declaration, it must be
        specified on all. */
     pos2_diagnostic(es_error,
-                   sym->variant.static_data_member.variable->is_thread_local ?
+                    var->is_thread_local ?
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
-                   &locator->source_position,
-                   &sym->variant.static_data_member.variable->
-                                                 source_corresp.decl_position);
+                    &locator->source_position,
+                    &var->source_corresp.decl_position);
     err = TRUE;
-  } else {
+  } else if (!is_initial_decl) {
     /* This is a template definition of a static data member of a
        class template. */
     a_type_ptr  type = dps->type;
     dps->is_definition = TRUE;
 #if CHECKING
-    if (sym->variant.static_data_member.instance_ptr->template_sym != sym) {
+    if (!is_variable_template &&
+        sym->variant.static_data_member.instance_ptr->template_sym != sym) {
       internal_error("template_declaration: bad instance for static mem");
     } /* if */
 #endif /* CHECKING */
     /* Make sure the declaration did not use features only valid for
        functions (e.g., "inline"). */
     check_nonfunction_declaration_errors(&decl_state->decl_parse, locator);
-    tssp = sym->variant.static_data_member.instance_ptr->template_info;
+    tssp = template_supplement_for_symbol(sym);
+    var_sym = symbol_for(tssp->variant.variable.prototype_variable);
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class(
                            decl_state, sym,
@@ -22162,7 +22511,7 @@ template symbol supplement for this template should be returned to the caller.
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
     }  /* if */
     if (!err) {
-      dps->sym = sym;
+      dps->sym = var_sym;
       attach_decl_attributes(dps, /*primary_decl=*/TRUE);
     }  /* if */
   }  /* if */
@@ -22178,6 +22527,7 @@ template symbol supplement for this template should be returned to the caller.
     a_token_sequence_number	decl_last_tsn;
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
     decl_cache = &decl_state->decl_token_cache;
+    decl_state->defines_something = TRUE;
     split_location = curr_token_sequence_number;
     /* Skip over the tokens that are already part of the token cache. */
     decl_last_tsn = decl_cache->last_token->token_sequence_number;
@@ -22246,14 +22596,11 @@ template symbol supplement for this template should be returned to the caller.
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
     /* Save the declaration portion. */
-    set_template_cache_info(&tssp->variant.static_data_member.decl_cache,
+    set_template_cache_info(&tssp->variant.variable.decl_cache,
                             &decl_state->decl_token_cache,
                             decl_state->decl_info);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-    update_decl_pos_info(
-                    &sym->variant.static_data_member.variable->source_corresp,
-                    &decl_state->decl_pos_block);
+    update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     decl_state->decl_token_cache_used = TRUE;
     check_assertion(tssp->il_template_entry != NULL);
@@ -22270,9 +22617,8 @@ template symbol supplement for this template should be returned to the caller.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   *p_tssp = tssp;
-  db_exit();
   return sym;
-}  /* template_static_data_member_declaration */
+}  /* variable_template_declaration */
 
 
 static void check_function_template_param_usage(
@@ -23847,15 +24193,7 @@ alias
   tssp->has_variadic_template_params =
                                       decl_state->has_variadic_template_params;
   orig_decl_tssp = orig_decl_sym->variant.template_info;
-  if (ssep->kind == (a_scope_kind)sck_namespace ||
-      ssep->kind == (a_scope_kind)sck_namespace_extension) {
-    set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             ssep->il_scope->variant.assoc_namespace);
-  } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    set_class_membership(sym, (a_source_correspondence *)NULL,
-                         decl_state->class_declared_in);
-    tssp->variant.class_template.access = decl_state->access; 
-  }  /* if */
+  set_membership_of_template(decl_state, sym);
   if (sym->is_class_member && !is_redecl) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
@@ -24202,9 +24540,9 @@ any non-empty template parameter lists that were scanned.
         set_to_named_error_locator(locator);
       }  /* if */
       is_function_template = is_function_type(dps->type);
-      if (!is_function_template && locator.specific_symbol != NULL) {
-        sym = template_static_data_member_declaration(
-                                                 decl_state, &locator, &tssp);
+      if (!is_function_template &&
+          (variable_templates_enabled || locator.specific_symbol != NULL)) {
+        sym = variable_template_declaration(decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any
            attributes that will need to be applied during instantiation. */
@@ -24426,8 +24764,9 @@ any non-empty template parameter lists that were scanned.
         }  /* if */
       }  /* if */
     } else if (nonclass_prototype_instantiations) {
-      check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-      static_data_member_prototype_instantiation(decl_state, sym);
+      check_assertion(symbol_is(sym, sk_static_data_member) ||
+                      symbol_is(sym, sk_variable_template));
+      variable_template_prototype_instantiation(decl_state, sym);
     }  /* if */
   }  /* if */
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
@@ -24736,6 +25075,7 @@ issued.
     }
     case sk_class_template:
     case sk_function_template:
+    case sk_variable_template:
       is_template = TRUE;
       break;
     case sk_static_data_member:
@@ -27408,13 +27748,16 @@ specified by "tip" depend on a template parameter.
     rp = sym->variant.routine.ptr;
     arg_list = rp->template_arg_list;
     is_prototype_instantiation = rp->is_prototype_instantiation;
-  } else {
+  } else if (symbol_is(sym, sk_variable) ||
+             symbol_is(sym, sk_static_data_member)) {
+    /* A variable template or static data member of a class template. */
     a_variable_ptr	vp;
-    /* A static data member -- always a member of a class template. */
-    check_assertion(symbol_is(sym, sk_static_data_member));
-    arg_list = NULL;
-    vp = sym->variant.static_data_member.variable;
+    vp = variable_for_symbol(sym);
+    check_assertion(vp->template_info != NULL);
+    arg_list = vp->template_info->template_arg_list;
     is_prototype_instantiation = vp->is_prototype_instantiation;
+  } else {
+    unexpected_condition();
   }  /* if */
   if (arg_list == NULL) {
     /* If the argument list is NULL this must be a member of a template
@@ -27587,7 +27930,8 @@ data member is a member of an unnamed namespace.
     /* In the presence of exported templates we cannot assume that any
        template instance is referenced only from this translation unit. */
     result = FALSE;
-  } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
+  } else if (!symbol_is(sym, sk_variable) &&
+             !symbol_is(sym, sk_static_data_member) &&
              (sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static ||
               is_or_contains_unnamed_namespace_type(
@@ -27614,9 +27958,10 @@ data member is a member of an unnamed namespace.
          Such entities cannot be referenced from elsewhere, so we can
          instantiate them immediately here. */
       a_boolean	uses_type_without_linkage;
-      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      if (symbol_is(tip->instance_sym, sk_static_data_member) ||
+          symbol_is(tip->instance_sym, sk_variable)) {
         a_variable_ptr	vp;
-        vp = tip->instance_sym->variant.static_data_member.variable;
+        vp = variable_for_symbol(tip->instance_sym);
         uses_type_without_linkage = vp->declared_using_type_without_linkage;
       } else {
         a_routine_ptr		      rp;
@@ -27683,9 +28028,10 @@ template entities.
          is_static_or_inline_template_entity(tip))))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    if ((symbol_is(tip->instance_sym, sk_static_data_member) ||
+         symbol_is(tip->instance_sym, sk_variable))) {
       a_variable_ptr	vp;
-      vp = tip->instance_sym->variant.static_data_member.variable;
+      vp = variable_for_symbol(tip->instance_sym);
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
       template_def = tip->template_sym->defined ||
@@ -27825,9 +28171,10 @@ this overrides an "extern template" directive.
   mip = master_instance_of(tip);
   /* For error checking purposes, find out if a specialization declaration
      exists and whether a body exists for the template definition. */
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(tip->instance_sym, sk_static_data_member) ||
+      symbol_is(tip->instance_sym, sk_variable)) {
     a_variable_ptr	vp;
-    vp = tip->instance_sym->variant.static_data_member.variable;
+    vp = variable_for_symbol(tip->instance_sym);
     specialized = vp->is_specialized;
     template_def = tip->template_sym->defined;
     if (!template_def && !specialized && export_template_allowed) {
@@ -28041,15 +28388,11 @@ caller.
          there in the code above. */
       instance_sym = find_corresponding_symbol_in_trans_unit(tip->instance_sym,
                                                              templ_tup);
-     if (instance_sym == NULL) {
-       /* No corresponding symbol was found.  This can occur in certain
-          error cases. */
-     } else if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        result_tip = instance_sym->variant.static_data_member.instance_ptr;
+      if (instance_sym == NULL) {
+        /* No corresponding symbol was found.  This can occur in certain
+           error cases. */
       } else {
-        check_assertion(instance_sym->kind ==
-                                            (a_symbol_kind)sk_member_function);
-        result_tip = instance_sym->variant.routine.instance_ptr;
+        result_tip = template_instance_for_symbol(instance_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -28067,9 +28410,10 @@ has been specialized using a new-style specialization.
 {
   a_boolean	specialized;
 
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(tip->instance_sym, sk_static_data_member) ||
+      symbol_is(tip->instance_sym, sk_variable)) {
     a_variable_ptr	vp;
-    vp = tip->instance_sym->variant.static_data_member.variable;
+    vp = variable_for_symbol(tip->instance_sym);
     specialized = vp->is_specialized &&
                   !vp->specialized_with_old_syntax;
   } else {
@@ -28091,9 +28435,10 @@ has been specialized.
 {
   a_boolean	specialized;
 
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(tip->instance_sym, sk_static_data_member) ||
+      symbol_is(tip->instance_sym, sk_variable)) {
     a_variable_ptr	vp;
-    vp = tip->instance_sym->variant.static_data_member.variable;
+    vp = variable_for_symbol(tip->instance_sym);
     specialized = vp->is_specialized;
   } else {
     a_routine_ptr		      rp;
@@ -28204,9 +28549,10 @@ data member specified by tip.
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
        translation unit containing the template. */
-  } else if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+  } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
+             symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member definition. */
-    define_template_static_data_member(tip);
+    instantiate_template_variable(tip);
   } else {
     /* Function instantiation.  The number of simultaneous function
        instantiations is limited to limit the amount of memory used by
@@ -28235,19 +28581,20 @@ data member specified by tip.
 static void find_or_create_master_instance(a_template_instance_ptr	tip);
 
 
-void complete_template_static_data_member_type_is_needed(a_variable_ptr vp)
+void complete_template_variable_type_is_needed(a_variable_ptr vp)
 /*
-"vp" is the variable entry for a template static data member with an incomplete
-type.  If the type of "vp" can be made complete by instantiating the static
-data member, and such an instantiation can be done (a definition is available),
-do the instantiation now.  Note that this implies "I need the type of this
-entity", not "I need a definition of this entity".
+"vp" is the variable entry for a variable template instance or template
+static data member with an incomplete type.  If the type of "vp" can be
+made complete by instantiating the variable, and such an instantiation
+can be done (a definition is available), do the instantiation now.  Note
+that this implies "I need the type of this entity", not "I need a
+definition of this entity".
 */
 {
   a_template_instance_ptr	tip;
   a_symbol_ptr			var_sym;
 
-  check_assertion(vp->is_template_static_data_member);
+  check_assertion(vp->is_template_variable);
   var_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
   check_assertion(var_sym != NULL);
   tip = var_sym->variant.static_data_member.instance_ptr;
@@ -28262,7 +28609,7 @@ entity", not "I need a definition of this entity".
       instantiate_entity(tip);
     }  /* if */
   }  /* if */
-}  /* complete_template_static_data_member_type_is_needed */
+}  /* complete_template_variable_type_is_needed */
 
 #if TEMPLATE_LOOKUP_NEEDED
 
@@ -29143,9 +29490,10 @@ by "sym".
 {
   a_const_char *name = NULL;
 
-  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(sym, sk_static_data_member) ||
+      symbol_is(sym, sk_variable)) {
     a_variable_ptr	variable;
-    variable = sym->variant.static_data_member.variable;
+    variable = variable_for_symbol(sym);
     variable = (a_variable_ptr)canonical_il_entry_of(variable);
     name = get_mangled_variable_name(variable);
   } else if (is_function_symbol(sym)) {
@@ -29153,13 +29501,19 @@ by "sym".
     routine = sym->variant.routine.ptr;
     routine = (a_routine_ptr)canonical_il_entry_of(routine);
     name = get_mangled_function_name(routine);
-  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+  } else if (symbol_is(sym, sk_function_template)) {
     a_routine_ptr			routine;
     a_template_symbol_supplement_ptr	tssp;
     tssp = sym->variant.template_info;
     routine = tssp->variant.function.routine;
     routine = (a_routine_ptr)canonical_il_entry_of(routine);
     name = get_mangled_function_name(routine);
+  } else if (symbol_is(sym, sk_variable_template)) {
+    a_template_symbol_supplement_ptr	tssp;
+    a_variable_ptr			variable;
+    tssp = sym->variant.template_info;
+    variable = tssp->variant.variable.prototype_variable;
+    name = get_mangled_variable_name(variable);
   } else {
     unexpected_condition_str("get_mangled_name_for_symbol: bad kind");
   }  /* if */
@@ -29299,12 +29653,12 @@ Assign a master instance entry for the template instance "tip".
   /* Look for an existing master instance by going to the symbol associated
      with the canonical entry. */
   il_entry = il_entry_for_symbol(sym, (an_il_entry_kind*)NULL);
-  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_is(sym, sk_variable) || symbol_is(sym, sk_static_data_member)) {
     a_variable_ptr	vp = (a_variable_ptr)il_entry;
     vp = canonical_variable_entry_of(vp);
     canonical_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
     check_assertion(canonical_sym != NULL);
-    canonical_tip = canonical_sym->variant.static_data_member.instance_ptr;
+    canonical_tip = template_instance_for_symbol(canonical_sym);
   } else {
     a_routine_ptr	rp = (a_routine_ptr)il_entry;
     rp = canonical_routine_entry_of(rp);
@@ -29704,7 +30058,7 @@ Does nothing if called in C mode.
       fprintf(f_debug, " to %s\n", value ? "true" : "false");
     }  /* if */
 #endif /* DEBUG */
-    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    if (symbol_is(sym, sk_static_data_member)) {
       if (is_immediate_managed_class_type(sym_parent_class(sym)) &&
           sym->variant.static_data_member.variable->initializer_in_class) {
         /* C++/CLI classes can be defined in-class.  Such members do not need
@@ -29714,9 +30068,12 @@ Does nothing if called in C mode.
       } else {
         tip = sym->variant.static_data_member.instance_ptr;
       }  /* if */
+    } else if (symbol_is(sym, sk_variable)) {
+      /* A variable template instance. */
+      tip = sym->variant.variable.instance_ptr;
     } else {
-      check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
-                      sym->kind == (a_symbol_kind)sk_routine);
+      check_assertion(symbol_is(sym, sk_member_function) ||
+                      symbol_is(sym, sk_routine));
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
     if (tip != NULL) {
@@ -29796,12 +30153,7 @@ update_instantiation_required_flag to do the appropriate processing.
     for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
       a_template_instance_ptr	tip;
       a_symbol_ptr		sym = slep->symbol;
-      if (is_function_symbol(sym)) {
-        tip = sym->variant.routine.instance_ptr;
-      } else {
-        check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-        tip = sym->variant.static_data_member.instance_ptr;
-      }  /* if */
+      tip = template_instance_for_symbol(sym);
       update_instantiation_required_flag(tip, /*value=*/TRUE, SIR_NONE);
     }  /* for */
     /* Free any list entries that were used. */
@@ -29915,8 +30267,9 @@ for adding the entries to the actual instantiation request file.
     /* Suppress the entry if the IL entry was determined to be unneeded. */
     if (add_to_file) {
       a_symbol_ptr	sym = mip->instance->instance_sym;
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr	variable = sym->variant.static_data_member.variable;
+      if (symbol_is(sym, sk_variable) ||
+          symbol_is(sym, sk_static_data_member)) {
+        a_variable_ptr	variable = variable_for_symbol(sym);
         variable = (a_variable_ptr)canonical_il_entry_of(variable);
         needed = variable->source_corresp.needed;
       } else {
@@ -30167,7 +30520,7 @@ be processed.
     a_boolean			can_be_instantiated;
     a_boolean			do_not_instantiate;
     a_boolean			instance_required;
-    a_boolean			is_static_data_member;
+    a_boolean			is_variable;
     a_boolean			is_exported;
 
     /* Skip non-external functions.  Note that this tests the flag in
@@ -30179,12 +30532,16 @@ be processed.
     /* Get a pointer to the IL entry to be processed.  The instance used
        is an arbitrary one, so we need to get the canonical entry
        to ensure that the flags used and set are the correct ones. */
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      is_static_data_member = TRUE;
+    if (symbol_is(tip->instance_sym, sk_static_data_member)) {
+      is_variable = TRUE;
       variable = instance_sym->variant.static_data_member.variable;
       variable = (a_variable_ptr)canonical_il_entry_of(variable);
+    } else if (symbol_is(tip->instance_sym, sk_variable)) {
+      is_variable = TRUE;
+      variable = instance_sym->variant.variable.ptr;
+      variable = (a_variable_ptr)canonical_il_entry_of(variable);
     } else {
-      is_static_data_member = FALSE;
+      is_variable = FALSE;
       routine = instance_sym->variant.routine.ptr;
       routine = (a_routine_ptr)canonical_il_entry_of(routine);
     }  /* if */
@@ -30195,7 +30552,7 @@ be processed.
        specialized with the new syntax.  This would be pointless because
        such specializations are mangled differently from the nonspecialized
        version and the flag would have no effect in the prelinker. */
-    if (is_static_data_member) {
+    if (is_variable) {
       variable->can_be_instantiated = can_be_instantiated;
       variable->do_not_instantiate = do_not_instantiate
                          = tip->explicit_do_not_instantiate &&
@@ -30215,7 +30572,7 @@ be processed.
 #if DEBUG
     if (db_sym_trace("instantiations", instance_sym)) {
       fprintf(f_debug, "update_auto_instantiation_flags:\n");
-      if (is_static_data_member) {
+      if (is_variable) {
         db_entity_info((char*)variable, iek_variable);
       } else {
         db_entity_info((char*)routine, iek_routine);
@@ -30263,9 +30620,9 @@ be processed.
         if (il_lowering_needed()) {
           a_source_correspondence	*scp;
           an_il_entry_kind              kind;
-          scp = is_static_data_member ?
+          scp = is_variable ?
                           &variable->source_corresp : &routine->source_corresp;
-          kind = is_static_data_member ?
+          kind = is_variable ?
                 (an_il_entry_kind)iek_variable : (an_il_entry_kind)iek_routine;
           create_instantiation_flag_variables(scp, kind, instance_required,
                                               do_not_instantiate,
@@ -30283,14 +30640,14 @@ be processed.
        should not attempt to generate a mangled name). */
     if (one_instantiation_per_object && generate_template_files()) {
       a_boolean		instantiation_file_generated;
-      instantiation_file_generated = is_static_data_member
+      instantiation_file_generated = is_variable
                              ? (variable->instantiation_needed_bit_number != 0)
                              : (routine->instantiation_needed_bit_number != 0);
 #if MAINTAIN_NEEDED_FLAGS
       if (instantiation_file_generated) {
         /* Don't generate an instantiation file for the entity unless the
            needed flag is also set. */
-        instantiation_file_generated = is_static_data_member
+        instantiation_file_generated = is_variable
                                    ? variable->source_corresp.needed
                                    : routine->definition_needed;
       }  /* if */
@@ -31344,8 +31701,11 @@ directive.
       result = FALSE;
     }  /* if */
   } else {
-    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-    if (sym->variant.static_data_member.variable->is_specialized) {
+    /* A variable template instance or static data member of a class
+       template. */
+    a_variable_ptr var = variable_for_symbol(sym);
+    check_assertion(var != NULL);
+    if (var->is_specialized) {
       /* A specialization declaration has been supplied.  If an explicit
          specialization is followed by an explicit instantiation, the
          explicit instantiation is simply ignored (see core issue 259).
@@ -31406,18 +31766,11 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
   db_enter(3, "update_instantiation_flags");
   if (translation_unit_needed_only_for_exported_templates) {
     /* Ignore instantiation directives in export template files. */
-  } else if (is_function_symbol(sym)) {
-    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
-                                is_pragma, pragma_kind)) {
-      tip = sym->variant.routine.instance_ptr;
-    }  /* if */
-  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
-                                is_pragma, pragma_kind)) {
-      tip = sym->variant.static_data_member.instance_ptr;
-    }  /* if */
   } else {
-    unexpected_condition();
+    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
+                                is_pragma, pragma_kind)) {
+      tip = template_instance_for_symbol(sym);
+    }  /* if */
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag = FALSE;
@@ -31451,7 +31804,8 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       if (tip->pos_of_first_reference.seq == 0) {
         tip->pos_of_first_reference = *pos;
       }  /* if */
-      if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
+      if (!symbol_is(sym, sk_static_data_member) &&
+          !symbol_is(sym, sk_variable) && !is_pragma &&
           is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Clear the suppress_inline_body flag in case it was previously
            set by an "extern template".  This is used to implement the
@@ -31486,9 +31840,10 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
          Consequently, the is_specialized and specialized_with_old_syntax
          flags are set so that the mangled name used here will match the
          mangled name of the old-style specialization in the other unit. */
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      if (symbol_is(sym, sk_variable) ||
+          symbol_is(sym, sk_static_data_member)) {
         if (is_pragma) {
-          a_variable_ptr vp = sym->variant.static_data_member.variable;
+          a_variable_ptr vp = variable_for_symbol(sym);
           vp->is_specialized = TRUE;
           vp->specialized_with_old_syntax = TRUE;
         }  /* if */
@@ -31499,7 +31854,8 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
           rp->specialized_with_old_syntax = TRUE;
         }  /* if */
       }  /* if */
-      if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
+      if (!symbol_is(sym, sk_static_data_member) &&
+          !symbol_is(sym, sk_variable) && !is_pragma &&
           is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Set the suppress_inline_body flag for an "extern template".
            This is used to implement the C++11 form of "extern template"
@@ -31527,8 +31883,9 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
     /* Copy the instantiation flags to the value in the IL entries. */
     if (ignore_directive) {
       /* The flags have not changed and so they don't need to be copied. */
-    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      a_variable_ptr vp = sym->variant.static_data_member.variable;
+    } else if (symbol_is(sym, sk_variable) ||
+               symbol_is(sym, sk_static_data_member)) {
+      a_variable_ptr vp = variable_for_symbol(sym);
       vp->explicit_instantiation = tip->explicit_instantiation;
       vp->class_explicitly_instantiated = tip->class_explicitly_instantiated;
       vp->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
@@ -32065,13 +32422,17 @@ instantiation.
         sym_error(ec_bad_scope_for_explicit_instantiation, sym);
       }  /* if */
     }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      if (sym->variant.static_data_member.instance_ptr != NULL) {
-        /* A static data member -- set the instantiation flags. */
+    if (symbol_is(sym, sk_variable) ||
+        symbol_is(sym, sk_static_data_member)) {
+      /* A variable template or static data member of a class template.
+         Set the instantiation flags. */
+      a_template_instance_ptr tip;
+      tip = template_instance_for_symbol(sym);
+      if (tip != NULL) {
+        a_variable_ptr  var;
         a_boolean	err = FALSE;
-        if (!types_are_redecl_compatible(state.type,
-                                         sym->variant.static_data_member.
-                                                            variable->type)) {
+        var = variable_for_symbol(sym);
+        if (!types_are_redecl_compatible(state.type, var->type)) {
           an_error_severity	severity = es_error;
           if (microsoft_mode) {
             severity = es_warning;
@@ -32329,9 +32690,11 @@ assumed if the return type is omitted.
                                    /*is_class_instantiation=*/FALSE,
                                    /*is_pragma=*/TRUE,
                                    /*is_dll_directive=*/FALSE);
-      } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-                 sym->variant.static_data_member.instance_ptr != NULL) {
-	/* A static data member -- set the instantiation flags. */
+      } else if ((symbol_is(sym, sk_variable) ||
+                  symbol_is(sym, sk_static_data_member)) &&
+                 template_instance_for_symbol(sym) != NULL) {
+        /* A variable template or static data member of a class template.
+           Set the instantiation flags. */
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
                                    /*is_class_instantiation=*/FALSE,
                                    /*is_pragma=*/TRUE,

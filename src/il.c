@@ -13624,19 +13624,24 @@ scope depth.
   sp = get_scope_for_list(scope_depth, &var_ptr->source_corresp,
                           &pointers_block);
   check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
+  if ((scope_is(sp, sck_file) || scope_is(sp, sck_namespace)) &&
+      scope_depth == NO_SCOPE_DEPTH) {
+    /* If get_scope_for_list returned the file scope and scope_depth
+       is NO_SCOPE_DEPTH, use the depth of the file scope. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
   /* If the specified scope depth is on the stack, get a pointer to the
      scope stack entry.  The only case in which the specified depth is
      permitted to exceed the current depth of the scope stack is when
      the depth specifies the file scope (because in such cases, we can get
      the necessary information elsewhere). */
-  if (scope_depth <= depth_scope_stack) {
+  if (scope_depth != NO_SCOPE_DEPTH && scope_depth <= depth_scope_stack) {
     assert_is_valid_scope_depth(scope_depth);
     ssep = &scope_stack[scope_depth];
-  } else {
-    check_assertion(scope_depth == DEPTH_OF_FILE_SCOPE);
   }  /* if */
   at_file_or_namespace_scope = (scope_depth == DEPTH_OF_FILE_SCOPE ||
                                scope_depth == depth_innermost_namespace_scope);
+  check_assertion(at_file_or_namespace_scope || ssep != NULL);
   /* Get pointer to current or file scope entry. */
   if (at_file_or_namespace_scope) {
 #if CHECKING
@@ -23897,7 +23902,8 @@ The indicated variable is not needed (and may be removed from the IL).  If it
 is a template, clear its instantiation required information.
 */
 {
-  if (vp->is_template_static_data_member && !vp->is_specialized) {
+  if (vp->is_template_variable && !vp->is_specialized &&
+      !vp->is_prototype_instantiation) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (vp->source_corresp.is_class_member &&
         (scp_parent_class(&(vp->source_corresp))->
@@ -26573,9 +26579,9 @@ be used, but there are exceptions.
             /* Only consider variables that are defined.  Make sure that the
                init_kind is not none -- this eliminates tentative definitions.
                */
-          } else if (variable->is_template_static_data_member) {
-            /* Don't use template static data members.  Some implementations
-               may generate these in multiple files. */
+          } else if (variable->is_template_variable) {
+            /* Don't use template variables or static data members.  Some
+               implementations may generate these in multiple files. */
 #if GNU_EXTENSIONS_ALLOWED
           } else if (variable->is_weak) {
             /* Weak variable definitions may appear in multiple translation

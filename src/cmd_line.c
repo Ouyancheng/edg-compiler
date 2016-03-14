@@ -3176,6 +3176,7 @@ default mode (e.g., exception handling).
     } else {
       constexpr_implies_const = FALSE;
     }  /* if */
+    variable_templates_enabled = TRUE;
     if (cpp17_mode) {
       /* Features enabled in C++17 mode. */
       namespace_attributes_enabled = TRUE;
@@ -10909,6 +10910,7 @@ variables declared in cmd_line.h.
   std_attributes_enabled = FALSE;
   namespace_attributes_enabled = FALSE;
   enumerator_attributes_enabled = FALSE;
+  variable_templates_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
   pragma_pack_enabled = TRUE;

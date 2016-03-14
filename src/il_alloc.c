@@ -54,6 +54,7 @@ static unsigned long
 		num_local_static_variable_inits_allocated,
 		num_vla_dimensions_allocated,
 		num_variables_allocated,
+		num_variable_template_infos_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
 		num_exception_specifications_allocated,
@@ -2426,7 +2427,7 @@ Clear the fields of the given variable to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   vp->property_or_event_descr     = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  vp->assoc_template              = NULL;
+  vp->template_info               = NULL;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   vp->section                     = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2441,7 +2442,7 @@ Clear the fields of the given variable to default values.
 #endif /* DO_IL_LOWERING */
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
-  vp->is_template_static_data_member
+  vp->is_template_variable
                                   = FALSE;
   vp->is_prototype_instantiation  = FALSE;
   vp->is_specialized              = FALSE;
@@ -2509,6 +2510,27 @@ Clear the fields of the given variable to default values.
   vp->init_routine.thread.wrapper = NULL;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* clear_variable */
+
+
+a_variable_template_info_ptr alloc_variable_template_info(void)
+/*
+Allocate a variable template info entry, clear it to default values, and
+return a pointer to it.
+*/
+{
+  a_variable_template_info_ptr	vtip;
+
+  /* The associated variable is template-based, which means it must have
+     been allocated in the file scope memory region. */
+  vtip = alloc_il_of_type(a_variable_template_info);
+#if DEBUG
+  num_variable_template_infos_allocated++;
+#endif /* DEBUG */
+  vtip->template_arg_list = NULL;
+  vtip->partial_spec_template_arg_list = NULL;
+  vtip->assoc_template = NULL;
+  return vtip;
+}  /* alloc_variable_template_info */
 
 
 a_variable_ptr alloc_variable(a_storage_class  storage_class)
@@ -5487,6 +5509,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("vla dimensions", num_vla_dimensions_allocated,
                 a_vla_dimension);
   db_space_used("variable", num_variables_allocated, a_variable);
+  db_space_used("variable template info",
+                num_variable_template_infos_allocated,
+                a_variable_template_info);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
   db_space_used("exception specification",
@@ -5894,6 +5919,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_condition_supplements_allocated),
       pch_saved_var_array_elem(num_types_allocated),
       pch_saved_var_array_elem(num_variables_allocated),
+      pch_saved_var_array_elem(num_variable_template_infos_allocated),
       pch_saved_var_array_elem(string_literal_text_space_allocated),
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       pch_saved_var_array_elem(num_source_sequence_entries_allocated),
@@ -6037,6 +6063,7 @@ initializations that are done for each compilation.
                                          = 0;
   num_vla_dimensions_allocated           = 0;
   num_variables_allocated                = 0;
+  num_variable_template_infos_allocated  = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
   num_exception_specifications_allocated = 0;

@@ -258,14 +258,14 @@ instantiated.
   }  /* if */								\
 }  /* complete_template_instance_is_needed */
 
-/* If the variable is a template static data member with an incomplete
-   array size, attempt an instantiation of the static data member so
-   that the size of the variable can be known. */
+/* If the variable is a variable template instance or template static
+   data member with an incomplete array size, attempt an instantiation
+   of the variable so that the size of the variable can be known. */
 #define complete_variable_type_is_needed(vp)				\
 {									\
-  if (vp->is_template_static_data_member &&				\
+  if (vp->is_template_variable &&					\
       is_incomplete_array_type(vp->type)) {				\
-    complete_template_static_data_member_type_is_needed(vp);		\
+    complete_template_variable_type_is_needed(vp);		\
   }  /* if */								\
 }  /* complete_variable_type_is_needed */
 

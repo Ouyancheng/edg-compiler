@@ -941,7 +941,7 @@ do_variable:
         put_string(buffer);
         if (sym->value_has_been_set) put_string("set");
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-          if (var->is_template_static_data_member) put_string("is instance");
+          if (var->is_template_variable) put_string("is instance");
           if (var->is_specialized) {
             (void)sprintf(buffer, "%sspecialization",
                           var->specialized_with_old_syntax ?
@@ -1079,6 +1079,7 @@ do_variable:
       break;
     case sk_class_template:
     case sk_function_template:
+    case sk_variable_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
@@ -1257,6 +1258,8 @@ do_variable:
             }  /* if */
             tip = tip->next;
           }  /* while */
+        } else if (sym->kind == (a_symbol_kind)sk_variable_template) {
+          /* FIXME */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -3505,8 +3508,10 @@ and return a pointer to it.
 #endif /* CENTERLINE_CHECKING */
       break;
     case sk_static_data_member:
-      tssp->variant.static_data_member.definitions = NULL;
-      clear_template_cache(&tssp->variant.static_data_member.decl_cache,
+    case sk_variable_template:
+      tssp->variant.variable.definitions = NULL;
+      tssp->variant.variable.prototype_variable = NULL;
+      clear_template_cache(&tssp->variant.variable.decl_cache,
                           /*reusable=*/TRUE);
       break;
     default:
@@ -3775,6 +3780,7 @@ state.
       break;
     case sk_variable:
       sym_ptr->variant.variable.ptr = NULL;
+      sym_ptr->variant.variable.instance_ptr = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       sym_ptr->variant.variable.declared_in_for_init = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3860,6 +3866,7 @@ state.
       break;
     case sk_class_template:
     case sk_function_template:
+    case sk_variable_template:
       sym_ptr->variant.template_info =
                              alloc_template_symbol_supplement(sym_ptr->kind);
       break;
@@ -6947,6 +6954,36 @@ for old style parameter declarations.
 
   return sym;
 }  /* make_parameter_symbol */
+
+
+a_symbol_ptr make_template_variable_symbol(a_symbol_ptr  templ_sym)
+/*
+Create a symbol for an instance of a variable template.  Link the symbol to
+the variable template symbol but do not enter it into the symbol table.
+templ_sym is the symbol of the variable template.
+*/
+{
+  a_symbol_ptr 				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = templ_sym->variant.template_info;
+  /* Create the symbol.  Use the position of the template declaration as its
+     declaration position. */
+  sym = alloc_symbol((a_symbol_kind)sk_variable, templ_sym->header,
+                     &templ_sym->decl_position);
+  /* Make the declaration scope the same as the class template's. */
+  sym->decl_scope = templ_sym->decl_scope;
+  /* Set the new symbol to have the same class or namespace membership as
+     the template from which it was created. */
+  if (templ_sym->is_class_member) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         sym_parent_class(templ_sym));
+  } else if (sym_is_namespace_member(templ_sym)) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             sym_parent_namespace(templ_sym));
+  }  /* if */
+  return sym;
+}  /* make_template_variable_symbol */
 
 
 a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol)
@@ -10641,6 +10678,7 @@ set to iek_none.
       break;
     case sk_function_template:
     case sk_class_template:
+    case sk_variable_template:
       entry_ptr = (char *)sym->variant.template_info->il_template_entry;
       lkind = iek_template;
       break;
@@ -16165,6 +16203,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_overloaded_function] = nsk_other;
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
+  name_space_for_symbol_kind[(int)sk_variable_template]   = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
 #if NAMED_ADDRESS_SPACES_ALLOWED

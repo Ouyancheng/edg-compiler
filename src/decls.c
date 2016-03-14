@@ -4889,7 +4889,7 @@ position. */
       new_dll_export = ((var->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
     if (new_dll_export &&
-        var->is_template_static_data_member && !var->is_specialized) {
+        var->is_template_variable && !var->is_specialized) {
       /* dllexport forces the instantiation of nonexplicit specializations. */
       set_instance_required(symbol_for(var), TRUE, SIR_NONE);
     }  /* if */

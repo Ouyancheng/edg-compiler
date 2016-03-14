@@ -430,7 +430,7 @@ template class, its DLL interface may need to be adjusted implicitly.
              static data members of template instances. */
         } else {
           for (; vp != NULL; vp = vp->next) {
-            if (!vp->is_specialized) {
+            if (!vp->is_specialized && !vp->is_prototype_instantiation) {
               if ((vp->decl_modifiers & DM_DLLFLAGS) != 0) {
                 /* This can only happen in situations like the following:
                      template<class T> struct B {

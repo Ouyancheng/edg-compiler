@@ -17244,6 +17244,107 @@ is the one actually associated with this reference.
 }  /* coalesce_template_function_reference */
 
 
+static a_symbol_ptr coalesce_template_variable_reference(
+			a_symbol_ptr			template_sym,
+			a_token_kind			next_tok,
+			a_boolean			*err)
+/*
+The current identifier is a variable template symbol.  if next_tok is
+tok_lt ("<"), is followed by a template argument list.  Scan the template
+argument list and update the locator to point to it.  Return the symbol
+of the variable template instance indicated by the template argument
+list.
+*/
+{
+  a_source_position             start_position;
+  a_template_arg_ptr            arg_list = NULL;
+  a_memory_region_number        region_to_switch_back_to;
+  a_symbol_locator		orig_locator;
+  a_boolean			any_errors = FALSE;
+  a_symbol_ptr			new_sym = NULL;
+
+  /* Save source position for error reporting. */
+  start_position = pos_curr_token;
+  if (next_tok == tok_lt) {
+    /* Save the current locator. */
+    orig_locator = locator_for_curr_id;
+    /* Always allocate template arguments at the file scope. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    add_stop_token(tok_gt);
+    if (right_shift_can_be_angle_brackets) {
+      /* The opening angle bracket might end up being closed by a double
+         angle bracket written as a right shift token. */
+      add_stop_token(tok_shift_right);
+    }  /* if */
+    add_stop_token(tok_lbrace);
+    add_stop_token(tok_semicolon);
+    /* Get the angle bracket token. */
+    (void)get_token();
+    check_assertion(curr_token == tok_lt);
+    /* Get token following opening angle bracket. */
+    (void)get_token();
+    /* Increment the number of template argument lists that are being
+       scanned. */
+    scope_stack[depth_scope_stack].pending_templ_arg_lists++;
+    if (template_sym != NULL &&
+        !template_sym->variant.template_info->is_nonreal_member &&
+        !template_sym->variant.template_info->is_error) {
+      long	first_defaulted_arg = -1L;
+      /* Scan the template argument list. */
+      arg_list = scan_template_argument_list(template_sym, &any_errors,
+                                             &first_defaulted_arg);
+    } else {
+      /* The template is a member of a proxy or nonreal class.  This occurs
+         as a result of constructs like T::A<int>.  In such cases there is
+         no template parameter list to use as a basis for the template
+         arguments that are scanned.  Scan the template arguments that
+         have been supplied.  This kind of scan is also done when there
+         is no template symbol, which happens if an undefined symbol is
+         followed by a template argument list. */
+      arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+    }  /* if */
+    /* We should now be at the closing angle bracket.  Note that we don't
+       scan the token after the closing angle because we update the current
+       token below to represent the original identifier with the newly
+       found template class symbol. */
+    set_err_pos_to_curr_token();
+    check_closing_angle_bracket(&any_errors);
+    /* Decrement the number of template argument lists that are being
+       scanned. */
+    scope_stack[depth_scope_stack].pending_templ_arg_lists--;
+    switch_back_to_original_region(region_to_switch_back_to);
+    remove_stop_token(tok_gt);
+    if (right_shift_can_be_angle_brackets) {
+      remove_stop_token(tok_shift_right);
+    }  /* if */
+    remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_semicolon);
+    if (curr_token != tok_gt) {
+      /* Below we will set curr_token to tok_identifier.  Do an unget
+         of the token that stopped the flush so that it can be processed
+         later. */
+      unget_token();
+    }  /* if */
+    new_sym = find_template_variable(template_sym, &arg_list);
+    /* Upon return, the locator should refer to the symbol that was passed
+       in, but should also include the template argument list. */
+    curr_token = tok_identifier;
+    locator_for_curr_id = orig_locator;
+  }  /* if */
+  if (new_sym != NULL) {
+    locator_for_curr_id.specific_symbol = new_sym;
+    locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+    locator_for_curr_id.symbol_header = new_sym->header;
+  }  /* if */
+  locator_for_curr_id.is_template_id = TRUE;
+  locator_for_curr_id.template_arg_list = arg_list;
+  /* Set source position for error reporting. */
+  error_position = start_position;
+  *err = any_errors;
+  return new_sym;
+}  /* coalesce_template_variable_reference */
+
+
 static a_symbol_ptr ensure_correct_nonreal_instance_kind(
 			a_symbol_ptr			sym,
 			an_identifier_options_set	options,
@@ -17337,6 +17438,10 @@ the class template argument list or diagnose an invalid template reference.
     /* A function template symbol or overload set containing a function
        template symbol. */
     result_sym = coalesce_template_function_reference(template_sym,
+                                                      next_tok, err);
+  } else if (template_sym != NULL &&
+             symbol_is(template_sym, sk_variable_template)) {
+    result_sym = coalesce_template_variable_reference(template_sym,
                                                       next_tok, err);
   } else {
     /* A class template symbol or a potential error case. */

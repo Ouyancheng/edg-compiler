@@ -8110,7 +8110,7 @@ parameters.
           (init_kind == (an_init_kind)initk_zero &&
            (!var_has_static_or_thread_storage_duration(variable) ||
             !is_array_type(variable->type) ||
-            variable->is_template_static_data_member))) {
+            variable->is_template_variable))) {
         dump_initializer(variable, init_con);
       }  /* if */
       write_tok_ch(';');
@@ -8415,6 +8415,8 @@ interleaved with the variables.
       }  /* for */
     }  /* if */
     check_membership_info(var_ptr, scope);
+    /* Don't output nonreal variables. */
+    if (ignore_variable_in_back_end(var_ptr)) continue;
     if (var_ptr->has_variably_modified_type) {
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
@@ -8439,6 +8441,8 @@ interleaved with the variables.
   for (var_ptr = scope->nonstatic_variables;
        var_ptr != NULL;
        var_ptr = var_ptr->next) {
+    /* Don't output nonreal variables. */
+    if (ignore_variable_in_back_end(var_ptr)) continue;
     if (var_ptr->has_variably_modified_type) {
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
@@ -10923,7 +10927,7 @@ the C output files for all instantiations.
        var = var->next) {
     if (var->instantiation_needed_bit_number != 0 &&
         /* Ignore generated __link variables. */
-        var->is_template_static_data_member) {
+        var->is_template_variable) {
       generate_one_instantiation_C_output_file(
                                          &var->source_corresp,
                                          var->instantiation_needed_bit_number,

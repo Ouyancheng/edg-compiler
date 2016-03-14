@@ -462,6 +462,7 @@ enum a_symbol_kind_tag {
   sk_parameter,         /* Parameter name in a function prototype. */
   sk_class_template,    /* Definition of a C++ class template. */
   sk_function_template, /* Definition of a C++ function template. */
+  sk_variable_template, /* Definition of a C++ variable template. */
   sk_namespace,         /* Definition of a C++ namespace. */
   sk_namespace_projection,
 		        /* Projection of a member of a namespace into another
@@ -497,7 +498,8 @@ EXTERN a_const_char
    "enum", "variable", "field", "static data member", "member function",
    "routine", "label", "undefined", "extern variable", "extern routine",
    "projection", "overloaded function", "parameter", "class template",
-   "function template", "namespace", "namespace projection",
+   "function template", "variable template", "namespace",
+   "namespace projection",
 #if NAMED_ADDRESS_SPACES_ALLOWED
    "named address space",
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
@@ -2931,13 +2933,18 @@ typedef struct a_template_symbol_supplement {
 			   a friend template with a default argument. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
-    /* When symbol kind = sk_static_data_member: */
+    /* When symbol kind = sk_variable_template or sk_static_data_member: */
     struct {
       a_template_instance_ptr
 		definitions;
 			/* Pointer to a list of entries specifying definitions
 			   for static data members of instantiated template
-			   classes. */
+			   classes.  NULL for variable templates. */
+      a_variable_ptr
+		prototype_variable;
+			/* Pointer to the variable for the prototype
+			   instantiation of a variable template or template
+			   static data member. */
       a_template_cache
 		decl_cache;
 			/* A cache of the tokens that comprise the out-of-class
@@ -2953,7 +2960,7 @@ typedef struct a_template_symbol_supplement {
 			   first token of the declaration (the token after the
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the declarator. */
-    } static_data_member;
+    } variable;
   } variant;
 } a_template_symbol_supplement;
 
@@ -3469,6 +3476,13 @@ typedef struct a_symbol {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
+      a_template_instance_ptr
+                instance_ptr;
+			/* For a symbol that represents a variable template
+			   instance (real or prototype), a pointer to an
+			   entry providing additional information about
+			   whether and how to define the variable.  NULL
+			   otherwise. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		declared_in_for_init:1;
@@ -3638,11 +3652,13 @@ typedef struct a_symbol {
 		param_id;
 			/* Pointer to the param_id entry with which this
 			   symbol is associated. */
-    /* When kind = sk_class_template or sk_function_template: */
+    /* When kind = sk_class_template, sk_function_template, or
+       sk_variable_template: */
     a_template_symbol_supplement_ptr
                 template_info;
 			/* Pointer to an entry providing additional info about
-			   a C++ class template or function template. */
+			   a C++ class template, function template, or variable
+			   template. */
     /* When kind == sk_namespace: */
     struct {
       a_namespace_ptr
@@ -4494,6 +4510,8 @@ extern a_symbol_ptr make_function_template_prototype_symbol(
 				a_symbol_ptr		template_sym,
 				a_routine_ptr		rout_ptr,
 				a_template_param_ptr	templ_param_list);
+
+extern a_symbol_ptr make_template_variable_symbol(a_symbol_ptr  templ_sym);
 
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol);
 
@@ -5810,6 +5828,11 @@ symbol found by the lookup is semantically valid.
    is_valid_enum_qualifier_symbol(sym))
   
 
+/* Return TRUE if the symbol is an instance of a variable template. */
+#define is_template_variable_symbol(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_variable &&				\
+   (sym)->variant.variable.ptr->is_template_variable)
+
 /* Return TRUE if a symbol is a class symbol, a class template symbol,
    a template parameter symbol, or a typedef to a template parameter.
    Note that a template parameter symbol is considered even if the type
@@ -6020,7 +6043,10 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
     : is_class_struct_union_symbol(sym)                                 \
       ? (sym)->variant.class_struct_union.type->			\
                      variant.class_struct_union.extra_info->template_arg_list \
-   : (sym)->variant.routine.ptr->template_arg_list)
+      : symbol_is((sym), sk_variable)					\
+        ? (sym)->variant.variable.ptr->template_info->template_arg_list	\
+        : (sym)->variant.routine.ptr->template_arg_list)
+
 
 /* Return the template argument list associated with a given template class
    or template alias symbol.  For an alias, the original argument list
@@ -6032,7 +6058,9 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
     : is_class_struct_union_symbol(sym)                                 \
       ? (sym)->variant.class_struct_union.type->			\
                      variant.class_struct_union.extra_info->template_arg_list \
-   : (sym)->variant.routine.ptr->template_arg_list)
+      : symbol_is((sym), sk_variable)					\
+        ? (sym)->variant.variable.ptr->template_info->template_arg_list	\
+        : (sym)->variant.routine.ptr->template_arg_list)
 
 /* Return TRUE if the given symbol kind corresponds to a tag. */
 #define is_tag_symbol_kind(kind)                                 \
@@ -6079,8 +6107,20 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
 
 /* Return TRUE if a symbol is a class or function template symbol. */
 #define is_template_symbol(sym)                                           \
-  ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||                     \
+   (sym)->kind == (a_symbol_kind)sk_variable_template ||                  \
    (sym)->kind == (a_symbol_kind)sk_function_template)
+
+/*
+Return the variable associated with a variable or static data member
+symbol, or NULL if there is none.
+*/
+#define variable_for_symbol(sym)					\
+  (symbol_is((sym), sk_static_data_member)				\
+    ? (sym)->variant.static_data_member.variable			\
+    : symbol_is((sym), sk_variable)					\
+      ? (sym)->variant.variable.ptr					\
+      : (a_variable_ptr)NULL)
 
 /*
 Return TRUE if a symbol is a class template or an injected template symbol.
@@ -6108,6 +6148,7 @@ results in better error recovery.
     !symbol_is(sym, sk_overloaded_function) &&				\
     !symbol_is(sym, sk_class_template) &&				\
     !symbol_is(sym, sk_function_template) &&				\
+    !symbol_is(sym, sk_variable_template) &&				\
     !symbol_is(sym, sk_type) &&						\
     !symbol_is(sym, sk_undefined)) &&					\
    (!symbol_is(sym, sk_constant) ||					\
@@ -6347,6 +6388,7 @@ supplement.
    symbol.  Return NULL for symbols of the wrong kind. */
 #define template_supplement_for_symbol(sym)				\
   (/* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
+             (sym)->kind == (a_symbol_kind)sk_variable_template ||	\
              (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
     (sym)->variant.template_info :					\
   /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \

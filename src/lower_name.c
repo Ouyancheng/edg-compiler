@@ -10565,7 +10565,11 @@ unmarked (and the walk is discontinued once a marked entity is found).
       }  /* if */
     } else {
       a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
-      check_assertion(nsp != NULL);
+      if (nsp == NULL) {
+        /* Can happen with variable templates. */
+        /* FIXME: look into this further. */
+        break;
+      }  /* if */
       scp = &nsp->source_corresp;
       kind = iek_namespace;
     }  /* if */
@@ -10772,7 +10776,12 @@ a routine.
   if (kind == iek_variable) {
     /* For variables, only template arguments (for variable templates) appear
        as part of the signature. */
-    /* FIXME: add code to handle variable templates. */
+    a_variable_ptr vp = (a_variable_ptr)scp;
+    if (vp->is_template_variable) {
+      /* Get the template arguments for a variable template. */
+      check_assertion(vp->template_info != NULL);
+      template_arg = vp->template_info->template_arg_list;
+    }  /* if */
   } else {
     /* For routines, the parameters and template arguments are part of the
        mangled signature. */
@@ -11840,6 +11849,24 @@ a constructor or destructor, return the primary entry point name.
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
           MODULE_ID_NEEDED */
 
+static void add_variable_template_indication(a_variable_ptr           vp,
+                                             a_mangling_control_block *mctl)
+/*
+If the specified variable is a variable template, add the template argument
+list to the mangled name.
+*/
+{
+  if (vp->is_template_variable &&
+      vp->template_info->template_arg_list != NULL) {
+    mangled_template_arguments(vp->template_info->template_arg_list,
+                               /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE,
+                               (a_name_reference_ptr)NULL,
+                               mctl);
+  }  /* if */
+}  /* add_variable_template_indication */
+
+
 static void mangled_name_with_possible_qualification(
                                                 a_source_correspondence  *scp,
                                                 an_il_entry_kind         kind,
@@ -11879,8 +11906,26 @@ name.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  if (scp_is_class_or_namespace_member(scp) ||
-      scp_is_enum_member(scp)) {
+  if (kind == iek_variable) {
+    /* For variable templates, emit the template argument list now. */
+    add_variable_template_indication((a_variable_ptr)scp, mctl);
+  }  /* if */
+  if (!scp_is_class_or_namespace_member(scp)) {
+    /* Entity needs no qualification (because it's not a member of a
+       class or namespace). */
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (kind == iek_variable &&
+        entity_needs_to_be_individuated(scp, iek_variable)) {
+      /* A file-scope variable that needs to be to be individuated gets a
+         special suffix. */
+      add_str_to_mangled_name("__", mctl);
+      r_mangled_parent_qualifier(scp, iek_variable,
+                                 /*nesting_level=*/1,
+                                 /*needs_to_be_individuated=*/TRUE,
+                                 (a_source_correspondence **)NULL, mctl);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+  } else {
     if (scp->member_of_unknown_base) {
       /* We're pretending that we found the member in a dependent
          base class.  That means the original form of reference
@@ -11902,21 +11947,6 @@ name.
       /* Output the mangled parent name. */
       mangled_parent_qualifier(scp, kind, mctl);
     }  /* if */
-  } else {
-    /* Entity needs no qualification (because it's not a member of a
-       class or namespace or a scoped enum). */
-#if ABI_COMPATIBILITY_VERSION >= 402
-    if (kind == iek_variable &&
-        entity_needs_to_be_individuated(scp, iek_variable)) {
-      /* A file-scope variable that needs to be to be individuated gets a
-         special suffix. */
-      add_str_to_mangled_name("__", mctl);
-      r_mangled_parent_qualifier(scp, iek_variable,
-                                 /*nesting_level=*/1,
-                                 /*needs_to_be_individuated=*/TRUE,
-                                 (a_source_correspondence **)NULL, mctl);
-    }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* if */
 #else /* IA64_ABI */
   a_boolean               need_nested_name_close = FALSE;
@@ -11935,6 +11965,10 @@ name.
     add_abi_tag_mangling(scp->attributes, mctl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (kind == iek_variable) {
+    /* For variable templates, emit the template argument list now. */
+    add_variable_template_indication((a_variable_ptr)scp, mctl);
+  }  /* if */
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_name_with_possible_qualification */
@@ -12378,6 +12412,9 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
   } else if (!is_name_linkage_kind_subject_to_name_mangling(
                                       variable->source_corresp.name_linkage)) {
     /* Do not mangle namespace members with extern "C" linkage. */
+  } else if (variable->is_template_variable) {
+    /* Variable templates are mangled. */
+    mangling_needed = TRUE;
   } else if (is_class_or_namespace_member(variable)) {
     /* Static data members and members of namespaces need mangled names. */
     mangling_needed = TRUE;
@@ -12451,9 +12488,10 @@ also does type name mangling.
         mangle_member_constant_name(con);
       }  /* if */
     }  /* for */
-#if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
-    if (gnu_abi_tag_attribute_seen) {
-      /* Mangle file-scope variables with abi_tags. */
+    if (variable_templates_enabled || gnu_abi_tag_attribute_seen) {
+      /* Generally, file-scope variables are not mangled, but variable
+         templates and variables with the GNU abi_tag attribute require
+         mangling. */
       for (variable = scope->variables;
            variable != NULL;
            variable = variable->next) {
@@ -12462,7 +12500,6 @@ also does type name mangling.
         }  /* if */
       }  /* for */
     }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -13185,6 +13222,7 @@ be embedded in other mangled names.
                   kind == iek_type);
   if (kind == iek_variable) {
     a_variable_ptr var = (a_variable_ptr)scp;
+    check_assertion(!var->is_template_variable);
     if (var->is_anonymous_parent_object) {
       /* Give an anonymous union variable a name based on the name of
          the first member of the anonymous union.  Note that this is

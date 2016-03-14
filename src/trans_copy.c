@@ -802,7 +802,7 @@ do any necessary processing, e.g., externalizing it if it is static.
 */
 {
   if (translation_unit_needed_only_for_exported_templates) {
-    if (!variable->is_template_static_data_member ||
+    if (!variable->is_template_variable ||
         variable->is_specialized) {
       /* The variable is not a generated template. */
       clear_variable_definition(variable);

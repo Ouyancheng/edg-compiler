@@ -4387,7 +4387,7 @@ returned set to TRUE.
            An additional diagnostic is unlikely to be helpful. */
         expect_error();
       } else if (sun_mode && vp->is_member_constant &&
-                 vp->is_template_static_data_member) {
+                 vp->is_template_variable) {
         pos_sy_warning(ec_out_of_class_initializer_ignored, source_pos,
                        symbol_ptr);
       } else {

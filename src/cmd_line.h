@@ -1336,6 +1336,10 @@ EXTERN a_boolean
 			/* TRUE if standard attributes are enabled on
 			   enumerator declarations (see N4266). */
 
+EXTERN a_boolean
+		variable_templates_enabled;
+			/* TRUE if C++14 variable templates are enabled. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 EXTERN a_calling_convention

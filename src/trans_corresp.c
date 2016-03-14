@@ -599,7 +599,7 @@ exact criteria).
         case iek_variable:
           {
             a_variable_ptr  var = (a_variable_ptr)entity;
-            if (var->is_template_static_data_member &&
+            if (var->is_template_variable &&
                 !parent_class_of(var)
                     ->variant.class_struct_union.is_prototype_instantiation) {
               a_symbol_ptr
@@ -3151,7 +3151,7 @@ is in fact valid.
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
         /* Instantiations of template static data members may appear in more
            than one translation unit. */
-        (!var->is_template_static_data_member || var->is_specialized) &&
+        (!var->is_template_variable || var->is_specialized) &&
 #if GNU_EXTENSIONS_ALLOWED
         !(var->is_weak || corresp_var->is_weak) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -2090,10 +2090,11 @@ the position of the first reference is recorded.
     if (rp->is_template_function && !rp->is_specialized) {
       tip = sym_ptr->variant.routine.instance_ptr;
     }  /* if */
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-    a_variable_ptr vp = sym_ptr->variant.static_data_member.variable;
-    if (vp->is_template_static_data_member && !vp->is_specialized) {
-      tip = sym_ptr->variant.static_data_member.instance_ptr;
+  } else if (symbol_is(sym_ptr, sk_static_data_member) ||
+             symbol_is(sym_ptr, sk_variable)) {
+    a_variable_ptr vp = variable_for_symbol(sym_ptr);
+    if (vp->is_template_variable && !vp->is_specialized) {
+      tip = template_instance_for_symbol(sym_ptr);
     }  /* if */
   }  /* if */
   /* tip will be set if this is a template function or template

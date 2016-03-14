@@ -2829,6 +2829,7 @@ ec_complex_template_parameter;;"complex or imaginary template parameter type is 
 ec_yield_outside_of_function;;"co_yield expression is not permitted outside a function scope"
 ec_thread_local_ignored;;"ignoring thread-local indication on anonymous union"
 ec_cannot_deduce_coroutine_return_type;;"cannot deduce return type from a coroutine with no co_yield or co_await construct"
+ec_variable_template;INTERNAL;"variable template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

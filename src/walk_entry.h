@@ -1178,10 +1178,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,
                  iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->section, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+        walk_ptr(ptr->template_info, a_variable_template_info_ptr,
+                 iek_variable_template_info);
 #if GNU_EXTENSIONS_ALLOWED
         if (ptr->cleanup_routine != NULL) {
           remap_ptr(ptr->cleanup_routine, a_routine_ptr, iek_routine);
@@ -1221,6 +1222,17 @@ the file scope, do not process it (but record an orphan in the latter case).
                     a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+      }
+      break;
+    case iek_variable_template_info:
+      {
+        a_variable_template_info_ptr ptr =
+                                       (a_variable_template_info_ptr)entry_ptr;
+        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
+        walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
+        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
       }
       break;
     case iek_field:
@@ -2251,6 +2263,7 @@ do_set_proper_definition_needed_flag:
                       iek_type);
             break;
           case templk_static_data_member:
+          case templk_variable:
             remap_ptr(ptr->prototype_instantiation.variable, a_variable_ptr,
                       iek_variable);
             break;

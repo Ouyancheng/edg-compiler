@@ -4035,6 +4035,8 @@ be NULL if we don't yet know which instance we are dealing with.
     a_template_instance_ptr	tip;
     if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       tip = instance_sym->variant.static_data_member.instance_ptr;
+    } else if (symbol_is(instance_sym, sk_variable)) {
+      tip = instance_sym->variant.variable.instance_ptr;
     } else {
       check_assertion(instance_sym->kind == (a_symbol_kind)sk_routine ||
                       instance_sym->kind == (a_symbol_kind)sk_member_function);
@@ -5779,7 +5781,7 @@ an unnamed namespace.
   if (decls_using_types_without_linkage_allowed &&
       vp->used &&
       (vp->storage_class == (a_storage_class)sc_extern &&
-       (!vp->is_template_static_data_member ||
+       (!vp->is_template_variable ||
         vp->is_prototype_instantiation ||
         !will_be_instantiated(var_sym)))) {
     check_constituent_types_have_linkage(var_sym,
@@ -7172,7 +7174,7 @@ it is an external definition).
 {
   a_boolean		is_needed = FALSE;
 
-  if (!var->is_template_static_data_member) {
+  if (!var->is_template_variable) {
     /* A non-template variable. */
     if ((var->storage_class == (a_storage_class)sc_unspecified
 #if DO_IL_LOWERING

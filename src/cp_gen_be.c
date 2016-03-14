@@ -6898,7 +6898,7 @@ otherwise, return FALSE.
       case iek_variable:
         var = (a_variable_ptr)msap->entity.ptr;
         if (var->is_prototype_instantiation) {
-          assoc_template = var->assoc_template;
+          assoc_template = var->template_info->assoc_template;
           is_definition = TRUE;
         }  /* if */
         break;
@@ -14275,6 +14275,7 @@ instantiation is available.
       }  /* if */
       break;
     case templk_static_data_member:
+    case templk_variable:
       if (tp->prototype_instantiation.variable != NULL) {
         gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/FALSE,
                           /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
@@ -14283,8 +14284,8 @@ instantiation is available.
       }  /* if */
       break;
     default:
-      unexpected_condition_str(
-                         "walk_entry_and_subtree: bad template kind");
+      unexpected_condition_str2("gen_template_from_prototype_instantiation",
+                                "bad template kind");
       break;
   }  /* switch */
   return result;
@@ -16824,7 +16825,7 @@ this one is such a continuation.
     /* See if the "template<>" specialization prefix should be put out. */
     if (var->is_specialized) {
       is_specialization = !var->specialized_with_old_syntax;
-    } else if (var->is_template_static_data_member) {
+    } else if (var->is_template_variable) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
@@ -16867,12 +16868,16 @@ this one is such a continuation.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  check_assertion(!var->is_template_static_data_member ||
-                  var->assoc_template != NULL);
+  check_assertion(!var->is_template_variable ||
+                  var->template_info->assoc_template != NULL);
   if (template_decl != NULL) {
+    a_type_ptr	parent_class;
     if (assoc_template->canonical_template->is_exported) gen_export();
-    gen_template_header(template_decl,
-                        parent_class_or_null(parent_class_of(assoc_template)),
+    parent_class = parent_class_or_null(assoc_template);
+    if (parent_class != NULL) {
+      parent_class = parent_class_or_null(parent_class);
+    }  /* if */
+    gen_template_header(template_decl, parent_class,
                         /*is_cppcli_generic=*/FALSE);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
