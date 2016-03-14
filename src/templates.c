@@ -5895,13 +5895,11 @@ the template definition or may be a default initialization.
   a_decl_parse_state			dps;
   a_symbol_ptr				template_sym;
   a_boolean				is_var_templ_instance;
-  a_variable_ptr			proto_var;
 
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
-  proto_var = tssp->variant.variable.prototype_variable;
 #if CHECKING
   if (!tip->template_sym->defined ||
       tssp->cache.decl_info->parameters == NULL) {
@@ -5986,11 +5984,11 @@ the template definition or may be a default initialization.
                             (a_source_sequence_entry_ptr)NULL);
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
-    a_decl_parse_state  dps;
+    a_decl_parse_state  init_dps;
     a_boolean           incomplete_type_error_reported;
     a_boolean           has_parenthesized_initializer;
 
-    init_decl_parse_state(&dps);
+    init_decl_parse_state(&init_dps);
     rescan_reusable_cache(&tssp->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
@@ -5999,12 +5997,12 @@ the template definition or may be a default initialization.
                                      curr_token != tok_lbrace);
     /* Bypass the "=" or "(". */
     if (curr_token == tok_lbrace) {
-      dps.has_direct_initializer = TRUE;
+      init_dps.has_direct_initializer = TRUE;
     } else {
-      dps.has_direct_initializer = has_parenthesized_initializer;
+      init_dps.has_direct_initializer = has_parenthesized_initializer;
       (void)get_token();
     }  /* if */
-    dps.sym = var_sym;
+    init_dps.sym = var_sym;
     initializer(&dps, &tip->template_sym->decl_position, idl_external,
                 has_parenthesized_initializer, &incomplete_type_error_reported,
                 (a_decl_pos_block_ptr)NULL);
@@ -14208,7 +14206,7 @@ by this routine.
                                              &locator.source_position);
   }  /* if */
   attach_decl_attributes(dps, /*primary_decl=*/TRUE);
-}  /* rescan_static_data_member_declaration */
+}  /* scan_template_variable_declaration */
 
 
 void remove_unneeded_instantiations(void)
@@ -18498,7 +18496,6 @@ delegate.
 {
   a_decl_parse_state                    *dps = &decl_state->decl_parse;
   a_symbol_locator			locator;
-  a_scope_stack_entry_ptr		ssep;
   a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -18595,7 +18592,6 @@ delegate.
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   tssp->is_generic = TRUE;
   tssp->is_delegate = TRUE;
-  ssep = &scope_stack[decl_state->effective_decl_level];
   set_membership_of_template(decl_state, sym);
   /* Save the IL template entry pointer for this symbol. */
   set_il_template_entry(decl_state, sym, tssp);
@@ -22479,6 +22475,7 @@ template symbol supplement for this template should be returned to the caller.
        class template. */
     a_type_ptr  type = dps->type;
     dps->is_definition = TRUE;
+    decl_state->defines_something = TRUE;
 #if CHECKING
     if (!is_variable_template &&
         sym->variant.static_data_member.instance_ptr->template_sym != sym) {
@@ -22491,7 +22488,9 @@ template symbol supplement for this template should be returned to the caller.
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
     /* Make sure the parameter list matches the class declaration. */
-    if (!member_template_param_list_matches_class(
+    if (sym->is_class_member &&
+        decl_state->class_declared_in == NULL &&
+        !member_template_param_list_matches_class(
                            decl_state, sym,
                            /*allow_missing_member_constraint=*/TRUE,
                            &error_position)) {
@@ -22594,7 +22593,11 @@ template symbol supplement for this template should be returned to the caller.
        expression. */
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
-    mark_defined(sym, &locator->source_position);
+    if (decl_state->defines_something) {
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+    }  /* if */
     /* Save the declaration portion. */
     set_template_cache_info(&tssp->variant.variable.decl_cache,
                             &decl_state->decl_token_cache,
@@ -24045,7 +24048,6 @@ alias
 */
 {
   a_symbol_locator			locator;
-  a_scope_stack_entry_ptr		ssep;
   a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_token_cache_ptr			p_token_cache = NULL;
@@ -24150,7 +24152,6 @@ alias
     *last_attribute_link(p_attributes) = scan_attributes(al_prefix);
   }  /* if */
   /* Enter the symbol at the scope indicated by effective_decl_level. */
-  ssep = &scope_stack[decl_state->effective_decl_level];
   if (sym != NULL) {
     /* If we found a previous symbol, make sure it is for an alias template.
        If not, ignore it and an error will be issued when a new symbol is
@@ -27921,8 +27922,9 @@ purposes of this test.  Also determines whether a template static
 data member is a member of an unnamed namespace.
 */
 {
-  a_boolean     result = FALSE;
-  a_symbol_ptr	sym = tip->instance_sym;
+  a_boolean		result = FALSE;
+  a_symbol_ptr		sym = tip->instance_sym;
+  a_variable_ptr	var = variable_for_symbol(sym);
 
   if (is_inline_template_function(tip, /*in_class=*/FALSE)) {
     result = TRUE;
@@ -27930,8 +27932,10 @@ data member is a member of an unnamed namespace.
     /* In the presence of exported templates we cannot assume that any
        template instance is referenced only from this translation unit. */
     result = FALSE;
-  } else if (!symbol_is(sym, sk_variable) &&
-             !symbol_is(sym, sk_static_data_member) &&
+  } else if (((symbol_is(sym, sk_variable) ||
+               symbol_is(sym, sk_static_data_member)) &&
+              (var->storage_class == (a_storage_class)sc_static ||
+               is_or_contains_unnamed_namespace_type(var->type))) ||
              (sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static ||
               is_or_contains_unnamed_namespace_type(
@@ -30525,7 +30529,7 @@ be processed.
 
     /* Skip non-external functions.  Note that this tests the flag in
        the instance entry instead of calling the function
-       is_static_or_inline_emplate_entity.  This is necessary because that
+       is_static_or_inline_template_entity.  This is necessary because that
        function cannot be called successfully after the file scope has
        been lowered. */
     if (mip->is_static_or_inline) continue;

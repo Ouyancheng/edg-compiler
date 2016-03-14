@@ -6964,9 +6964,7 @@ templ_sym is the symbol of the variable template.
 */
 {
   a_symbol_ptr 				sym;
-  a_template_symbol_supplement_ptr	tssp;
 
-  tssp = templ_sym->variant.template_info;
   /* Create the symbol.  Use the position of the template declaration as its
      declaration position. */
   sym = alloc_symbol((a_symbol_kind)sk_variable, templ_sym->header,
