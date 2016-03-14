@@ -10558,7 +10558,6 @@ unmarked (and the walk is discontinued once a marked entity is found).
       check_assertion(parent_class != NULL);
       scp = &parent_class->source_corresp;
       kind = iek_type;
-      /* FIXME: is this right? */
       if (!scp->is_local_to_function &&
           !((a_type_ptr)scp)->in_gnu_abi_tag_namespace) {
         /* Parents don't have abi_tags. */
