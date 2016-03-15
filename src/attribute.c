@@ -6854,8 +6854,8 @@ to match GNU's behavior).
       /* The abi_tag is being applied to a (presumably inline) namespace. */
       nsp = (a_namespace_ptr)entity;
       if (gnu_version < 50000) {
-        /* Support for abi_tag attributes on inline namespaces was added in
-           GNU 5.0.0. */
+        /* Support for abi_tag attributes on inline namespaces was not present
+           in earlier versions. */
         pos_warning(ec_attributes_ignored, &ap->position);
         make_attr_unrecognized(ap);
       } else if (!nsp->is_inline) {
