@@ -4952,9 +4952,13 @@ appears on a linked list pointed to from base_class.
         a_boolean  replace_override = FALSE;
         check_assertion(microsoft_mode);
         if (cli_or_cx_enabled && 
-            cli_class_type_kind_is(base_class->type, cctk_interface)) {
+            (cli_class_type_kind_is(base_class->type, cctk_interface) ||
+             (cli_class_type_kind_is(base_class->type, cctk_ref) &&
+              is_cli_system_object_type(base_class->type)))) {
           /* When overriding C++/CLI interface members, named overriding
-             trumps ordinary (unnamed) overriding. */
+             trumps ordinary (unnamed) overriding.  (As is often the case,
+             System::Object is considered an "interface class" in this
+             context, even though it is a ref class.) */
           if (decl_info->is_named_override &&
               !is_named_overriding_pair(ovfp->overriding_function,
                                         primary_func)) {

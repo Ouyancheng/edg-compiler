@@ -1,5 +1,22 @@
 Version 4.11
 
+3/15/16  [EDGcpfe/16919]
+C++/CLI: Spurious "multiple overrides" diagnostics
+
+Using recent versions of mscorlib.dll shipped by Microsoft frequently results
+in spurious errors reporting that the method System::Object::Finalize is
+overridden multiple times by higher-level classes in that library.  Here is
+an example of such a diagnostic:
+
+  "C:\Windows\Microsoft.NET\Framework\v4.0.30319\System.DLL": error: member
+          function overrides function "System::Object::Finalize" (declared in
+          "C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorlib.dll") which
+          is already overridden by function
+          "System::ComponentModel::Component::Finalize" (declared )
+
+This is now fixed.
+
+
 3/14/16  [EDGcpfe/16549,EDGcpfe/16935]
 C++/CX and C++/CLI: Importing delegates with attributes
 
