@@ -6003,7 +6003,7 @@ the template definition or may be a default initialization.
       (void)get_token();
     }  /* if */
     init_dps.sym = var_sym;
-    initializer(&dps, &tip->template_sym->decl_position, idl_external,
+    initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
                 has_parenthesized_initializer, &incomplete_type_error_reported,
                 (a_decl_pos_block_ptr)NULL);
     if (curr_token != tok_end_of_source) {
