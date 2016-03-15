@@ -117,7 +117,7 @@ typedef struct a_portable_assembly_table_entry {
 /*
 A string prepended to delegate definitions in portable assembly files.
 (This is needed to reliably return the "is_delegate" flag in the version
-of import_class_definition for portable assemblies.
+of import_class_definition for portable assemblies.)
 */
 #define PORTABLE_ASSEMBLY_DELEGATE_PREFIX "delegate "
 
