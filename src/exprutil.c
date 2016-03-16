@@ -5616,8 +5616,7 @@ folding failed.  Return TRUE if an error was issued.
          tests below where we will issue an error. */
     } else if (constexpr_enabled &&
                curr_expr_kind_is_evaluated_const() &&
-               is_template_dependent_context() &&
-               routine == NULL) {
+               is_template_dependent_context()) {
       /* A dependent call might call a constexpr function and be folded,
          so turn it into a constant and await a real instantiation. */
       if (operand != NULL) {
