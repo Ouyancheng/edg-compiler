@@ -1,5 +1,23 @@
 Version 4.11
 
+3/16/16  [EDGcpfe/16741]
+Internal error caused by variadic type based on error type
+
+A lookahead done in abstract declarator processing could result in
+the evaluation of a pack element that should instead be bypassed
+because the pack is empty, resulting in an error type being passed
+through the IL.  This could result in an internal error in name mangling
+(in mangled_encoding_for_type_full in the example below).  Now fixed.
+
+  template <typename T> struct A {};
+  template <typename U> using B = U;
+  struct C {};
+  template <typename... Ts> struct D {
+    using E = B<C(A<Ts>...)>;
+  };
+  D<> f() { return {}; }
+
+
 3/15/16  [EDGcpfe/16919]
 C++/CLI: Spurious "multiple overrides" diagnostics
 

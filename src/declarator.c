@@ -6577,12 +6577,32 @@ etc.).
       }  /* if */
     }
     if (abstract_declarator_allowed) {
-      if (curr_token == tok_rparen ||
+      a_pack_expansion_stack_entry_ptr	pesep = NULL;
+      a_pack_expansion_descr_ptr	pedp;
+      a_boolean				any_args = FALSE;
+      if (curr_token != tok_rparen) {
+        /* We could be at the start of a function declarator or a parenthesized
+           initializer.  Determining which case we have may involve
+           coalescing an identifier that could be part of a pack expansion.
+           As a result, we need to push the pack expansion context now.
+           During a real instantiation of a variadic template with an empty
+           pack we do further processing and possibly determine whether
+           this is a function further below. */
+        any_args = begin_potential_pack_expansion_context_full(
+                                         &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*ignore_suppression=*/FALSE);
+      }  /* if */
+      if (curr_token == tok_rparen || !any_args ||
           is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
                         IDS_MS_ATTRIB_NOT_ALLOWED) ||
           (curr_token == tok_ellipsis && next_token() == tok_rparen)) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
+      }  /* if */
+      if (pesep != NULL) {
+        /* Abandon this expansion.  A new one may be started later by the
+           begin_... call later in this routine. */
+        abandon_potential_pack_expansion_context(pesep);
       }  /* if */
     }  /* if */
     /* This parenthesis begins a nested declarator. */
