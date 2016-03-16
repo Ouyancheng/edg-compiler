@@ -5901,7 +5901,7 @@ the template definition or may be a default initialization.
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
 #if CHECKING
-  if (!tip->template_sym->defined ||
+  if ((!is_var_templ_instance && !tip->template_sym->defined) ||
       tssp->cache.decl_info->parameters == NULL) {
     internal_error("instantiate_template_variable: undef'd template");
   } else if (var_sym->defined) {
