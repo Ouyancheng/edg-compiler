@@ -16013,7 +16013,7 @@ whether the call was folded or not.
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
       if (constexpr_enabled && (rout == NULL || rout->is_constexpr) &&
-          !(clang_mode && expr_stack->in_noexcept_oeprand) &&
+          !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
           expr_fold_constexpr_call(function_call_node, call_pos, result,
                                    &diag_list)) {
         /* The call is to a constexpr function and it has been folded to
