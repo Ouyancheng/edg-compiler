@@ -16013,16 +16013,13 @@ whether the call was folded or not.
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
       if (constexpr_enabled && (rout == NULL || rout->is_constexpr) &&
-          (curr_expr_kind_is_const() || curr_expr_is_evaluated()) &&
+          !(clang_mode && expr_stack->in_noexcept_oeprand) &&
           expr_fold_constexpr_call(function_call_node, call_pos, result,
                                    &diag_list)) {
         /* The call is to a constexpr function and it has been folded to
-           a constant result.  (If no constant result is needed, and this is
-           an unevaluated context, we do not attempt to fold the call.  Not
-           only does that avoid unneeded work, but it also avoids errors with
-           noexcept applied to calls whose folded result produces a result
-           different from the exception-specification of the called
-           function. */
+           a constant result.  (Clang appears to determine the noexcept
+           operator without folding constexpr calls therein; that is
+           nonstandard behavior, however.) */
         call_folded_to_constant = TRUE;
 #if BUILTIN_FUNCTIONS_ENABLED
       } else if (rout != NULL) {
