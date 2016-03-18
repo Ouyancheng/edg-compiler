@@ -1529,9 +1529,9 @@ representation to fit in the bit field length.
 {                                                                             \
   if ((addr)->flags & CA_BIT_FIELD) {                                         \
     unsigned   length = (addr)->length;                                       \
-    a_boolean  is_signed = (length & 1);                                      \
+    a_boolean  is_signed_field = (length & 1);                                \
     length = length/2;                                                        \
-    trim_bit_field((addr)->address, length, is_signed);                       \
+    trim_bit_field((addr)->address, length, is_signed_field);                 \
   }  /* if */                                                                 \
 }
 
