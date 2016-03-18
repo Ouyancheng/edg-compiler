@@ -19170,6 +19170,10 @@ typedef struct an_il_header {
 			   (and hence not be placed in "COMMON" storage).
 			   This default behavior may be overridden with the
 			   GNU "common" attribute. */
+  a_byte_boolean
+		gnu_c89_inlining;
+			/* TRUE in GNU C modes if the older GNU C semantics
+			   apply to the inline keyword. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_byte_boolean

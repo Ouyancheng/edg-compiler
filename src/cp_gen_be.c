@@ -18156,11 +18156,14 @@ handle_as_definition:
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (il_header.source_language == sl_C) {
           if (rout->suppress_inline_body &&
+              (il_header.gnu_c89_inlining || rout->gnu_c89_inline) &&
               storage_class == (a_storage_class)sc_unspecified) {
-            /* GNU C will never spill an "extern __inline__" function.
-               (If storage_class was anything but sc_unspecified, a storage
-               class would already have been generated and adding another
-               "extern" could only be an error.) */
+            /* Traditional GNU C89 never spills an "extern __inline__"
+               function (newer version have options and attributes to
+               override this).  (If storage_class was anything but
+               sc_unspecified, a storage class would already have been
+               generated and adding another "extern" could only be an
+               error.) */
             write_tok_str("extern ");
           }  /* if */
           write_tok_str("__inline__ ");

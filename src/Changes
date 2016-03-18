@@ -1,5 +1,27 @@
 Version 4.11
 
+3/18/16  [EDGcpfe/16875]
+C++-generating back end: Rendering of GNU C99 inline functions
+
+Traditionally, GCC interprets "extern __inline__" specifiers as a way to
+indicate that a function definition should be used for inlining, but should
+not be emitted in an object file.  However, in newer versions of GCC this
+is not always the case, particularly in C99 mode.  The C-generating back end
+previously assumed the traditional GCC behavior (when targeting GCC); now
+it takes into account the mode (like C99) in which the source is compiled.
+For example:
+
+  __inline__ int f() { return 42; }
+  int main() { return f(); }
+
+compiled with "--gnu_version=40600 --c99" previously produced:
+
+  extern __inline__ int f() { return 42; } 
+  int main() { return f(); } 
+
+Now the "extern" keyword is no longer added.
+
+
 3/16/16  [EDGcpfe/16741]
 Internal error caused by variadic type based on error type
 

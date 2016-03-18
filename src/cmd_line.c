@@ -4175,6 +4175,7 @@ This function is also called in clang mode.
   } else {
     std_c99_inlining = FALSE;
     gnu_c89_inlining = TRUE;
+    il_header.gnu_c89_inlining = TRUE;
   }  /* if */
   c99_bool_is_keyword = TRUE;
   if (gnu_version >= 40600 && !clang_mode) {
