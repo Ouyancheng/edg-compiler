@@ -183,9 +183,15 @@ storage.  However, there are many variations:
   - etc.
 
 In addition, when comparing pointers using, e.g., the '<' operator, the
-interpreter must ensure that the pointers point to the same complete
-object.  a_constexpr_address therefore includes a pointer to the complete
-object it points to (assuming it is a pointer to interpreter storage).
+interpreter must ensure that the pointers point to the same complete object or
+even the same "accessibility zone".  a_constexpr_address therefore includes a
+pointer identifying an "object zone" (assuming it is a pointer to interpreter
+storage).  For addresses of top-level objects, the "object zone" pointer is
+just the object address.  When accessing subobjects, the "object zone" pointer
+is preserved, unless the subobject's accessibility changes (a_constexpr_address
+also track accessibility): In that case the "object zone" pointer is changed
+to the address of the parent object plus 0 (for public subobjects), 1 (for
+protected subobjects), or 2 (for private subobjects).
 
 When reading through a_constexpr_address, the front end must ensure that the
 storage it points to is still valid.  To this end, every variable and temporary
@@ -1346,33 +1352,34 @@ Return new variant path entry.
 
 
 /*
-A set of flags to describe special kinds of interpreter addresses.
+A set of flags to describe special interpreter address attributes.
 */
-#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
+#define CA_ACCESSIBILITY_MASK ((unsigned int)0x3)
+		/* If the address is that of a subobject, the masked bit
+		   represent its declared accessibility.  Otherwise, those
+		   bits are zero (same as "(unsigned)as_public"). */
+#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x4)
 		/* This flag indicates that the address is that of a run-time
 		   entity (not a value known to the interpreter). */
-#define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
+#define CA_CANNOT_DEREFERENCE ((unsigned int)0x8)
 		/* This flag indicates that the address cannot be dereferenced.
 		   It is set in particular for pointers "on position past" the
 		   end of an array. */
-#define CA_VARIANT_PATH ((unsigned int)0x4)
+#define CA_VARIANT_PATH ((unsigned int)0x10)
 		/* This flag indicates that the formation of the address
 		   included the selection of at least one union field.  Such
 		   selections must be checked for validity when the address is
 		   dereferenced. */
-#define CA_ARRAY_ELEMENT ((unsigned int)0x8)
+#define CA_ARRAY_ELEMENT ((unsigned int)0x20)
 		/* This flag indicates that the address is that of an array
 		   element.  Such an address is subject to pointer
 		   arithmetic (which requires bounds checking). */
-#define CA_BIT_FIELD ((unsigned int)0x10)
+#define CA_BIT_FIELD ((unsigned int)0x40)
 		/* This flag indicates that the address is that of a bit field.
 		   (Pointers and references to bit fields are invalid.  This is
-		   therefore always for a bit field lvalue.) */
-#define CA_SIGNED_BIT_FIELD ((unsigned int)0x20)
-		/* This flag indicates that the address is that of a signed bit
-		   field.  This flag is never set if the CA_BIT_FLAG is not
-		   set. */
-#define CA_FUNCTION ((unsigned int)0x40)
+		   therefore always for a bit field lvalue.)  Whether the bit
+		   field is signed is encoded in the "length" field. */
+#define CA_FUNCTION ((unsigned int)0x80)
 		/* This flag indicates that the address is that of a
 		   function. */
 
@@ -1394,8 +1401,9 @@ typedef struct a_constexpr_address {
 		length: 24;
 			/* If the CA_ARRAY_ELEMENT flag is set, the number of
 			   elements in the array.  If the CA_BIT_FIELD flag is
-			   set, the number of bits in the bit field designated
-			   by this lvalue. */
+			   set, twice the number of bits in the bit field
+			   designated by this lvalue, plus one if the bit field
+			   is signed. */
 #define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
@@ -1423,10 +1431,11 @@ typedef struct a_constexpr_address {
 			   active fields at the point of dereference. */
   } variant;
   a_byte
-		*complete_object;
-			/* Pointer to the complete object into which this
-			   address is pointing.  This is needed to validate
-			   pointer comparisons (p < q, etc.). */
+		*object_zone;
+			/* Pointer identifying a "zone" in which pointer
+			   comparisons are valid.  (Such comparisons require
+			   pointers to point into the same complete object,
+			   and to have a same "accessibility path".) */
 } a_constexpr_address;
 
 
@@ -1519,8 +1528,10 @@ representation to fit in the bit field length.
 #define trim_bit_field_if_needed(addr)                                        \
 {                                                                             \
   if ((addr)->flags & CA_BIT_FIELD) {                                         \
-    trim_bit_field((addr)->address, (addr)->length,                           \
-                   ((addr)->flags & CA_SIGNED_BIT_FIELD) != 0);               \
+    unsigned   length = (addr)->length;                                       \
+    a_boolean  is_signed = (length & 1);                                      \
+    length = length/2;                                                        \
+    trim_bit_field((addr)->address, length, is_signed);                       \
   }  /* if */                                                                 \
 }
 
@@ -1532,7 +1543,7 @@ interpreter value at targ_addr (or a null pointer).
 #define clear_address(addr, targ_addr)                    \
   memzero((char *)(addr), sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr); \
-  ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
+  ((a_constexpr_address *)(addr))->object_zone = (targ_addr);
   
 
 
@@ -4896,6 +4907,20 @@ type.  This includes checking the value of ovfl set by the operation.
               a_type_ptr           dtp, btp;
               a_base_class_ptr     bcp;
               a_byte_count         offset;
+              if (is_runtime_data_address(result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                break;
+              }  /* if */
+              *result_addr = *(a_constexpr_address *)opnd1_value;
+              if (result_addr->address == NULL) {
+                /* No adjustment needed. */
+                break;
+              }  /* if */
+              /* Base subobjects are not ordered.  Make a zone for the base. */
+              result_addr->object_zone = result_addr->address;
+              result_addr->flags &= ~CA_ACCESSIBILITY_MASK;
               if (tp->kind == (a_type_kind)tk_pointer) {
                 dtp = skip_typerefs(opnd1_type->variant.pointer.type);
                 btp = skip_typerefs(tp->variant.pointer.type);
@@ -4905,7 +4930,6 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               bcp = find_direct_base_class_of(dtp, btp);
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              *result_addr = *(a_constexpr_address *)opnd1_value;
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
             } else {
@@ -4929,6 +4953,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (src->address == NULL) {
+                *(a_constexpr_address*)result_storage = *src;
               } else {
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
                 if (bcp != NULL && bcp->type == tp) {
@@ -4938,6 +4964,10 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_mapped_byte_count(&persistent_map, bcp, offset);
                   *dst = *src;
                   dst->address -= offset;
+                  /* Base subobjects are not ordered.  Make a zone for the
+                     base. */
+                  dst->object_zone = dst->address;
+                  dst->flags &= ~CA_ACCESSIBILITY_MASK;
                 } else {
                   a_type_ptr  derived_class;
                   if (bcp != NULL) {
@@ -5989,7 +6019,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (ptr1->object_zone != ptr2->object_zone) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6049,7 +6079,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (ptr1->object_zone != ptr2->object_zone) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6113,7 +6143,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (ptr1->object_zone != ptr2->object_zone) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6177,7 +6207,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (ptr1->object_zone != ptr2->object_zone) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -7188,6 +7218,9 @@ type.  This includes checking the value of ovfl set by the operation.
               if (opnd1->is_lvalue || opnd1->is_xvalue ||
                   opnd1_type->kind == (a_type_kind)tk_pointer) {
                 /* The first operand is already an address. */
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  opnd1_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                }  /* if */
                 result_addr = *(a_constexpr_address*)opnd1_value;
               } else {
                 /* The first operand is a class rvalue: Create an address for
@@ -7195,6 +7228,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 clear_address(&result_addr, opnd1_value);
               }  /* if */
               if (is_runtime_data_address(&result_addr)) {
+                /* Attempt to compute a new offset for a run-time address
+                   constant. */
                 if (!(expr->is_lvalue || expr->is_xvalue) ||
                     field->is_bit_field) {
                   do_constexpr_fail(result);
@@ -7211,27 +7246,35 @@ type.  This includes checking the value of ovfl set by the operation.
                   new_con->next = ips->constants;
                   ips->constants = new_con;
                 }  /* if */
-              } else if (opnd1_type->kind == (a_type_kind)tk_union &&
-                         !add_to_variant_path(&result_addr, field)) {
-                /* We should not return from the failure of adding a variant
-                   path entry. */
-                unexpected_condition();
               } else if (result_addr.address == NULL) {
                 /* An attempt to offset a null pointer. */
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
+              } else if (opnd1_type->kind == (a_type_kind)tk_union &&
+                         !add_to_variant_path(&result_addr, field)) {
+                /* We should not return from the failure of adding a variant
+                   path entry. */
+                unexpected_condition();
               } else {
+                /* Adjust the "object zone" pointer if needed. */
+                unsigned  f_access = (unsigned)field->source_corresp.access;
+                if (f_access != (result_addr.flags & CA_ACCESSIBILITY_MASK)) {
+                  /* Access is changing.  Move the "object zone" pointer to an
+                     offset of the subobject based on the new access. */
+                  result_addr.object_zone = result_addr.address + f_access;
+                  result_addr.flags &= ~CA_ACCESSIBILITY_MASK;
+                  result_addr.flags |= f_access;
+                }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
                 result_addr.flags &= ~CA_ARRAY_ELEMENT;
                 if (field->is_bit_field) {
-                  if (field->bit_field_is_signed) {
-                    result_addr.flags |= (CA_BIT_FIELD | CA_SIGNED_BIT_FIELD);
-                  } else {
-                    result_addr.flags |= CA_BIT_FIELD;
-                  }  /* if */
-                  result_addr.length = field->bit_size;
+                  /* Record that the lvalue is that of a bit field.  The
+                     length and signedness of the field are encoded in
+                     result_addr.length. */
+                  result_addr.flags |= CA_BIT_FIELD;
+                  result_addr.length = field->bit_size*2 + field->is_bit_field;
                 }  /* if */
                 set_result_val_from_operand_address(&result_addr);
               }  /* if */
@@ -7285,17 +7328,26 @@ type.  This includes checking the value of ovfl set by the operation.
                                          opnd1_type, expr)) {
                   do_constexpr_fail(result);
                 } else {
+                  /* Adjust the "object zone" pointer if needed. */
+                  unsigned  f_access = (unsigned)field->source_corresp.access;
+                  if (f_access !=
+                                (result_addr.flags & CA_ACCESSIBILITY_MASK)) {
+                    /* Access is changing.  Move the "object zone" pointer to
+                       an offset of the subobject based on the new access. */
+                    result_addr.object_zone = result_addr.address + f_access;
+                    result_addr.flags &= ~CA_ACCESSIBILITY_MASK;
+                    result_addr.flags |= f_access;
+                  }  /* if */
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   result_addr.flags &= ~CA_ARRAY_ELEMENT;
                   if (field->is_bit_field) {
-                    if (field->bit_field_is_signed) {
-                      result_addr.flags |= (CA_BIT_FIELD |
-                                            CA_SIGNED_BIT_FIELD);
-                    } else {
-                      result_addr.flags |= CA_BIT_FIELD;
-                    }  /* if */
-                    result_addr.length = field->bit_size;
+                    /* Record that the lvalue is that of a bit field.  The
+                       length and signedness of the field are encoded in
+                       result_addr.length. */
+                    result_addr.flags |= CA_BIT_FIELD;
+                    result_addr.length = field->bit_size*2 +
+                                         field->is_bit_field;
                   }  /* if */
                 }  /* if */
                 set_result_val_from_operand_address(&result_addr);

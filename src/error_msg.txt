@@ -2822,7 +2822,7 @@ ec_nonvoid_yield_value_type;;"yield_value produces value (of type %t), which is 
 ec_return_in_coroutine;;"\"return\" is not permitted in a coroutine (use \"co_return\" instead)"
 ec_invalid_co_return;;"\"co_return\" is only allowed in coroutines"
 ec_constexpr_fp_values_not_comparable;;"floating-point values cannot be compared"
-ec_constexpr_pointers_not_comparable;;"pointer values cannot be compared because they do not point into the same complete object"
+ec_constexpr_pointers_not_comparable;;"pointer values cannot be compared because they do not point into the same complete object or they point to subobjects with different accessibility"
 ec_ignoring_attribute_on_non_inline_namespace;;"ignoring abi_tag attribute on non-inline namespace"
 ec_ignoring_attribute_on_anonymous_namespace;;"ignoring abi_tag attribute on anonymous namespace"
 ec_complex_template_parameter;;"complex or imaginary template parameter type is nonstandard"
