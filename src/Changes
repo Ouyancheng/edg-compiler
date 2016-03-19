@@ -1,5 +1,14 @@
 Version 4.11
 
+3/18/16  [EDGcpfe/16952]
+Performance issue with constexpr member function in deeply-nested base class
+
+The front end previously exhibited very poor performance when a constexpr
+non-static member function is invoked in a non-constant context using a
+pointer to a derived class in a deep inheritance hierarchy.  This is now
+fixed.
+
+
 3/18/16  [EDGcpfe/16875]
 C++-generating back end: Rendering of GNU C99 inline functions
 

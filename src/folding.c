@@ -10239,7 +10239,6 @@ ceblock gives context information for the evaluation.
 {
   a_boolean         folded = FALSE;
   a_source_position pos;
-  a_boolean         do_not_call_back = ceblock->do_not_call_back;
 
   ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
@@ -10258,15 +10257,6 @@ ceblock gives context information for the evaluation.
     /* The expression is a constant. */
     folded = TRUE;
     copy_constant_for_constexpr_evaluation(node_constant(expr), result_con);
-  } else if (!do_not_call_back &&
-             is_pointer_type(expr->type) &&
-             (ceblock->do_not_call_back = TRUE,
-              constant_prvalue_pointer_full(expr, ceblock, result_con,
-                                            /*address_escapes=*/TRUE,
-                                            CAO_NONE, (a_boolean *)NULL))) {
-    /* The expression is a constant address not represented in enk_constant
-       form (e.g., "&i" or the address of a function). */
-    folded = TRUE;
   } else if (is_variable_node(expr)) {
     /* An rvalue variable node for a parameter can be replaced by its
        value, if constant. */
