@@ -7193,10 +7193,30 @@ definition of the CC flags in il.h for more information.
         }  /* if */
         break;
       case ck_designator:
-        if (cp1->variant.designator.field == cp2->variant.designator.field &&
-            cp1->variant.designator.array_element ==
-                                       cp2->variant.designator.array_element) {
-          eq = TRUE;
+        if (cp1->variant.designator.is_generic !=
+                                         cp2->variant.designator.is_generic ||
+            cp1->variant.designator.is_field_designator !=
+                                cp2->variant.designator.is_field_designator) {
+          eq = FALSE;
+        } else {
+          if (cp1->variant.designator.is_generic) {
+            if (cp1->variant.designator.is_field_designator) {
+              eq = strcmp(cp1->variant.designator.variant.field_name,
+                          cp2->variant.designator.variant.field_name) == 0;
+            } else {
+              eq = compare_constants(cp1->variant.designator.variant.subscript,
+                                     cp2->variant.designator.variant.subscript,
+                                     options);
+            }  /* if */
+          } else {
+            if (cp1->variant.designator.is_field_designator) {
+              eq = same_entities(cp1->variant.designator.variant.field,
+                                 cp2->variant.designator.variant.field);
+            } else {
+              eq = cp1->variant.designator.variant.array_element ==
+                                cp2->variant.designator.variant.array_element;
+            }  /* if */
+          }  /* if */
         }  /* if */
         break;
       default:

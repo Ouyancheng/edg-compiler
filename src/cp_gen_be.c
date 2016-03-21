@@ -5526,29 +5526,46 @@ aggregate constant and braces around it should be suppressed.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   eff_con = con->next;
   check_assertion(eff_con != NULL);
-  *field = con->variant.designator.field;
-  if (*field != NULL) {
+  *field = NULL;
+  if (con->variant.designator.is_field_designator) {
     /* Field designator. */
-    if (!has_name(*field)) {
-      /* Suppress designators generated for anonymous unions/structs. */
-    } else if (use_old_form) {
-      gen_field_name(*field);
-      write_tok_str(": ");
+    if (con->variant.designator.is_generic) {
+      if (use_old_form) {
+        write_tok_str(con->variant.designator.variant.field_name);
+        write_tok_str(": ");
+      } else {
+        write_tok_ch('.');
+        write_tok_str(con->variant.designator.variant.field_name);
+      }  /* if */
     } else {
-      write_tok_ch('.');
-      gen_field_name(*field);
+      *field = con->variant.designator.variant.field;
+      if (!has_name(*field)) {
+        /* Suppress designators generated for anonymous unions/structs. */
+      } else if (use_old_form) {
+        gen_field_name(*field);
+        write_tok_str(": ");
+      } else {
+        write_tok_ch('.');
+        gen_field_name(*field);
+      }  /* if */
     }  /* if */
   } else {
     /* Array element designator. */
     write_tok_ch('[');
-    write_unsigned_num((unsigned long)con->variant.designator.array_element);
-    if (eff_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-      /* A repeated designator, e.g., "[1 ... 1000] = 0". */
-      a_targ_size_t last_elem = con->variant.designator.array_element +
-                                eff_con->variant.init_repeat.count - 1;
-      write_tok_str(" ... ");
-      write_unsigned_num((unsigned long)last_elem);
-      eff_con = eff_con->variant.init_repeat.constant;
+    if (con->variant.designator.is_generic) {
+      a_constant_ptr  subscript = con->variant.designator.variant.subscript;
+      gen_constant(subscript, /*need_parens=*/FALSE);
+    } else {
+      unsigned long start =
+                 (unsigned long)con->variant.designator.variant.array_element;
+      write_unsigned_num(start);
+      if (constant_is(eff_con, ck_init_repeat)) {
+        /* A repeated designator, e.g., "[1 ... 1000] = 0". */
+        a_targ_size_t  end = start + eff_con->variant.init_repeat.count - 1;
+        write_tok_str(" ... ");
+        write_unsigned_num((unsigned long)end);
+        eff_con = eff_con->variant.init_repeat.constant;
+      }  /* if */
     }  /* if */
     write_tok_ch(']');
   }  /* if */

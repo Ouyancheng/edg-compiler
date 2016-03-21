@@ -868,7 +868,20 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_constant);
             break;
           case ck_designator:
-            remap_ptr(ptr->variant.designator.field, a_field_ptr, iek_field);
+            if (ptr->variant.designator.is_field_designator) {
+              if (ptr->variant.designator.is_generic) {
+                walk_string_ptr(ptr->variant.designator.variant.field_name,
+                                iek_id_name, 0);
+              } else {
+                remap_ptr(ptr->variant.designator.variant.field, a_field_ptr,
+                          iek_field);
+              }  /* if */
+            } else {
+              if (ptr->variant.designator.is_generic) {
+                walk_ptr(ptr->variant.designator.variant.subscript,
+                         a_constant_ptr, iek_constant);
+              }  /* if */
+            }  /* if */
             break;
           case ck_template_param:
             switch (ptr->variant.template_param.kind) {

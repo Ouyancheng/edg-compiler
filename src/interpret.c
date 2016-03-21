@@ -2858,7 +2858,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               do_constexpr_fail(result);
             }  /* if */
           } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
-            fp = elem_con->variant.designator.field;
+            fp = elem_con->variant.designator.variant.field;
             elem_con = elem_con->next;
           } else {
             fp = tp->variant.class_struct_union.field_list;
@@ -7798,7 +7798,8 @@ diagnostic in *ips.
             if (fp != afp) {
               /* Add a designator for the active field. */
               des_con = fs_constant((a_constant_repr_kind)ck_designator);
-              des_con->variant.designator.field = afp;
+              des_con->variant.designator.is_field_designator = TRUE;
+              des_con->variant.designator.variant.field = afp;
               add_constant_to_aggregate(des_con, con);
             }  /* if */
             add_constant_to_aggregate(elem_con, con);

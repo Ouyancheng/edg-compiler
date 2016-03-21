@@ -5765,12 +5765,12 @@ expression).
     if (con_ptr->kind == (a_constant_repr_kind)ck_designator) {
       /* A designator appears (e.g., in a C99 nonconstant aggregate
          initialization).  Update the current position. */
-      if (con_ptr->variant.designator.field != NULL) {
+      if (con_ptr->variant.designator.is_field_designator) {
         check_assertion(!array_or_vector);
-        ipmp->curr_field = con_ptr->variant.designator.field;
+        ipmp->curr_field = con_ptr->variant.designator.variant.field;
       } else {
         check_assertion(array_aggr);
-        ipmp->curr_elem = con_ptr->variant.designator.array_element;
+        ipmp->curr_elem = con_ptr->variant.designator.variant.array_element;
       }  /* if */
       con_ptr = con_ptr->next;
       check_assertion(con_ptr != NULL &&
@@ -12358,8 +12358,9 @@ constant con indicate the same aggregate member.
 */
 #define same_aggregate_member(aggr_pos, con) \
   ((aggr_pos)->array_init ? \
-        ((con)->variant.designator.array_element == (aggr_pos)->curr_elem) : \
-        ((con)->variant.designator.field == (aggr_pos)->curr_field))
+        ((con)->variant.designator.variant.array_element == \
+                                                    (aggr_pos)->curr_elem) : \
+        ((con)->variant.designator.variant.field == (aggr_pos)->curr_field))
 
 
 /*
@@ -12597,7 +12598,7 @@ is not called for union initializations.
       if (aggr_pos.array_init) {
         /* For an array, we can add a repeat count to initialize multiple
            elements. */
-        count = (desig_con->variant.designator.array_element -
+        count = (desig_con->variant.designator.variant.array_element -
                  aggr_pos.curr_elem);
         if (count > 1) {
           a_constant_ptr repeat_con = alloc_repeated_constant(zero_con, count);
@@ -12621,7 +12622,7 @@ is not called for union initializations.
     if (con.repeat_count > 0) {
       /* When dealing with a repeated constant, we can skip directly over
          all the corresponding elements. */
-      count = (desig_con->variant.designator.array_element -
+      count = (desig_con->variant.designator.variant.array_element -
                aggr_pos.curr_elem);
       if (count > con.repeat_count) count = con.repeat_count;
       check_assertion(count > 0);
@@ -12690,8 +12691,8 @@ values are being overwritten by the current aggregate.
   if (aggr_type->kind == (a_type_kind)tk_array &&
       prior_designator != NULL && prior_constant != NULL &&
       prior_constant->kind != (a_constant_repr_kind)ck_init_repeat &&
-      desig_con->variant.designator.array_element >
-       prior_designator->variant.designator.array_element) {
+      desig_con->variant.designator.variant.array_element >
+       prior_designator->variant.designator.variant.array_element) {
     /* Some large arrays initializers use designated initializers
        whose values monotonically increase, causing exponential
        behavior during the lowering of the designators.  If the
@@ -12703,8 +12704,8 @@ values are being overwritten by the current aggregate.
        (either from an earlier aggregate initialization or from
        earlier in this initialization). */
     a_targ_size_t number_of_zero_constants_needed = 
-                    desig_con->variant.designator.array_element -
-                    prior_designator->variant.designator.array_element - 1;
+               desig_con->variant.designator.variant.array_element -
+               prior_designator->variant.designator.variant.array_element - 1;
     if (number_of_zero_constants_needed == 0) {
       /* Designated constant follows prior constant. */
       *prev_con = prior_constant;
@@ -12755,8 +12756,8 @@ different than the old member), the old value is added to
 {
   if ((old_designator == NULL || new_designator == NULL) ?
               (old_designator == new_designator) :
-              (old_designator->variant.designator.field ==
-                        new_designator->variant.designator.field)) {
+              (old_designator->variant.designator.variant.field ==
+                        new_designator->variant.designator.variant.field)) {
     /* Same member.  Move the old constant to *earlier_con. */
     set_init_con_pos(old_con, earlier_con);
 #if DEBUG
@@ -12827,7 +12828,8 @@ have already had their designated initializers lowered.
           temp_con->kind == (a_constant_repr_kind)ck_designator) {
         /* Take the designator off the old list. */
         prev_union_designator = temp_con;
-        if (prev_union_designator->variant.designator.field == first_field) {
+        if (prev_union_designator->variant.designator.variant.field ==
+                                                                first_field) {
           prev_union_designator = NULL;
         }  /* if */
         advance_init_con_pos(&earlier_con);
@@ -12844,7 +12846,8 @@ have already had their designated initializers lowered.
           con.ptr->kind == (a_constant_repr_kind)ck_designator) {
         /* Take the designator off the new list. */
         union_designator = con.ptr;
-        if (union_designator->variant.designator.field == first_field) {
+        if (union_designator->variant.designator.variant.field ==
+                                                                first_field) {
           union_designator = NULL;
         }  /* if */
         advance_init_con_pos(&con);
@@ -13034,7 +13037,7 @@ have already had their designated initializers lowered.
          initialization of a member other than the first. */
       a_constant_ptr prev_union_designator = union_designator;
       prev_con = NULL;
-      if (con.ptr->variant.designator.field ==
+      if (con.ptr->variant.designator.variant.field ==
                   next_initializable_field(
                            aggr_type->variant.class_struct_union.field_list)) {
         /* The ck_designator is not needed when initializing the first
@@ -13144,9 +13147,9 @@ have already had their designated initializers lowered.
         temp_con->kind == (a_constant_repr_kind)ck_designator) {
       /* A ck_designator left in for an initialization of a union member
          other than the first. */
-      check_assertion(temp_con->variant.designator.field != NULL);
-      set_aggregate_position_for_field(temp_con->variant.designator.field,
-                                       &aggr_pos);
+      check_assertion(temp_con->variant.designator.is_field_designator);
+      set_aggregate_position_for_field(
+                       temp_con->variant.designator.variant.field, &aggr_pos);
       temp_con = temp_con->next;
     }  /* if */
     set_init_con_pos(temp_con, &con_pos);
@@ -13238,11 +13241,12 @@ aggr_con->is_partially_initialized to reflect the new value.
            other than the first field of the union is being initialized.
            Move the aggregate position accordingly. */
         check_assertion(is_union_type(aggr_type) && temp_con->next != NULL);
-        if (temp_con->variant.designator.field == NULL) {
-          aggr_pos.curr_elem = temp_con->variant.designator.array_element;
+        if (temp_con->variant.designator.is_field_designator) {
+          set_aggregate_position_for_field(
+                       temp_con->variant.designator.variant.field, &aggr_pos);
         } else {
-          set_aggregate_position_for_field(temp_con->variant.designator.field,
-                                           &aggr_pos);
+          aggr_pos.curr_elem =
+                           temp_con->variant.designator.variant.array_element;
         }  /* if */
         temp_con = temp_con->next;
         set_init_con_pos(temp_con, &con_pos);

@@ -7167,16 +7167,16 @@ Generate code for a ck_designator constant, i.e., a designator in a
 designated initializer.
 */
 {
-  a_field_ptr field = con->variant.designator.field;
-  if (field != NULL) {
+  check_assertion(!con->variant.designator.is_generic);
+  if (con->variant.designator.is_field_designator) {
     /* Field designator. */
     write_tok_ch('.');
-    dump_field_name(field);
+    dump_field_name(con->variant.designator.variant.field);
   } else {
     /* Array element designator. */
     write_tok_ch('[');
     write_unsigned_num((a_host_large_unsigned)
-                                       con->variant.designator.array_element);
+                               con->variant.designator.variant.array_element);
     write_tok_ch(']');
   }  /* if */
   if (con->next->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -7472,9 +7472,10 @@ block with state information for the processing.
             dump_designator(elem_con);
           }  /* if */
           if (type->kind == (a_type_kind)tk_array) {
-            ipdp->curr_elem = elem_con->variant.designator.array_element;
+            ipdp->curr_elem =
+                           elem_con->variant.designator.variant.array_element;
           } else {
-            ipdp->curr_field = elem_con->variant.designator.field;
+            ipdp->curr_field = elem_con->variant.designator.variant.field;
           }  /* if */
 #if LOWER_DESIGNATED_INITIALIZERS
           /* If we're lowering designated initializers, designators should

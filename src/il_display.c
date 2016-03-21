@@ -1343,17 +1343,32 @@ display_constant_value:
       break;
     case ck_designator:
       (void)printf("ck_designator\n");
-      if (ptr->variant.designator.field != NULL) {
+      if (ptr->variant.designator.is_field_designator) {
         /* A field designator: */
-        disp_string_ptr("field",
-                        ptr->variant.designator.field->source_corresp.name,
-                        iek_id_name,
-                        (sizeof_t)0);
+        if (ptr->variant.designator.is_generic) {
+          disp_string_ptr("field_name",
+                          ptr->variant.designator.variant.field_name,
+                          iek_id_name,
+                          (sizeof_t)0);
+        } else {
+          disp_string_ptr("field",
+                          ptr->variant.designator.variant.field
+                             ->source_corresp.name,
+                          iek_id_name,
+                          (sizeof_t)0);
+        }  /* if */
       } else {
         /* An array element designator: */
-        disp_host_large_unsigned(
+        if (ptr->variant.designator.is_generic) {
+          disp_ptr("subscript",
+                   (char *)ptr->variant.designator.variant.subscript,
+                   iek_constant);
+        } else {
+          disp_host_large_unsigned(
                  "array_element",
-                 (a_host_large_unsigned)ptr->variant.designator.array_element);
+                 (a_host_large_unsigned)
+                               ptr->variant.designator.variant.array_element);
+        }  /* if */
       }  /* if */
       break;
     case ck_template_param:

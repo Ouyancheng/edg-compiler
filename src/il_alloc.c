@@ -853,8 +853,9 @@ fields to default values.
                                   (a_template_param_constant_kind)tpck_param);
       break;
     case ck_designator:
-      cp->variant.designator.field = NULL;
-      cp->variant.designator.array_element = 0;
+      cp->variant.designator.is_field_designator = FALSE;
+      cp->variant.designator.is_generic = FALSE;
+      cp->variant.designator.variant.array_element = 0;
       break;
     default:
       unexpected_condition_str("set_constant_kind: bad kind");

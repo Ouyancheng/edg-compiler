@@ -10045,10 +10045,12 @@ evaluation (e.g., parameter values).
             } else if (result_con != NULL && result_con->kind ==
                                          (a_constant_repr_kind)ck_designator) {
               /* The value is that of a specified union member. */
-              check_assertion(curr_type->kind == (a_type_kind)tk_union &&
-                              result_con->variant.designator.field != NULL);
+              check_assertion(
+                          curr_type->kind == (a_type_kind)tk_union &&
+                          result_con->variant.designator.is_field_designator);
               curr_type =
-                     skip_typerefs(result_con->variant.designator.field->type);
+                    skip_typerefs(result_con->variant.designator.variant.field
+                                            ->type);
               result_con = result_con->next;
             } else {
               /* The offset is in a member subobject.  Scan for it and then
@@ -11464,7 +11466,8 @@ prevents folding.  ceblock gives context information for the evaluation.
               a_constant_ptr des_con =
                            alloc_constant((a_constant_repr_kind)ck_designator);
               field = tfield;
-              des_con->variant.designator.field = field;
+              des_con->variant.designator.is_field_designator = TRUE;
+              des_con->variant.designator.variant.field = field;
               add_constant_to_aggregate(des_con, aggr_con);
             }  /* if */
             break;
@@ -11811,7 +11814,7 @@ otherwise, return FALSE.
           member_con->kind == (a_constant_repr_kind)ck_designator) {
         /* The designator identifies the field being requested.  The
            value follows the designator in the ck_aggregate. */
-        curr_field = member_con->variant.designator.field;
+        curr_field = member_con->variant.designator.variant.field;
         member_con = member_con->next;
       }  /* if */
       if (curr_field != field && curr_field->type != anon_union_member_type) {

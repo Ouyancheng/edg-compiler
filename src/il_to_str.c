@@ -5817,15 +5817,21 @@ do_sizeof_cases:
       }  /* switch */
       break;
     case ck_designator:
-      if (constant->variant.designator.field != NULL) {
-        a_field_ptr field = constant->variant.designator.field;
+      if (constant->variant.designator.is_field_designator) {
+        a_const_char  *name;
+        if (constant->variant.designator.is_generic) {
+          name = constant->variant.designator.variant.field_name;
+        } else {
+          name = unmangled_name_of(&constant->variant.designator.variant.field
+                                            ->source_corresp);
+        }  /* if */
 #if BACK_END_IS_CP_GEN_BE
         if (il_header.source_language == sl_Cplusplus &&
             gcc_or_clang_is_generated_code_target) {
           /* g++ does not accept the C99 syntax for designated initializers
              but does accept a nonstandard variant:
                  struct S s = { m: 0 }; */
-          form_unqualified_name(&field->source_corresp, iek_field, octl);
+          octl->output_str(name, octl);
           octl->output_str(": ", octl);
         } else
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -5833,12 +5839,18 @@ do_sizeof_cases:
         {
           /* Use the C99 designated initializer syntax. */
           octl->output_str(".", octl);
-          form_unqualified_name(&field->source_corresp, iek_field, octl);
+          octl->output_str(name, octl);
           octl->output_str(" = ", octl);
         }  /* if */
       } else {
         octl->output_str("[", octl);
-        form_unsigned_num(constant->variant.designator.array_element, octl);
+        if (constant->variant.designator.is_generic) {
+          form_constant(constant->variant.designator.variant.subscript,
+                        /*need_parens=*/FALSE, octl);
+        } else {
+          form_unsigned_num(constant->variant.designator.variant.array_element,
+                            octl);
+        }  /* if */
         octl->output_str("] = ", octl);
       } /* if */
       break;

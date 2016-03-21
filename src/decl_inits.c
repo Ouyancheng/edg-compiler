@@ -845,11 +845,19 @@ of the whole initialization (*is) as appropriate.
     /* We don't permit designators in templates because we cannot represent a
        field designator in the IL if we don't actually have a field entry to
        point to. */
-    is->init_error = TRUE;
-    *init_con = NULL;
-    if (!is->check_validity_only && !is_error_type(gtype)) {
-      pos_error(ec_designator_for_template_dependent_type,
-                init_component_pos(icp));
+    if (is_error_type(gtype)) {
+      is->init_error = TRUE;
+    } else if (!is->check_validity_only) {
+      *init_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      (*init_con)->variant.designator.is_generic = TRUE;
+      if (icp->variant.designator.field_name != NULL) {
+        (*init_con)->variant.designator.is_field_designator = TRUE;
+        (*init_con)->variant.designator.variant.field_name =
+                               icp->variant.designator.field_name->identifier;
+      } else {
+        pos_error(ec_designator_for_template_dependent_type,
+                  init_component_pos(icp));
+      }  /* if */
     }  /* if */
   } else if (is->check_validity_only) {
     /* Except for designators, this routine always "succeeds" without
@@ -1394,7 +1402,8 @@ is->no_diagnostics is TRUE.
           /* Add a designator to indicate the field to initialize. */
           a_constant_ptr
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-          des_con->variant.designator.field = fp;
+          des_con->variant.designator.is_field_designator = TRUE;
+          des_con->variant.designator.variant.field = fp;
           add_constant_to_aggregate(des_con, result);
         }  /* if */
         con->implicit_aggr_element = TRUE;
@@ -1809,7 +1818,8 @@ available.
          aggregate constant. */
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      des_con->variant.designator.array_element = *idx;
+      des_con->variant.designator.is_field_designator = FALSE;
+      des_con->variant.designator.variant.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con);
       aggr_con->is_partially_initialized = TRUE;
@@ -2419,7 +2429,8 @@ position for which diagnostics should be issued.
           /* Add a designator to indicate the field to initialize. */
           a_constant_ptr
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-          des_con->variant.designator.field = next_field;
+          des_con->variant.designator.is_field_designator = TRUE;
+          des_con->variant.designator.variant.field = next_field;
           add_constant_to_aggregate(des_con, aggr_con);
         }  /* if */
       } else {
@@ -2817,7 +2828,8 @@ specific position is available.
     if (!is->check_validity_only) {
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      des_con->variant.designator.field = *field;
+      des_con->variant.designator.is_field_designator = TRUE;
+      des_con->variant.designator.variant.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con);
       if (class_type->kind != (a_type_kind)tk_union) {

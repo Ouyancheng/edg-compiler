@@ -1,5 +1,24 @@
 Version 4.11
 
+3/21/16  [EDGcpfe/16860]
+Field designators in templates (IL CHANGE)
+
+In GNU C++ mode, the front end accepts designated initializers, but it
+previously didn't permit them in templates.  The representation of designators
+in the IL has now been changed to handle designators in generic contexts (i.e.,
+without identifying the designated subobject).  For example:
+
+  template<typename T> void g() {
+    T x = { .field = 3 };  // Previously an error.  Now accepted in g++ mode.
+    return x.field;
+  };
+
+This example previously triggered an error in GNU C++ modes when deferral of
+prototype instantiations was disabled; it is now accepted.  (Array designators
+with template-dependent subscripts are still not handled, but the new IL
+representation will be able to accommodate them if needed.)
+
+
 3/18/16  [EDGcpfe/16952]
 Performance issue with constexpr member function in deeply-nested base class
 

@@ -4561,12 +4561,32 @@ typedef struct a_constant {
        an unshared constant.  The designated field or element is initialized
        by the constant pointed to by "next". */
     struct {
-      a_field_ptr     field;
-                        /* NULL if the designator indicates an array element.
-                           Otherwise, the field indicated by a designator. */
-      a_targ_size_t   array_element;
-                        /* Undefined if field != NULL.  Otherwise the subscript
-                           indicated by the designator. */
+      a_bit_field
+		is_field_designator:1;
+			/* TRUE if the designator is for a field. */
+      a_bit_field
+		is_generic:1;
+			/* TRUE if the entity being designated has not been
+			   looked up (e.g., in template contexts). */
+      union {
+	/* When is_field_designator == TRUE and is_generic == FALSE. */
+        a_field_ptr
+		field;
+                        /* The field indicated by a designator. */
+	/* When is_field_designator == FALSE and is_generic == FALSE. */
+        a_targ_size_t
+		array_element;
+                        /* The subscript indicated by the designator. */
+	/* When is_field_designator == TRUE and is_generic == TRUE. */
+        a_const_char
+		*field_name;
+			/* The name of the designated field. */
+	/* When is_field_designator == FALSE and is_generic == TRUE. */
+        a_constant_ptr
+		subscript;
+			/* A constant representing the subscript of the
+			   designated array element.  (Not currently used.) */
+      } variant;
     } designator;
   } variant;
 } a_constant;
