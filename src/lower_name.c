@@ -10746,9 +10746,6 @@ in the mangled name of the entity.
   if (scp == ttt_scp_for_implicit_abi_tags) {
     /* If we're marking the entity for which we're computing the implicit
        abi_tags, don't mark that in the signature. */
-  } else if (kind == iek_routine) {
-    (void)traverse_type_tree(((a_routine_ptr)scp)->type, ttt_mark_entry,
-                             ABI_TAG_TTT_FLAGS);
   } else if (kind == iek_type) {
     /* Also include any types referenced in this type (e.g., "A*"), but
        also class templates. */
