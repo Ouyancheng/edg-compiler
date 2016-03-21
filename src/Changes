@@ -33,8 +33,8 @@ C++-generating back end: Rendering of GNU C99 inline functions
 
 Traditionally, GCC interprets "extern __inline__" specifiers as a way to
 indicate that a function definition should be used for inlining, but should
-not be emitted in an object file.  However, in newer versions of GCC this
-is not always the case, particularly in C99 mode.  The C-generating back end
+not be emitted in an object file.  However, in newer versions of GCC this is
+not always the case, particularly in C99 mode.  The C++-generating back end
 previously assumed the traditional GCC behavior (when targeting GCC); now
 it takes into account the mode (like C99) in which the source is compiled.
 For example:
