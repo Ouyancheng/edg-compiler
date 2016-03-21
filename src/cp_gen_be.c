@@ -5750,6 +5750,7 @@ field designator.
       for (; sub_con != NULL;) {
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
+        a_boolean      need_close_paren = FALSE;
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           if (!transparent_case) {
             /* Put out the introduction for a designated initializer. */
@@ -5782,10 +5783,23 @@ field designator.
           sub_type = field->type;
           field = next_initializable_field(field->next);
         }  /* if */
+        if (eff_sub_con->is_pack_expansion &&
+            eff_sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+            eff_sub_con->variant.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression) {
+          /* The expression won't be marked with is_pack_expansion, so we
+             have to provide parentheses at this level to prevent something
+             like "(x+1)..." becoming "x+1...". */
+          write_tok_ch('(');
+          need_close_paren = TRUE;
+        }  /* if */
         gen_initializer_constant(eff_sub_con, sub_type,
                                  /*transparent_case=*/FALSE,
                                  local_suppress_braces);
         if (eff_sub_con->is_pack_expansion) {
+          if (need_close_paren) {
+            write_tok_ch(')');
+          }  /* if */
           write_tok_str("...");
         }  /* if */
 #if CHECKING

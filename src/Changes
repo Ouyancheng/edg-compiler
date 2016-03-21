@@ -1,5 +1,28 @@
 Version 4.11
 
+3/21/16  [EDGcpfe/16831]
+Missing parentheses in pack expansion passed to initializer_list constructor
+
+In configurations that generate template definitions from prototype
+instantiations, the C++-generating back end failed to parenthesize an
+expression that is a pack expansion in the argument to an initializer_list
+constructor.  This could result in incorrect code, since the ellipsis would
+apply to the last subexpression instead of to the expression as a whole.
+This is now fixed.  For example, with --c++11:
+
+namespace std {
+  template<class T> struct initializer_list {
+    constexpr initializer_list(const T *x, unsigned long y) { }
+  };
+}
+struct S {
+  int x;
+  static int f(std::initializer_list<int>);
+  template<class... Ts> S(Ts&&... ts) :
+    x(f({(ts+1)...})) { }  // Previously generated as f({ts+1...})
+};
+
+
 3/21/16  [EDGcpfe/14149]
 C++14: Relaxed constexpr constraints
 
