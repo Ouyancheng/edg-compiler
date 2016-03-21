@@ -3700,6 +3700,24 @@ initializer, already copied and substituted.
                 var_for_symbol(dps->sym) != NULL;
   /* The force_dynamic_init flag only applies to the top-level result. */
   is->force_dynamic_init = FALSE;
+  if (is_template_dependent_context() && is_variadic_template_context() &&
+      is_scalar_type(dtype) &&
+      is_pack_expansion_component(icp->variant.braced.list)) {
+    /* During the prototype instantiation of a variadic template, treat a
+       braced initializer of the form "{ <initializer> ... }" without regard
+       for the destination type (this ensures that the pack expansion is
+       represented in the IL).  For example:
+           struct S {
+             int x;
+             template<typename ... Ts> S(Ts &...ps): x{ps...} {}
+               // Even though x is a known "int" in this context, proceed
+               // as if it were an unknown type (and produce a ck_aggregate
+               // constant initializer since it can represent a pack
+               // expansion).
+           };
+    */
+    dtype = type_of_unknown_templ_param_nontype;
+  }  /* if */
   switch (dtype->kind) {
     case tk_error:
     case tk_template_param:

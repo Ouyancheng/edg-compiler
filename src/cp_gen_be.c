@@ -5679,7 +5679,14 @@ field designator.
         template_dependent_case = TRUE;
         break;
       default:
-        unexpected_condition();
+        if (constant->type->kind == (a_type_kind)tk_template_param) {
+          /* In template context a scalar can be initialized with a braced
+             initializer containing a pack expansion.  In such cases, the
+             initializer is represented as a ck_aggregate constant. */
+          template_dependent_case = TRUE;
+        } else {
+          unexpected_condition();
+        }  /* if */
     }  /* switch */
     if (template_dependent_case) {
       /* The subobject type is unknown. */
