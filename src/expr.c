@@ -24000,7 +24000,11 @@ that case.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
     {
-      (void)check_arithmetic_or_enum_operand(operand_1);
+      if (operator_token == tok_remainder) {
+        (void)check_integral_or_enum_operand(operand_1);
+      } else {
+        (void)check_arithmetic_or_enum_operand(operand_1);
+      }  /* if */
     }  /* if */
     /* The second operand must be of arithmetic or enum type (the remainder
        operator requires integral or enum type). */
