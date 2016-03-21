@@ -26168,7 +26168,7 @@ node, and report any failure as an internal error.
 #if GNU_VECTOR_TYPES_ALLOWED
         /* Disregard vector types (these can be mixed). */
         !(gnu_mode &&
-          expr->variant.operation.type_kind == tk_vector &&
+          expr->variant.operation.type_kind == (a_type_kind)tk_vector &&
           (is_vector_type(op_type_1) ||
            is_vector_type(op_type_2))) &&
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -26195,7 +26195,7 @@ node, and report any failure as an internal error.
       op == (an_expr_operator_kind)eok_vector_lor ||
       op == (an_expr_operator_kind)eok_vector_question) {
     /* Vector operators return a vector type. */
-    if (expr->variant.operation.type_kind != tk_vector ||
+    if (expr->variant.operation.type_kind != (a_type_kind)tk_vector ||
         !is_vector_type(expr->type)) {
 #if DEBUG
       db_expression(expr);

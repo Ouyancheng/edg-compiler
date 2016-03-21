@@ -1145,6 +1145,7 @@ digit1:
 done:;
 }  /* write_unsigned_num */
 
+#if GNU_VECTOR_TYPES_ALLOWED
 
 static void write_array_index(a_host_large_unsigned num)
 /*
@@ -1156,6 +1157,7 @@ Write the indicated unsigned number as an array index (i.e., "[num]").
   write_tok_ch(']');
 }  /* write_array_index */
 
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 static void write_pp_directive(a_const_char *directive,
                                a_const_char *more)

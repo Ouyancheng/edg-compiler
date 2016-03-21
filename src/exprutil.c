@@ -9976,10 +9976,11 @@ assuming "a" and "b" are vectors of four integer types.
 */
 {
   a_boolean  result;
-  a_type_ptr elem_type =
-           skip_typerefs(skip_typerefs(vec_type)->variant.vector.element_type);
+  a_type_ptr elem_type;
 
   check_assertion(is_vector_type(vec_type));
+  vec_type = skip_typerefs(vec_type);
+  elem_type = skip_typerefs(vec_type->variant.vector.element_type);
   if ((elem_type->kind == (a_type_kind)tk_integer ||
        elem_type->kind == (a_type_kind)tk_float) &&
       elem_type->kind == scalar_type->kind &&

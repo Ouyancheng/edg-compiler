@@ -26042,7 +26042,7 @@ that case.
                                                   (microsoft_bugs &&
                                                    microsoft_version < 1600 &&
                                                    !rvalue_references_enabled);
-  an_expr_operator_kind op = eok_question;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_question;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -26097,7 +26097,7 @@ that case.
   if (gnu_mode && !C_mode() && is_vector_type(operand_1->type)) {
     /* FIXME: must be integer only. */
     /* FIXME: not really sure about this: */
-    op = eok_vector_question;
+    op = (an_expr_operator_kind)eok_vector_question;
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
   } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -26411,7 +26411,7 @@ that case.
   }  /* if */
   if (!processed && !err) {
     if (!C_mode() && types_are_the_same &&
-        op != eok_vector_question && 
+        op != (an_expr_operator_kind)eok_vector_question && 
         is_a_cplusplus_lvalue(&operand_2) &&
         is_a_cplusplus_lvalue(&operand_3)) {
       /* In C++, if the second and third operands have the same type and
@@ -26790,7 +26790,7 @@ that case.
            (already set based on the type of operand_1). */
         result_type = operand_2.type;
       } else if (gnu_mode && !C_mode() &&
-                 op == eok_vector_question &&
+                 op == (an_expr_operator_kind)eok_vector_question &&
                  is_vector_type(operand_2.type) &&
                  vector_and_scalar_types_are_compatible(
                                               operand_2.type,
@@ -26801,7 +26801,7 @@ that case.
         /* A vector and a scalar. */
         result_type = operand_2.type;
       } else if (gnu_mode && !C_mode() &&
-                 op == eok_vector_question &&
+                 op == (an_expr_operator_kind)eok_vector_question &&
                  is_vector_type(operand_3.type) &&
                  vector_and_scalar_types_are_compatible(
                                               operand_3.type,
