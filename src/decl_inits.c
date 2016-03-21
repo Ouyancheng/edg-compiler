@@ -3701,7 +3701,7 @@ initializer, already copied and substituted.
   /* The force_dynamic_init flag only applies to the top-level result. */
   is->force_dynamic_init = FALSE;
   if (is_template_dependent_context() && is_variadic_template_context() &&
-      is_scalar_type(dtype) &&
+      is_scalar_type(dtype) && icp->variant.braced.list != NULL &&
       is_pack_expansion_component(icp->variant.braced.list)) {
     /* During the prototype instantiation of a variadic template, treat a
        braced initializer of the form "{ <initializer> ... }" without regard
