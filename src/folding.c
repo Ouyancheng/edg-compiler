@@ -3232,13 +3232,24 @@ if not, return *err_code set to the proper error code.
 #if FIXED_POINT_ALLOWED
         && operand_type->kind != (a_type_kind)tk_fixed_point
 #endif /* FIXED_POINT_ALLOWED */
-                                                            ) {
+#if GNU_VECTOR_TYPES_ALLOWED
+        && operand_type->kind != (a_type_kind)tk_vector
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                                       ) {
       internal_error("check_shift_count: operand_type not integer");
     } else if (operand_type->size == 0) {
       internal_error("check_shift_count: integer type has size 0");
     }  /* if */
 #endif /* CHECKING */
-    size = operand_type->size * targ_char_bit;
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (operand_type->kind == (a_type_kind)tk_vector) {
+      size = operand_type->variant.vector.element_type->size * targ_char_bit;
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      size = operand_type->size * targ_char_bit;
+    }  /* if */
 
     if (sign_of_integer_constant(shift_count_constant) < 0) {
       /* Negative shift count. */
@@ -10612,6 +10623,7 @@ pm_field_selection:
             case eok_unary_plus:
             case eok_complement:
             case eok_not:
+            case eok_vector_not:
 #if C99_IL_EXTENSIONS_SUPPORTED
             case eok_xconj:
             case eok_real_part:

@@ -3913,6 +3913,7 @@ Display the name of an expression operator.
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_complement:        s = "eok_complement";             break;
     case eok_not:               s = "eok_not";                    break;
+    case eok_vector_not:        s = "eok_vector_not";             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:             s = "eok_xconj";                  break;
     case eok_real_part:         s = "eok_real_part";              break;
@@ -3949,6 +3950,12 @@ Display the name of an expression operator.
     case eok_lt:                s = "eok_lt";                     break;
     case eok_ge:                s = "eok_ge";                     break;
     case eok_le:                s = "eok_le";                     break;
+    case eok_vector_eq:         s = "eok_vector_eq";              break;
+    case eok_vector_ne:         s = "eok_vector_ne";              break;
+    case eok_vector_gt:         s = "eok_vector_gt";              break;
+    case eok_vector_lt:         s = "eok_vector_lt";              break;
+    case eok_vector_ge:         s = "eok_vector_ge";              break;
+    case eok_vector_le:         s = "eok_vector_le";              break;
     case eok_gnu_min:           s = "eok_gnu_min";                break;
     case eok_gnu_max:           s = "eok_gnu_max";                break;
     case eok_assign:            s = "eok_assign";                 break;
@@ -3967,6 +3974,8 @@ Display the name of an expression operator.
     case eok_bassign:           s = "eok_bassign";                break;
     case eok_land:              s = "eok_land";                   break;
     case eok_lor:               s = "eok_lor";                    break;
+    case eok_vector_land:       s = "eok_vector_land";            break;
+    case eok_vector_lor:        s = "eok_vector_lor";             break;
     case eok_comma:             s = "eok_comma";                  break;
     case eok_subscript:         s = "eok_subscript";              break;
     case eok_vector_subscript:  s = "eok_vector_subscript";       break;
@@ -3982,6 +3991,7 @@ Display the name of an expression operator.
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
     case eok_question:          s = "eok_question";               break;
+    case eok_vector_question:   s = "eok_vector_question";        break;
     case eok_call:              s = "eok_call";                   break;
     case eok_dot_member_call:   s = "eok_dot_member_call";        break;
     case eok_points_to_member_call:

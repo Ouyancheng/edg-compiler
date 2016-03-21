@@ -1630,6 +1630,11 @@ extern a_boolean determine_imaginary_operation_type
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if GNU_VECTOR_TYPES_ALLOWED
+extern a_boolean vector_and_scalar_types_are_compatible(
+                                                    a_type_ptr     vec_type,
+                                                    a_type_ptr     scalar_type,
+                                                    a_constant_ptr scalar_con);
+
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,

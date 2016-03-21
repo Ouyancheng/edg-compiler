@@ -768,6 +768,9 @@ to the "if", and set *else_insert_location to allow insertion in the
     op3_node = zero_cast_to_void();
     test_expr->next = op2_node;
     op2_node->next = op3_node;
+#if GNU_VECTOR_TYPES_ALLOWED
+    check_assertion(!is_vector_type(op2_node->type));
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                        op2_node->type, test_expr);
     question_node->is_initialization_guard = is_initialization_guard;

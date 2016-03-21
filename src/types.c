@@ -4520,14 +4520,15 @@ If source_constant is non-NULL, it gives the known constant value of
 the source; if it's NULL, it's assumed the source is not constant.
 If err_code is non-NULL, *err_code is set to an appropriate error
 code if TRUE is returned (the error codes take two type fill-ins,
-for source and destination type).
+for source and destination type).  Though primarily used in C++ mode,
+this routine is also used in C mode when determining if a scalar constant
+and a vector are compatible.
 */
 {
   a_boolean   is_narrowing = FALSE;
   a_boolean   err, depends_on_fp_mode, dependent_constant = FALSE;
   a_boolean   con_check_done = FALSE, fp_precision_check_failed = FALSE;
 
-  check_assertion(!C_mode());
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   if (source_constant != NULL &&

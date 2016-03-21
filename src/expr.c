@@ -661,6 +661,7 @@ conversion for a volatile glvalue.
         do_conv = TRUE;
         break;
       case eok_question:
+      case eok_vector_question:
         /* "?" gets the conversion if both the 2nd and 3rd operands do. */
         do_conv = (expr_gets_volatile_lvalue_to_rvalue_conv(op1->next) &&
                    expr_gets_volatile_lvalue_to_rvalue_conv(op1->next->next));
@@ -10127,9 +10128,18 @@ analysis on a previously-scanned expression, and return the result in
         break;
       case tok_not:
         op = (an_expr_operator_kind)eok_not;
-        (void)check_boolean_controlling_expr(&operand);
-        do_promotion = FALSE;
-        result_type = boolean_result_type();
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (gnu_mode && !C_mode() && is_vector_type(operand.type)) {
+          /* Vector types are arithmetic types in some sense. */
+          op = (an_expr_operator_kind)eok_vector_not;
+        } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        /* Do not insert code here. */
+        {
+          (void)check_boolean_controlling_expr(&operand);
+          do_promotion = FALSE;
+          result_type = boolean_result_type();
+        }  /* if */
         break;
       case tok_minus:
         op = (an_expr_operator_kind)eok_negate;
@@ -23983,25 +23993,25 @@ that case.
     /* The first operand must be of arithmetic or enum type (the remainder
        operator requires integral or enum type). */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    if (operator_token == tok_remainder) {
-      (void)check_integral_or_enum_operand(operand_1);
 #if GNU_VECTOR_TYPES_ALLOWED
-    } else if (gnu_mode && is_vector_type(operand_1->type)) {
+    if (gnu_mode && is_vector_type(operand_1->type)) {
       /* Vector types are arithmetic types in some sense. */
+    } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else {
+    /* Do not insert code here. */
+    {
       (void)check_arithmetic_or_enum_operand(operand_1);
     }  /* if */
     /* The second operand must be of arithmetic or enum type (the remainder
        operator requires integral or enum type). */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    if (operator_token == tok_remainder) {
-      (void)check_integral_or_enum_operand(&operand_2);
 #if GNU_VECTOR_TYPES_ALLOWED
-    } else if (gnu_mode && is_vector_type(operand_2.type)) {
+    if (gnu_mode && is_vector_type(operand_2.type)) {
       /* Vector types are arithmetic types in some sense. */
+    } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else {
+    /* Do not insert code here. */
+    {
       (void)check_arithmetic_or_enum_operand(&operand_2);
     }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -24490,10 +24500,24 @@ expression, and return the result in *result (or an error indication in
     /* The first operand can have an integral or enum type, or, in
        configurations that support it, a fixed-point type. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
     /* The second operand must have an integral or enum type. */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_operand(&operand_2);
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (gnu_mode &&
+        determine_vector_operation_type(operator_token, operand_1, &operand_2,
+                                        &operator_position,
+                                        &result_type, &op)) {
+      /* FIXME: check this comment */
+      /* GCC accepts any vector type for these operators, even floating-point
+         vector types. */
+      goto result_type_determined;
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
+      (void)check_integral_or_enum_operand(&operand_2);
+    }  /* if */
 
     if (C_dialect == C_dialect_pcc) {
       /* In K&R first edition (see appendix A, section 7.5), "perform the usual
@@ -24514,6 +24538,7 @@ expression, and return the result in *result (or an error indication in
       result_type = operand_1->type;
       op = which_binary_operator(operator_token, result_type);
     }  /* if */
+result_type_determined:
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
         operand_2.variant.constant.kind == (a_constant_repr_kind)ck_integer) {
@@ -24721,6 +24746,10 @@ that case.
     operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(operand_1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (is_nullptr_type(operand_1->type)) {
       operand_1_is_nullptr = TRUE;
     } else if (check_pointer_operand(operand_1,
@@ -24790,6 +24819,14 @@ that case.
                                                         &operator_position,
                                                         &operation_type);
         }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (gnu_mode &&
+                 determine_vector_operation_type(operator_token, operand_1,
+                                                 &operand_2,
+                                                 &operator_position,
+                                                 &operation_type, &op)) {
+        /* A GNU vector operation; the appropriate result type is set below. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We already know that operand_1 is
@@ -24829,7 +24866,16 @@ that case.
       }  /* if */
     }  /* if */
     /* Determine the result type. */
-    result_type = boolean_result_type();
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (is_vector_type(operation_type)) {
+      /* The result of a vector comparison is a vector, not a boolean. */
+      result_type = operation_type;
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      result_type = boolean_result_type();
+    }  /* if */
     op = which_binary_operator(operator_token, operation_type);
     /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, operand_1, &operand_2, op);
@@ -25011,6 +25057,10 @@ that case.
     operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(operand_1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled && is_handle_type(operand_1->type)) {
       operand_1_is_handle = TRUE;
@@ -25074,6 +25124,14 @@ that case.
         (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
                                                       &operator_position,
                                                       &operation_type);
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (gnu_mode &&
+                 determine_vector_operation_type(operator_token, operand_1,
+                                                 &operand_2,
+                                                 &operator_position,
+                                                 &operation_type, &op)) {
+        /* A GNU vector operation; the appropriate result type is set below. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We also know already that operand_1 is
@@ -25095,29 +25153,39 @@ that case.
       }  /* if */
     }  /* if */
 
-    result_type = boolean_result_type();
-    op = which_binary_operator(operator_token, operation_type);
-    change_binary_operand_types(operation_type, operand_1, &operand_2, op);
-    if (funny_unsigned_comparison) {
-      /* Check for pointless comparisons of unsigned integers against
-         negative constants:
-           u == -n   (always false)
-           u != -n   (always true)
-         The expression is not simplified.  Note that we check the
-         nonconstant operand type before any type promotions and the
-         constant value after any type change. */
-      int constant_sign;
-      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
-                                                      second_is_constant,
-                                                      &constant_sign) &&
-          constant_sign < 0) {
-        /* Comparison of an unsigned value with a negative constant. */
-        expr_pos_warning(ec_unsigned_compare_with_negative,
-                         &operator_position);
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (is_vector_type(operation_type)) {
+      /* The result of a vector comparison is a vector, not a boolean. */
+      result_type = operation_type;
+      op = which_binary_operator(operator_token, operation_type);
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      result_type = boolean_result_type();
+      op = which_binary_operator(operator_token, operation_type);
+      change_binary_operand_types(operation_type, operand_1, &operand_2, op);
+      if (funny_unsigned_comparison) {
+        /* Check for pointless comparisons of unsigned integers against
+           negative constants:
+             u == -n   (always false)
+             u != -n   (always true)
+           The expression is not simplified.  Note that we check the
+           nonconstant operand type before any type promotions and the
+           constant value after any type change. */
+        int constant_sign;
+        if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
+                                                        second_is_constant,
+                                                        &constant_sign) &&
+            constant_sign < 0) {
+          /* Comparison of an unsigned value with a negative constant. */
+          expr_pos_warning(ec_unsigned_compare_with_negative,
+                           &operator_position);
+        }  /* if */
       }  /* if */
+      check_for_pointer_comparison_to_null_with_known_result(operand_1,
+                                                             &operand_2);
     }  /* if */
-    check_for_pointer_comparison_to_null_with_known_result(operand_1,
-                                                           &operand_2);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position, operator_tok_seq_number);
   }  /* if */
@@ -25633,12 +25701,24 @@ that case.
     if (!operand_1_transformations_done) {
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     }  /* if */
-    (void)check_boolean_controlling_expr(operand_1);
     expr_stack->evaluated = expr2_evaluated;
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_boolean_controlling_expr(&operand_2);
     expr_stack->evaluated = saved_evaluated;
-    result_type = boolean_result_type();
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (gnu_mode && !C_mode() &&
+        determine_vector_operation_type(operator_token, operand_1, &operand_2,
+                                        &operator_position, &result_type,
+                                        &op)) {
+      /* FIXME: floating point allowed? */
+      /* FIXME: short circuit */
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      (void)check_boolean_controlling_expr(operand_1);
+      (void)check_boolean_controlling_expr(&operand_2);
+      result_type = boolean_result_type();
+    }  /* if */
     /* See if we should reduce this operation to a constant in the case
        that the first operand is constant and dictates the result and
        the second operand is non-constant.  The fully-constant case
@@ -25960,6 +26040,7 @@ that case.
                                                   (microsoft_bugs &&
                                                    microsoft_version < 1600 &&
                                                    !rvalue_references_enabled);
+  an_expr_operator_kind op = eok_question;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -25969,7 +26050,8 @@ that case.
     check_assertion(rcblock->operator_token == tok_quest_mark);
     check_assertion(expr != NULL &&
                     is_operation_node(expr) &&
-                    node_operator_is(expr, eok_question));
+                    (node_operator_is(expr, eok_question) ||
+                     node_operator_is(expr, eok_vector_question)));
 #if GNU_EXTENSIONS_ALLOWED
     if (expr->variant.operation.is_gnu_two_operand_question_mark) {
       is_gnu_two_operand_form = TRUE;
@@ -26009,7 +26091,18 @@ that case.
                   /*treat_as_potential_prvalue=*/TRUE);
   }  /* if */
   /* Check the first operand's type. */
-  process_boolean_controlling_expression(operand_1);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (gnu_mode && !C_mode() && is_vector_type(operand_1->type)) {
+    /* FIXME: must be integer only. */
+    /* FIXME: not really sure about this: */
+    op = eok_vector_question;
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+  } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  /* Do not insert code here. */
+  {
+    process_boolean_controlling_expression(operand_1);
+  }  /* if */
   /* There is a sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
@@ -26316,6 +26409,7 @@ that case.
   }  /* if */
   if (!processed && !err) {
     if (!C_mode() && types_are_the_same &&
+        op != eok_vector_question && 
         is_a_cplusplus_lvalue(&operand_2) &&
         is_a_cplusplus_lvalue(&operand_3)) {
       /* In C++, if the second and third operands have the same type and
@@ -26427,6 +26521,19 @@ that case.
           microsoft_lvalue_cv_qual_adjustment(&operand_3, result_type,
                                               /*compiler_generated=*/TRUE);
         }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (gnu_mode && !C_mode() &&
+                 is_vector_type(operand_1->type) &&
+                 vector_and_scalar_types_are_compatible(
+                                              operand_1->type,
+                                              operand_2.type,
+                                              is_constant_operand(&operand_2) ?
+                                                &operand_2.variant.constant :
+                                                (a_constant_ptr)NULL)) {
+        /* Operand 1 is a vector and operands 2 and 3 are (the same)
+           scalar.  The result is a vector type. */
+        result_type = operand_1->type;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
     } else if (is_throw_operand(&operand_2)) {
       /* The second operand is a throw expression and the third is not
@@ -26672,6 +26779,37 @@ that case.
         err = !check_compatibility_of_nullptr_operands(&operand_2, &operand_3,
                                                        &colon_position,
                                                        &result_type);
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (gnu_mode &&
+                 is_vector_type(operand_2.type) &&
+                 identical_types(operand_2.type, operand_3.type)) {
+        /* The second and third operand can be identical vector types.  This
+           can be either an eok_question or an eok_vector_question operation
+           (already set based on the type of operand_1). */
+        result_type = operand_2.type;
+      } else if (gnu_mode && !C_mode() &&
+                 op == eok_vector_question &&
+                 is_vector_type(operand_2.type) &&
+                 vector_and_scalar_types_are_compatible(
+                                              operand_2.type,
+                                              operand_3.type,
+                                              is_constant_operand(&operand_3) ?
+                                                &operand_3.variant.constant :
+                                                (a_constant_ptr)NULL)) {
+        /* A vector and a scalar. */
+        result_type = operand_2.type;
+      } else if (gnu_mode && !C_mode() &&
+                 op == eok_vector_question &&
+                 is_vector_type(operand_3.type) &&
+                 vector_and_scalar_types_are_compatible(
+                                              operand_3.type,
+                                              operand_2.type,
+                                              is_constant_operand(&operand_2) ?
+                                                &operand_2.variant.constant :
+                                                (a_constant_ptr)NULL)) {
+        /* A scalar and a vector. */
+        result_type = operand_3.type;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (is_arithmetic_or_unscoped_enum_type(operand_2.type)) {
         /* Both operands should be arithmetic or (unscoped) enum. */
         (void)check_arithmetic_or_enum_operand(&operand_3);
@@ -26702,13 +26840,6 @@ that case.
           expr_expect_error();
           err = TRUE;
         }  /* if */
-#if GNU_VECTOR_TYPES_ALLOWED
-      } else if (is_vector_type(operand_2.type) &&
-                 identical_types(operand_2.type, operand_3.type)) {
-        /* The second and third operand can be identical vector types (other
-           combinations involving vector types are invalid). */
-        result_type = skip_typerefs(operand_2.type);
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (is_error_type(operand_2.type) ||
                  is_error_type(operand_3.type)) {
         /* One or both of the operands have an error type. */
@@ -26721,10 +26852,20 @@ that case.
         }  /* if */
         err = TRUE;
       }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (!err &&
+          is_vector_type(operand_1->type) &&
+          is_vector_type(result_type) &&
+          num_vector_elements(operand_1->type) !=
+                                            num_vector_elements(result_type)) {
+        /* If the first operand is an (integer) vector, it must have the same
+           number of elements as the resulting type. */
+        err = TRUE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Cast operands 2 and 3 to the result type if necessary. */
       if (!err) {
-        change_binary_operand_types(result_type, &operand_2, &operand_3,
-                                    (an_expr_operator_kind)eok_question);
+        change_binary_operand_types(result_type, &operand_2, &operand_3, op);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -39510,6 +39651,7 @@ set accordingly.
         *unary = TRUE;
         break;
       case eok_not:
+      case eok_vector_not:
         operator_token = tok_not;
         *unary = TRUE;
         break;
@@ -39600,21 +39742,27 @@ set accordingly.
         operator_token = tok_shift_right;
         break;
       case eok_lt:
+      case eok_vector_lt:
         operator_token = tok_lt;
         break;
       case eok_gt:
+      case eok_vector_gt:
         operator_token = tok_gt;
         break;
       case eok_le:
+      case eok_vector_le:
         operator_token = tok_le;
         break;
       case eok_ge:
+      case eok_vector_ge:
         operator_token = tok_ge;
         break;
       case eok_eq:
+      case eok_vector_eq:
         operator_token = tok_eq;
         break;
       case eok_ne:
+      case eok_vector_ne:
         operator_token = tok_ne;
         break;
      case eok_gnu_max:
@@ -39633,15 +39781,18 @@ set accordingly.
         operator_token = tok_excl_or;
         break;
       case eok_land:
+      case eok_vector_land:
         operator_token = tok_and_and;
         break;
       case eok_lor:
+      case eok_vector_lor:
         operator_token = tok_or_or;
         break;
       case eok_comma:
         operator_token = tok_comma;
         break;
       case eok_question:
+      case eok_vector_question:
         operator_token = tok_quest_mark;
         break;
       case eok_assign:

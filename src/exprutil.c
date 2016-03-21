@@ -2523,8 +2523,11 @@ as part of looking for unordered temp inits or unsequenced side-effects.
       switch (op) {
         case eok_land:
         case eok_lor:
+        case eok_vector_land:
+        case eok_vector_lor:
         case eok_comma:
         case eok_question:
+        case eok_vector_question:
           /* Operators with a sequence point after the first never have
              unordered operands.  The two-operand cases like a && b
              obviously have no ordering issues, and in a ? b : c
@@ -3456,7 +3459,8 @@ called during lowering (as value category is known at that time).
       expr_copy = field_lvalue_selection_expr(operand1_copy,
                                               node_field(operand2));
       copy_node_value_category(expr, expr_copy);
-    } else if (op == (an_expr_operator_kind)eok_question) {
+    } else if (op == (an_expr_operator_kind)eok_question ||
+               op == (an_expr_operator_kind)eok_vector_question) {
       /* For a "?" operator, make reusable copies of all three operands,
          and a new "?" that uses the reusable copies. */
       operand3 = operand2->next;
@@ -3464,7 +3468,8 @@ called during lowering (as value category is known at that time).
       operand1_copy = copy_func(operand1, vars_can_change, temp_init_used,
                                 treat_as_potential_prvalue);
 #if DO_IL_LOWERING
-      if (il_lowering_underway) {
+      if (il_lowering_underway &&
+          op == (an_expr_operator_kind)eok_question) {
         /* We are producing a lowered eok_question and modifying an existing
            one: Ensure that both have a normalized first operand (in the
            configurations that require it). */
@@ -3484,9 +3489,7 @@ called during lowering (as value category is known at that time).
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand1_copy->next = operand2_copy;
       operand2_copy->next = operand3_copy;
-      expr_copy = make_lvalue_operator_node(
-                                           (an_expr_operator_kind)eok_question,
-                                           expr->type, operand1_copy);
+      expr_copy = make_lvalue_operator_node(op, expr->type, operand1_copy);
       expr_copy->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                           TRUE;
       copy_node_value_category(expr, expr_copy);
@@ -9266,11 +9269,16 @@ is TRUE if this is a GNU two-operand "?"  (a synthesized operand_2 is
 still provided).
 */
 {
-  an_expr_node_ptr expr;
+  an_expr_node_ptr      expr;
+  an_expr_operator_kind op = eok_question;
 
   expr = make_node_from_operand(operand_1);
-  expr = make_operator_node((an_expr_operator_kind)eok_question,
-                            result_type, expr);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(operand_1->type)) {
+    op = eok_vector_question;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  expr = make_operator_node(op, result_type, expr);
 #if GNU_EXTENSIONS_ALLOWED
   expr->variant.operation.is_gnu_two_operand_question_mark =
                                                        is_gnu_two_operand_form;
@@ -9956,6 +9964,36 @@ a source position for any errors.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_VECTOR_TYPES_ALLOWED
 
+a_boolean vector_and_scalar_types_are_compatible(a_type_ptr     vec_type,
+                                                 a_type_ptr     scalar_type,
+                                                 a_constant_ptr scalar_con)
+/*
+Returns TRUE if the specified vector type and the scalar type can be mixed
+in an operation.  In cases where scalar_type is the type of a constant being
+used in the operation, scalar_con is the constant (which can be NULL).  Used
+for operations like "a = b + 1" which corresponds to "a = b + {1,1,1,1}"
+assuming "a" and "b" are vectors of four integer types.
+*/
+{
+  a_boolean  result;
+  a_type_ptr elem_type =
+           skip_typerefs(skip_typerefs(vec_type)->variant.vector.element_type);
+
+  check_assertion(is_vector_type(vec_type));
+  if ((elem_type->kind == (a_type_kind)tk_integer ||
+       elem_type->kind == (a_type_kind)tk_float) &&
+      elem_type->kind == scalar_type->kind &&
+      !is_immediate_enum_type(scalar_type) &&
+      !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
+                               (an_error_code*)NULL)) {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* vector_and_scalar_types_are_compatible */
+
+
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,
@@ -9979,13 +10017,10 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
   a_boolean   is_vector_operation = TRUE;
 
   if (!op1_is_vec && !op2_is_vec) {
-    /* Not a vector operation. */
+    /* Neither operand has a vector type. */
     is_vector_operation = FALSE;
-  } else if (!op1_is_vec || !op2_is_vec) {
-    expr_pos_error(ec_mixed_vector_scalar_operation, err_pos);
-    *result_type = error_type();
-    *op = (an_expr_operator_kind)eok_error;
-  } else {
+  } else if (op1_is_vec && op2_is_vec) {
+    /* Both operands have vector type. */
     a_type_ptr el1_type = op1_type->variant.vector.element_type;
     a_type_ptr el2_type = op2_type->variant.vector.element_type;
     if (op1_type->size != op2_type->size) {
@@ -10019,6 +10054,36 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
           *result_type = op1_type;
           *op = which_binary_operator(op_token, *result_type);
       }  /* switch */
+    }  /* if */
+  } else {
+    /* One operand has vector type.  If the other operand has a proper scalar
+       type, allow the operation (e.g., "a = b + 1" is equivalent to
+       "a = b + {1, 1, 1, 1}" for a vector of four integers).  A back end
+       must be able to handle these mixed-type vector operations. */
+    a_type_ptr vec_type, scalar_type;
+    a_constant_ptr con = NULL;
+    if (op1_is_vec) {
+      vec_type = op1_type;
+      scalar_type = op2_type;
+      if (is_constant_operand(operand_2)) {
+        con = &operand_2->variant.constant;
+      }  /* if */
+    } else {
+      vec_type = op2_type;
+      scalar_type = op1_type;
+      if (is_constant_operand(operand_1)) {
+        con = &operand_1->variant.constant;
+      }  /* if */
+    }  /* if */
+    if (vector_and_scalar_types_are_compatible(vec_type, scalar_type, con)) {
+      /* The vector and scalar types are compatible. */
+      *result_type = vec_type;
+      *op = which_binary_operator(op_token, *result_type);
+    } else {
+      /* Not an allowed mixed-type operation. */
+      expr_pos_error(ec_mixed_vector_scalar_operation, err_pos);
+      *result_type = error_type();
+      *op = (an_expr_operator_kind)eok_error;
     }  /* if */
   }  /* if */
   return is_vector_operation;
@@ -10890,14 +10955,17 @@ void change_binary_operand_types(a_type_ptr             type,
                                  an_expr_operator_kind  op)
 /*
 The given operation will be applied to the given operands.  If type is not a
-fixed-point type, cast the two operands to the new type if necessary.
-Otherwise (if type is a fixed-point type), ensure the operand types have the
+fixed-point type or a vector type, cast the two operands to the new type if
+necessary.  If type is a fixed-point type, ensure the operand types have the
 appropriate signedness (according to the rules prescribed by ISO TR 18037
 for fixed-point arithmetic).  This is used for the operands of an operation,
 with the type probably determined by determine_arithmetic_conversions.
 Either operand pointer may be NULL.  Warnings may be issued if fixed-point
 operands are unlikely to have a useful effect (e.g., when adding an integer
-to a fixed-point operand).
+to a fixed-point operand).  In the vector type case, casts are added when
+applied to a vector type, but not to a scalar type (it is assumed that the
+caller has verified the mix of vector and scalar types and that a back end
+will be able to handle it).
 */
 {
 #if FIXED_POINT_ALLOWED
@@ -10910,6 +10978,16 @@ to a fixed-point operand).
     adjust_fixed_point_binary_operands(operand_1, operand_2, op);
   } else
 #endif /* FIXED_POINT_ALLOWED */
+  /* Do not insert code here. */
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(type) &&
+      operand_1 != NULL && operand_2 != NULL &&
+      !(is_vector_type(operand_1->type) && is_vector_type(operand_2->type))) {
+    /* A mixed-type operation (e.g., "v == 1"); don't add a cast (so the
+       back end will convert the scalar to the appropriate vector type). */
+    /* FIXME: remove with eok_vector_fill */
+  } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Do not insert code here. */
   {
     if (!is_error_type(type)) {
@@ -12260,22 +12338,70 @@ type is an error type, return eok_error.
       op = (an_expr_operator_kind)eok_shiftl;
       break;
     case tok_lt:
-      op = (an_expr_operator_kind)eok_lt;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_lt;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_lt;
+      }  /* if */
       break;
     case tok_gt:
-      op = (an_expr_operator_kind)eok_gt;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_gt;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_gt;
+      }  /* if */
       break;
     case tok_le:
-      op = (an_expr_operator_kind)eok_le;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_le;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_le;
+      }  /* if */
       break;
     case tok_ge:
-      op = (an_expr_operator_kind)eok_ge;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_ge;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_ge;
+      }  /* if */
       break;
     case tok_eq:
-      op = (an_expr_operator_kind)eok_eq;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_eq;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_eq;
+      }  /* if */
       break;
     case tok_ne:
-      op = (an_expr_operator_kind)eok_ne;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_ne;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_ne;
+      }  /* if */
       break;
     case tok_ampersand:
       op = (an_expr_operator_kind)eok_and;
@@ -12287,10 +12413,26 @@ type is an error type, return eok_error.
       op = (an_expr_operator_kind)eok_or;
       break;
     case tok_and_and:
-      op = (an_expr_operator_kind)eok_land;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_land;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_land;
+      }  /* if */
       break;
     case tok_or_or:
-      op = (an_expr_operator_kind)eok_lor;
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type_kind == (a_type_kind)tk_vector) {
+        op = (an_expr_operator_kind)eok_vector_lor;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
+      {
+        op = (an_expr_operator_kind)eok_lor;
+      }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_gnu_min:

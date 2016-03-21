@@ -14734,6 +14734,17 @@ enum an_expr_operator_kind_tag {
            lvalue_rvalue_test
            operation_type_kind
            operation_has_side_effects (if the operator has side effects)
+           operator_is_foldable
+       expr.c:
+           operator_token_for_expr_rescan
+       exprutil.c:
+           operator_for_opname_kind
+       folding.c:
+           fold_expr
+       interpret.c:
+           do_constexpr_expression
+       lower_name.c:
+           mangled_expr_operator_name
      If the operator returns an lvalue (is_lvalue is TRUE), see also
        il.c:
            is_rvalueable_node
@@ -14745,8 +14756,8 @@ enum an_expr_operator_kind_tag {
              according to is_rvalueable_node)
      If the operator is an addressing operator, see also
        folding.c:
-           constant_glvalue_address
-           constant_prvalue_pointer
+           constant_glvalue_address_full
+           constant_prvalue_pointer_full
        il_walk.c:
            traverse_addressing_subtree
   */
@@ -14915,6 +14926,8 @@ enum an_expr_operator_kind_tag {
   eok_not,              /* Logical complement ("!" operator).  Operand is
                            standardized to integer/boolean in some
                            configurations. */
+  eok_vector_not,	/* GNU vector logical complement ("!" operator).
+                           The operand is a GNU vector.  C++ only. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
@@ -14973,7 +14986,20 @@ enum an_expr_operator_kind_tag {
   eok_gt,               /* Greater than (">"). */
   eok_lt,               /* Less than ("<"). */
   eok_ge,               /* Greater than or equal (">="). */
-  eok_le,               /* Less than or equal ("<= */
+  eok_le,               /* Less than or equal ("<="). */
+  /* FIXME: verify that these return the proper type: */
+  eok_vector_eq,        /* GNU vector equality ("==").  Result is a vector of
+                           signed integral element type. */
+  eok_vector_ne,        /* GNU vector inequality ("!=").  Result is a vector of
+                           signed integral element type. */
+  eok_vector_gt,        /* GNU vector greater than (">").  Result is a vector
+                           of signed integral element type. */
+  eok_vector_lt,        /* GNU vector less than ("<").  Result is a vector of
+                           signed integral element type. */
+  eok_vector_ge,        /* GNU vector greater than or equal (">=").  Result is
+                           a vector of signed integral element type. */
+  eok_vector_le,        /* GNU vector less than or equal ("<=").  Result is a
+                           vector of signed integral element type. */
   eok_gnu_min,          /* Minimum operator ("<?", a GNU C++ extension).
 			   Operands and result may be lvalues or rvalues. */
   eok_gnu_max,          /* Maximum operator (">?", a GNU C++ extension).
@@ -15022,6 +15048,12 @@ enum an_expr_operator_kind_tag {
   eok_lor,		/* Logical union ("||" operator).  Operands are
 			   standardized to integer/boolean in some
 			   configurations. */
+  eok_vector_land,	/* GNU vector logical intersection ("&&" operator).
+			   At least one operand is a GNU vector; the other may
+			   be a scalar or a vector.  C++ only. */
+  eok_vector_lor,	/* GNU vector logical union ("||" operator).
+			   At least one operand is a GNU vector; the other may
+			   be a scalar or a vector.  C++ only. */
   eok_comma,            /* The comma operator (","). */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
@@ -15098,6 +15130,13 @@ enum an_expr_operator_kind_tag {
 			   form, when is_gnu_two_operand_question_mark is TRUE
 			   (but three operands are still provided in that
 			   case). */
+  /* FIXME: two-operand version? */
+  eok_vector_question,	/* GNU vector conditional expression ("?" operator).
+			   The first operand is a GNU vector (of integers).
+			   At least one of the remaining operands is a vector
+			   (with the same number of elements as the first
+			   operand); the other operand is either a compatible
+			   scalar or a vector.  C++ only. */
   /* The following have n operands: */
   eok_call,             /* A call of a non-member function or static member
 			   function.  Also any call in C.  The first operand
@@ -19361,7 +19400,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "noexcept",
    "()",
-   "-", "+", "~", "!",
+   "-", "+", "~", "!", "vec!",
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x~", "__real", "__imag",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -19373,18 +19412,21 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "p+", "p-", "pd",
    "<<", ">>", "&", "|", "^",
    "==", "!=", ">", "<", ">=", "<=",
+   "vec==", "vec!=", "vec>", "vec<", "vec>=", "vec<=",
    "<?", ">?",
    "=",
    "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^=",
    "p+=", "p-=",
    "b=",
-   "&&", "||", ",",
-   "[]", "vec[]", ".", "->", ".*", "->*",
+   "&&", "||", "vec&&", "vec||",
+   ",",
+   "[]", "vec[]",
+   ".", "->", ".*", "->*",
    ".* func ptr",
    "->* func ptr",
    ".static", "->static",
    "virt func ptr",
-   "?",
+   "?", "vec?",
    "call",
    ". member call",
    "-> member call",

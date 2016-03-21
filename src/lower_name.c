@@ -10128,6 +10128,7 @@ returned string to an appropriate buffer before this routine is invoked again.
       num_operands = 1;
       break;
     case eok_not:
+    case eok_vector_not:
       opkind = (an_opname_kind)onk_not;
       num_operands = 1;
       break;
@@ -10266,21 +10267,27 @@ returned string to an appropriate buffer before this routine is invoked again.
       opkind = (an_opname_kind)onk_divide;
       break;
     case eok_eq:
+    case eok_vector_eq:
       opkind = (an_opname_kind)onk_eq;
       break;
     case eok_ne:
+    case eok_vector_ne:
       opkind = (an_opname_kind)onk_ne;
       break;
     case eok_gt:
+    case eok_vector_gt:
       opkind = (an_opname_kind)onk_gt;
       break;
     case eok_lt:
+    case eok_vector_lt:
       opkind = (an_opname_kind)onk_lt;
       break;
     case eok_ge:
+    case eok_vector_ge:
       opkind = (an_opname_kind)onk_ge;
       break;
     case eok_le:
+    case eok_vector_le:
       opkind = (an_opname_kind)onk_le;
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -10313,12 +10320,15 @@ returned string to an appropriate buffer before this routine is invoked again.
       opkind = (an_opname_kind)onk_comma;
       break;
     case eok_land:
+    case eok_vector_land:
       opkind = (an_opname_kind)onk_and_and;
       break;
     case eok_lor:
+    case eok_vector_lor:
       opkind = (an_opname_kind)onk_or_or;
       break;
     case eok_question:
+    case eok_vector_question:
       opkind = (an_opname_kind)onk_question;
       num_operands = 3;
       break;

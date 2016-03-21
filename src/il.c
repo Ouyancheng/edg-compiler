@@ -14175,6 +14175,13 @@ to operands of the given type.
   } else if (kind2 == (a_type_kind)tk_fixed_point) {
     result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+    /* FIXME: float? */
+  } else if (kind1 == (a_type_kind)tk_vector) {
+    result = (kind2 == (a_type_kind)tk_integer) ? kind1 : kind2;
+  } else if (kind2 == (a_type_kind)tk_vector) {
+    result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (kind1 == (a_type_kind)tk_nullptr ||
              kind2 == (a_type_kind)tk_nullptr) {
     result = (a_type_kind)tk_nullptr;
@@ -14280,6 +14287,9 @@ tk_unknown is returned.
     case eok_not:
       result = operand_kind;
       break;
+    case eok_vector_not:
+      result = (a_type_kind)tk_vector;
+      break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:
     case eok_real_part:
@@ -14346,6 +14356,14 @@ tk_unknown is returned.
                                             arg1->type, arg2->type);
       }  /* if */
       break;
+    case eok_vector_eq:
+    case eok_vector_ne:
+    case eok_vector_gt:
+    case eok_vector_lt:
+    case eok_vector_ge:
+    case eok_vector_le:
+      result = (a_type_kind)tk_vector;
+      break;
     case eok_gnu_min:
     case eok_gnu_max:
       result = expr_kind;
@@ -14377,6 +14395,10 @@ tk_unknown is returned.
     case eok_land:
     case eok_lor:
       result = (a_type_kind)tk_integer;
+      break;
+    case eok_vector_land:
+    case eok_vector_lor:
+      result = (a_type_kind)tk_vector;
       break;
     case eok_comma:
       result = (a_type_kind)tk_unknown;
@@ -14413,6 +14435,9 @@ tk_unknown is returned.
     case eok_va_copy:
     case eok_va_start_single_operand:
       result = (a_type_kind)tk_unknown;
+      break;
+    case eok_vector_question:
+      result = (a_type_kind)tk_vector;
       break;
     case eok_lvalue:
       result = expr_kind;
@@ -14975,7 +15000,8 @@ the value of the expression is discarded.
       /* Given a comma operation, the second operand is not used if the
          entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
-    } else if (op == (an_expr_operator_kind)eok_question) {
+    } else if (op == (an_expr_operator_kind)eok_question ||
+               op == (an_expr_operator_kind)eok_vector_question) {
       /* Given a question mark operation, the second and third operands
          are not used if the entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
@@ -15016,7 +15042,8 @@ type kind" as a function of the operator kind and the type of the operands.
   if (il_lowering_underway && is_lvalue &&
       (kind == (an_expr_operator_kind)eok_comma ||
        kind == (an_expr_operator_kind)eok_assign ||
-       kind == (an_expr_operator_kind)eok_question)) {
+       kind == (an_expr_operator_kind)eok_question ||
+       kind == (an_expr_operator_kind)eok_vector_question)) {
     /* Make sure that operators added during lowering have the
        returns_lvalue_instead_of_usual_rvalue field set properly. */
     /* Note that these lvalue returning operations will be re-written
@@ -20040,6 +20067,12 @@ check_cast_destination_type:
     case eok_lt:
     case eok_ge:
     case eok_le:
+    case eok_vector_eq:
+    case eok_vector_ne:
+    case eok_vector_gt:
+    case eok_vector_lt:
+    case eok_vector_ge:
+    case eok_vector_le:
     case eok_gnu_min:
     case eok_gnu_max:
       /* In C99, the floating-point status flags can be tested, so a
@@ -25590,6 +25623,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_unary_plus: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_complement: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_not: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_vector_not: */			LVRV_OPND1_IS_PRVALUE,
 #if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xconj: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
@@ -25651,6 +25685,18 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_le: */				LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_eq: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_ne: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_gt: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_lt: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_ge: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_le: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
   /* eok_gnu_min: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
 					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_gnu_max: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
@@ -25687,6 +25733,10 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_lor: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_land: */		LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_lor: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
   /* eok_comma: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_subscript: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
@@ -25705,6 +25755,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_PRVALUE,
   /* eok_question: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_vector_question: */		LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_call: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_dot_member_call: */		LVRV_OPND1_IS_PRVALUE,
@@ -26003,7 +26055,8 @@ node, and report any failure as an internal error.
             (op_node == operand_1 || expr->result_is_not_used)) {
           /* Okay, this is an operand of a comma operation, and the flag
              is set correctly. */
-        } else if (op == (an_expr_operator_kind)eok_question &&
+        } else if ((op == (an_expr_operator_kind)eok_question ||
+                    op == (an_expr_operator_kind)eok_vector_question) &&
                    op_node != operand_1 &&
                    expr->result_is_not_used) {
           /* Okay, this is an operand after the first on a "?"
@@ -26104,6 +26157,13 @@ node, and report any failure as an internal error.
           (is_fixed_point_type(op_type_1) ||
            is_fixed_point_type(op_type_2))) &&
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        /* Disregard vector types (these can be mixed). */
+        !(gnu_mode &&
+          expr->variant.operation.type_kind == tk_vector &&
+          (is_vector_type(op_type_1) ||
+           is_vector_type(op_type_2))) &&
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Disregard template dependent operands. */
         !(is_template_dependent_type(expr->type) ||
           is_template_dependent_type(op_type_1) ||
@@ -26115,6 +26175,39 @@ node, and report any failure as an internal error.
       internal_error("types for operation are not consistent");
     }  /* if */
   }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (op == (an_expr_operator_kind)eok_vector_not ||
+      op == (an_expr_operator_kind)eok_vector_eq ||
+      op == (an_expr_operator_kind)eok_vector_ne ||
+      op == (an_expr_operator_kind)eok_vector_lt ||
+      op == (an_expr_operator_kind)eok_vector_gt ||
+      op == (an_expr_operator_kind)eok_vector_le ||
+      op == (an_expr_operator_kind)eok_vector_ge ||
+      op == (an_expr_operator_kind)eok_vector_land ||
+      op == (an_expr_operator_kind)eok_vector_lor ||
+      op == (an_expr_operator_kind)eok_vector_question) {
+    /* Vector operators return a vector type. */
+    if (expr->variant.operation.type_kind != tk_vector ||
+        !is_vector_type(expr->type)) {
+#if DEBUG
+      db_expression(expr);
+#endif /* DEBUG */
+      internal_error("types for vector operation are not consistent");
+    }  /* if */
+    if ((op == (an_expr_operator_kind)eok_vector_not ||
+         op == (an_expr_operator_kind)eok_vector_land ||
+         op == (an_expr_operator_kind)eok_vector_lor ||
+         op == (an_expr_operator_kind)eok_vector_question) &&
+         C_mode()) {
+      /* These operations should only appear in C++ mode. */
+#if DEBUG
+      db_expression(expr);
+#endif /* DEBUG */
+      internal_error("vector operation in wrong mode");
+    }  /* if */
+    /* FIXME: check for integral signed vectors for comparison ops? */
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 }  /* check_operation_node_consistency */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -26142,7 +26235,8 @@ is found in check_operation_node_consistency.)
       /* Given a comma operation, the second operand is not used if the
          entire operation is not used. */
       check_result_not_used_flag(operand_1->next);
-    } else if (op == (an_expr_operator_kind)eok_question) {
+    } else if (op == (an_expr_operator_kind)eok_question ||
+               op == (an_expr_operator_kind)eok_vector_question) {
       /* Given a question mark operation, the second and third operands
          are not used if the entire operation is not used. */
       check_result_not_used_flag(operand_1->next);

@@ -10456,6 +10456,9 @@ are both rvalues.
   test_node = boolean_controlling_expr(orig_source_node);
   test_node->next = source_node;
   source_node->next = null_constant_node;
+#if GNU_VECTOR_TYPES_ALLOWED
+  check_assertion(!is_vector_type(expr->type));
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
                     source_node->type, expr->is_lvalue, test_node);
   release_local_constant(&null_constant);
@@ -11768,6 +11771,9 @@ an lvalue or rvalue expression.
   /* Assemble the "?" operation, overwriting the original node. */
   rel_node->next = temp1;
   temp1->next = temp2;
+#if GNU_VECTOR_TYPES_ALLOWED
+  check_assertion(!is_vector_type(expr->type));
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
                     temp1->type, expr->is_lvalue, rel_node);
 }  /* lower_gnu_min_max */
@@ -13274,6 +13280,7 @@ parent operation.
         child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
         ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
+         child_op == (an_expr_operator_kind)eok_question ||
          child_op == (an_expr_operator_kind)eok_comma)) {
       if (op != (an_expr_operator_kind)eok_comma) {
         /* The first operand of expr is an lvalue-returning "?" or ",".
@@ -13288,7 +13295,8 @@ parent operation.
         a_boolean        orig_expr_result_is_not_used =
                                                       expr->result_is_not_used;
         a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
-        if (child_op == (an_expr_operator_kind)eok_question) {
+        if (child_op == (an_expr_operator_kind)eok_question ||
+            child_op == (an_expr_operator_kind)eok_vector_question) {
           /* Lvalue "?" rewrite.  Change
                ((g1 ? g2 : g3) = c2)
                                S
@@ -13392,6 +13400,7 @@ parent operation.
       }  /* if */
     } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
                (op != (an_expr_operator_kind)eok_question &&
+                op != (an_expr_operator_kind)eok_vector_question &&
                 op != (an_expr_operator_kind)eok_comma)) {
       an_expr_node_ptr child2 = child1->next;
       an_expr_node_ptr newop;
@@ -13675,7 +13684,8 @@ recursively (and only the top level expression has had its xvalue converted).
     an_expr_node_ptr  op1 = expr->variant.operation.operands;
     an_expr_node_ptr  op2 = op1->next;
     if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      if (node_operator_is(expr, eok_question)) {
+      if (node_operator_is(expr, eok_question) ||
+          node_operator_is(expr, eok_vector_question)) {
         /* Rewrite the second and third operands as rvalues, and then mark
            this expression as an rvalue. */
         an_expr_node_ptr  op3 = op2->next;
@@ -15693,6 +15703,19 @@ cast.  See lower_expr for typical invocation.
             lower_comma(expr);
             break;
 #endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
+          /* The following are not explicitly lowered (and must be handled by a
+             back end).  The operands to these vector operations are lowered,
+             however. */
+          case eok_vector_not:
+          case eok_vector_eq:
+          case eok_vector_ne:
+          case eok_vector_lt:
+          case eok_vector_gt:
+          case eok_vector_le:
+          case eok_vector_ge:
+          case eok_vector_land:
+          case eok_vector_lor:
+          case eok_vector_question:
           default:
             /* No action on most operators. */
             break;
@@ -16060,7 +16083,8 @@ with an enk_object_lifetime node on top.
            a bool. */
         adjust_bool_operation_types(operand2, &adjusted, see_if_possible);
         if (adjusted && !see_if_possible) expr->type = operand2->type;
-      } else if (op == (an_expr_operator_kind)eok_question) {
+      } else if (op == (an_expr_operator_kind)eok_question ||
+                 op == (an_expr_operator_kind)eok_vector_question) {
         /* A question node.  If both the second and third operands return
            bool, both can be rewritten and the result of the question mark
            operation can also. */

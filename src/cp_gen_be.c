@@ -609,6 +609,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_PREFIX,		/* eok_unary_plus */
   PREC_PREFIX,		/* eok_complement */
   PREC_PREFIX,		/* eok_not */
+  PREC_PREFIX,		/* eok_vector_not */
 #if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PREFIX,		/* eok_xconj */
   PREC_POSTFIX,		/* eok_real_part */
@@ -645,6 +646,12 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_RELATIONAL,	/* eok_lt */
   PREC_RELATIONAL,	/* eok_ge */
   PREC_RELATIONAL,	/* eok_le */
+  PREC_EQ_NE,		/* eok_vector_eq */
+  PREC_EQ_NE,		/* eok_vector_ne */
+  PREC_RELATIONAL,	/* eok_vector_gt */
+  PREC_RELATIONAL,	/* eok_vector_lt */
+  PREC_RELATIONAL,	/* eok_vector_ge */
+  PREC_RELATIONAL,	/* eok_vector_le */
   PREC_GNU_MIN_MAX,	/* eok_gnu_min */
   PREC_GNU_MIN_MAX,	/* eok_gnu_max */
   PREC_ASSIGNMENT,	/* eok_assign */
@@ -663,6 +670,8 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_ASSIGNMENT,	/* eok_bassign */
   PREC_AND_AND,		/* eok_land */
   PREC_OR_OR,		/* eok_lor */
+  PREC_AND_AND,		/* eok_vector_land */
+  PREC_OR_OR,		/* eok_vector_lor */
   PREC_COMMA,		/* eok_comma */
   PREC_POSTFIX,		/* eok_subscript */
   PREC_POSTFIX,		/* eok_vector_subscript */
@@ -676,6 +685,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_points_to_static */
   PREC_POSTFIX,		/* eok_virtual_function_ptr */
   PREC_QUEST_MARK,	/* eok_question */
+  PREC_QUEST_MARK,	/* eok_vector_question */
   PREC_POSTFIX,		/* eok_call */
   PREC_POSTFIX,		/* eok_dot_member_call */
   PREC_POSTFIX,		/* eok_points_to_member_call */
@@ -12628,6 +12638,7 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "+";
           break;
         case eok_not:
+        case eok_vector_not:
           opstr = "!";
           break;
         case eok_bool_cast:
@@ -12841,15 +12852,19 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = ">>";
           break;
         case eok_eq:
+        case eok_vector_eq:
           opstr = "==";
           break;
         case eok_ne:
+        case eok_vector_ne:
           opstr = "!=";
           break;
         case eok_gt:
+        case eok_vector_gt:
           opstr = ">";
           break;
         case eok_lt:
+        case eok_vector_lt:
           opstr = "<";
           if (msvc_is_generated_code_target && in_template_argument_list) {
             /* The Microsoft compiler has a bug in which it sometimes
@@ -12860,9 +12875,11 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           break;
         case eok_ge:
+        case eok_vector_ge:
           opstr = ">=";
           break;
         case eok_le:
+        case eok_vector_le:
           opstr = "<=";
           break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -13004,12 +13021,15 @@ gen_expr that might end up generating this expr as a temporary.
           }
           goto done_with_operation;
         case eok_land:
+        case eok_vector_land:
           opstr = "&&";
           break;
         case eok_lor:
+        case eok_vector_lor:
           opstr = "||";
           break;
         case eok_question:
+        case eok_vector_question:
           /* Three operand operator. */
           gen_expr_with_parens(operand_1);
           write_tok_str(" ? ");
@@ -13195,7 +13215,8 @@ gen_expr that might end up generating this expr as a temporary.
       }  /* if */
       /* Generate the first operand. */
       if (is_operation_node(operand_1) &&
-          node_operator_is(operand_1, eok_question)) {
+          (node_operator_is(operand_1, eok_question) ||
+           node_operator_is(operand_1, eok_vector_question))) {
         /* "?:" as a left-hand lvalue operand requires special treatment:
            it has higher precedence than the assignment operators, but
            because the third operand is an assignment-expression, it
