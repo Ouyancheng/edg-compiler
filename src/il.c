@@ -14287,9 +14287,11 @@ tk_unknown is returned.
     case eok_not:
       result = operand_kind;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_not:
       result = (a_type_kind)tk_vector;
       break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:
     case eok_real_part:
@@ -14356,6 +14358,7 @@ tk_unknown is returned.
                                             arg1->type, arg2->type);
       }  /* if */
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_eq:
     case eok_vector_ne:
     case eok_vector_gt:
@@ -14364,6 +14367,7 @@ tk_unknown is returned.
     case eok_vector_le:
       result = (a_type_kind)tk_vector;
       break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case eok_gnu_min:
     case eok_gnu_max:
       result = expr_kind;
@@ -14396,10 +14400,12 @@ tk_unknown is returned.
     case eok_lor:
       result = (a_type_kind)tk_integer;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_land:
     case eok_vector_lor:
       result = (a_type_kind)tk_vector;
       break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case eok_comma:
       result = (a_type_kind)tk_unknown;
       break;
@@ -14436,9 +14442,11 @@ tk_unknown is returned.
     case eok_va_start_single_operand:
       result = (a_type_kind)tk_unknown;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_question:
       result = (a_type_kind)tk_vector;
       break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case eok_lvalue:
       result = expr_kind;
       break;

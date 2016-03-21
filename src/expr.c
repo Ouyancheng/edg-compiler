@@ -24538,7 +24538,9 @@ expression, and return the result in *result (or an error indication in
       result_type = operand_1->type;
       op = which_binary_operator(operator_token, result_type);
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
 result_type_determined:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
         operand_2.variant.constant.kind == (a_constant_repr_kind)ck_integer) {

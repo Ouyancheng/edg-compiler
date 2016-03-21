@@ -5410,15 +5410,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                                                   (a_type_kind)tk_fixed_point);
 #endif /* LOWER_FIXED_POINT */
       /* Check that equality, relational, and logical operations have
-         type int (or a vector type in certain configurations). */
+         type int. */
       check_assertion(!(is_operator_returning_bool(op) &&
-                       ((expr->type->kind != (a_type_kind)tk_integer ||
-                         expr->type->variant.integer.int_kind !=
-                                                  ((an_integer_kind)ik_int))
-#if GNU_VECTOR_TYPES_ALLOWED
-                        && !is_vector_type(expr->type))
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                                       ));
+                       (expr->type->kind != (a_type_kind)tk_integer ||
+                        expr->type->variant.integer.int_kind !=
+                                                  ((an_integer_kind)ik_int))));
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
       check_operation_node_consistency(expr);
 #endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
