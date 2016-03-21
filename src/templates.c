@@ -474,6 +474,12 @@ static a_template_ptr copy_template_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
 
+static void add_instantiation(
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp,
+		a_symbol_ptr				instance_sym,
+		a_template_arg_ptr			template_arg_list);
+
 
 static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
 /*
@@ -5971,10 +5977,17 @@ the template definition or may be a default initialization.
   }  /* if */
   /* If the variable type is a template class, make sure it is instantiated. */
   complete_type_is_needed(var_ptr->type);
+  /* FIXME: should this be done elsewhere? */
+  if (!tip->template_sym->is_class_member &&
+      is_const_qualified_type(var_ptr->type)) {
+    var_ptr->storage_class = (a_storage_class)sc_static;
+  }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
+  add_instantiation(tip->template_sym, tssp, var_sym,
+                    var_ptr->template_info->template_arg_list);
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
      depends on it. */
@@ -22358,6 +22371,12 @@ and returned.  Otherwise, NULL is returned.
          redeclaration error will be issued when the new symbol is
          entered. */
     }  /* if */
+  }  /* if */
+  if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
+    /* An invalid redeclaration of some other entity.  This will get an
+       error when the symbol is re-entered. */
+    sym = NULL;
+    expect_error();
   }  /* if */
   if (err) {
     /* Some sort of error occurred above. */
