@@ -24503,7 +24503,7 @@ only in C++ mode.
   /* Do not insert code here. */
   {
     for (vp = scope->variables; vp != NULL; vp = vp->next) {
-      if (!vp->source_corresp.needed) {
+      if (!vp->source_corresp.needed && !vp->is_nonreal) {
         /* If the instantiation_required flag was set, clear it now.
            The code here is needed when processing lowered IL (the static
            data members have been promoted out of the class). */

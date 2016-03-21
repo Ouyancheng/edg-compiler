@@ -9795,6 +9795,10 @@ typedef struct a_variable {
 			   variable declared during the prototype
 			   instantiation of a function template, unless that
 			   variable has linkage and a nondependent type. */
+  a_bit_field	is_nonreal:1;
+			/* TRUE if this is a variable template instance that
+			   resulted from an instantiation using a dependent
+			   argument list. */
   a_bit_field	is_specialized:1;
 			/* TRUE when is_template_static_data_member is TRUE
 			   but the definition is supplied independently of

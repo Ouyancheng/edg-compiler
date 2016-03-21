@@ -2852,6 +2852,9 @@ Display the indicated variable.
   if (ptr->is_prototype_instantiation) {
     disp_boolean("is_prototype_instantiation", TRUE);
   }  /* if */
+  if (ptr->is_nonreal) {
+    disp_boolean("is_nonreal", TRUE);
+  }  /* if */
   if (ptr->is_specialized) {
     disp_boolean("is_specialized", TRUE);
   }  /* if */

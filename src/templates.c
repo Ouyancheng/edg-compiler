@@ -5243,7 +5243,7 @@ user later during real instantiations.
     if (!def_init_okay) {
       /* It could not be default initialized.  See if an initializer is
          required. */
-      check_for_missing_initializer(template_sym, var_ptr->type);
+      check_for_missing_initializer(proto_sym, var_ptr->type);
     }  /* if */
   }  /* if */
   if (instantiation_scope_needed && scope_pushed) {
@@ -8749,6 +8749,17 @@ instance symbol.
 }  /* make_template_variable */
 
 
+static void make_nonreal_variable_instance(a_variable_ptr	var)
+/*
+Update var with a dependent type.
+*/
+{
+  var->is_nonreal = TRUE;
+  var->type = type_of_unknown_templ_param_nontype;
+  add_to_variables_list(var, NO_SCOPE_DEPTH);
+}  /* make_noreal_variable_instance */
+
+
 a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list)
@@ -8768,14 +8779,23 @@ use of the argument list in case it has been freed.
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
   a_template_instance_ptr		tip = NULL;
-  a_template_arg_ptr			tap = *new_templ_arg_list;
+  a_boolean				is_nonreal = FALSE;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   template_sym = fundamental_symbol_of(template_sym);
   tssp = template_sym->variant.template_info;
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(*new_templ_arg_list,
+                                     /*local_only=*/FALSE);
+  /* See if the template argument list contains any dependent types. */
+  if (is_template_dependent_context() &&
+      template_arg_list_is_dependent(*new_templ_arg_list)) {
+    is_nonreal = TRUE;
+  }  /* if */
   { a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
-    hash_table_sym = find_instantiation(template_sym, tssp, tap,
+    hash_table_sym = find_instantiation(template_sym, tssp,
+                                        *new_templ_arg_list,
                                         /*create=*/FALSE);
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
@@ -8788,11 +8808,18 @@ use of the argument list in case it has been freed.
     /* No match was found, so create a new template variable.  That means
        create a symbol entry, a variable entry, and a template instance
        entry, and linking all these appropriately. */
-    sym = make_template_variable(template_sym, tap);
+    a_variable_ptr	var;
+    sym = make_template_variable(template_sym, *new_templ_arg_list);
+    var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
-    /* Instantiate the type and initializer of the variable. */
-    instantiate_template_variable(tip);
-    set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+    if (!is_nonreal) {
+      /* Instantiate the type and initializer of the variable. */
+      instantiate_template_variable(tip);
+      set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+    } else {
+      /* Create a nonreal variable. */
+      make_nonreal_variable_instance(var);
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("instantiations")) {
       db_symbol(sym, "created: ", 2);
