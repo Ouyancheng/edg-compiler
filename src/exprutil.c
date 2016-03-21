@@ -9270,12 +9270,12 @@ still provided).
 */
 {
   an_expr_node_ptr      expr;
-  an_expr_operator_kind op = eok_question;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_question;
 
   expr = make_node_from_operand(operand_1);
 #if GNU_VECTOR_TYPES_ALLOWED
   if (is_vector_type(operand_1->type)) {
-    op = eok_vector_question;
+    op = (an_expr_operator_kind)eok_vector_question;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   expr = make_operator_node(op, result_type, expr);
