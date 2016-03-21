@@ -5986,8 +5986,10 @@ the template definition or may be a default initialization.
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
-  add_instantiation(tip->template_sym, tssp, var_sym,
-                    var_ptr->template_info->template_arg_list);
+  if (is_var_templ_instance) {
+    add_instantiation(tip->template_sym, tssp, var_sym,
+                      var_ptr->template_info->template_arg_list);
+  }  /* if */
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
      depends on it. */
