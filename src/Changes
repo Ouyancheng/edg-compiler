@@ -1,5 +1,50 @@
 Version 4.11
 
+3/21/16  [EDGcpfe/16871]
+__is_trivially_constructible
+
+Previously, the type traits helper __is_trivially_constructible incorrectly
+produced a false value for a class that is trivially constructible but not
+trivially destructible.  This is now fixed.
+
+
+3/21/16  [EDGcpfe/16871]
+__is_pod and array types
+
+The __is_pod type traits helper previously failed to consider the element
+type of an array.  For example:
+
+  struct D { ~D(); };
+  static_assert(!is_pod(D[2]), "Unexpected");
+
+Previously, this assertion check failed; now it is accepted.
+
+
+3/21/16  [EDGcpfe/16871]
+Microsoft C++ compatibility: Type traits helpers and deleted special members
+
+In Microsoft mode, deleted special members are never treated as "trivial"
+in the context of queries using type traits helpers.  For example:
+
+  struct D {
+    D();
+    D& operator=(D const&) = delete;
+  };
+  static_assert(!__has_trivial_assign(D), "Standard");
+
+In normal C++11 modes, the static_assert above should fail because the
+copy assignment operator is considered trivial since it is deleted on its
+first declaration.  However, in Microsoft C++ mode (with microsoft_version
+>= 1800), the static_assert construct is accepted.
+
+
+3/21/16  [EDGcpfe/16871]
+Microsoft C++ compatibility: __is_trivially_copy_assignable
+
+In Microsoft C++ mode, the front end now accepts the type traits helper
+__is_trivially_copy_assignable.
+
+
 3/21/16  [EDGcpfe/16831]
 Missing parentheses in pack expansion passed to initializer_list constructor
 

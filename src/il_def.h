@@ -1262,6 +1262,7 @@ typedef enum /*a_token_kind*/ {
   tok_coroutine_await,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_assignable,
+  tok_is_trivially_copy_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
@@ -1432,6 +1433,7 @@ EXTERN a_const_char
    "co_yield", "co_return", "co_await",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
+   "__is_trivially_copy_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
@@ -15331,6 +15333,9 @@ typedef enum a_builtin_operation_kind_tag {
 			/* Clang's __builtin_shufflevector operator.  Two
 			   vector operands followed by a list of integers. */
   bok_is_assignable,    /* Microsoft's __is_assignable.  Two type operands. */
+  bok_is_trivially_copy_assignable,
+			/* Microsoft's __is_trivially_copy_assignable.  Two
+			   type operands. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -19505,6 +19510,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_win_interface",
   "__builtin_shufflevector",
   "__is_assignable",
+  "__is_trivially_copy_assignable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

@@ -602,6 +602,8 @@ modes.
     enter_keyword((a_token_kind)tok_is_valid_winrt_type,
                   "__is_valid_winrt_type");
     enter_keyword((a_token_kind)tok_is_assignable, "__is_assignable");
+    enter_keyword((a_token_kind)tok_is_trivially_copy_assignable,
+                  "__is_trivially_copy_assignable");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,

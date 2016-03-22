@@ -20901,6 +20901,67 @@ trivial copy assignment operator, or trivial destructor.
   return tblock.result;
 }  /* expr_calls_nontrivial_function */
 
+
+static void examine_dynamic_init_for_nontrivial_ctor(
+                                    a_dynamic_init_ptr                  dip,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by the expression traversal routines.  It sets
+tblock->result and tblock->terminate to TRUE if the given dynamic
+initialization involves a call to a constructor not known to be trivial.
+*/
+{
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+    a_routine_ptr  ctor = dip->variant.constructor.ptr;
+    if (ctor != NULL && !ctor->is_trivial_default_constructor &&
+        !ctor->is_trivial_copy_function) {
+      /* Initialization is through a nontrivial constructor. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* examine_dynamic_init_for_nontrivial_ctor */
+
+
+static void examine_expr_for_nontrivial_ctor(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by the expression traversal routines.  It sets
+tblock->result and tblock->terminate to TRUE if the given node is a call to
+a constructor not known to be trivial.
+*/
+{
+  if (is_call_node(node)) {
+    an_expr_node_ptr op1 = node->variant.operation.operands;
+    a_routine_ptr    rp = routine_from_function_expr(op1);
+    if (rp != NULL && special_kind_is(rp, sfk_constructor) &&
+        !(rp->is_trivial_default_constructor ||rp->is_trivial_copy_function)) {
+      /* A call to a nontrivial constructor. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* examine_expr_for_nontrivial_ctor */
+
+
+a_boolean expr_calls_nontrivial_ctor(an_expr_node_ptr expr)
+/*
+Return TRUE if the evaluation of the given function involves a call to any
+function other than a trivial default constructor, trivial copy constructor,
+trivial copy assignment operator, or trivial destructor.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_nontrivial_ctor;
+  tblock.process_dynamic_init = examine_dynamic_init_for_nontrivial_ctor;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_calls_nontrivial_ctor */
+
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void check_expr_for_statement_expression(

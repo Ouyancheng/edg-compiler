@@ -12122,6 +12122,9 @@ indication in *rcblock).
       case tok_is_value_class:          bok = bok_is_value_class; break;
       case tok_is_win_class:            bok = bok_is_win_class; break;
       case tok_is_win_interface:        bok = bok_is_win_interface; break;
+      case tok_is_trivially_copy_assignable:
+                                        bok = bok_is_trivially_copy_assignable;
+                                        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_is_final:                bok = bok_is_final; break;
       default:
@@ -27857,6 +27860,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_win_class:
     case tok_is_win_interface:
     case tok_gcnew:
+    case tok_is_trivially_copy_assignable:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
     case tok_const_cast:
@@ -32092,6 +32096,7 @@ handle_coroutine_yield:
     case tok_is_value_class:
     case tok_is_win_class:
     case tok_is_win_interface:
+    case tok_is_trivially_copy_assignable:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
       /* Various single-type unary traits helpers. */
@@ -32154,7 +32159,7 @@ handle_coroutine_yield:
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_is_assignable:
-      /* __is_assignable construct: */
+      /* __is_assignable/__is_trivially_copy_assignable construct: */
       scan_is_assignable(bok_is_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
@@ -40279,7 +40284,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_is_assignable:
-        /* __is_assignable construct: */
+        /* __is_assignable/__is_trivially_copy_assignable construct: */
         scan_is_assignable(bok_is_assignable, rcblock, result);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -42401,7 +42406,7 @@ empty) list of type operands args, and returns TRUE if so.
         result = !expr_might_throw(expr);
       } else if (kind == (a_builtin_operation_kind)
                                              bok_is_trivially_constructible) {
-        result = !expr_calls_nontrivial_function(expr);
+        result = !expr_calls_nontrivial_ctor(expr);
       }  /* if */
     }  /* if */
     scope_stack_top().defer_access_checks = saved_defer_access_checks;

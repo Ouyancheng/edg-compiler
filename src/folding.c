@@ -7513,7 +7513,8 @@ checking is needed (see microsoft_has_assign_predicate).
   /* First examine any copy assignment operators. */
   sym = class_symbol_supp(symbol_for(class_type))->assignment_operator;
   if (sym != NULL) {
-    a_boolean  found_copy_assign = FALSE;
+    a_boolean  found_copy_assign = FALSE,
+               found_nonthrowing_copy_assign = FALSE;
     if (symbol_is(sym, sk_overloaded_function)) {
       is_list = TRUE;
       sym = sym->variant.overloaded_function.symbols;
@@ -7530,9 +7531,12 @@ checking is needed (see microsoft_has_assign_predicate).
                                   sym, /*move_assign_okay=*/FALSE, &ref_param,
                                   &qualifiers, &is_base_class_match)) {
           found_copy_assign = TRUE;
-          if (is_non_throwing_routine(rp)) {
+          if (microsoft_mode && microsoft_version >= 1800 && rp->is_deleted) {
+            /* MSVC doesn't consider nonthrowing assignment operators. */
+          } else if (is_non_throwing_routine(rp)) {
             /* This copy assignment operator is known not to throw exceptions:
                Continue checking other operators (if any). */
+            found_nonthrowing_copy_assign = TRUE;
           } else {
             /* A throwing copy assignment operator. */
             break;
@@ -7543,7 +7547,7 @@ checking is needed (see microsoft_has_assign_predicate).
     if (found_copy_assign) {
       /* There were user-declared copy assignment operators.  If any throws,
          sym points to the first one encountered. */
-      result = sym == NULL;
+      result = sym == NULL && found_nonthrowing_copy_assign;
       goto done;
     }  /* if */
   }  /* if */
@@ -7900,7 +7904,8 @@ associated with cssp are trivial.
       a_routine_ptr         rp = sym->variant.routine.ptr;
       if (routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
           !is_move) {
-        if (!rp->is_trivial_copy_function) {
+        if (!rp->is_trivial_copy_function ||
+            (microsoft_mode && microsoft_version >= 1800 && rp->is_deleted)) {
           result = FALSE;
           break;
         } else {
@@ -7999,7 +8004,8 @@ constant will be set as well.
     a_type_ptr                orig_type = type;
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
         kind == (a_builtin_operation_kind)bok_is_standard_layout ||
-        kind == (a_builtin_operation_kind)bok_is_literal_type) {
+        kind == (a_builtin_operation_kind)bok_is_literal_type ||
+        kind == (a_builtin_operation_kind)bok_is_pod) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
@@ -8025,7 +8031,7 @@ constant will be set as well.
         case bok_has_trivial_copy:
         case bok_has_trivial_destructor:
         case bok_has_trivial_move_constructor:
-          if (microsoft_mode) {
+          if (microsoft_mode && microsoft_version < 1700) {
             /* MSVC returns FALSE for all of these (which is, at least in
                some cases, weird, but there you have it). */
             result = FALSE;
@@ -8135,6 +8141,9 @@ constant will be set as well.
         case bok_is_final:
           result = FALSE;
           break;
+        case bok_is_trivially_copy_assignable:
+          result = TRUE;
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -8154,7 +8163,7 @@ constant will be set as well.
       case bok_has_assign:
       case bok_has_nothrow_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        if (!microsoft_mode) {
+        if (!microsoft_mode || microsoft_version >= 1800) {
           check_assertion(kind ==
                             (a_builtin_operation_kind)bok_has_nothrow_assign);
           result = !is_const && compute_has_nothrow_assign(type);
@@ -8215,8 +8224,7 @@ constant will be set as well.
       case bok_has_trivial_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
         result = !is_const &&
-                 (cssp->assignment_by_bitwise_copy_allowed ||
-                  all_copy_assignment_operators_trivial(cssp));
+                 all_copy_assignment_operators_trivial(cssp);
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
@@ -8375,6 +8383,10 @@ constant will be set as well.
       case bok_is_final:
         result = type->variant.class_struct_union.final;
         break;
+      case bok_is_trivially_copy_assignable:
+        result = cssp->assignment_by_bitwise_copy_allowed &&
+                 !cssp->has_deleted_copy_or_move_assign_operator;
+        break;
       default:
         unexpected_condition();
     }  /* if */
@@ -8515,6 +8527,7 @@ constant is set as well.
       case bok_is_simple_value_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case bok_is_final:
+      case bok_is_trivially_copy_assignable:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
