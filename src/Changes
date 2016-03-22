@@ -1,5 +1,42 @@
 Version 4.11
 
+3/22/16  [EDGcpfe/16541]
+Incorrect SFINAE handling of variadic templates and explicit template arguments
+leads to spurious errors
+
+In some relatively complex circumstances, the front end did not correctly
+substitute explicit template arguments in a variadic function template.  This
+was likely to result in spurious errors.  For example:
+
+  template<int N, typename... Ts> struct R {};
+  template<int N, typename T0, typename... TTs> struct R<N, T0, TTs...>
+                                                : R<N+1, TTs...> {
+    static T0& hd(R&);
+    R();
+  };
+  template<typename... Ts> struct S : public R<0, Ts...> {
+    S(const Ts&... aTs);
+  };
+  template<int N, typename... Ts>
+  auto getR(R<N, Ts...> &r) -> decltype(R<N, Ts...>::hd(r));
+  template<int N, typename... Ts>
+  auto getS(S<Ts...> &s) -> decltype(getR<N>(s));
+  template<typename R> struct A {
+    template<typename... Args> static int f(S<Args...>& args) {
+      return getS<1>(args);
+    }
+  };
+  void g() {
+    S<int, int, int> args(11, 22, 33);
+    A<void>::f(args);
+  }
+
+Here the partial substitution of getS<1> in the call getS<1>(args) produced
+an incorrect type for getR<N>.  That triggered a spurious SFINAE failure, which
+in turn caused the call getS<1>(args) not to find a matching function template.
+This is now fixed.
+
+
 3/22/16  [EDGcpfe/16962]
 Clang C++ compatibility: generation of __restrict__ from token cache
 

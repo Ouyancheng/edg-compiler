@@ -4634,14 +4634,17 @@ by rcblock, and with additional information from *eriep, and return the
 substituted type, or an error indication in rcblock.
 */
 {
-  a_type_ptr   new_type;
-  a_boolean    copy_error = FALSE;
+  a_type_ptr          new_type;
+  a_boolean           copy_error = FALSE;
+  a_ctws_options_set  ctws_options = CTWS_NON_CONSTANT_EXPR;
 
+  ctws_options |= (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                                       CTWS_PARTIAL_ARG_LIST_OKAY));
   new_type = copy_type_with_substitution(type,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
                                          &eriep->saved_operand.position,
-                                         CTWS_NON_CONSTANT_EXPR,
+                                         ctws_options,
                                          &copy_error, rcblock->ctws_state);
   if (copy_error) {
     rcblock->error_detected = TRUE;
