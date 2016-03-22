@@ -93,10 +93,10 @@ constant-expressions.)
 3/21/16  [EDGcpfe/16834]
 Scalars initialized with brace-enclosed pack expansions
 
-The front end could not previously not fully represent a template containing
-a scalar of known type initialized with a braced initializer containing a
-pack expansion.  As a result, such constructs were not rendered correctly by
-the C++-generating back end.  For example:
+The front end previously could not fully represent a template containing a
+scalar of known type initialized with a braced initializer containing a pack
+expansion.  As a result, such constructs were not rendered correctly by the
+C++-generating back end.  For example:
 
   struct S {
    int x;
