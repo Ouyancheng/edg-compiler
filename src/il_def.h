@@ -4571,19 +4571,19 @@ typedef struct a_constant {
 			/* TRUE if the entity being designated has not been
 			   looked up (e.g., in template contexts). */
       union {
-	/* When is_field_designator == TRUE and is_generic == FALSE. */
+        /* When is_field_designator == TRUE and is_generic == FALSE: */
         a_field_ptr
 		field;
                         /* The field indicated by a designator. */
-	/* When is_field_designator == FALSE and is_generic == FALSE. */
+        /* When is_field_designator == FALSE and is_generic == FALSE: */
         a_targ_size_t
 		array_element;
                         /* The subscript indicated by the designator. */
-	/* When is_field_designator == TRUE and is_generic == TRUE. */
+        /* When is_field_designator == TRUE and is_generic == TRUE: */
         a_const_char
 		*field_name;
 			/* The name of the designated field. */
-	/* When is_field_designator == FALSE and is_generic == TRUE. */
+        /* When is_field_designator == FALSE and is_generic == TRUE: */
         a_constant_ptr
 		subscript;
 			/* A constant representing the subscript of the
