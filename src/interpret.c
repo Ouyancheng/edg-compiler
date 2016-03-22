@@ -4907,13 +4907,13 @@ type.  This includes checking the value of ovfl set by the operation.
               a_type_ptr           dtp, btp;
               a_base_class_ptr     bcp;
               a_byte_count         offset;
+              *result_addr = *(a_constexpr_address *)opnd1_value;
               if (is_runtime_data_address(result_addr)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
                 break;
               }  /* if */
-              *result_addr = *(a_constexpr_address *)opnd1_value;
               if (result_addr->address == NULL) {
                 /* No adjustment needed. */
                 break;
