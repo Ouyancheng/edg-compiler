@@ -24019,7 +24019,11 @@ that case.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
     {
-      (void)check_arithmetic_or_enum_operand(&operand_2);
+      if (operator_token == tok_remainder) {
+        (void)check_integral_or_enum_operand(&operand_2);
+      } else {
+        (void)check_arithmetic_or_enum_operand(&operand_2);
+      }  /* if */
     }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Check for cases involving imaginary types that do not fall out
