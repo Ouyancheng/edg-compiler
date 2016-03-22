@@ -1,5 +1,19 @@
 Version 4.11
 
+3/22/16  [EDGcpfe/16962]
+Clang C++ compatibility: generation of __restrict__ from token cache
+
+When the C++-generating back end is being used, and a template is being
+generated from the cached token representation (rather than IL), the
+"__restrict__" keyword was emitted as "restrict".  While clang accepts
+"restrict" in C mode, it does not accept it in C++ mode.  The "__restrict__"
+form is now used when clang is the generated code target.  The example
+below was emitted as "restrict" if the "--clang --no_parse_templates"
+options were used.
+
+  template <class T> void foo(int * __restrict__ p) { }
+
+
 3/21/16  [EDGcpfe/16871]
 __is_trivially_constructible
 
