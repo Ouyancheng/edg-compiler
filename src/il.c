@@ -20887,7 +20887,7 @@ anything not known to be a trivial special member.
 
 a_boolean expr_calls_nontrivial_function(an_expr_node_ptr expr)
 /*
-Return TRUE if the evaluation of the given function involves a call to any
+Return TRUE if the evaluation of the given expression involves a call to any
 function other than a trivial default constructor, trivial copy constructor,
 trivial copy assignment operator, or trivial destructor.
 */
@@ -20947,9 +20947,8 @@ a constructor not known to be trivial.
 
 a_boolean expr_calls_nontrivial_ctor(an_expr_node_ptr expr)
 /*
-Return TRUE if the evaluation of the given function involves a call to any
-function other than a trivial default constructor, trivial copy constructor,
-trivial copy assignment operator, or trivial destructor.
+Return TRUE if the evaluation of the given expression involves a call to a
+nontrivial constructor.
 */
 {
   an_expr_or_stmt_traversal_block tblock;

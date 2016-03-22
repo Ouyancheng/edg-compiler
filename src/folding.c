@@ -7532,7 +7532,7 @@ checking is needed (see microsoft_has_assign_predicate).
                                   &qualifiers, &is_base_class_match)) {
           found_copy_assign = TRUE;
           if (microsoft_mode && microsoft_version >= 1800 && rp->is_deleted) {
-            /* MSVC doesn't consider nonthrowing assignment operators. */
+            /* MSVC doesn't consider deleted operators. */
           } else if (is_non_throwing_routine(rp)) {
             /* This copy assignment operator is known not to throw exceptions:
                Continue checking other operators (if any). */
