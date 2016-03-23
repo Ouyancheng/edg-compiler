@@ -5093,12 +5093,19 @@ type.  This includes checking the value of ovfl set by the operation.
             }  /* if */
             break;
           case eok_array_to_pointer:
-            /* The actual address is unchanged, but record the array
-               characteristics. */
+            /* Usually, the operand is an lvalue and therefore we already have
+               an address.  The resulting address is unchanged, but record the
+               array characteristics.  (With C++11 initializers, array rvalues
+               are possible too.) */
             { a_constexpr_address  *result_addr =
                                          (a_constexpr_address*)result_storage;
               a_targ_size_t        length;
-              *result_addr = *(a_constexpr_address *)opnd1_value;
+              if (opnd1->is_lvalue || opnd1->is_xvalue) {
+                *result_addr = *(a_constexpr_address *)opnd1_value;
+              } else {
+                /* The somewhat unusual case of an array rvalue. */
+                clear_address(result_addr, opnd1_value);
+              }  /* if */
               result_addr->flags |= CA_ARRAY_ELEMENT;
               /* Check the array length fits in interpreter limits. */
               length = opnd1_type->variant.array.variant.number_of_elements;
