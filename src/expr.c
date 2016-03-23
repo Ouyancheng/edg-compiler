@@ -8745,6 +8745,9 @@ case.
          See ARM 13.4.7.  The second compiler-supplied argument is an
          integer zero. */
       make_integer_constant_operand(&zero_operand, (a_host_large_integer)0L);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      zero_operand.end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       opname_kind = opname_kind_for_token[(int)operator_token];
       check_for_operator_overloading(opname_kind,
                                      /*unary_operator=*/FALSE,  /* sic! */

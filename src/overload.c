@@ -16761,6 +16761,31 @@ no_applicable_operator_function:
                                      operator_position, result,
                                      &folded_to_constant,
                                      &func_call_node);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              if ((!is_expression_operand(result) ||
+                   result->variant.expression != func_call_node) &&
+                  func_call_node != NULL) {
+                /* The top-level node is not the actual call node (e.g., it
+                   could be an enk_temp_init node created to hold the returned
+                   value).  The caller will record the source position range
+                   in the top node, but it can be useful to have that range
+                   also available in the call node itself. */
+                a_source_position  *start_pos, *end_pos;
+                if (unary_operator) {
+                  start_pos = operator_position;
+                  end_pos = &operand_1->end_position;
+                } else {
+                  start_pos = &operand_1->position;
+                  if (operator_position_2 != NULL) {
+                    end_pos = operator_position_2;
+                  } else {
+                    end_pos = &operand_2->end_position;
+                  }  /* if */
+                }  /* if */
+                func_call_node->expr_range.start = *start_pos;
+                func_call_node->expr_range.end = *end_pos;
+              }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             }  /* if */
           }  /* if */
         }  /* if */
