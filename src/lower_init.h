@@ -192,10 +192,6 @@ typedef int a_lower_dynamic_init_options_set;
 #define LDIO_THROW 0x2
 				/* The initialization being lowered is
 				   the top-level initialization for a throw. */
-#define LDIO_HAS_BEEN_ZEROED 0x4
-				/* The entity being initialized has already
-				   been zeroed (because it only partially
-				   initialized). */
 
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_init_pos_descr_ptr  ipdp,

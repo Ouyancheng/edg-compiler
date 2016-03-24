@@ -6022,17 +6022,15 @@ expression).
        (e.g., in a "new" operation), so in that case insert code to zero the
        array elements at run time. */
     if (ipd.indirect_through_variable) {
-      if ((options & LDIO_HAS_BEEN_ZEROED) == 0) {
-        insert_call_to_zero_entity(aggr_type->variant.array.element_type,
-                                   /*have_complete_object=*/FALSE,
-                                   make_address_of_init_entity_node(&ipd,
-                                                       /*using_as_dest=*/TRUE),
-                                   ipdp->num_elem_node,
-                                   ipdp->num_elem_node == NULL ?
+      insert_call_to_zero_entity(aggr_type->variant.array.element_type,
+                                 /*have_complete_object=*/FALSE,
+                                 make_address_of_init_entity_node(&ipd,
+                                                     /*using_as_dest=*/TRUE),
+                                 ipdp->num_elem_node,
+                                 ipdp->num_elem_node == NULL ?
                                                 num_array_elements(aggr_type) :
                                                 (a_targ_size_t) 0,
-                                   insert_location);
-      }  /* if */
+                                 insert_location);
     } else {
       *keep_constant = TRUE;
     }  /* if */
@@ -9199,7 +9197,6 @@ C99 mode for the same reason.
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
                                                     eff_insert_location);
-        options |= LDIO_HAS_BEEN_ZEROED;
       }  /* if */
       /* For the normal cases, go on and generate an assignment. */
       goto do_assignment;
@@ -9433,7 +9430,6 @@ do_assignment:;
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
                                                     eff_insert_location);
-        options |= LDIO_HAS_BEEN_ZEROED;
       }  /* if */
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, source_desc,
