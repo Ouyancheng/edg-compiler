@@ -847,6 +847,7 @@ of the whole initialization (*is) as appropriate.
        point to. */
     if (is_error_type(gtype)) {
       is->init_error = TRUE;
+      *init_con = NULL;
     } else if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_designator);
       (*init_con)->variant.designator.is_generic = TRUE;
