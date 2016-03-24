@@ -1,5 +1,32 @@
 Version 4.11
 
+3/24/16  [EDGcpfe/16969]
+Incorrect initialization of lowered constexpr array initialization
+
+In cases where constexpr initialization results in a dik_nonconstant_aggregate
+where an empty aggregate constant is used to initialize an array, that
+array initialization had not been incorporated into the lowered IL, resulting
+in uninitialized array elements at run time.  Now fixed.  For example, with
+--c++11:
+
+  struct A {
+    unsigned int m[10];
+    constexpr A() : m() { }
+  };
+  struct B { };
+  struct C {
+    B b;
+    A a;
+  };
+  int main() {
+    unsigned int sum = 0;
+    C c = { B(), {} };            // c.a.m had been uninitialized
+    for (int i = 0; i < 10; i++)
+      sum += c.a.m[i];
+    return !(sum == 0);
+  }
+
+
 3/23/16  [EDGcpfe/16965]
 Position range for generated operator calls
 

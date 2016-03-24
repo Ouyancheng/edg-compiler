@@ -6014,6 +6014,29 @@ expression).
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
+  if (array_aggr && prev_con == NULL &&
+      aggr_const->variant.aggregate.first_constant == NULL) {
+    /* An empty aggregate constant is being used to initialize an array.
+       If possible, keep the constant in the initializer, but that doesn't
+       work for cases where the initialization is taking place indirectly
+       (e.g., in a "new" operation), so in that case insert code to zero the
+       array elements at run time. */
+    if (ipd.indirect_through_variable) {
+      if ((options & LDIO_HAS_BEEN_ZEROED) == 0) {
+        insert_call_to_zero_entity(aggr_type->variant.array.element_type,
+                                   /*have_complete_object=*/FALSE,
+                                   make_address_of_init_entity_node(&ipd,
+                                                       /*using_as_dest=*/TRUE),
+                                   ipdp->num_elem_node,
+                                   ipdp->num_elem_node == NULL ?
+                                                num_array_elements(aggr_type) :
+                                                (a_targ_size_t) 0,
+                                   insert_location);
+      }  /* if */
+    } else {
+      *keep_constant = TRUE;
+    }  /* if */
+  }  /* if */
   if (!array_or_vector) pop_aggregate_this();
 }  /* lower_dynamic_init_aggregate_constant */
 
@@ -9176,6 +9199,7 @@ C99 mode for the same reason.
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
                                                     eff_insert_location);
+        options |= LDIO_HAS_BEEN_ZEROED;
       }  /* if */
       /* For the normal cases, go on and generate an assignment. */
       goto do_assignment;
@@ -9409,6 +9433,7 @@ do_assignment:;
         stretch_partial_initialization_if_necessary(dip, ipdp,
                                                     have_complete_object,
                                                     eff_insert_location);
+        options |= LDIO_HAS_BEEN_ZEROED;
       }  /* if */
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, source_desc,
