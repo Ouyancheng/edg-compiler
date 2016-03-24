@@ -5,7 +5,7 @@ Position range for generated operator calls
 
 When the use of an operator results in the call of an overloaded operator,
 the source position range (see an_expr_node::expr_range) is recorded in the
-top-most node of the IL representing the operator invocation.  This node is
+topmost node of the IL representing the operator invocation.  This node is
 not always the actual call node, because of transformations on the return
 type of the operator function or temporaries created to hold the return
 value.  In such cases, the source position range is now also recorded in the
@@ -19,12 +19,12 @@ actual call node.  For example:
     s++;
   }
 
-The expression "s++" results in an IL tree where the top-most node is an
+The expression "s++" results in an IL tree where the topmost node is an
 enk_temp_init node representing the allocation and initialization of a
 temporary for the return value of the operator++ function: That node records
 the source range of the expression "s++".  The actual call node (an operator
 node of kind eok_dot_member_call) previously did not record a source range,
-but now it records the same range as the top-most node.
+but now it records the same range as the topmost node.
 
 
 3/22/16  [EDGcpfe/16541]
