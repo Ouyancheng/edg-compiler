@@ -14496,7 +14496,19 @@ are traversed while searching for the matching constant).
       /* In cases where the field type is that of a subobject, retrieve the
          original class type associated with the subobject type. */
       ftp = orig_class_for_potential_subobject_type(ftp);
-      r_bcp = corresponding_base_class(bcp, ftp, (a_base_class_ptr)NULL);
+      /* Look for the next class in the derivation towards the class with
+         the shared vtable and recurse to explore the constant associated
+         with it. */
+      for (r_bcp = class_type_supp(ftp)->base_classes;
+           r_bcp != NULL;
+           r_bcp = r_bcp->next) {
+        if (identical_types(r_bcp->type, bcp->type) &&
+            congruent_paths(r_bcp->derivation->path,
+                            bcp->derivation->path->next)) {
+          break;
+        }  /* if */
+      }  /* for */
+      check_assertion(r_bcp != NULL);
       cp->vptr_has_been_lowered = TRUE;
       cp = constant_for_base_class(cp, r_bcp);
       break;

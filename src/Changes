@@ -1,5 +1,21 @@
 Version 4.11
 
+2/25/16  [EDGcpfe/16963]
+Assertion failure in corresponding_base_class
+
+In cases where lowering is initializing the __vptr field in a constexpr
+initialization, an assertion failure ("corresponding_base_class: base class not
+found") could occur if a derived class shares a virtual function table with an
+ambiguous base class.  Introduced as a result of the changes for EDGcpfe/16470.
+For example, with --c++11 --no_exceptions:
+
+  struct B1 {
+    virtual ~B1() {}
+  };
+  struct B2 : B1 {};
+  struct B3 : B2, B1 {} b3;
+
+
 3/24/16  [EDGcpfe/16969]
 Incorrect initialization of lowered constexpr array initialization
 
