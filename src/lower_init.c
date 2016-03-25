@@ -6021,6 +6021,7 @@ expression).
        work for cases where the initialization is taking place indirectly
        (e.g., in a "new" operation), so in that case insert code to zero the
        array elements at run time. */
+    check_assertion(aggr_const->partial_aggr_value);
     if (ipd.indirect_through_variable) {
       insert_call_to_zero_entity(aggr_type->variant.array.element_type,
                                  /*have_complete_object=*/FALSE,
