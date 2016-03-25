@@ -6597,6 +6597,11 @@ etc.).
                         IDS_MS_ATTRIB_NOT_ALLOWED) ||
           (curr_token == tok_ellipsis && next_token() == tok_rparen)) {
         /* Function declarator rather than a nested declarator. */
+        if (curr_token == tok_ellipsis && pesep != NULL) {
+          /* Beware of (...) in variadic contexts.  Abandon the pack
+             started above. */
+          abandon_potential_pack_expansion_context(pesep);
+        }  /* if */
         goto function_lparen;
       }  /* if */
       if (pesep != NULL) {
