@@ -13484,9 +13484,6 @@ sizeof_cases:
          nodes. */
       gen_field_reference(expr);
       break;
-#if VLA_DEALLOCATIONS_IN_IL
-    case enk_vla_dealloc:
-#endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
       gen_type(expr->variant.type_operand.type);
       break;
@@ -13567,6 +13564,9 @@ sizeof_cases:
       break;
 #endif /* COROUTINES_ALLOWED */
 
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
