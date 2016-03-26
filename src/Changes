@@ -6,8 +6,7 @@ Assertion failure in corresponding_base_class
 In cases where lowering is initializing the __vptr field in a constexpr
 initialization, an assertion failure ("corresponding_base_class: base class not
 found") could occur if a derived class shares a virtual function table with an
-ambiguous base class.  Introduced as a result of the changes for EDGcpfe/16470.
-For example, with --c++11 --no_exceptions:
+ambiguous base class.  For example, with --c++11 --no_exceptions:
 
   struct B1 {
     virtual ~B1() {}
