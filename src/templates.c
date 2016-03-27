@@ -11462,7 +11462,7 @@ to an alias template, the substituted type is returned in *new_type
 }  /* copy_template_class_reference_with_substitution */
 
 
-static void copy_template_alias_reference_with_substitution(
+static a_type_ptr copy_template_alias_reference_with_substitution(
 			a_symbol_ptr			template_sym,
 			a_type_ptr			orig_type,
 			a_template_arg_ptr		templ_arg_list,
@@ -11474,14 +11474,18 @@ static void copy_template_alias_reference_with_substitution(
 /*
 Copy, with substitution, the template argument list from orig_type, which
 is an instance of an alias template.  template_sym is the template on
-which the alias is based.  Note that this only does substitution on the
-argument list.
+which the alias is based.  In most cases this only does substitution on the
+argument list and returns the original type.  In some cases (for special
+internal aliases) a new type is created and returned.  In such cases, the
+new type may not be a typeref.
 */
 {
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp;
   a_template_symbol_supplement_ptr	tssp;
   a_typeref_type_supplement_ptr		ttsp;
+  a_type_ptr				result_type = orig_type;
+  a_template_arg_ptr			new_list;
   
   template_sym = primary_template_of(template_sym);
   ttsp = orig_type->variant.typeref.extra_info;
@@ -11490,13 +11494,24 @@ argument list.
   tpp = tssp->cache.decl_info->parameters;
   check_assertion(tpp != NULL);
   /* Make a copy of the template argument list, doing substitution. */
-  (void)copy_template_arg_list_with_substitution(
+  new_list = copy_template_arg_list_with_substitution(
                                            template_sym,
                                            tap, tpp, templ_arg_list,
                                            templ_param_list, 
                                            source_pos, options,
                                            /*orig_is_nonreal_template=*/FALSE,
                                            copy_error, ctws_state);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!*copy_error &&
+      template_sym == symbol_for_make_integer_seq &&
+      !template_arg_list_is_dependent(new_list)) {
+    /* This is the builtin alias template __make_integer_seq; the template
+       is instantiated programatically rather than by scanning the cache for
+       the template. */
+    result_type = instantiate_make_integer_seq(new_list);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result_type;
 }  /* copy_template_alias_reference_with_substitution */
 
 
@@ -12116,19 +12131,23 @@ a pointer over a reference type or creating an array of references.
               /* If the typeref is an alias template instance, substitute the
                  new template arguments.  This is needed because the result
                  type may not use some of the template arguments, but the
-                 substitution must be done to check for errors. */
+                 substitution must be done to check for errors.  This
+                 routine usually returns the type passed in, but for
+                 certain internal aliases it can return a new type, and
+                 that type may not be a typeref. */
               a_typeref_type_supplement_ptr	ttsp;
               a_symbol_ptr			template_sym;
               ttsp = type->variant.typeref.extra_info;
               template_sym = symbol_for(ttsp->assoc_template);
-              copy_template_alias_reference_with_substitution(
+              type = copy_template_alias_reference_with_substitution(
                               template_sym, type, templ_arg_list,
                               templ_param_list, source_pos, options,
                               copy_error,
                               ctws_state);
+              new_type = type;
             }  /* if */
           }  /* if */
-          if (!*copy_error) {
+          if (!*copy_error && type->kind == (a_type_kind)tk_typeref) {
             /* Make an identically qualified type of a copy (or reuse) of the
                type that underlies the typeref. */
             a_type_qualifier_set	qualifiers = TQ_NONE;
@@ -12144,6 +12163,8 @@ a pointer over a reference type or creating an array of references.
               type_without_typerefs =
                                    type_without_typerefs->variant.typeref.type;
             } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
+                     !type_without_typerefs->variant.typeref.
+                                                           is_template_alias &&
                      !typeref_is_type_operator(type_without_typerefs));
             tp = copy_type_with_substitution(type_without_typerefs,
                                              templ_arg_list,
