@@ -7873,7 +7873,8 @@ error type is used.
     /* Record the argument list in the type. */
     ttsp = type->variant.typeref.extra_info;
     ttsp->template_arg_list = template_arg_list;
-    ttsp->orig_template_arg_list = orig_arg_list;
+    /* Copy the list to make sure it isn't shared with some other type. */
+    ttsp->orig_template_arg_list = copy_template_arg_list(orig_arg_list);
     {
       /* Record the template on which this is based.  Unlike classes, this
          refers to the subordinate template (X<int>::Y<T> rather than
