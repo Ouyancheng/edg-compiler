@@ -10000,7 +10000,10 @@ assuming "a" and "b" are vectors of four integer types.
 
 void make_vector_fill_operand(an_operand *operand,
                               a_type_ptr vec_type)
-/* FIXME
+/*
+The specified operand is a scalar that is being "promoted" to a vector of
+the specified type.  Add a compiler-generated eok_vector_fill operation
+on top of the operand (in place).
 */
 {
   an_expr_node_ptr  expr;
@@ -10011,8 +10014,6 @@ void make_vector_fill_operand(an_operand *operand,
 
   check_assertion(!is_vector_type(operand->type) && is_vector_type(vec_type));
   expr = make_node_from_operand(operand);
-  // FIXME: needed?
-  //change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   expr = make_operator_node((an_expr_operator_kind)eok_vector_fill, vec_type,
                             expr);
   make_expression_operand(expr, operand);
@@ -11011,16 +11012,6 @@ will be able to handle it).
     adjust_fixed_point_binary_operands(operand_1, operand_2, op);
   } else
 #endif /* FIXED_POINT_ALLOWED */
-  /* Do not insert code here. */
-#if GNU_VECTOR_TYPES_ALLOWED
-  if (is_vector_type(type) &&
-      operand_1 != NULL && operand_2 != NULL &&
-      !(is_vector_type(operand_1->type) && is_vector_type(operand_2->type))) {
-    /* A mixed-type operation (e.g., "v == 1"); don't add a cast (so the
-       back end will convert the scalar to the appropriate vector type). */
-    /* FIXME: remove with eok_vector_fill */
-  } else
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Do not insert code here. */
   {
     if (!is_error_type(type)) {

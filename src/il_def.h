@@ -15142,6 +15142,7 @@ enum an_expr_operator_kind_tag {
 			   (but three operands are still provided in that
 			   case). */
   /* FIXME: two-operand version? */
+  /* FIXME: all operands are vectors, right? */
   eok_vector_question,	/* GNU vector conditional expression ("?" operator).
 			   The first operand is a GNU vector (of integers).
 			   At least one of the remaining operands is a vector
