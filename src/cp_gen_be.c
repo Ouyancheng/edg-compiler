@@ -610,6 +610,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_PREFIX,		/* eok_complement */
   PREC_PREFIX,		/* eok_not */
   PREC_PREFIX,		/* eok_vector_not */
+  PREC_PREFIX,		/* eok_vector_fill */
 #if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PREFIX,		/* eok_xconj */
   PREC_POSTFIX,		/* eok_real_part */
@@ -12654,6 +12655,11 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_not:
         case eok_vector_not:
           opstr = "!";
+          break;
+        case eok_vector_fill:
+          /* A vector fill operation doesn't appear in the source, so just
+             emit the operand. */
+          opstr = "";
           break;
         case eok_bool_cast:
         case eok_cast:

@@ -26548,6 +26548,8 @@ that case.
                                                 (a_constant_ptr)NULL)) {
         /* Operand 1 is a vector and operands 2 and 3 are (the same)
            scalar.  The result is a vector type. */
+        make_vector_fill_operand(&operand_2, operand_1->type);
+        make_vector_fill_operand(&operand_3, operand_1->type);
         result_type = operand_1->type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
@@ -26813,6 +26815,7 @@ that case.
                                                 &operand_3.variant.constant :
                                                 (a_constant_ptr)NULL)) {
         /* A vector and a scalar. */
+        make_vector_fill_operand(&operand_3, operand_2.type);
         result_type = operand_2.type;
       } else if (gnu_mode && !C_mode() &&
                  op == (an_expr_operator_kind)eok_vector_question &&
@@ -26824,6 +26827,7 @@ that case.
                                                 &operand_2.variant.constant :
                                                 (a_constant_ptr)NULL)) {
         /* A scalar and a vector. */
+        make_vector_fill_operand(&operand_2, operand_3.type);
         result_type = operand_3.type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (is_arithmetic_or_unscoped_enum_type(operand_2.type)) {

@@ -1635,6 +1635,9 @@ extern a_boolean vector_and_scalar_types_are_compatible(
                                                     a_type_ptr     scalar_type,
                                                     a_constant_ptr scalar_con);
 
+extern void make_vector_fill_operand(an_operand *operand,
+                                     a_type_ptr vec_type);
+
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,

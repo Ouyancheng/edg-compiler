@@ -624,6 +624,8 @@ static void set_up_prescan_traversal_block(
 static void dump_statement(a_statement_ptr statement);
 static void dump_block(a_statement_ptr statement);
 
+static void dump_type(a_type_ptr type,
+                      a_boolean  add_pointer_to);
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
@@ -1156,6 +1158,22 @@ Write the indicated unsigned number as an array index (i.e., "[num]").
   write_unsigned_num(num);
   write_tok_ch(']');
 }  /* write_array_index */
+
+
+static void write_vector_constant(a_type_ptr            type,
+                                  a_host_large_unsigned num)
+/*
+Write out a compound literal vector constant of the specified vector type
+whose elements all have the specified constant.
+*/
+{
+  check_assertion(gcc_is_generated_code_target);
+  write_tok_ch('(');
+  dump_type(type, /*add_pointer_to=*/FALSE);
+  write_tok_str("){");
+  write_unsigned_num(num);
+  write_tok_ch('}');
+}  /* write_vector_constant */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
@@ -5506,6 +5524,47 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           dump_expression(operand_1);
           write_tok_str(" == 0)");
           goto done_with_unary_operation;
+        case eok_vector_fill:
+          {
+            /* In most cases when a vector and a scalar are operands in the
+               same operation, the scalar is "promoted" to a vector by this
+               compiler-generated operation.  Each element of the vector has
+               the value of the scalar.  A compound literal is generated here,
+               but if the operand has side-effects, a temporary is first
+               generated for the scalar operand. */
+            a_host_large_unsigned i;
+            a_boolean             use_temp = FALSE;
+            check_assertion(gcc_is_generated_code_target &&
+                            is_vector_type(expr_type) &&
+                            !is_vector_type(operand_1->type));
+            if (node_has_side_effects(operand_1, (a_boolean *)NULL)) {
+              /* Expression has side-effects; use a temporary. */
+              use_temp = TRUE;
+              write_tok_str("({");
+              dump_type(operand_1->type, /*add_pointer_to=*/FALSE);
+              write_tok_ch(' ');
+              dump_temp_name((char *)operand_1);
+              write_tok_str(" = ");
+              dump_expr_with_parens(operand_1);
+              write_tok_str("; ");
+            }  /* if */
+            write_tok_ch('(');
+            dump_type(expr->type, /*add_pointer_to=*/FALSE);
+            write_tok_str("){");
+            for (i = num_vector_elements(expr_type); i > 0; i--) {
+              if (use_temp) {
+                dump_temp_name((char *)operand_1);
+              } else {
+                dump_expression(operand_1);
+              }  /* if */
+              if (i != 1) write_tok_ch(',');
+            }  /* for */
+            write_tok_ch('}');
+            if (use_temp) {
+              write_tok_str(";})");
+            }  /* if */
+          }
+          goto done_with_unary_operation;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         case eok_cast:
           /* It is tempting to try to suppress all compiler-generated casts
@@ -5979,27 +6038,25 @@ process_assignment:
           goto done_with_binary_operation;
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_land:
+          /* FIXME: make this mixed-type. */
           /* A gcc back end doesn't support logical "and" operation on a
              vector argument, so the expression must be re-written. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
-          if (!is_vector_type(operand_1->type)) {
+          if (is_operation_node(operand_1) &&
+              node_operator_is(operand_1, eok_vector_fill)) {
             /* The "s1 && v2" case is rewritten as "s1 ? v2 != 0 : 0" so that
                the operation is short-circuited if s1 is zero. */
-            dump_expression(operand_1);
+            dump_expr_with_parens(operand_1->variant.operation.operands);
             write_tok_str(" ? ");
-            dump_expression(operand_2);
-            write_tok_str(" != 0 : 0");
-          } else if (!is_vector_type(operand_2->type)) {
-            /* The "v1 && s2" case is rewritten as "v1 != 0 & (s2 ?-1:0)".
-               There is no short-circuit in this case. */
-            dump_expression(operand_1);
-            write_tok_str(" != 0 & (");
-            dump_expression(operand_2);
-            write_tok_str(" ? -1 : 0)");
+            dump_expr_with_parens(operand_2);
+            write_tok_str(" != ");
+            write_vector_constant(expr->type, 0);
+            write_tok_str(" : ");
+            write_vector_constant(expr->type, 0);
           } else {
-            /* If both operands are vectors, rewrite as: "v1 != 0 & v2 != 0"
-               instead.  There is no short-circuit in this case. */
+            /* Both operands are vectors; rewrite as: "v1 != 0 & v2 != 0"
+               There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != 0 & ");
             dump_expression(operand_2);
@@ -6008,24 +6065,22 @@ process_assignment:
           write_tok_ch(')');
           goto done_with_binary_operation;
         case eok_vector_lor:
+          /* FIXME: make this mixed-type. */
           /* A gcc back end doesn't support logical "or" operation on a
              vector argument, so the expression must be re-written. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
-          if (!is_vector_type(operand_1->type)) {
+          if (is_operation_node(operand_1) &&
+              node_operator_is(operand_1, eok_vector_fill)) {
             /* The "s1 || v2" case is rewritten as "s1 ? 1 : v2 != 0" so that
                the operation is short-circuited if s1 is non-zero. */
-            dump_expression(operand_1);
-            write_tok_str(" ? 1 : ");
-            dump_expression(operand_2);
-            write_tok_str(" != 0");
-          } else if (!is_vector_type(operand_2->type)) {
-            /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
-               There is no short-circuit in this case. */
-            dump_expression(operand_1);
-            write_tok_str(" != 0 | (");
-            dump_expression(operand_2);
-            write_tok_str(" ? 1 : 0)");
+            dump_expr_with_parens(operand_1->variant.operation.operands);
+            write_tok_str(" ? ");
+            write_vector_constant(expr->type, 1);
+            write_tok_str(" : ");
+            dump_expr_with_parens(operand_2);
+            write_tok_str(" != ");
+            write_vector_constant(expr->type, 0);
           } else {
             /* If both operands are vectors, rewrite as: "v1 != 0 | v2 != 0"
                instead.  There is no short-circuit in this case. */
@@ -6102,10 +6157,11 @@ process_assignment:
                      temp[N-1] = a[N-1] ? b[N-1] : c[N-1];
                      temp; })
                          
-               in the case where "b" and/or "c" is a scalar, replace those
-               as needed with a scalar temporary (in case the scalar expression
-               changes during the evaluation). */
+               If any of the operands have side-effects, replace those with a
+               temporary. */
             a_host_large_unsigned i;
+            a_boolean             temp_for_op1 = FALSE, temp_for_op2 = FALSE;
+            a_boolean             temp_for_op3 = FALSE;
             check_assertion(gcc_is_generated_code_target &&
                             operand_2 != NULL && operand_2->next != NULL &&
                             operand_2->next->next == NULL);
@@ -6115,7 +6171,17 @@ process_assignment:
             write_space();
             dump_temp_name((char *)expr);
             write_tok_str("; ");
-            if (!is_vector_type(operand_2->type)) {
+            if (node_has_side_effects(operand_1, (a_boolean *)NULL)) {
+              temp_for_op1 = TRUE;
+              dump_type(operand_1->type, /*add_pointer_to=*/FALSE);
+              write_space();
+              dump_temp_name((char *)operand_1);
+              write_tok_str(" = ");
+              dump_expression(operand_1);
+              write_tok_str("; ");
+            }  /* if */
+            if (node_has_side_effects(operand_2, (a_boolean *)NULL)) {
+              temp_for_op2 = TRUE;
               dump_type(operand_2->type, /*add_pointer_to=*/FALSE);
               write_space();
               dump_temp_name((char *)operand_2);
@@ -6123,7 +6189,8 @@ process_assignment:
               dump_expression(operand_2);
               write_tok_str("; ");
             }  /* if */
-            if (!is_vector_type(operand_3->type)) {
+            if (node_has_side_effects(operand_3, (a_boolean *)NULL)) {
+              temp_for_op3 = TRUE;
               dump_type(operand_3->type, /*add_pointer_to=*/FALSE);
               write_space();
               dump_temp_name((char *)operand_3);
@@ -6135,22 +6202,26 @@ process_assignment:
               dump_temp_name((char *)expr);
               write_array_index(i);
               write_tok_str(" = ");
-              dump_expression(operand_1);
+              if (temp_for_op1) {
+                dump_temp_name((char *)operand_1);
+              } else {
+                dump_expression(operand_1);
+              }  /* if */
               write_array_index(i);
               write_tok_str(" ? ");
-              if (!is_vector_type(operand_2->type)) {
+              if (temp_for_op2) {
                 dump_temp_name((char *)operand_2);
               } else {
                 dump_expression(operand_2);
-                write_array_index(i);
               }  /* if */
+              write_array_index(i);
               write_tok_str(" : ");
-              if (!is_vector_type(operand_3->type)) {
+              if (temp_for_op3) {
                 dump_temp_name((char *)operand_3);
               } else {
                 dump_expression(operand_3);
-                write_array_index(i);
               }  /* if */
+              write_array_index(i);
               write_tok_str("; ");
             }  /* for */
             dump_temp_name((char *)expr);

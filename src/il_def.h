@@ -14736,6 +14736,7 @@ enum an_expr_operator_kind_tag {
            disp_expr_operator_name
        cp_gen_be.c:
            generated_precedence
+           gen_expr
        il.c:
            lvalue_rvalue_test
            operation_type_kind
@@ -14757,7 +14758,7 @@ enum an_expr_operator_kind_tag {
            node_does_fetch
            operator_takes_lvalue_operand
        exprutil.c:
-           conv_rvalue_expr_to_lvalue
+           conv_prvalue_expr_to_lvalue
            conv_glvalue_expr_to_prvalue (if the operator is not "rvalueable"
              according to is_rvalueable_node)
      If the operator is an addressing operator, see also
@@ -14933,7 +14934,11 @@ enum an_expr_operator_kind_tag {
                            standardized to integer/boolean in some
                            configurations. */
   eok_vector_not,	/* GNU vector logical complement ("!" operator).
-                           The operand is a GNU vector.  C++ only. */
+                           The operand and results are GNU vectors.  Used in
+                           C++ mode only. */
+  eok_vector_fill,	/* GNU vector "fill" operation.  Takes one scalar
+                           operand and returns a GNU vector whose value has the
+                           scalar's value in every element of the vector. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
@@ -19410,6 +19415,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "noexcept",
    "()",
    "-", "+", "~", "!", "vec!",
+   "vec{}",
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x~", "__real", "__imag",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

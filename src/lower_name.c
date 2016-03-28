@@ -4547,6 +4547,10 @@ call that has no arguments).
                 expr = child->variant.operation.operands;
               }  /* if */
 #endif /* IA64_ABI */
+            } else if (op == (an_expr_node_kind)eok_vector_fill) {
+              /* Compiler-generated vector fill operations don't appear in the
+                 source.*/
+              expr = child;
             }  /* if */
           }  /* if */
         }  /* if */

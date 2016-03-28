@@ -14289,6 +14289,7 @@ tk_unknown is returned.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_not:
+    case eok_vector_fill:
       result = (a_type_kind)tk_vector;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -19652,7 +19653,7 @@ already indicates the load.
   a_boolean rvalueable = FALSE;
 
   /* Note that this routine is very similar to node_does_fetch and
-     conv_rvalue_expr_to_lvalue. */
+     conv_prvalue_expr_to_lvalue. */
   switch (node->kind) {
     case enk_error:
     case enk_variable:
@@ -19777,7 +19778,7 @@ top-level node is considered -- fetches in child nodes are not.
   a_type_ptr fetched_type = NULL;
 
   /* Note that this routine is very similar to is_rvalueable_node
-     and conv_rvalue_expr_to_lvalue. */
+     and conv_prvalue_expr_to_lvalue. */
   if (p_fetched_type != NULL) *p_fetched_type = NULL;
   node = skip_parens(node);
   /* Only prvalue expressions can fetch something from memory. */
@@ -25692,6 +25693,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_complement: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_not: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_vector_not: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_vector_fill: */		LVRV_OPND1_IS_PRVALUE,
 #if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xconj: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
@@ -26245,6 +26247,7 @@ node, and report any failure as an internal error.
   }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
   if (op == (an_expr_operator_kind)eok_vector_not ||
+      op == (an_expr_operator_kind)eok_vector_fill ||
       op == (an_expr_operator_kind)eok_vector_eq ||
       op == (an_expr_operator_kind)eok_vector_ne ||
       op == (an_expr_operator_kind)eok_vector_lt ||

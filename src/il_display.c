@@ -3917,6 +3917,7 @@ Display the name of an expression operator.
     case eok_complement:        s = "eok_complement";             break;
     case eok_not:               s = "eok_not";                    break;
     case eok_vector_not:        s = "eok_vector_not";             break;
+    case eok_vector_fill:       s = "eok_vector_fill";            break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:             s = "eok_xconj";                  break;
     case eok_real_part:         s = "eok_real_part";              break;

@@ -9998,6 +9998,33 @@ assuming "a" and "b" are vectors of four integer types.
 }  /* vector_and_scalar_types_are_compatible */
 
 
+void make_vector_fill_operand(an_operand *operand,
+                              a_type_ptr vec_type)
+/* FIXME
+*/
+{
+  an_expr_node_ptr  expr;
+  a_source_position save_position = operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position save_end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  check_assertion(!is_vector_type(operand->type) && is_vector_type(vec_type));
+  expr = make_node_from_operand(operand);
+  // FIXME: needed?
+  //change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+  expr = make_operator_node((an_expr_operator_kind)eok_vector_fill, vec_type,
+                            expr);
+  make_expression_operand(expr, operand);
+  /* This is a compiler-generated operand. */
+  expr->variant.operation.compiler_generated = TRUE;
+  operand->position = save_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = save_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* make_vector_fill_operand */
+
+
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,
@@ -10062,8 +10089,9 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
   } else {
     /* One operand has vector type.  If the other operand has a proper scalar
        type, allow the operation (e.g., "a = b + 1" is equivalent to
-       "a = b + {1, 1, 1, 1}" for a vector of four integers).  A back end
-       must be able to handle these mixed-type vector operations. */
+       "a = b + {1, 1, 1, 1}" for a vector of four integers).  If the types
+       are found to be "compatible", use an eok_vector_fill operation to
+       "promote" the scalar to a vector type. */
     a_type_ptr vec_type, scalar_type;
     a_constant_ptr con = NULL;
     if (op1_is_vec) {
@@ -10081,6 +10109,7 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
     }  /* if */
     if (vector_and_scalar_types_are_compatible(vec_type, scalar_type, con)) {
       /* The vector and scalar types are compatible. */
+      make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
       *result_type = vec_type;
       *op = which_binary_operator(op_token, *result_type);
     } else {
