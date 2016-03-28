@@ -6038,22 +6038,29 @@ process_assignment:
           goto done_with_binary_operation;
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_land:
-          /* FIXME: make this mixed-type. */
           /* A gcc back end doesn't support logical "and" operation on a
-             vector argument, so the expression must be re-written. */
+             vector argument, so the expression must be re-written.  Either
+             operand (but not both) may be a scalar. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
-          if (is_operation_node(operand_1) &&
-              node_operator_is(operand_1, eok_vector_fill)) {
+          if (!is_vector_type(operand_1->type)) {
             /* The "s1 && v2" case is rewritten as "s1 ? v2 != 0 : 0" so that
                the operation is short-circuited if s1 is zero. */
-            dump_expr_with_parens(operand_1->variant.operation.operands);
+            dump_expr_with_parens(operand_1);
             write_tok_str(" ? ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
             write_vector_constant(expr->type, 0);
             write_tok_str(" : ");
             write_vector_constant(expr->type, 0);
+          } else if (!is_vector_type(operand_2->type)) {
+            /* The "v1 && s2" case is rewritten as "v1 != 0 & (s2 ?-1:0)".
+               There is no short-circuit in this case. */
+            /* FIXME: use write_vector_constant? */
+            dump_expression(operand_1);
+            write_tok_str(" != 0 & (");
+            dump_expression(operand_2);
+            write_tok_str(" ? -1 : 0)");
           } else {
             /* Both operands are vectors; rewrite as: "v1 != 0 & v2 != 0"
                There is no short-circuit in this case. */
@@ -6065,22 +6072,29 @@ process_assignment:
           write_tok_ch(')');
           goto done_with_binary_operation;
         case eok_vector_lor:
-          /* FIXME: make this mixed-type. */
           /* A gcc back end doesn't support logical "or" operation on a
-             vector argument, so the expression must be re-written. */
+             vector argument, so the expression must be re-written.  Either
+             operand (but not both) may be a scalar. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
-          if (is_operation_node(operand_1) &&
-              node_operator_is(operand_1, eok_vector_fill)) {
+          if (!is_vector_type(operand_1->type)) {
             /* The "s1 || v2" case is rewritten as "s1 ? 1 : v2 != 0" so that
                the operation is short-circuited if s1 is non-zero. */
-            dump_expr_with_parens(operand_1->variant.operation.operands);
+            dump_expr_with_parens(operand_1);
             write_tok_str(" ? ");
             write_vector_constant(expr->type, 1);
             write_tok_str(" : ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
             write_vector_constant(expr->type, 0);
+          } else if (!is_vector_type(operand_2->type)) {
+            /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
+               There is no short-circuit in this case. */
+            // FIXME: use write_vector_constant?
+            dump_expression(operand_1);
+            write_tok_str(" != 0 | (");
+            dump_expression(operand_2);
+            write_tok_str(" ? 1 : 0)");
           } else {
             /* If both operands are vectors, rewrite as: "v1 != 0 | v2 != 0"
                instead.  There is no short-circuit in this case. */

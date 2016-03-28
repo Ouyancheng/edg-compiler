@@ -10109,8 +10109,18 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
       }  /* if */
     }  /* if */
     if (vector_and_scalar_types_are_compatible(vec_type, scalar_type, con)) {
-      /* The vector and scalar types are compatible. */
-      make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
+      /* The vector and scalar types are compatible.  For all cases except
+         eok_vector_land and eok_vector_lor, convert the scalar operand
+         to a vector. */
+      if (op_token == tok_and_and || op_token == tok_or_or) {
+        /* Allow a mixed-type logical operations.  An initial scalar operand
+           may serve to short-circuit the evaluation of the second operand
+           (and the scalar is never converted to a vector in any of the
+           GCC-specified re-writes even if it is specified as the second
+           operand). */
+      } else {
+        make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
+      }  /* if */
       *result_type = vec_type;
       *op = which_binary_operator(op_token, *result_type);
     } else {
