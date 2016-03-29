@@ -10026,6 +10026,7 @@ on top of the operand (in place).
 }  /* make_vector_fill_operand */
 
 
+/* FIXME: result_type or operation_type or both? */
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,

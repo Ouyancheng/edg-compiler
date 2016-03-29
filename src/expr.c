@@ -10133,8 +10133,13 @@ analysis on a previously-scanned expression, and return the result in
         op = (an_expr_operator_kind)eok_not;
 #if GNU_VECTOR_TYPES_ALLOWED
         if (gnu_mode && !C_mode() && is_vector_type(operand.type)) {
-          /* Vector types are arithmetic types in some sense. */
+          /* Vector types are arithmetic types in some sense.  The result is
+             a vector of integers with the same number of elements as the
+             operand. */
           op = (an_expr_operator_kind)eok_vector_not;
+          do_promotion = FALSE;
+          result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
+                                         num_vector_elements(operand.type));
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
@@ -24884,8 +24889,10 @@ that case.
     /* Determine the result type. */
 #if GNU_VECTOR_TYPES_ALLOWED
     if (is_vector_type(operation_type)) {
-      /* The result of a vector comparison is a vector, not a boolean. */
-      result_type = operation_type;
+      /* The result of a vector comparison is a vector of signed int with the
+         same number of elements as the operands. */
+      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
+                                     num_vector_elements(operation_type));
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
@@ -25171,8 +25178,10 @@ that case.
 
 #if GNU_VECTOR_TYPES_ALLOWED
     if (is_vector_type(operation_type)) {
-      /* The result of a vector comparison is a vector, not a boolean. */
-      result_type = operation_type;
+      /* The result of a vector comparison is a vector of integers with the
+         same number of elements as the operands. */
+      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
+                                     num_vector_elements(operation_type));
       op = which_binary_operator(operator_token, operation_type);
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -25711,7 +25720,10 @@ that case.
                                          &processed);
   }  /* if */
   if (!processed) {
-    a_boolean reduce;
+    a_boolean  reduce;
+#if GNU_VECTOR_TYPES_ALLOWED
+    a_type_ptr operation_type;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Non-operator-function cases. */
     /* Both operands must be scalar. */
     if (!operand_1_transformations_done) {
@@ -25723,10 +25735,14 @@ that case.
 #if GNU_VECTOR_TYPES_ALLOWED
     if (gnu_mode && !C_mode() &&
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
-                                        &operator_position, &result_type,
+                                        &operator_position, &operation_type,
                                         &op)) {
       /* FIXME: floating point allowed? */
       /* FIXME: short circuit */
+      /* The result is a vector of integers with the same number of elements as
+         the operands. */
+      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
+                                     num_vector_elements(operation_type));
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */

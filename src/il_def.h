@@ -14935,7 +14935,8 @@ enum an_expr_operator_kind_tag {
                            configurations. */
   eok_vector_not,	/* GNU vector logical complement ("!" operator).
                            The operand and results are GNU vectors.  Used in
-                           C++ mode only. */
+                           C++ mode only.  Result is a vector of signed
+                           integral type. */
   eok_vector_fill,	/* GNU vector "fill" operation.  Takes one scalar
                            operand and returns a GNU vector whose value has the
                            scalar's value in every element of the vector. */
@@ -14998,7 +14999,6 @@ enum an_expr_operator_kind_tag {
   eok_lt,               /* Less than ("<"). */
   eok_ge,               /* Greater than or equal (">="). */
   eok_le,               /* Less than or equal ("<="). */
-  /* FIXME: verify that these return the proper type: */
   eok_vector_eq,        /* GNU vector equality ("==").  Result is a vector of
                            signed integral element type. */
   eok_vector_ne,        /* GNU vector inequality ("!=").  Result is a vector of
@@ -15061,10 +15061,12 @@ enum an_expr_operator_kind_tag {
 			   configurations. */
   eok_vector_land,	/* GNU vector logical intersection ("&&" operator).
 			   At least one operand is a GNU vector; the other may
-			   be a scalar or a vector.  C++ only. */
+			   be a scalar or a vector.  C++ only.  Result is a
+			   vector of signed integral type. */
   eok_vector_lor,	/* GNU vector logical union ("||" operator).
 			   At least one operand is a GNU vector; the other may
-			   be a scalar or a vector.  C++ only. */
+			   be a scalar or a vector.  C++ only.  Result is a
+			   vector of signed integral type. */
   eok_comma,            /* The comma operator (","). */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
