@@ -10844,48 +10844,53 @@ As implemented here, this involves three steps:
   a_routine_ptr       rp;
   a_type_ptr          tp;
 
-  /* Implicit attributes need be computed only once. */
-  check_assertion(scp->attributes == NULL ||
-                  !scp->attributes->is_implicit_abi_tag_attribute);
-  if (kind == iek_variable) {
-    vp = (a_variable_ptr)scp;
-    tp = vp->type;
+  if (scp->attributes != NULL &&
+      scp->attributes->is_implicit_abi_tag_attribute) {
+    /* Implicit attributes need be computed only once.  In some cases (where
+       mangling is performed early because of PCH files), it's possible that
+       the implicit abi_tags have already been computed; if so, there's nothing
+       to do here. */
   } else {
-    check_assertion(kind == iek_routine);
-    rp = (a_routine_ptr)scp;
-    tp = rp->type->variant.routine.return_type;
-  }  /* if */
-  tp = skip_typedefs(tp);
-  if (is_void_type(tp) || is_integral_type(tp) || is_floating_type(tp) ||
-      is_void_star_type(tp)) {
-    /* These types will never have abi_tag components, so skip the expensive
-       processing. */
-  } else {
-    /* Mark entities in the signature. */
-    ttt_scp_for_implicit_abi_tags = scp;
-    ttt_kind_for_implicit_abi_tags = kind;
-    set_signature_mark(scp, kind, TRUE);
-    /* Add implicit abi_tag attributes for the type. */
-    (void)traverse_type_tree(tp, ttt_add_implicit_abi_tags_for_type,
-                             ABI_TAG_TTT_FLAGS);
-    /* Unmark entries in the signature. */
-    set_signature_mark(scp, kind, FALSE);
-    ttt_scp_for_implicit_abi_tags = NULL;
-    ttt_kind_for_implicit_abi_tags = iek_none;
-#if DEBUG
-    if (db_flag_is_set("abi_tag")) {
-      (void)fputs("Implicit abi_tags for ", f_debug);
-      db_name(scp);
-      (void)fputs(": ", f_debug);
-      if (scp->attributes == NULL ||
-          !scp->attributes->is_implicit_abi_tag_attribute) {
-        (void)fputs("none\n", f_debug);
-      } else {
-        db_attribute(scp->attributes);
-        (void)fputs("\n", f_debug);
-      }  /* if */
+    if (kind == iek_variable) {
+      vp = (a_variable_ptr)scp;
+      tp = vp->type;
+    } else {
+      check_assertion(kind == iek_routine);
+      rp = (a_routine_ptr)scp;
+      tp = rp->type->variant.routine.return_type;
     }  /* if */
+    tp = skip_typedefs(tp);
+    if (is_void_type(tp) || is_integral_type(tp) || is_floating_type(tp) ||
+        is_void_star_type(tp)) {
+      /* These types will never have abi_tag components, so skip the expensive
+         processing. */
+    } else {
+      /* Mark entities in the signature. */
+      ttt_scp_for_implicit_abi_tags = scp;
+      ttt_kind_for_implicit_abi_tags = kind;
+      set_signature_mark(scp, kind, TRUE);
+      /* Add implicit abi_tag attributes for the type. */
+      (void)traverse_type_tree(tp, ttt_add_implicit_abi_tags_for_type,
+                               ABI_TAG_TTT_FLAGS);
+      /* Unmark entries in the signature. */
+      set_signature_mark(scp, kind, FALSE);
+      ttt_scp_for_implicit_abi_tags = NULL;
+      ttt_kind_for_implicit_abi_tags = iek_none;
+#if DEBUG
+      if (db_flag_is_set("abi_tag")) {
+        (void)fputs("Implicit abi_tags for ", f_debug);
+        db_name(scp);
+        (void)fputs(": ", f_debug);
+        if (scp->attributes == NULL ||
+            !scp->attributes->is_implicit_abi_tag_attribute) {
+          (void)fputs("none\n", f_debug);
+        } else {
+          db_attribute(scp->attributes);
+          (void)fputs("\n", f_debug);
+        }  /* if */
+      }  /* if */
 #endif /* DEBUG */
+    }  /* if */
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
 }  /* calculate_implicit_abi_tags */
