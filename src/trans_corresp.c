@@ -2423,7 +2423,7 @@ entry.
       } else if (ap2 == NULL) {
         /* An attribute (ap1) of the first entity doesn't have a counterpart
            in entity2. */
-        if (match_mode == ACF_STRICT_MATCH && !pos2->seq == 0) {
+        if (match_mode == ACF_STRICT_MATCH && pos2->seq != 0) {
           /* Strict matching is requested.  (However, when matching built-in
              declarations just retain the source attribute.) */
           a_diagnostic_ptr dp;
