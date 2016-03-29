@@ -14988,8 +14988,10 @@ enum an_expr_operator_kind_tag {
                            promotions are not done. */
   eok_pdiff,            /* Pointer difference.  Difference between two
                            pointers, returns an integer (ptrdiff_t). */
-  eok_shiftl,           /* Left shift ("<<" operator). */
-  eok_shiftr,           /* Right shift (">>" operator). */
+  eok_shiftl,           /* Left shift ("<<" operator).  Also used for
+			   vectors. */
+  eok_shiftr,           /* Right shift (">>" operator).  Also used for
+			   vectors. */
   eok_and,              /* Bitwise and ("&" operator). */
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */

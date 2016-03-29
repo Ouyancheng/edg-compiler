@@ -1160,18 +1160,26 @@ Write the indicated unsigned number as an array index (i.e., "[num]").
 }  /* write_array_index */
 
 
-static void write_vector_constant(a_type_ptr            type,
-                                  a_host_large_unsigned num)
+static void write_vector_constant(a_type_ptr   type,
+                                  a_const_char *str)
 /*
 Write out a compound literal vector constant of the specified vector type
-whose elements all have the specified unsigned integer constant.
+whose elements all have the specified string (presumably a numeric constant)
+as their value.
 */
 {
+  a_targ_size_t i;
+
   check_assertion(gcc_is_generated_code_target && is_vector_type(type));
   write_tok_ch('(');
   dump_type(type, /*add_pointer_to=*/FALSE);
   write_tok_str("){");
-  write_unsigned_num(num);
+  for (i = num_vector_elements(type); i != 0; i--) {
+    write_tok_str(str);
+    if (i != 1) {
+      write_tok_ch(',');
+    }  /* if */
+  }  /* for */
   write_tok_ch('}');
 }  /* write_vector_constant */
 
@@ -5523,7 +5531,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('(');
           dump_expression(operand_1);
           write_tok_str(" == ");
-          write_vector_constant(operand_1->type, 0);
+          write_vector_constant(operand_1->type, "0");
           write_tok_ch(')');
           goto done_with_unary_operation;
         case eok_vector_fill:
@@ -6052,15 +6060,15 @@ process_assignment:
             write_tok_str(" ? ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(operand_2->type, 0);
+            write_vector_constant(operand_2->type, "0");
             write_tok_str(" : ");
-            write_vector_constant(expr->type, 0);
+            write_vector_constant(expr->type, "0");
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 && s2" case is rewritten as "v1 != 0 & (s2 ?-1:0)".
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(operand_1->type, 0);
+            write_vector_constant(operand_1->type, "0");
             write_tok_str(" & (");
             dump_expression(operand_2);
             write_tok_str(" ? -1 : 0)");
@@ -6069,11 +6077,11 @@ process_assignment:
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(operand_1->type, 0);
+            write_vector_constant(operand_1->type, "0");
             write_tok_str(" & ");
             dump_expression(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(operand_2->type, 0);
+            write_vector_constant(operand_2->type, "0");
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
@@ -6084,21 +6092,21 @@ process_assignment:
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
           if (!is_vector_type(operand_1->type)) {
-            /* The "s1 || v2" case is rewritten as "s1 ? 1 : v2 != 0" so that
+            /* The "s1 || v2" case is rewritten as "s1 ? -1 : v2 != 0" so that
                the operation is short-circuited if s1 is non-zero. */
             dump_expr_with_parens(operand_1);
             write_tok_str(" ? ");
-            write_vector_constant(expr->type, 1);
+            write_vector_constant(expr->type, "-1");
             write_tok_str(" : ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(operand_2->type, 0);
+            write_vector_constant(operand_2->type, "0");
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(operand_1->type, 0);
+            write_vector_constant(operand_1->type, "0");
             write_tok_str(" | (");
             dump_expression(operand_2);
             write_tok_str(" ? 1 : 0)");
@@ -6107,11 +6115,11 @@ process_assignment:
                instead.  There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(operand_1->type, 0);
+            write_vector_constant(operand_1->type, "0");
             write_tok_str(" | ");
             dump_expression(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(operand_2->type, 0);
+            write_vector_constant(operand_2->type, "0");
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
@@ -6167,12 +6175,12 @@ process_assignment:
         case eok_vector_question:
           {
             /* A vector conditional operator is allowed in g++ but not gcc so
-               it is handled here as a special case.  Replace the conditional
-               operation with a GNU statement expression that initializes
-               a temporary of the proper vector type in an element-by-element
-               fashion.  For example, for the case "a ? b : c" where each
-               operand is a vector (with N elements), the following statement
-               expression is generated:
+               it must be re-written from its original form.  Replace the
+               conditional operation with a GNU statement expression that
+               initializes a temporary of the proper vector type in an
+               element-by-element fashion.  For example, for the case 
+               "a ? b : c" where each operand is a vector (with N elements),
+               the following statement expression is generated:
 
                  ({ <expr-type> temp;
                      temp[0] = a[0] ? b[0] : c[0];

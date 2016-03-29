@@ -10131,13 +10131,13 @@ analysis on a previously-scanned expression, and return the result in
         break;
       case tok_not:
         op = (an_expr_operator_kind)eok_not;
+        do_promotion = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
         if (gnu_mode && !C_mode() && is_vector_type(operand.type)) {
           /* Vector types are arithmetic types in some sense.  The result is
              a vector of integers with the same number of elements as the
              operand. */
           op = (an_expr_operator_kind)eok_vector_not;
-          do_promotion = FALSE;
           result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
                                          num_vector_elements(operand.type));
         } else
@@ -10145,7 +10145,6 @@ analysis on a previously-scanned expression, and return the result in
         /* Do not insert code here. */
         {
           (void)check_boolean_controlling_expr(&operand);
-          do_promotion = FALSE;
           result_type = boolean_result_type();
         }  /* if */
         break;
@@ -24526,10 +24525,8 @@ expression, and return the result in *result (or an error indication in
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position,
                                         &result_type, &op)) {
-      /* FIXME: check this comment */
       /* GCC accepts any vector type for these operators, even floating-point
          vector types. */
-      goto result_type_determined;
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
@@ -24549,6 +24546,11 @@ expression, and return the result in *result (or an error indication in
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
       cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
                    /*is_implicit_cast=*/TRUE);
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (is_vector_type(operand_1->type) ||
+               is_vector_type(operand_2.type)) {
+      /* The result type has already been determined above. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       /* ANSI rules just call for the integral promotions; the type of
          the result is the type of the left operand. */
@@ -24557,9 +24559,6 @@ expression, and return the result in *result (or an error indication in
       result_type = operand_1->type;
       op = which_binary_operator(operator_token, result_type);
     }  /* if */
-#if GNU_VECTOR_TYPES_ALLOWED
-result_type_determined:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
         operand_2.variant.constant.kind == (a_constant_repr_kind)ck_integer) {
@@ -24889,8 +24888,8 @@ that case.
     /* Determine the result type. */
 #if GNU_VECTOR_TYPES_ALLOWED
     if (is_vector_type(operation_type)) {
-      /* The result of a vector comparison is a vector of signed int with the
-         same number of elements as the operands. */
+      /* The result of a vector comparison is a vector of signed integer with
+         the same number of elements as the operands. */
       result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
                                      num_vector_elements(operation_type));
     } else
@@ -25737,10 +25736,9 @@ that case.
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position, &operation_type,
                                         &op)) {
-      /* FIXME: floating point allowed? */
-      /* FIXME: short circuit */
       /* The result is a vector of integers with the same number of elements as
-         the operands. */
+         the operands.  Note that the operation may have a mix of scalar
+         and vector operands (though at least one must be a vector). */
       result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
                                      num_vector_elements(operation_type));
     } else
@@ -26125,10 +26123,20 @@ that case.
   /* Check the first operand's type. */
 #if GNU_VECTOR_TYPES_ALLOWED
   if (gnu_mode && !C_mode() && is_vector_type(operand_1->type)) {
-    /* FIXME: must be integer only. */
-    /* FIXME: not really sure about this: */
+    a_type_ptr  elem_type =
+                   skip_typerefs(operand_1->type)->variant.vector.element_type;
     op = (an_expr_operator_kind)eok_vector_question;
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+    if (!is_integral_or_enum_type(elem_type) &&
+        !is_template_param_type(elem_type)) {
+      /* If the first operand is a vector, it must be an integral type with
+         the same number of elements as the second and third operands
+         (checked below). */
+      error_and_make_error_operand(ec_vector_operation_requires_integer_vector,
+                                   operand_1);
+      err = TRUE;
+    } else {
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+    }  /* if */
   } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Do not insert code here. */
@@ -26556,6 +26564,7 @@ that case.
 #if GNU_VECTOR_TYPES_ALLOWED
       } else if (gnu_mode && !C_mode() &&
                  is_vector_type(operand_1->type) &&
+                 !is_vector_type(operand_2.type) &&
                  vector_and_scalar_types_are_compatible(
                                               operand_1->type,
                                               operand_2.type,
@@ -26567,6 +26576,21 @@ that case.
         make_vector_fill_operand(&operand_2, operand_1->type);
         make_vector_fill_operand(&operand_3, operand_1->type);
         result_type = operand_1->type;
+      } else if (gnu_mode && !C_mode() &&
+                 is_vector_type(operand_1->type) &&
+                 is_vector_type(operand_2.type) &&
+                 ((num_vector_elements(operand_1->type) !=
+                                        num_vector_elements(operand_2.type)) ||
+                  skip_typerefs(operand_1->type)->
+                                          variant.vector.element_type->size !=
+                   skip_typerefs(operand_2.type)->
+                                          variant.vector.element_type->size)) {
+        /* All operands are vectors, but their types are not compatible. */
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_incompatible_operands, &question_position,
+                        operand_1->type, operand_2.type);
+        }  /* if */
+        err = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
     } else if (is_throw_operand(&operand_2)) {
@@ -26888,17 +26912,6 @@ that case.
         }  /* if */
         err = TRUE;
       }  /* if */
-#if GNU_VECTOR_TYPES_ALLOWED
-      if (!err &&
-          is_vector_type(operand_1->type) &&
-          is_vector_type(result_type) &&
-          num_vector_elements(operand_1->type) !=
-                                            num_vector_elements(result_type)) {
-        /* If the first operand is an (integer) vector, it must have the same
-           number of elements as the resulting type. */
-        err = TRUE;
-      }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Cast operands 2 and 3 to the result type if necessary. */
       if (!err) {
         change_binary_operand_types(result_type, &operand_2, &operand_3, op);
@@ -27499,6 +27512,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
+            /* FIXME: should this be "everywhere"? */
             orig_result_type = operand_1->type;
             operation_type = prvalue_type(result_type);
             goto operation_type_determined;
