@@ -5522,7 +5522,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           is_vector_type(operand_1->type));
           write_tok_ch('(');
           dump_expression(operand_1);
-          write_tok_str(" == 0)");
+          write_tok_str(" == ");
+          write_vector_constant(skip_typerefs(operand_1->type)->
+                                             variant.vector.element_type, 0);
+          write_tok_ch(')');
           goto done_with_unary_operation;
         case eok_vector_fill:
           {
@@ -6050,24 +6053,32 @@ process_assignment:
             write_tok_str(" ? ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(expr->type, 0);
+            write_vector_constant(skip_typerefs(operand_2->type)->
+                                               variant.vector.element_type, 0);
             write_tok_str(" : ");
             write_vector_constant(expr->type, 0);
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 && s2" case is rewritten as "v1 != 0 & (s2 ?-1:0)".
                There is no short-circuit in this case. */
-            /* FIXME: use write_vector_constant? */
             dump_expression(operand_1);
-            write_tok_str(" != 0 & (");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_1->type)->
+                                               variant.vector.element_type, 0);
+            write_tok_str(" & (");
             dump_expression(operand_2);
             write_tok_str(" ? -1 : 0)");
           } else {
             /* Both operands are vectors; rewrite as: "v1 != 0 & v2 != 0"
                There is no short-circuit in this case. */
             dump_expression(operand_1);
-            write_tok_str(" != 0 & ");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_1->type)->
+                                               variant.vector.element_type, 0);
+            write_tok_str(" & ");
             dump_expression(operand_2);
-            write_tok_str(" != 0");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_2->type)->
+                                               variant.vector.element_type, 0);
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
@@ -6086,22 +6097,30 @@ process_assignment:
             write_tok_str(" : ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(expr->type, 0);
+            write_vector_constant(skip_typerefs(operand_2->type)->
+                                               variant.vector.element_type, 0);
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
                There is no short-circuit in this case. */
-            /* FIXME: use write_vector_constant? */
             dump_expression(operand_1);
-            write_tok_str(" != 0 | (");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_1->type)->
+                                               variant.vector.element_type, 0);
+            write_tok_str(" | (");
             dump_expression(operand_2);
             write_tok_str(" ? 1 : 0)");
           } else {
             /* If both operands are vectors, rewrite as: "v1 != 0 | v2 != 0"
                instead.  There is no short-circuit in this case. */
             dump_expression(operand_1);
-            write_tok_str(" != 0 | ");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_1->type)->
+                                               variant.vector.element_type, 0);
+            write_tok_str(" | ");
             dump_expression(operand_2);
-            write_tok_str(" != 0");
+            write_tok_str(" != ");
+            write_vector_constant(skip_typerefs(operand_2->type)->
+                                               variant.vector.element_type, 0);
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
