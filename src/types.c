@@ -5225,7 +5225,9 @@ Return TRUE if the two array types have identical bounds.
   } else {
     /* Both arrays have fixed bounds.  Just compare the element counts. */
     identical = (type_1->variant.array.variant.number_of_elements ==
-                 type_2->variant.array.variant.number_of_elements)
+                 type_2->variant.array.variant.number_of_elements) &&
+                (type_1->variant.array.bound_is_zero ==
+                 type_2->variant.array.bound_is_zero)
 #if UPC_EXTENSIONS_ALLOWED
                 && (type_1->variant.array.is_threads_dimension ==
                     type_2->variant.array.is_threads_dimension)

@@ -1,5 +1,21 @@
 Version 4.11
 
+3/29/16  [EDGcpfe/16991]
+GNU/clang C++ compatibility: T[] considered the same as T[0]
+
+In g++ and clang modes, a zero sized array was incorrectly considered to
+be the same as an array of unknown bound in many contexts.  Now fixed.
+
+  template <typename> struct A {};
+  template <typename T> struct A <T[]>{};
+  template <typename T> struct A <T[0]>{};  // spurious error
+  int main() {
+    A<int[]> a1;
+    A<int[0]> a2;
+    return &a1 == &a2;  // missing "incompatible types" error
+  }
+
+
 2/25/16  [EDGcpfe/16963]
 Assertion failure in corresponding_base_class
 
