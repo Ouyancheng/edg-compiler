@@ -1164,10 +1164,10 @@ static void write_vector_constant(a_type_ptr            type,
                                   a_host_large_unsigned num)
 /*
 Write out a compound literal vector constant of the specified vector type
-whose elements all have the specified constant.
+whose elements all have the specified unsigned integer constant.
 */
 {
-  check_assertion(gcc_is_generated_code_target);
+  check_assertion(gcc_is_generated_code_target && is_vector_type(type));
   write_tok_ch('(');
   dump_type(type, /*add_pointer_to=*/FALSE);
   write_tok_str("){");
@@ -5523,8 +5523,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('(');
           dump_expression(operand_1);
           write_tok_str(" == ");
-          write_vector_constant(skip_typerefs(operand_1->type)->
-                                             variant.vector.element_type, 0);
+          write_vector_constant(operand_1->type, 0);
           write_tok_ch(')');
           goto done_with_unary_operation;
         case eok_vector_fill:
@@ -6053,8 +6052,7 @@ process_assignment:
             write_tok_str(" ? ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_2->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_2->type, 0);
             write_tok_str(" : ");
             write_vector_constant(expr->type, 0);
           } else if (!is_vector_type(operand_2->type)) {
@@ -6062,8 +6060,7 @@ process_assignment:
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_1->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_1->type, 0);
             write_tok_str(" & (");
             dump_expression(operand_2);
             write_tok_str(" ? -1 : 0)");
@@ -6072,13 +6069,11 @@ process_assignment:
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_1->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_1->type, 0);
             write_tok_str(" & ");
             dump_expression(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_2->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_2->type, 0);
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
@@ -6097,15 +6092,13 @@ process_assignment:
             write_tok_str(" : ");
             dump_expr_with_parens(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_2->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_2->type, 0);
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_1->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_1->type, 0);
             write_tok_str(" | (");
             dump_expression(operand_2);
             write_tok_str(" ? 1 : 0)");
@@ -6114,13 +6107,11 @@ process_assignment:
                instead.  There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_1->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_1->type, 0);
             write_tok_str(" | ");
             dump_expression(operand_2);
             write_tok_str(" != ");
-            write_vector_constant(skip_typerefs(operand_2->type)->
-                                               variant.vector.element_type, 0);
+            write_vector_constant(operand_2->type, 0);
           }  /* if */
           write_tok_ch(')');
           goto done_with_binary_operation;
