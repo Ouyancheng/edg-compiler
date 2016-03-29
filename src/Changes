@@ -16,7 +16,7 @@ be the same as an array of unknown bound in many contexts.  Now fixed.
   }
 
 
-2/25/16  [EDGcpfe/16963]
+3/25/16  [EDGcpfe/16963]
 Assertion failure in corresponding_base_class
 
 In cases where lowering is initializing the __vptr field in a constexpr
