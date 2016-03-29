@@ -6090,7 +6090,7 @@ process_assignment:
           } else if (!is_vector_type(operand_2->type)) {
             /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
                There is no short-circuit in this case. */
-            // FIXME: use write_vector_constant?
+            /* FIXME: use write_vector_constant? */
             dump_expression(operand_1);
             write_tok_str(" != 0 | (");
             dump_expression(operand_2);
