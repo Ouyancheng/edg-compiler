@@ -10138,8 +10138,7 @@ analysis on a previously-scanned expression, and return the result in
              a vector of integers with the same number of elements as the
              operand. */
           op = (an_expr_operator_kind)eok_vector_not;
-          result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
-                                         num_vector_elements(operand.type));
+          result_type = make_integer_vector_result_type(operand.type);
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
@@ -24890,8 +24889,7 @@ that case.
     if (is_vector_type(operation_type)) {
       /* The result of a vector comparison is a vector of signed integer with
          the same number of elements as the operands. */
-      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
-                                     num_vector_elements(operation_type));
+      result_type = make_integer_vector_result_type(operation_type);
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
@@ -25179,8 +25177,7 @@ that case.
     if (is_vector_type(operation_type)) {
       /* The result of a vector comparison is a vector of integers with the
          same number of elements as the operands. */
-      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
-                                     num_vector_elements(operation_type));
+      result_type = make_integer_vector_result_type(operation_type);
       op = which_binary_operator(operator_token, operation_type);
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -25739,8 +25736,7 @@ that case.
       /* The result is a vector of integers with the same number of elements as
          the operands.  Note that the operation may have a mix of scalar
          and vector operands (though at least one must be a vector). */
-      result_type = make_vector_type(integer_type((an_integer_kind)ik_int),
-                                     num_vector_elements(operation_type));
+      result_type = make_integer_vector_result_type(operation_type);
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */

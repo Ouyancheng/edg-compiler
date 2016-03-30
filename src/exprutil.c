@@ -9967,6 +9967,28 @@ a source position for any errors.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_VECTOR_TYPES_ALLOWED
 
+a_type_ptr make_integer_vector_result_type(a_type_ptr operand_type)
+/*
+Returns the type to be used for GNU vector operations that return "a vector of
+the same width and number of elements as the comparison operands with a signed
+integral element type."  Used for relational and logical operators.  It appears
+that the integer type used for the elements is a signed integer whose size
+matches that of the operand vector elements.
+*/
+{
+  an_integer_kind int_kind;
+
+  check_assertion(is_vector_type(operand_type));
+  operand_type = skip_typerefs(operand_type);
+  int_kind = int_kind_for_size_and_alignment(
+                          operand_type->variant.vector.element_type->size,
+                          operand_type->variant.vector.element_type->alignment,
+                          /*is_signed=*/TRUE);
+  return make_vector_type(integer_type(int_kind),
+                          num_vector_elements(operand_type));
+}  /* make_integer_vector_result_type */
+
+
 a_boolean vector_and_scalar_types_are_compatible(a_type_ptr     vec_type,
                                                  a_type_ptr     scalar_type,
                                                  a_constant_ptr scalar_con)
