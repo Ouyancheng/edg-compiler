@@ -1,5 +1,25 @@
 Version 4.11
 
+3/30/16  [EDGcpfe/12133,EDGcpfe/14797,EDGcpfe/14854,EDGcpfe/16453,
+          EDGcpfe/16847,EDGcpfe/16849,EDGcpfe/16912]
+GNU compatibility: Additional support for GNU vector operations (IL CHANGE)
+
+Additional support has been added for GNU vector operations.  In particular,
+a number of new vector operations have been added to the IL.  New operations
+were added in cases where the result type of the operation is different
+than what would normally be expected.  For example, the logical and
+relational operations when applied to vector operands return a vector of
+integer element types (even if the operands have non-integer element types).
+The new eok_vector_land and eok_vector_lor types are somewhat unique in
+that they accept mixed scalar and vector types.  A new compiler-generated
+eok_vector_fill operation indicates when a scalar value (used in a
+mixed scalar-vector operation) is converted to a vector value.  These
+new vector operations are not lowered (though their operands are).
+
+Although not strictly speaking an IL CHANGE, a back end must now be prepared
+to handle the new vector operations.
+
+
 3/29/16  [EDGcpfe/16991]
 GNU/clang C++ compatibility: T[] considered the same as T[0]
 
