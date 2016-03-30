@@ -14934,7 +14934,7 @@ enum an_expr_operator_kind_tag {
                            standardized to integer/boolean in some
                            configurations. */
   eok_vector_not,	/* GNU vector logical complement ("!" operator).
-                           The operand and results are GNU vectors.  Used in
+                           The operand and result are GNU vectors.  Used in
                            C++ mode only.  Result is a vector of signed
                            integral type. */
   eok_vector_fill,	/* GNU vector "fill" operation.  Takes one scalar
@@ -15061,11 +15061,11 @@ enum an_expr_operator_kind_tag {
   eok_lor,		/* Logical union ("||" operator).  Operands are
 			   standardized to integer/boolean in some
 			   configurations. */
-  eok_vector_land,	/* GNU vector logical intersection ("&&" operator).
+  eok_vector_land,	/* GNU vector logical "and" ("&&" operator).
 			   At least one operand is a GNU vector; the other may
 			   be a scalar or a vector.  C++ only.  Result is a
 			   vector of signed integral type. */
-  eok_vector_lor,	/* GNU vector logical union ("||" operator).
+  eok_vector_lor,	/* GNU vector logical "or" ("||" operator).
 			   At least one operand is a GNU vector; the other may
 			   be a scalar or a vector.  C++ only.  Result is a
 			   vector of signed integral type. */
@@ -15145,14 +15145,10 @@ enum an_expr_operator_kind_tag {
 			   form, when is_gnu_two_operand_question_mark is TRUE
 			   (but three operands are still provided in that
 			   case). */
-  /* FIXME: two-operand version? */
-  /* FIXME: all operands are vectors, right? */
   eok_vector_question,	/* GNU vector conditional expression ("?" operator).
-			   The first operand is a GNU vector (of integers).
-			   At least one of the remaining operands is a vector
-			   (with the same number of elements as the first
-			   operand); the other operand is either a compatible
-			   scalar or a vector.  C++ only. */
+			   All operands are vectors and have the same number
+			   of vector elements.  The first operand has
+			   vector elements of integer type.  C++ only. */
   /* The following have n operands: */
   eok_call,             /* A call of a non-member function or static member
 			   function.  Also any call in C.  The first operand

@@ -10024,7 +10024,8 @@ void make_vector_fill_operand(an_operand *operand,
                               a_type_ptr vec_type)
 /*
 The specified operand is a scalar that is being "promoted" to a vector of
-the specified type.  Add a compiler-generated eok_vector_fill operation
+the specified type (where each element of the resulting vector has the value
+specified by operand).  Add a compiler-generated eok_vector_fill operation
 on top of the operand (in place).
 */
 {
@@ -10048,21 +10049,23 @@ on top of the operand (in place).
 }  /* make_vector_fill_operand */
 
 
-/* FIXME: result_type or operation_type or both? */
-a_boolean determine_vector_operation_type(a_token_kind           op_token,
-                                          an_operand             *operand_1,
-                                          an_operand             *operand_2,
-                                          a_source_position      *err_pos,
-                                          a_type_ptr             *result_type,
-                                          an_expr_operator_kind  *op)
+a_boolean determine_vector_operation_type(
+                                        a_token_kind           op_token,
+                                        an_operand             *operand_1,
+                                        an_operand             *operand_2,
+                                        a_source_position      *err_pos,
+                                        a_type_ptr             *operation_type,
+                                        an_expr_operator_kind  *op)
 /*
 Check whether the operation represented by op_token applied to operand_1 and
-operand_2 is a vector operation.  If so, set *result_type to the type of the
-resulting expression, *op to the IL operator kind (eok_...) representing this
+operand_2 is a vector operation.  If so, set *operation_type to the type of the
+operation, *op to the IL operator kind (eok_...) representing this
 operation, and return TRUE.  If the operand types involve at least one vector
 type, but the operand types are not valid for a vector operation, issue an
-error at *err_pos and set *op to eok_error and *result_type to an error type
-(TRUE is still returned in such cases).
+error at *err_pos and set *op to eok_error and *operation_type to an error type
+(TRUE is still returned in such cases).  Note that in some cases (notably
+relational and logical operations), the result of the operation (determined
+by the caller and not here) may be different than the type of the operation.
 */
 {
   a_type_ptr  op1_type = skip_typerefs(operand_1->type);
@@ -10080,11 +10083,11 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
     a_type_ptr el2_type = op2_type->variant.vector.element_type;
     if (op1_type->size != op2_type->size) {
       expr_pos_error(ec_vectors_must_have_same_size, err_pos);
-      *result_type = error_type();
+      *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else if (!identical_types(el1_type, el2_type)) {
       expr_pos_error(ec_vector_element_type_mismatch, err_pos);
-      *result_type = error_type();
+      *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else {
       switch (op_token) {
@@ -10100,14 +10103,14 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
                !is_template_param_type(el2_type))) {
             expr_pos_error(ec_vector_operation_requires_integer_vector,
                            err_pos);
-            *result_type = error_type();
+            *operation_type = error_type();
             *op = (an_expr_operator_kind)eok_error;
             break;
           }  /* if */
           /*FALLTHROUGH*/
         default:
-          *result_type = op1_type;
-          *op = which_binary_operator(op_token, *result_type);
+          *operation_type = op1_type;
+          *op = which_binary_operator(op_token, *operation_type);
       }  /* switch */
     }  /* if */
   } else {
@@ -10144,12 +10147,12 @@ error at *err_pos and set *op to eok_error and *result_type to an error type
       } else {
         make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
       }  /* if */
-      *result_type = vec_type;
-      *op = which_binary_operator(op_token, *result_type);
+      *operation_type = vec_type;
+      *op = which_binary_operator(op_token, *operation_type);
     } else {
       /* Not an allowed mixed-type operation. */
       expr_pos_error(ec_mixed_vector_scalar_operation, err_pos);
-      *result_type = error_type();
+      *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     }  /* if */
   }  /* if */
@@ -11022,17 +11025,14 @@ void change_binary_operand_types(a_type_ptr             type,
                                  an_expr_operator_kind  op)
 /*
 The given operation will be applied to the given operands.  If type is not a
-fixed-point type or a vector type, cast the two operands to the new type if
-necessary.  If type is a fixed-point type, ensure the operand types have the
+fixed-point type, cast the two operands to the new type if necessary.
+Otherwise (if type is a fixed-point type), ensure the operand types have the
 appropriate signedness (according to the rules prescribed by ISO TR 18037
 for fixed-point arithmetic).  This is used for the operands of an operation,
 with the type probably determined by determine_arithmetic_conversions.
 Either operand pointer may be NULL.  Warnings may be issued if fixed-point
 operands are unlikely to have a useful effect (e.g., when adding an integer
-to a fixed-point operand).  In the vector type case, casts are added when
-applied to a vector type, but not to a scalar type (it is assumed that the
-caller has verified the mix of vector and scalar types and that a back end
-will be able to handle it).
+to a fixed-point operand).
 */
 {
 #if FIXED_POINT_ALLOWED

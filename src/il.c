@@ -14176,11 +14176,9 @@ to operands of the given type.
     result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
 #endif /* FIXED_POINT_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
-    /* FIXME: float? */
-  } else if (kind1 == (a_type_kind)tk_vector) {
-    result = (kind2 == (a_type_kind)tk_integer) ? kind1 : kind2;
-  } else if (kind2 == (a_type_kind)tk_vector) {
-    result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
+  } else if (kind1 == (a_type_kind)tk_vector ||
+             kind2 == (a_type_kind)tk_vector) {
+    result = (a_type_kind)tk_vector;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (kind1 == (a_type_kind)tk_nullptr ||
              kind2 == (a_type_kind)tk_nullptr) {
@@ -26227,13 +26225,6 @@ node, and report any failure as an internal error.
           (is_fixed_point_type(op_type_1) ||
            is_fixed_point_type(op_type_2))) &&
 #endif /* FIXED_POINT_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-        /* Disregard vector types (these can be mixed). */
-        !(gnu_mode &&
-          expr->variant.operation.type_kind == (a_type_kind)tk_vector &&
-          (is_vector_type(op_type_1) ||
-           is_vector_type(op_type_2))) &&
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Disregard template dependent operands. */
         !(is_template_dependent_type(expr->type) ||
           is_template_dependent_type(op_type_1) ||
@@ -26276,7 +26267,6 @@ node, and report any failure as an internal error.
 #endif /* DEBUG */
       internal_error("vector operation in wrong mode");
     }  /* if */
-    /* FIXME: check for integral signed vectors for comparison ops? */
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 }  /* check_operation_node_consistency */

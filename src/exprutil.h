@@ -1640,12 +1640,13 @@ extern a_boolean vector_and_scalar_types_are_compatible(
 extern void make_vector_fill_operand(an_operand *operand,
                                      a_type_ptr vec_type);
 
-a_boolean determine_vector_operation_type(a_token_kind           op_token,
-                                          an_operand             *operand_1,
-                                          an_operand             *operand_2,
-                                          a_source_position      *err_pos,
-                                          a_type_ptr             *result_type,
-                                          an_expr_operator_kind  *op);
+extern a_boolean determine_vector_operation_type(
+                                        a_token_kind           op_token,
+                                        an_operand             *operand_1,
+                                        an_operand             *operand_2,
+                                        a_source_position      *err_pos,
+                                        a_type_ptr             *operation_type,
+                                        an_expr_operator_kind  *op);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
