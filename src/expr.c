@@ -26567,8 +26567,8 @@ that case.
                                               is_constant_operand(&operand_2) ?
                                                 &operand_2.variant.constant :
                                                 (a_constant_ptr)NULL)) {
-        /* Operand 1 is a vector and operands 2 and 3 are (the same)
-           scalar.  The result is a vector type. */
+        /* Operand 1 is a vector and operands 2 and 3 have the same scalar
+           type.  The result is a vector.  */
         make_vector_fill_operand(&operand_2, operand_1->type);
         make_vector_fill_operand(&operand_3, operand_1->type);
         result_type = operand_1->type;

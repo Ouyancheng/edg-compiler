@@ -5525,7 +5525,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_unary_operation;
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_not:
-          /* A gcc back end doesn't support !v, so use (v == 0) instead. */
+          /* Because gcc back doesn't support !v, use (v == 0) instead. */
           check_assertion(gcc_is_generated_code_target &&
                           is_vector_type(operand_1->type));
           write_tok_ch('(');
@@ -6048,8 +6048,8 @@ process_assignment:
           goto done_with_binary_operation;
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_land:
-          /* A gcc back end doesn't support logical "and" operation on a
-             vector argument, so the expression must be re-written.  Either
+          /* Because gcc doesn't support a logical "and" operation on a
+             vector argument, the expression must be rewritten.  Either
              operand (but not both) may be a scalar. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
@@ -6086,8 +6086,8 @@ process_assignment:
           write_tok_ch(')');
           goto done_with_binary_operation;
         case eok_vector_lor:
-          /* A gcc back end doesn't support logical "or" operation on a
-             vector argument, so the expression must be re-written.  Either
+          /* Because gcc doesn't support a logical "or" operation on a
+             vector argument, the expression must be rewritten.  Either
              operand (but not both) may be a scalar. */
           check_assertion(gcc_is_generated_code_target);
           write_tok_ch('(');
@@ -6175,7 +6175,7 @@ process_assignment:
         case eok_vector_question:
           {
             /* A vector conditional operator is allowed in g++ but not gcc so
-               it must be re-written from its original form.  Replace the
+               it must be rewritten from its original form.  Replace the
                conditional operation with a GNU statement expression that
                initializes a temporary of the proper vector type in an
                element-by-element fashion.  For example, for the case 

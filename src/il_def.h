@@ -14933,11 +14933,11 @@ enum an_expr_operator_kind_tag {
   eok_not,              /* Logical complement ("!" operator).  Operand is
                            standardized to integer/boolean in some
                            configurations. */
-  eok_vector_not,	/* GNU vector logical complement ("!" operator).
+  eok_vector_not,       /* GNU vector logical complement ("!" operator).
                            The operand and result are GNU vectors.  Used in
                            C++ mode only.  Result is a vector of signed
                            integral type. */
-  eok_vector_fill,	/* GNU vector "fill" operation.  Takes one scalar
+  eok_vector_fill,      /* GNU vector "fill" operation.  Takes one scalar
                            operand and returns a GNU vector whose value has the
                            scalar's value in every element of the vector. */
 #if C99_IL_EXTENSIONS_SUPPORTED

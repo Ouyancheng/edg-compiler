@@ -15053,7 +15053,7 @@ type kind" as a function of the operator kind and the type of the operands.
        kind == (an_expr_operator_kind)eok_vector_question)) {
     /* Make sure that operators added during lowering have the
        returns_lvalue_instead_of_usual_rvalue field set properly. */
-    /* Note that these lvalue returning operations will be re-written
+    /* Note that these lvalue returning operations will be rewritten
        in optimize_lowered_expression_if_possible to produce rvalue operations
        (since these are not valid C constructs). */
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;

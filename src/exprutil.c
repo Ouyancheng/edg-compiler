@@ -10142,7 +10142,7 @@ by the caller and not here) may be different than the type of the operation.
         /* Allow a mixed-type logical operations.  An initial scalar operand
            may serve to short-circuit the evaluation of the second operand
            (and the scalar is never converted to a vector in any of the
-           GCC-specified re-writes even if it is specified as the second
+           GCC-specified rewrites even if it is specified as the second
            operand). */
       } else {
         make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
