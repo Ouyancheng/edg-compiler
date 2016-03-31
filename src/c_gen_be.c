@@ -5525,7 +5525,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_unary_operation;
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_not:
-          /* Because gcc back doesn't support !v, use (v == 0) instead. */
+          /* Because gcc doesn't support !v, use (v == 0) instead. */
           check_assertion(gcc_is_generated_code_target &&
                           is_vector_type(operand_1->type));
           write_tok_ch('(');
