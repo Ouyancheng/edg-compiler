@@ -1465,8 +1465,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                                a_routine_list_entry_ptr,
                                iek_routine_list_entry);
         } else if (ptr->is_target_specific_version) {
-          walk_list_not_needed(ptr->mv_info.targeted_version.representative,
-                               a_routine_ptr, iek_routine);
+          walk_ptr(ptr->mv_info.targeted_version.representative,
+                   a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       }

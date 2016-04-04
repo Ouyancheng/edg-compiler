@@ -1,5 +1,22 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/16915]
+GNU compatibility: incorrect walking of function multiversioning routine
+
+The "walking" of a target-specific version routine had incorrectly walked
+targeted_version.representative routine as a pointer to a list, resulting
+in undefined behavior.  A stack overflow could occur in extreme cases, for
+example (with --gnu_version 40800):
+
+  #pragma GCC push_options
+  #pragma GCC target("avx")
+  void f1() {};
+  void f2() {};
+  void f3() {};
+  /*...*/
+  void f9999() {};
+
+
 4/4/16   [EDGcpfe/17003]
 GNU compatibility: mangling of template argument packs in the IA-64 ABI
 
