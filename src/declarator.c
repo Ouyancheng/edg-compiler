@@ -1639,7 +1639,7 @@ actually declares a function, member function, or function template).
     (void)get_token();
     if (is_noexcept) {
       a_boolean  may_cache = FALSE;
-      if (is_top_level_declarator && 
+      if (!ignoring_exception_spec && is_top_level_declarator &&
           !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
           (!dps->is_lambda || dps->auto_params != NULL)) {
         /* A noexcept argument should generally be cached for later
