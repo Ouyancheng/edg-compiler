@@ -1,5 +1,21 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/17003]
+GNU compatibility: mangling of template argument packs in the IA-64 ABI
+
+The IA-64 ABI had originally used "I" when mangling template argument packs
+but was updated to use "J" instead.  The front end, in GNU emulation modes
+had also used "I" when emulate_gnu_abi_bugs was TRUE, but recent (later than
+5.0.0) versions now use the updated mangling so a change has been made when
+gnu_version >= 50000.  There is no change for the Cfront ABI.  For example
+(with --gnu_version 50100 --c++11 --set_flag emulate_gnu_abi_bugs):
+
+  template <typename... Args > void foo(Args...);
+  void f(int args) {
+     foo(args);  // Had been: _Z3fooIIiEEvDpT_ now _Z3fooIJiEEvDpT_
+  }
+
+
 3/30/16  [EDGcpfe/12133,EDGcpfe/14797,EDGcpfe/14854,EDGcpfe/16453,
           EDGcpfe/16847,EDGcpfe/16849,EDGcpfe/16912]
 GNU compatibility: Additional support for GNU vector operations (IL CHANGE)

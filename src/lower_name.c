@@ -7204,8 +7204,14 @@ last argument in the list).
   reserve_space_for_length(&length_reservation, mctl);
   add_to_mangled_name('_', mctl);
 #else /* IA64_ABI */
-  if (is_pack && !emulate_gnu_abi_bugs) {
-    /* Mark the start of the argument pack. */
+  if (is_pack &&
+      (!emulate_gnu_abi_bugs
+#if ABI_COMPATIBILITY_VERSION > 411
+                             || gnu_version >= 50000 || clang_mode
+#endif /* ABI_COMPATIBILITY_VERSION > 411 */
+                                                                  )) {
+    /* Mark the start of the argument pack.  GNU versions prior to 5.0
+       used "I" here. */
     add_to_mangled_name('J', mctl);
   } else {
     /* Mark the start of the template arguments.  The original IA-64 ABI
