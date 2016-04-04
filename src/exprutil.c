@@ -9977,15 +9977,21 @@ matches that of the operand vector elements.
 */
 {
   an_integer_kind int_kind;
+  a_type_ptr      result;
 
-  check_assertion(is_vector_type(operand_type));
-  operand_type = skip_typerefs(operand_type);
-  int_kind = int_kind_for_size_and_alignment(
+  if (is_error_type(operand_type)) {
+    result = error_type();
+  } else {
+    check_assertion(is_vector_type(operand_type));
+    operand_type = skip_typerefs(operand_type);
+    int_kind = int_kind_for_size_and_alignment(
                           operand_type->variant.vector.element_type->size,
                           operand_type->variant.vector.element_type->alignment,
                           /*is_signed=*/TRUE);
-  return make_vector_type(integer_type(int_kind),
-                          num_vector_elements(operand_type));
+    result = make_vector_type(integer_type(int_kind),
+                              num_vector_elements(operand_type));
+  }  /* if */
+  return result;
 }  /* make_integer_vector_result_type */
 
 
