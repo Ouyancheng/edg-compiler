@@ -1,5 +1,15 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/16844]
+Accept enumerators as argument to alignas
+
+Previously a spurious error was given when an enumerator was used as the
+argument to the alignas alignment specifier.  For example (with --c++11):
+
+  enum { sixteen = 16 };
+  alignas(sixteen) int v = 99;
+
+
 4/4/16   [EDGcpfe/16915]
 GNU compatibility: incorrect walking of function multiversioning routine
 
