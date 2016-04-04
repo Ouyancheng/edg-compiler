@@ -1,5 +1,20 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/17004]
+Diagnostic performance degradation in 4.10.1
+
+The diagnostic processing restructuring in 4.10.1 (see EDGcpfe/16084 on
+3/11/15) could result in a degradation of performance in compilations
+that issued a large number of diagnostics.  This was the result of
+can_locate_source_line being called twice for most diagnostics instead of
+once.  This is not an issue for the most common case (where a diagnostic
+is being issued on the current source line), but had a significant cost
+when the source file had to be re-read to fetch the source line.  This
+has been fixed by having can_locate_source_line save the result of the
+most recent request so that the second of two consecutive requests for
+the same location has virtually no cost.
+
+
 4/4/16   [EDGcpfe/16913]
 C++-generating back end: array-to-pointer decay in non-type template arguments
 

@@ -1908,6 +1908,27 @@ static FILE	*f_err_src_file;
 			/* File variable used to fetch the source line from
 			   the source file. */
 
+static a_boolean
+		can_locate_source_line_info_cached;
+			/* TRUE if the cached... values below can be used
+			   to fetch the information about a previous call to
+			   can_locate_source_line. */
+
+static a_seq_number
+		cached_seq_number;
+			/* The last sequence number passed into
+			   can_locate_source_line. */
+
+static a_unicode_source_kind
+		cached_unicode_source_kind;
+			/* The unicode_source_kind returned by the last call
+			   to can_locate_source_line. */
+
+static a_boolean
+		cached_can_locate_source_line;
+			/* The result returned by the last call
+			   to can_locate_source_line. */
+
 static a_boolean can_locate_source_line(
                                     a_seq_number          seq_number,
                                     a_unicode_source_kind *unicode_source_kind)
@@ -1932,6 +1953,19 @@ form for the file, or usk_none if the file is not Unicode.
                     source_state;
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
+  /* This routine is called twice for most diagnostic cases, so we cache
+     the most recent call to avoid to cost of reading the file again.
+     In some cases (where macro source positions are reported) this
+     optimization will not be possible. */
+  if (can_locate_source_line_info_cached && seq_number == cached_seq_number) {
+    src_line_found = cached_can_locate_source_line;
+    if (src_line_found) {
+      *unicode_source_kind = cached_unicode_source_kind;
+    }  /* if */
+    goto return_point;
+  }  /* if */
+  /* Ignore the old cached values. */
+  can_locate_source_line_info_cached = FALSE;
   *unicode_source_kind = usk_none;
   conv_seq_to_physical_file_and_line(seq_number, &src_file, &physical_line,
                                      &at_end_of_source);
@@ -2035,6 +2069,17 @@ close_file:
   }  /* if */
     
 return_point:
+  if (!can_locate_source_line_info_cached) {
+    /* We are not using previously-cached information.  Save the new
+       information so that it can (potentially) be used by a subsequent
+        call. */
+    can_locate_source_line_info_cached = TRUE;
+    cached_seq_number = seq_number;
+    cached_can_locate_source_line = src_line_found;
+    if (src_line_found) {
+      cached_unicode_source_kind = *unicode_source_kind;
+    }   /* if */
+  }  /* if */
   return src_line_found;
 }  /* can_locate_source_line */
 
@@ -4232,6 +4277,9 @@ The message is formatted into text strings and is output.
 {
   a_boolean	diag_should_be_issued;
 
+  /* For safety, make sure we don't use any information cached by
+     can_locate_source_line. */
+  can_locate_source_line_info_cached = FALSE;
   diag_should_be_issued = check_severity(dp);
 #if !STANDALONE_UTILITY_PROGRAM
   if (diag_should_be_issued) {
@@ -6469,6 +6517,10 @@ of each compilation.
   expected_error_record.string1 = NULL;
   expected_error_record.string2 = NULL;
 #endif /* CHECKING */
+  can_locate_source_line_info_cached = FALSE;
+  cached_seq_number = 0;
+  cached_unicode_source_kind = usk_none;
+  cached_can_locate_source_line = FALSE;
 }  /* error_init */
 
 #if DEBUG
