@@ -4286,6 +4286,9 @@ precedence confusion.  Do the output in the way described by octl.
       output_optional_open_paren(&need_parens,
                                  &need_final_cast_close_paren, octl);
       octl->output_str("(void *)", octl);
+    } else if (octl->processing_nontype_template_argument) {
+      /* A non-type template argument that is an address constant must not
+         have a cast applied. */
     } else {
       /* The proper type couldn't be achieved with address operators, so we
          need a final cast to adjust the type.  One important category of cases

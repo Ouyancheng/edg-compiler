@@ -1,5 +1,18 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/16913]
+C++-generating back end: array-to-pointer decay in non-type template arguments
+
+The C++-generating back end previously incorrectly added a cast to a
+non-type template argument when the argument is an array variable and the
+corresponding template parameter is a pointer to the element type with
+added cv-qualification.  This is now fixed.  For example:
+
+  template<const char *> struct S { };
+  char x[10];
+  S<x> y;   // Previously generated as S<(const char *)s>
+
+
 4/4/16   [EDGcpfe/16844]
 Accept enumerators as argument to alignas
 
