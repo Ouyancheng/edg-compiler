@@ -5109,6 +5109,8 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 *(an_integer_value *)result_storage = one_int;
               }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              *(an_integer_value *)result_storage = zero_int;
             } else {
               unexpected_condition();
             }  /* if */
