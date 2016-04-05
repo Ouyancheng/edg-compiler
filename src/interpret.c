@@ -7496,16 +7496,21 @@ type.  This includes checking the value of ovfl set by the operation.
         if (tp->kind == (a_type_kind)tk_array &&
             (expr->is_lvalue || expr->is_xvalue)) {
           /* An array lvalue (normally: a string literal).  Allocate the
-             string statically and return its address. */
-          a_byte_count  na_bytes = f_value_bytes_for_type(ips, tp, &result);
-          if (!result) break;
-          if (!ips->static_storage_ready) {
-            /* This is the first time we allocate static storage: Initialize
-               the associated static storage stack. */
-            init_constexpr_stack(&ips->static_storage);
-            ips->static_storage_ready = TRUE;
+             string statically and return its address.  Make sure that
+             multiple uses of the constant produce the same address. */
+          get_mapped_ptr(&ips->map, con, con_bytes);
+          if (con_bytes == NULL) {
+            a_byte_count  na_bytes = f_value_bytes_for_type(ips, tp, &result);
+            if (!result) break;
+            if (!ips->static_storage_ready) {
+              /* This is the first time we allocate static storage: Initialize
+                 the associated static storage stack. */
+              init_constexpr_stack(&ips->static_storage);
+              ips->static_storage_ready = TRUE;
+            }  /* if */
+            alloc_bytes(&ips->static_storage, na_bytes, con_bytes);
+            map_ptr(&ips->map, con, con_bytes);
           }  /* if */
-          alloc_bytes(&ips->static_storage, na_bytes, con_bytes);
           clear_address(result_storage, con_bytes);
         } else {
           con_bytes = result_storage;
