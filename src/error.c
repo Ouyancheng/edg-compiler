@@ -1955,8 +1955,10 @@ form for the file, or usk_none if the file is not Unicode.
 
   /* This routine is called twice for most diagnostic cases, so we cache
      the most recent call to avoid to cost of reading the file again.
-     In some cases (where macro source positions are reported) this
-     optimization will not be possible. */
+     In some cases (where macro_positions_in_diagnostics is TRUE) this
+     optimization may not be possible.  In such cases, if the source line
+     for the diagnostic is a macro definition, the two calls will refer
+     to different sequence numbers and the optimization will not apply. */
   if (can_locate_source_line_info_cached && seq_number == cached_seq_number) {
     src_line_found = cached_can_locate_source_line;
     if (src_line_found) {
@@ -2072,7 +2074,7 @@ return_point:
   if (!can_locate_source_line_info_cached) {
     /* We are not using previously-cached information.  Save the new
        information so that it can (potentially) be used by a subsequent
-        call. */
+       call. */
     can_locate_source_line_info_cached = TRUE;
     cached_seq_number = seq_number;
     cached_can_locate_source_line = src_line_found;
