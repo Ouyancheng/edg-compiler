@@ -25729,6 +25729,18 @@ that case.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     expr_stack->evaluated = saved_evaluated;
 #if GNU_VECTOR_TYPES_ALLOWED
+    if (!is_vector_type(operand_1->type) || (gnu_mode && C_mode()))
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    {
+      (void)check_boolean_controlling_expr(operand_1);
+    }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (!is_vector_type(operand_2.type) || (gnu_mode && C_mode()))
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    {
+      (void)check_boolean_controlling_expr(&operand_2);
+    }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
     if (gnu_mode && !C_mode() &&
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position, &operation_type,
@@ -25741,8 +25753,6 @@ that case.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
     {
-      (void)check_boolean_controlling_expr(operand_1);
-      (void)check_boolean_controlling_expr(&operand_2);
       result_type = boolean_result_type();
     }  /* if */
     /* See if we should reduce this operation to a constant in the case
@@ -27508,7 +27518,6 @@ assignment was a braced-init-list (allowed in C++11 mode),
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
-            /* FIXME: should this be "everywhere"? */
             orig_result_type = operand_1->type;
             operation_type = prvalue_type(result_type);
             goto operation_type_determined;
