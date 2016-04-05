@@ -2580,20 +2580,74 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       *fp_value(value) = con->variant.float_value;
       break;
     case ck_address:
-      switch (con->variant.address.kind) {
-        case abk_routine:
-          make_function_address(value, con->variant.address.variant.routine);
-          break;
-        case abk_variable:
-          { /* Check if the variable has a constant value, and if so ensure
-               it has a representation in static interpreter storage.
-               Otherwise, create a run-time address. */
-            a_variable_ptr  vp = con->variant.address.variant.variable;
-            if (vp->constant_valued) {
-              a_byte  *var_bytes;
-              get_stack_bytes(ips, vp, var_bytes);
-              if (var_bytes == NULL) {
-                a_type_ptr    vtp = skip_typerefs(vp->type);
+      {
+        a_type_ptr  atp = NULL;
+        switch (con->variant.address.kind) {
+          case abk_routine:
+            make_function_address(value, con->variant.address.variant.routine);
+            break;
+          case abk_variable:
+            { /* Check if the variable has a constant value, and if so ensure
+                 it has a representation in static interpreter storage.
+                 Otherwise, create a run-time address. */
+              a_variable_ptr  vp = con->variant.address.variant.variable;
+              if (vp->constant_valued) {
+                a_byte      *var_bytes;
+                a_type_ptr  vtp = skip_typerefs(vp->type);
+                get_stack_bytes(ips, vp, var_bytes);
+                if (var_bytes == NULL) {
+                  a_byte_count  n_bytes;
+                  if (!ips->static_storage_ready) {
+                    /* This is the first time we allocate static storage:
+                       Initialize the associated static storage stack. */
+                    init_constexpr_stack(&ips->static_storage);
+                    ips->static_storage_ready = TRUE;
+                  }  /* if */
+                  n_bytes = value_bytes_for_type(ips, vtp, &result);
+                  if (result) {
+                    a_constant_ptr  cp = NULL;
+                    alloc_bytes(&ips->static_storage, n_bytes, var_bytes);
+                    if (vp->init_kind == (an_init_kind)initk_static) {
+                      cp = vp->initializer.constant;
+                    } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
+                      cp = vp->initializer.dynamic->variant.constant;
+                    } else {
+                      an_init_kind    init_kind;
+                      an_initializer  *initializer;
+                      get_variable_initializer(vp, (a_scope*)NULL, &init_kind,
+                                               &initializer);
+                      if (init_kind == (an_init_kind)initk_static) {
+                        cp = initializer->constant;
+                      } else if (init_kind == (an_init_kind)initk_dynamic) {
+                        cp = initializer->dynamic->variant.constant;
+                      } else {
+                        unexpected_condition();
+                      }  /* if */
+                    }  /* if */
+                    result = extract_value_from_constant(ips, cp, var_bytes);
+                  }  /* if */
+                  if (!result) break;
+                  map_stack_bytes(ips, vp, var_bytes);
+                }  /* if */
+                clear_address(value, var_bytes);
+                if (vtp->kind == (a_type_kind)tk_array) {
+                  /* The result address must be adjusted to record array
+                     characteristics. */
+                  atp = vtp;
+                }  /* if */
+              } else {
+                clear_runtime_constant_address(value, con);
+              }  /* if */
+            }
+            break;
+          case abk_constant:
+          case abk_temporary:
+            {
+              a_constant_ptr  cp = con->variant.address.variant.constant;
+              a_byte          *con_bytes;
+              a_type_ptr      ctp = skip_typerefs(cp->type);
+              get_stack_bytes(ips, cp, con_bytes);
+              if (con_bytes == NULL) {
                 a_byte_count  n_bytes;
                 if (!ips->static_storage_ready) {
                   /* This is the first time we allocate static storage:
@@ -2601,90 +2655,48 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   init_constexpr_stack(&ips->static_storage);
                   ips->static_storage_ready = TRUE;
                 }  /* if */
-                n_bytes = value_bytes_for_type(ips, vtp, &result);
+                n_bytes = value_bytes_for_type(ips, ctp, &result);
                 if (result) {
-                  a_constant_ptr  cp = NULL;
-                  alloc_bytes(&ips->static_storage, n_bytes, var_bytes);
-                  if (vp->init_kind == (an_init_kind)initk_static) {
-                    cp = vp->initializer.constant;
-                  } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
-                    cp = vp->initializer.dynamic->variant.constant;
-                  } else {
-                    an_init_kind    init_kind;
-                    an_initializer  *initializer;
-                    get_variable_initializer(vp, (a_scope*)NULL, &init_kind,
-                                             &initializer);
-                    if (init_kind == (an_init_kind)initk_static) {
-                      cp = initializer->constant;
-                    } else if (init_kind == (an_init_kind)initk_dynamic) {
-                      cp = initializer->dynamic->variant.constant;
-                    } else {
-                      unexpected_condition();
-                    }  /* if */
-                  }  /* if */
-                  result = extract_value_from_constant(ips, cp, var_bytes);
+                  alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
+                  result = extract_value_from_constant(ips, cp, con_bytes);
                 }  /* if */
                 if (!result) break;
-                map_stack_bytes(ips, vp, var_bytes);
+                /* Record a two-way mapping to ensure we always use the same
+                   storage, and that we reproduce the original constant if this
+                   becomes part of the interpretation result. */
+                map_stack_bytes(ips, cp, con_bytes);
+                map_stack_bytes(ips, con_bytes, (a_byte*)con);
               }  /* if */
-              clear_address(value, var_bytes);
-            } else {
+              clear_address(value, con_bytes);
+              if (ctp->kind == (a_type_kind)tk_array) {
+                /* The result address must be adjusted to record array
+                   characteristics. */
+                atp = ctp;
+              }  /* if */
+            }
+            break;
+          default:
+            { /* Create an a_constexpr_address for the runtime constant, which
+                 requires a local constant. */
               clear_runtime_constant_address(value, con);
-            }  /* if */
-          }
-          break;
-        case abk_constant:
-        case abk_temporary:
-          {
-            a_constant_ptr  cp = con->variant.address.variant.constant;
-            a_byte          *con_bytes;
-            a_type_ptr      ctp = skip_typerefs(cp->type);
-            get_stack_bytes(ips, cp, con_bytes);
-            if (con_bytes == NULL) {
-              a_byte_count  n_bytes;
-              if (!ips->static_storage_ready) {
-                /* This is the first time we allocate static storage:
-                   Initialize the associated static storage stack. */
-                init_constexpr_stack(&ips->static_storage);
-                ips->static_storage_ready = TRUE;
-              }  /* if */
-              n_bytes = value_bytes_for_type(ips, ctp, &result);
-              if (result) {
-                alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
-                result = extract_value_from_constant(ips, cp, con_bytes);
-              }  /* if */
-              if (!result) break;
-              /* Record a two-way mapping to ensure we always use the same
-                 storage, and that we reproduce the original constant if this
-                 becomes part of the interpretation result. */
-              map_stack_bytes(ips, cp, con_bytes);
-              map_stack_bytes(ips, con_bytes, (a_byte*)con);
-            }  /* if */
-            clear_address(value, con_bytes);
-            if (ctp->kind == (a_type_kind)tk_array) {
-              a_constexpr_address  *cap = (a_constexpr_address*)value;
-              cap->flags |= CA_ARRAY_ELEMENT;
-              cap->length = ctp->variant.array.variant.number_of_elements;
-              cap->variant.base_address = cap->address;
-              if (con->variant.address.offset != 0) {
-                a_type_ptr    tp = skip_typerefs(con->type);
-                a_byte_count  offset, elem_size;
-                tp = skip_typerefs(tp->variant.pointer.type);
-                offset = (a_byte_count)con->variant.address.offset/tp->size;
-                elem_size = value_bytes_for_type(ips, tp, &result);
-                if (!result) break;
-                cap->address += offset*elem_size;
-              }  /* if */
-            }  /* if */
-          }
-          break;
-        default:
-          { /* Create an a_constexpr_address for the runtime constant, which
-               requires a local constant. */
-            clear_runtime_constant_address(value, con);
-          }
-          break;
-      }  /* switch */
+            }
+            break;
+        }  /* switch */
+        if (atp != NULL) {
+          a_constexpr_address  *cap = (a_constexpr_address*)value;
+          cap->flags |= CA_ARRAY_ELEMENT;
+          cap->length = atp->variant.array.variant.number_of_elements;
+          cap->variant.base_address = cap->address;
+          if (con->variant.address.offset != 0) {
+            a_type_ptr    etp = skip_typerefs(atp->variant.array.element_type);
+            a_byte_count  offset, elem_size;
+            offset = (a_byte_count)con->variant.address.offset/etp->size;
+            elem_size = value_bytes_for_type(ips, etp, &result);
+            if (!result) break;
+            cap->address += offset*elem_size;
+          }  /* if */
+        }  /* if */
+      }
       break;
     case ck_ptr_to_member:
       { a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
