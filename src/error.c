@@ -4277,9 +4277,11 @@ The message is formatted into text strings and is output.
 {
   a_boolean	diag_should_be_issued;
 
+#if !STANDALONE_UTILITY_PROGRAM
   /* For safety, make sure we don't use any information cached by
      can_locate_source_line. */
   can_locate_source_line_info_cached = FALSE;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   diag_should_be_issued = check_severity(dp);
 #if !STANDALONE_UTILITY_PROGRAM
   if (diag_should_be_issued) {
