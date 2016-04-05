@@ -4885,14 +4885,34 @@ type.  This includes checking the value of ovfl set by the operation.
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_integer &&
-                       tp->kind == (a_type_kind)tk_pointer &&
-                       cmp_integer_values((an_integer_value *)opnd1_value,
-                                          /*op_1_signed=*/FALSE,
-                                          (an_integer_value *)&zero_int,
-                                          /*op_2_signed=*/FALSE) == 0) {
+            } else if (tp->kind == (a_type_kind)tk_pointer &&
+                       (opnd1_type->kind == (a_type_kind)tk_nullptr ||
+                        (opnd1_type->kind == (a_type_kind)tk_integer &&
+                         cmp_integer_values((an_integer_value *)opnd1_value,
+                                            /*op_1_signed=*/FALSE,
+                                            (an_integer_value *)&zero_int,
+                                            /*op_2_signed=*/FALSE) == 0))) {
               /* A null pointer. */
               clear_address(result_storage, (a_byte*)0);
+            } else if (tp->kind == (a_type_kind)tk_ptr_to_member &&
+                       (opnd1_type->kind == (a_type_kind)tk_nullptr ||
+                        (opnd1_type->kind == (a_type_kind)tk_integer &&
+                         cmp_integer_values((an_integer_value *)opnd1_value,
+                                            /*op_1_signed=*/FALSE,
+                                            (an_integer_value *)&zero_int,
+                                            /*op_2_signed=*/FALSE) == 0))) {
+              /* A null pointer-to-member. */
+              a_constexpr_ptr_to_mem
+                                *pm = (a_constexpr_ptr_to_mem*)result_storage;
+              pm->subtract_adjustment = 0;
+              pm->this_class_adjustment = 0;
+              if (is_function_type(tp->variant.ptr_to_member.type)) {
+                pm->is_ptr_to_mem_function = TRUE;
+                pm->variant.routine = NULL;
+              } else {
+                pm->is_ptr_to_mem_function = FALSE;
+                pm->variant.field = NULL;
+              }  /* if */
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
@@ -5950,6 +5970,28 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+              a_constexpr_ptr_to_mem  *pm1, *pm2;
+              pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
+              pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
+              if (pm1->subtract_adjustment != pm2->subtract_adjustment ||
+                  pm1->this_class_adjustment != pm2->this_class_adjustment) {
+                *(an_integer_value *)result_storage = zero_int;
+              } else if (pm1->is_ptr_to_mem_function) {
+                if (pm2->is_ptr_to_mem_function &&
+                    pm1->variant.routine == pm2->variant.routine) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              } else {
+                if (!pm2->is_ptr_to_mem_function &&
+                    pm1->variant.field == pm2->variant.field) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = one_int;
@@ -6006,6 +6048,28 @@ type.  This includes checking the value of ovfl set by the operation.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+              a_constexpr_ptr_to_mem  *pm1, *pm2;
+              pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
+              pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
+              if (pm1->subtract_adjustment != pm2->subtract_adjustment ||
+                  pm1->this_class_adjustment != pm2->this_class_adjustment) {
+                *(an_integer_value *)result_storage = one_int;
+              } else if (pm1->is_ptr_to_mem_function) {
+                if (pm2->is_ptr_to_mem_function &&
+                    pm1->variant.routine == pm2->variant.routine) {
+                  *(an_integer_value *)result_storage = zero_int;
+                } else {
+                  *(an_integer_value *)result_storage = one_int;
+                }  /* if */
+              } else {
+                if (!pm2->is_ptr_to_mem_function &&
+                    pm1->variant.field == pm2->variant.field) {
+                  *(an_integer_value *)result_storage = zero_int;
+                } else {
+                  *(an_integer_value *)result_storage = one_int;
+                }  /* if */
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = zero_int;
