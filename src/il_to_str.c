@@ -4286,8 +4286,14 @@ precedence confusion.  Do the output in the way described by octl.
       output_optional_open_paren(&need_parens,
                                  &need_final_cast_close_paren, octl);
       octl->output_str("(void *)", octl);
-    } else if (octl->processing_nontype_template_argument) {
-      /* A non-type template argument that is an address constant must not
+    } else if (octl->processing_nontype_template_argument &&
+               octl->gen_compilable_code
+#if BACK_END_IS_CP_GEN_BE
+               && !msvc_is_generated_code_target
+#endif /* BACK_END_IS_CP_GEN_BE */
+                                                ) {
+      /* MSVC accepts a cast in a non-type template argument; otherwise, a
+         non-type template argument that is an address constant must not
          have a cast applied. */
     } else {
       /* The proper type couldn't be achieved with address operators, so we
