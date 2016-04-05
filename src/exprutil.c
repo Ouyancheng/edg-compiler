@@ -10012,12 +10012,15 @@ assuming "a" and "b" are vectors of four integer types.
   check_assertion(is_vector_type(vec_type));
   vec_type = skip_typerefs(vec_type);
   elem_type = skip_typerefs(vec_type->variant.vector.element_type);
-  if ((elem_type->kind == (a_type_kind)tk_integer ||
-       elem_type->kind == (a_type_kind)tk_float) &&
-      elem_type->kind == scalar_type->kind &&
-      !is_immediate_enum_type(scalar_type) &&
-      !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
-                               (an_error_code*)NULL)) {
+  if (is_template_param_type(elem_type) ||
+      is_template_param_type(scalar_type)) {
+    result = TRUE;
+  } else if ((elem_type->kind == (a_type_kind)tk_integer ||
+              elem_type->kind == (a_type_kind)tk_float) &&
+             elem_type->kind == scalar_type->kind &&
+             !is_immediate_enum_type(scalar_type) &&
+             !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
+                                      (an_error_code*)NULL)) {
     result = TRUE;
   } else {
     result = FALSE;
@@ -10032,7 +10035,8 @@ void make_vector_fill_operand(an_operand *operand,
 The specified operand is a scalar that is being "promoted" to a vector of
 the specified type (where each element of the resulting vector has the value
 specified by operand).  Add a compiler-generated eok_vector_fill operation
-on top of the operand (in place).
+on top of the operand (in place) unless the operand is a template parameter
+(in which case no transformation is done).
 */
 {
   an_expr_node_ptr  expr;
@@ -10042,16 +10046,18 @@ on top of the operand (in place).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   check_assertion(!is_vector_type(operand->type) && is_vector_type(vec_type));
-  expr = make_node_from_operand(operand);
-  expr = make_operator_node((an_expr_operator_kind)eok_vector_fill, vec_type,
-                            expr);
-  make_expression_operand(expr, operand);
-  /* This is a compiler-generated operand. */
-  expr->variant.operation.compiler_generated = TRUE;
-  operand->position = save_position;
+  if (!is_template_param_type(operand->type)) {
+    expr = make_node_from_operand(operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_vector_fill, vec_type,
+                              expr);
+    make_expression_operand(expr, operand);
+    /* This is a compiler-generated operand. */
+    expr->variant.operation.compiler_generated = TRUE;
+    operand->position = save_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand->end_position = save_end_position;
+    operand->end_position = save_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
 }  /* make_vector_fill_operand */
 
 
