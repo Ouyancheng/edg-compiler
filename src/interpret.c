@@ -2666,6 +2666,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               cap->flags |= CA_ARRAY_ELEMENT;
               cap->length = ctp->variant.array.variant.number_of_elements;
               cap->variant.base_address = cap->address;
+              if (con->variant.address.offset != 0) {
+                a_type_ptr    tp = skip_typerefs(con->type);
+                a_byte_count  offset, elem_size;
+                tp = skip_typerefs(tp->variant.pointer.type);
+                offset = con->variant.address.offset/tp->size;
+                elem_size = value_bytes_for_type(ips, tp, &result);
+                if (!result) break;
+                cap->address += offset*elem_size;
+              }  /* if */
             }  /* if */
           }
           break;
