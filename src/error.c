@@ -6510,6 +6510,10 @@ of each compilation.
            sizeof(diagnostic_issued_for_error_code));
 #if !STANDALONE_UTILITY_PROGRAM
   clear_file_index_list();
+  can_locate_source_line_info_cached = FALSE;
+  cached_seq_number = 0;
+  cached_unicode_source_kind = usk_none;
+  cached_can_locate_source_line = FALSE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if CHECKING
   expected_error_record.filename = NULL;
@@ -6517,10 +6521,6 @@ of each compilation.
   expected_error_record.string1 = NULL;
   expected_error_record.string2 = NULL;
 #endif /* CHECKING */
-  can_locate_source_line_info_cached = FALSE;
-  cached_seq_number = 0;
-  cached_unicode_source_kind = usk_none;
-  cached_can_locate_source_line = FALSE;
 }  /* error_init */
 
 #if DEBUG
