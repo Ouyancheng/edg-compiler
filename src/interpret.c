@@ -5134,8 +5134,9 @@ type.  This includes checking the value of ovfl set by the operation.
             } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
               a_constexpr_ptr_to_mem
                                    *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
-              if ((pm->is_ptr_to_mem_function ? pm->variant.routine
-                                              : pm->variant.field) == NULL) {
+              if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                              : (void*)pm->variant.field)
+                                                                    == NULL) {
                 *(an_integer_value *)result_storage = zero_int;
               } else {
                 *(an_integer_value *)result_storage = one_int;
