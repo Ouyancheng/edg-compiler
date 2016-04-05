@@ -59,7 +59,7 @@ example (with --gnu_version 40800):
 GNU compatibility: mangling of template argument packs in the IA-64 ABI
 
 The IA-64 ABI had originally used "I" when mangling template argument packs
-but was updated to use "J" instead.  The front end, in GNU emulation modes
+but was updated to use "J" instead.  The front end, in GNU emulation modes,
 had also used "I" when emulate_gnu_abi_bugs was TRUE, but recent (later than
 5.0.0) versions now use the updated mangling so a change has been made when
 gnu_version >= 50000.  There is no change for the Cfront ABI.  For example
