@@ -41,7 +41,7 @@ argument to the alignas alignment specifier.  For example (with --c++11):
 4/4/16   [EDGcpfe/16915]
 GNU compatibility: incorrect walking of function multiversioning routine
 
-The "walking" of a target-specific version routine had incorrectly walked
+The "walking" of a target-specific version routine had incorrectly walked the
 targeted_version.representative routine as a pointer to a list, resulting
 in undefined behavior.  A stack overflow could occur in extreme cases, for
 example (with --gnu_version 40800):
