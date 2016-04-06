@@ -2676,8 +2676,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }
             break;
           default:
-            { /* Create an a_constexpr_address for the runtime constant, which
-                 requires a local constant. */
+            { /* Create an a_constexpr_address for the runtime constant. */
               clear_runtime_constant_address(value, con);
             }
             break;
