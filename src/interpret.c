@@ -5239,8 +5239,21 @@ type.  This includes checking the value of ovfl set by the operation.
               is_signed = int_kind_is_signed[int_kind];
               ovfl = FALSE;
               complement_integer_value((an_integer_value *)result_storage);
-              check_int_range((an_integer_value *)result_storage, tp, result,
-                              ovfl, &expr->position, ips);
+              if (!is_signed) {
+                /* Inverting the bits of a small unsigned integer value creates
+                   a very large unsigned integer value.  However, bits beyond
+                   the type representation should be cleared to ensure that
+                   comparisons (done, e.g., in check_int_range) are correct.
+                   For signed integers, this is not an issue because inverting
+                   the bits of a small unsigned integer value produces a
+                   negative value that's invariant independent of the number of
+                   leading ("sign-extended") bits. */
+                and_integer_values((an_integer_value*)result_storage,
+                                   &max_integer_value_of_kind[int_kind]);
+              } else {
+                check_int_range((an_integer_value *)result_storage, tp, result,
+                                ovfl, &expr->position, ips);
+              }  /* if */
             } else {
               /* The complement operator only applies to integer types. */
               unexpected_condition();
