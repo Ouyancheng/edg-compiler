@@ -2628,6 +2628,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   }  /* if */
                   if (!result) break;
                   map_stack_bytes(ips, vp, var_bytes);
+                  /* Set up a reverse mapping so we can re-create a variable
+                     address constant if the address (with potentially a
+                     different offset) is returned from the interpreter. */
+                  map_stack_bytes(ips, var_bytes, (a_byte*)con);
                 }  /* if */
                 clear_address(value, var_bytes);
                 if (vtp->kind == (a_type_kind)tk_array) {
@@ -7760,9 +7764,10 @@ diagnostic in *ips.
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
           /* Check if this address is already mapped to a constant. */
-          a_type_ptr      utp;
+          a_type_ptr      utp = skip_typerefs(type->variant.pointer.type);
           a_byte          *mptr;
           a_constant_ptr  cp;
+          a_variable_ptr  vp = NULL;
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
           if (is_array_element(cap)) {
             /* If we're pointing into an array, use the base address of the
@@ -7773,9 +7778,17 @@ diagnostic in *ips.
             get_stack_bytes(ips, cap->address, mptr);
           }  /* if */
           if (mptr != NULL) {
-            /* A constant was already allocated for the pointed-to object. */
-            cp = ((a_constant_ptr)mptr)->variant.address.variant.constant;
-            utp = skip_typerefs(cp->type);
+            /* Either a constant was already allocated for the pointed-to
+               object or this address was created from an abk_variable entry
+               (in which case, we must produce an address constant for that
+               same variable). */
+            a_constant_ptr  prev_con = (a_constant_ptr)mptr;
+            if (prev_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+              vp = prev_con->variant.address.variant.variable;
+            } else {
+              cp = prev_con->variant.address.variant.constant;
+            }  /* if */
             if (is_array_element(cap)) {
               /* If we're pointing into an array, we may have to compute a
                  nonzero offset into it. */
@@ -7791,7 +7804,6 @@ diagnostic in *ips.
           } else {
             /* Create an abk_constant or abk_temporary entry. */
             cp = fs_constant((a_constant_repr_kind)ck_error);
-            utp = skip_typerefs(type->variant.pointer.type);
             if (is_array_element(cap)) {
               /* If we're pointing into an array, a constant for the whole
                  array must be allocated. */
@@ -7819,19 +7831,24 @@ diagnostic in *ips.
               break;
             }  /* if */
           }  /* if */
-          if (utp->kind == (a_type_kind)tk_array ||
-              is_immediate_class_type(utp)) {
-            con->variant.address.kind = (an_address_base_kind)abk_constant;
+          if (vp != NULL) {
+            con->variant.address.kind = (an_address_base_kind)abk_variable;
+            con->variant.address.variant.variable = vp;
           } else {
-            con->variant.address.kind = (an_address_base_kind)abk_temporary;
-            if (mptr != NULL) {
-              /* Record the associated dynamic init entry so an escaping
-                 temporary address can be caught. */
-              con->variant.address.assoc_dyn_init =
+            if (utp->kind == (a_type_kind)tk_array ||
+                is_immediate_class_type(utp)) {
+              con->variant.address.kind = (an_address_base_kind)abk_constant;
+            } else {
+              con->variant.address.kind = (an_address_base_kind)abk_temporary;
+              if (mptr != NULL) {
+                /* Record the associated dynamic init entry so an escaping
+                   temporary address can be caught. */
+                con->variant.address.assoc_dyn_init =
                        ((a_constant_ptr)mptr)->variant.address.assoc_dyn_init;
+              }  /* if */
             }  /* if */
+            con->variant.address.variant.constant = cp;
           }  /* if */
-          con->variant.address.variant.constant = cp;
         }  /* if */
         if (is_variant_path(cap)) {
           release_variant_path(cap);
