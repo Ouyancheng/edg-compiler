@@ -671,15 +671,6 @@ in *unk_func_constant.
   sym->variant.constant = constant;
   constant->type = type_of_unknown_templ_param_nontype;
   constant->variant.template_param.is_qualified_name = is_qualified_name;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (sym_hdr->is_cli_operator) {
-    /* Not a C++ overloaded operator. */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    /* If this represents an overloaded operator, set the specific kind. */
-    constant->variant.template_param.variant.unknown_function.
-                                         opname_kind = sym_hdr->variant.opname;
   *unk_func_constant = constant;
   scp = &constant->source_corresp;
   set_source_corresp_with_scope_depth(scp, sym, depth);
