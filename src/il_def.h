@@ -14601,7 +14601,10 @@ enum an_expr_node_kind_tag {
 			   code above those nodes, so after IL lowering this
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
-  enk_typeid,		/* C++ typeid expression. */
+  enk_typeid,		/* C++ typeid expression.  When constexpr is enabled,
+			   the non-polymorphic, non-dependent case is
+			   represented by a ck_address/abk_typeid entry
+			   instead. */
   enk_sizeof,
   enk_runtime_sizeof = enk_sizeof,  /* Old name. */
 			/* A sizeof expression.  Usually those are folded to

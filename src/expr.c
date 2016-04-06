@@ -15100,6 +15100,9 @@ indication in *rcblock).
           runtime_case = FALSE;
         }  /* if */
       }  /* if */
+    } else if (constexpr_enabled) {
+      /* C++11 made the non-polymorphic case a core constant expression. */
+      make_constant = TRUE;
     }  /* if */
     if (microsoft_template_arg_case && runtime_case) {
       /* The Microsoft extension doesn't allow cases that require runtime

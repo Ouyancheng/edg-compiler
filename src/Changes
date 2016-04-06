@@ -1,5 +1,16 @@
 Version 4.11
 
+4/4/16   [EDGcpfe/17006]
+Representation of typeid(x)  (IL CHANGE)
+
+The front end has two representations for typeid(x): enk_typeid expression
+nodes, and ck_address/abk_typeid constant entries.  Until now, the latter was
+mostly used in Microsoft mode to handle the use of typeid constructs in
+template argument contexts.  However, C++11 made typeid(x) a valid core
+constant expression if x is not an lvalue of polymorphic class type.  In such
+cases, the front end now always uses the ck_address/abk_typeid representation.
+
+
 4/4/16   [EDGcpfe/17004]
 Diagnostic performance degradation in 4.10.1
 
