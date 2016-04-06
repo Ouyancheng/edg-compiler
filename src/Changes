@@ -1,5 +1,22 @@
 Version 4.11
 
+4/6/16   [EDGcpfe/16809,EDGcpfe/17014]
+"operator" string appearing in mangled names
+
+In certain cases, the string "operator", rather than a mangled representation
+of an operator, had appeared in mangled names (in both IA-64 and Cfront ABIs).
+Now fixed.  For example:
+
+  struct A {
+    operator int ();
+    template <typename T> int operator-();
+  };
+  typedef int (A::*P)();
+  template <P> struct S {};
+  template <typename T> void g(S<&T::template operator-<double> >) {}
+  template void g<A> (S<&A::operator-<double> >);
+
+
 4/4/16   [EDGcpfe/17006]
 Representation of typeid(x)  (IL CHANGE)
 

@@ -5104,17 +5104,16 @@ expression that was used to select expr (NULL if no selector was used).
           name_reference = NULL;
         }  /* if */
 #endif /* IA64_ABI */
+#if CHECKING
         if (sym != NULL && sym->header != NULL &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !(cli_or_cx_enabled && sym->header->is_cli_operator) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             sym->header->variant.opname != (an_opname_kind)onk_none) {
-          /* In some cases, e.g., "operator+(p1,p1)", the type of operation
-             is not found in the template parameter; rather it's found in the
-             symbol. */
-          check_assertion(opname == (an_opname_kind)onk_none);
-          opname = sym->header->variant.opname;
+          /* Make sure the symbol and constant agree. */
+          check_assertion(opname == sym->header->variant.opname);
         }  /* if */
+#endif /* CHECKING */
         if (opname != (an_opname_kind)onk_none ||
             con->variant.template_param.variant.unknown_function.
                                                      conversion_type != NULL) {
