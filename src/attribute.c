@@ -3789,7 +3789,11 @@ and C11 _Alignas specifiers.
   a_const_char *constr;
   a_boolean    std_specifier = is_std_attribute(ap) &&
                                !ap->is_std_gcc_attribute;
-  a_boolean    use_last_attribute = gnu_mode && !clang_mode;
+  /* GNU appears to use the last attribute in the declaration in earlier
+     versions, and even in later versions for types. */
+  a_boolean    use_last_attribute = gnu_mode && !clang_mode &&
+                                    (gnu_version < 40800 ||
+                                     entity_kind == iek_type);
 
   if (is_gcc_attribute(ap)) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
@@ -3881,7 +3885,9 @@ and C11 _Alignas specifiers.
       }  /* if */
       if (!apply_value) {
         /* Nothing more to do. */
-      } else if (std_specifier) {
+      } else if (std_specifier ||
+                 (gnu_mode && gnu_version >= 40800 &&
+                  entity_kind != iek_type)) {
         /* For standard alignment specifiers (i.e., alignas, _Alignas, and
            the early draft [[align()]]), don't apply the attribute immediately
            (i.e., here) because only the attribute with the strongest alignment
@@ -3889,9 +3895,10 @@ and C11 _Alignas specifiers.
            strongest alignment here, then use that when
            record_std_alignment_attr is later called after the
            declaration/definition of the entity to make it effective (and issue
-           appropriate errors).  Note that GCC (but not clang) erroneously uses
-           the "last" attribute rather than the one with the strongest
-           alignment. */
+           appropriate errors).  Note that GCC version 4.8.0 and later use
+           the "strongest" attribute rather than the "last" attribute (and
+           are handled here), except when the attributes are applied to
+           types (in which case the "last" attribute is the effective one). */
         check_assertion(dps != NULL);
         if (alignment > dps->alignment || use_last_attribute) {
           dps->alignment = alignment;

@@ -1252,9 +1252,9 @@ Standard alignment attributes
 A number of changes have been made to the processing of standard alignment
 attributes, i.e., alignas, _Alignas and the early draft standard
 [[align(...)]].  As specified by the standard, only the strongest alignment on
-a particular declaration is now considered (except in GNU emulation mode where
-the last alignment attribute is the effective one).  That wasn't always the
-case for fields.  For example (with --c++11):
+a particular declaration is now considered (except when applied to types
+in GNU emulation mode where the last alignment attribute is the effective one).
+For example (with --c++11):
 
   struct X {
     alignas(short) alignas(long) int m;  // Previously a spurious error.
