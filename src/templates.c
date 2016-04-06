@@ -11510,8 +11510,10 @@ new type may not be a typeref.
        is instantiated programatically rather than by scanning the cache for
        the template. */
     result_type = instantiate_make_integer_seq(new_list);
+    new_list = NULL;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (new_list != NULL) free_template_arg_list(new_list);
   return result_type;
 }  /* copy_template_alias_reference_with_substitution */
 
