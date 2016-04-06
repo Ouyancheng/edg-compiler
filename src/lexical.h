@@ -2637,8 +2637,11 @@ extern a_boolean cache_function_body(
   decr_token_set_array_element(curr_stop_token_stack_entry->stop_tokens, \
 			       stop_token)
 /* Flush to the token that matches an opening token (e.g., parenthesis). */
-extern void flush_until_matching_token(void);
 extern void flush_until_matching_token_full(a_boolean	limit_flush);
+extern void flush_until_matching_token(void);
+extern void flush_tokens_with_stop_tokens_and_warning_flag(
+                                         a_token_set_array  stop_tokens,
+                                         a_boolean          suppress_warning);
 extern void flush_to_closing_paren(void);
 extern void flush_tokens(void);
 extern void flush_tokens_without_warning(void);

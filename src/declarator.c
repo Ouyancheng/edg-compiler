@@ -1408,30 +1408,35 @@ template-dependent context or a member of a class).
     a_token_sequence_number       first_tsn, last_tsn;
     /* The caller ensured that an exception specification entry was
        allocated. */
-    check_assertion(esp != NULL);
     first_tsn = curr_token_sequence_number;
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_rparen);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    esp->arg_cached = TRUE;
-    esp->variant.token_cache = alloc_token_cache();
-    clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
-    cache_token_stream(esp->variant.token_cache, stop_tokens);
-    if (is_template_dependent_context()) {
-      a_template_cache_segment_ptr  tcsp;
-      last_tsn = curr_token_sequence_number - 1;
-      tcsp = alloc_template_cache_segment(
-                   (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
-      tcsp->is_exception_specification_arg = TRUE;
-      tcsp->first_token_number = first_tsn;
-      /* When there is no argument, the computed last token number could be
-         less that the first.  In that case, use the first token number as the
-         last. */
-      tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
-      /* Check for the case where the cache is empty. */
-      tcsp->expression_missing = esp->variant.token_cache->first_token == NULL;
+    if (esp != NULL) {
+      esp->arg_cached = TRUE;
+      esp->variant.token_cache = alloc_token_cache();
+      clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+      cache_token_stream(esp->variant.token_cache, stop_tokens);
+      if (is_template_dependent_context()) {
+        a_template_cache_segment_ptr  tcsp;
+        last_tsn = curr_token_sequence_number - 1;
+        tcsp = alloc_template_cache_segment(
+                  (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
+        tcsp->is_exception_specification_arg = TRUE;
+        tcsp->first_token_number = first_tsn;
+        /* When there is no argument, the computed last token number could be
+           less that the first.  In that case, use the first token number as
+           the last. */
+        tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+        /* Check for the case where the cache is empty. */
+        tcsp->expression_missing = 
+                              (esp->variant.token_cache->first_token == NULL);
+      }  /* if */
+      terminate_token_cache(esp->variant.token_cache);
+    } else {
+      flush_tokens_with_stop_tokens_and_warning_flag(
+                                      stop_tokens, /*suppress_warning=*/TRUE);
     }  /* if */
-    terminate_token_cache(esp->variant.token_cache);
   } else {
     a_memory_region_number  region_to_switch_back_to;
     a_source_position       constant_pos;
@@ -1639,7 +1644,7 @@ actually declares a function, member function, or function template).
     (void)get_token();
     if (is_noexcept) {
       a_boolean  may_cache = FALSE;
-      if (!ignoring_exception_spec && is_top_level_declarator &&
+      if (is_top_level_declarator &&
           !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
           (!dps->is_lambda || dps->auto_params != NULL)) {
         /* A noexcept argument should generally be cached for later

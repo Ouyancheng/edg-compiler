@@ -14457,7 +14457,7 @@ value for the limit_flush parameter.
 }  /* flush_until_matching_token */
 
 
-static void flush_tokens_with_stop_tokens_and_warning_flag(
+void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_token_set_array	stop_tokens,
 				a_boolean		suppress_warning)
 /*
