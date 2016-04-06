@@ -33,6 +33,9 @@ void db_object(a_byte      *addr,
 
 void db_call_stack(void  *ips);
 
+a_byte* db_stack_storage(void  *ptr,
+                         void  *ips);
+
 void db_live_set(void  *interpreter_state);
 
 #endif /* DEBUG */

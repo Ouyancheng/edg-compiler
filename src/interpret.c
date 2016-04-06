@@ -585,6 +585,7 @@ Double the size of the overflow area of the given live set.
       (set)->next_free = table[new_index].next_index;                        \
       if (new_index == 0) {                                                  \
         expand_live_set(set);                                                \
+        table = (set)->table;                                                \
         new_index = (set)->next_free;                                        \
       }  /* if */                                                            \
       table[new_index].alloc_seq_number = cached_seq_number;                 \
@@ -1141,6 +1142,7 @@ Macro to add a (pointer, pointer) entry to a data map.
       a_map_index  new_index;                                                \
       if ((map)->next_free == 0) {                                           \
         expand_map(map);                                                     \
+        table = (map)->table;                                                \
       }  /* if */                                                            \
       new_index = (map)->next_free;                                          \
       (map)->next_free = table[new_index].next_index;                        \
@@ -1165,6 +1167,7 @@ Macro to add a (pointer, byte-count) entry to a data map.
       a_map_index  new_index;                                                \
       if ((map)->next_free == 0) {                                           \
         expand_map(map);                                                     \
+        table = (map)->table;                                                \
       }  /* if */                                                            \
       new_index = (map)->next_free;                                          \
       (map)->next_free = table[new_index].next_index;                        \
@@ -2343,6 +2346,19 @@ expose an_interpreter_state in outside this source file).
     frame = frame->parent;
   }  /* while */
 }  /* db_call_stack */
+
+
+a_byte* db_stack_storage(void  *ptr,
+                         void  *ips)
+/*
+Return a pointer to the stack storage associated with the given pointer.
+*/
+{
+  a_byte  *bytes;
+
+  get_stack_bytes((an_interpreter_state*)ips, ptr, bytes);
+  return bytes;
+}  /* db_stack_storage */
 
 #endif /* DEBUG */
 
@@ -4703,14 +4719,16 @@ type.  This includes checking the value of ovfl set by the operation.
 {                                                                             \
   if (!ovfl) {                                                                \
     get_int_val_from((val), (tp), host_int_val, ovfl);                        \
-    (result) = (!ovfl &&                                                      \
-                host_int_val <=                                               \
-                 (a_host_large_integer)max_integer_value_of_kind[int_kind] && \
-                (!is_signed ||                                                \
-                 host_int_val >=                                              \
-                 (a_host_large_integer)min_integer_value_of_kind[int_kind])); \
+    if (ovfl ||                                                               \
+        host_int_val >                                                        \
+                 (a_host_large_integer)max_integer_value_of_kind[int_kind] || \
+        (is_signed &&                                                         \
+         host_int_val <                                                       \
+                (a_host_large_integer)min_integer_value_of_kind[int_kind])) { \
+      do_constexpr_fail(result);                                              \
+    }  /* if */                                                               \
   } else {                                                                    \
-    (result) = FALSE;                                                         \
+    do_constexpr_fail(result);                                                \
   }  /* if */                                                                 \
   if (!(result)) {                                                            \
     info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
@@ -4719,15 +4737,15 @@ type.  This includes checking the value of ovfl set by the operation.
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 #define check_int_range(val, tp, result, ovfl, pos, ips)                      \
 {                                                                             \
-  ((result) = (!ovfl &&                                                       \
-         cmp_integer_values((an_integer_value *)(val), is_signed,             \
-                            &max_integer_value_of_kind[int_kind],             \
-                            is_signed) <= 0 &&                                \
-         (!is_signed ||                                                       \
-          cmp_integer_values((an_integer_value *)(val), is_signed,            \
-                             &min_integer_value_of_kind[int_kind],            \
-                             is_signed) >= 0)));                              \
-  if (!(result)) {                                                            \
+  if (ovfl ||                                                                 \
+      cmp_integer_values((an_integer_value *)(val), is_signed,                \
+                         &max_integer_value_of_kind[int_kind],                \
+                         is_signed) > 0 ||                                    \
+      (is_signed &&                                                           \
+       cmp_integer_values((an_integer_value *)(val), is_signed,               \
+                          &min_integer_value_of_kind[int_kind],               \
+                          is_signed) < 0)) {                                  \
+    do_constexpr_fail(result);                                                \
     info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
   }  /* if */                                                                 \
 }  /* check_int_range */

@@ -424,6 +424,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_int_val)*/
 /*lint -esym(765, db_call_stack)*/
 /*lint -esym(714, db_call_stack)*/
+/*lint -esym(765, db_stack_storage)*/
+/*lint -esym(714, db_stack_storage)*/
 /*lint -esym(765, db_rescan_list)*/
 /*lint -esym(714, db_rescan_list)*/
 /*lint -esym(765, db_live_set)*/
