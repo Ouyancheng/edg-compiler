@@ -4289,7 +4289,7 @@ precedence confusion.  Do the output in the way described by octl.
     } else if (octl->processing_nontype_template_argument &&
                octl->gen_compilable_code
 #if BACK_END_IS_CP_GEN_BE
-               && !msvc_is_generated_code_target
+               && !microsoft_dialect_is_generated_code_target
 #endif /* BACK_END_IS_CP_GEN_BE */
                                                 ) {
       /* MSVC accepts a cast in a non-type template argument; otherwise, a
