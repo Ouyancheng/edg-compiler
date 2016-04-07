@@ -3554,8 +3554,7 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_if:
       {
-        a_boolean              has_cond_var;
-        a_storage_stack_state  saved_stack;
+        a_boolean  has_cond_var;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
@@ -3751,7 +3750,6 @@ successfully interpreted, FALSE otherwise.
         a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
                                             ->sorted_cases;
         a_boolean                is_signed, has_cond_var;
-        a_storage_stack_state    saved_stack;
         expr = stmt->expr;
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
         if (has_cond_var &&
