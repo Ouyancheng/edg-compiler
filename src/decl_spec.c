@@ -3601,7 +3601,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
   if ((is_class_definition || definition_removed) &&
-      constexpr_enabled && !gpp_mode &&
+      constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
       innermost_function_scope != NULL &&
       innermost_function_scope->variant.routine.ptr->is_constexpr) {
     pos_error(ec_tag_defined_in_constexpr_body, &decl_start_pos);
@@ -5064,7 +5064,8 @@ is updated to reflect relevant positions of this definition.
        enum. */
     cannot_bind_to_curr_construct();
   }  /* if */
-  if (constexpr_enabled && innermost_function_scope != NULL && !gpp_mode &&
+  if (constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
+      innermost_function_scope != NULL &&
       innermost_function_scope->variant.routine.ptr->is_constexpr) {
     pos_error(ec_tag_defined_in_constexpr_body, &definition_pos);
   }  /* if */
