@@ -1229,8 +1229,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
       prescan_gnu_attribute(flags);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    if (curr_token == tok_identifier && locator_for_curr_id.is_template_id) {
-      /* A template_id cannot be a declarator.  This helps to disambiguate
+    if (curr_token == tok_identifier && locator_for_curr_id.is_template_id &&
+        (flags & DFS_IS_TEMPLATE_DECL) == 0) {
+      /* A template_id cannot be a declarator -- at least in cases where
+         disambiguation occurs -- it can appear in specializations of
+         functions or variable templates.  This helps to disambiguate
          cases like T(A<int>()). */
       state->may_be_decl = FALSE;
       goto done;
