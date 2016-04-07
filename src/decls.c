@@ -17018,13 +17018,15 @@ if one is present.
       if (var_has_static_or_thread_storage_duration(var_ptr)) {
         pos_error(ec_nonautomatic_var_in_constexpr_function,
                   &locator->source_position);
-      } else if (!is_literal_type(var_ptr->type)) {
-        pos_ty_error(ec_nonliteral_var_in_constexpr_function,
-                     &locator->source_position, var_ptr->type);
-        var_ptr->type = error_type();
-      } else if (var_ptr->init_kind == (an_init_kind)initk_none) {
-        pos_error(ec_uninitialized_var_in_constexpr_function,
-                  &locator->source_position);
+      } else if (!is_template_dependent_context()) {
+        if (!is_literal_type(var_ptr->type)) {
+          pos_ty_error(ec_nonliteral_var_in_constexpr_function,
+                       &locator->source_position, var_ptr->type);
+          var_ptr->type = error_type();
+        } else if (var_ptr->init_kind == (an_init_kind)initk_none) {
+          pos_error(ec_uninitialized_var_in_constexpr_function,
+                    &locator->source_position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
