@@ -4104,7 +4104,10 @@ operand (with node as the backing expression) if needed.
         }  /* if */
       }  /* if */
       node->type = operand.type;
+      node->is_lvalue = is_an_lvalue(&operand) ||
+                        is_a_function_designator(&operand);
       result->type = operand.type;
+      result->state = operand.state;
     }  /* if */
     expr_stack->evaluated = saved_evaluated;
     *p_arg = make_node_from_operand(&operand);
