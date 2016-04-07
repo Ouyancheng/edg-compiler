@@ -3040,6 +3040,127 @@ Evaluate the given dynamic initialization for the given storage.
 }  /* do_constexpr_dynamic_init */
 
 
+static a_boolean do_constexpr_condition_alloc(
+                                            an_interpreter_state   *ips,
+                                            an_expr_node_ptr       expr,
+                                            a_storage_stack_state  *vs_state)
+/*
+expr is an enk_condition mode representing the condition expression of a
+statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
+Allocate and map the associated variable (it will be initialized by a call to
+do_constexpr_condition).  Save the previous storage state in *vs_state if
+successful.
+*/
+{
+  a_boolean  result = TRUE;
+  a_condition_supplement_ptr  csp = expr->variant.condition;
+  a_variable_ptr              cond_var = csp->dynamic_init->variable;
+  a_type_ptr                  vtp = skip_typerefs(cond_var->type);
+  a_byte_count                n_bytes;
+
+  n_bytes = value_bytes_for_type(ips, vtp, &result);
+  if (result) {
+    a_byte  *var_bytes;
+    save_storage_stack(ips, *vs_state);
+    alloc_complete_object(ips, n_bytes, vtp, var_bytes);
+    map_stack_bytes(ips, cond_var, var_bytes);
+    map_byte_count(&ips->map, &cond_var->storage_class,
+                   ips->storage_stack.alloc_seq_number);
+  }  /* if */
+  return result;
+}  /* do_constexpr_condition_alloc */
+
+
+static void do_constexpr_condition_dealloc(an_interpreter_state   *ips,
+                                           an_expr_node_ptr       expr,
+                                           a_storage_stack_state  *vs_state)
+/*
+expr is an enk_condition mode representing the condition expression of a
+statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
+Deallocate and unmap the associated variable.  Restore the storage state
+recorded in *vs_state.
+*/
+{
+  a_condition_supplement_ptr  csp = expr->variant.condition;
+  a_variable_ptr              cond_var = csp->dynamic_init->variable;
+
+  unmap_stack_bytes(ips, cond_var);
+  unmap_ptr(&ips->map, &cond_var->storage_class);
+  restore_storage_stack(ips, *vs_state);
+}  /* do_constexpr_condition_dealloc */
+
+
+static a_boolean do_constexpr_condition(a_boolean             has_cond_var,
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      expr,
+                                        a_type_ptr            expr_type,
+                                        a_byte                *value)
+/*
+Evaluate a condition expression (expr) of a statement (i.e., the <expr> in
+"if (<expr>) ...", "switch (<expr>) ...", etc.) and place the result in the
+storage pointed to by value.  If has_cond_var is TRUE, expr is an enk_condition
+node (such nodes are not handled by do_constexpr_expression).  expr_type is
+skip_typerefs(expr->type).
+*/
+{
+  a_boolean              result;
+  a_storage_stack_state  saved_stack_for_full_expr;
+  an_expr_node_ptr       expr_to_evaluate;
+
+  save_storage_stack((ips), saved_stack_for_full_expr);
+  if (has_cond_var) {
+    a_condition_supplement_ptr  csp = expr->variant.condition;
+    a_dynamic_init_ptr          dip = csp->dynamic_init;
+    a_variable_ptr              cond_var = dip->variable;
+    a_byte                      *var_bytes;
+    if (cond_var->extends_lifetime) {
+      /* Start a new stack for temporaries in this expression, but keep a
+         pointer to the original stack to allocate the lifetime-extended
+         temporary. */
+      init_constexpr_stack(&ips->storage_stack);
+      ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
+      ips->extension_state = &saved_stack_for_full_expr;
+    }  /* if */
+    get_stack_bytes(ips, cond_var, var_bytes);
+    result = do_constexpr_dynamic_init(ips, dip, &expr->position, var_bytes);
+    if (cond_var->extends_lifetime) {
+      /* Release the ordinary storage stack blocks for normal temporaries
+         allocated for the initializer.  Any large blocks will be released by
+         the call to restore_storage_stack below. */
+      release_constexpr_stack(&ips->storage_stack);
+    }  /* if */
+    expr_to_evaluate = csp->expr;
+  } else {
+    result = TRUE;
+    expr_to_evaluate = expr;
+  }  /* if */
+  if (result && !do_constexpr_expression(ips, expr_to_evaluate, value)) {
+    result = FALSE;
+  }  /* if */
+  release_address_structures(expr, expr_type, value);
+  restore_storage_stack(ips, saved_stack_for_full_expr);
+  return result;
+}  /* do_constexpr_condition */
+
+
+static void do_constexpr_condition_cleanup(an_interpreter_state   *ips,
+                                           an_expr_node_ptr       expr)
+/*
+If expr is an enk_condition node, clean up (but do not deallocate) the variable
+value (currently, that means disposing of the "variant path" structures).
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_condition) {
+    a_condition_supplement_ptr  csp = expr->variant.condition;
+    a_variable_ptr              cond_var = csp->dynamic_init->variable;
+    if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
+      a_byte  *var_bytes;
+      get_stack_bytes(ips, cond_var, var_bytes);
+      release_variant_path_if_needed(var_bytes);
+    }  /* if */
+  }  /* if */
+}  /* do_constexpr_condition_cleanup */
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
@@ -3086,7 +3207,7 @@ Interpret the given block statement and its associated scope (if any).
     a_variable_ptr  vp = scope->nonstatic_variables;
     for (; vp != NULL; vp = vp->next) {
       if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
-        a_byte          *var_bytes;
+        a_byte  *var_bytes;
         get_stack_bytes(ips, vp, var_bytes);
         if (var_bytes != NULL) {
           release_variant_path_if_needed(var_bytes);
@@ -3124,7 +3245,7 @@ Interpret the given for-statement.
     a_byte            *expr_value, *incr_value;
     a_type_ptr        tp, incr_type;
     a_byte_count      n_bytes;
-    a_boolean         ovfl;
+    a_boolean         ovfl, has_cond_var;
     a_host_large_integer
                       bool_val;
     DECL_COMPACT_VALUE_BYTES(expr_bytes);
@@ -3134,6 +3255,14 @@ Interpret the given for-statement.
          fit within the expr_bytes array. */
       expr_value = compact_value_bytes(expr_bytes);
       tp = skip_typerefs(expr->type);
+      /* Check if we have to allocate a condition variable. */
+      has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+      if (has_cond_var &&
+          !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+        do_constexpr_fail(result);
+        has_cond_var = FALSE;
+        goto unmap_storage;
+      }  /* if */
     } else {
       /* Needed only to avoid spurious GNU compiler optimizer
          warnings. */
@@ -3166,8 +3295,8 @@ Interpret the given for-statement.
                              &ips->diag_list);
         do_constexpr_fail(result);
       } else if (expr != NULL) {
-        do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_address_structures(expr, tp, expr_value);
+        result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                        expr_value);
         ips->cost += 1;
       }  /* if */
       if (result) {
@@ -3188,30 +3317,35 @@ Interpret the given for-statement.
                the increment expression (if any) unless we hit a branching
                statement. */
             if (ips->curr_call_frame->return_active) {
-              /* Break out of the loop (leave the flag active since we may
-                 have to break out of other constructs). */
-              break;
+              /* Stop the loop (leave the flag active since we may have to
+                 break out of other constructs). */
+              bool_val = FALSE;
             } else if (ips->curr_call_frame->break_active) {
-              /* Break out of the loop (which completes the execution of
-                 the break statement). */
+              /* Stop the loop (which completes the execution of the break
+                 statement). */
               ips->curr_call_frame->break_active = FALSE;
-              break;
-            } else if (ips->curr_call_frame->continue_active) {
-              /* Continue, but clear the continue_active flag since we've
-                 reached the point of continuation. */
-              ips->curr_call_frame->continue_active = FALSE;
-            }  /* if */
-            if (incr != NULL) {
-              do_constexpr_full_expression(ips, incr, incr_value, result);
-              release_address_structures(incr, incr_type,
-                                                  incr_value);
+              bool_val = FALSE;
+            } else {
+              if (ips->curr_call_frame->continue_active) {
+                /* Continue, but clear the continue_active flag since we've
+                   reached the point of continuation. */
+                ips->curr_call_frame->continue_active = FALSE;
+              }  /* if */
+              if (incr != NULL) {
+                do_constexpr_full_expression(ips, incr, incr_value, result);
+                release_address_structures(incr, incr_type, incr_value);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
       }   /* if */
+      do_constexpr_condition_cleanup(ips, expr);
     } while (result && bool_val);
-  }  /* if */
 unmap_storage:
+    if (has_cond_var) {
+      do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+    }  /* if */
+  }  /* if */
   { /* Unmap the local storage if necessary. */
     a_scope_ptr  init_scope = loop_info->for_init_scope;
     if (init_scope != NULL) {
@@ -3420,13 +3554,22 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_if:
       {
+        a_boolean              has_cond_var;
+        a_storage_stack_state  saved_stack;
+        expr = stmt->expr;
+        /* Check if we have to allocate a condition variable. */
+        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+        if (has_cond_var &&
+            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+          do_constexpr_fail(result);
+          break;
+        }  /* if */
         /* The type of the test expression is known to be bool, which will
            fit within the expr_bytes buffer. */
-        expr = stmt->expr;
         expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
-        do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_address_structures(expr, tp, expr_value);
+        result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                        expr_value);
         if (result) {
           /* Evaluation of the test expression succeeded.  Get its value to
              see which dependent statement should be executed. */
@@ -3440,11 +3583,23 @@ successfully interpreted, FALSE otherwise.
                                    ips, stmt->variant.if_stmt.else_statement);
           }  /* if */
         }  /* if */
+        if (has_cond_var) {
+          do_constexpr_condition_cleanup(ips, expr);
+          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+        }  /* if */
       }
       break;
     case stmk_while:
       {
+        a_boolean  has_cond_var;
         expr = stmt->expr;
+        /* Check if we have to allocate a condition variable. */
+        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+        if (has_cond_var &&
+            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+          do_constexpr_fail(result);
+          break;
+        }  /* if */
         /* The type of the test expression is known to be bool, which will
            fit within the expr_bytes array. */
         expr_value = compact_value_bytes(expr_bytes);
@@ -3456,8 +3611,8 @@ successfully interpreted, FALSE otherwise.
                                  &ips->position, &ips->diag_list);
             do_constexpr_fail(result);
           } else {
-            do_constexpr_full_expression(ips, expr, expr_value, result);
-            release_address_structures(expr, tp, expr_value);
+            result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                            expr_value);
             ips->cost += 1;
           }  /* if */
           if (result) {
@@ -3472,14 +3627,14 @@ successfully interpreted, FALSE otherwise.
                 /* Execution of the dependent statement succeeded.  Check for
                    a pending branching statement. */
                 if (ips->curr_call_frame->return_active) {
-                  /* Break out of the loop (leave the flag active since we may
-                     have to break out of other constructs). */
-                  break;
+                  /* Stop the loop (leave the flag active since we may have to
+                     break out of other constructs). */
+                  bool_val = FALSE;
                 } else if (ips->curr_call_frame->break_active) {
-                  /* Break out of the loop (which completes the execution of
-                     the break statement). */
+                  /* Stop the loop (which completes the execution of the break
+                     statement). */
                   ips->curr_call_frame->break_active = FALSE;
-                  break;
+                  bool_val = FALSE;
                 } else if (ips->curr_call_frame->continue_active) {
                   /* Continue, but clear the continue_active flag since we've
                      reached the point of continuation. */
@@ -3488,7 +3643,11 @@ successfully interpreted, FALSE otherwise.
               }  /* if */
             }  /* if */
           }   /* if */
+          do_constexpr_condition_cleanup(ips, expr);
         } while (result && bool_val);
+        if (has_cond_var) {
+          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+        }  /* if */
       }
       break;
     case stmk_goto:
@@ -3591,18 +3750,24 @@ successfully interpreted, FALSE otherwise.
       { a_statement_ptr          substmt;
         a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
                                             ->sorted_cases;
-        a_boolean                is_signed;
+        a_boolean                is_signed, has_cond_var;
+        a_storage_stack_state    saved_stack;
         expr = stmt->expr;
+        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+        if (has_cond_var &&
+            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+          break;
+        }  /* if */
         /* The type of the switch expression is known to be integral, which
            will fit within the expr_bytes array. */
         expr_value = compact_value_bytes(expr_bytes);
         tp = skip_typerefs(expr->type);
-        is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
-        do_constexpr_full_expression(ips, expr, expr_value, result);
-        release_address_structures(expr, tp, expr_value);
+        result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                        expr_value);
         if (!result) {
           goto done_with_switch;
         }  /* if */
+        is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
@@ -3690,8 +3855,12 @@ successfully interpreted, FALSE otherwise.
             goto done_with_switch;
           }  /* if */
         }  /* for */
-      }
 done_with_switch:
+        if (has_cond_var) {
+          do_constexpr_condition_cleanup(ips, expr);
+          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+        }  /* if */
+      }
       break;
     case stmk_init:
       { a_dynamic_init_ptr     dip = stmt->variant.dynamic_init;
@@ -3724,7 +3893,7 @@ done_with_switch:
                                            var_storage);
         if (vp->extends_lifetime) {
           /* Release the ordinary storage stack blocks for this expression.
-             The large blocks will be release by the call to
+             The large blocks will be released by the call to
              restore_storage_stack below. */
           release_constexpr_stack(&ips->storage_stack);
         }  /* if */
