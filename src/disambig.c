@@ -1229,6 +1229,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
       prescan_gnu_attribute(flags);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    if (curr_token == tok_identifier && locator_for_curr_id.is_template_id) {
+      /* A template_id cannot be a declarator.  This helps to disambiguate
+         cases like T(A<int>()). */
+      state->may_be_decl = FALSE;
+      goto done;
+    }  /* if */
     prescan_declarator(state, flags,
                        /*paren_initializer_allowed=*/FALSE,
                        /*is_top_level=*/FALSE);

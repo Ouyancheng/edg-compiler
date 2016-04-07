@@ -1,5 +1,21 @@
 Version 4.11
 
+4/7/16   [EDGcpfe/16321,EDGcpfe/17009]
+Spurious error caused by incorrect disambiguation
+
+The disambiguation rules have been updated to disqualify a template-id from
+being used as a declarator, thereby getting rid of a spurious error in cases
+like this:
+
+  template <class T> struct A { };
+  struct B {
+    B(A<int> a);
+  };
+  void foo () {
+    B(A<int>());
+  }
+
+
 4/6/16   [EDGcpfe/16809,EDGcpfe/17014]
 "operator" string appearing in mangled names
 
