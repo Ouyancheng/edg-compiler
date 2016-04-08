@@ -4685,8 +4685,6 @@ the body of the (constructor) function proper.
         a_constexpr_address  *src_addr;
         src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
         if (is_runtime_data_address(src_addr)) {
-          /* Cannot modify the value of an object whose lifetime began
-             outside the current evaluation. */
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &args->position, ips);
           do_constexpr_fail(result);
@@ -4708,10 +4706,15 @@ the body of the (constructor) function proper.
              subobject constructor (adjusted for the offset). */
           a_constexpr_address  *src_addr;
           src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
-          if (!do_constexpr_ctor(ips, sub_dip,
-                                 &callee->source_corresp.decl_position,
-                                 result_storage+offset,
-                                 src_addr->address+offset)) {
+          if (is_runtime_data_address(src_addr)) {
+            info_with_pos(ec_constexpr_access_to_runtime_storage,
+                          &args->position, ips);
+            do_constexpr_fail(result);
+            break;
+          } else  if (!do_constexpr_ctor(ips, sub_dip,
+                                         &callee->source_corresp.decl_position,
+                                         result_storage+offset,
+                                         src_addr->address+offset)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
