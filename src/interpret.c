@@ -3146,18 +3146,20 @@ skip_typerefs(expr->type).
 static void do_constexpr_condition_cleanup(an_interpreter_state   *ips,
                                            an_expr_node_ptr       expr)
 /*
-If expr is an enk_condition node, clean up (but do not deallocate) the variable
-value (currently, that means disposing of the "variant path" structures).
+expr is an enk_condition mode representing the condition expression of a
+statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
+Clean up the variable value (currently, that means disposing of the "variant
+path" structures).  This does not deallocate or unmap the variable (since for
+loop constructs it may be needed again).
 */
 {
-  if (expr->kind == (an_expr_node_kind)enk_condition) {
-    a_condition_supplement_ptr  csp = expr->variant.condition;
-    a_variable_ptr              cond_var = csp->dynamic_init->variable;
-    if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
-      a_byte  *var_bytes;
-      get_stack_bytes(ips, cond_var, var_bytes);
-      release_variant_path_if_needed(var_bytes);
-    }  /* if */
+  a_condition_supplement_ptr  csp = expr->variant.condition;
+  a_variable_ptr              cond_var = csp->dynamic_init->variable;
+
+  if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
+    a_byte  *var_bytes;
+    get_stack_bytes(ips, cond_var, var_bytes);
+    release_variant_path_if_needed(var_bytes);
   }  /* if */
 }  /* do_constexpr_condition_cleanup */
 
@@ -3264,6 +3266,7 @@ Interpret the given for-statement.
         goto unmap_storage;
       }  /* if */
     } else {
+      has_cond_var = FALSE;
       /* Needed only to avoid spurious GNU compiler optimizer
          warnings. */
       expr_value = compact_value_bytes(expr_bytes);
@@ -3339,7 +3342,9 @@ Interpret the given for-statement.
           }  /* if */
         }  /* if */
       }   /* if */
-      do_constexpr_condition_cleanup(ips, expr);
+      if (has_cond_var) {
+        do_constexpr_condition_cleanup(ips, expr);
+      }  /* if */
     } while (result && bool_val);
 unmap_storage:
     if (has_cond_var) {
@@ -3642,7 +3647,9 @@ successfully interpreted, FALSE otherwise.
               }  /* if */
             }  /* if */
           }   /* if */
-          do_constexpr_condition_cleanup(ips, expr);
+          if (has_cond_var) {
+            do_constexpr_condition_cleanup(ips, expr);
+          }  /* if */
         } while (result && bool_val);
         if (has_cond_var) {
           do_constexpr_condition_dealloc(ips, expr, &saved_stack);
