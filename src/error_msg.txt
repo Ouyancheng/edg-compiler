@@ -2830,6 +2830,7 @@ ec_yield_outside_of_function;;"co_yield expression is not permitted outside a fu
 ec_thread_local_ignored;;"ignoring thread-local indication on anonymous union"
 ec_cannot_deduce_coroutine_return_type;;"cannot deduce return type from a coroutine with no co_yield or co_await construct"
 ec_variable_template;INTERNAL;"variable template"
+ec_constexpr_param_arg_mismatch;;"number of arguments does not match number of parameters"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

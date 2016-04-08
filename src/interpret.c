@@ -4388,6 +4388,15 @@ accordingly.
       map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
       p_arg_ptr += 1;
     }  /* for */
+    if (p_arg_ptr != (a_byte**)arg_ptrs+n_args) {
+      /* The number of arguments does not match the number of parameters.
+         This should have triggered an error already. */
+      expect_error();
+      info_with_pos(ec_constexpr_param_arg_mismatch, &callee_node->position,
+                    ips);
+      do_constexpr_fail(result);
+      goto unmap_parameters;
+    }  /* if */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, &call_node->position, result_storage);
     /* Run the function's top-level block statement. */
@@ -4406,7 +4415,8 @@ accordingly.
       p_arg_ptr += 1;
     }  /* for */
     pop_call_frame(ips);
-    /* Release mappings of the parameters. */
+unmap_parameters:
+    /* Release the storage and mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
     for (; param != NULL; param = param->next) {
       unmap_stack_bytes(ips, param);
@@ -4461,7 +4471,7 @@ is a copy constructor invocation and the source object is stored at the
 location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
-representation, and mem-initializers must be interpreter prior to interpreting
+representation, and mem-initializers must be interpreted prior to interpreting
 the body of the (constructor) function proper.
 */
 {
@@ -4601,6 +4611,14 @@ the body of the (constructor) function proper.
       map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
       p_arg_ptr += 1;
     }  /* for */
+    if (p_arg_ptr != (a_byte**)arg_ptrs+n_args) {
+      /* The number of arguments does not match the number of parameters.
+         This should have triggered an error already. */
+      expect_error();
+      info_with_pos(ec_constexpr_param_arg_mismatch, pos, ips);
+      do_constexpr_fail(result);
+      goto unmap_parameters;
+    }  /* if */
     if (dip->variant.constructor.value_initialization) {
       /* If this is for value initialization, clear the storage first.
          Do not, however, override the first word (which may record the
@@ -4725,6 +4743,7 @@ the body of the (constructor) function proper.
       p_arg_ptr += 1;
     }  /* for */
     pop_call_frame(ips);
+unmap_parameters:
     /* Release the storage and mappings of the parameters. */
     param = callee_scope->variant.routine.parameters;
     for (; param != NULL; param = param->next) {
