@@ -8190,7 +8190,12 @@ initialized.  These are addressed in the course of the processing.
     /* Issue a diagnostic for uninitialized const and ref members. */
     an_error_severity  severity = es_error;
     a_diagnostic_ptr   dp = NULL;
-    if (ctor_rout->compiler_generated) {
+    if ((clang_mode || gpp_mode || microsoft_mode) &&
+        ctor_rout->is_prototype_instantiation) {
+      /* Clang and GCC do not diagnose the generic case (and MSVC doesn't
+         parse constructors in their generic form at all). */
+      severity = es_none;
+    } else if (ctor_rout->compiler_generated) {
       /* Error by 12.1 [class.ctor]. */
       dp = pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
                                    &class_type->source_corresp.decl_position,

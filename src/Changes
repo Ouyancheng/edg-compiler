@@ -1,5 +1,22 @@
 Version 4.11
 
+4/8/16   [EDGcpfe/16896]
+Clang/GNU/Microsoft compatibility: Missing member initializer diagnostics
+
+In Clang modes, GNU C++ modes, and Microsoft C++ modes, the front end no longer
+diagnoses missing member initializers for reference or const members when
+parsing a constructor definition in its generic form.  For example:
+
+  template<typename> struct S {
+    S() {}    // Missing initializer for ri is no longer diagnosed in
+    int &ri;  // some modes.
+  };
+
+(Note that a diagnostic was previously typically not emitted in Microsoft mode,
+because by default no prototype instantiation of the constructor is performed
+in Microsoft modes.)
+
+
 4/7/16   [EDGcpfe/16321,EDGcpfe/17009]
 Spurious error caused by incorrect disambiguation
 
