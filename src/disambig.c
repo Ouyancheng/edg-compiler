@@ -1230,10 +1230,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (curr_token == tok_identifier && locator_for_curr_id.is_template_id &&
-        (flags & DFS_IS_TEMPLATE_DECL) == 0) {
-      /* Unless we're in a template declaration (e.g., a specialization of a
-         function or variable template), a template_id cannot be a declarator.
-         This helps to disambiguate cases like T(A<int>()). */
+        gnu_mode && (flags & DFS_IS_TEMPLATE_DECL) == 0) {
+      /* A case like: "T(A<int>())" that is not in a template declaration
+         (i.e., it's not a specialization of a function or variable template).
+         GCC/clang appear to treat this as an expression (though a template-id
+         as a typedef in the same location is treated as a declaration). */
       state->may_be_decl = FALSE;
       goto done;
     }  /* if */
