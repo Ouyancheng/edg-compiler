@@ -4715,6 +4715,11 @@ the body of the (constructor) function proper.
             do_constexpr_fail(result);
             break;
           }  /* if */
+        } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero) {
+          /* Just zero the storage. */
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+          if (!result) break;
+          memzero(result_storage+offset, size_t_arg(n_bytes));
         } else if (!do_constexpr_dynamic_init(
                                        ips, sub_dip,
                                        &callee->source_corresp.decl_position,
