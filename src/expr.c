@@ -39502,59 +39502,91 @@ is TRUE if the expression is the immediate operand of an "&" operator.
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list = NULL;
   a_type_ptr                    new_type = NULL;
+  an_expr_node_ptr              expr_copy, op1, op2;
 
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  if (expr->kind == (an_expr_node_kind)enk_param_ref) {
-    /* A reference to a parameter name or "this" within the header of the
-       function, where a parameter variable is not available. */
-    an_expr_node_ptr expr_copy = copy_node(expr);
-    /* See if this is a reference to a pack element.  This routine will
-       return NULL if this is not a pack reference. */
-    new_type = get_curr_variadic_param_type(expr_copy);
-    if (new_type == NULL) {
-      /* If no type was returned above, do substitution on the original
-         type. */
-      new_type = do_type_substitution_for_rescan(expr->type, rcblock, eriep);
-    }  /* if */
-    if (!is_glvalue_node(expr_copy)) {
-      expr_copy->orig_lvalue_type = new_type;
-      new_type = prvalue_type(new_type);
-    }  /* if */
-    expr_copy->type = new_type;
-    make_lvalue_or_rvalue_expression_operand(expr_copy, result);
-    if (is_any_reference_type(result->type)) {
-      add_reference_indirection(result);
-    }  /* if */
-  } else if (is_operation_node(expr)) {
-    /* Selection of a field of an anonymous union variable. */
-    an_expr_node_ptr op1 = expr->variant.operation.operands;
-    an_expr_node_ptr op2 = op1->next;
-    check_assertion(node_operator_is(expr, eok_dot_field) &&
-                    is_variable_node(op1) &&
-                    node_variable(op1)->is_anonymous_parent_object);
-    check_assertion(op2->kind == (an_expr_node_kind)enk_field);
-    sym = symbol_for(node_field(op2));
-    check_assertion(sym != NULL);
-  } else {
-    /* Constant case (ck_template_param representing an unknown name). */
-    a_constant_ptr con;
-    check_assertion(is_constant_node(expr));
-    con = node_constant(expr);
-    /* Do substitution and produce a symbol for the substituted result. */
-    sym = symbol_for_template_param_unknown_entity_rescan(
+  switch (expr->kind) {
+    case enk_param_ref:
+      /* A reference to a parameter name or "this" within the header of the
+         function, where a parameter variable is not available. */
+      expr_copy = copy_node(expr);
+      /* See if this is a reference to a pack element.  This routine will
+         return NULL if this is not a pack reference. */
+      new_type = get_curr_variadic_param_type(expr_copy);
+      if (new_type == NULL) {
+        /* If no type was returned above, do substitution on the original
+           type. */
+        new_type = do_type_substitution_for_rescan(expr->type, rcblock, eriep);
+      }  /* if */
+      if (!is_glvalue_node(expr_copy)) {
+        expr_copy->orig_lvalue_type = new_type;
+        new_type = prvalue_type(new_type);
+      }  /* if */
+      expr_copy->type = new_type;
+      make_lvalue_or_rvalue_expression_operand(expr_copy, result);
+      if (is_any_reference_type(result->type)) {
+        add_reference_indirection(result);
+      }  /* if */
+      break;
+    case enk_operation:
+      /* Selection of a field of an anonymous union variable. */
+      op1 = expr->variant.operation.operands;
+      op2 = op1->next;
+      check_assertion(node_operator_is(expr, eok_dot_field) &&
+                      is_variable_node(op1) &&
+                      node_variable(op1)->is_anonymous_parent_object);
+      check_assertion(op2->kind == (an_expr_node_kind)enk_field);
+      sym = symbol_for(node_field(op2));
+      check_assertion(sym != NULL);
+      break;
+    case enk_variable:
+      { a_variable_ptr               var = expr->variant.variable.ptr;
+        a_variable_template_info_ptr vtip = var->template_info;
+        if (var->is_nonreal) {
+          a_boolean           copy_error = FALSE;
+          a_template_arg_ptr  t_args = vtip->template_arg_list;
+          a_symbol_ptr        t_sym = symbol_for(vtip->assoc_template);
+          t_args =
+              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                  t_sym, t_args, (a_template_param_ptr)NULL,
+                  rcblock->template_arg_list, rcblock->template_param_list,
+                  &rcblock->expr->position, rcblock->options,
+                  /*orig_is_nonreal_template=*/TRUE,  // FIXME?
+                  &copy_error, rcblock->ctws_state);
+          if (copy_error) {
+            rcblock->error_detected = TRUE;
+            make_error_operand(result);
+            copy_operand_position(&eriep->saved_operand, result);
+          } else {
+            sym = find_template_variable(t_sym, &t_args);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case enk_constant:
+      { /* Constant case (ck_template_param representing an unknown name). */
+        a_constant_ptr con;
+        check_assertion(is_constant_node(expr));
+        con = node_constant(expr);
+        /* Do substitution and produce a symbol for the substituted result. */
+        sym = symbol_for_template_param_unknown_entity_rescan(
                                                         con,
                                                         rcblock,
                                                         eriep,
                                                         &is_template_id,
                                                         &expl_templ_arg_list);
-    if (sym == NULL) {
-      rcblock->error_detected = TRUE;
-      make_error_operand(result);
-      copy_operand_position(&eriep->saved_operand, result);
-    }  /* if */
-  }  /* if */
+        if (sym == NULL) {
+          rcblock->error_detected = TRUE;
+          make_error_operand(result);
+          copy_operand_position(&eriep->saved_operand, result);
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   if (sym != NULL) {
     /* Build an operand for the symbol as if it had just been scanned as
        an identifier */
@@ -40044,6 +40076,14 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
     /* A braced-init-list. */
     operator_token = tok_lbrace;
+  } else if (expr->kind == (an_expr_node_kind)enk_variable) {
+    /* A variable reference: Rescannable if it is a variable template. */
+    a_variable_ptr  vp = node_variable(expr);
+    if (vp->is_template_variable) {
+      operator_token = tok_identifier;
+    } else {
+      rescannable = FALSE;
+    }  /* if */
   } else {
     rescannable = FALSE;
   }  /* if */

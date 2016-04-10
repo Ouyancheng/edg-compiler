@@ -22492,6 +22492,11 @@ template symbol supplement for this template should be returned to the caller.
       /* tssp should only be NULL in error cases. */
       expect_error();
     }  /* if */
+    if (is_variable_template &&
+        dps->storage_class != (a_storage_class)sc_extern) {
+      /* A variable template, unless it is marked "extern" is a definition. */
+      decl_state->defines_something = TRUE;
+    }  /* if */
   }  /* if */
   has_parenthesized_initializer = 
                           (dps->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
