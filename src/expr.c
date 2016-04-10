@@ -39553,7 +39553,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                   t_sym, t_args, (a_template_param_ptr)NULL,
                   rcblock->template_arg_list, rcblock->template_param_list,
                   &rcblock->expr->position, rcblock->options,
-                  /*orig_is_nonreal_template=*/TRUE,  // FIXME?
+                  /*orig_is_nonreal_template=*/FALSE,
                   &copy_error, rcblock->ctws_state);
           if (copy_error) {
             rcblock->error_detected = TRUE;
