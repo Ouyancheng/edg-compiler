@@ -11317,8 +11317,8 @@ determination is made by the callee.
                !routine_might_exist_in_multiple_copies(routine)) {
       /* GNU doesn't generate implicit abi_tags for local routines, except
          those with vague linkage. */
-    } else if (routine->is_template_function) {
-      /* GNU doesn't add implicit abi_tags for function templates. */
+    } else if (routine->is_template_function && gnu_version < 60000) {
+      /* Early versions didn't add implicit abi_tags for function templates. */
     } else {
       calculate_implicit_abi_tags(&routine->source_corresp, iek_routine);
     }  /* if */
