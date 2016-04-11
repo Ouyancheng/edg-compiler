@@ -19251,18 +19251,20 @@ cases so we don't do it here.
         }  /* if */
       }  /* if */
       if (!constant_case) {
-        if (in_potential_constant_constexpr_context()) {
+        if (in_potential_constant_constexpr_context() ||
+            (constexpr_enabled && is_template_dependent_context())) {
           /* For expressions in the body of a constexpr function, the
              constant_expr_ruled_out flag should be lenient, considering
              things that might be constant in an actual call of the
              function because the parameters may have constant values.
              So suppress setting that flag if the lvalue is one that might
-             end up being constant. */
-          /* Many more complex expressions can have embedded uses of
-             the parameters, like "this->i" or "*&(this->i)", so be
-             conservative.  The only downside is that we might not
-             issue an error on a constexpr function whose return can
-             never be constant. */
+             end up being constant.  Furthermore, in template contexts,
+             constexpr conversion functions can make certain seemingly
+             nonconstant-expressions become constant. */
+          /* Many more complex expressions can have embedded uses of the
+             parameters, like "this->i" or "*&(this->i)", so be conservative.
+             The only downside is that we might not issue an error on a
+             constexpr function that may never produce a constant value. */
           a_variable_ptr   var = NULL;
           an_expr_node_ptr test_node = expr_before_type_adjustment(node);
           test_node = strip_ref_indirect(test_node, /*parens_also=*/TRUE);
@@ -19276,9 +19278,11 @@ cases so we don't do it here.
             }  /* if */
           }  /* if */
           if (var != NULL) {
-            possibly_constant_with_constexpr = (relaxed_constexpr_enabled ||
-                                                var->is_parameter ||
-                                                var->constant_valued);
+            possibly_constant_with_constexpr =
+                                            (relaxed_constexpr_enabled ||
+                                             var->is_parameter ||
+                                             var->constant_valued ||
+                                             is_template_dependent_context());
           }  /* if */
         }  /* if */
         /* Convert the expression to a prvalue. */
