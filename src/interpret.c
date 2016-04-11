@@ -3525,7 +3525,6 @@ successfully interpreted, FALSE otherwise.
   an_expr_node_ptr      expr;
   a_byte                *expr_value;
   a_storage_stack_state saved_stack;
-  a_host_large_integer  bool_val;
   a_type_ptr            tp;
   a_boolean             ovfl;
   DECL_COMPACT_VALUE_BYTES(expr_bytes);
@@ -3559,7 +3558,8 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_if:
       {
-        a_boolean  has_cond_var;
+        a_boolean             has_cond_var;
+        a_host_large_integer  bool_val;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
@@ -3595,7 +3595,8 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_while:
       {
-        a_boolean  has_cond_var;
+        a_boolean             has_cond_var;
+        a_host_large_integer  bool_val;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
@@ -3700,6 +3701,7 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_end_test_while:
       {
+        a_host_large_integer  bool_val;
         expr = stmt->expr;
         /* The type of the test expression is known to be bool, which will
            fit within the expr_bytes array. */
@@ -8005,6 +8007,7 @@ diagnostic in *ips.
             if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
+              cp = NULL;
             } else {
               cp = prev_con->variant.address.variant.constant;
             }  /* if */
