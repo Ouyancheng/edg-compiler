@@ -3975,6 +3975,91 @@ cannot be evaluated, return FALSE.
 }  /* do_constexpr_builtin_fptest */
 
 
+static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
+                                               a_byte         *arg_bytes,
+                                               a_type_ptr     arg_tp,
+                                               a_byte         *result_storage)
+/*
+Evaluate the builtin bit counting function indicated by callee on the operand
+of type arg_tp stored in arg_bytes.  Place the result in *result_storage.
+This function currently always returns TRUE.
+*/
+{
+  a_builtin_function_kind  bfk;
+  a_targ_size_t            k, n_bits, count = 0;
+  an_integer_value         arg;
+
+  bfk = (a_builtin_function_kind)callee->variant.builtin_function_kind;
+  arg = *(an_integer_value*)arg_bytes;
+  check_assertion(arg_tp->kind == (a_type_kind)tk_integer);
+  n_bits = arg_tp->size*targ_char_bit;
+  for (k = 0; k < n_bits; ++k) {
+    a_boolean         bit, ovflo;
+    an_integer_value  mask = one_int;
+    shift_left_integer_value(&mask, (int)k, &ovflo);
+    check_assertion(!ovflo);
+    and_integer_values(&mask, &arg);
+    bit = cmp_integer_values(&mask, /*op_1_signed=*/FALSE,
+                             &zero_int, /*op_2_signed=*/FALSE) != 0;
+    switch (bfk) {
+      case bfk_ffs:
+      case bfk_ffsl:
+#if LONG_LONG_ALLOWED
+      case bfk_ffsll:
+#endif /* LONG_LONG_ALLOWED */
+        /* Index of the least significant 1-bit. */
+        if (bit) {
+          count = k+1;
+          goto count_done;
+        }  /* if */
+        break;
+      case bfk_clz:
+      case bfk_clzl:
+#if LONG_LONG_ALLOWED
+      case bfk_clzll:
+#endif /* LONG_LONG_ALLOWED */
+        /* Count of leading zeros. */
+        count = bit ? 0 : count+1;
+        break;
+      case bfk_ctz:
+      case bfk_ctzl:
+#if LONG_LONG_ALLOWED
+      case bfk_ctzll:
+#endif /* LONG_LONG_ALLOWED */
+        /* Count of trailing zeros. */
+        if (bit) {
+          goto count_done;
+        } else {
+          ++count;
+        }  /* if */
+        break;
+      case bfk_popcount:
+      case bfk_popcountl:
+#if LONG_LONG_ALLOWED
+      case bfk_popcountll:
+#endif /* LONG_LONG_ALLOWED */
+        /* Count of ones. */
+        if (bit) count += 1;
+        break;
+      case bfk_parity:
+      case bfk_parityl:
+#if LONG_LONG_ALLOWED
+      case bfk_parityll:
+#endif /* LONG_LONG_ALLOWED */
+        /* Count of ones. */
+        if (bit) count = (count+1) & 1;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+count_done:
+  set_integer_value((an_integer_value*)result_storage,
+                    (a_host_large_integer)count);
+  return TRUE;
+}  /* do_constexpr_builtin_bitcount */
+
+
 static a_boolean do_constexpr_builtin_function(
                                       an_interpreter_state    *ips,
                                       a_routine_ptr           callee,
@@ -4086,6 +4171,37 @@ to FALSE and the reason for the failure is recorded in *ips.
           }  /* if */
         } else {
           do_constexpr_fail(*p_result);
+        }  /* if */
+      }
+      break;
+    case bfk_ffs:
+    case bfk_ffsl:
+    case bfk_clz:
+    case bfk_clzl:
+    case bfk_ctz:
+    case bfk_ctzl:
+    case bfk_popcount:
+    case bfk_popcountl:
+    case bfk_parity:
+    case bfk_parityl:
+#if LONG_LONG_ALLOWED
+    case bfk_ffsll:
+    case bfk_clzll:
+    case bfk_ctzll:
+    case bfk_popcountll:
+    case bfk_parityll:
+#endif /* LONG_LONG_ALLOWED */
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr  tp = skip_typerefs(args->type);
+          if (!do_constexpr_expression(ips, args, arg1_bytes) ||
+              !do_constexpr_builtin_bitcount(
+                                    callee, arg1_bytes, tp, result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
         }  /* if */
       }
       break;

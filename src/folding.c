@@ -8780,7 +8780,7 @@ count_done:
     }  /* if */
   }  /* if */
   return success;
-}  /* fold_bit_count_operation */
+}  /* fold_bit_count_operation_if_possible */
 
 #if TARG_HAS_IEEE_FLOATING_POINT
 
