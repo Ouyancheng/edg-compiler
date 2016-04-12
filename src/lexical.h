@@ -1933,19 +1933,10 @@ typedef struct a_cached_token {
 			   a token from a reusable cache is later placed in
 			   a non-reusable one, this still refers to the
 			   entry in the reusable cache. */
-  a_symbol_ptr	ud_lit_op_sym;
-			/* For user-defined literal tokens (tok_ud_literal),
-			   the literal operator or literal operator template
-			   selected to produce the value of the literal, if
-			   any; otherwise, NULL. */
   a_const_char	*ud_suffix;
 			/* For user-defined literal tokens (tok_ud_literal),
 			   the identifier portion of the literal operator
-			   or literal operator template name (this is needed
-			   when a user-defined literal is used to declare
-			   the first literal operator or literal operator
-			   template with that name and thus there is no
-			   existing symbol for ud_lit_op_sym).  NULL for
+			   or literal operator template name.  NULL for
 			   tokens other than tok_ud_literal. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
@@ -1956,14 +1947,14 @@ typedef struct a_cached_token {
     /* When extra_info_kind == teik_constant: */
     a_constant_ptr
 		constant;
-			/* Pointer to a constant entry (in front end storage)
-			   giving the value for the literal constant.  For
-			   tok_ud_literal tokens, this is the value to be
-			   passed as the first argument to the literal
-			   operator designated by ud_lit_op_sym or the
-			   ck_string containing the characters of the token
-			   spelling with which the literal operator template
-			   is to be instantiated. */
+			/* Pointer to a constant entry (in front end
+			   storage) giving the value for the literal
+			   constant.  For tok_ud_literal tokens, this is
+			   the value to be passed as the first argument to
+			   the associated literal operator or the ck_string
+			   containing the characters of the token spelling
+			   with which the literal operator template is to
+			   be instantiated. */
     /* When extra_info_kind == teik_pragma: */
     struct a_pending_pragma
 		*pragmas;
