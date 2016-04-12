@@ -4620,7 +4620,7 @@ the body of the (constructor) function proper.
                          param, this_var;
     a_constructor_init_ptr
                          ctor_init;
-    a_byte_count         n_args = 0;
+    a_byte_count         n_args = 1;
     a_byte               *arg_ptrs, **p_arg_ptr;
     a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
@@ -4628,6 +4628,7 @@ the body of the (constructor) function proper.
     a_class_symbol_supplement_ptr
                          cssp;
     unsigned long        up_front_cost;
+    DECL_COMPACT_VALUE_BYTES(this_buf);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -4656,14 +4657,15 @@ the body of the (constructor) function proper.
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
        the allocated arguments.  We cannot do the two in a single loop because
-       of recursive calls.  (See do_constexpr_call for details.) */
+       of recursive calls.  (See do_constexpr_call for details.)  n_args was
+       initialized to 1, because constructors always have a "this" pointer. */
     for (arg = args; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
     if (implied_src != NULL) n_args += 1;
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     /* Phase 1: Allocate and evaluate the arguments. */
-    p_arg_ptr = (a_byte**)arg_ptrs;
+    p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
@@ -4704,10 +4706,8 @@ the body of the (constructor) function proper.
       *(a_constexpr_address**)p_arg_ptr = &implied_src_address;
     }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
-    /* Associate with the parameter variables a new allocation number.  For
-       ordinary calls, we just use the allocation number about to be created
-       for the function scope, but for constructors that is not an option
-       because constructor initializers must first be evaluated. */
+    /* First map the "this" pointer. */
+    alloc_seq_number = ips->curr_alloc_seq_number;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
       /* A constructor should always have a "this" parameter, but in some
@@ -4715,12 +4715,20 @@ the body of the (constructor) function proper.
       expect_error();
       do_constexpr_fail(result);
       goto done;
+    } else {
+      a_byte  *this_bytes = compact_value_bytes(this_buf);
+      clear_address(this_bytes, result_storage);
+      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+      map_stack_bytes(ips, this_var, this_bytes);
+      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
     }  /* if */
-    alloc_seq_number = ++ips->curr_alloc_seq_number;
+    /* Associate with the parameter variables a new allocation number.  For
+       ordinary calls, we just use the allocation number about to be created
+       for the function scope, but for constructors that is not an option
+       because constructor initializers must first be evaluated. */
+    alloc_seq_number += 1;
     add_to_live_set(&ips->live_set, alloc_seq_number);
-    map_stack_bytes(ips, this_var, result_storage);
-    map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
-    p_arg_ptr = (a_byte**)arg_ptrs;
+    p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (param = params; param != NULL; param = param->next) {
       map_stack_bytes(ips, param, *p_arg_ptr);
       map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
@@ -4786,11 +4794,11 @@ the body of the (constructor) function proper.
       }  /* if */
       if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
           sub_dip->variant.bitwise_copy.source == NULL) {
-        /* An implicit member copy in a copy constructor.  arg_ptrs[0] points
+        /* An implicit member copy in a copy constructor.  arg_ptrs[1] points
            to the first argument of the copy constructor, which is a reference
            to the copied object. */
         a_constexpr_address  *src_addr;
-        src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
+        src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
         if (is_runtime_data_address(src_addr)) {
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &args->position, ips);
@@ -4812,7 +4820,7 @@ the body of the (constructor) function proper.
              Pass the source location of the top-level call through to the
              subobject constructor (adjusted for the offset). */
           a_constexpr_address  *src_addr;
-          src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[0];
+          src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
           if (is_runtime_data_address(src_addr)) {
             info_with_pos(ec_constexpr_access_to_runtime_storage,
                           &args->position, ips);
@@ -4851,7 +4859,7 @@ the body of the (constructor) function proper.
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
     /* Release any address structures, if needed. */
-    p_arg_ptr = (a_byte**)arg_ptrs;
+    p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr  tp = skip_typerefs(arg->type);
       release_address_structures(arg, tp, *p_arg_ptr);
