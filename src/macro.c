@@ -3162,6 +3162,16 @@ In such cases, charize is TRUE.
       /* Put out the character itself. */
       len++;
       if (src_loc != NULL) *(*src_loc)++ = ch;
+      if (!within_char_literal && microsoft_mode && ch == ')' &&
+          p[1] == quote_char) {
+        /* In Microsoft mode we suppress the end-of-token indicator
+           following a right parenthesis to allow token concatenation
+           between the last fragment of a macro expansion and the
+           immediately-following text.  As a result we need special
+           handling to recognize that a quote following a right parenthesis
+           is the start of a new token. */
+        start_of_token = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Put out final quote. */
