@@ -1389,6 +1389,7 @@ by the caller (including token, source_position, and extra_info_kind).
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;                \
   ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;         \
   ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
+  ctp->ud_lit_op_sym = NULL;                                            \
   ctp->ud_suffix = NULL;                                                \
 }  /* alloc_cached_token */
 
@@ -1806,7 +1807,9 @@ This is used to save tokens for later rescanning.
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
     if (curr_token == tok_ud_literal) {
-      /* Save the ud_suffix spelling. */
+      /* Save the symbol for the associated literal operator or literal
+         operator template and the ud_suffix spelling. */
+      ctp->ud_lit_op_sym = ud_lit_op_sym_for_curr_token;
       ctp->ud_suffix = ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
     }  /* if */
@@ -2815,8 +2818,13 @@ an equivalent change.
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
     if (ctoken == tok_ud_literal) {
-      /* Get the symbol designating the associated literal operator or
-         literal operator template and set up locator_for_curr_id. */
+      /* Set up locator_for_curr_id and look up the symbol for the literal
+         operator or literal operator template.  (The lookup must be
+         repeated here, rather than using the symbol stored with the token,
+         to handle cases where the result will be different from that of
+         the original lookup, e.g., because of a using-directive in this
+         scope that would not have been parsed before the UDL was
+         cached.) */
       make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
                                   &locator_for_curr_id, &pos_curr_token);
       ud_lit_op_sym_for_curr_token = normal_id_lookup(&locator_for_curr_id,
@@ -2928,8 +2936,13 @@ an equivalent change.
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
     if (ctoken == tok_ud_literal) {
-      /* Get the symbol designating the associated literal operator or
-         literal operator template and set up locator_for_curr_id. */
+      /* Set up locator_for_curr_id and look up the symbol for the literal
+         operator or literal operator template.  (The lookup must be
+         repeated here, rather than using the symbol stored with the token,
+         to handle cases where the result will be different from that of
+         the original lookup, e.g., because of a using-directive in this
+         scope that would not have been parsed before the UDL was
+         cached.) */
       make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
                                   &locator_for_curr_id, &pos_curr_token);
       ud_lit_op_sym_for_curr_token = normal_id_lookup(&locator_for_curr_id,
@@ -21285,12 +21298,8 @@ of characters added.
     }  /* if */
     if (token == tok_ud_literal) {
       /* Put out a user-defined literal. */
-      a_boolean        use_token_spelling = FALSE;
-      a_symbol_ptr     ud_lit_op_sym;
-      a_symbol_locator ud_lit_locator;
-      make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
-                                  &ud_lit_locator, &ctp->source_position);
-      ud_lit_op_sym = normal_id_lookup(&ud_lit_locator, IDL_NO_OPTIONS);
+      a_boolean    use_token_spelling = FALSE;
+      a_symbol_ptr ud_lit_op_sym = ctp->ud_lit_op_sym;
       if (ud_lit_op_sym == NULL) {
         /* The associated symbol was not known when the token was cached. */
       } else if (symbol_is(ud_lit_op_sym, sk_function_template)) {
@@ -22022,6 +22031,8 @@ Display a single cached token.
       fprintf(f_debug, "  Pragma: %s\n",
               pragma_ids[(int)ppp->descr_ptr->kind]);
     }  /* for */
+  } else if (ctp->ud_lit_op_sym != NULL) {
+    db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
   } else if (ctp->ud_suffix != NULL) {
     fprintf(f_debug, "  Literal operator suffix: %s\n", ctp->ud_suffix);
   }  /* if */
