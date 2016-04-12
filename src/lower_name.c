@@ -10682,7 +10682,6 @@ of the specified type to ttt_mark_value.
   }  /* if */
   /* Walk the parents of this entry (the entry itself is marked here to
      prevent an unbounded loop). */
-  // FIXME: should TTT_PARENT_CLASSES be used in place of some walks?
   walk_parents(&type->source_corresp, iek_type, mark_entry, &wpcb, MY_WP);
   return FALSE;
 }  /* ttt_mark_entry */
