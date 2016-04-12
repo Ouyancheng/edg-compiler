@@ -1,5 +1,19 @@
 Version 4.11
 
+4/12/16  [EDGcpfe/14159]
+Value category of conditional operators with one throw operand
+
+The resolution of core issues 1550 and 1560 resulted in the value category of
+a conditional operator where either the second or third operand (but not both)
+is a throw expression, to be the value category of the other operand.  The
+front end now implements the revised rule (in all C++ modes).  For example:
+
+  void f(bool b) {
+    int i;
+    int& r = b ? throw 0.0 : i;  // Previously an error.  Now okay.
+  }
+
+
 4/11/16  [EDGcpfe/16709]
 User-defined literals in member functions and templates
 

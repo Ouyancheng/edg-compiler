@@ -26476,6 +26476,18 @@ that case.
          with g++ 4.7, 4.8.0, 4.8.1 and with MSVC++ 18.00.21114. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
+    } else if (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
+                                            : is_throw_operand(&operand_3)) {
+      /* The resolution of Core issue 1550/1560 resulted in a conditional
+         operator with exactly one throw operand to have a value category
+         corresponding to the other operand. */
+      if (is_throw_operand(&operand_2)) {
+        result_is_a_glvalue = is_an_lvalue(&operand_3);
+        result_is_an_xvalue = is_an_xvalue(&operand_3);
+      } else {
+        result_is_a_glvalue = is_an_lvalue(&operand_2);
+        result_is_an_xvalue = is_an_xvalue(&operand_2);
+      }  /* if */
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
