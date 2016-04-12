@@ -15794,6 +15794,10 @@ typedef struct an_expr_node {
 			/* A flag indicating that the type definition must be
 			   kept in the IL for the type indicated in the
 			   enk_type_operand case. */
+  a_bit_field
+		volatile_fetch:1;
+			/* TRUE if this node represents a fetch from volatile
+			   storage. */
   bitfield_to_avoid_codecenter_warnings()
   a_source_position
 		position;

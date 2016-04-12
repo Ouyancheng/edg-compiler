@@ -5009,6 +5009,9 @@ nodes.
       } else if (((a_constexpr_address*)(opnd))->address == NULL) {           \
         do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);   \
+      } else if (expr->volatile_fetch) {                                      \
+        do_constexpr_fail(result);                                            \
+        info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);     \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
@@ -7867,7 +7870,10 @@ type.  This includes checking the value of ovfl set by the operation.
         if (!expr->is_lvalue && !expr->is_xvalue) {
           /* A variable used as an rvalue; the result is its associated
              value bytes. */
-          if (var_bytes != NULL) {
+          if (is_volatile_qualified_type(var->type)) {
+            info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
+            do_constexpr_fail(result);
+          } else if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
             /* Check that the variable is initialized. */
             an_alloc_seq_number  seq;

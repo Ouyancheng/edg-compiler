@@ -3484,6 +3484,7 @@ its kind to the indicated kind.
 #endif /* BACK_END_IS_CP_GEN_BE */
   node->is_parenthesized = FALSE;
   node->type_definition_needed = FALSE;
+  node->volatile_fetch = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

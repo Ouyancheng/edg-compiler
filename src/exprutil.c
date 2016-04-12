@@ -19177,7 +19177,10 @@ cases so we don't do it here.
   /* Ignore non-glvalues. */
   if (is_a_glvalue(operand)) {
     /* A glvalue becomes a prvalue. */
-    unqual_operand_type = skip_typerefs(operand->type);
+    a_boolean  volatile_fetch;
+    unqual_operand_type = operand->type;
+    volatile_fetch = is_volatile_qualified_type(unqual_operand_type);
+    unqual_operand_type = skip_typerefs(unqual_operand_type);
 #if CHECKING
     /* Array glvalues are not allowed. */
     if (unqual_operand_type->kind == (a_type_kind)tk_array) {
@@ -19313,6 +19316,7 @@ cases so we don't do it here.
         conv_to_error_operand(operand);
       } else {
         /* Normal case: not constant-valued, not a constant expression. */
+        node->volatile_fetch = volatile_fetch;
         make_expression_operand(node, operand);
         if (operand->type != orig_operand.type &&
             unqual_operand_type->kind == (a_type_kind)tk_template_param &&
