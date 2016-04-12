@@ -26946,6 +26946,66 @@ constant.
   return is_null;
 }  /* pm_constant_is_null */
 
+
+void walk_parents(a_source_correspondence      *scp,
+                  an_il_entry_kind             kind,
+                  a_walk_parent_callback       callback,
+                  a_walk_parents_control_block *wpcb,
+                  a_walk_parents_flag_set      options)
+/*
+This routine walks through each of the parents of scp in turn (from innermost
+to outermost) and invokes the callback routine on each of its parents (subject
+to the flags set in "options").  If non-NULL, wpcb specifies a control block
+that is passed to the callback routine.  wpcb->terminate is initialized to
+FALSE, and if ever set to TRUE by the callback routine, the walk is terminated.
+The options flags can be used to select which parent entities are of interest
+(e.g., WP_ROUTINE would result in callbacks only for routines of which scp is
+local to).  See the descriptions of each of the flags for more information.
+*/
+{
+  a_walk_parents_flag_set flag = WP_NO_INPUT_FLAGS;
+
+  if (wpcb != NULL) {
+    wpcb->terminate = FALSE;
+  }  /* if */
+  if ((options & WP_SELF) != 0) {
+    /* Note that the callback is called regardless of other flags, so a
+       callback routine should be ready to handle this case. */
+    callback(scp, kind, wpcb);
+  }  /* if */
+  if (wpcb == NULL || !wpcb->terminate) {
+    while ((scp->parent_scope != NULL &&
+            scp->parent_scope->kind != (a_scope_kind)sck_file) ||
+            scp->is_local_to_function) {
+      if (scp->enclosing_routine != NULL) {
+        scp = &scp->enclosing_routine->source_corresp;
+        kind = iek_routine;
+        flag = WP_ROUTINE;
+      } else if (scp->is_class_member) {
+        a_type_ptr parent_class = scp_parent_class(scp);
+        check_assertion(parent_class != NULL);
+        scp = &parent_class->source_corresp;
+        kind = iek_type;
+        flag = WP_TYPE;
+      } else {
+        a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
+        check_assertion(nsp != NULL);
+        scp = &nsp->source_corresp;
+        kind = iek_namespace;
+        flag = WP_NAMESPACE;
+      }  /* if */
+      if ((flag & options) != 0) {
+        callback(scp, kind, wpcb);
+      }  /* if */
+      if (wpcb != NULL && wpcb->terminate) {
+        /* Callback routine signals to terminate. */
+        break;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+}  /* walk_parents */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void il_one_time_init(void)

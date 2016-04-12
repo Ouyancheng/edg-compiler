@@ -2865,6 +2865,39 @@ Utility that returns TRUE if the two ck_string constants have the same value.
     memcmp((con1)->variant.string.value, (con2)->variant.string.value,        \
            size_t_arg((con1)->variant.string.length)) == 0))
 
+/* Bit vector used to pass flags into walk_parents.  Each bit represents a
+   flag. */
+typedef int a_walk_parents_flag_set;
+/* Constants defining bits in the input bit vector used in calls to
+   walk_parents. */
+#define WP_NO_INPUT_FLAGS 0x0
+#define WP_NAMESPACE 0x01
+                        /* Invoke the callback routine for each namespace that
+                           is a parent of the specified entity. */
+#define WP_TYPE 0x02    /* Invoke the callback routine for each type that is
+                           a parent of the specified entity. */
+#define WP_ROUTINE 0x04 /* Invoke the callback routine for each routine that is
+                           a parent of the specified entity. */
+#define WP_SELF 0x08    /* Invoke the callback routine for the entity itself.
+                           Note that the callback is invoked regardless of the
+                           setting of the other WP_* flags. */
+
+typedef struct a_walk_parents_control_block {
+  a_boolean   terminate;
+                        /* When set to TRUE, forces walk_parents to terminate
+                           the walk. */
+} a_walk_parents_control_block;
+
+/* Typedef for callback from walk_parents. */
+typedef void (*a_walk_parent_callback)(a_source_correspondence      *scp,
+                                       an_il_entry_kind             kind,
+                                       a_walk_parents_control_block *wpcp);
+
+extern void walk_parents(a_source_correspondence      *scp,
+                         an_il_entry_kind             kind,
+                         a_walk_parent_callback       callback,
+                         a_walk_parents_control_block *wpcb,
+                         a_walk_parents_flag_set      options);
 #endif /* ifndef IL_H */
 
 /******************************************************************************

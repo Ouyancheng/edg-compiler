@@ -10550,133 +10550,71 @@ where any abi_tags for "X" would not be implicitly added.
       class_type_supp((a_type_ptr)(scp))->                                    \
                                  assoc_template->source_corresp.entity_marked))
 
-/* Typedef for callback from walk_entity_and_parents. */
-typedef void (*a_walk_parent_callback)(a_source_correspondence *scp,
-                                       an_il_entry_kind        kind);
 
+/* Entities of interest for mangling during walk_parents traversal. */
+#define MY_WP (WP_NAMESPACE | WP_TYPE | WP_ROUTINE)
 
-static void walk_parents(a_source_correspondence *scp,
-                         an_il_entry_kind        kind,
-                         a_walk_parent_callback  callback,
-                         a_boolean               unmarked_only)
+static void apply_implicit_abi_tags_from_entity(
+                                            a_source_correspondence      *scp,
+                                            an_il_entry_kind             kind,
+                                            a_walk_parents_control_block *wpcb)
 /*
-This routine walks through all of the parents of scp and invokes the callback
-routine on each of its parents in turn (including enclosing routines).  When
-unmarked_only is TRUE, callbacks are only performed on entities that are
-unmarked (and the walk is discontinued once a marked entity is found).
-*/
-{
-  /* Visit each of the parents that will appear in the mangled name. */
-  while ((scp->parent_scope != NULL &&
-          scp->parent_scope->kind != (a_scope_kind)sck_file) ||
-          scp->is_local_to_function) {
-    if (scp->enclosing_routine != NULL) {
-      scp = &scp->enclosing_routine->source_corresp;
-      kind = iek_routine;
-    } else if (scp->is_class_member) {
-      a_type_ptr parent_class = scp_parent_class(scp);
-      check_assertion(parent_class != NULL);
-      scp = &parent_class->source_corresp;
-      kind = iek_type;
-      if (!scp->is_local_to_function &&
-          !((a_type_ptr)scp)->in_gnu_abi_tag_namespace) {
-        /* Parents don't have abi_tags. */
-        break;
-      }  /* if */
-    } else {
-      a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
-      if (nsp == NULL) {
-        /* Can happen with variable templates. */
-        /* FIXME: look into this further. */
-        break;
-      }  /* if */
-      scp = &nsp->source_corresp;
-      kind = iek_namespace;
-    }  /* if */
-    if (unmarked_only && entity_is_marked(scp, kind)) {
-      /* No need to continue if we've hit a marked entity. */
-      break;
-    }  /* if */
-    callback(scp, kind);
-  }  /* while */
-}  /* walk_entity_and_parents */
-
-
-static void walk_entity_and_parents(a_source_correspondence *scp,
-                                    an_il_entry_kind        kind,
-                                    a_walk_parent_callback  callback,
-                                    a_boolean               unmarked_only)
-/*
-This routine walks through all of the parents of scp and invokes the callback
-routine on the entity and each of its parents in turn (including enclosing
-routines).  When unmarked_only is TRUE, callbacks are only performed on
-entities that are unmarked (and the walk is discontinued once a marked entity
-is found).
-*/
-{
-  if (unmarked_only && entity_is_marked(scp, kind)) {
-    /* Caller only wants unmarked entities. */
-  } else {
-    /* Visit the entity itself first. */
-    callback(scp, kind);
-    /* Then its parents. */
-    walk_parents(scp, kind, callback, unmarked_only);
-  }  /* if */
-}  /* walk_entity_and_parents */
-
-
-static void apply_implicit_abi_tags_from_entity(a_source_correspondence *scp,
-                                                an_il_entry_kind        kind)
-/*
-The given entity is not marked as part of the signature; apply any applicable
-abi_tags to the entity given by ttt_scp_for_implicit_abi_tags.
+Called as a callback from walk_parents.  The given entity is part of the
+signature.  If it unmarked, apply any applicable abi_tags to the entity given
+by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
 */
 {
   a_boolean has_gnu_abi_tag_attribute;
 
-#if DEBUG
-  if (db_flag_is_set("abi_tag")) {
-    (void)fputs("Considering unmarked entity ", f_debug);
-    db_name(scp);
-    (void)fputs("\n", f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  check_assertion(!entity_is_marked(scp, kind));
-  if (kind == iek_type) {
-    has_gnu_abi_tag_attribute = ((a_type_ptr)scp)->has_gnu_abi_tag_attribute;
-  } else if (kind == iek_namespace) {
-    has_gnu_abi_tag_attribute =
-                             ((a_namespace_ptr)scp)->has_gnu_abi_tag_attribute;
+  if (entity_is_marked(scp, kind)) {
+    /* No need to look any further. */
+    wpcb->terminate = TRUE;
   } else {
-    check_assertion(kind == iek_routine &&
-                    ((a_routine_ptr)scp)->storage_class !=
-                                                   (a_storage_class)sc_static);
-    has_gnu_abi_tag_attribute= ((a_routine_ptr)scp)->has_gnu_abi_tag_attribute;
-  }  /* if */
-  if (has_gnu_abi_tag_attribute) {
-    /* Apply any abi_tag attributes from scp as implicit abi_tag attributes
-       for ttt_scp_for_implicit_abi_tags. */
-    an_attribute_arg_ptr  aap;
-    an_attribute_ptr      ap;
 #if DEBUG
     if (db_flag_is_set("abi_tag")) {
-      (void)fputs("Adding implicit abi_tags from ", f_debug);
+      (void)fputs("Considering unmarked entity ", f_debug);
       db_name(scp);
       (void)fputs("\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-      if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
-        for (aap = ap->arguments; aap != NULL; aap = aap->next) {
-          check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
-                          aap->variant.constant->kind ==
-                                              (a_constant_repr_kind)ck_string);
-          add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
-                                         ttt_kind_for_implicit_abi_tags,
-                                         aap->variant.constant);
-        }  /* for */
+    check_assertion(!entity_is_marked(scp, kind));
+    if (kind == iek_type) {
+      has_gnu_abi_tag_attribute = ((a_type_ptr)scp)->has_gnu_abi_tag_attribute;
+    } else if (kind == iek_namespace) {
+      has_gnu_abi_tag_attribute =
+                             ((a_namespace_ptr)scp)->has_gnu_abi_tag_attribute;
+    } else {
+      check_assertion(kind == iek_routine &&
+                      ((a_routine_ptr)scp)->storage_class !=
+                                                   (a_storage_class)sc_static);
+      has_gnu_abi_tag_attribute =
+                               ((a_routine_ptr)scp)->has_gnu_abi_tag_attribute;
+    }  /* if */
+    if (has_gnu_abi_tag_attribute) {
+      /* Apply any abi_tag attributes from scp as implicit abi_tag attributes
+         for ttt_scp_for_implicit_abi_tags. */
+      an_attribute_arg_ptr  aap;
+      an_attribute_ptr      ap;
+#if DEBUG
+      if (db_flag_is_set("abi_tag")) {
+        (void)fputs("Adding implicit abi_tags from ", f_debug);
+        db_name(scp);
+        (void)fputs("\n", f_debug);
       }  /* if */
-    }  /* for */
+#endif /* DEBUG */
+      for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+        if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+          for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+            check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                            aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+            add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
+                                           ttt_kind_for_implicit_abi_tags,
+                                           aap->variant.constant);
+          }  /* for */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* apply_implicit_abi_tags_from_entity */
 
@@ -10697,17 +10635,19 @@ ttt_scp_for_implicit_abi_tags.
     if ((type->has_gnu_abi_tag_attribute || type->in_gnu_abi_tag_namespace)) {
       /* This type has an explicit abi_tag or some parent that is an inline
          namespace with an abi_tag attribute. */
-      walk_entity_and_parents(&type->source_corresp, iek_type,
-                              apply_implicit_abi_tags_from_entity,
-                              /*unmarked_only=*/TRUE);
+      a_walk_parents_control_block wpcb;
+      walk_parents(&type->source_corresp, iek_type,
+                   apply_implicit_abi_tags_from_entity, &wpcb,
+                   MY_WP | WP_SELF);
     }  /* if */
   }  /* if */
   return TRUE;
 }  /* ttt_add_implicit_abi_tags_for_type */
 
 
-static void mark_entry(a_source_correspondence *scp,
-                       an_il_entry_kind        kind);
+static void mark_entry(a_source_correspondence      *scp,
+                       an_il_entry_kind             kind,
+                       a_walk_parents_control_block *wpcb);
 
 
 /* ARGSUSED */ /* end_traversal is not used. */
@@ -10718,6 +10658,8 @@ Called during a type traversal from mark_entry to set the entity_marked field
 of the specified type to ttt_mark_value.
 */
 {
+  a_walk_parents_control_block wpcb;
+
 #if DEBUG
   if (db_flag_is_set("abi_tag")) {
     (void)fprintf(f_debug, "%s type ", ttt_mark_value ? "Marking" :
@@ -10740,18 +10682,20 @@ of the specified type to ttt_mark_value.
   }  /* if */
   /* Walk the parents of this entry (the entry itself is marked here to
      prevent an unbounded loop). */
-  walk_parents(&type->source_corresp, iek_type, mark_entry,
-               /*unmarked_only=*/FALSE);
+  // FIXME: should TTT_PARENT_CLASSES be used in place of some walks?
+  walk_parents(&type->source_corresp, iek_type, mark_entry, &wpcb, MY_WP);
   return FALSE;
 }  /* ttt_mark_entry */
 
 
-static void mark_entry(a_source_correspondence *scp,
-                       an_il_entry_kind        kind)
+/*ARGSUSED*/ /* wpcb is not used. */
+static void mark_entry(a_source_correspondence      *scp,
+                       an_il_entry_kind             kind,
+                       a_walk_parents_control_block *wpcb)
 /*
-Mark (or unmark, depending on the value of ttt_mark_value) the IL entity
-specified by scp and kind, as well as any related entities that would appear
-in the mangled name of the entity.
+Called as a callback from walk_parents.  Mark (or unmark, depending on the
+value of ttt_mark_value) the IL entity specified by scp and kind, as well as
+any related entities that would appear in the mangled name of the entity.
 */
 {
   scp->entity_marked = ttt_mark_value;
@@ -10786,10 +10730,11 @@ a routine.
 {
   a_routine_ptr       rp;
   a_template_arg_ptr  template_arg = NULL;
+  a_walk_parents_control_block wpcb;
 
   ttt_mark_value = mark;
   check_assertion(!scp->name_has_been_mangled);
-  walk_entity_and_parents(scp, kind, mark_entry, /*unmarked_only=*/FALSE);
+  walk_parents(scp, kind, mark_entry, &wpcb, MY_WP | WP_SELF);
   if (kind == iek_variable) {
     /* For variables, only template arguments (for variable templates) appear
        as part of the signature. */
@@ -10809,14 +10754,14 @@ a routine.
     for (param = rp->type->variant.routine.extra_info->param_type_list;
          param != NULL;
          param = param->next) {
-      walk_entity_and_parents(&param->type->source_corresp, iek_type,
-                              mark_entry, /*unmarked_only=*/FALSE);
+      walk_parents(&param->type->source_corresp, iek_type, mark_entry,
+                   &wpcb, MY_WP | WP_SELF);
     }  /* for */
   }  /* if */
   for (; template_arg != NULL; template_arg = template_arg->next) {
     if (is_type_templ_arg(template_arg)) {
-      walk_entity_and_parents(&template_arg->variant.type->source_corresp,
-                              iek_type, mark_entry, /*unmarked_only=*/FALSE);
+      walk_parents(&template_arg->variant.type->source_corresp, iek_type,
+                   mark_entry, &wpcb, MY_WP | WP_SELF);
     }  /* if */
   }  /* for */
 }  /* set_signature_mark */
