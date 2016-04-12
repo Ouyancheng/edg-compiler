@@ -210,6 +210,8 @@ typedef unsigned int a_byte_count;
 
 typedef unsigned int an_alloc_seq_number;
 
+#define UNINIT_SEQ_NUMBER UINT_MAX
+
 /*
 Macro to set the flag indicating that interpretation has failed.  In DEBUG
 configurations, a breakpoint on constexpr_fail_intercept is useful to find
@@ -3881,11 +3883,12 @@ done_with_switch:
         alloc_complete_object(ips, n_bytes, vtp, var_storage);
         /* Associate with the variable its value storage. */
         map_stack_bytes(ips, vp, var_storage);
-        /* Also associate with the variable (somewhat arbitrarily, with its
+        /* We also associate with the variable (somewhat arbitrarily, with its
            "storage_class" field) an allocation sequence number that may be
-           used to detect leaks. */
-        map_byte_count(&ips->map, &vp->storage_class,
-                       ips->storage_stack.alloc_seq_number);
+           used to detect leaks.  Before the variable is initialized, however,
+           that sequence number is set to a special value used to recognize
+           attempts to access uninitialized storage. */
+        map_byte_count(&ips->map, &vp->storage_class, UNINIT_SEQ_NUMBER);
         /* Evaluate the initializer. */
         save_storage_stack((ips), saved_stack_for_full_expr);
         if (vp->extends_lifetime) {
@@ -3905,6 +3908,10 @@ done_with_switch:
           release_constexpr_stack(&ips->storage_stack);
         }  /* if */
         restore_storage_stack(ips, saved_stack_for_full_expr);
+        /* Now record the live allocation sequence number. */
+        unmap_ptr(&ips->map, &vp->storage_class);
+        map_byte_count(&ips->map, &vp->storage_class,
+                       ips->storage_stack.alloc_seq_number);
       }
       break;
     case stmk_decl:
@@ -7862,11 +7869,20 @@ type.  This includes checking the value of ovfl set by the operation.
              value bytes. */
           if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
-            (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
-            if (tp->kind == (a_type_kind)tk_pointer) {
-              /* Copying an address type.  Make sure its side structures, if
-                 any, are not shared. */
-              copy_address_structures(result_storage);
+            /* Check that the variable is initialized. */
+            an_alloc_seq_number  seq;
+            get_mapped_byte_count(&ips->map, &var->storage_class, seq);
+            if (seq == UNINIT_SEQ_NUMBER) {
+              info_with_pos_sym(ec_variable_not_yet_initialized,
+                                &expr->position, symbol_for(var), ips);
+              do_constexpr_fail(result);
+            } else {
+              (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+              if (tp->kind == (a_type_kind)tk_pointer) {
+                /* Copying an address type.  Make sure its side structures, if
+                   any, are not shared. */
+                copy_address_structures(result_storage);
+              }  /* if */
             }  /* if */
           } else {
             a_constant_ptr  con = var_constant_value(var);
