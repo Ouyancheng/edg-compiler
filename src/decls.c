@@ -3802,13 +3802,22 @@ processing should proceed in error mode.
       /* The latest declaration is in block scope.  Proceed in non-error mode
          (although a diagnostic is still emitted for this conflict): This will
          cause the type of this declaration to prevail in this scope, and that
-         of the previous declaration to be restored when this scope ends.  We
-         cannot do this for constexpr functions, a mismatch between the
-         declared return type and the actual returned value would corrupt the
-         constexpr interpreter. */
+         of the previous declaration to be restored when this scope ends. */
       a_routine_ptr  rp = esdp->variant.routine.ptr;
-      if (rp != NULL && rp->is_constexpr) {
-        *okay = FALSE;
+      if (rp != NULL) {
+        if (rp->is_constexpr) {
+          /* We cannot do this for constexpr functions because a mismatch
+             between the declared return type and the actual returned value
+             would corrupt the constexpr interpreter. */
+          *okay = FALSE;
+        } else if (!rp->defined &&
+                   rp->function_def_number != NULL_function_def_number) {
+          /* If the block-scope declaration is for a function being defined,
+             proceed in error mode to avoid return statements that do not match
+             the return type of the enclosing function declaration (this makes
+             for nicer diagnostics in some cases). */
+          *okay = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
