@@ -1,5 +1,27 @@
 Version 4.11
 
+4/11/16  [EDGcpfe/16709]
+User-defined literals in member functions and templates
+
+The front end previously reported spurious errors when a user-defined
+literal appearing in a member function or in a template relies on a
+using-directive in that same function or template to find the associated
+literal operator or literal operator template.  This is now fixed.  For
+example, with --c++11:
+
+  namespace NS {
+    double operator "" _w(long double d) {
+      return d;
+    }
+  }
+  struct S {
+    void f() {
+      using namespace NS;
+      double d = 2.3_w;  // Previously reported literal operator not found
+    }
+  };
+
+
 4/11/16  [EDGcpfe/17042]
 Constexpr conversion functions and templates
 
