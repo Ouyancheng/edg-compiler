@@ -3596,7 +3596,7 @@ successfully interpreted, FALSE otherwise.
     case stmk_while:
       {
         a_boolean             has_cond_var;
-        a_host_large_integer  bool_val;
+        a_host_large_integer  bool_val = FALSE;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
