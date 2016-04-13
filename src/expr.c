@@ -26476,8 +26476,9 @@ that case.
          with g++ 4.7, 4.8.0, 4.8.1 and with MSVC++ 18.00.21114. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
-    } else if (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
-                                            : is_throw_operand(&operand_3)) {
+    } else if (!gpp_mode && !microsoft_mode
+               (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
+                                             : is_throw_operand(&operand_3))) {
       /* The resolution of Core issue 1550/1560 resulted in a conditional
          operator with exactly one throw operand to have a value category
          corresponding to the other operand. */
@@ -26501,6 +26502,11 @@ that case.
            we're in a mode that's supposed to suppress the class rvalue
            temporary.  (Such modes are for compatibility with older
            dialects.) */
+      } else if (is_throw_operand(&operand_2) ||
+                 is_throw_operand(&operand_3)) {
+        /* Avoid the copy from an lvalue if the other operand is a throw,
+           so that we generate code with a single copy of the non-throw
+           operand at the end (outside the "?"). */
       } else if (microsoft_mode && microsoft_version < 1700 &&
                  is_an_xvalue(&operand_2) && is_an_xvalue(&operand_3)) {
         /* MSVC 10 treats xvalues as special rvalues and doesn't copy them. */
