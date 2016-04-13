@@ -10315,6 +10315,13 @@ ceblock gives context information for the evaluation.
                the result of the indirection. */
             make_template_param_expr_constant(expr, result_con);
             folded = TRUE;
+          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address &&
+                     op1_constant->variant.address.kind ==
+                                           (an_address_base_kind)abk_routine) {
+            /* The operand is a constant reference or pointer to a function,
+               so that address is the result of the indirection. */
+            copy_constant(op1_constant, result_con);
+            folded = TRUE;
           } else if (constant_value_at_address(
                                           op1_constant,
                                           (a_constexpr_evaluation_block *)NULL,
