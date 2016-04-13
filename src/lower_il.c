@@ -13687,10 +13687,15 @@ recursively (and only the top level expression has had its xvalue converted).
       if (node_operator_is(expr, eok_question) ||
           node_operator_is(expr, eok_vector_question)) {
         /* Rewrite the second and third operands as rvalues, and then mark
-           this expression as an rvalue. */
+           this expression as an rvalue.  Note that an lvalue ?: operator can
+           have rvalue throw operands (which do not need rewriting). */
         an_expr_node_ptr  op3 = op2->next;
-        rewrite_discarded_lvalue_as_rvalue(op2);
-        rewrite_discarded_lvalue_as_rvalue(op3);
+        if (op2->kind != (an_expr_node_kind)enk_throw) {
+          rewrite_discarded_lvalue_as_rvalue(op2);
+        }  /* if */
+        if (op3->kind != (an_expr_node_kind)enk_throw) {
+          rewrite_discarded_lvalue_as_rvalue(op3);
+        }  /* if */
         if (!il_identical_types(op2->type, op3->type)) {
           /* Re-writing the second and third operands as discarded lvalues
              might change one (but not both) of their types to a type that is

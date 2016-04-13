@@ -26476,7 +26476,7 @@ that case.
          with g++ 4.7, 4.8.0, 4.8.1 and with MSVC++ 18.00.21114. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
-    } else if (!gpp_mode && !microsoft_mode
+    } else if (!gpp_mode && !microsoft_mode &&
                (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
                                              : is_throw_operand(&operand_3))) {
       /* The resolution of Core issue 1550/1560 resulted in a conditional
