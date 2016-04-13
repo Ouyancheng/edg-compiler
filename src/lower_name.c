@@ -10984,6 +10984,7 @@ they aren't calculated more than once.
   }  /* if */
 }  /* calculate_implicit_abi_tags_for_routine */
 
+#if DO_IL_LOWERING
 
 static void wp_queue_routine(a_source_correspondence      *scp,
                              an_il_entry_kind             kind,
@@ -11032,7 +11033,7 @@ enclose routine (as necessary).
   }  /* if */
 }  /* calculate_implicit_abi_tags_for_enclosing_routines */
 
-
+#endif /* DO_IL_LOWERING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !IA64_ABI

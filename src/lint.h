@@ -746,6 +746,7 @@ extern int fileno(FILE *);
 /*lint -esym(759, walk_parents)*/
 /*lint -esym(765, walk_parents)*/
 /*lint -esym(714, walk_parents)*/
+/*lint -esym(768, calculate_implicit_abi_tags_for_enclosing_routines)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && NEED_NAME_MANGLING) */
 #if !LOWER_COMPLEX
 /*lint -esym(759,set_complex_constant)*/
