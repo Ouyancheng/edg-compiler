@@ -26482,10 +26482,12 @@ that case.
          operator with exactly one throw operand to have a value category
          corresponding to the other operand. */
       if (is_throw_operand(&operand_2)) {
-        result_is_a_glvalue = is_an_lvalue(&operand_3);
+        result_is_a_glvalue = is_an_lvalue(&operand_3) ||
+                              is_a_function_designator(&operand_3);
         result_is_an_xvalue = is_an_xvalue(&operand_3);
       } else {
-        result_is_a_glvalue = is_an_lvalue(&operand_2);
+        result_is_a_glvalue = is_an_lvalue(&operand_2) ||
+                              is_a_function_designator(&operand_2);
         result_is_an_xvalue = is_an_xvalue(&operand_2);
       }  /* if */
     } else {
@@ -26499,11 +26501,6 @@ that case.
            we're in a mode that's supposed to suppress the class rvalue
            temporary.  (Such modes are for compatibility with older
            dialects.) */
-      } else if (is_throw_operand(&operand_2) ||
-                 is_throw_operand(&operand_3)) {
-        /* Avoid the copy from an lvalue if the other operand is a throw,
-           so that we generate code with a single copy of the non-throw
-           operand at the end (outside the "?"). */
       } else if (microsoft_mode && microsoft_version < 1700 &&
                  is_an_xvalue(&operand_2) && is_an_xvalue(&operand_3)) {
         /* MSVC 10 treats xvalues as special rvalues and doesn't copy them. */
