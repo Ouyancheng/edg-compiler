@@ -3251,7 +3251,7 @@ Interpret the given for-statement.
     a_byte_count      n_bytes;
     a_boolean         ovfl, has_cond_var;
     a_host_large_integer
-                      bool_val;
+                      bool_val = FALSE;
     DECL_COMPACT_VALUE_BYTES(expr_bytes);
     DECL_COMPACT_VALUE_BYTES(incr_bytes);
     if (expr != NULL) {
