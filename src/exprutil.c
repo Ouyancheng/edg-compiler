@@ -19397,8 +19397,12 @@ decay on it, and return a pointer to the decayed expression.
              (i ? "ab" : "cd")
            by transforming the second and third operands. */
         op2->next = NULL;
-        op2 = conv_array_expr_to_pointer(op2);
-        op3 = conv_array_expr_to_pointer(op3);
+        if (skip_parens(op2)->kind != (an_expr_node_kind)enk_throw) {
+          op2 = conv_array_expr_to_pointer(op2);
+        }  /* if */
+        if (skip_parens(op3)->kind != (an_expr_node_kind)enk_throw) {
+          op3 = conv_array_expr_to_pointer(op3);
+        }  /* if */
         op1->next = op2;
         op2->next = op3;
       } else if (op == (an_expr_operator_kind)eok_comma) {
