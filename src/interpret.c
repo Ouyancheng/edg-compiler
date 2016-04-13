@@ -2167,7 +2167,7 @@ complete object).  Return the direct subobject of X that cap points to (or
 for base class subobjects *p_field is set to NULL).
 */
 {
-  if (parent_type->kind != tk_union) {
+  if (parent_type->kind != (a_type_kind)tk_union) {
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
@@ -8283,7 +8283,7 @@ diagnostic in *ips.
               cp = NULL;
             } else {
               cp = prev_con->variant.address.variant.constant;
-              top_type = skip_typerefs(vp->type);
+              top_type = skip_typerefs(cp->type);
             }  /* if */
 #if /*FIXME:delete*/0
             if (is_array_element(cap)) {
