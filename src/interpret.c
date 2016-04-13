@@ -1360,10 +1360,6 @@ Return new variant path entry.
 /*
 A set of flags to describe special interpreter address attributes.
 */
-#define CA_ACCESSIBILITY_MASK ((unsigned int)0x3)
-		/* If the address is that of a subobject, the masked bit
-		   represent its declared accessibility.  Otherwise, those
-		   bits are zero (same as "(unsigned)as_public"). */
 #define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x4)
 		/* This flag indicates that the address is that of a run-time
 		   entity (not a value known to the interpreter). */
