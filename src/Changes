@@ -1,5 +1,34 @@
 Version 4.11
 
+4/13/16  [EDGcpfe/17063]
+routine_might_exist_in_multiple_copies for member functions
+
+In cases where routine_might_exist_in_multiple_copies is called on a member
+function and its parent class has multiple enclosing routines, the result
+had been based on the immediately enclosing function and not the outermost
+enclosing function.  That had resulted in spurious mangling differences
+for the abi_tag mangling.  For example (with --gnu_version 60000 --c++11):
+
+  inline namespace N __attribute__((abi_tag("abi_tag"))) {
+    struct A { };
+  }
+  inline void f() {
+    struct T {
+      void g() {
+        struct S {
+          A h() {}    // Now incorporates implicit abi_tag mangling for A.
+        };
+        S().h();
+      }
+    };
+    T().g();
+  }
+  void F() {
+    f();
+  }
+
+
+that is nested in at least two 
 4/12/16  [EDGcpfe/14159]
 Value category of conditional operators with one throw operand
 

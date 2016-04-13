@@ -25402,7 +25402,7 @@ is instantiated in more than one translation unit.
 
   /* For member functions of local classes, move out to the ultimate
      enclosing function. */
-  if (rout->source_corresp.is_local_to_function) {
+  while (rout->source_corresp.is_local_to_function) {
     a_routine_ptr  enclosing_rout = NULL;
     if (rout->source_corresp.is_class_member) {
       enclosing_rout = enclosing_routine_for_local_type_or_null(
@@ -25415,8 +25415,9 @@ is instantiated in more than one translation unit.
          scopes, and such definitions elicit errors in C++.  (In error recovery
          mode the result of this function does not really matter.) */
       expect_error();
+      break;
     }  /* if */
-  }  /* if */
+  }  /* while */
   if (!C_mode() && is_or_will_be_extern_inline(rout)) {
     /* An extern inline routine might be expanded in more than one
        translation unit.  This might be true even if extern inline
