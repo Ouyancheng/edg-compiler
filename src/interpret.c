@@ -177,21 +177,15 @@ storage.  However, there are many variations:
 
   - pointers to array elements, for which bounds must be maintained;
   - pointers to items in unions, for which the access path (see type
-    a_variant_path) must be maintained so that it can be checked
+    a_variant_path_entry) must be maintained so that it can be checked
     against active fields when the address is read from;
   - pointers to functions or entities not known at compile time;
   - etc.
 
 In addition, when comparing pointers using, e.g., the '<' operator, the
-interpreter must ensure that the pointers point to the same complete object or
-even the same "accessibility zone".  a_constexpr_address therefore includes a
-pointer identifying an "object zone" (assuming it is a pointer to interpreter
-storage).  For addresses of top-level objects, the "object zone" pointer is
-just the object address.  When accessing subobjects, the "object zone" pointer
-is preserved, unless the subobject's accessibility changes (a_constexpr_address
-also track accessibility): In that case the "object zone" pointer is changed
-to the address of the parent object plus 0 (for public subobjects), 1 (for
-protected subobjects), or 2 (for private subobjects).
+interpreter must ensure that the pointers point to the same complete
+object.  a_constexpr_address therefore includes a pointer to the complete
+object it points to (assuming it is a pointer to interpreter storage).
 
 When reading through a_constexpr_address, the front end must ensure that the
 storage it points to is still valid.  To this end, every variable and temporary
@@ -203,6 +197,13 @@ an_interpreter_state); it is removed when the associated storage is reclaimed.
 Every read through a_constexpr_address therefore just has to check that the
 recorded allocation sequence number is still in the live table (if not,
 interpretation fails).
+
+The a_constexpr_address representation is sufficient to re-create the complete
+"symbolic path" needed to obtain it from a complete object.  E.g., if the
+address is in an object x, perhaps an expression like "x.y[3].z" is needed to
+produce that address: The ".y[3].z" path can be reconstructed and this may be
+needed when comparing pointers or when translating interpreter addresses back
+to a_constant/ck_address entries.
 
 */
 
@@ -1328,8 +1329,8 @@ typedef struct a_variant_path_entry {
 			   indexed array. */
   a_byte	*base_address;
 			/* The address of the variant (i.e., union) subobject
-			   in interpreter storage, or, if active_field is NULL,
-			   the base address of the indexed array. */
+			   in interpreter storage, or, if field is NULL, the
+			   base address of the indexed array. */
 } a_variant_path_entry;
 
 static a_variant_path_entry_ptr
@@ -1436,11 +1437,10 @@ typedef struct a_constexpr_address {
 			   active fields at the point of dereference. */
   } variant;
   a_byte
-		*object_zone;
-			/* Pointer identifying a "zone" in which pointer
-			   comparisons are valid.  (Such comparisons require
-			   pointers to point into the same complete object,
-			   and to have a same "accessibility path".) */
+		*complete_object;
+			/* Pointer to the complete object into which this
+			   address is pointing.  This is needed to validate
+			   pointer comparisons (p < q, etc.). */
 } a_constexpr_address;
 
 
@@ -1548,7 +1548,7 @@ interpreter value at targ_addr (or a null pointer).
 #define clear_address(addr, targ_addr)                    \
   memzero((char *)(addr), sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr); \
-  ((a_constexpr_address *)(addr))->object_zone = (targ_addr);
+  ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
   
 
 
@@ -2030,6 +2030,8 @@ offsets in any associated fields as well as any direct or virtual base classes.
 If needed, this will recursively lay out types this class type is composed of.
 ips is used to record an interpretation failure if the size exceeds the
 interpreter's limits; in that case, *p_result is set to FALSE.
+
+FIXME: The current layout is wasteful with virtual base class storage.
 */
 {
   a_byte_count      total_size = 0;
@@ -2085,7 +2087,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
   if (any_virtual_bases) {
     /* Allocate virtual base classes. */
     for (bcp = bases; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && !bcp->is_virtual) {
+      if (bcp->is_virtual) {
         do_host_alignment(total_size);
         map_byte_count(&persistent_map, bcp, total_size);
         total_size += value_bytes_for_type(ips, bcp->type, p_result);
@@ -2148,6 +2150,108 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
 done:
   return total_size;
 }  /* lay_out_union_type */
+
+
+static void find_subobject_for_interpreter_address(
+                                        an_interpreter_state  *ips,
+                                        a_constexpr_address   *cap,
+                                        a_byte                *parent_address,
+                                        a_type_ptr            parent_type,
+                                        a_field_ptr           *p_field,
+                                        a_base_class_ptr      *p_bcp)
+/*
+cap represents an interpreter address pointing into interpreter storage for an
+object X of type parent_type stored at parent_address (not necessarily a
+complete object).  Return the direct subobject of X that cap points to (or
+"into") via *p_field and *p_bcp (for field subobjects *p_bcp is set to NULL;
+for base class subobjects *p_field is set to NULL).
+*/
+{
+  if (parent_type->kind != tk_union) {
+    /* Search among base classes and fields for the one that covers the offset
+       of the given address.  We search through direct subobjects in allocation
+       order. */
+    a_byte_count      offset = cap->address - parent_address, sub_offset;
+    a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
+    a_field_ptr       last_fp = next_initializable_field(fp);
+    a_base_class_ptr  bcp, last_bcp;
+    a_boolean         okay = TRUE;
+    /* First search through the fields. */
+    for (fp = next_initializable_field(last_fp->next);
+         fp != NULL;
+         last_fp = fp, fp = next_initializable_field(fp->next)) {
+      get_mapped_byte_count(&persistent_map, fp, sub_offset);
+      if (offset < sub_offset) {
+        *p_field = last_fp;
+        *p_bcp = NULL;
+        goto done;
+      }  /* if */
+    }  /* if */
+    if (offset-sub_offset < value_bytes_for_type(ips, last_fp->type, &okay)) {
+      check_assertion(okay);
+      *p_field = last_fp;
+      *p_bcp = NULL;
+      goto done;
+    }  /* if */
+    /* Next search through direct base classes.  (If we got here, there must be
+       some).  Start with nonvirtual bases. */
+    bcp = base_classes_of(parent_type);
+    check_assertion(bcp != NULL);
+    last_bcp = NULL;
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && !bcp->is_virtual) {
+        if (last_bcp == NULL) {
+          last_bcp = bcp;
+        } else {
+          get_mapped_byte_count(&persistent_map, bcp, sub_offset);
+          if (offset < sub_offset) {
+            *p_field = NULL;
+            *p_bcp = last_bcp;
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    for (bcp = base_classes_of(parent_type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->is_virtual) {
+        if (last_bcp == NULL) {
+          last_bcp = bcp;
+        } else {
+          get_mapped_byte_count(&persistent_map, bcp, sub_offset);
+          if (offset < sub_offset) {
+            *p_field = NULL;
+            *p_bcp = last_bcp;
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (offset-sub_offset < value_bytes_for_type(ips, last_bcp->type, &okay)) {
+      check_assertion(okay);
+      *p_field = NULL;
+      *p_bcp = last_bcp;
+      goto done;
+    }  /* if */
+  } else {
+    /* If the parent type is a union, a variant path must be available.  Just
+       return the entry on the variant path with a field whose base address
+       is parent_address. */
+    a_variant_path_entry_ptr  vpep;
+    check_assertion(is_variant_path(cap));
+    vpep = cap->variant.variant_path->next;
+    for (; vpep != NULL; vpep = vpep->next) {
+      a_field_ptr  fp = vpep->field;
+      if (fp != NULL && vpep->base_address == parent_address) {
+        *p_field = fp;
+        *p_bcp = NULL;
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* We should never get here (our search should always be successful). */
+  unexpected_condition();
+done:;
+}  /* find_subobject_for_interpreter_address */
 
 
 #define record_subobject_derivation(subobj_ptr, bcp)                         \
@@ -5298,9 +5402,6 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* No adjustment needed. */
                 break;
               }  /* if */
-              /* Base subobjects are not ordered.  Make a zone for the base. */
-              result_addr->object_zone = result_addr->address;
-              result_addr->flags &= ~CA_ACCESSIBILITY_MASK;
               if (tp->kind == (a_type_kind)tk_pointer) {
                 dtp = skip_typerefs(opnd1_type->variant.pointer.type);
                 btp = skip_typerefs(tp->variant.pointer.type);
@@ -5344,10 +5445,6 @@ type.  This includes checking the value of ovfl set by the operation.
                   get_mapped_byte_count(&persistent_map, bcp, offset);
                   *dst = *src;
                   dst->address -= offset;
-                  /* Base subobjects are not ordered.  Make a zone for the
-                     base. */
-                  dst->object_zone = dst->address;
-                  dst->flags &= ~CA_ACCESSIBILITY_MASK;
                 } else {
                   a_type_ptr  derived_class;
                   if (bcp != NULL) {
@@ -6475,7 +6572,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->object_zone != ptr2->object_zone) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6535,7 +6632,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->object_zone != ptr2->object_zone) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6599,7 +6696,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->object_zone != ptr2->object_zone) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6663,7 +6760,7 @@ type.  This includes checking the value of ovfl set by the operation.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->object_zone != ptr2->object_zone) {
+                  if (ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -7713,15 +7810,6 @@ type.  This includes checking the value of ovfl set by the operation.
                    path entry. */
                 unexpected_condition();
               } else {
-                /* Adjust the "object zone" pointer if needed. */
-                unsigned  f_access = (unsigned)field->source_corresp.access;
-                if (f_access != (result_addr.flags & CA_ACCESSIBILITY_MASK)) {
-                  /* Access is changing.  Move the "object zone" pointer to an
-                     offset of the subobject based on the new access. */
-                  result_addr.object_zone = result_addr.address + f_access;
-                  result_addr.flags &= ~CA_ACCESSIBILITY_MASK;
-                  result_addr.flags |= f_access;
-                }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
                 result_addr.flags &= ~CA_ARRAY_ELEMENT;
@@ -7784,16 +7872,6 @@ type.  This includes checking the value of ovfl set by the operation.
                                          opnd1_type, expr)) {
                   do_constexpr_fail(result);
                 } else {
-                  /* Adjust the "object zone" pointer if needed. */
-                  unsigned  f_access = (unsigned)field->source_corresp.access;
-                  if (f_access !=
-                                (result_addr.flags & CA_ACCESSIBILITY_MASK)) {
-                    /* Access is changing.  Move the "object zone" pointer to
-                       an offset of the subobject based on the new access. */
-                    result_addr.object_zone = result_addr.address + f_access;
-                    result_addr.flags &= ~CA_ACCESSIBILITY_MASK;
-                    result_addr.flags |= f_access;
-                  }  /* if */
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   result_addr.flags &= ~CA_ARRAY_ELEMENT;
@@ -8038,6 +8116,62 @@ that are needed for the operation of the interpreter.
 }  /* initialize_interpreter_data */
 
 
+static a_targ_ptrdiff_t translate_interpreter_offset(
+                                                an_interpreter_state  *ips,
+                                                a_constexpr_address   *cap,
+                                                a_type_ptr            type)
+/*
+cap represents an interpreter address pointing into interpreter storage for a
+complete object of the given type.  Return the corresponding target offset for
+a ck_address constant representing the same address.
+*/
+{
+  a_targ_ptrdiff_t  t_offset = 0;
+  a_byte            *address = cap->address;
+
+  if (address != cap->complete_object) {
+    a_byte            *parent_address = cap->complete_object;
+    a_field_ptr       fp;
+    a_base_class_ptr  bcp;
+    do {
+      a_byte_count  i_offset;
+      if (type->kind == (a_type_kind)tk_array) {
+        i_offset = address-parent_address;
+        if (i_offset != 0) {
+          a_type_ptr    elem_type;
+          a_byte_count  pos, elem_size;
+          a_boolean     okay = TRUE;
+          elem_type = skip_typerefs(type->variant.array.element_type);
+          elem_size = value_bytes_for_type(ips, elem_type, &okay);
+          check_assertion(okay);
+          pos = i_offset/elem_size;
+          t_offset += pos*elem_type->size;
+          i_offset = pos*elem_size;
+        }  /* if */
+      } else {
+        void  *ptr;
+        check_assertion(is_immediate_class_type(type));
+        find_subobject_for_interpreter_address(ips, cap, parent_address, type,
+                                               &fp, &bcp);
+        if (fp != NULL) {
+          t_offset += fp->offset;
+          type = skip_typerefs(fp->type);
+          ptr = (void*)fp;
+        } else {
+          check_assertion(bcp != NULL);
+          t_offset += bcp->offset;
+          type = skip_typerefs(bcp->type);
+          ptr = (void*)bcp;
+        }  /* if */
+        get_mapped_byte_count(&persistent_map, ptr, i_offset);
+      }  /* if */
+      parent_address += i_offset;
+    } while (parent_address != address);
+  }  /* if */
+  return t_offset;
+}  /* translate_interpreter_offset */
+
+
 static a_boolean copy_interpreter_object_to_constant(
                                                 an_interpreter_state  *ips,
                                                 a_byte                *object,
@@ -8117,6 +8251,7 @@ diagnostic in *ips.
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
+#if /*FIXME:delete*/0
           if (is_array_element(cap)) {
             /* If we're pointing into an array, use the base address of the
                array to check if we already have a constant representing that
@@ -8125,19 +8260,32 @@ diagnostic in *ips.
           } else {
             get_stack_bytes(ips, cap->address, mptr);
           }  /* if */
+#endif
+          get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
             /* Either a constant was already allocated for the pointed-to
                object or this address was created from an abk_variable entry
                (in which case, we must produce an address constant for that
                same variable). */
             a_constant_ptr  prev_con = (a_constant_ptr)mptr;
+            a_type_ptr      top_type;
             if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
+              if (vp == NULL) {
+                /* This can happen when interpreting a dynamic initialization
+                   entry that isn't associated with a variable.  Currently,
+                   our IL can not represent the folded result. */
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              top_type = skip_typerefs(vp->type);
               cp = NULL;
             } else {
               cp = prev_con->variant.address.variant.constant;
+              top_type = skip_typerefs(vp->type);
             }  /* if */
+#if /*FIXME:delete*/0
             if (is_array_element(cap)) {
               /* If we're pointing into an array, we may have to compute a
                  nonzero offset into it. */
@@ -8149,6 +8297,11 @@ diagnostic in *ips.
                   elem_type->size *
                        (offset/value_bytes_for_type(ips, elem_type, &result));
               }  /* if */
+            }  /* if */
+#endif
+            if (cap->address != cap->complete_object) {
+              con->variant.address.offset =
+                             translate_interpreter_offset(ips, cap, top_type);
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
@@ -8454,9 +8607,22 @@ return FALSE.
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
                            /*implied_src=*/NULL)) {
       do_constexpr_fail(result);
-    } else if (!copy_interpreter_object_to_constant(
+    } else {
+      /* Map the result address (which is the "this" pointer) to a ck_address
+        constant, so that copy_interpreter_object_to_constant can translate
+        that address back to IL if needed. */
+      a_constant_ptr  this_con = local_constant();
+      clear_constant(this_con, (a_constant_repr_kind)ck_address);
+      this_con->variant.address.kind = (an_address_base_kind)abk_variable;
+      if (dip->variable != NULL) {
+        this_con->variant.address.variant.variable = dip->variable;
+        map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
+      }  /* if */
+      if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
-      do_constexpr_fail(result);
+        do_constexpr_fail(result);
+      }  /* if */
+      release_local_constant(&this_con);
     }  /* if */
   }  /* if */
   release_interpreter_state(&ips);

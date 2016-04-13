@@ -5513,6 +5513,9 @@ FALSE is returned) for non-class objects.
           a_constant_ptr  cp;
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                              /*evaluated=*/TRUE);
+          /* Folding the constructor call may require access to the variable
+             being initialized. */
+          init_dip->variable = var;
           cp = get_default_constructed_constant(init_dip, tp, err_pos);
           if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
@@ -5540,6 +5543,9 @@ FALSE is returned) for non-class objects.
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                              /*evaluated=*/TRUE);
+          /* Folding the constructor call may require access to the variable
+             being initialized. */
+          init_dip->variable = var;
           if (ctor->is_constexpr && !var->is_vla &&
               fold_constexpr_ctor(init_dip, /*record_backing_expr=*/TRUE,
                                   err_pos, &folded_con)) {
