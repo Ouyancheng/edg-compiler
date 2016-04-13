@@ -746,8 +746,8 @@ extern int fileno(FILE *);
 /*lint -esym(759, walk_parents)*/
 /*lint -esym(765, walk_parents)*/
 /*lint -esym(714, walk_parents)*/
-/*lint -esym(768, a_walk_parents_control_block::ptr)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && NEED_NAME_MANGLING) */
+/*lint -esym(768, a_walk_parents_control_block::ptr)*/
 #if !LOWER_COMPLEX
 /*lint -esym(759,set_complex_constant)*/
 /*lint -esym(765,set_complex_constant)*/
