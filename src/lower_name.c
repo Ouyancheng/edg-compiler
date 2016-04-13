@@ -10430,6 +10430,51 @@ typedef struct an_abi_tag_string {
 static an_abi_tag_string_ptr
               avail_abi_tag_strings;
                         /* A list of available abi_tag entries. */
+static a_routine_list_entry_ptr
+                abi_tag_implicit_routines;
+                        /* When mangling an entity that is promoted from a
+                           local scope, contains a list of enclosing routines
+                           that have implicit abi_tags.  Any abi_tag that
+                           exists on this list precludes the abi_tag from being
+                           an implicit abi_tag for the entity being mangled. */
+static a_routine_list_entry_ptr
+                avail_rlep_entries;
+                        /* A list of available rlep entries. */
+
+static a_routine_list_entry_ptr alloc_rlep_entry(void)
+/*
+Get an rlep entry from a local pool or allocate one if necessary.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+
+  if (avail_rlep_entries == NULL) {
+    rlep = alloc_list_entry_for_routine();
+  } else {
+    rlep = avail_rlep_entries;
+    avail_rlep_entries = rlep->next;
+    rlep->next = NULL;
+  }  /* if */
+  return rlep;
+}  /* alloc_rlep_entry */
+
+
+static void free_rlep_list(a_routine_list_entry_ptr list)
+/*
+Return the list of rlep entries to the pool of available entries.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+
+  if (avail_rlep_entries == NULL) {
+    avail_rlep_entries = list;
+  } else {
+    for (rlep = avail_rlep_entries;
+         rlep->next != NULL;
+         rlep = rlep->next) {}
+    rlep->next = list;
+  }  /* if */
+}  /* free_rlep_list */
 
 
 static void add_abi_tag_mangling(an_attribute_ptr         ap,
@@ -10533,7 +10578,7 @@ static a_boolean
 Shorthand for a_type_tree_traversal_flag_set used during abi_tag processing.
 */
 #define ABI_TAG_TTT_FLAGS                                                     \
-  (TTT_SKIP_TYPEREFS | TTT_RETURN_TYPE | TTT_PARAM_TYPES | TTT_TEMPLATE_ARGS)
+  (TTT_SKIP_TYPEREFS | TTT_RETURN_TYPE | TTT_TEMPLATE_ARGS)
 
 /*
 Utility that returns TRUE if the given IL entity is "marked".  Note that for
@@ -10593,7 +10638,7 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
     if (has_gnu_abi_tag_attribute) {
       /* Apply any abi_tag attributes from scp as implicit abi_tag attributes
          for ttt_scp_for_implicit_abi_tags. */
-      an_attribute_arg_ptr  aap;
+      an_attribute_arg_ptr  aap, r_aap;
       an_attribute_ptr      ap;
 #if DEBUG
       if (db_flag_is_set("abi_tag")) {
@@ -10608,9 +10653,40 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
             check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                             aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
+            if (abi_tag_implicit_routines != NULL) {
+              /* Any implicit abi_tag attributes from enclosing routines
+                 should not appear as implicit abi_tag attributes for this
+                 entity.  Go through the list and skip any that already
+                 appear in the mangled name (i.e., as part of the mangling
+                 for the local function). */
+              a_routine_list_entry_ptr rlep;
+              for (rlep = abi_tag_implicit_routines;
+                   rlep != NULL;
+                   rlep = rlep->next) {
+                check_assertion(rlep->routine->source_corresp.attributes
+                                                                     != NULL &&
+                                rlep->routine->source_corresp.attributes->
+                                                is_implicit_abi_tag_attribute);
+                for (r_aap =
+                           rlep->routine->source_corresp.attributes->arguments;
+                     r_aap != NULL;
+                     r_aap = r_aap->next) {
+                  if (string_constants_are_the_same(r_aap->variant.constant,
+                                                    aap->variant.constant)) {
+#if DEBUG
+                    if (db_flag_is_set("abi_tag")) {
+                      (void)fputs("Ignoring duplicate abi_tag\n", f_debug);
+                    }  /* if */
+#endif /* DEBUG */
+                    goto skipped;
+                  }  /* if */
+                }  /* for */
+              }  /* for */
+            }  /* if */
             add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
                                            ttt_kind_for_implicit_abi_tags,
                                            aap->variant.constant);
+skipped:;
           }  /* for */
         }  /* if */
       }  /* for */
@@ -10697,23 +10773,45 @@ value of ttt_mark_value) the IL entity specified by scp and kind, as well as
 any related entities that would appear in the mangled name of the entity.
 */
 {
-  scp->entity_marked = ttt_mark_value;
+  if (scp->entity_marked == ttt_mark_value) {
+    /* Entity is already marked (or unmarked). */
+  } else {
+    scp->entity_marked = ttt_mark_value;
 #if DEBUG
-  if (db_flag_is_set("abi_tag")) {
-    (void)fprintf(f_debug, "%s entity ", ttt_mark_value ? "Marking" :
-                                                          "Unmarking");
-    db_name(scp);
-    (void)fputs("\n", f_debug);
-  }  /* if */
+    if (db_flag_is_set("abi_tag")) {
+      (void)fprintf(f_debug, "%s entity ", ttt_mark_value ? "Marking" :
+                                                            "Unmarking");
+      db_name(scp);
+      (void)fputs("\n", f_debug);
+    }  /* if */
 #endif /* DEBUG */
-  if (scp == ttt_scp_for_implicit_abi_tags) {
-    /* If we're marking the entity for which we're computing the implicit
-       abi_tags, don't mark that in the signature. */
-  } else if (kind == iek_type) {
-    /* Also include any types referenced in this type (e.g., "A*"), but
-       also class templates. */
-    (void)traverse_type_tree((a_type_ptr)scp, ttt_mark_entry,
-                             ABI_TAG_TTT_FLAGS);
+    if (scp == ttt_scp_for_implicit_abi_tags) {
+      /* If we're marking the entity for which we're computing the implicit
+         abi_tags, don't mark that in the signature. */
+    } else if (kind == iek_routine) {
+      a_routine_ptr rp = (a_routine_ptr)scp;
+      if (!rp->is_template_function) {
+        /* The mangled name will incorporate an encoding for this local
+           function.  Any implicit abi_tags that apply to the function should
+           not appear in the entity's mangled name.  If the function has
+           implicit abi_tags, add the function to a list so its abi_tags can be
+           checked later.  Note that the abi_tags for the function must have
+           been previously calculated. */
+        check_assertion(rp->implicit_abi_tags_added);
+        if (scp->attributes != NULL &&
+            scp->attributes->is_implicit_abi_tag_attribute) {
+          a_routine_list_entry_ptr rlep = alloc_rlep_entry();
+          rlep->next = abi_tag_implicit_routines;
+          rlep->routine = rp;
+          abi_tag_implicit_routines = rlep;
+        }  /* if */
+      }  /* if */
+    } else if (kind == iek_type) {
+      /* Also include any types referenced in this type (e.g., "A*"), but
+         also class templates. */
+      (void)traverse_type_tree((a_type_ptr)scp, ttt_mark_entry,
+                               ABI_TAG_TTT_FLAGS);
+    }  /* if */
   }  /* if */
 }  /* mark_entry */
 
@@ -10815,6 +10913,7 @@ As implemented here, this involves three steps:
       /* These types will never have abi_tag components, so skip the expensive
          processing. */
     } else {
+      check_assertion(abi_tag_implicit_routines == NULL);
       /* Mark entities in the signature. */
       ttt_scp_for_implicit_abi_tags = scp;
       ttt_kind_for_implicit_abi_tags = kind;
@@ -10826,6 +10925,11 @@ As implemented here, this involves three steps:
       set_signature_mark(scp, kind, FALSE);
       ttt_scp_for_implicit_abi_tags = NULL;
       ttt_kind_for_implicit_abi_tags = iek_none;
+      if (abi_tag_implicit_routines != NULL) {
+        /* Free the list of routines with implicit abi_tags. */
+        free_rlep_list(abi_tag_implicit_routines);
+        abi_tag_implicit_routines = NULL;
+      }  /* if */
 #if DEBUG
       if (db_flag_is_set("abi_tag")) {
         (void)fputs("Implicit abi_tags for ", f_debug);
@@ -10844,6 +10948,90 @@ As implemented here, this involves three steps:
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
 }  /* calculate_implicit_abi_tags */
+
+
+static void calculate_implicit_abi_tags_for_routine(a_routine_ptr routine)
+/*
+Determine whether or not implicit abi_tags need to be calculated for the
+given routine.  Calculate them if need be, but in either case, set a flag so
+they aren't calculated more than once.
+*/
+{
+  a_boolean mangle_as_template;
+
+  if (gnu_abi_tag_attribute_seen && !routine->implicit_abi_tags_added) {
+    routine->implicit_abi_tags_added = TRUE;
+    mangle_as_template = (distinct_template_signatures &&
+#if IA64_ABI
+                          /* Member functions of template classes are not
+                             considered templates for mangling purposes. */
+                          routine->template_arg_list != NULL &&
+#endif /* IA64_ABI */
+                          routine->is_template_function);
+    if (mangle_as_template) {
+      /* Note that this processing is skipped for templates because the return
+         type is included in the mangled name, so it's already part of the
+         function's signature. */
+    } else if (routine->storage_class == (a_storage_class)sc_static &&
+               !routine_might_exist_in_multiple_copies(routine)) {
+      /* GNU doesn't generate implicit abi_tags for local routines, except
+         those with vague linkage. */
+    } else if (routine->is_template_function && gnu_version < 60000) {
+      /* Early versions didn't add implicit abi_tags for function templates. */
+    } else {
+      calculate_implicit_abi_tags(&routine->source_corresp, iek_routine);
+    }  /* if */
+  }  /* if */
+}  /* calculate_implicit_abi_tags_for_routine */
+
+
+static void wp_queue_routine(a_source_correspondence      *scp,
+                             an_il_entry_kind             kind,
+                             a_walk_parents_control_block *wpcb)
+/*
+Callback from walk_parents that queues the routine on a list pointed to by
+wpcb->ptr if the routine has not yet had its implicit abi_tags calculated.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+  a_routine_ptr routine = (a_routine_ptr)scp;
+
+  check_assertion(kind == iek_routine);
+  if (!routine->implicit_abi_tags_added) {
+    rlep = alloc_rlep_entry();
+    rlep->next = (a_routine_list_entry_ptr)wpcb->ptr;
+    rlep->routine = routine;
+    wpcb->ptr = (void *)rlep;
+  }  /* if */
+}  /* wp_queue_routine */
+
+
+static void calculate_implicit_abi_tags_for_enclosing_routines(
+                                                         a_routine_ptr routine)
+/*
+Calculates the implicit abi_tags for routine and all of the routines that
+enclose routine (as necessary).
+*/
+{
+  a_walk_parents_control_block wpcb;
+  a_routine_list_entry_ptr rlep;
+
+  /* Note that the list of routines must be visited from outermost to innermost
+     so walk the parents to get a list of routines that need to be invoked,
+     then invoke them in the proper order. */
+  wpcb.ptr = NULL;
+  walk_parents(&routine->source_corresp, iek_routine, wp_queue_routine,
+               &wpcb, WP_ROUTINE | WP_SELF);
+  for (rlep = (a_routine_list_entry_ptr)wpcb.ptr;
+       rlep != NULL;
+       rlep = rlep->next) {
+    calculate_implicit_abi_tags_for_routine(rlep->routine);
+  }  /* for */
+  if (rlep != NULL) {
+    free_rlep_list(rlep);
+  }  /* if */
+}  /* calculate_implicit_abi_tags_for_enclosing_routines */
+
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -11251,22 +11439,8 @@ determination is made by the callee.
   if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
 #endif /* GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_abi_tag_attribute_seen && !routine->implicit_abi_tags_added) {
-    routine->implicit_abi_tags_added = TRUE;
-    if (mangle_as_template) {
-      /* Note that this processing is skipped for templates because the return
-         type is included in the mangled name, so it's already part of the
-         function's signature. */
-    } else if (routine->storage_class == (a_storage_class)sc_static &&
-               !routine_might_exist_in_multiple_copies(routine)) {
-      /* GNU doesn't generate implicit abi_tags for local routines, except
-         those with vague linkage. */
-    } else if (routine->is_template_function && gnu_version < 60000) {
-      /* Early versions didn't add implicit abi_tags for function templates. */
-    } else {
-      calculate_implicit_abi_tags(&routine->source_corresp, iek_routine);
-    }  /* if */
-  }  /* if */
+  /* If necessary, calculate the implicit abi_tags for this routine. */
+  calculate_implicit_abi_tags_for_routine(routine);
 #if !IA64_ABI
   if (routine->has_gnu_abi_tag_attribute) {
     /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
@@ -13228,7 +13402,10 @@ be embedded in other mangled names.
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_abi_tag_attribute_seen) {
-      /* Determine any implicit abi_tags for this promoted static variable. */
+      /* Determine any implicit abi_tags for this promoted static variable,
+         but first make sure the implicit abi_tags for all enclosing routines
+         have been calculated. */
+      calculate_implicit_abi_tags_for_enclosing_routines(routine);
       calculate_implicit_abi_tags(scp, kind);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -13847,6 +14024,8 @@ Do one-time initialization of variables related to name mangling.
 #endif /* !IA64_ABI */
 #if GNU_EXTENSIONS_ALLOWED
   avail_abi_tag_strings = NULL;
+  abi_tag_implicit_routines = NULL;
+  avail_rlep_entries = NULL;
   ttt_scp_for_implicit_abi_tags = NULL;
   ttt_kind_for_implicit_abi_tags = iek_none;
   ttt_mark_value = FALSE;

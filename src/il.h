@@ -2886,6 +2886,8 @@ typedef struct a_walk_parents_control_block {
   a_boolean   terminate;
                         /* When set to TRUE, forces walk_parents to terminate
                            the walk. */
+  void        *ptr;     /* Pointer to walk-specific data passed from caller
+                           to callback (not interpreted by walk_parents). */
 } a_walk_parents_control_block;
 
 /* Typedef for callback from walk_parents. */
