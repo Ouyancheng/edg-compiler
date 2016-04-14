@@ -48,8 +48,8 @@ Value category of conditional operators with one throw operand
 The resolution of core issues 1550 and 1560 resulted in the value category of
 a conditional operator where either the second or third operand (but not both)
 is a throw expression, to be the value category of the other operand.  The
-front end now implements the revised rule (except in GNU and Microsoft modes).
-For example:
+front end now implements the revised rule (except in non-Clang GNU modes and
+Microsoft modes).  For example:
 
   void f(bool b) {
     int i;
