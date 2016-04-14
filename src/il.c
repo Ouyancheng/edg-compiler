@@ -26964,8 +26964,8 @@ to the flags set in "options").  If non-NULL, wpcb specifies a control block
 that is passed to the callback routine.  wpcb->terminate is initialized to
 FALSE, and if ever set to TRUE by the callback routine, the walk is terminated.
 The options flags can be used to select which parent entities are of interest
-(e.g., WP_ROUTINE would result in callbacks only for routines of which scp is
-local to).  See the descriptions of each of the flags for more information.
+(e.g., WP_ROUTINE would result in callbacks only for routines to which scp is
+local).  See the descriptions of each of the flags for more information.
 */
 {
   a_walk_parents_flag_set flag = WP_NO_INPUT_FLAGS;
