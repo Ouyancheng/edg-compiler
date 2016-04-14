@@ -499,6 +499,7 @@ except for the last entry whose next_index field is set to 0.
 {
   a_live_set_entry  *table = set->table;
 
+  set->next_free = first;
   while (first != last) {
     table[first].next_index = first+1;
     first = first+1;
@@ -519,7 +520,6 @@ Initialize the given live set.
     /* Allocate a new table. */
     a_byte_count  n_bytes;
     set->overflow_size = 100;
-    set->next_free = NUM_LIVE_SET_HASH_HEADERS;
     n_bytes = (NUM_LIVE_SET_HASH_HEADERS+set->overflow_size)
                                          * sizeof(a_live_set_entry);
     set->table = (a_live_set_entry*)alloc_resizable_buffer(n_bytes);
@@ -585,12 +585,12 @@ Double the size of the overflow area of the given live set.
     if (cached_seq_number != 0) {                                            \
       /* Move the existing entry to an overflow entry. */                    \
       a_live_set_index  new_index = (set)->next_free;                        \
-      (set)->next_free = table[new_index].next_index;                        \
       if (new_index == 0) {                                                  \
         expand_live_set(set);                                                \
         table = (set)->table;                                                \
         new_index = (set)->next_free;                                        \
       }  /* if */                                                            \
+      (set)->next_free = table[new_index].next_index;                        \
       table[new_index].alloc_seq_number = cached_seq_number;                 \
       table[new_index].next_index = table[idx].next_index;                   \
       table[idx].next_index = new_index;                                     \
@@ -4807,7 +4807,7 @@ the body of the (constructor) function proper.
     }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
     /* First map the "this" pointer. */
-    alloc_seq_number = ips->curr_alloc_seq_number;
+    alloc_seq_number = ips->curr_alloc_seq_number++;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
       /* A constructor should always have a "this" parameter, but in some
