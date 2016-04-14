@@ -2167,7 +2167,7 @@ for base class subobjects *p_field is set to NULL).
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
-    a_byte_count      offset = cap->address - parent_address, sub_offset;
+    a_byte_count      offset = cap->address - parent_address, sub_offset = 0;
     a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
     a_field_ptr       last_fp = next_initializable_field(fp);
     a_base_class_ptr  bcp, last_bcp;
@@ -8127,8 +8127,8 @@ a ck_address constant representing the same address.
 
   if (address != cap->complete_object) {
     a_byte            *parent_address = cap->complete_object;
-    a_field_ptr       fp;
-    a_base_class_ptr  bcp;
+    a_field_ptr       fp = NULL;
+    a_base_class_ptr  bcp = NULL;
     do {
       a_byte_count  i_offset;
       if (type->kind == (a_type_kind)tk_array) {
@@ -8271,7 +8271,7 @@ diagnostic in *ips.
               if (vp == NULL) {
                 /* This can happen when interpreting a dynamic initialization
                    entry that isn't associated with a variable.  Currently,
-                   our IL can not represent the folded result. */
+                   our IL cannot represent the folded result. */
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -8605,8 +8605,8 @@ return FALSE.
       do_constexpr_fail(result);
     } else {
       /* Map the result address (which is the "this" pointer) to a ck_address
-        constant, so that copy_interpreter_object_to_constant can translate
-        that address back to IL if needed. */
+         constant, so that copy_interpreter_object_to_constant can turn that
+         address back into a ck_address constant entry if needed. */
       a_constant_ptr  this_con = local_constant();
       clear_constant(this_con, (a_constant_repr_kind)ck_address);
       this_con->variant.address.kind = (an_address_base_kind)abk_variable;
