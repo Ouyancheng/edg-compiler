@@ -2125,7 +2125,7 @@ A change has been made to add support for version 1.4 of the Windows Runtime
 metadata.
 
 
-12/4/15  [EDGcpfe/16698]
+12/4/15  [EDGcpfe/16698,EDGcpfe/14417]
 Calling a constexpr function through a reference
 
 The front end previously incorrectly rejected a call to a constexpr
