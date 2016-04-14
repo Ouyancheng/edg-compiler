@@ -1,5 +1,29 @@
 Version 4.11
 
+4/14/16  [EDGcpfe/17028]
+Incorrect expansion of nested pack expansion
+
+In some cases the use of a nested pack expansion could result in an incorrect
+value being used in the outer expansion.  Now fixed.
+
+  #include <stdio.h>
+  inline int f1(int a1, int a2) {
+    return a1 + a2;
+  }
+  inline int f2(int a1, int a2) {
+    return a1 + a2;
+  }
+  template <class ... Args> inline int g(Args ... args) {
+    // Incorrect value used for "+ args" in some cases
+    int i = f1(f2(args ...) + args ...);
+    return i;
+  }
+  int main() {
+    int result = g(2, 20);
+    printf("%d\n", result);  // should be 66, was 84
+  }
+
+
 4/13/16  [EDGcpfe/17016]
 Template substitution of sizeof/alignof
 

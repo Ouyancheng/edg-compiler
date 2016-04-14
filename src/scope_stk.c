@@ -2063,7 +2063,7 @@ for more information about when this is done.
   for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
        ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (scope_is(ssep, sck_template_instantiation) &&
-        ssep->assoc_type != NULL && ssep->in_variadic_template) {
+        ssep->in_variadic_template) {
       restore_default_template_params(ssep->template_decl_info->parameters);
     }  /* if */
   }  /* for */
@@ -2088,7 +2088,7 @@ changed by a call of reset_enclosing_pack_values).
   for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
        ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (scope_is(ssep, sck_template_instantiation) &&
-        ssep->assoc_type != NULL && ssep->in_variadic_template) {
+        ssep->in_variadic_template) {
       a_pack_expansion_stack_entry_ptr	pesep;
       update_template_param_symbols(ssep->template_decl_info->parameters,
                                     ssep->template_arg_list);
