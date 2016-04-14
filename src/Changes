@@ -4469,23 +4469,12 @@ and frequently resulted in a negative NaN constant).
 For example (with --microsoft_version 1900):
 
   int main() {
-    bool result;
     constexpr float fi = __builtin_huge_valf();
     constexpr float fq = __builtin_nanf("0");
     constexpr float fs = __builtin_nansf("1");
     constexpr double di = __builtin_huge_val();
     constexpr double dq = __builtin_nan("0");
     constexpr double ds = __builtin_nans("1");
-    result = reinterpret_cast<const unsigned int&>(fi) == 0x7F800000U &&
-             reinterpret_cast<const unsigned int&>(fq) == 0x7FC00000U &&
-             reinterpret_cast<const unsigned int&>(fs) == 0x7F800001U &&
-             reinterpret_cast<const unsigned long long&>(di) ==
-                                                      0x7FF0000000000000ULL &&
-             reinterpret_cast<const unsigned long long&>(dq) ==
-                                                      0x7FF8000000000000ULL &&
-             reinterpret_cast<const unsigned long long&>(ds) ==
-                                                      0x7FF0000000000001ULL;
-    return !result;
   }
 
 

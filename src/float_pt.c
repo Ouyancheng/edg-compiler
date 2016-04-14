@@ -685,7 +685,7 @@ a float kind).
   } u;
 
   /* Generate a positive NaN bit pattern. */
-  if (signaling) {
+  if (signaling && !microsoft_bugs) {
     u.u32 = 0x7f800000;
   } else {
     u.u32 = 0x7fc00000;
