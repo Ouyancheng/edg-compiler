@@ -4110,10 +4110,10 @@ be completed here.
                               /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
-        record_std_alignment_attr(&dps_for_alignment, iek_type,
-                                  &class_type->source_corresp,
-                                  /*is_defined=*/FALSE,
-                                  /*is_definition=*/TRUE);
+        record_strongest_alignment_attr(&dps_for_alignment, iek_type,
+                                        &class_type->source_corresp,
+                                        /*is_defined=*/FALSE,
+                                        /*is_definition=*/TRUE);
       }  /* if */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
@@ -4814,7 +4814,7 @@ A pointer to the head of the list is returned in tcsp.
                           &decl_state->decl_parse, /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
-    /* No call to record_std_alignment_attr is necessary for a prototype
+    /* No call to record_strongest_alignment_attr is necessary for a prototype
        instantiation. */
   }  /* if */
   /* Scan the base specifiers list, if any, and the body of the class.
@@ -7549,10 +7549,10 @@ a type in certain ways (see template_arg_list_is_dependent).
                           /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
-    record_std_alignment_attr(&dps_for_alignment, iek_type,
-                              &class_type->source_corresp,
-                              /*is_defined=*/FALSE,
-                              /*is_definition=*/TRUE);
+    record_strongest_alignment_attr(&dps_for_alignment, iek_type,
+                                    &class_type->source_corresp,
+                                    /*is_defined=*/FALSE,
+                                    /*is_definition=*/TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (ms_extensions or_near_and_far_enabled()) {

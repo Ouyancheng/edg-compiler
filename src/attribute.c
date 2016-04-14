@@ -3893,7 +3893,7 @@ and C11 _Alignas specifiers.
            (i.e., here) because only the attribute with the strongest alignment
            is the effective alignment.  Record the attribute that has the
            strongest alignment here, then use that when
-           record_std_alignment_attr is later called after the
+           record_strongest_alignment_attr is later called after the
            declaration/definition of the entity to make it effective (and issue
            appropriate errors).  Note that GCC version 4.8.0 and later use
            the "strongest" attribute rather than the "last" attribute (and

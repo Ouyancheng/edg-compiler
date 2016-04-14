@@ -1555,14 +1555,17 @@ extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
 
 /*
 Utility macro to avoid a function call in the common case where an entity
-has no standard alignment attribute.  Here we check only that the entity has
+has no alignment attribute.  Here we check only that the entity has
 an attribute.
 */
-#define record_std_alignment_attr(dps, kind, scp, is_defined, is_definition)  \
+#define record_strongest_alignment_attr(dps, kind, scp, is_defined,           \
+                                        is_definition)                        \
   if ((scp)->attributes != NULL) {                                            \
-    f_record_std_alignment_attr(dps, kind, scp, is_defined, is_definition);   \
+    f_record_strongest_alignment_attr(dps, kind, scp, is_defined,             \
+                                      is_definition);                         \
   }  /* if */
-extern void f_record_std_alignment_attr(a_decl_parse_state      *dps,
+extern void f_record_strongest_alignment_attr(
+                                        a_decl_parse_state      *dps,
                                         an_il_entry_kind        kind,
                                         a_source_correspondence *scp,
                                         a_boolean               is_defined,

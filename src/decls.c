@@ -16316,21 +16316,25 @@ embedded struct declaration.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void f_record_std_alignment_attr(a_decl_parse_state      *dps,
-                                 an_il_entry_kind        kind,
-                                 a_source_correspondence *scp,
-                                 a_boolean               is_defined,
-                                 a_boolean               is_definition)
+void f_record_strongest_alignment_attr(a_decl_parse_state      *dps,
+                                       an_il_entry_kind        kind,
+                                       a_source_correspondence *scp,
+                                       a_boolean               is_defined,
+                                       a_boolean               is_definition)
 
 /*
-If applicable, record the explicit alignment specified by standard alignment
-attributes on the declaration described by *dps in the corresponding entity as
-specified by kind and scp.  is_defined is TRUE if the entity has already been
-defined previously; is_definition is TRUE if the current declaration is a
-definition.  Issue an error if this alignment is invalid (e.g., inconsistent
-with previous declarations).  If no attribute was specified and is_definition
-is TRUE, issue an error if prior declarations specified an alignment attribute.
-Should be called via record_std_alignment_attr.
+If applicable, record the explicit alignment specified by the strongest
+alignment attribute on the declaration described by *dps in the corresponding
+entity as specified by kind and scp.  is_defined is TRUE if the entity has
+already been defined previously; is_definition is TRUE if the current
+declaration is a definition.  Issue an error if this alignment is invalid
+(e.g., inconsistent with previous declarations).  If no attribute was
+specified and is_definition is TRUE, issue an error if prior declarations
+specified an alignment attribute.  Should be called via
+record_strongest_alignment_attr.  Note that the attributes that are applied
+here are typically "standard" attributes, but they can also be GNU-specific
+attributes in later GNU modes that apply to fields or variables (i.e., in
+cases where the strongest attribute applies).
 
 Note that this must be called at the end of a declaration/definition for
 any entity on which a standard alignment attribute may have been specified
@@ -16359,21 +16363,33 @@ any entity on which a standard alignment attribute may have been specified
     entity_alignment = &fp->alignment;
     type_alignment = alignment_of_type(fp->type);
     has_alignment = fp->alignment != 0;
+    /* Adjust the alignment appropriately if a pack pragma is in effect. */
+    if (!microsoft_mode && current_pack_pragma_value() != 0 &&
+        dps->alignment > current_pack_pragma_value()) {
+      type_alignment = current_pack_pragma_value();
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
   if (dps->alignment != 0) {
+    a_boolean std_specifier = TRUE;
     /* At least one standard attribute was specified. */
     check_assertion(dps->strongest_alignment != NULL ||
                     entity_alignment == NULL);
+    if (dps->strongest_alignment != NULL) {
+      std_specifier = is_std_attribute(dps->strongest_alignment) &&
+                      !dps->strongest_alignment->is_std_gcc_attribute;
+    }  /* if */
     /* Check that the specified alignment is consistent with any previously
        specified alignments for the declared entity, and, if so, record that
        alignment in the entity. */
     if (entity_alignment == NULL) {
       expect_error();
-    } else if (type_alignment > dps->alignment && !has_alignment) {
-      /* The alignment (as specified by standard attributes) cannot be weaker
-         than the default alignment of the entity's type. */
+    } else if (type_alignment > dps->alignment && !has_alignment &&
+               !(gnu_mode && !(clang_mode && std_specifier))) {
+      /* The alignment cannot be weaker than the default alignment of the
+         entity's type.  GNU doesn't give this error for any alignment
+         attributes; clang only gives it for standard attributes). */
       pos_error(ec_invalid_alignment_reducing_attr,
                 &dps->strongest_alignment->position);
     } else if (!has_alignment) {
@@ -16433,7 +16449,7 @@ any entity on which a standard alignment attribute may have been specified
                       &ap->position, &scp->decl_position);
     }  /* if */
   }  /* if */
-}  /* f_record_std_alignment_attr */
+}  /* f_record_strongest_alignment_attr */
 
 #if CHECKING
 
@@ -16972,9 +16988,11 @@ if one is present.
 #endif /* DECL_MODIFIERS_IN_USE */
     /* If any declaration or definition of this variable contains a standard
        alignment attribute, process it. */
-    record_std_alignment_attr(state, iek_variable, &var_ptr->source_corresp,
-                              !state->is_definition && state->sym->defined,
-                              state->is_definition);
+    record_strongest_alignment_attr(state, iek_variable,
+                                    &var_ptr->source_corresp,
+                                    !state->is_definition &&
+                                                           state->sym->defined,
+                                    state->is_definition);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG

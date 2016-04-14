@@ -2856,9 +2856,9 @@ issue a warning.
 attributes are attached as part of the template instantiation process.
 
 Note that this call is typically followed by a call to
-record_std_alignment_attr to finalize any standard alignment attributes (but
-that call isn't performed here because it is also necessary at the end of a
-declaration/definition to check for cases where a required attribute is
+record_strongest_alignment_attr to finalize any standard alignment attributes
+(but that call isn't performed here because it is also necessary at the end of
+a declaration/definition to check for cases where a required attribute is
 missing).
 */
 {
@@ -4345,9 +4345,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
   /* If any declaration or definition of this class contains a standard
      alignment attribute, process it. */
-  record_std_alignment_attr(dps, iek_type, &class_type->source_corresp,
-                            !is_incomplete_type(class_type),
-                            is_class_definition);
+  record_strongest_alignment_attr(dps, iek_type, &class_type->source_corresp,
+                                  !is_incomplete_type(class_type),
+                                  is_class_definition);
   /* If the current token marks a removed template body, skip past that
      special token. */
   if (definition_removed) (void)get_token();
@@ -6331,8 +6331,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                         /*ignore_gnu_attributes=*/!is_definition);
   /* If any declaration or definition of this enum contains a standard
      alignment attribute, process it. */
-  record_std_alignment_attr(dps, iek_type, &enum_type->source_corresp,
-                            is_redeclaration, is_definition);
+  record_strongest_alignment_attr(dps, iek_type, &enum_type->source_corresp,
+                                  is_redeclaration, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_type_created && ms_extensions && !is_scoped_enum &&
       explicit_base_kind == (an_integer_kind)ik_none) {
