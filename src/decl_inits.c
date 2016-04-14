@@ -5517,6 +5517,9 @@ FALSE is returned) for non-class objects.
              being initialized. */
           init_dip->variable = var;
           cp = get_default_constructed_constant(init_dip, tp, err_pos);
+          /* Clear the variable field again.  It may get recorded later if
+             needed. */
+          init_dip->variable = NULL;
           if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the constant. */
@@ -5540,15 +5543,25 @@ FALSE is returned) for non-class objects.
       } else {
         if (ctor != NULL) {
           a_constant  folded_con, *cp;
+          a_boolean   folded;
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                              /*evaluated=*/TRUE);
-          /* Folding the constructor call may require access to the variable
-             being initialized. */
-          init_dip->variable = var;
-          if (ctor->is_constexpr && !var->is_vla &&
-              fold_constexpr_ctor(init_dip, /*record_backing_expr=*/TRUE,
-                                  err_pos, &folded_con)) {
+          
+          if (ctor->is_constexpr && !var->is_vla) {
+            /* Folding the constructor call may require access to the variable
+               being initialized. */
+            init_dip->variable = var;
+            folded = fold_constexpr_ctor(init_dip,
+                                         /*record_backing_expr=*/TRUE,
+                                         err_pos, &folded_con);
+            /* Clear the variable field again.  It may get recorded later if
+               needed. */
+            init_dip->variable = NULL;
+          } else {
+            folded = FALSE;
+          }  /* if */
+          if (folded) {
             /* The constructor call can be folded. */
             cp = alloc_unshared_constant(&folded_con);
             if (!same_entities(var_type, tp)) {
