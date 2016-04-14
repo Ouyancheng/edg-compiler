@@ -17399,10 +17399,13 @@ name lookup options.
                                 bool_type()->variant.integer.int_kind);
             } else {
               /* sizeof/alignof. */
-              a_boolean template_case;
-              a_boolean is_sizeof = (con->variant.template_param.kind ==
+              if (is_incomplete_type(new_type)) {
+                *copy_error = TRUE;
+              } else {
+                a_boolean template_case, is_sizeof;
+                is_sizeof = (con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_sizeof);
-              set_unsigned_integer_constant(
+                set_unsigned_integer_constant(
                                   constant, is_sizeof ?
                                     (a_host_large_unsigned)new_type->size :
                                     (a_host_large_unsigned)
@@ -17413,6 +17416,7 @@ name lookup options.
                                                              copy_error,
                                                              &template_case),
                                   targ_size_t_int_kind);
+              }  /* if */
             }  /* if */
             con_copy = NULL;
           }  /* if */

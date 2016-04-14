@@ -1,5 +1,19 @@
 Version 4.11
 
+4/13/16  [EDGcpfe/17016]
+Template substitution of sizeof/alignof
+
+The front end previously failed to treat as a failure (error or SFINAE)
+certain substitutions of sizeof with an incomplete operand type.  For example:
+
+  template<typename U, int N = sizeof(U)> int g();
+  struct I;
+  int r = g<I>();  // Now an error.  Previously erroneously accepted with
+                   // N == 0.
+
+This is now fixed (as is the similar problem with alignof).
+
+
 4/13/16  [EDGcpfe/17063]
 routine_might_exist_in_multiple_copies for member functions
 
