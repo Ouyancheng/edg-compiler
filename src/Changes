@@ -42,7 +42,6 @@ for the abi_tag mangling.  For example (with --gnu_version 60000 --c++11):
   }
 
 
-that is nested in at least two 
 4/12/16  [EDGcpfe/14159]
 Value category of conditional operators with one throw operand
 
