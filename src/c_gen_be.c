@@ -5328,38 +5328,62 @@ computation.  Otherwise, just dump the expression normally.
 
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
 
-static void adjust_question_operand_if_necessary(an_expr_node_ptr operand)
+static an_expr_node_ptr skip_comma_nodes(an_expr_node_ptr  opnd)
 /*
-The SUNPRO C compiler doesn't like "?" operators where the
-branches are struct rvalues with different type qualifiers.
-That's a bug -- in standard C the qualifiers on rvalues are
-dropped.  For a few simple cases, do some casting to drop
-the type qualifiers on the specified operand (which is the second
-or third operand of a "?" operator).
+If opnd is an expression node representing one or more consecutive comma
+operators, return the right operand of the innermost comma node.  Otherwise,
+return opnd.
 */
 {
-  if (is_class_struct_union_type(operand->type)) {
-    if ((is_variable_node(operand) &&
-         is_qualified_type(node_variable(operand)->type)) ||
-        (is_operation_node(operand) &&
-         (node_operator_is(operand, eok_indirect) ||
-          node_operator_is(operand, eok_points_to_field)) &&
+  while (opnd->kind == (an_expr_node_kind)enk_operation &&
+         opnd->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+    opnd = opnd->variant.operation.operands->next;
+  }  /* while */
+  return opnd;
+}  /* skip_comma_nodes */
+
+static void adjust_question_operand_if_necessary(an_expr_node_ptr  opnd,
+                                                 an_expr_node_ptr  other_opnd)
+/*
+The SUNPRO C compiler doesn't like "?" operators where the branches are struct
+rvalues with different type qualifiers.  That's a bug -- in standard C the
+qualifiers on rvalues are dropped.  For a few simple cases, do some casting
+to drop the type qualifiers on the operand indicated by opnd (which is the
+second or third operand of a "?" operator; other opnd is the other operand).
+*/
+{
+  an_expr_node_ptr  past_commas = skip_comma_nodes(opnd),
+                    other_past_commas = skip_comma_nodes(other_opnd);
+  a_type_ptr        tp = past_commas->orig_lvalue_type,
+                    other_tp = other_past_commas->orig_lvalue_type;
+
+  if (tp == NULL) tp = past_commas->type;
+  if (other_tp == NULL) other_tp = other_past_commas->type;
+  if (get_top_level_type_qualifiers(tp) ==
+                                    get_top_level_type_qualifiers(other_tp)) {
+    /* The qualifiers match: Nothing to do. */
+  } else if (is_class_struct_union_type(opnd->type)) {
+    if ((is_variable_node(opnd) &&
+         is_qualified_type(node_variable(opnd)->type)) ||
+        (is_operation_node(opnd) &&
+         (node_operator_is(opnd, eok_indirect) ||
+          node_operator_is(opnd, eok_points_to_field)) &&
          is_qualified_type(type_pointed_to(
-                      operand->variant.operation.operands->type)))) {
+                                  opnd->variant.operation.operands->type)))) {
       write_tok_ch('*');
-      dump_cast_to_pointer_to(operand->type);
+      dump_cast_to_pointer_to(opnd->type);
       write_tok_ch('&');
-    } else if (operand->orig_lvalue_type != NULL &&
-               is_qualified_type(operand->orig_lvalue_type) &&
-               is_operation_node(operand) &&
-               (node_operator_is(operand, eok_lvalue_adjust) ||
-                node_operator_is(operand, eok_lvalue_cast))) {
+    } else if (opnd->orig_lvalue_type != NULL &&
+               is_qualified_type(opnd->orig_lvalue_type) &&
+               is_operation_node(opnd) &&
+               (node_operator_is(opnd, eok_lvalue_adjust) ||
+                node_operator_is(opnd, eok_lvalue_cast))) {
       /* If this node has gone through an lvalue-to-rvalue conversion and
          the original lvalue type was cv-qualified, remove the original
          lvalue type so that the node will be emitted with the
          non-cv-qualified type (to match the other operand of the "?"
          operator). */
-      operand->orig_lvalue_type = NULL;
+      opnd->orig_lvalue_type = NULL;
     }  /* if */
   }  /* if */
 }  /* adjust_question_operand_if_necessary */
@@ -6151,7 +6175,7 @@ process_assignment:
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
           /* Perform SunPro-specific adjustment of cv-qualified types. */
-          adjust_question_operand_if_necessary(operand_2);
+          adjust_question_operand_if_necessary(operand_2, operand_3);
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_2);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
@@ -6164,7 +6188,7 @@ process_assignment:
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
           /* Perform SunPro-specific adjustment of cv-qualified types. */
-          adjust_question_operand_if_necessary(operand_3);
+          adjust_question_operand_if_necessary(operand_3, operand_2);
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_3);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
