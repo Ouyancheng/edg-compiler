@@ -26483,13 +26483,15 @@ that case.
          operator with exactly one throw operand to have a value category
          corresponding to the other operand. */
       if (is_throw_operand(&operand_2)) {
-        result_is_a_glvalue = is_an_lvalue(&operand_3) ||
-                              is_a_function_designator(&operand_3);
         result_is_an_xvalue = is_an_xvalue(&operand_3);
+        result_is_a_glvalue = is_an_lvalue(&operand_3) ||
+                              is_a_function_designator(&operand_3) ||
+                              result_is_an_xvalue;
       } else {
-        result_is_a_glvalue = is_an_lvalue(&operand_2) ||
-                              is_a_function_designator(&operand_2);
         result_is_an_xvalue = is_an_xvalue(&operand_2);
+        result_is_a_glvalue = is_an_lvalue(&operand_2) ||
+                              is_a_function_designator(&operand_2) ||
+                              result_is_an_xvalue;
       }  /* if */
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
