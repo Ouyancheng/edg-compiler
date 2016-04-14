@@ -3804,7 +3804,12 @@ and C11 _Alignas specifiers.
       constr = "c|e|t|v:-r!|d";
     }  /* if */
   } else if (std_specifier) {
-    constr = "c|e|v:-r!-h!|d:-b!";
+    if (gpp_mode && !clang_mode) {
+      /* g++ allows alignas on a typedef. */
+      constr = "c|e|t|v:-r!-h!|d:-b!";
+    } else {
+      constr = "c|e|v:-r!-h!|d:-b!";
+    }  /* if */
     if (c11_mode && ap->family == (a_byte_attribute_family)af_alignas) {
       /* C11 allows _Alignas in syntactic locations different from C++11's
          alignas. */
@@ -3882,6 +3887,13 @@ and C11 _Alignas specifiers.
         } else {
           apply_value = FALSE;
         }  /* if */
+      }  /* if */
+      if (gpp_mode && !clang_mode && std_specifier &&
+          entity_kind == iek_type && type_is_typedef((a_type_ptr)entity)) {
+        /* An alignas on a typedef; treat it is though it were a GNU
+           attribute (it's non-standard). */
+        pos_warning(ec_wrong_entity_for_alignas, &ap->position);
+        std_specifier = FALSE;
       }  /* if */
       if (!apply_value) {
         /* Nothing more to do. */
