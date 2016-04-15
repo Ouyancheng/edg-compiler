@@ -17399,7 +17399,8 @@ name lookup options.
                                 bool_type()->variant.integer.int_kind);
             } else {
               /* sizeof/alignof. */
-              if (is_incomplete_type(new_type)) {
+              complete_type_is_needed(new_type);
+              if (is_incomplete_type(new_type) || is_function_type(new_type)) {
                 *copy_error = TRUE;
               } else {
                 a_boolean template_case, is_sizeof;

@@ -42,8 +42,9 @@ value being used in the outer expansion.  Now fixed.
 4/13/16  [EDGcpfe/17016]
 Template substitution of sizeof/alignof
 
-The front end previously failed to treat as a failure (error or SFINAE)
-certain substitutions of sizeof with an incomplete operand type.  For example:
+The front end previously failed to treat as a failure (error or SFINAE) certain
+substitutions of sizeof with an operand of incomplete type or function type.
+For example:
 
   template<typename U, int N = sizeof(U)> int g();
   struct I;
