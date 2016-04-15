@@ -10717,7 +10717,7 @@ ttt_scp_for_implicit_abi_tags.
                    MY_WP | WP_SELF);
     }  /* if */
   }  /* if */
-  return TRUE;
+  return FALSE;
 }  /* ttt_add_implicit_abi_tags_for_type */
 
 
