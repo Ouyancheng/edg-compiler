@@ -1321,8 +1321,14 @@ typedef struct a_variant_path_entry *a_variant_path_entry_ptr;
 typedef struct a_variant_path_entry {
   a_variant_path_entry_ptr
 		next;
-			/* Next entry on this path (or NULL if there is
-			   none. */
+			/* For entries on a variant path, the next entry on
+			   that path (or NULL if there is none.  Otherwise, the
+			   entry is on the free entries list and this points to
+			   the next free entry (or NULL if there is none). */
+  a_variant_path_entry_ptr
+		next_allocated;
+			/* The next entry on the list of all allocated variant
+			   path entries (NULL if it's the last entry). */
   a_field_ptr	field;
 			/* The field selected for this variant path, or NULL
 			   if this entry represents the base address of an
@@ -1334,10 +1340,24 @@ typedef struct a_variant_path_entry {
 } a_variant_path_entry;
 
 static a_variant_path_entry_ptr
-		free_variant_path_entries;
+		variant_path_entries;
+			/* A list of all allocated variant path entries,
+			   linked through the next_allocated pointers. */
 
 static unsigned long
 		n_variant_path_entries;
+			/* The number of entries on the variant_path_entries
+			   list. */
+
+static a_variant_path_entry_ptr
+		free_variant_path_entries;
+			/* A list of variant path entries available for reuse,
+			   linked through the next pointers. */
+
+static unsigned long
+		n_free_variant_path_entries;
+			/* The number of entries on the
+			   free_variant_path_entries list. */
 
 static a_variant_path_entry_ptr alloc_variant_path_entry(void)
 /*
@@ -1349,12 +1369,32 @@ Return new variant path entry.
   if (free_variant_path_entries != NULL) {
     vpep = free_variant_path_entries;
     free_variant_path_entries = free_variant_path_entries->next;
+    n_free_variant_path_entries -= 1;
   } else {
     vpep = alloc_fe_of_type(a_variant_path_entry);
+    vpep->next_allocated = variant_path_entries;
+    variant_path_entries = vpep;
     n_variant_path_entries += 1;
   }  /* if */
   return vpep;
 }  /* alloc_variant_path_entry */
+
+
+static void reclaim_variant_path_entries(void)
+/*
+The caller has determined that not all variant path entries were reclaimed at
+the end of interpretation.  Use to allocated variant path entries list to move
+all allocated entries back onto the free list.
+*/
+{
+  a_variant_path_entry_ptr  vpep = variant_path_entries;
+
+  check_assertion(n_free_variant_path_entries < n_variant_path_entries);
+  while (vpep->next_allocated != NULL) {
+    vpep->next = vpep->next_allocated;
+    vpep = vpep->next_allocated;
+  }  /* while */ 
+}  /* reclaim_variant_path_entries */
 
 
 /*
@@ -2525,14 +2565,20 @@ is responsible for ensuring that there are such entries.
 */
 {
   a_variant_path_entry_ptr  entries, vpep;
+  unsigned long             n_freed = 2;
 
   entries = addr->variant.variant_path;
+  /* There are always at least two entries on a variant path (the first of
+     which is a placeholder entry to potentially hold the base address of an
+     array). */
   vpep = entries->next;
   while (vpep->next != NULL) {
     vpep = vpep->next;
+    n_freed += 1;
   }  /* while */
   vpep->next = free_variant_path_entries;
   free_variant_path_entries = entries;
+  n_free_variant_path_entries += n_freed;
   addr->flags &= ~CA_VARIANT_PATH;
   addr->variant.base_address = entries->base_address;
 }  /* release_variant_path */
@@ -4972,6 +5018,8 @@ the body of the (constructor) function proper.
       unmap_stack_bytes(ips, param);
       unmap_ptr(&ips->map, &param->storage_class);
     }  /* for */
+    unmap_stack_bytes(ips, this_var);
+    unmap_ptr(&ips->map, &this_var->storage_class);
     /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-1;
   }  /* if */
@@ -8539,15 +8587,9 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-#if CHECKING
-  /* Check that all variant path entries have been freed. */
-  { unsigned long             n_freed = 0;
-    a_variant_path_entry_ptr  vpep = free_variant_path_entries;
-    for (; vpep != NULL; vpep = vpep->next) ++n_freed;
-    check_assertion_str(n_freed == n_variant_path_entries,
-                        "Not all variant path entries freed");
-  }
-#endif /* CHECKING */
+  if (n_free_variant_path_entries != n_variant_path_entries) {
+    reclaim_variant_path_entries();
+  }  /* if */
 done:
   return result;
 }  /* interpret_constexpr_call */
@@ -8622,15 +8664,9 @@ return FALSE.
     }  /* if */
   }  /* if */
   release_interpreter_state(&ips);
-#if CHECKING
-  /* Check that all variant path entries have been freed. */
-  { unsigned long             n_freed = 0;
-    a_variant_path_entry_ptr  vpep = free_variant_path_entries;
-    for (; vpep != NULL; vpep = vpep->next) ++n_freed;
-    check_assertion_str(n_freed == n_variant_path_entries,
-                        "Not all variant path entries freed");
-  }
-#endif /* CHECKING */
+  if (n_free_variant_path_entries != n_variant_path_entries) {
+    reclaim_variant_path_entries();
+  }  /* if */
 done:
   return result;
 }  /* interpret_constexpr_ctor */
