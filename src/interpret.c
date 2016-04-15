@@ -8148,6 +8148,10 @@ that are needed for the operation of the interpreter.
 {
   init_constexpr_stack(&persistent_data);
   init_data_map(&persistent_map);
+  variant_path_entries = NULL;
+  n_variant_path_entries = 0;
+  free_variant_path_entries = NULL;
+  n_free_variant_path_entries = 0;
   if (!useful_constants_initialized) {
     /* Initialize useful constants. */
     a_float_kind fk;
@@ -8701,8 +8705,10 @@ One-time initialization for interpret.c static variables.
       pch_saved_var_array_elem(free_stack_blocks),
       pch_saved_var_array_elem(free_map_tables),
       pch_saved_var_array_elem(free_live_set_tables),
+      pch_saved_var_array_elem(variant_path_entries),
       pch_saved_var_array_elem(free_variant_path_entries),
       pch_saved_var_array_elem(n_variant_path_entries),
+      pch_saved_var_array_elem(n_free_variant_path_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -8710,6 +8716,10 @@ One-time initialization for interpret.c static variables.
   /* Static variables in interpret.c. */
   register_trans_unit_variable(persistent_data);
   register_trans_unit_variable(persistent_map);
+  register_trans_unit_variable(variant_path_entries);
+  register_trans_unit_variable(free_variant_path_entries);
+  register_trans_unit_variable(n_variant_path_entries);
+  register_trans_unit_variable(n_free_variant_path_entries);
   useful_constants_initialized = FALSE;
 }  /* interpret_one_time_init */
 
