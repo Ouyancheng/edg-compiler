@@ -2066,8 +2066,6 @@ offsets in any associated fields as well as any direct or virtual base classes.
 If needed, this will recursively lay out types this class type is composed of.
 ips is used to record an interpretation failure if the size exceeds the
 interpreter's limits; in that case, *p_result is set to FALSE.
-
-FIXME: The current layout is wasteful with virtual base class storage.
 */
 {
   a_byte_count      total_size = 0;
@@ -2105,21 +2103,33 @@ FIXME: The current layout is wasteful with virtual base class storage.
   /* Allocate each direct, nonvirtual base class. */
   for (bcp = bases; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->is_virtual) {
+      a_byte_count  size_without_virtual_bases;
+      a_type_ptr    btp = bcp->type;
       do_host_alignment(total_size);
       map_byte_count(&persistent_map, bcp, total_size);
-      total_size += value_bytes_for_type(ips, bcp->type, p_result);
+      (void)value_bytes_for_type(ips, btp, p_result);
+      if (!*p_result) {
+        total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+        goto done;
+      }  /* if */
+      get_mapped_byte_count(&persistent_map,
+                            &btp->variant.class_struct_union.extra_info,
+                            size_without_virtual_bases);
+      total_size += size_without_virtual_bases;
       if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
-        if (*p_result) {
-          a_source_position  *pos = &tp->source_corresp.decl_position;
-          if (pos->seq == 0) pos = &ips->position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          do_constexpr_fail(*p_result);
-        }  /* if */
+        a_source_position  *pos = &tp->source_corresp.decl_position;
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        do_constexpr_fail(*p_result);
         total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
         goto done;
       }  /* if */
     }  /* if */
   }  /* for */
+  /* Associate the size without the virtual bases with the "extra_info"
+     field. */
+  map_byte_count(&persistent_map, &tp->variant.class_struct_union.extra_info,
+                 total_size);
   if (any_virtual_bases) {
     /* Allocate virtual base classes. */
     for (bcp = bases; bcp != NULL; bcp = bcp->next) {
@@ -8304,16 +8314,6 @@ diagnostic in *ips.
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
-#if /*FIXME:delete*/0
-          if (is_array_element(cap)) {
-            /* If we're pointing into an array, use the base address of the
-               array to check if we already have a constant representing that
-               array. */
-            get_stack_bytes(ips, get_base_address(cap), mptr);
-          } else {
-            get_stack_bytes(ips, cap->address, mptr);
-          }  /* if */
-#endif
           get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
             /* Either a constant was already allocated for the pointed-to
@@ -8338,20 +8338,6 @@ diagnostic in *ips.
               cp = prev_con->variant.address.variant.constant;
               top_type = skip_typerefs(cp->type);
             }  /* if */
-#if /*FIXME:delete*/0
-            if (is_array_element(cap)) {
-              /* If we're pointing into an array, we may have to compute a
-                 nonzero offset into it. */
-              a_byte_count  offset = cap->address - get_base_address(cap);
-              if (offset != 0) {
-                a_type_ptr  elem_type =
-                               skip_typerefs(utp->variant.array.element_type);
-                con->variant.address.offset =
-                  elem_type->size *
-                       (offset/value_bytes_for_type(ips, elem_type, &result));
-              }  /* if */
-            }  /* if */
-#endif
             if (cap->address != cap->complete_object) {
               con->variant.address.offset =
                              translate_interpreter_offset(ips, cap, top_type);
