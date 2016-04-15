@@ -5349,7 +5349,7 @@ The SUNPRO C compiler doesn't like "?" operators where the branches are struct
 rvalues with different type qualifiers.  That's a bug -- in standard C the
 qualifiers on rvalues are dropped.  For a few simple cases, do some casting
 to drop the type qualifiers on the operand indicated by opnd (which is the
-second or third operand of a "?" operator; other opnd is the other operand).
+second or third operand of a "?" operator; other_opnd is the other operand).
 */
 {
   an_expr_node_ptr  past_commas = skip_comma_nodes(opnd),
