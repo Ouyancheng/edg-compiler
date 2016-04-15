@@ -4929,7 +4929,7 @@ the body of the (constructor) function proper.
           /* For union subobjects, make sure the active field is cleared
              initially.  (It may never be changed if the union has no
              fields.) */
-          *(void**)result_storage = NULL;
+          *(void**)(result_storage+offset) = NULL;
         }  /* if */
       } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
