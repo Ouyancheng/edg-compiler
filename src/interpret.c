@@ -8659,12 +8659,13 @@ return FALSE.
       this_con->variant.address.kind = (an_address_base_kind)abk_variable;
       if (dip->variable != NULL) {
         this_con->variant.address.variant.variable = dip->variable;
-        map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       }  /* if */
+      map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
         do_constexpr_fail(result);
       }  /* if */
+      unmap_stack_bytes(&ips, result_storage);
       release_local_constant(&this_con);
     }  /* if */
   }  /* if */
