@@ -2832,6 +2832,7 @@ ec_cannot_deduce_coroutine_return_type;;"cannot deduce return type from a corout
 ec_variable_template;INTERNAL;"variable template"
 ec_variable_not_yet_initialized;;"variable %n not yet initialized"
 ec_constexpr_volatile_fetch;;"attempt to read from volatile storage"
+ec_constexpr_no_active_union_field;;"invalid access to inactive union %n1 (no field is active)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

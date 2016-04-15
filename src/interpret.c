@@ -2607,9 +2607,14 @@ completed.
     a_field_ptr  selected_field = vpep->field;
     if (selected_field != active_field) {
       do_constexpr_fail(result);
-      info_with_pos_sym2(ec_constexpr_union_field_inactive, pos,
-                         symbol_for(selected_field), symbol_for(active_field),
-                         ips);
+      if (active_field != NULL) {
+        info_with_pos_sym2(ec_constexpr_union_field_inactive, pos,
+                           symbol_for(selected_field),
+                           symbol_for(active_field), ips);
+      } else {
+        info_with_pos_sym(ec_constexpr_no_active_union_field, pos,
+                          symbol_for(selected_field), ips);
+      }  /* if */
       break;
     }  /* if */
     vpep = vpep->next;
