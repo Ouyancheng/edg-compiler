@@ -1041,16 +1041,24 @@ folded to another error constant.
     /* Record the backing expression if the folding was successful. */
     if (*did_not_fold) {
       expr = NULL;
-    } else if (expr != NULL) {
-      a_boolean local_error_detected;
-      add_base_class_casts(bcp, qualifiers_model, /*check_cast_access=*/FALSE,
-                           /*check_ambiguity=*/FALSE,
-                           /*allow_ambiguity=*/FALSE,
-                           is_implicit_cast, /*implicit_in_naming=*/FALSE,
-                           &expr, err_pos, &local_error_detected);
-      check_assertion(!local_error_detected);
+    } else {
+      if (expr == NULL && constant_is(constant_1, ck_address) &&
+          constant_1->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+        expr = var_lvalue_expr(constant_1->variant.address.variant.variable);
+      }  /* if */
+      if (expr != NULL) {
+        a_boolean local_error_detected;
+        add_base_class_casts(bcp, qualifiers_model,
+                             /*check_cast_access=*/FALSE,
+                             /*check_ambiguity=*/FALSE,
+                             /*allow_ambiguity=*/FALSE,
+                             is_implicit_cast, /*implicit_in_naming=*/FALSE,
+                             &expr, err_pos, &local_error_detected);
+        check_assertion(!local_error_detected);
+        result->expr = expr;
+      }  /* if */
     }  /* if */
-    result->expr = expr;
     release_local_constant(&offset);
   }  /* if */
 }  /* fold_base_class_cast */
@@ -10582,16 +10590,15 @@ pm_field_selection:
             } else {
               /* Try to fold the base class cast. */
               a_base_class_ptr bcp;
-              a_type_ptr       base_type;
-              a_type_ptr       derived_type;
-              base_type = type_pointed_to(expr->type);
-              base_type = skip_typerefs(base_type);
+              a_type_ptr       qual_base_type, base_type, derived_type;
+              qual_base_type = type_pointed_to(expr->type);
+              base_type = skip_typerefs(qual_base_type);
               derived_type = type_pointed_to(op1->type);
               derived_type = skip_typerefs(derived_type);
               bcp = find_base_class_of(derived_type, base_type);
               check_assertion(bcp != NULL);
-              fold_base_class_cast(op1_constant, bcp, expr->type, result_con,
-                                   /*check_cast_access=*/FALSE,
+              fold_base_class_cast(op1_constant, bcp, qual_base_type,
+                                   result_con, /*check_cast_access=*/FALSE,
                                    /*check_ambiguity=*/FALSE,
                                    expr->variant.operation.compiler_generated,
                                    /*is_object_pointer=*/TRUE, &did_not_fold,
