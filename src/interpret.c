@@ -8376,7 +8376,8 @@ diagnostic in *ips.
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = vp;
           } else {
-            if (utp->kind == (a_type_kind)tk_array ||
+            if (constant_is(cp, ck_string) ||
+                utp->kind == (a_type_kind)tk_array ||
                 is_immediate_class_type(utp)) {
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
