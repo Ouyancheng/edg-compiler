@@ -2761,7 +2761,7 @@ ec_braced_list_for_implicit_return_type;;"a brace-enclosed list does not provide
 ec_await_not_allowed_outside_function_scope;;"a co_await expression must appear in a function scope"
 ec_await_not_allowed_in_catch_clause;;"a co_await expression is not allowed inside a catch clause"
 ec_coroutine_with_ellipsis_parameter;;"a coroutine cannot have an ellipsis parameter"
-ec_cl_relaxed_constexpr_requires_bool;;"enabling C++14-style constexpr requires support for\"bool\""
+ec_cl_relaxed_constexpr_requires_bool;;"enabling C++14-style constexpr requires support for \"bool\""
 ec_constexpr_function_undefined;;"constexpr function %nd is not defined"
 ec_constexpr_call_not_interpretable;;"this call cannot be evaluated because the target function %nd is not constexpr or not completely defined yet"
 ec_more_info;INTERNAL;"note"
@@ -2773,7 +2773,7 @@ ec_variable_not_constant_addressed;;"a pointer or reference to %nd cannot be use
 ec_constexpr_non_array_subscript;;"nonzero subscript for non-array object"
 ec_constexpr_out_of_bounds_array_access;;"cannot access position %d1 in array of %d2 elements"
 ec_constexpr_called_from;;"called from:"
-ec_constexpr_union_field_inactive;;"invalid access to inactive union %n1 (%n2 is active)"
+ec_constexpr_union_field_inactive;;"invalid access to inactive %n1 of union (%n2 is active)"
 ec_constexpr_goto;;"'goto' cannot be executed in constexpr contexts"
 ec_constexpr_missing_return_value;;"missing return value"
 ec_constexpr_null_callee;;"callee is null"
@@ -2802,7 +2802,7 @@ ec_constant_must_be_positive;;"integer constant must be greater than or equal to
 ec_type_must_be_integral;;"type must be an integral type"
 ec_constexpr_expression_cannot_be_interpreted;;"expression cannot be interpreted"
 ec_constexpr_statement_cannot_be_interpreted;;"statement cannot be interpreted"
-ec_constexpr_interpreter_address;;"invalid use of address into interpreter storage"
+ec_constexpr_interpreter_address;;"invalid use of address of interpreter storage"
 ec_constexpr_invalid_constant_kind;;"invalid constant kind for constant-expression"
 ec_constexpr_type_too_large;;"type %t too large for constant-expression evaluation"
 ec_constexpr_type_invalid;;"invalid type %t for constant-expression evaluation"
@@ -2832,7 +2832,7 @@ ec_cannot_deduce_coroutine_return_type;;"cannot deduce return type from a corout
 ec_variable_template;INTERNAL;"variable template"
 ec_variable_not_yet_initialized;;"variable %n not yet initialized"
 ec_constexpr_volatile_fetch;;"attempt to read from volatile storage"
-ec_constexpr_no_active_union_field;;"invalid access to inactive union %n1 (no field is active)"
+ec_constexpr_no_active_union_field;;"invalid access to inactive %n1 of union (no field is active)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

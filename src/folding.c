@@ -540,7 +540,7 @@ on the floating-point mode.  Otherwise, return FALSE.
     /* We set the result value even if an error occurred.  This value
        is used in some modes. */
     set_integer_value(result_value, int_value);
-    /* Set the error flag if we the source value is negative and the result
+    /* Set the error flag if the source value is negative and the result
        was intended to be unsigned. */
     if (!is_signed) err = TRUE;
   } else {
@@ -564,8 +564,8 @@ on the floating-point mode.  Otherwise, return FALSE.
       err = TRUE;
     } else {
       if (!is_signed && is_negative) {
-        /* The source value is negative but the result value is unsigned
-           do the conversion to a signed value because the resulting bit
+        /* The source value is negative but the result value is unsigned.
+           Do the conversion to a signed value because the resulting bit
            pattern may be used later in some modes. */
         conv_float_string_to_integer_value(str, result_value,
                                            /*is_signed=*/TRUE, &err);

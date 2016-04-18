@@ -17041,7 +17041,7 @@ if one is present.
     if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr &&
         !state->range_based_for) {
-      /* Variable in C++14-style constexpr function declarations must have
+      /* Variables in C++14-style constexpr function declarations must have
          automatic storage duration, a literal type, and be initialized. */
       if (var_has_static_or_thread_storage_duration(var_ptr)) {
         pos_error(ec_nonautomatic_var_in_constexpr_function,

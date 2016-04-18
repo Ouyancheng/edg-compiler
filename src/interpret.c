@@ -143,9 +143,9 @@ mapping becomes available again.
 
 Besides the data map associated with an interpreter state, another map is kept
 that persists across interpreter invocations (static variable persistent_map).
-This map, e.g., holds data layout information for associated with types and
-fields (the data layout for the interpreter is different from that for the
-target architecture).
+This map, e.g., holds data layout information associated with types and fields
+(the data layout for the interpreter is different from that for the target
+architecture).
 
 
 Object Layout
@@ -617,7 +617,7 @@ Double the size of the overflow area of the given live set.
         (set)->next_free = prev_index;                                       \
       }  /* if */                                                            \
     } else {                                                                 \
-      /* The stack allocation discipline make this is impossible.*/          \
+      /* The stack allocation discipline makes this impossible.*/            \
       unexpected_condition_str("live_set id not found");                     \
     }  /* if */                                                              \
   }
@@ -697,9 +697,9 @@ typedef struct an_interpreter_state {
 			   done). */
   a_diag_list
 		diag_list;
-			/* A representation of a pending diagnostics
-			   (presumably explaining why interpretation failed to
-			   produce a constant result).  This diagnostic is not
+			/* A representation of pending diagnostics (presumably
+			   explaining why interpretation failed to produce a
+			   constant result).  These diagnostics are not
 			   necessarily emitted (we may be in a SFINAE context,
 			   or in an initialization context that permits both
 			   constant and non-constant initializers). */
@@ -773,7 +773,7 @@ Initialize stack storage for the given storage stack.
 
 static void release_constexpr_stack(a_storage_stack_state  *sss)
 /*
-Release the storage stack pointed to by ips for reuse.
+Release the storage stack pointed to by sss for reuse.
 */
 {
   a_byte  *first_block = sss->curr_block;
@@ -1361,7 +1361,7 @@ static unsigned long
 
 static a_variant_path_entry_ptr alloc_variant_path_entry(void)
 /*
-Return new variant path entry.
+Return a new variant path entry.
 */
 {
   a_variant_path_entry_ptr vpep;
@@ -1383,8 +1383,7 @@ Return new variant path entry.
 static void reclaim_variant_path_entries(void)
 /*
 The caller has determined that not all variant path entries were reclaimed at
-the end of interpretation.  Use to allocated variant path entries list to move
-all allocated entries back onto the free list.
+the end of interpretation.  Move all allocated entries back onto the free list.
 */
 {
   a_variant_path_entry_ptr  vpep = variant_path_entries;
@@ -1428,7 +1427,7 @@ A set of flags to describe special interpreter address attributes.
 /*
 Structure describing the representation of an address in the interpreter.
 (Addresses in the interpreter are used to represent pointers, references, and
-lvalues.)
+glvalues.)
 */
 typedef struct a_constexpr_address {
   a_byte
@@ -1634,6 +1633,8 @@ typedef struct a_constexpr_ptr_to_mem {
 
 static void info_call_stack(an_interpreter_state  *ips)
 /*
+Record diagnostic entries (on the list pointed to by ips->diag_list) describing
+the interpreter's current call stack.
 */
 {
   a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
@@ -2304,19 +2305,24 @@ done:;
   *(void**)(subobj_ptr) = (void*)(bcp);
 
 /*
-Class type subobjects record the type of the next-more-derived subobject, or
-NULL for a most-derived object.  The following macro records that NULL (for
-proper base subobjects, the next-more-derived type is recorded when the base
-subobject is initializer).  For unions, the recorded pointer represents the
-active field rather than a base class entry.  (This must therefore be
-invoked before placing a result in the indicated storage, because that result
-could set the active field.)
+Class type subobjects record their relationship to the next-more-derived
+subobject with a base class entry pointer, or NULL for a most-derived object.
+The following macro records that NULL (for proper base subobjects, the base
+class entry pointer is recorded when the base subobject is initialized).  For
+unions, the recorded pointer represents the active field rather than a base
+class entry.  (This must therefore be invoked before placing a result in the
+indicated storage, because that result could set the active field.)
 */
 #define record_complete_object(utp, storage_ptr)                             \
   if (is_immediate_class_type(utp)) {                                        \
     record_subobject_derivation(storage_ptr, NULL);                          \
   }  /* if */                                                                \
 
+/*
+Allocate a complete object of type utp and size n_bytes in the interpreter's
+storage stack and record the storage as being for a complete object (see
+record_complete_object above).
+*/
 #define alloc_complete_object(ips, n_bytes, utp, storage_ptr)                \
   {                                                                          \
     alloc_stack_bytes(ips, n_bytes, storage_ptr);                            \
@@ -2485,8 +2491,8 @@ Output the contents of the interpreted object of type tp stored at addr.
 void db_call_stack(void  *ips)
 /*
 Output a summary of the interpreted call stack.  ips is a pointer to an
-interpreter state converted to an_interpreter_state* (to avoid having to
-expose an_interpreter_state in outside this source file).
+interpreter state (passed as a void* to avoid having to expose
+an_interpreter_state outside this source file).
 */
 {
   unsigned          num = 0;
@@ -2636,12 +2642,17 @@ completed.
 }  /* check_variant_path */
 
 
+/*
+Macro to call release_variant_path if a given address (possibly passed via a
+pointer to bytes representing that address) holds a variant path.
+*/
 #define release_variant_path_if_needed(value)                                 \
 {                                                                             \
   if (is_variant_path((a_constexpr_address*)(value))) {                       \
     release_variant_path((a_constexpr_address*)(value));                      \
   }  /* if */                                                                 \
 }  /* release_variant_path_if_needed */
+
 
 /*
 Macro to release structures allocated for the representation of the result of
@@ -2676,12 +2687,12 @@ address they were shallowly copied from.
 Macro to interpret a full-expression.
 */
 #define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
-  {                                                                           \
-    a_storage_stack_state  saved_stack_for_full_expr;                         \
-    save_storage_stack(ips, saved_stack_for_full_expr);                       \
-    (result_flag) = do_constexpr_expression(ips, expr, result_storage);       \
-    restore_storage_stack(ips, saved_stack_for_full_expr);                    \
-  }
+{                                                                             \
+  a_storage_stack_state  saved_stack_for_full_expr;                           \
+  save_storage_stack(ips, saved_stack_for_full_expr);                         \
+  (result_flag) = do_constexpr_expression(ips, expr, result_storage);         \
+  restore_storage_stack(ips, saved_stack_for_full_expr);                      \
+}
 
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
@@ -3208,7 +3219,7 @@ static a_boolean do_constexpr_condition_alloc(
                                             an_expr_node_ptr       expr,
                                             a_storage_stack_state  *vs_state)
 /*
-expr is an enk_condition mode representing the condition expression of a
+expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
 Allocate and map the associated variable (it will be initialized by a call to
 do_constexpr_condition).  Save the previous storage state in *vs_state if
@@ -3238,7 +3249,7 @@ static void do_constexpr_condition_dealloc(an_interpreter_state   *ips,
                                            an_expr_node_ptr       expr,
                                            a_storage_stack_state  *vs_state)
 /*
-expr is an enk_condition mode representing the condition expression of a
+expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
 Deallocate and unmap the associated variable.  Restore the storage state
 recorded in *vs_state.
@@ -3309,7 +3320,7 @@ skip_typerefs(expr->type).
 static void do_constexpr_condition_cleanup(an_interpreter_state   *ips,
                                            an_expr_node_ptr       expr)
 /*
-expr is an enk_condition mode representing the condition expression of a
+expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
 Clean up the variable value (currently, that means disposing of the "variant
 path" structures).  This does not deallocate or unmap the variable (since for
@@ -3344,7 +3355,7 @@ Interpret the given block statement and its associated scope (if any).
   init_storage_stack_state_to_silence_GCC(saved_stack);
   if (scope != NULL) {
     /* If local variables are going to be allocated (which will be done when
-       their corresponding stmk_init statement is interpreter), save the
+       their corresponding stmk_init statement is interpreted), save the
        current allocation state so we can efficiently deallocate those
        variables below.  Also do this for the top-level block of a statement
        because any parameters have already been associated with the allocation
@@ -4633,9 +4644,9 @@ accordingly.
       if (result) {
         if (!(tp->kind == (a_type_kind)tk_pointer &&
               tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is pass by-value via a copy constructor
-             call, the argument is left as an lvalue.  Temporarily set it back
-             to an rvalue. */
+          /* When a class-type argument is passed by-value via a copy
+             constructor call, the argument is left as an lvalue.  Temporarily
+             set it back to an rvalue. */
           if (arg->is_lvalue) {
             restore_lvalue = TRUE;
             arg->is_lvalue = FALSE;
@@ -4838,9 +4849,9 @@ the body of the (constructor) function proper.
       if (result) {
         if (!(tp->kind == (a_type_kind)tk_pointer &&
               tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is pass by-value via a copy constructor
-             call, the argument is left as an lvalue.  Temporarily set it back
-             to an rvalue. */
+          /* When a class-type argument is passed by-value via a copy
+             constructor call, the argument is left as an lvalue.  Temporarily
+             set it back to an rvalue. */
           if (arg->is_lvalue) {
             restore_lvalue = TRUE;
             arg->is_lvalue = FALSE;
@@ -4897,7 +4908,7 @@ the body of the (constructor) function proper.
     }  /* for */
     if (dip->variant.constructor.value_initialization) {
       /* If this is for value initialization, clear the storage first.
-         Do not, however, override the first word (which may record the
+         Do not, however, overwrite the first word (which may record the
          inheritance hierarchy). */
       a_byte_count  n_class_bytes;
       a_boolean     dummy = TRUE;
@@ -5129,7 +5140,7 @@ of the prvalue result.
           result = do_constexpr_call(ips, expr, result_storage);
           goto done;
         } else if (node_operator_is(expr, eok_class_rvalue_adjust)) {
-          /* These is a pass-through operator for prvalues.  So we cannot just
+          /* This is a pass-through operator for prvalues.  So we cannot just
              copy the operand, since it could invalidate internal addresses.
              Instead, the operand must be evaluated directly into the final
              result storage. */
@@ -5241,7 +5252,7 @@ type.  This includes checking the value of ovfl set by the operation.
              node_operator_is(expr, eok_reference_to))) {
           /* The value is larger than a scalar type, so allocate space for it
              on the storage stack.  Also allocate it on the storage stack if
-             we're evaluation a eok_reference_to that produces a reference for
+             we're evaluating an eok_reference_to that produces a reference for
              a (class) prvalue since that prvalue must survive the full
              expression. */
           alloc_stack_bytes(ips, opnd_n_bytes, opnd1_value);
@@ -5429,7 +5440,7 @@ type.  This includes checking the value of ovfl set by the operation.
                In the case of casting a function lvalue to a reference to
                function type, it is possible that the type of this node was
                later "decayed" to a pointer-to-function type (to match the
-               expectations of a parent node); that case is valid too. */
+               expectations of a parent node); that case is valid, too. */
             if (tp != opnd1_type &&
                 !(opnd1_type->kind == (a_type_kind)tk_routine &&
                   tp->kind == (a_type_kind)tk_pointer &&
@@ -5473,7 +5484,7 @@ type.  This includes checking the value of ovfl set by the operation.
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
             } else {
-              /* "Slicing. */
+              /* Slicing. */
               a_base_class_ptr     bcp;
               a_byte_count         offset;
               bcp = find_direct_base_class_of(opnd1_type, tp);
@@ -5655,7 +5666,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 clear_address(result_addr, opnd1_value);
               }  /* if */
               result_addr->flags |= CA_ARRAY_ELEMENT;
-              /* Check the array length fits in interpreter limits. */
+              /* Check that the array length fits in interpreter limits. */
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
                 result_addr->length = length;
@@ -5997,7 +6008,7 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integer. */
-                an_integer_value  *ival = int_value_at(opnd1_value);
+              an_integer_value  *ival = int_value_at(opnd1_value);
               int_kind = tp->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
               subtract_mixed_signed_integer_values(
@@ -8090,17 +8101,17 @@ type.  This includes checking the value of ovfl set by the operation.
         a_byte                 *tmp_bytes;
         an_alloc_seq_number    alloc_seq_number;
         if (expr->is_lvalue || expr->is_xvalue) {
-          /* An glvalue temporary is expected.  I.e., the caller expects an
+          /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           if (!dip->has_temporary_lifetime && ips->extension_state != NULL) {
-            /* A life-time extended temporary.  Switch to the storage stack
+            /* A lifetime extended temporary.  Switch to the storage stack
                state was saved at the time the stmk_init statement was
                started. */
             /* If we're processing the initializer of a static-lifetime
-               variable.  E.g.,
+               variable, e.g.,
                  constexpr std::initializer_list<int> x = { 1, 2 };
                there is no extended-lifetime storage.  Instead, the result
                will be stored in IL, which is persistent across interpreter
@@ -8363,7 +8374,7 @@ diagnostic in *ips.
                  element of the array.  Record the presence of an implicit
                  cast (otherwise, lowering may sometimes restore the pointer-
                  to-array type, which in turn can lead to invalid C code
-                 generated by the C++-generating back end). */
+                 generated by the C-generating back end). */
               con->implicit_cast = TRUE;
             }  /* if */
             if (!copy_interpreter_object_to_constant(
@@ -8622,12 +8633,7 @@ return FALSE.
     goto done;
   } else {
     ctor = dip->variant.constructor.ptr;
-    if (ctor == NULL) {
-      /* In template-dependent contexts, the invoked constructor may not be
-         known. */
-      do_constexpr_fail(result);
-      goto done;
-    } else if (!ctor->is_constexpr) {
+    if (!ctor->is_constexpr) {
       info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                         &error_position, symbol_for(ctor), &ips);
       do_constexpr_fail(result);

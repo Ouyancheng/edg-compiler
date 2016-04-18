@@ -1759,7 +1759,7 @@ EXTERN unsigned long
 		max_cost_constexpr_call;
 			/* The maximum cost for a top-level constexpr
 			   function or constructor evaluation.  A unit of
-			   cost is accounted for each call and for each
+			   cost is counted for each call and for each
 			   loop-back branch. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
