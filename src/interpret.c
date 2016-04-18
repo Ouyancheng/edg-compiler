@@ -1404,7 +1404,7 @@ A set of flags to describe special interpreter address attributes.
 		   entity (not a value known to the interpreter). */
 #define CA_CANNOT_DEREFERENCE ((unsigned int)0x8)
 		/* This flag indicates that the address cannot be dereferenced.
-		   It is set in particular for pointers "on position past" the
+		   It is set in particular for pointers "one position past" the
 		   end of an array. */
 #define CA_VARIANT_PATH ((unsigned int)0x10)
 		/* This flag indicates that the formation of the address
