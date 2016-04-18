@@ -3507,7 +3507,7 @@ an error.
          as determined by the attribute kind. */
       continue;
     }  /* if */
-    if (!rescan_pushed && template_sym != NULL) {
+    if (!rescan_pushed) {
       /* If we will be substituting template arguments below, push a rescan
          context if one has not already been pushed. */
       push_instantiation_scope_for_rescan(template_sym);
