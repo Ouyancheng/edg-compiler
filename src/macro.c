@@ -4290,7 +4290,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_user_defined_literals",
     "200809" },
   { "cxx_variable_templates",
-    NULL,
+    &variable_templates_enabled,
     "__cpp_variable_templates",
     "201304" },
   { "cxx_variadic_templates",

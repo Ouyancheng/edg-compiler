@@ -865,7 +865,7 @@ ec_unnamed_class_virtual_function_def_missing;;"definition of virtual %n is requ
 ec_svr4_token_pasting_comment;;"empty comment interpreted as token-pasting operator \"##\""
 ec_storage_class_in_friend_decl;;"a storage class is not allowed in a friend declaration"
 ec_templ_param_list_not_allowed;;"template parameter list for %no is not allowed in this declaration"
-ec_bad_member_template_sym;;"%n is not a valid member class or function template"
+ec_bad_member_template_sym;;"%n is not a valid class member template"
 ec_bad_member_template_decl;;"not a valid member class or function template declaration"
 ec_specialization_follows_param_list;;"a template declaration containing a template parameter list may not be followed by an explicit specialization declaration"
 ec_specialization_of_referenced_template;;"explicit specialization of %n1 must precede the first use of %n2"

@@ -4921,6 +4921,9 @@ attribute application mechanism.)
 
   if (dps->sym->kind == (a_symbol_kind)sk_variable) {
     variable = dps->sym->variant.variable.ptr;
+  } else if (dps->sym->kind == (a_symbol_kind)sk_variable_template) {
+    variable = dps->sym->variant.template_info->
+                                           variant.variable.prototype_variable;
   } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
     variable = dps->sym->variant.static_data_member.variable;
   } else {
@@ -6547,7 +6550,7 @@ constant-expression, set the "constant_valued" flag in the IL entry for that
 variable.
 */
 {
-  a_variable_ptr  vp = dps->sym != NULL ? var_for_symbol(dps->sym)
+  a_variable_ptr  vp = dps->sym != NULL ? variable_for_symbol(dps->sym)
                                         : (a_variable_ptr)NULL;
 
   if (!C_mode() && vp != NULL && !dps->init_state.init_error &&

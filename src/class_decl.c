@@ -1611,6 +1611,9 @@ typedef struct a_member_decl_info {
 			/* TRUE for a field that captures a this pointer. */
   a_bit_field	is_captured_pack_element:1;
 			/* TRUE for a field that captures a pack element. */
+  a_bit_field	invalid_member_template:1;
+			/* TRUE if the current declaration has been diagnosed
+			   as an invalid member template declaration. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		bit_field_size_pos;
@@ -1675,6 +1678,7 @@ a class member declaration as it appears.
   mdip->is_bit_field = FALSE;
   mdip->is_captured_this = FALSE;
   mdip->is_captured_pack_element = FALSE;
+  mdip->invalid_member_template = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   mdip->bit_field_size_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -15646,11 +15650,12 @@ general information about the class.
 
 static a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr	sym)
 /*
-Cache the tokens that make up an in-class initializer for the static or
-nonstatic data member specified by sym.  Return a pointer to the token cache
-that was created.  This used for C++11-style field initializers, but also for
-static data members of class templates in GNU C++ mode and static data members
-of managed class types in some Microsoft modes.
+Cache the tokens that make up an in-class initializer for the static data
+member, nonstatic data member, or variable template specified by sym.
+Return a pointer to the token cache that was created.  This used for
+C++11-style field initializers, but also for C++14 variable templates,
+static data members of class templates in GNU C++ mode and static data
+members of managed class types in some Microsoft modes.
 */
 {
   a_token_cache_ptr		token_cache = alloc_token_cache();
@@ -15659,6 +15664,8 @@ of managed class types in some Microsoft modes.
   a_token_set_array		stop_tokens;
   a_boolean			saved_in_field_initializer = FALSE;
   a_boolean			is_field = symbol_is(sym, sk_field);
+  a_boolean			is_var_templ =
+                                          symbol_is(sym, sk_variable_template);
 
   if (is_field) {
     /* Set the in_field_initializer flag while caching a field initializer. */
@@ -15699,7 +15706,8 @@ of managed class types in some Microsoft modes.
     /* Restore the in_field_initializer flag. */
     scope_stack_top().in_field_initializer = saved_in_field_initializer;
   }  /* if */
-  if (is_prototype_instantiation_context() &&  (is_field || gpp_mode)) {
+  if (is_prototype_instantiation_context() &&
+      (is_field || is_var_templ || gpp_mode)) {
     /* This is an initializer in the prototype instantiation of a class
        template or nested class of a class template.  Save the token numbers
        associated with this default initializer so that it can be removed
@@ -15718,7 +15726,7 @@ of managed class types in some Microsoft modes.
     tcsp->expression_missing = token_cache->first_token == NULL;
     if (is_field) {
       sym->variant.field.extra_info->token_cache = token_cache;
-    } else {
+    } else if (!is_var_templ) {
       get_sdm_supp(sym)->token_cache = token_cache;
     }  /* if */
   }  /* if */
@@ -15816,16 +15824,20 @@ data members.
 
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_class_def_state_ptr   class_state,
+                                    a_tmpl_decl_state_ptr   templ_state,
                                     a_member_decl_info_ptr  decl_info)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.  *locator is the symbol-locator for the current declaration, and
 *p_member_type is the type with which the member was declared.  *class_state
 and *decl_info track general information about the class definition and
-specific information about the member declaration, respectively.
+specific information about the member declaration, respectively.  templ_state
+points to a block of information that is provided if this is a member
+template declaration and is NULL otherwise.
 */
 {
   a_symbol_ptr             sym, prototype_tag_sym;
+  a_symbol_ptr             var_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_ptr             property_set = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15840,6 +15852,9 @@ specific information about the member declaration, respectively.
   a_name_reference_ptr     name_ref = NULL;
   a_type_ptr               declared_type = decl_state->declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_template_symbol_supplement_ptr
+                           var_templ_tssp = NULL;
+  a_token_cache_ptr        initializer_cache = NULL;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -15931,23 +15946,25 @@ specific information about the member declaration, respectively.
                                       (a_type_qualifier_set)TQ_CONST);
   }  /* if */
   decl_state->type = member_type;
-  if (decl_info->is_member_template) set_to_named_error_locator(*locator);
-  /* Create the variable entry for the static data member. */
-  /* All static data member variables are allocated in the file scope memory
-     region and put on the variables list for the current class.  The storage
-     class will usually be set to extern (except sometimes in cfront mode). */
-  var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
-  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
-    complete_type_is_needed(member_type);
-    var->is_constexpr = TRUE;
+  effective_decl_level = class_type_supp(class_type)->assoc_scope
+                                                    ->depth_in_scope_stack;
+  check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
+  if (!variable_templates_enabled && decl_info->is_member_template) {
+    set_to_named_error_locator(*locator);
   }  /* if */
-  if (decl_state->decltype_auto_specifier_seen) {
-    var->declared_with_decltype_auto = TRUE;
-  } else if (decl_state->auto_type_specifier_seen) {
-    var->declared_with_auto_type_specifier = TRUE;
+  /* If this is a member template declaration, don't add it to the variables
+     list at this point.  The prototype instantiation variable will be
+     added when create_variable_template_symbol is called below. */
+  if (!decl_info->is_member_template) {
+    /* Create the variable entry for the static data member.  The entry
+       for a variable template is created below.   The storage class will
+       usually be set to extern (except sometimes in cfront mode). */
+    var = make_variable(member_type, (a_storage_class)sc_static,
+                        NO_SCOPE_DEPTH);
+    add_to_variables_list(var, effective_decl_level);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled) {
+  if (cli_or_cx_enabled && !decl_info->is_member_template) {
     if (decl_state->has_cli_initonly_keyword) {
       var->is_initonly = TRUE;
     } else if (decl_state->has_cli_property_keyword ||
@@ -15957,16 +15974,8 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  effective_decl_level = class_type_supp(class_type)->assoc_scope
-                                                    ->depth_in_scope_stack;
-  check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
-  /* If this is a member template declaration, don't add it to the variables
-     list (in part to avoid problems caused by an invalid scope). */
-  if (!decl_info->is_member_template || prototype_instantiations_in_il) {
-    add_to_variables_list(var, effective_decl_level);
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (var_is_property_or_event(var) &&
+  if (!decl_info->is_member_template && var_is_property_or_event(var) &&
       property_or_event_kind_is(var, pek_cli_property)) {
     /* C++/CLI properties are associated with an sk_property_set symbol.
        Multiple properties (static and/or nonstatic) of the same name can be
@@ -15978,17 +15987,47 @@ specific information about the member declaration, respectively.
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
-  {
+  if (!decl_info->is_member_template) {
+    /* A normal static data member. */
     sym = enter_symbol((a_symbol_kind)sk_static_data_member, locator,
                        effective_decl_level, /*suppress_redecl_error=*/FALSE);
+  } else {
+    check_assertion(decl_info->is_member_template && templ_state != NULL);
+    /* For variable templates, the variable is created above by the
+       call to create_variable_template_symbol.  Fill in the type now. */
+    sym = create_variable_template_symbol(templ_state, locator);
+    var_templ_tssp = sym->variant.template_info;
+    var = var_templ_tssp->variant.variable.prototype_variable;
+    var->type = member_type;
+    set_template_cache_info(&var_templ_tssp->variant.variable.decl_cache,
+                            &templ_state->decl_token_cache,
+                            templ_state->decl_info);
+    templ_state->decl_token_cache_used = TRUE;
+  }  /* if */
+  /* For a variable template, get the symbol associated with the prototype
+     instantiation. */
+  if (symbol_is(sym, sk_variable_template)) {
+    var_sym = symbol_for(var);
+  } else {
+    /* Set the source correspondence fields of the variable. */
+    set_source_corresp(&var->source_corresp, sym);
+    sym->variant.static_data_member.variable = var;
+    set_class_membership(sym, &var->source_corresp, class_type);
+    var_sym = sym;
   }  /* if */
   decl_state->sym = sym;
-  /* Set the source correspondence fields of the variable. */
-  set_source_corresp(&var->source_corresp, sym);
-  sym->variant.static_data_member.variable = var;
-  set_class_membership(sym, &var->source_corresp, class_type);
-  if (decl_info->is_member_template && locator->symbol_header != NULL) {
+  if (!variable_templates_enabled && decl_info->is_member_template) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
+    decl_info->invalid_member_template = TRUE;
+  }  /* if */
+  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    complete_type_is_needed(member_type);
+    var->is_constexpr = TRUE;
+  }  /* if */
+  if (decl_state->decltype_auto_specifier_seen) {
+    var->declared_with_decltype_auto = TRUE;
+  } else if (decl_state->auto_type_specifier_seen) {
+    var->declared_with_auto_type_specifier = TRUE;
   }  /* if */
   /* Static data members will have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal linkage
@@ -16003,7 +16042,7 @@ specific information about the member declaration, respectively.
        or sc_unspecified during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
     /* Check whether any types without linkage are used in the declaration. */
-    check_constituent_types_have_linkage(sym, &locator->source_position,
+    check_constituent_types_have_linkage(var_sym, &locator->source_position,
                                          /*is_declaration=*/TRUE);
   }  /* if */
   var->source_corresp.access = class_state->access;
@@ -16055,6 +16094,13 @@ specific information about the member declaration, respectively.
         member_type = decl_state->type;
         constant_member = is_const_qualified_type(member_type);
       }  /* if */
+    } else if (decl_info->is_member_template) {
+      /* A variable template with an in-class initializer. */
+      a_token_cache  *token_cache;
+      token_cache = cache_inclass_initializer(sym);
+      initializer_cache = token_cache;
+      rescan_reusable_cache(token_cache);
+      skip_cache_terminator = TRUE;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
@@ -16066,6 +16112,7 @@ specific information about the member declaration, respectively.
                      sdmsp = get_sdm_supp(sym);
       sdmsp->token_sequence_number = curr_token_sequence_number;
       token_cache = cache_inclass_initializer(sym);
+      initializer_cache = token_cache;
       rescan_reusable_cache(token_cache);
       skip_cache_terminator = TRUE;
     }  /* if */
@@ -16088,7 +16135,8 @@ specific information about the member declaration, respectively.
 #if MICROSOFT_EXTENSIONS_ALLOWED
                var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-               (class_state->is_nonreal_instantiation &&
+               ((class_state->is_nonreal_instantiation ||
+                 decl_info->is_member_template) &&
                 is_template_param_type(var->is_constexpr ?
                                                  skip_array_types(member_type)
                                                : member_type))) {
@@ -16161,7 +16209,10 @@ specific information about the member declaration, respectively.
     if (skip_cache_terminator && curr_token == tok_end_of_source) {
       (void)get_token();
     }  /* if */
-  } else if (gpp_mode &&
+  } else if ((gpp_mode ||
+              (decl_info->is_member_template &&
+               class_state->is_template_instantiation &&
+               !class_state->is_nonreal_instantiation))  &&
              (curr_token == tok_removed_expr ||
               (curr_token == tok_assign &&
                next_token() == tok_removed_expr))) {
@@ -16172,9 +16223,11 @@ specific information about the member declaration, respectively.
     if (curr_token == tok_assign) {
       (void)get_token();
     }  /* if */
-    /* Retrieve the initializer tokens from the prototype instantiation. */
-    find_inclass_sdm_initializer_for_instance(
+    if (!decl_info->is_member_template) {
+      /* Retrieve the initializer tokens from the prototype instantiation. */
+      find_inclass_sdm_initializer_for_instance(
                                  sym, class_state->corresp_prototype_tag_sym);
+    }  /* if */
     /* Skip over the cache terminator. */
     (void)get_token();
   } else if (var->is_constexpr) {
@@ -16225,13 +16278,17 @@ specific information about the member declaration, respectively.
   /* Special processing for static data members of template classes. */
   prototype_tag_sym = class_state->corresp_prototype_tag_sym;
   if (prototype_tag_sym != NULL || class_state->is_nonreal_instantiation ||
-      class_state->is_generic_definition) {
+      class_state->is_generic_definition || decl_info->is_member_template) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
     if (!is_error_locator(*locator)) {
       if (class_state->is_nonreal_instantiation ||
-          class_state->is_generic_definition) {
-        /* A member of a prototype instantiation. */
+          class_state->is_generic_definition ||
+          (decl_info->is_member_template &&
+           (!class_state->is_template_instantiation ||
+            class_state->is_nonreal_instantiation))) {
+        /* A member of a prototype instantiation or a declaration of a
+           variable template (potentially in a non-template class). */
         a_template_ptr		 templ;
         a_template_instance_ptr  tip = alloc_template_instance();
         a_template_symbol_supplement_ptr tssp;
@@ -16247,7 +16304,11 @@ specific information about the member declaration, respectively.
         tip->template_info->token_sequence_number = curr_token_sequence_number;
         var->is_template_variable = TRUE;
         var->is_prototype_instantiation = TRUE;
-        var->template_info = alloc_variable_template_info();
+        if (var->template_info == NULL) {
+          /* For variable templates, the template_info will have already been
+             allocated. */
+          var->template_info = alloc_variable_template_info();
+        }  /* if */
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
         var->template_info->assoc_template = templ = alloc_template();
@@ -16270,11 +16331,18 @@ specific information about the member declaration, respectively.
         templ->canonical_template = templ;
       } else {
         /* We must be in the midst of a template class instantiation.  We need
-           to bind this static data member to the static data member template
+           to bind this static data member or variable template to the one
            that was created for it in the prototype instantiation.  This will
            enable the compiler to generate a definition if a defining template
            is declared. */
-        find_static_data_member_template(sym, prototype_tag_sym);
+        find_variable_member_template(sym, prototype_tag_sym);
+      }  /* if */
+      if (decl_info->is_member_template) {
+        /* Record the cache information for the later instantiation of
+           a variable template with an in-class initializer. */
+        set_template_cache_info(&var_templ_tssp->cache,
+                                initializer_cache,
+                                templ_state->decl_info);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18122,6 +18190,7 @@ be entered.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (decl_info->is_member_template) {
       pos_error(ec_bad_member_template_decl, &decl_state->start_pos);
+      decl_info->invalid_member_template = TRUE;
     }  /* if */
   } else {
     /* Create the field symbol. */
@@ -18173,6 +18242,7 @@ be entered.
   if (decl_info->is_member_template && locator->symbol_header != NULL) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position,
                  member_sym);
+    decl_info->invalid_member_template = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_property_or_event_field) {
@@ -23398,6 +23468,7 @@ routine.
       } else {
         /* Function declarator is missing on a member template declaration. */
         pos_error(ec_bad_member_template_decl, err_pos);
+        decl_info->invalid_member_template = TRUE;
       }  /* if */
     } else if (dso_flags & DSO_DECLARES_SOMETHING) {
       /* This is a free standing declaration of a class, struct, union, or
@@ -24929,7 +25000,9 @@ storage specifier may affect whether the property/event is static or not.
   scope_stack_top().curr_construct_pragmas = decl_info->suspended_pragmas;
   decl_info->suspended_pragmas = NULL;
   if (pdp->is_static) {
-    decl_static_data_member(class_state->pe_loc, class_state, decl_info);
+    decl_static_data_member(class_state->pe_loc, class_state,
+                            (a_tmpl_decl_state_ptr)NULL,
+                            decl_info);
     check_assertion(dps->sym != NULL &&
                     dps->sym->kind == (a_symbol_kind)sk_static_data_member);
     pdp->variant.variable = dps->sym->variant.static_data_member.variable;
@@ -26200,6 +26273,7 @@ class type.  Check that dps->type is a valid type for such a declaration.
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr class_member_declaration(
                       a_class_def_state_ptr    class_state,
+                      a_tmpl_decl_state_ptr    templ_state,
                       an_ms_attribute_ptr      ms_attributes,
                       a_boolean                is_member_template,
                       a_template_param_ptr     templ_param_list,
@@ -26218,7 +26292,8 @@ declaration.  templ_param_list is non-NULL for function template declarations.
 decl_pos_block_ptr is non-NULL when then extra source position information
 collected during this declaration needs to be returned to the caller.
 If prototype instantiations are recorded in the IL, the template header is
-passed via template_decl.
+passed via template_decl.  templ_state points to a block of information
+that is provided if this is a member template declaration.
 */
 {
   a_type_ptr           class_type = class_state->class_type;
@@ -26235,6 +26310,7 @@ passed via template_decl.
   a_member_decl_info   decl_info;
   a_decl_parse_state   *dps = &decl_info.decl_state;
   a_boolean            is_member_template_rescan;
+  a_boolean            is_valid_member_template = FALSE;
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
   a_symbol_locator     locator;
@@ -26623,6 +26699,7 @@ passed via template_decl.
         decl_member_function_template(
                                 &locator, templ_param_list, il_template_entry,
                                 &func_info, class_state, &decl_info);
+        is_valid_member_template = TRUE;
         rout_sym = decl_info.decl_state.sym;
         if (dso_flags & DSO_EXPLICIT) {
           if (decl_info.is_constructor) {
@@ -26823,12 +26900,6 @@ passed via template_decl.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (is_member_template) {
-      /* Invalid declaration of a member template. */
-      pos_error(ec_bad_member_template_decl, &dps->start_pos);
-      remove_stop_token(tok_comma);
-      discard_curr_construct_pragmas();
-      break;
     } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
       if (dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &dps->start_pos);
@@ -26903,7 +26974,8 @@ passed via template_decl.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (!field_initializers_enabled &&
+    } else if (!is_member_template &&
+               !field_initializers_enabled &&
                curr_token == tok_assign && !C_mode() &&
                ((is_scalar_type(dps->type) && !mutable_specified &&
                  (get_type_qualifiers(dps->type) == TQ_CONST)) ||
@@ -26955,7 +27027,8 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (dps->storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
-        decl_static_data_member(&locator, class_state, &decl_info);
+        decl_static_data_member(&locator, class_state, templ_state,
+                                &decl_info);
       } else {
         /* Non-static data member (= field). */
         scan_nonstatic_data_member(&locator, class_state, &decl_info);
@@ -26971,6 +27044,17 @@ passed via template_decl.
       }  /* if */
     } else {
       expect_error();
+    }  /* if */
+    if (is_member_template &&
+        (dps->sym == NULL || !symbol_is(dps->sym, sk_variable_template))) {
+      /* Invalid declaration of a member template. */
+      if (!decl_info.invalid_member_template) {
+        pos_error(ec_bad_member_template_decl, &dps->start_pos);
+        decl_info.invalid_member_template = TRUE;
+      }  /* if */
+      remove_stop_token(tok_comma);
+      discard_curr_construct_pragmas();
+      break;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (dps->ms_attributes != NULL) {
@@ -27052,7 +27136,7 @@ next_declaration:;
 
 
 a_symbol_ptr class_member_template_declaration(
-                                       struct a_tmpl_decl_state  *templ_state)
+                                          a_tmpl_decl_state_ptr  templ_state)
 /*
 Scan a template function declaration that appears inside a class (or class
 template) definition.  templ_state describes the state of processing the
@@ -27076,7 +27160,8 @@ template so far.
   scope_level = class_type_supp(class_type)->assoc_scope->depth_in_scope_stack;
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
-  sym = class_member_declaration(class_state_ptr, dps->ms_attributes,
+  sym = class_member_declaration(class_state_ptr, templ_state,
+                                 dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
@@ -27091,7 +27176,8 @@ template so far.
   } else if (sym->is_error) {
     /* An error has already been issued -- return null. */
     sym = NULL;
-  } else if (sym->kind != (a_symbol_kind)sk_function_template) {
+  } else if (!symbol_is(sym, sk_function_template) &&
+             !symbol_is(sym, sk_variable_template)) {
     /* Issue the error and return NULL. */
     pos_sy_error(ec_bad_member_template_sym, &sym->decl_position, sym);
     sym = NULL;
@@ -27129,7 +27215,9 @@ instance record associated with this instantiation.
     skip_microsoft_attribute_tokens();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  (void)class_member_declaration(&class_state, (an_ms_attribute_ptr)NULL,
+  (void)class_member_declaration(&class_state,
+                                 (a_tmpl_decl_state_ptr)NULL,
+                                 (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
@@ -29456,7 +29544,9 @@ classes.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        (void)class_member_declaration(&class_state, ms_attributes,
+        (void)class_member_declaration(&class_state,
+                                       (a_tmpl_decl_state_ptr)NULL,
+                                       ms_attributes,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type,

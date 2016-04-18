@@ -674,8 +674,8 @@ extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
-extern void find_static_data_member_template(
-                                    a_symbol_ptr  static_data_member_sym,
+extern void find_variable_member_template(
+                                    a_symbol_ptr  var_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
 extern void find_inclass_field_initializer_for_instance(
@@ -907,6 +907,10 @@ extern void begin_special_variadic_template_arg_list_traversal(
 extern void special_variadic_advance_to_next_template_arg(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap);
+
+extern a_symbol_ptr create_variable_template_symbol(
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_symbol_locator                 *locator);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_start_of_generic_decl(void);

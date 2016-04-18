@@ -34415,7 +34415,7 @@ dynamic init entry if one is created to represent this initializer
     check_assertion(dps != NULL);
     var_sym = dps->sym;
     check_assertion(var_sym != NULL);
-    var = var_for_symbol(var_sym);
+    var = variable_for_symbol(var_sym);
     check_assertion(var != NULL);
   }  /* if */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,

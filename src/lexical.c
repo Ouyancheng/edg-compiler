@@ -17445,15 +17445,15 @@ the class template argument list or diagnose an invalid template reference.
   a_symbol_ptr	result_sym;
 
   if (template_sym != NULL &&
-      !is_class_template_or_injected_template_symbol(template_sym) && 
-      symbol_is_or_contains_template(template_sym)) {
+      symbol_is(template_sym, sk_variable_template)) {
+    result_sym = coalesce_template_variable_reference(template_sym,
+                                                      next_tok, err);
+  } else if (template_sym != NULL &&
+             !is_class_template_or_injected_template_symbol(template_sym) && 
+             symbol_is_or_contains_template(template_sym)) {
     /* A function template symbol or overload set containing a function
        template symbol. */
     result_sym = coalesce_template_function_reference(template_sym,
-                                                      next_tok, err);
-  } else if (template_sym != NULL &&
-             symbol_is(template_sym, sk_variable_template)) {
-    result_sym = coalesce_template_variable_reference(template_sym,
                                                       next_tok, err);
   } else {
     /* A class template symbol or a potential error case. */
@@ -17566,7 +17566,7 @@ in a declarator of a template declaration.
     }  /* if */
   }  /* if */
   return any_errors;
-}  /* check_for_template_declarator_errors */
+}  /* f_check_for_template_declarator_errors */
 
 
 static a_boolean f_check_for_generalized_identifier_errors

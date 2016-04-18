@@ -8785,7 +8785,13 @@ for the scope, which means no last-pointer is being maintained (anymore).
     }  /* if */
     if (scope_level == NO_SCOPE_DEPTH) {
       /* The class has already been popped off the scope stack. */
-      *pointers_block = NULL;
+      if (symbol_for(class_type) != NULL) {
+        a_class_symbol_supplement_ptr cssp =
+                                       symbol_supplement_for_class(class_type);
+        *pointers_block = &cssp->pointers_block;
+      } else {
+        *pointers_block = NULL;
+      }  /* if */
     } else {
       check_assertion(trans_unit_for_scope[sp->number] ==
                                                         curr_translation_unit);
@@ -9021,21 +9027,7 @@ done to add the type to the end of the types list for the enclosing class.
     scope_level = scope_depth_of(ssep);
   }  /* if */
   if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-    /* When a lambda appears in a class reactivation scope it must be added
-       to the types list of the class that was reactivated. */
-    a_scope_ptr sp;
-    a_type_ptr	tp;
-    set_parent_scope_for_type(type_ptr, scope_level);
-    sp = parent_scope_of(type_ptr);
-    tp = sp->types;
-    if (tp != NULL) {
-      /* Find the last entry on the types list. */
-      for (tp = sp->types; tp->next != NULL; tp = tp->next) {}
-      /* Add the closure type to the end of the list. */
-      tp->next = type_ptr;
-    } else {
-      sp->types = type_ptr;
-    }  /* if */
+    add_to_types_list(type_ptr, NO_SCOPE_DEPTH);
   } else if (ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
     /* When a lambda appears in a namespace reactivation scope it must be added
        to the types list of the namespace that was reactivated. */
@@ -13639,13 +13631,16 @@ scope depth.
   a_scope_stack_entry_ptr     ssep = NULL;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
-  a_boolean                   at_file_or_namespace_scope;
+  a_boolean                   at_namespace_or_class_scope;
 
   sp = get_scope_for_list(scope_depth, &var_ptr->source_corresp,
                           &pointers_block);
   check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
-  if ((scope_is(sp, sck_file) || scope_is(sp, sck_namespace)) &&
-      scope_depth == NO_SCOPE_DEPTH) {
+  at_namespace_or_class_scope = scope_is(sp, sck_file) ||
+                                scope_is(sp, sck_namespace) ||
+                                scope_is(sp, sck_class_struct_union) ||
+                                scope_is(sp, sck_class_reactivation);
+  if (at_namespace_or_class_scope || scope_depth == NO_SCOPE_DEPTH) {
     /* If get_scope_for_list returned the file scope and scope_depth
        is NO_SCOPE_DEPTH, use the depth of the file scope. */
     scope_depth = DEPTH_OF_FILE_SCOPE;
@@ -13659,11 +13654,9 @@ scope depth.
     assert_is_valid_scope_depth(scope_depth);
     ssep = &scope_stack[scope_depth];
   }  /* if */
-  at_file_or_namespace_scope = (scope_depth == DEPTH_OF_FILE_SCOPE ||
-                               scope_depth == depth_innermost_namespace_scope);
-  check_assertion(at_file_or_namespace_scope || ssep != NULL);
+  check_assertion(at_namespace_or_class_scope || ssep != NULL);
   /* Get pointer to current or file scope entry. */
-  if (at_file_or_namespace_scope) {
+  if (at_namespace_or_class_scope) {
 #if CHECKING
     if (var_ptr->storage_class != (a_storage_class)sc_static &&
         var_ptr->storage_class != (a_storage_class)sc_extern &&
@@ -13686,7 +13679,7 @@ scope depth.
   if (sp != NULL) {
     /* Variables requiring static allocation go on one list, those for stack
        and register allocation on another. */
-    if (at_file_or_namespace_scope ||
+    if (at_namespace_or_class_scope ||
         var_has_static_or_thread_storage_duration(var_ptr)) {
       /* Variables with static or thread storage duration will always be
          allocated in file scope memory region, regardless of which scope's

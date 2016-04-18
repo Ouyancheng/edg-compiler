@@ -4096,7 +4096,8 @@ to the namespace and class that must be reactivated.
   }  /* if */
   if (instance_sym == NULL &&
       (template_sym == NULL ||
-       template_sym->kind == (a_symbol_kind)sk_function_template)) {
+       template_sym->kind == (a_symbol_kind)sk_function_template ||
+       template_sym->kind == (a_symbol_kind)sk_variable_template)) {
     /* Use the parent information determined above.
 
        When there is no specific instance being instantiated, that indicates

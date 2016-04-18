@@ -8348,7 +8348,7 @@ otherwise.
              symbol_is(sym, sk_static_data_member)) {
     /* "thread_local/_Thread_local" is only allowed on variables and static
        data members. */
-    a_variable_ptr  vp = var_for_symbol(sym);
+    a_variable_ptr  vp = variable_for_symbol(sym);
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     if (dps->decl_modifiers.flags & DM_THREAD) {
       /* Can't combine "__thread" and "thread_local/_Thread_local". */
@@ -9111,10 +9111,11 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
       }  /* if */
     }  /* if */
   } else if (symbol_is(sym, sk_variable) ||
-             symbol_is(sym, sk_static_data_member)) {
-    /* Check that a constexpr variable (or static data member) has a reference
-       type or a literal type. */
-    a_variable_ptr  vp = var_for_symbol(sym);
+             symbol_is(sym, sk_static_data_member) ||
+             symbol_is(sym, sk_variable_template)) {
+    /* Check that a constexpr variable, variable template, or static data
+       member has a reference type or a literal type. */
+    a_variable_ptr  vp = variable_for_symbol(sym);
     a_type_ptr      vtp = skip_array_types(vp->type);
     vtp = skip_typerefs(vtp);
     if (vp->is_handler_param) {

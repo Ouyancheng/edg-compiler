@@ -3698,7 +3698,7 @@ initializer, already copied and substituted.
   icp = icp_tree;
   check_assertion(icp != NULL && is_braced_init_component(icp));
   is_var_init = dps != NULL && dps->sym != NULL &&
-                var_for_symbol(dps->sym) != NULL;
+                variable_for_symbol(dps->sym) != NULL;
   /* The force_dynamic_init flag only applies to the top-level result. */
   is->force_dynamic_init = FALSE;
   if (is_template_dependent_context() && is_variadic_template_context() &&
@@ -3883,7 +3883,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   a_variable_ptr  vp;
 
   check_assertion(dps != NULL && dps->sym != NULL);
-  vp = var_for_symbol(dps->sym);
+  vp = variable_for_symbol(dps->sym);
   check_assertion_or_expect_error(vp != NULL);
   if (direct) {
     if (!list_init_enabled) {
@@ -3976,7 +3976,7 @@ position is available.
   an_init_state          *is = &dps->init_state;
   a_boolean              is_var_init, is_pack_expansion;
 
-  is_var_init = dps->sym != NULL && var_for_symbol(dps->sym) != NULL;
+  is_var_init = dps->sym != NULL && variable_for_symbol(dps->sym) != NULL;
   is->direct_init = TRUE;
   /* Scan the expression if any. */
   if (curr_token == tok_rparen &&
@@ -4043,7 +4043,7 @@ position is available.
     }  /* if */
   }  /* if */
   if (is_var_init) {
-    a_variable_ptr  vp = var_for_symbol(dps->sym);
+    a_variable_ptr  vp = variable_for_symbol(dps->sym);
     if (is_incomplete_array_type(vp->type) &&
         (is_array_type(dps->type) || is_error_type(dps->type))) {
       put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
@@ -4082,7 +4082,7 @@ to use for diagnostics by default.
 
   check_assertion(!dps->has_direct_initializer);
   check_assertion(dps != NULL && dps->sym != NULL);
-  vp = var_for_symbol(dps->sym);
+  vp = variable_for_symbol(dps->sym);
   check_assertion(vp != NULL);
   is->elided_braces_disallowed = FALSE;
   is_array_var = (tp->kind == (a_type_kind)tk_array);
@@ -4225,7 +4225,7 @@ to use for diagnostics by default.
     decl_pos_block->var_init_range.end = *init_component_end_pos(expr_icp);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (dps->sym == NULL || var_for_symbol(dps->sym) == NULL) {
+  if (dps->sym == NULL || variable_for_symbol(dps->sym) == NULL) {
     /* In some error cases (e.g., an old-style C parameter with an initializer)
        dps->sym may not actually represent an initializable variable. */
     expect_error();
@@ -4372,6 +4372,10 @@ returned set to TRUE.
     static_lifetime = var_has_static_or_thread_storage_duration(vp);
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     vp = symbol_ptr->variant.static_data_member.variable;
+    static_lifetime = TRUE;
+  } else if (symbol_is(symbol_ptr, sk_variable_template)) {
+    vp = symbol_ptr->variant.template_info->
+                                           variant.variable.prototype_variable;
     static_lifetime = TRUE;
   } else {
     /* Not a variable (for example, might be a typedef). */

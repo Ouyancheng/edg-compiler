@@ -20239,7 +20239,7 @@ the lifetime of the temporary is extended to match that of the reference.
   /* Mark the reference variable (if any) extending the temporary object's
      lifetime. */
   if (dps != NULL && dps->sym != NULL) {
-    a_variable_ptr  vp = var_for_symbol(dps->sym);
+    a_variable_ptr  vp = variable_for_symbol(dps->sym);
     if (vp != NULL) vp->extends_lifetime = TRUE;
   }  /* if */
   if (dip->is_creation_of_initializer_list_object) {

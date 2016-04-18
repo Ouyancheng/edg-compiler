@@ -6107,14 +6107,17 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
 
 /*
 Return the variable associated with a variable or static data member
-symbol, or NULL if there is none.
+symbol.  For a variable template, return the prototype variable.
+For any other kind of symbol, return NULL.
 */
 #define variable_for_symbol(sym)					\
   (symbol_is((sym), sk_static_data_member)				\
     ? (sym)->variant.static_data_member.variable			\
     : symbol_is((sym), sk_variable)					\
       ? (sym)->variant.variable.ptr					\
-      : (a_variable_ptr)NULL)
+      : symbol_is((sym), sk_variable_template)				\
+        ? (sym)->variant.template_info->variant.variable.prototype_variable \
+        : (a_variable_ptr)NULL)
 
 /*
 Return TRUE if a symbol is a class template or an injected template symbol.
@@ -6156,6 +6159,7 @@ results in better error recovery.
 #define symbol_is_or_contains_template(sym)				\
   (is_class_template_or_injected_template_symbol(sym) ||		\
    (sym)->kind == (a_symbol_kind)sk_function_template ||		\
+   (sym)->kind == (a_symbol_kind)sk_variable_template ||		\
    ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&		\
     overload_set_contains_template(sym)))
 
@@ -6300,15 +6304,6 @@ extern a_boolean f_has_nontrivial_constructor(
    (sym)->variant.constant != NULL &&					\
    (sym)->variant.constant->kind == (a_constant_repr_kind)ck_template_param)
 
-/*
-Extract the variable entry associated with a variable or static data member
-symbol.
-*/
-#define var_for_symbol(sym)                                                  \
-  (symbol_is(sym, sk_variable) ? (sym)->variant.variable.ptr :               \
-   symbol_is(sym, sk_static_data_member) ?                                   \
-                                 (sym)->variant.static_data_member.variable :\
-                                 NULL)
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */

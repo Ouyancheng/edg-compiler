@@ -1249,7 +1249,9 @@ itself recursively to process classes nested within this class.
        data member is required only if the static data member is referenced. */
     var = class_type->variant.class_struct_union.extra_info->
 							assoc_scope->variables;
-    while (var != NULL) {
+    for (; var != NULL; var = var->next) {
+      /* Don't process prototype instantiations of variable templates. */
+      if (var->is_prototype_instantiation) continue;
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       tip = sym->variant.static_data_member.instance_ptr;
       /* We make sure tip is non-NULL to guard against potential error
@@ -1288,8 +1290,7 @@ itself recursively to process classes nested within this class.
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      var = var->next;
-    }  /* while */
+    }  /* for */
     /* Process any classes nested within this class. */
     type = ctsp->assoc_scope->types;
     while (type != NULL) {
@@ -4693,6 +4694,7 @@ and a list of the unprocessed entries is returned to the caller.
           break;
         case sk_field:
         case sk_static_data_member:
+        case sk_variable_template:
           /* Remove the field initializer expression. */
           remove_expression_from_cache(tcsp);
 #if DEBUG
@@ -5169,6 +5171,9 @@ user later during real instantiations.
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
   var_ptr = tssp->variant.variable.prototype_variable;
+  /* For variable templates that are initialized in-class, don't do a
+     prototype instantiation. */
+  if (is_variable_template && var_ptr->initializer_in_class) goto done;
   proto_sym = symbol_for(var_ptr);
   check_assertion(proto_sym != NULL);
   decl_state->decl_parse.sym = proto_sym;
@@ -5252,6 +5257,8 @@ user later during real instantiations.
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
+done:
+  return;
 }  /* variable_template_prototype_instantiation */
 
 
@@ -5888,6 +5895,21 @@ static void scan_template_variable_declaration(
 				a_decl_parse_state_ptr			dps);
 
 
+static a_boolean is_invalid_variable_template_type(
+					a_variable_ptr	var,
+					a_boolean	issue_error)
+/*
+Check whether the type of the variable template instance var is a valid
+variable type.  For example, a variable template instance that is given
+a function type is not valid.  Return TRUE if the type is not valid.
+If issue_error is TRUE, issue a diagnostic about the invalid type.
+*/
+{
+  /* FIXME */
+  return FALSE;
+}  /* is_invalid_variable_template_type */
+
+
 static void instantiate_template_variable(a_template_instance_ptr  tip)
 /*
 Generate a definition of an instance of a variable template or a static
@@ -5901,11 +5923,25 @@ the template definition or may be a default initialization.
   a_decl_parse_state			dps;
   a_symbol_ptr				template_sym;
   a_boolean				is_var_templ_instance;
+  a_variable_ptr			proto_var;
+  a_symbol_ptr				template_sym_of_prototype;
+  a_template_symbol_supplement_ptr	tssp_of_prototype;
 
-  template_sym = tip->template_sym;
-  tssp = template_supplement_for_symbol(template_sym);
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
+  template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  if (is_var_templ_instance) {
+    /* For variable templates, get the information about the prototype
+       template (if any). */
+    template_sym_of_prototype = prototype_template_of(template_sym);
+    tssp_of_prototype =
+                     template_supplement_for_symbol(template_sym_of_prototype);
+  } else {
+    template_sym_of_prototype = template_sym;
+    tssp_of_prototype = tssp;
+  }  /* if */
+  proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
   if ((!is_var_templ_instance && !tip->template_sym->defined) ||
       tssp->cache.decl_info->parameters == NULL) {
@@ -5956,7 +5992,7 @@ the template definition or may be a default initialization.
      portion of the declaration is reached.  For variable template
      instances the template_arg_list of the variable will be non-NULL. */
   (void)push_template_instantiation_scope(
-                                   tssp->cache.decl_info,
+                                   tssp_of_prototype->cache.decl_info,
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
@@ -5966,7 +6002,7 @@ the template definition or may be a default initialization.
                                    PS_IGNORE_CLASS_CONTEXT);
   /* Scan or rescan the declaration of the variable template or static
      data member. */
-  scan_template_variable_declaration(tip, var_sym, tssp, &dps);
+  scan_template_variable_declaration(tip, var_sym, tssp_of_prototype, &dps);
   if (var_ptr->initializer_in_class &&
       gpp_mode && gnu_version >= 40100 && !clang_mode) {
     /* FIXME: is this correct for variable templates? */
@@ -5977,6 +6013,14 @@ the template definition or may be a default initialization.
   }  /* if */
   /* If the variable type is a template class, make sure it is instantiated. */
   complete_type_is_needed(var_ptr->type);
+  /* Make sure the type from the declaration is a valid variable
+     declaration. */
+  if (is_var_templ_instance) {
+    (void)is_invalid_variable_template_type(var_ptr, /*issue_error=*/TRUE);
+  }  /* if */
+  if (is_var_templ_instance) {
+    add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
+  }  /* if */
   /* FIXME: should this be done elsewhere? */
   if (!tip->template_sym->is_class_member &&
       is_const_qualified_type(var_ptr->type)) {
@@ -5984,7 +6028,8 @@ the template definition or may be a default initialization.
   }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
-  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+  reactivate_curr_construct_pragmas(
+                                 tssp_of_prototype->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
   if (is_var_templ_instance) {
     add_instantiation(tip->template_sym, tssp, var_sym,
@@ -5997,25 +6042,26 @@ the template definition or may be a default initialization.
                             var_sym,
                             &tip->template_sym->decl_position,
                             (a_source_sequence_entry_ptr)NULL);
-  if (tssp->cache.tokens.first_token != NULL) {
+  if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
     a_boolean           incomplete_type_error_reported;
     a_boolean           has_parenthesized_initializer;
 
     init_decl_parse_state(&init_dps);
-    rescan_reusable_cache(&tssp->cache.tokens);
+    rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
-    has_parenthesized_initializer = (curr_token != tok_assign &&
-                                     curr_token != tok_lbrace);
+    has_parenthesized_initializer = curr_token == tok_lparen;
     /* Bypass the "=" or "(". */
     if (curr_token == tok_lbrace) {
       init_dps.has_direct_initializer = TRUE;
     } else {
       init_dps.has_direct_initializer = has_parenthesized_initializer;
-      (void)get_token();
+      /* Variable templates with in-class initializers don't have the "=" in
+         the cache. */
+      if (!proto_var->is_member_constant) (void)get_token();
     }  /* if */
     init_dps.sym = var_sym;
     initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
@@ -6062,9 +6108,6 @@ the template definition or may be a default initialization.
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
-  if (is_var_templ_instance) {
-    add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
-  }  /* if */
 done:
   return;
 }  /* instantiate_template_variable */
@@ -14260,7 +14303,7 @@ by this routine.
                             /*is_specialization=*/FALSE, &locator, &func_info,
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
   var = variable_for_symbol(sym);
-  if (symbol_is(sym, sk_variable)) {
+  if (!sym->is_class_member && symbol_is(sym, sk_variable)) {
     /* FIXME: check after decl_variable refactoring. */
     var->storage_class = dps->storage_class;
   }  /* if */
@@ -15900,15 +15943,15 @@ error_exit:
 }  /* find_member_function_template */
 
 
-void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
-                                      a_symbol_ptr  corresp_prototype_tag_sym)
+void find_variable_member_template(a_symbol_ptr  var_sym,
+                                   a_symbol_ptr  corresp_prototype_tag_sym)
 /*
-static_data_member_sym is a symbol representing a static data member of a
-real instantiation of a class template.  corresp_prototype_tag_sym identifies
+var_sym is a symbol representing a static data member or variable template of
+a real instantiation of a class template.  corresp_prototype_tag_sym identifies
 the nonreal prototype instantiation of the same class template.  Find the
-sk_static_data_member symbol from the prototype instantiation (it serves as
-the template for the real static data member), and record it in the
-template instance entry already associated with static_data_member_sym.
+static data member or variable template symbol from the prototype
+instantiation (it serves as the template for the real static data member),
+and record it in the template instance entry already associated with var_sym.
 Also, add the instance to the definitions list for the template.
 */
 {
@@ -15916,14 +15959,15 @@ Also, add the instance to the definitions list for the template.
   a_symbol_ptr                      sym;
   a_variable_ptr                    vp;
   a_class_symbol_supplement_ptr     cssp;
+  a_variable_ptr                    var_for_decl;
 
-  db_enter(3, "find_static_data_member_template");
+  db_enter(3, "find_variable_member_template");
   /* Find a static data member symbol belonging to the prototype instantiation
-     and corresponding to static_data_member_sym. */
+     and corresponding to var_sym. */
   cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
+  var_for_decl = variable_for_symbol(var_sym);
   tp = type_symbol_type(corresp_prototype_tag_sym);
-  member_type = static_data_member_sym->
-                        variant.static_data_member.variable->type;
+  member_type = var_for_decl->type;
   if (member_type->kind == (a_type_kind)tk_union &&
       is_unnamed_tag_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
@@ -15932,15 +15976,17 @@ Also, add the instance to the definitions list for the template.
     vp = tp->variant.class_struct_union.extra_info->assoc_scope->variables;
     sym = NULL;
     for (; vp != NULL; vp = vp->next) {
+      a_template_instance_ptr	tip;
       sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+      tip = template_instance_for_symbol(sym);
       if (sym != NULL) {
-        if (sym->variant.static_data_member.instance_ptr == NULL) {
+        if (tip == NULL) {
           /* Something went very wrong with this symbol, discard it. */
           check_assertion(sym->is_error);
           sym = NULL;
         } else {
           a_template_symbol_supplement_ptr	tssp;
-          tssp = sym->variant.static_data_member.instance_ptr->template_info;
+          tssp = template_supplement_for_symbol(sym);
           check_assertion(tssp != NULL);
           if (tssp->token_sequence_number == curr_token_sequence_number) {
             break;
@@ -15963,11 +16009,12 @@ Also, add the instance to the definitions list for the template.
       sym = NULL;
     } else {
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
-                                           static_data_member_sym->header);
+                                           var_sym->header);
            sym != NULL;
            sym = sym->next_in_lookup_table) {
-        if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-            sym->variant.static_data_member.instance_ptr != NULL) {
+        if (sym->kind == var_sym->kind &&
+            (symbol_is(sym, sk_variable_template) ||
+             template_instance_for_symbol(sym) != NULL)) {
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (sym->kind == (a_symbol_kind)sk_property_set) {
@@ -15991,33 +16038,60 @@ Also, add the instance to the definitions list for the template.
     }  /* if */
   }  /* if */
   check_assertion_str2(sym != NULL || total_errors != 0,
-                       "find_static_data_member_template:",
+                       "find_variable_member_template:",
                        "no corresponding template");
   if (sym != NULL) {
-    /* sym is the template symbol with which static_data_member_sym is
+    /* sym is the template symbol with which var_sym is
        associated.  Create a static data member def entry and set the pointers
        to bind them all together. */
     a_template_instance_ptr		tip = alloc_template_instance();
-    a_template_symbol_supplement_ptr	tssp;
-    static_data_member_sym->variant.static_data_member.instance_ptr = tip;
-    tip->instance_sym = static_data_member_sym;
+    a_variable_ptr			proto_var;
+    proto_var = variable_for_symbol(sym);
+    if (symbol_is(var_sym, sk_static_data_member)) {
+      var_sym->variant.static_data_member.instance_ptr = tip;
+      tip->instance_sym = var_sym;
+    } else {
+      /* In the variable template case, var_sym points to the variable
+         template symbol, but the symbol for var_for_decl is the prototype
+         instantiation variable symbol. */
+      a_symbol_ptr proto_sym = symbol_for(var_for_decl);
+      proto_sym->variant.variable.instance_ptr = tip;
+      tip->instance_sym = proto_sym;
+    }  /* if */
     tip->template_sym = sym;
-    vp = static_data_member_sym->variant.static_data_member.variable;
-    /* Link the new entry to the start of the definition list of the static
-       data member template. */
-    tssp = sym->variant.static_data_member.instance_ptr->template_info;
-    tip->next = tssp->variant.variable.definitions;
-    tssp->variant.variable.definitions = tip;
-    /* Mark the variable entry as an instance of a static data member
-       template. */
-    vp->is_template_variable = TRUE;
-    vp->template_info = alloc_variable_template_info();
+    if (symbol_is(var_sym, sk_static_data_member)) {
+      a_template_symbol_supplement_ptr	tssp;
+      /* Link the new entry to the start of the definition list of the static
+         data member template. */
+      tssp = sym->variant.static_data_member.instance_ptr->template_info;
+      tip->next = tssp->variant.variable.definitions;
+      tssp->variant.variable.definitions = tip;
+      /* Mark the variable entry as an instance of a static data member
+         template. */
+      var_for_decl->is_template_variable = TRUE;
+      var_for_decl->template_info = alloc_variable_template_info();
+    } else {
+      a_template_symbol_supplement_ptr	tssp;
+      a_template_symbol_supplement_ptr	proto_tssp;
+      a_symbol_list_entry_ptr		slep;
+      check_assertion(symbol_is(sym, sk_variable_template));
+      proto_tssp = sym->variant.template_info;
+      tssp = var_sym->variant.template_info;
+      /* Create the pointer back to the original template. */
+      tssp->prototype_template = sym;
+      /* Add the new template to the list of templates based on the original
+         template. */
+      slep = alloc_symbol_list_entry();
+      slep->symbol = var_sym;
+      slep->next = proto_tssp->subordinate_templates;
+      proto_tssp->subordinate_templates = slep;
+    }  /* if */
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
-    vp->template_info->assoc_template =
-       sym->variant.static_data_member.variable->template_info->assoc_template;
+    var_for_decl->template_info->assoc_template =
+                                      proto_var->template_info->assoc_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (vp->decl_modifiers & DM_DLLIMPORT) {
+    if (var_for_decl->decl_modifiers & DM_DLLIMPORT) {
       /* A static data member declared with __declspec(dllimport) should not
          be instantiated. */
       tip->suppress_instantiation = TRUE;
@@ -16025,7 +16099,7 @@ Also, add the instance to the definitions list for the template.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
-}  /* find_static_data_member_template */
+}  /* find_variable_member_template */
 
 
 static void find_alias_member(a_symbol_ptr		alias_sym,
@@ -16738,6 +16812,7 @@ compatible.  Otherwise, return FALSE.
      enclosing classes. */
   decl_info = decl_state->decl_info;
   if (member_sym->kind == (a_symbol_kind)sk_function_template ||
+      member_sym->kind == (a_symbol_kind)sk_variable_template ||
       member_sym->kind == (a_symbol_kind)sk_class_template) {
     decl_info = decl_info->enclosing_template_decl;
   }  /* if */
@@ -22329,13 +22404,13 @@ Create the variable entry variable template specified by template_sym.
       decl_state->decl_scope_err = TRUE;
       check_assertion(total_errors != 0);
     } else {
-      add_to_variables_list(var, NO_SCOPE_DEPTH);
+      add_to_variables_list(var, decl_state->effective_decl_level);
     }  /* if */
   }  /* if */
 }  /* create_prototype_variable */
 
 
-static a_symbol_ptr create_variable_template_symbol(
+a_symbol_ptr create_variable_template_symbol(
                                   a_tmpl_decl_state_ptr            decl_state,
                                   a_symbol_locator                 *locator)
 /*
@@ -22566,6 +22641,7 @@ template symbol supplement for this template should be returned to the caller.
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
     /* Make sure the parameter list matches the class declaration. */
     if (sym->is_class_member &&
+        !in_prototype_instantiation_or_cli_generic(decl_state) &&
         decl_state->class_declared_in == NULL &&
         !member_template_param_list_matches_class(
                            decl_state, sym,
@@ -22675,10 +22751,13 @@ template symbol supplement for this template should be returned to the caller.
     } else {
       mark_declared(sym, &locator->source_position);
     }  /* if */
-    /* Save the declaration portion. */
-    set_template_cache_info(&tssp->variant.variable.decl_cache,
-                            &decl_state->decl_token_cache,
-                            decl_state->decl_info);
+    if (tssp->variant.variable.decl_cache.tokens.first_token == NULL) {
+      /* The decl_token_cache is always saved from the initial declaration
+         of the template. */
+      set_template_cache_info(&tssp->variant.variable.decl_cache,
+                              &decl_state->decl_token_cache,
+                              decl_state->decl_info);
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -24578,9 +24657,14 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       sym = class_member_template_declaration(decl_state);
-      complete_function_template_decl(decl_state, sym,
-                                      (a_func_info_block *)NULL, &tssp,
-                                      &decl_state->decl_pos_block.decl_pos);
+      if (sym == NULL || symbol_is(sym, sk_function_template)) {
+        /* The NULL symbol case goes here for error recovery purposes. */
+        complete_function_template_decl(decl_state, sym,
+                                        (a_func_info_block *)NULL, &tssp,
+                                        &decl_state->decl_pos_block.decl_pos);
+      } else if (symbol_is(sym, sk_variable_template)) {
+        tssp = sym->variant.template_info;
+      }  /* if */
       if (decl_state->defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
            be NULL in error cases. */
