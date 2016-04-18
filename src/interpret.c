@@ -4554,7 +4554,7 @@ accordingly.
     a_call_frame    frame;
     a_variable_ptr  params = callee_scope->variant.routine.parameters,
                     param, this_var;
-    a_byte_count    n_args = 0;
+    a_byte_count    n_args = 0, n_params = 0;
     a_byte          *arg_ptrs, **p_arg_ptr;
     an_alloc_seq_number
                     alloc_seq_number;
@@ -4594,10 +4594,21 @@ accordingly.
       n_args += 1;
     }  /* for */
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
+    /* Count the parameters (including "this") to make sure there are enough
+       arguments for the parameters. */
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (this_var != NULL) n_params += 1;
+    for (param = params; param != NULL; param = param->next) {
+      n_params += 1;
+    }  /* if */
+    if (n_args < n_params) {
+      info_with_pos(ec_too_few_arguments, &call_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg = callee_node->next;
-    this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var != NULL) {
       a_byte      *this_bytes = compact_value_bytes(this_buf);
       a_type_ptr  tp = skip_typerefs(arg->type);
@@ -4792,7 +4803,7 @@ the body of the (constructor) function proper.
                          param, this_var;
     a_constructor_init_ptr
                          ctor_init;
-    a_byte_count         n_args = 1;
+    a_byte_count         n_args = 1, n_params = 1;
     a_byte               *arg_ptrs, **p_arg_ptr;
     a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
@@ -4836,6 +4847,16 @@ the body of the (constructor) function proper.
     }  /* for */
     if (implied_src != NULL) n_args += 1;
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
+    /* Count the parameters (including "this") to make sure there are enough
+       arguments for the parameters. */
+    for (param = params; param != NULL; param = param->next) {
+      n_params += 1;
+    }  /* if */
+    if (n_args < n_params) {
+      info_with_pos(ec_too_few_arguments, pos, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
