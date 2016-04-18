@@ -12441,7 +12441,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
   if (is_shufflevector) {
     /* Do error checking on each of the integer arguments (when possible). */
     if (result_type != error_type() &&
-        p_op1 != NULL && p_op2 != NULL &&
+        p_op2 != NULL &&
         !op1_is_dependent && !op2_is_dependent) {
       an_expr_node_ptr arg, int_op_arg = NULL;
       an_operand       op;
