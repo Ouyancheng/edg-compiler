@@ -5894,6 +5894,7 @@ static void scan_template_variable_declaration(
 				a_template_symbol_supplement_ptr	tssp,
 				a_decl_parse_state_ptr			dps);
 
+#if 0
 
 static a_boolean is_invalid_variable_template_type(
 					a_variable_ptr	var,
@@ -5908,6 +5909,8 @@ If issue_error is TRUE, issue a diagnostic about the invalid type.
   /* FIXME */
   return FALSE;
 }  /* is_invalid_variable_template_type */
+
+#endif /* 0 */
 
 
 static void instantiate_template_variable(a_template_instance_ptr  tip)
@@ -6015,9 +6018,12 @@ the template definition or may be a default initialization.
   complete_type_is_needed(var_ptr->type);
   /* Make sure the type from the declaration is a valid variable
      declaration. */
+#if 0
+  /* FIXME */
   if (is_var_templ_instance) {
     (void)is_invalid_variable_template_type(var_ptr, /*issue_error=*/TRUE);
   }  /* if */
+#endif /* 0 */
   if (is_var_templ_instance) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
   }  /* if */

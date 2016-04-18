@@ -26310,7 +26310,6 @@ that is provided if this is a member template declaration.
   a_member_decl_info   decl_info;
   a_decl_parse_state   *dps = &decl_info.decl_state;
   a_boolean            is_member_template_rescan;
-  a_boolean            is_valid_member_template = FALSE;
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
   a_symbol_locator     locator;
@@ -26699,7 +26698,6 @@ that is provided if this is a member template declaration.
         decl_member_function_template(
                                 &locator, templ_param_list, il_template_entry,
                                 &func_info, class_state, &decl_info);
-        is_valid_member_template = TRUE;
         rout_sym = decl_info.decl_state.sym;
         if (dso_flags & DSO_EXPLICIT) {
           if (decl_info.is_constructor) {
