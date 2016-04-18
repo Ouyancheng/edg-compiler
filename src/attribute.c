@@ -6786,6 +6786,7 @@ requiring an exhaustive search.
 
   super_ap = find_attribute((an_attribute_kind)ak_abi_tag, superset_ap);
   sub_ap = find_attribute((an_attribute_kind)ak_abi_tag, subset_ap);
+  check_assertion(super_ap != NULL && sub_ap != NULL);
   for (sub_aap = sub_ap->arguments; sub_aap != NULL; sub_aap = sub_aap->next) {
 #if EXPENSIVE_CHECKING
     check_assertion(sub_aap->kind == (an_attribute_arg_kind)aak_constant &&
