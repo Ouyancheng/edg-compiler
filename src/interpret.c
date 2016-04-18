@@ -6210,6 +6210,10 @@ type.  This includes checking the value of ovfl set by the operation.
               if (ovfl) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
+              } else if (is_function_address(result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                              &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
@@ -6274,6 +6278,10 @@ type.  This includes checking the value of ovfl set by the operation.
               if (ovfl) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
+              } else if (is_function_address(result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                              &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
@@ -7792,6 +7800,10 @@ type.  This includes checking the value of ovfl set by the operation.
               if (ovfl) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
+              } else if (is_function_address(&result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_non_array_subscript,
+                              &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
