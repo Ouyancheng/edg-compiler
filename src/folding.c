@@ -1044,7 +1044,8 @@ folded to another error constant.
     } else {
       if (expr == NULL && constant_is(constant_1, ck_address) &&
           constant_1->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
+                                         (an_address_base_kind)abk_variable &&
+          !constant_1->implicit_cast) {
         expr = var_lvalue_expr(constant_1->variant.address.variant.variable);
       }  /* if */
       if (expr != NULL) {
