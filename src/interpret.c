@@ -578,9 +578,10 @@ Double the size of the overflow area of the given live set.
   ((seq) % NUM_LIVE_SET_HASH_HEADERS)
 
 
-#define add_to_live_set(set, seq)                                            \
-  { a_live_set_index  idx = hash_alloc_seq_number(seq);                      \
-    a_live_set_entry  *table = (set)->table;                                 \
+#define add_to_live_set(set, alloc_seq)                                      \
+  { an_alloc_seq_number  seq = alloc_seq;                                    \
+    a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
+    a_live_set_entry     *table = (set)->table;                              \
     an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
     if (cached_seq_number != 0) {                                            \
       /* Move the existing entry to an overflow entry. */                    \
@@ -599,8 +600,9 @@ Double the size of the overflow area of the given live set.
   }
 
 
-#define remove_from_live_set(set, seq)                                       \
-  { a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
+#define remove_from_live_set(set, alloc_seq)                                 \
+  { an_alloc_seq_number  seq = alloc_seq;                                    \
+    a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
     a_live_set_entry     *table = (set)->table;                              \
     an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
     if (cached_seq_number == seq) {                                          \
@@ -744,7 +746,7 @@ static a_byte	*free_stack_blocks;
 			/* List of free stack blocks available for reuse. */
 
 
-static void init_constexpr_stack(a_storage_stack_state  *sss)
+static void alloc_constexpr_stack_block(a_storage_stack_state  *sss)
 /*
 Initialize stack storage for the given storage stack.
 */
@@ -767,8 +769,18 @@ Initialize stack storage for the given storage stack.
   /* Leave space for the bookkeeping information (three pointers). */
   sss->top = sss->curr_block+3*ptr_size;
   sss->large_blocks = NULL;
-  sss->alloc_seq_number = 1;
-}  /* init_constexpr_stack */
+}  /* alloc_constexpr_stack_block */
+
+
+/*
+Initialize the given storage stack.
+*/
+#define init_constexpr_stack(sss)                                            \
+{                                                                            \
+  alloc_constexpr_stack_block(sss);                                          \
+  (sss)->alloc_seq_number = 1;                                               \
+}
+
 
 
 static void release_constexpr_stack(a_storage_stack_state  *sss)
@@ -883,7 +895,7 @@ Add a block of storage (to parcel out) to the given storage stack.
   next_block = *(a_byte**)(sss->curr_block+ptr_size);
   if (next_block == NULL) {
     /* The current block is the last block: Allocate a new one. */
-    init_constexpr_stack(sss);
+    alloc_constexpr_stack_block(sss);
   } else {
     /* Reuse a previously-allocated block. */
     sss->curr_block = next_block;
@@ -930,31 +942,33 @@ state.
   alloc_bytes(&(ips)->storage_stack, (n_bytes), (storage_ptr))
 
 
+void int_intercept() {}
 /*
 Macros to save and restore an allocation stack state.
 */
 #define save_storage_stack(ips, state)                                       \
-  {                                                                          \
-    (state) = (ips)->storage_stack;                                          \
-    (ips)->storage_stack.alloc_seq_number = ++(ips)->curr_alloc_seq_number;  \
-    add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);         \
-  }
+{                                                                            \
+  (state) = (ips)->storage_stack;                                            \
+  (ips)->storage_stack.alloc_seq_number = ++(ips)->curr_alloc_seq_number;    \
+  add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);           \
+}
+
 
 #define restore_storage_stack(ips, state)                                    \
-  {                                                                          \
-    a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks,          \
-            *saved_large_blocks = (state).large_blocks;                      \
-    remove_from_live_set(&(ips)->live_set,                                   \
-                         (ips)->storage_stack.alloc_seq_number);             \
-    while (curr_large_blocks != saved_large_blocks) {                        \
-      a_byte  *large_block = curr_large_blocks;                              \
-      curr_large_blocks = ((a_large_block_header*)large_block)               \
+{                                                                            \
+  a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks,            \
+          *saved_large_blocks = (state).large_blocks;                        \
+  remove_from_live_set(&(ips)->live_set,                                     \
+                       (ips)->storage_stack.alloc_seq_number);               \
+  while (curr_large_blocks != saved_large_blocks) {                          \
+    a_byte  *large_block = curr_large_blocks;                                \
+    curr_large_blocks = ((a_large_block_header*)large_block)                 \
                                                       ->prev_large_block;    \
-      free_general(large_block,                                              \
-                   ((a_large_block_header*)large_block)->block_size);        \
-    }  /* while */                                                           \
-    (ips)->storage_stack = (state);                                          \
-  }
+    free_general(large_block,                                                \
+                 ((a_large_block_header*)large_block)->block_size);          \
+  }  /* while */                                                             \
+  (ips)->storage_stack = (state);                                            \
+}
 
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
 /*
@@ -1832,60 +1846,6 @@ information describing the problem.
 Macro defining the largest allowed size of a type in the interpreter.
 */
 #define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
-
-/*
-The interpreter's stack allocator is pretty efficient, but many "compact"
-operands can be allocated even more efficiently on the call stack.  To manage
-this, we create a union of the value types allocated on the stack, and macros
-to declare and access a corresponding array of bytes.
-*/
-typedef union a_compact_value_sizing_model {
-  an_integer_value	 iv;
-	/*lint -esym(754, a_compact_value_sizing_model::iv)*/
-  an_internal_float_value
-			 ifv;
-	/*lint -esym(754, a_compact_value_sizing_model::ifv)*/
-  a_constexpr_address	 ca;
-	/*lint -esym(754, a_compact_value_sizing_model::ca)*/
-  a_constexpr_ptr_to_mem cptm;
-	/*lint -esym(754, a_compact_value_sizing_model::cptm)*/
-} a_compact_value_sizing_model;
-
-#define is_compact_value_size(n)  (n <= sizeof(a_compact_value_sizing_model))
-
-#ifdef __GNUC__
-/* Use GCC attributes to control alignment. */
-#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
-   __attribute((aligned(__alignof(a_compact_value_sizing_model))))           \
-     a_byte buf_name[sizeof(a_compact_value_sizing_model)]
-
-#define compact_value_bytes(buf_name) (buf_name)
-
-#else /* !defined(__GNUC__) */
-#ifdef _MSVC_VER
-/* Use Microsoft __declspec to control alignment. */
-#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
-   __declspec(align(__alignof(a_compact_value_sizing_model)))                \
-     a_byte buf_name[sizeof(a_compact_value_sizing_model)]
-
-#define compact_value_bytes(buf_name) (buf_name)
-
-#else /* !defined(_MSC_VER) */
-/* Use a union to align a byte buffer. */
-typedef union a_compact_value {
-  a_compact_value_sizing_model
-		alignment_model;
-	/*lint -esym(754, a_compact_value::alignment_model)*/
-  a_byte	buf[sizeof(a_compact_value_sizing_model)];
-} a_compact_value;
-
-#define DECL_COMPACT_VALUE_BYTES(buf_name)                                   \
-  a_compact_value buf_name
-
-#define compact_value_bytes(buf_name) ((buf_name).buf)
-
-#endif /* ifdef _MSC_VER */
-#endif /* ifdef __GNUC__ */
 
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
@@ -3424,13 +3384,11 @@ Interpret the given for-statement.
     a_boolean         ovfl, has_cond_var;
     a_host_large_integer
                       bool_val = FALSE;
-    DECL_COMPACT_VALUE_BYTES(expr_bytes);
-    DECL_COMPACT_VALUE_BYTES(incr_bytes);
     if (expr != NULL) {
-      /* The type of the test expression is known to be bool, which will
-         fit within the expr_bytes array. */
-      expr_value = compact_value_bytes(expr_bytes);
+      /* Allocate storage for the test expression result (a boolean). */
       tp = skip_typerefs(expr->type);
+      n_bytes = value_bytes_for_type(ips, tp, &result);
+      alloc_complete_object(ips, n_bytes, tp, expr_value);
       /* Check if we have to allocate a condition variable. */
       has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
       if (has_cond_var &&
@@ -3443,27 +3401,19 @@ Interpret the given for-statement.
       has_cond_var = FALSE;
       /* Needed only to avoid spurious GNU compiler optimizer
          warnings. */
-      expr_value = compact_value_bytes(expr_bytes);
       tp = NULL;
+      expr_value = NULL;
     }  /* if */
     incr = loop_info->increment;
     if (incr != NULL) {
       incr_type = skip_typerefs(incr->type);
       n_bytes = value_bytes_for_type(ips, incr_type, &result);
       if (!result) goto unmap_storage;
-      if (!is_compact_value_size(n_bytes) &&
-          !incr->is_lvalue && !incr->is_xvalue) {
-        /* The result of the increment expression is larger than a scalar
-           type, so allocate space for it on the stack. */
-        alloc_stack_bytes(ips, n_bytes, incr_value);
-      } else {
-        incr_value = compact_value_bytes(incr_bytes);
-      }  /* if */
-      record_complete_object(incr_type, incr_value);
+      alloc_complete_object(ips, n_bytes, incr_type, incr_value);
     } else {
       /* Needed only to avoid spurious GNU compiler optimizer warnings. */
       incr_type = NULL;
-      incr_value = compact_value_bytes(incr_bytes);
+      incr_value = NULL;
     }  /* if */
     do {
       /* Evaluate the test expression. */
@@ -3603,19 +3553,12 @@ Interpret the given range-based for-statement.
     a_boolean         ovfl;
     a_host_large_integer
                       bool_val;
-    DECL_COMPACT_VALUE_BYTES(expr_bytes);
-    DECL_COMPACT_VALUE_BYTES(incr_bytes);
-    expr_value = compact_value_bytes(expr_bytes);
+    /* Allocate storage for the loop-test result (a boolean) and the
+       incrementation result. */
+    n_bytes = value_bytes_for_type(ips, tp, &result);
+    alloc_complete_object(ips, n_bytes, tp, expr_value);
     n_bytes = value_bytes_for_type(ips, incr_type, &result);
-    if (!is_compact_value_size(n_bytes) &&
-        !incr->is_lvalue && !incr->is_xvalue) {
-      /* The result of the increment expression is larger than a scalar type,
-         so allocate space for it on the stack. */
-      alloc_stack_bytes(ips, n_bytes, incr_value);
-    } else {
-      incr_value = compact_value_bytes(incr_bytes);
-    }  /* if */
-    record_complete_object(incr_type, incr_value);
+    alloc_complete_object(ips, n_bytes, incr_type, incr_value);
     if (!result) goto unmap_storage;
     dip = vp[0]->initializer.dynamic;
     do {
@@ -3701,25 +3644,16 @@ successfully interpreted, FALSE otherwise.
   a_storage_stack_state saved_stack;
   a_type_ptr            tp;
   a_boolean             ovfl;
-  DECL_COMPACT_VALUE_BYTES(expr_bytes);
+  a_byte_count          n_bytes;
 
   switch (stmt->kind) {
     case stmk_expr:
       {
-        a_byte_count  n_bytes;
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         save_storage_stack(ips, saved_stack);
-        if (!is_compact_value_size(n_bytes) &&
-            !expr->is_lvalue && !expr->is_xvalue) {
-          /* The value is larger than a scalar type, so allocate space for
-             it on the stack. */
-          alloc_stack_bytes(ips, n_bytes, expr_value);
-        } else {
-          expr_value = compact_value_bytes(expr_bytes);
-        }  /* if */
-        record_complete_object(tp, expr_value);
+        alloc_complete_object(ips, n_bytes, tp, expr_value);
         if (!result) {
           /* Stop interpretation. */
         } else if (!do_constexpr_expression(ips, expr, expr_value)) {
@@ -3742,10 +3676,10 @@ successfully interpreted, FALSE otherwise.
           do_constexpr_fail(result);
           break;
         }  /* if */
-        /* The type of the test expression is known to be bool, which will
-           fit within the expr_bytes buffer. */
-        expr_value = compact_value_bytes(expr_bytes);
+        /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
+        n_bytes = value_bytes_for_type(ips, tp, &result);
+        alloc_complete_object(ips, n_bytes, tp, expr_value);
         result = do_constexpr_condition(has_cond_var, ips, expr, tp,
                                         expr_value);
         if (result) {
@@ -3779,10 +3713,10 @@ successfully interpreted, FALSE otherwise.
           do_constexpr_fail(result);
           break;
         }  /* if */
-        /* The type of the test expression is known to be bool, which will
-           fit within the expr_bytes array. */
-        expr_value = compact_value_bytes(expr_bytes);
+        /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
+        n_bytes = value_bytes_for_type(ips, tp, &result);
+        alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
@@ -3877,10 +3811,10 @@ successfully interpreted, FALSE otherwise.
       {
         a_host_large_integer  bool_val;
         expr = stmt->expr;
-        /* The type of the test expression is known to be bool, which will
-           fit within the expr_bytes array. */
-        expr_value = compact_value_bytes(expr_bytes);
+        /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
+        n_bytes = value_bytes_for_type(ips, tp, &result);
+        alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Execute the dependent statement. */
           result = do_constexpr_statement(ips, stmt->variant.loop_statement);
@@ -3939,10 +3873,10 @@ successfully interpreted, FALSE otherwise.
             !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
           break;
         }  /* if */
-        /* The type of the switch expression is known to be integral, which
-           will fit within the expr_bytes array. */
-        expr_value = compact_value_bytes(expr_bytes);
+        /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
+        n_bytes = value_bytes_for_type(ips, tp, &result);
+        alloc_complete_object(ips, n_bytes, tp, expr_value);
         result = do_constexpr_condition(has_cond_var, ips, expr, tp,
                                         expr_value);
         if (!result) {
@@ -3952,9 +3886,11 @@ successfully interpreted, FALSE otherwise.
         /* Search through the ordered list of case labels for the one selected
            by the switch expression. */
         for (; scep != NULL; scep = scep->next_on_sorted_list) {
-          DECL_COMPACT_VALUE_BYTES(case_buffer);
-          a_byte  *case_bytes = compact_value_bytes(case_buffer);
-          int cmp;
+          a_byte          *case_bytes;
+          int             cmp;
+          a_constant_ptr  case_con = scep->case_value;
+          a_type_ptr      case_tp = skip_typerefs(case_con->type);
+          alloc_complete_object(ips, n_bytes, case_tp, case_bytes);
           result = copy_val_from_constant(ips, scep->case_value, case_bytes);
           if (!result) {
             goto done_with_switch;
@@ -4255,8 +4191,7 @@ to FALSE and the reason for the failure is recorded in *ips.
 {
   a_boolean         interpreted, err = FALSE, depends_on_fp_mode;
   an_expr_node_ptr  args = call_node->variant.operation.operands->next;
-  DECL_COMPACT_VALUE_BYTES(arg1_buf);
-  a_byte            *arg1_bytes = compact_value_bytes(arg1_buf);
+  a_byte            *arg1_bytes;
 
   ips->cost += 1;
   switch (callee->variant.builtin_function_kind) {
@@ -4294,7 +4229,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           if (!*p_result) break;
           saved_side_effects_disabled = ips->side_effects_disabled;
           ips->side_effects_disabled = TRUE;
-          alloc_stack_bytes(ips, n_bytes, arg1_bytes);
+          alloc_complete_object(ips, n_bytes, arg_type, arg1_bytes);
           if (do_constexpr_expression(ips, args, arg1_bytes)) {
             *(an_integer_value*)result_storage = one_int;
           } else {
@@ -4312,18 +4247,22 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (args == NULL || args->next != NULL ||
             !is_real_floating_type(args->type)) {
           unexpected_condition();
-        } else if (do_constexpr_expression(ips, args, arg1_bytes)) {
-          a_type_ptr    tp = skip_typerefs(args->type);
-          a_float_kind  fk = tp->variant.float_kind;
-          if (fp_is_negative(fk, fp_value(arg1_bytes))) {
-            fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
-                      &err, &depends_on_fp_mode);
-            check_assertion(!err);
-          } else {
-            *fp_value(result_storage) = *fp_value(arg1_bytes);
-          }  /* if */
         } else {
-          do_constexpr_fail(*p_result);
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+            a_float_kind  fk = tp->variant.float_kind;
+            if (fp_is_negative(fk, fp_value(arg1_bytes))) {
+              fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
+                        &err, &depends_on_fp_mode);
+              check_assertion(!err);
+            } else {
+              *fp_value(result_storage) = *fp_value(arg1_bytes);
+            }  /* if */
+          } else {
+            do_constexpr_fail(*p_result);
+          }  /* if */
         }  /* if */
       }
       break;
@@ -4340,16 +4279,20 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (args == NULL || args->next != NULL ||
             !is_real_floating_type(args->type)) {
           unexpected_condition();
-        } else if (do_constexpr_expression(ips, args, arg1_bytes)) {
+        } else {
           a_type_ptr    tp = skip_typerefs(args->type);
-          a_float_kind  fk = tp->variant.float_kind;
-          if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
-                                           result_storage)) {
-            info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+            a_float_kind  fk = tp->variant.float_kind;
+            if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
+                                             result_storage)) {
+              info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
+              do_constexpr_fail(*p_result);
+            }  /* if */
+          } else {
             do_constexpr_fail(*p_result);
           }  /* if */
-        } else {
-          do_constexpr_fail(*p_result);
         }  /* if */
       }
       break;
@@ -4375,7 +4318,10 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (args == NULL || args->next != NULL) {
           unexpected_condition();
         } else {
-          a_type_ptr  tp = skip_typerefs(args->type);
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (!do_constexpr_expression(ips, args, arg1_bytes) ||
               !do_constexpr_builtin_bitcount(
                                     callee, arg1_bytes, tp, result_storage)) {
@@ -4473,7 +4419,6 @@ accordingly.
   a_boolean         result = TRUE;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
-  DECL_COMPACT_VALUE_BYTES(pm_buf);
 
   /* First determine the actual callee. */
   callee_node = call_node->variant.operation.operands;
@@ -4483,7 +4428,10 @@ accordingly.
              node_operator_is(call_node, eok_points_to_pm_call)) {
     /* A call through a pointer-to-member function.  We'll determine the
        callee here, and adjust the "this" pointer later on. */
-    a_byte  *pm_bytes = compact_value_bytes(pm_buf);
+    a_type_ptr    pm_type = skip_typerefs(callee_node->type);
+    a_byte        *pm_bytes;
+    a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
+    alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
     pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
     if (do_constexpr_expression(ips, callee_node, pm_bytes)) {
       callee = pm_target->variant.routine;
@@ -4559,7 +4507,6 @@ accordingly.
     an_alloc_seq_number
                     alloc_seq_number;
     unsigned long   up_front_cost;
-    DECL_COMPACT_VALUE_BYTES(this_buf);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -4610,8 +4557,10 @@ accordingly.
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg = callee_node->next;
     if (this_var != NULL) {
-      a_byte      *this_bytes = compact_value_bytes(this_buf);
-      a_type_ptr  tp = skip_typerefs(arg->type);
+      a_byte        *this_bytes;
+      a_type_ptr    tp = skip_typerefs(arg->type);
+      a_byte_count  this_n_bytes = value_bytes_for_type(ips, tp, &result);
+      alloc_complete_object(ips, this_n_bytes, tp, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
       if (arg->is_lvalue || arg->is_xvalue ||
@@ -4811,7 +4760,6 @@ the body of the (constructor) function proper.
     a_class_symbol_supplement_ptr
                          cssp;
     unsigned long        up_front_cost;
-    DECL_COMPACT_VALUE_BYTES(this_buf);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -4909,7 +4857,11 @@ the body of the (constructor) function proper.
       do_constexpr_fail(result);
       goto done;
     } else {
-      a_byte  *this_bytes = compact_value_bytes(this_buf);
+      a_byte        *this_bytes;
+      a_type_ptr    this_type = skip_typerefs(this_var->type);
+      a_byte_count  this_n_bytes = value_bytes_for_type(ips, this_type,
+                                                        &result);
+      alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
       ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
       map_stack_bytes(ips, this_var, this_bytes);
@@ -5152,8 +5104,6 @@ of the prvalue result.
         a_byte           *opnd2_value;
         a_boolean        ovfl, err, depends_on_fp_mode, unord;
         a_byte_count     opnd_n_bytes;
-        DECL_COMPACT_VALUE_BYTES(opnd1_bytes);
-        DECL_COMPACT_VALUE_BYTES(opnd2_bytes);
 
         if (is_call_node(expr)) {
           /* Call nodes are handled separately because their operands are set
@@ -5268,19 +5218,7 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = value_bytes_for_type(ips, opnd1_type, &result);
-        if (!opnd1->is_lvalue && !opnd1->is_xvalue &&
-            (!is_compact_value_size(opnd_n_bytes) ||
-             node_operator_is(expr, eok_reference_to))) {
-          /* The value is larger than a scalar type, so allocate space for it
-             on the storage stack.  Also allocate it on the storage stack if
-             we're evaluating an eok_reference_to that produces a reference for
-             a (class) prvalue since that prvalue must survive the full
-             expression. */
-          alloc_stack_bytes(ips, opnd_n_bytes, opnd1_value);
-        } else {
-          opnd1_value = compact_value_bytes(opnd1_bytes);
-        }  /* if */
-        record_complete_object(opnd1_type, opnd1_value);
+        alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -5299,20 +5237,12 @@ type.  This includes checking the value of ovfl set by the operation.
              to the comma operator in this respect. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
-          if (!is_compact_value_size(opnd_n_bytes) &&
-              !opnd2->is_lvalue && !opnd2->is_xvalue) {
-            /* The value may be larger than a scalar type, so allocate
-               space for it on the stack. */
-            alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
-          } else {
-            opnd2_value = compact_value_bytes(opnd2_bytes);
-          }  /* if */
-          record_complete_object(opnd2_type, opnd2_value);
+          alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
-          opnd2_value = compact_value_bytes(opnd2_bytes);
+          opnd2_value = NULL;
           opnd2_type = NULL;
         }  /* if */
         if (!result) break;
@@ -7711,15 +7641,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* Evaluate the second operand. */
                 opnd2_type = skip_typerefs(opnd2->type);
                 opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
-                if (!is_compact_value_size(opnd_n_bytes) &&
-                    !opnd2->is_lvalue && !opnd2->is_xvalue) {
-                  /* The value may be larger than a scalar type, so allocate
-                     space for it on the stack. */
-                  alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
-                } else {
-                  opnd2_value = compact_value_bytes(opnd2_bytes);
-                }  /* if */
-                record_complete_object(opnd2_type, opnd2_value);
+                alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                      opnd2_value);
                 if (result &&
                     !do_constexpr_expression(ips, opnd2, opnd2_value)) {
                   do_constexpr_fail(result);
@@ -7765,15 +7688,8 @@ type.  This includes checking the value of ovfl set by the operation.
                 /* Evaluate the second operand. */
                 opnd2_type = skip_typerefs(opnd2->type);
                 opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
-                if (!is_compact_value_size(opnd_n_bytes) &&
-                    !opnd2->is_lvalue && !opnd2->is_xvalue) {
-                  /* The value may be larger than a scalar type, so allocate
-                     space for it on the stack. */
-                  alloc_stack_bytes(ips, opnd_n_bytes, opnd2_value);
-                } else {
-                  opnd2_value = compact_value_bytes(opnd2_bytes);
-                }  /* if */
-                record_complete_object(opnd2_type, opnd2_value);
+                alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                      opnd2_value);
                 if (result &&
                     !do_constexpr_expression(ips, opnd2, opnd2_value)) {
                   do_constexpr_fail(result);
@@ -8147,8 +8063,8 @@ type.  This includes checking the value of ovfl set by the operation.
                variable, e.g.,
                  constexpr std::initializer_list<int> x = { 1, 2 };
                there is no extended-lifetime storage.  Instead, the result
-               will be stored in IL, which is persistent across interpreter
-               invocations. */
+               will eventually be stored in IL, which is persistent across
+               interpreter invocations. */
             alloc_bytes(ips->extension_state, n_bytes, tmp_bytes);
             alloc_seq_number = ips->extension_state->alloc_seq_number;
             ips->extension_state = NULL;
