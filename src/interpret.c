@@ -3426,9 +3426,9 @@ Interpret the given for-statement.
       if (!result) goto unmap_storage;
       alloc_complete_object(ips, n_bytes, incr_type, incr_value);
     } else {
-      /* Needed only to avoid spurious GNU compiler optimizer warnings. */
+      /* To avoid spurious warnings from certain tools. */
       incr_type = NULL;
-      incr_value = NULL;
+      incr_value = expr_value;
     }  /* if */
     do {
       /* Evaluate the test expression. */
