@@ -12364,9 +12364,6 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
           if (is_error_type(intop_constant->type)) {
             expr_expect_error();
             result_type = error_type();
-            if (rcblock != NULL) {
-              rcblock->error_detected = TRUE;
-            }  /* if */
           } else if (is_template_dependent_context() &&
                      is_template_dependent_type(intop_constant->type)) {
             check_assertion(intop_constant->kind ==
