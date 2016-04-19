@@ -6067,7 +6067,9 @@ the template definition or may be a default initialization.
       init_dps.has_direct_initializer = has_parenthesized_initializer;
       /* Variable templates with in-class initializers don't have the "=" in
          the cache. */
-      if (!proto_var->is_member_constant) (void)get_token();
+      if (!is_var_templ_instance || !proto_var->is_member_constant) {
+        (void)get_token();
+      }  /* if */
     }  /* if */
     init_dps.sym = var_sym;
     initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
