@@ -15841,7 +15841,7 @@ template declaration and is NULL otherwise.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_ptr             property_set = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_variable_ptr           var;
+  a_variable_ptr           var = NULL;
   a_decl_parse_state       *decl_state = &decl_info->decl_state;
   a_type_ptr               class_type = class_state->class_type;
   a_type_ptr               member_type = decl_state->type;
