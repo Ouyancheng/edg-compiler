@@ -4573,7 +4573,7 @@ accordingly.
     if (this_var != NULL) {
       a_byte        *this_bytes;
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  this_n_bytes = value_bytes_for_type(ips, tp, &result);
+      a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
       alloc_complete_object(ips, this_n_bytes, tp, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
