@@ -156,10 +156,11 @@ Bit fields occupy a whole integer value, but every "store" to a bit field is
 appropriately trimmed.
 
 Class type objects and subobjects start with an IL pointer (described below),
-followed by storage for the fields, and that followed by storage for direct
-base classes (in declaration order).  A derived-to-base class cast therefore
-always corresponds to a positive offset of the "this" pointer, whereas a
-base-to-derived class cast involves negative offset.
+followed by storage for the fields, storage for nonvirtual direct base classes,
+and finally storage for virtual bases classes (all in declaration order).
+A derived-to-base class cast therefore always corresponds to a positive offset
+of the "this" pointer, whereas a base-to-derived class cast involves negative
+offset.
 
 For objects of union type, the leading pointer points to the a_field
 corresponding to the "active field" (attempting to read a non-active field
@@ -205,6 +206,9 @@ produce that address: The ".y[3].z" path can be reconstructed and this may be
 needed when comparing pointers or when translating interpreter addresses back
 to a_constant/ck_address entries.
 
+Every complete object (i.e., an object that is not a subobject of another
+object) is preceded by a pointer to its unqualified type, and that is preceded
+by a bitmap FIXME
 */
 
 typedef unsigned int a_byte_count;
@@ -942,7 +946,6 @@ state.
   alloc_bytes(&(ips)->storage_stack, (n_bytes), (storage_ptr))
 
 
-void int_intercept() {}
 /*
 Macros to save and restore an allocation stack state.
 */
@@ -1819,6 +1822,18 @@ failure (*ips is updated accordingly).
        sizeof(an_internal_float_value) :                                     \
    /* else */                                                                \
     f_value_bytes_for_type(ips, tp, result_flag))
+
+/*
+Macro returning the number of bytes needed to represent the result of an
+expression.  For glvalues, it is the size of a constexpr address.  For prvalues
+it is the number of bytes needed to represent a value of the given type (tp) in
+interpreter storage.
+*/
+#define expr_result_size(ips, expr, tp, p_result)                            \
+  (((expr)->is_lvalue || (expr)->is_xvalue) ?                                \
+      sizeof(a_constexpr_address) :                                          \
+      value_bytes_for_type(ips, tp, p_result))
+
 
 static void info_one_past_end_of_array(a_constexpr_address   *addr,
                                        an_expr_node_ptr      expr,
@@ -3387,7 +3402,7 @@ Interpret the given for-statement.
     if (expr != NULL) {
       /* Allocate storage for the test expression result (a boolean). */
       tp = skip_typerefs(expr->type);
-      n_bytes = value_bytes_for_type(ips, tp, &result);
+      n_bytes = expr_result_size(ips, expr, tp, &result);
       alloc_complete_object(ips, n_bytes, tp, expr_value);
       /* Check if we have to allocate a condition variable. */
       has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
@@ -3407,7 +3422,7 @@ Interpret the given for-statement.
     incr = loop_info->increment;
     if (incr != NULL) {
       incr_type = skip_typerefs(incr->type);
-      n_bytes = value_bytes_for_type(ips, incr_type, &result);
+      n_bytes = expr_result_size(ips, incr, incr_type, &result);
       if (!result) goto unmap_storage;
       alloc_complete_object(ips, n_bytes, incr_type, incr_value);
     } else {
@@ -3555,9 +3570,9 @@ Interpret the given range-based for-statement.
                       bool_val;
     /* Allocate storage for the loop-test result (a boolean) and the
        incrementation result. */
-    n_bytes = value_bytes_for_type(ips, tp, &result);
+    n_bytes = expr_result_size(ips, expr, tp, &result);
     alloc_complete_object(ips, n_bytes, tp, expr_value);
-    n_bytes = value_bytes_for_type(ips, incr_type, &result);
+    n_bytes = expr_result_size(ips, incr, incr_type, &result);
     alloc_complete_object(ips, n_bytes, incr_type, incr_value);
     if (!result) goto unmap_storage;
     dip = vp[0]->initializer.dynamic;
@@ -3651,7 +3666,7 @@ successfully interpreted, FALSE otherwise.
       {
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
-        n_bytes = value_bytes_for_type(ips, tp, &result);
+        n_bytes = expr_result_size(ips, expr, tp, &result);
         save_storage_stack(ips, saved_stack);
         alloc_complete_object(ips, n_bytes, tp, expr_value);
         if (!result) {
@@ -4224,8 +4239,8 @@ to FALSE and the reason for the failure is recorded in *ips.
              side-effects took place. */
           a_boolean     saved_side_effects_disabled;
           a_type_ptr    arg_type = skip_typerefs(args->type);
-          a_byte_count  n_bytes = value_bytes_for_type(ips, arg_type,
-                                                       p_result);
+          a_byte_count  n_bytes = expr_result_size(ips, args, arg_type,
+                                                   p_result);
           if (!*p_result) break;
           saved_side_effects_disabled = ips->side_effects_disabled;
           ips->side_effects_disabled = TRUE;
@@ -4595,7 +4610,7 @@ accordingly.
     }  /* if */
     for (; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+      a_byte_count  n_bytes = expr_result_size(ips, arg, tp, &result);
       a_byte        *arg_bytes;
       a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
@@ -4809,7 +4824,7 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+      a_byte_count  n_bytes = expr_result_size(ips, arg, tp, &result);
       a_byte        *arg_bytes;
       a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
@@ -5217,7 +5232,7 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
-        opnd_n_bytes = value_bytes_for_type(ips, opnd1_type, &result);
+        opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
         alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
         if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
           do_constexpr_fail(result);
@@ -5236,7 +5251,7 @@ type.  This includes checking the value of ovfl set by the operation.
              that case); eok_dot_static and eok_points_to_static are equivalent
              to the comma operator in this respect. */
           opnd2_type = skip_typerefs(opnd2->type);
-          opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
+          opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
           alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
           if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
             do_constexpr_fail(result);
@@ -7640,7 +7655,8 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 /* Evaluate the second operand. */
                 opnd2_type = skip_typerefs(opnd2->type);
-                opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
+                opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
+                                                &result);
                 alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
                                       opnd2_value);
                 if (result &&
@@ -7687,7 +7703,8 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 /* Evaluate the second operand. */
                 opnd2_type = skip_typerefs(opnd2->type);
-                opnd_n_bytes = value_bytes_for_type(ips, opnd2_type, &result);
+                opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
+                                                &result);
                 alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
                                       opnd2_value);
                 if (result &&
@@ -8534,7 +8551,7 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   init_interpreter_state(&ips);
   ips.position = call_expr->position;
-  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+  n_bytes = expr_result_size(&ips, call_expr, result_type, &result); 
   if (!result) {
     /* Nothing more to be done. */
   } else {
