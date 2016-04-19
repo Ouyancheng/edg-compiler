@@ -1385,8 +1385,7 @@ typedef struct a_source_line_modif {
   a_const_char	*end_inserted_text;
 			/* Pointer to the LE_END_OF_INSERTION lexical escape
 			   at the end of inserted_text. */
-  a_macro_def_ptr
-		assoc_macro;
+  a_symbol_ptr	assoc_macro;
 			/* The macro that generated this expansion.  This
 			   is important in that the macro name is protected
 			   from expansion within its own expansion.  If

@@ -3304,7 +3304,7 @@ invocations.
   slmp->is_whitespace_kwd   = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
-  slmp->assoc_macro         = (a_macro_def_ptr)NULL;
+  slmp->assoc_macro         = (a_symbol_ptr)NULL;
   /* Give this entry a sequence id indicating the "time" at which it was
      added. */
   slmp->sequence_id         = ++sequence_id_for_source_line_modifs;

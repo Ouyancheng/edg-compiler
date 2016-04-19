@@ -4505,35 +4505,6 @@ were __has_include.
 }  /* scan_has_include */
 
 
-static a_boolean inserted_text_is_same(a_source_line_modif_ptr slmp,
-                                       a_const_char            *str,
-                                       sizeof_t                len)
-/*
-Return TRUE if the original inserted text of slmp (i.e., before further
-replacements indicated by ATTENTION_MARKER) matches the string designated
-by str and len.
-*/
-{
-  sizeof_t  inserted_text_len =
-                     (sizeof_t)(slmp->end_inserted_text - slmp->inserted_text);
-  a_boolean matches = (inserted_text_len == len);
-  a_const_char *p;
-
-  for (p = slmp->inserted_text; matches && p < slmp->end_inserted_text;
-       ++p, ++str) {
-    char ch = *p;
-    if (ch == ATTENTION_MARKER) {
-      /* The original text starting at this location has been replaced by
-         further macro expansion.  Compare against the original character
-         at this location. */
-      ch = nested_source_line_modif(p)->orig_char;
-    }  /* if */
-    matches = (ch == *str);
-  }  /* for */
-  return matches;
-}  /* inserted_text_is_same */
-
-
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -4809,7 +4780,7 @@ end_scan_for_macro_modifs:;
     macro_invocation_stack_depth = slmp->invocation_depth + 1;
 #endif /* RECORD_MACRO_INVOCATIONS */
     do {
-      if (slmp->assoc_macro == mdp) {
+      if (slmp->assoc_macro == macro_symbol) {
         /* The identifier does appear within its own expansion. */
         if (!pcc_preprocessing_mode) {
           if (ms_compat) {
@@ -4833,7 +4804,8 @@ end_scan_for_macro_modifs:;
 
                the Microsoft preprocessor leaves the second invocation
                unexpanded, apparently basing the decision on whether the
-               expanded text is identical to the previous expansion.  The
+               previous expansion began with a macro invocation and the
+               current expansion begins with the same macro name.  The
                Microsoft preprocessor also does not expand the second
                invocation if the first appeared directly in the source
                code; that is, given
@@ -6568,31 +6540,48 @@ copy_done:
   }  /* if */
   if (check_expansion_for_recursion) {
     /* This macro invocation appears in the expansion of an earlier
-       invocation of the same macro.  Normally that would mark the macro
-       as inert.  In the Microsoft preprocessor, however, the macro is
-       only treated as inert if the expansions are identical.  Find all
-       previous invocations of this macro that are still active and check
-       their text against the just-expanded text. */
+       invocation of the same macro.  Normally that would mark the macro as
+       inert.  In the Microsoft preprocessor, however, the macro is only
+       treated as inert if the expansions begin with an invocation of the
+       same macro.  Find all previous invocations of this macro that are
+       still active and check their text against the just-expanded text. */
     for (slmp = invocation_slmp; slmp != NULL;
          slmp = parent_source_line_modif(slmp)) {
-      if (slmp->assoc_macro == mdp &&
-          inserted_text_is_same(slmp, rescan_loc, repl_text_len)) {
-        /* We found an identical recursive invocation.  Reset the state
-           appropriately and treat the macro name as inert. */
-        is_inert_macro = TRUE;
-        macro_depth = saved_macro_depth;
+      if (slmp->assoc_macro == macro_symbol &&
+          *slmp->inserted_text == ATTENTION_MARKER) {
+        /* The previous expansion of this macro began with a macro
+           invocation.  If the current expansion begins with that same
+           macro name, the Microsoft preprocessor does not expand the
+           current macro invocation, and we need to treat the macro name as
+           inert.  We can't simply compare the characters following the
+           ATTENTION_MARKER with the corresponding portion of the current
+           expansion, however, because the deleted text from the earlier
+           invocation may ave been removed by the buffer compaction
+           performed by expand_macro_buffer.  Instead, we compare the name
+           of the previously-expanded nested macro against the text of
+           current expansion using the name from the macro symbol. */
+        slmp2 = nested_source_line_modif(slmp->inserted_text);
+        if (slmp2->orig_char == *rescan_loc &&
+            strcmp(slmp2->assoc_macro->header->identifier + 1,
+                   rescan_loc + 1) == 0) {
+          /* The current expansion begins with the same macro name as the
+             previous expansion.  Reset the state appropriately and treat
+             the macro name as inert. */
+          is_inert_macro = TRUE;
+          macro_depth = saved_macro_depth;
 #if RECORD_MACRO_INVOCATIONS
-        revert_macro_invocation_record();
+          revert_macro_invocation_record();
 #endif /* RECORD_MACRO_INVOCATIONS */
-        free_macro_arg_entries(prev_end_of_macro_arg_list);
+          free_macro_arg_entries(prev_end_of_macro_arg_list);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-        macro_text_map.num_entries = first_text_map_entry;
+          macro_text_map.num_entries = first_text_map_entry;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-        next_avail_in_macro_buffer = (char *)rescan_loc;
-        /* Skip over the macro name. */
-        curr_char_loc =
+          next_avail_in_macro_buffer = (char *)rescan_loc;
+          /* Skip over the macro name. */
+          curr_char_loc =
               delete_source_from_loc + macro_symbol->header->identifier_length;
-        goto make_inert_macro;
+          goto make_inert_macro;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -6615,7 +6604,7 @@ copy_done:
                                rescan_loc, rescan_loc + repl_text_len +
                                space_for_end_of_top_level_expansion_escape);
   adjust_deletion_counts(delete_source_from_loc, slmp->num_chars_to_delete);
-  slmp->assoc_macro = mdp;
+  slmp->assoc_macro = macro_symbol;
   slmp->source_position = start_pos;
   if (invocation_slmp != NULL &&
       ptr_in_range(delete_source_from_loc, invocation_slmp->inserted_text,
