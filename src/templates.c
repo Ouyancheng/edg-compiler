@@ -14311,7 +14311,8 @@ by this routine.
                             /*is_specialization=*/FALSE, &locator, &func_info,
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
   var = variable_for_symbol(sym);
-  if (!sym->is_class_member && symbol_is(sym, sk_variable)) {
+  if (!sym->is_class_member && symbol_is(sym, sk_variable) &&
+      dps->storage_class == (a_storage_class)sc_static) {
     /* FIXME: check after decl_variable refactoring. */
     var->storage_class = dps->storage_class;
   }  /* if */
