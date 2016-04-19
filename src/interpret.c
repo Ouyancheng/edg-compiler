@@ -3999,7 +3999,6 @@ done_with_switch:
         a_variable_ptr         vp = dip->variable;
         a_type_ptr             vtp = skip_typerefs(vp->type);
         a_byte                 *var_storage;
-        a_byte_count           n_bytes;
         a_storage_stack_state  saved_stack_for_full_expr;
         /* Allocate storage for the variable. */
         n_bytes = value_bytes_for_type(ips, vtp, &result);
@@ -5257,8 +5256,9 @@ type.  This includes checking the value of ovfl set by the operation.
             do_constexpr_fail(result);
           }  /* if */
         } else {
-          opnd2_value = NULL;
-          opnd2_type = NULL;
+          /* To avoid spurious warnings from certain tools. */
+          opnd2_value = opnd1_value;
+          opnd2_type = opnd1_type;
         }  /* if */
         if (!result) break;
         /* The operand(s) were evaluated successfully.  Process the
