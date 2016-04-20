@@ -2663,6 +2663,7 @@ Macro to interpret a full-expression.
 */
 #define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
 {                                                                             \
+  /* lint --e{668} Suppress spurious 668 lint warning in this block. */       \
   a_storage_stack_state  saved_stack_for_full_expr;                           \
   save_storage_stack(ips, saved_stack_for_full_expr);                         \
   (result_flag) = do_constexpr_expression(ips, expr, result_storage);         \
