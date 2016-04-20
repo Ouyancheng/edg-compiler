@@ -4573,9 +4573,10 @@ accordingly.
     arg = callee_node->next;
     if (this_var != NULL) {
       a_byte        *this_bytes;
+      a_type_ptr    this_type = skip_typerefs(this_var->type);
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
-      alloc_complete_object(ips, this_n_bytes, tp, this_bytes);
+      alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
       if (arg->is_lvalue || arg->is_xvalue ||
