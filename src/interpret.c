@@ -1597,9 +1597,9 @@ representation to fit in the bit field length.
 Macro to initialize a constant address at addr referring to the complete
 interpreter value at targ_addr (or a null pointer).
 */
-#define clear_address(addr, targ_addr)                    \
-  memzero((char *)(addr), sizeof(a_constexpr_address));   \
-  ((a_constexpr_address *)(addr))->address = (targ_addr); \
+#define clear_address(addr, targ_addr)                                   \
+  memzero((char *)(addr) /*lint -e668*/, sizeof(a_constexpr_address));   \
+  ((a_constexpr_address *)(addr))->address = (targ_addr);                \
   ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
   
 
@@ -2663,7 +2663,6 @@ Macro to interpret a full-expression.
 */
 #define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
 {                                                                             \
-  /* lint --e{668} Suppress spurious 668 lint warning in this block. */       \
   a_storage_stack_state  saved_stack_for_full_expr;                           \
   save_storage_stack(ips, saved_stack_for_full_expr);                         \
   (result_flag) = do_constexpr_expression(ips, expr, result_storage);         \
@@ -5097,7 +5096,6 @@ enough for that type; otherwise, it need only be large enough for the type
 of the prvalue result.
 */
 {
-  /* lint --e{668} Suppress spurious 668 lint warning in this block. */
   a_boolean            result = TRUE;
   an_expr_node_ptr     expr = skip_parens(orig_expr);
   a_type_ptr           tp = skip_typerefs(expr->type);
