@@ -1,5 +1,18 @@
 Version 4.11
 
+4/20/16  [EDGcpfe/17017]
+Union failed to match template template parameter
+
+An instance of a union template failed to match a function template
+parameter based on a template template parameter.  Now fixed.
+
+  template <template <typename> class TT, class T> void f(TT<T>) {}
+  template <typename T> union U { };
+  int main() {
+    f(U<int>());
+  }
+
+
 4/14/16  [EDGcpfe/16840]
 GNU compatibility: alignas on a typedef
 

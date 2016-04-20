@@ -10404,8 +10404,12 @@ points to the template parameter list.
     if (type_kind == (a_type_kind)tk_struct) {
       type_kind = (a_type_kind)tk_class;
     }  /* if */
-    if (templ_type_kind != type_kind) {
-      /* No match. */
+    if (templ_type_kind != type_kind &&
+        !(templ_type_kind == (a_type_kind)tk_class &&
+         type_kind == (a_type_kind)tk_union)) {
+      /* Stop early if the type kinds don't match.  An exception is made
+         for a class/union mismatch that can be valid if the template
+         type is based on a template template parameter. */
     } else {
       switch (type->kind) {
         case tk_class:
