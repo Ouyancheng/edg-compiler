@@ -5929,6 +5929,7 @@ the template definition or may be a default initialization.
   a_variable_ptr			proto_var;
   a_symbol_ptr				template_sym_of_prototype;
   a_template_symbol_supplement_ptr	tssp_of_prototype;
+  a_boolean				is_definition = FALSE;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -5957,7 +5958,9 @@ the template definition or may be a default initialization.
      exist (such as runaway instantiation), to prevent the compiler from
      attempting to instantiate this variable again. */
   find_or_create_master_instance(tip);
-  master_instance_of(tip)->already_instantiated = TRUE;
+  if (!is_var_templ_instance || tip->template_sym->defined) {
+    master_instance_of(tip)->already_instantiated = TRUE;
+  }  /* if */
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
        of the same variable.  When the number of such instantiations
@@ -5981,7 +5984,6 @@ the template definition or may be a default initialization.
                                   (a_name_linkage_kind)nlk_cplusplus_external,
                          "instantiate_template_variable:",
                          "bad name linkage");
-    var_ptr->storage_class = (a_storage_class)sc_unspecified;
 #if ONE_INSTANTIATION_PER_OBJECT
     set_variable_instantiation_needed_bit_number(var_ptr);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -6041,13 +6043,6 @@ the template definition or may be a default initialization.
     add_instantiation(tip->template_sym, tssp, var_sym,
                       var_ptr->template_info->template_arg_list);
   }  /* if */
-  /* Call record_symbol_declaration *after* the template instantiation scope
-     is pushed -- correct behavior for source sequence entry generation
-     depends on it. */
-  record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
-                            var_sym,
-                            &tip->template_sym->decl_position,
-                            (a_source_sequence_entry_ptr)NULL);
   if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
@@ -6082,10 +6077,11 @@ the template definition or may be a default initialization.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
+    is_definition = TRUE;
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
     /* The variable is already initialized (possibly by an in-class
        initializer). */
-  } else {
+  } else if (!is_var_templ_instance || template_sym->defined) {
     a_boolean	def_init_okay;
     /* There's no explicit initializer.  See if the variable can be
        default-initialized. */
@@ -6095,6 +6091,21 @@ the template definition or may be a default initialization.
       /* It could not be default initialized.  See if an initializer is
          required. */
       check_for_missing_initializer(var_sym, var_ptr->type);
+    }  /* if */
+    is_definition = TRUE;
+  }  /* if */
+  /* Call record_symbol_declaration *after* the template instantiation scope
+     is pushed -- correct behavior for source sequence entry generation
+     depends on it. */
+  record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION |
+                              (is_definition ? SRK_DEFINITION : SRK_NONE),
+                            var_sym,
+                            &tip->template_sym->decl_position,
+                            (a_source_sequence_entry_ptr)NULL);
+  if (is_definition) {
+    check_assertion(master_instance_of(tip)->already_instantiated);
+    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+      var_ptr->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
   }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
@@ -16088,6 +16099,7 @@ Also, add the instance to the definitions list for the template.
       a_template_symbol_supplement_ptr	proto_tssp;
       a_symbol_list_entry_ptr		slep;
       check_assertion(symbol_is(sym, sk_variable_template));
+      var_sym->defined = sym->defined;
       proto_tssp = sym->variant.template_info;
       tssp = var_sym->variant.template_info;
       /* Create the pointer back to the original template. */

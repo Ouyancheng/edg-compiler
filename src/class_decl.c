@@ -16101,6 +16101,7 @@ template declaration and is NULL otherwise.
       initializer_cache = token_cache;
       rescan_reusable_cache(token_cache);
       skip_cache_terminator = TRUE;
+      srk_flags |= SRK_DEFINITION;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
