@@ -8785,13 +8785,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     }  /* if */
     if (scope_level == NO_SCOPE_DEPTH) {
       /* The class has already been popped off the scope stack. */
-      if (symbol_for(class_type) != NULL) {
-        a_class_symbol_supplement_ptr cssp =
-                                       symbol_supplement_for_class(class_type);
-        *pointers_block = &cssp->pointers_block;
-      } else {
-        *pointers_block = NULL;
-      }  /* if */
+      *pointers_block = NULL;
     } else {
       check_assertion(trans_unit_for_scope[sp->number] ==
                                                         curr_translation_unit);
@@ -9027,7 +9021,21 @@ done to add the type to the end of the types list for the enclosing class.
     scope_level = scope_depth_of(ssep);
   }  /* if */
   if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-    add_to_types_list(type_ptr, NO_SCOPE_DEPTH);
+    /* When a lambda appears in a class reactivation scope it must be added
+       to the types list of the class that was reactivated. */
+    a_scope_ptr sp;
+    a_type_ptr	tp;
+    set_parent_scope_for_type(type_ptr, scope_level);
+    sp = parent_scope_of(type_ptr);
+    tp = sp->types;
+    if (tp != NULL) {
+      /* Find the last entry on the types list. */
+      for (tp = sp->types; tp->next != NULL; tp = tp->next) {}
+      /* Add the closure type to the end of the list. */
+      tp->next = type_ptr;
+    } else {
+      sp->types = type_ptr;
+    }  /* if */
   } else if (ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
     /* When a lambda appears in a namespace reactivation scope it must be added
        to the types list of the namespace that was reactivated. */
@@ -13689,10 +13697,16 @@ scope depth.
                        "add_to_variables_list: var not in file scope region");
       if (sp->variables == NULL) {
         sp->variables = var_ptr;
-      } else {
+      } else if (pointers_block != NULL) {
         pointers_block->last_variable->next = var_ptr;
+      } else {
+        /* The scope stack entry is no longer on the stack, so just look for
+           the end of the variables list and add the new variable. */
+        a_variable_ptr vp = sp->variables;
+        while (vp->next != NULL) vp = vp->next;
+        vp->next = var_ptr;
       }  /* if */
-      pointers_block->last_variable = var_ptr;
+      if (pointers_block != NULL) pointers_block->last_variable = var_ptr;
       /* Record the parent scope for the variable.  If a parent scope was
          already recorded, do not perform the update (e.g., when lowering
          moves static data members to file scope, the parent scope should
