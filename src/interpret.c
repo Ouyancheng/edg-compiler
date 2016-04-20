@@ -5095,6 +5095,7 @@ enough for that type; otherwise, it need only be large enough for the type
 of the prvalue result.
 */
 {
+  /* lint --e{668} Suppress spurious 668 lint warning in this block. */
   a_boolean            result = TRUE;
   an_expr_node_ptr     expr = skip_parens(orig_expr);
   a_type_ptr           tp = skip_typerefs(expr->type);
