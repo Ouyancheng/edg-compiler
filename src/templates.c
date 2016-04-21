@@ -6104,7 +6104,7 @@ the template definition or may be a default initialization.
     }  /* if */
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
-    set_variable_instantiation_needed_bit_number(var_ptr);
+  set_variable_instantiation_needed_bit_number(var_ptr);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
