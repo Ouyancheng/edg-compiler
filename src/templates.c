@@ -5984,9 +5984,6 @@ the template definition or may be a default initialization.
                                   (a_name_linkage_kind)nlk_cplusplus_external,
                          "instantiate_template_variable:",
                          "bad name linkage");
-#if ONE_INSTANTIATION_PER_OBJECT
-    set_variable_instantiation_needed_bit_number(var_ptr);
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   /* Push a template instantiation scope.  The real values of the template
      arguments will be associated with the template parameter names. */
@@ -6099,6 +6096,16 @@ the template definition or may be a default initialization.
     }  /* if */
     is_definition = TRUE;
   }  /* if */
+  if (is_definition) {
+    /* Set the storage class if not set above. */
+    check_assertion(master_instance_of(tip)->already_instantiated);
+    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+  }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
+    set_variable_instantiation_needed_bit_number(var_ptr);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
      depends on it. */
@@ -6107,13 +6114,6 @@ the template definition or may be a default initialization.
                             var_sym,
                             &tip->template_sym->decl_position,
                             (a_source_sequence_entry_ptr)NULL);
-  if (is_definition) {
-    /* Set the storage class if not set above. */
-    check_assertion(master_instance_of(tip)->already_instantiated);
-    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
-      var_ptr->storage_class = (a_storage_class)sc_unspecified;
-    }  /* if */
-  }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(var_sym,
                                  (a_statement_ptr)NULL);
