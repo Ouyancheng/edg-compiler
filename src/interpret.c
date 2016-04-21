@@ -5870,8 +5870,7 @@ type.  This includes checking the value of ovfl set by the operation.
               is_signed = int_kind_is_signed[int_kind];
               negate_integer_value((an_integer_value *)result_storage, &ovfl);
               if (!is_signed) {
-                /* Negation is always done in signed arithmetic.  Overflow is
-                   not possible in unsigned arithmetic, but we have to clear
+                /* Unsigned negation doesn't overflow, but we have to clear
                    the sign-extension bits. */
                 and_integer_values((an_integer_value*)result_storage,
                                    &max_integer_value_of_kind[int_kind]);
@@ -6273,8 +6272,15 @@ type.  This includes checking the value of ovfl set by the operation.
               subtract_integer_values((an_integer_value*)result_storage,
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
-              check_int_range((an_integer_value*)(result_storage), tp,
-                              result, ovfl, &expr->position, ips);
+              if (!is_signed) {
+                /* Unsigned subtraction doesn't overflow, but we have to clear
+                   the upper bits. */
+                and_integer_values((an_integer_value*)result_storage,
+                                   &max_integer_value_of_kind[int_kind]);
+              } else {
+                check_int_range((an_integer_value*)(result_storage), tp,
+                                result, ovfl, &expr->position, ips);
+              }  /* if */
             } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
               fp_subtract(tp->variant.float_kind,
@@ -8343,6 +8349,10 @@ type.  This includes checking the value of ovfl set by the operation.
           mark_complete_object_initialized(tmp_bytes);
         }  /* if */
       }
+      break;
+    case enk_object_lifetime:
+      result = do_constexpr_expression(ips, expr->variant.object_lifetime.expr,
+                                       result_storage, complete_object);
       break;
     default:
       do_constexpr_fail(result);
