@@ -6081,8 +6081,13 @@ the template definition or may be a default initialization.
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
     /* The variable is already initialized (possibly by an in-class
        initializer). */
+    is_definition = TRUE;
   } else if (!is_var_templ_instance || template_sym->defined) {
     a_boolean	def_init_okay;
+    /* The storage class must be set before def_initializer is called. */
+    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
     /* There's no explicit initializer.  See if the variable can be
        default-initialized. */
     def_init_okay = def_initializer(var_sym,
@@ -6103,6 +6108,7 @@ the template definition or may be a default initialization.
                             &tip->template_sym->decl_position,
                             (a_source_sequence_entry_ptr)NULL);
   if (is_definition) {
+    /* Set the storage class if not set above. */
     check_assertion(master_instance_of(tip)->already_instantiated);
     if (var_ptr->storage_class == (a_storage_class)sc_extern) {
       var_ptr->storage_class = (a_storage_class)sc_unspecified;
