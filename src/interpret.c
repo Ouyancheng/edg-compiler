@@ -3264,6 +3264,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         }  /* if */
       }
       break;
+    case ck_void:
+      /* void values have no representation: Nothing to do. */
+      break;
     default:
       { a_source_position  *diag_pos = &con->source_corresp.decl_position;
         if (diag_pos->seq == 0) {
