@@ -2287,6 +2287,32 @@ specified scope.
 }  /* make_routine */
 
 
+static void check_var_in_constexpr_function(a_variable_ptr     vp,
+                                            a_source_position  *pos)
+/*
+The given variable is being defined in a constexpr function.  Issue a
+diagnostic if it doesn't meet the constraints for such a variable (and make
+the function non-constexpr in that case).
+*/
+{
+  /* Variables in C++14-style constexpr function declarations must have
+     automatic storage duration, a literal type, and be initialized. */
+  if (var_has_static_or_thread_storage_duration(vp)) {
+    pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
+    innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+  } else if (!is_template_dependent_context()) {
+    if (!is_literal_type(vp->type)) {
+      pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
+      vp->type = error_type();
+      innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+    } else if (vp->init_kind == (an_init_kind)initk_none) {
+      pos_error(ec_uninitialized_var_in_constexpr_function, pos);
+      innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* check_var_in_constexpr_function */
+
+
 static void decl_anonymous_union_variable(a_decl_parse_state  *dps)
 /*
 Create a variable to represent an anonymous union declared by the current
@@ -2371,8 +2397,12 @@ is invalid.  Also promote the fields of the union type to the current scope.
   if (at_file_or_namespace_scope) {
     set_namespace_membership(assoc_object_sym, &vp->source_corresp,
                              (a_namespace_ptr)NULL);
-  } else {
+  } else if (innermost_function_scope != NULL) {
     vp->source_corresp.is_local_to_function = TRUE;
+    if (relaxed_constexpr_enabled &&
+        innermost_function_scope->variant.routine.ptr->is_constexpr) {
+      check_var_in_constexpr_function(vp, &dps->specifiers_pos);
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Mark the type declaration as autonomous. */
@@ -17041,21 +17071,7 @@ if one is present.
     if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr &&
         !state->range_based_for) {
-      /* Variables in C++14-style constexpr function declarations must have
-         automatic storage duration, a literal type, and be initialized. */
-      if (var_has_static_or_thread_storage_duration(var_ptr)) {
-        pos_error(ec_nonautomatic_var_in_constexpr_function,
-                  &locator->source_position);
-      } else if (!is_template_dependent_context()) {
-        if (!is_literal_type(var_ptr->type)) {
-          pos_ty_error(ec_nonliteral_var_in_constexpr_function,
-                       &locator->source_position, var_ptr->type);
-          var_ptr->type = error_type();
-        } else if (var_ptr->init_kind == (an_init_kind)initk_none) {
-          pos_error(ec_uninitialized_var_in_constexpr_function,
-                    &locator->source_position);
-        }  /* if */
-      }  /* if */
+      check_var_in_constexpr_function(var_ptr, &locator->source_position);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
