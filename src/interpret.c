@@ -938,7 +938,7 @@ a previously saved stack state.
       a_byte        *large_block;                                            \
       a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;     \
       do_host_alignment(hdr_size);                                           \
-      block_size = hdr_size+n_bytes;                                         \
+      block_size = hdr_size+(n_bytes);                                       \
       large_block = (a_byte*)alloc_general(block_size);                      \
       ((a_large_block_header*)large_block)->prev_large_block =               \
                                           (sss)->large_blocks;               \
@@ -946,7 +946,7 @@ a previously saved stack state.
       (sss)->large_blocks = large_block;                                     \
       (storage_ptr) = large_block+hdr_size;                                  \
     } else {                                                                 \
-      a_byte_count  size = n_bytes;                                          \
+      a_byte_count  size = (n_bytes);                                        \
       do_host_alignment(size);                                               \
       if (size > stack_bytes_left(sss)) {                                    \
         add_storage_stack_block(sss);                                        \
@@ -962,7 +962,7 @@ Convenience macro to allocate bytes in the storage stack of an interpreter
 state.
 */
 #define alloc_stack_bytes(ips, n_bytes, storage_ptr)                         \
-  alloc_bytes(&(ips)->storage_stack, (n_bytes), (storage_ptr))
+  alloc_bytes(&(ips)->storage_stack, n_bytes, storage_ptr)
 
 
 /*
@@ -2382,12 +2382,12 @@ area.
 */
 #define alloc_static_object(ips, utp, storage_ptr, p_result)                 \
 {                                                                            \
-  a_byte_count  n_bytes, total_size, prefix_size;                            \
+  a_byte_count  data_size, total_size, prefix_size;                          \
   a_byte        *ptr, *data_ptr;                                             \
-  n_bytes = value_bytes_for_type(ips, utp, p_result);                        \
+  data_size = value_bytes_for_type(ips, utp, p_result);                      \
   if (*p_result) {                                                           \
-    compute_prefix_size_for_type(utp, n_bytes, prefix_size);                 \
-    total_size = prefix_size+n_bytes;                                        \
+    compute_prefix_size_for_type(utp, data_size, prefix_size);               \
+    total_size = prefix_size+data_size;                                      \
     alloc_static_bytes(ips, total_size, ptr);                                \
     memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));         \
     data_ptr = ptr+prefix_size;                                              \
