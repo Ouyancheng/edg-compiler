@@ -5587,6 +5587,9 @@ type.  This includes checking the value of ovfl set by the operation.
                 pm->is_ptr_to_mem_function = FALSE;
                 pm->variant.field = NULL;
               }  /* if */
+            } else if (tp->kind == (a_type_kind)tk_void) {
+              /* Conversion to void.  No result. */
+              release_address_structures(opnd1, opnd1_type, opnd1_value);
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
