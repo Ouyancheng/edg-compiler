@@ -547,6 +547,13 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       }  /* if */
       /* Record the type deduced for the "auto" specifier. */
       dps->deduced_auto_type = deduced_auto_type;
+      if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+          dps->decltype_auto_specifier_seen &&
+          !is_const_qualified_type(dps->type)) {
+        /* constexpr variables are implicitly const. */
+        dps->type = make_qualified_type(dps->type,
+                                        (a_type_qualifier_set)TQ_CONST);
+      }  /* if */
       /* Check that the actual (deduced) type of the declaration is applicable
          to the declared entity (in particular, this checks for compatibility
          with previous declarations of the same entity). */

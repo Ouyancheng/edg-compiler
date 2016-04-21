@@ -1,5 +1,12 @@
 Version 4.11
 
+4/21/16  [EDGcpfe/17066]
+constexpr decltype(auto)
+
+In C++14 mode, the front end previously failed to treat variables declared
+with constexpr and decltype(auto) as const.  That is now fixed.
+
+
 4/20/16  [EDGcpfe/16715]
 Microsoft compatibility: Enable member initializers for aggregates
 
