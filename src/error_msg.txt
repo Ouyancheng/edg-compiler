@@ -2830,7 +2830,7 @@ ec_yield_outside_of_function;;"co_yield expression is not permitted outside a fu
 ec_thread_local_ignored;;"ignoring thread-local indication on anonymous union"
 ec_cannot_deduce_coroutine_return_type;;"cannot deduce return type from a coroutine with no co_yield or co_await construct"
 ec_variable_template;INTERNAL;"variable template"
-ec_variable_not_yet_initialized;;"variable %n not yet initialized"
+ec_object_not_initialized;;"access to uninitialized object"
 ec_constexpr_volatile_fetch;;"attempt to read from volatile storage"
 ec_constexpr_no_active_union_field;;"invalid access to inactive %n1 of union (no field is active)"
 ###############################################################################

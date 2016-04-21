@@ -4884,10 +4884,9 @@ here.
 #endif /* ifndef HOST_ALIGNMENT_REQUIRED */
 
 /*
-The alignment required by host pointers.  This is used to determine the
-size of the prefix allocated as part of each IL entry.  Four byte alignment
-is correct for most systems.  When checking code is enabled, the value of
-this macro is checked when the front end is executed.
+The alignment required by host pointers.  This is used to determine the size
+of the prefix allocated as part of each IL entry.  When checking code is
+enabled, the value of this macro is checked when the front end is executed.
 */
 #ifndef HOST_POINTER_ALIGNMENT
 #if defined(__x86_64) || defined(__alpha)

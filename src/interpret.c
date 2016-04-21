@@ -85,12 +85,12 @@ avoid excessive waste, larger chunks (which should be uncommon) are not
 allocated from the large blocks, but separately (through the front end's
 normal memory allocator).
 
-Every variable and temporary triggers an allocation, which is performed through
+Almost every variable and temporary triggers an allocation performed through
 the macro alloc_stack_bytes.  Deallocation, on the other hand, is batched
 "per scope" (for variables) or "per full expression" (for temporaries).  The
 macros save_storage_stack and restore_storage_stack support this.
 
-An wrinkle in this mechanism are temporaries whose lifetime is extended because
+A wrinkle in this mechanism are temporaries whose lifetime is extended because
 they are bound to a reference.  This is handled by starting a new storage stack
 when the reference is encountered while recording the original stack in the
 interpreter state (see an_interpreter_state::extension_state).  When the
@@ -102,14 +102,14 @@ associated with a specific interpreter invocation, but it persists until the
 end of that invocation.  This is used, e.g., for string literal storage.  It
 also uses the a_storage_stack_state structure, but is only initialized if it
 is actually needed during interpretation (see the fields static_storage_ready
-and static_storage in an_interpreter_state).
+and static_storage in an_interpreter_state).  See also alloc_static_bytes.
 
 The third kind of storage persists across interpreter invocations.  It also
 uses a storage stack (see the static variable persistent_data), although the
 ability to efficiently deallocate is not exploited in that case.  The macro
 alloc_bytes can be used for these allocations.
 
-This fourth kind of storage is that held managed by maps (see below).  This
+The fourth kind of storage is that held managed by maps (see below).  This
 uses a separate allocation strategy.
 
 
@@ -150,10 +150,30 @@ architecture).
 
 Object Layout
 -------------
-The non-address scalar data members of stored objects are the value
-representations used elsewhere in the front end (i.e., an_integer_value, etc.).
-Bit fields occupy a whole integer value, but every "store" to a bit field is
-appropriately trimmed.
+A complete object (i.e., an object that is not a subobject of another object)
+stored in a storage stack consists of a "prefix" followed by the representation
+of the value of that object.  The prefix has the following components in order:
+
+  init_bits[n]
+  init_bits[n-1]
+  ...
+  init_bits[0]
+  init_flag
+  type_ptr
+  (data representation starts here)
+
+Given a data pointer, traversing the prefix backwards provides the type of the
+complete object (type_ptr), a byte (init_flag) that is zero until the object
+is fully initialized, and, for class and array objects, bit sets indicating
+whether a given offset in the data representation has been initialized.  Note
+that only one bit is set per scalar entity.  For example, if integers are
+represented using eight bytes and the leading entry of an array is initialized,
+then bit 0 of init_bits[0] will be set, but bits 1 through 7 will remain
+unchanged even though their corresponding bytes have valid values.
+
+Integer and floating-point values are stored using their IL representations 
+(i.e., an_integer_value and an_internal_float_value).  Bit fields occupy a
+whole integer value, but every "store" to a bit field is appropriately trimmed.
 
 Class type objects and subobjects start with an IL pointer (described below),
 followed by storage for the fields, storage for nonvirtual direct base classes,
@@ -206,16 +226,12 @@ produce that address: The ".y[3].z" path can be reconstructed and this may be
 needed when comparing pointers or when translating interpreter addresses back
 to a_constant/ck_address entries.
 
-Every complete object (i.e., an object that is not a subobject of another
-object) is preceded by a pointer to its unqualified type, and that is preceded
-by a bitmap FIXME
+Pointer-to-member values are represented by the a_constexpr_ptr_to_mem type.
 */
 
 typedef unsigned int a_byte_count;
 
 typedef unsigned int an_alloc_seq_number;
-
-#define UNINIT_SEQ_NUMBER UINT_MAX
 
 /*
 Macro to set the flag indicating that interpretation has failed.  In DEBUG
@@ -238,17 +254,17 @@ This function exists solely to intercept interpretation failure in a debugger.
 
 
 /*
-Macro defining the size of large blocks allocated for the storage stack.  These
+Macro defining the size of large blocks allocated for a storage stack.  These
 large blocks are then parceled out in smaller chunks as requested through the
-macro alloc_stack_bytes.  If an alloc_stack_bytes request is too large,
-however, the storage is not carved from the large blocks; instead, it is
-allocated from general memory.
+macro alloc_bytes.  If an alloc_bytes request is too large, however, the
+storage is not carved from the large blocks; instead, it is allocated from
+general memory.
 */
 #define CONSTEXPR_STACK_BLOCK_SIZE (1<<16)
 
 /*
 Macro defining the largest chunk size to be carved from storage stack blocks
-(see CONSTEXPR_STACK_BLOCK_SIZE  above).  Invocations of alloc_stack_bytes that
+(see CONSTEXPR_STACK_BLOCK_SIZE  above).  Invocations of alloc__bytes that
 request larger chunks are handled in terms of individual calls to alloc_general
 (and are freed by a call to free_general).
 */
@@ -439,6 +455,9 @@ typedef struct a_call_frame {
   a_byte	*result_storage;
 			/* The storage in which returned expression results
 			   should be placed. */
+  a_byte	*complete_object;
+			/* A pointer to the complete object in which
+			   result_storage points. */
   a_bit_field	return_active:1;
 			/* TRUE while backtracking from a return statement. */
   a_bit_field	break_active:1;
@@ -947,6 +966,22 @@ state.
 
 
 /*
+Convenience macro to allocate bytes in the static storage area of an
+interpreter state.
+*/
+#define alloc_static_bytes(ips, n_bytes, storage_ptr)                        \
+{                                                                            \
+  if (!(ips)->static_storage_ready) {                                        \
+    /* This is the first time we allocate static storage: Initialize */      \
+    /*  the associated static storage stack. */                              \
+    alloc_constexpr_stack_block(&(ips)->static_storage);                     \
+    (ips)->static_storage_ready = TRUE;                                      \
+    (ips)->static_storage.alloc_seq_number = 0;                              \
+  }  /* if */                                                                \
+  alloc_bytes(&(ips)->static_storage, n_bytes, storage_ptr);                 \
+}
+
+/*
 Macros to save and restore an allocation stack state.
 */
 #define save_storage_stack(ips, state)                                       \
@@ -1003,12 +1038,13 @@ large integer.
 /*
 Macros to push and pop call frames.
 */
-#define push_call_frame(ips, p_frame, rp, pos, p_result)                     \
+#define push_call_frame(ips, p_frame, rp, pos, p_result, p_complete)         \
   {                                                                          \
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
     (p_frame)->position = (pos);                                             \
     (p_frame)->result_storage = (p_result);                                  \
+    (p_frame)->complete_object = (p_complete);                               \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->break_active = FALSE;                                         \
     (p_frame)->continue_active = FALSE;                                      \
@@ -2288,21 +2324,122 @@ unions, the recorded pointer represents the active field rather than a base
 class entry.  (This must therefore be invoked before placing a result in the
 indicated storage, because that result could set the active field.)
 */
-#define record_complete_object(utp, storage_ptr)                             \
+#define mark_complete_class_object_if_needed(utp, storage_ptr)               \
   if (is_immediate_class_type(utp)) {                                        \
     record_subobject_derivation(storage_ptr, NULL);                          \
   }  /* if */                                                                \
 
 /*
+Record the type of a complete object in its prefix.
+*/
+#define record_complete_object_type(utp, data_ptr)                           \
+  (*(a_type_ptr*)(data_ptr-sizeof(a_type_ptr)) = (utp))
+
+/*
+Given a type utp and the size n_bytes required to represent its value, compute
+the number of bytes needed as a bookkeeping prefix for a complete object of
+that type.
+*/
+#define compute_prefix_size_for_type(utp, n_bytes, prefix_size)              \
+{                                                                            \
+  a_byte_count  bitmap_size;                                                 \
+  if (is_immediate_class_type(utp) ||                                        \
+      utp->kind == (a_type_kind)tk_array) {                                  \
+    bitmap_size = (n_bytes-1)/CHAR_BIT+1;                                    \
+  } else {                                                                   \
+    bitmap_size = 0;                                                         \
+  }  /* if */                                                                \
+  prefix_size = 1+sizeof(a_type_ptr)+bitmap_size;                            \
+  do_host_alignment(prefix_size);                                            \
+}
+
+
+/*
 Allocate a complete object of type utp and size n_bytes in the interpreter's
-storage stack and record the storage as being for a complete object (see
-record_complete_object above).
+storage stack, including prefix storage to keep bookkeeping information.
+Initialize the prefix and mark the object as being complete (see
+mark_complete_class_object_if_needed above).  n_bytes must be positive.
+storage_ptr is set to the data portion of the allocated storage (i.e., the
+first byte after the prefix).
 */
 #define alloc_complete_object(ips, n_bytes, utp, storage_ptr)                \
-  {                                                                          \
-    alloc_stack_bytes(ips, n_bytes, storage_ptr);                            \
-    record_complete_object(utp, storage_ptr);                                \
-  }
+{                                                                            \
+  a_byte_count  total_size, prefix_size;                                     \
+  a_byte        *ptr, *data_ptr;                                             \
+  compute_prefix_size_for_type(utp, n_bytes, prefix_size);                   \
+  total_size = prefix_size+n_bytes;                                          \
+  alloc_stack_bytes(ips, total_size, ptr);                                   \
+  memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));           \
+  data_ptr = ptr+prefix_size;                                                \
+  record_complete_object_type(utp, data_ptr);                                \
+  (storage_ptr) = data_ptr;                                                  \
+  mark_complete_class_object_if_needed(utp, data_ptr);                       \
+}
+
+/*
+Allocate a complete object of type utp in the interpreter's static storage
+area.
+*/
+#define alloc_static_object(ips, utp, storage_ptr, p_result)                 \
+{                                                                            \
+  a_byte_count  n_bytes, total_size, prefix_size;                            \
+  a_byte        *ptr, *data_ptr;                                             \
+  n_bytes = value_bytes_for_type(ips, utp, p_result);                        \
+  if (*p_result) {                                                           \
+    compute_prefix_size_for_type(utp, n_bytes, prefix_size);                 \
+    total_size = prefix_size+n_bytes;                                        \
+    alloc_static_bytes(ips, total_size, ptr);                                \
+    memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));         \
+    data_ptr = ptr+prefix_size;                                              \
+    record_complete_object_type(utp, data_ptr);                              \
+    (storage_ptr) = data_ptr;                                                \
+    mark_complete_class_object_if_needed(utp, data_ptr);                     \
+  }  /* if */                                                                \
+}
+
+/*
+Mark the complete object at the given address as fully initialized.
+*/
+#define mark_complete_object_initialized(obj)                                \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 1)
+
+#define mark_subobject_initialized(subobj, complete_obj)                     \
+{                                                                            \
+  a_byte        *start_byte = (complete_obj);                                \
+  a_byte_count  off = (subobj)-start_byte;                                   \
+  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;                \
+  a_byte_count  bit_pos = off%CHAR_BIT;                                      \
+  start_byte[-(int)byte_pos] |= (a_byte)(1<<bit_pos);                        \
+}
+
+
+/*
+Return TRUE if the given complete object is fully initialized.
+*/
+#define complete_object_is_initialized(complete_object)                      \
+  (*((complete_object)-sizeof(a_type_ptr)-1) != 0)
+
+
+/*
+Produce TRUE if the object pointed into by "cap" is initialized.
+*/
+#define is_initialized(cap)                                                  \
+  (complete_object_is_initialized((cap)->complete_object) ||                 \
+   subobject_is_initialized(cap))
+
+
+static a_boolean subobject_is_initialized(a_constexpr_address  *cap)
+/*
+Return TRUE if the subobject pointed to by cap is initialized.
+*/
+{
+  a_byte        *start_byte = cap->complete_object;
+  a_byte_count  off = cap->address-start_byte;
+  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
+  a_byte_count  bit_pos = off%CHAR_BIT;
+
+  return (start_byte[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
+}  /* subobject_is_initialized */
 
 #if DEBUG
 
@@ -2661,32 +2798,37 @@ address they were shallowly copied from.
 /*
 Macro to interpret a full-expression.
 */
-#define do_constexpr_full_expression(ips, expr, result_storage, result_flag)  \
+#define do_constexpr_full_expression(                                         \
+                    ips, expr, result_storage, complete_object, result_flag)  \
 {                                                                             \
   a_storage_stack_state  saved_stack_for_full_expr;                           \
   save_storage_stack(ips, saved_stack_for_full_expr);                         \
-  (result_flag) = do_constexpr_expression(ips, expr, result_storage);         \
+  (result_flag) = do_constexpr_expression(                                    \
+                                ips, expr, result_storage, complete_object);  \
   restore_storage_stack(ips, saved_stack_for_full_expr);                      \
 }
 
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
-                                       a_byte                *result_storage);
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object);
 
 
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
+                                   a_byte                *complete_object,
                                    a_byte                *implied_src);
 
 
 static a_boolean do_constexpr_dynamic_init(
-                                        an_interpreter_state  *ips,
-                                        a_dynamic_init_ptr    dip,
-                                        a_source_position     *pos,
-                                        a_byte                *result_storage);
+                                      an_interpreter_state  *ips,
+                                      a_dynamic_init_ptr    dip,
+                                      a_source_position     *pos,
+                                      a_byte                *result_storage,
+                                      a_byte                *complete_object);
 
 
 /*
@@ -2694,7 +2836,7 @@ Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
 reasons.
 */
-#define copy_val_from_constant(ips, con, result_storage)                      \
+#define copy_val_from_constant(ips, con, result_storage, complete_object)     \
   (                                                                           \
     ((con)->kind == (a_constant_repr_kind)ck_integer &&                       \
      !(con)->implicit_cast) ?                                                 \
@@ -2703,13 +2845,15 @@ reasons.
     ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
       ((*fp_value(result_storage) = (con)->variant.float_value), TRUE) :      \
     /* else */                                                                \
-      extract_value_from_constant(ips, con, result_storage)                   \
+      extract_value_from_constant(ips, con, result_storage, complete_object)  \
   )  /* copy_val_from_constant */
 
 
-static a_boolean extract_value_from_constant(an_interpreter_state  *ips,
-                                             a_constant_ptr        con,
-                                             a_byte                *value)
+static a_boolean extract_value_from_constant(
+                                       an_interpreter_state  *ips,
+                                       a_constant_ptr        con,
+                                       a_byte                *value,
+                                       a_byte                *complete_object)
 /*
 Copy the value of con into the interpreter storage at value, converting
 formats as necessary.  Return FALSE if the constant is an error constant.
@@ -2720,7 +2864,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
   if (con->implicit_cast && con->expr != NULL) {
     /* If the constant includes an implicit cast, evaluate the constant
        through the backing expression so that the cast is correctly applied. */
-    do_constexpr_full_expression(ips, con->expr, value, result);
+    do_constexpr_full_expression(
+                              ips, con->expr, value, complete_object, result);
     goto done;
   }  /* if */
   switch (con->kind) {
@@ -2761,17 +2906,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 a_type_ptr  vtp = skip_typerefs(vp->type);
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {
-                  a_byte_count  n_bytes;
-                  if (!ips->static_storage_ready) {
-                    /* This is the first time we allocate static storage:
-                       Initialize the associated static storage stack. */
-                    init_constexpr_stack(&ips->static_storage);
-                    ips->static_storage_ready = TRUE;
-                  }  /* if */
-                  n_bytes = value_bytes_for_type(ips, vtp, &result);
+                  alloc_static_object(ips, vtp, var_bytes, &result);
                   if (result) {
                     a_constant_ptr  cp = NULL;
-                    alloc_bytes(&ips->static_storage, n_bytes, var_bytes);
                     if (vp->init_kind == (an_init_kind)initk_static) {
                       cp = vp->initializer.constant;
                     } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
@@ -2789,9 +2926,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                         unexpected_condition();
                       }  /* if */
                     }  /* if */
-                    result = extract_value_from_constant(ips, cp, var_bytes);
+                    result = extract_value_from_constant(
+                                               ips, cp, var_bytes, var_bytes);
                   }  /* if */
                   if (!result) break;
+                  mark_complete_object_initialized(var_bytes);
                   map_stack_bytes(ips, vp, var_bytes);
                   /* Set up a reverse mapping so we can re-create a variable
                      address constant if the address (with potentially a
@@ -2817,19 +2956,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_type_ptr      ctp = skip_typerefs(cp->type);
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
-                a_byte_count  n_bytes;
-                if (!ips->static_storage_ready) {
-                  /* This is the first time we allocate static storage:
-                     Initialize the associated static storage stack. */
-                  init_constexpr_stack(&ips->static_storage);
-                  ips->static_storage_ready = TRUE;
-                }  /* if */
-                n_bytes = value_bytes_for_type(ips, ctp, &result);
+                alloc_static_object(ips, ctp, con_bytes, &result);
                 if (result) {
-                  alloc_bytes(&ips->static_storage, n_bytes, con_bytes);
-                  result = extract_value_from_constant(ips, cp, con_bytes);
+                  result = extract_value_from_constant(ips, cp, con_bytes,
+                                                       con_bytes);
                 }  /* if */
                 if (!result) break;
+                mark_complete_object_initialized(con_bytes);
                 /* Record a two-way mapping to ensure we always use the same
                    storage, and that we reproduce the original constant if this
                    becomes part of the interpretation result. */
@@ -2905,7 +3038,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
                                            &con->source_corresp.decl_position,
-                                           value);
+                                           value, complete_object);
       }
       break;
     case ck_string:
@@ -2946,18 +3079,20 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
-              /* Not all elements are covered.  Zero the remainder. */
+              /* Not all elements are covered.  Zero the remainder. FIXME*/
               memzero(value, size_t_arg((n_elems-k)*elem_size));
               break;
             } else {
-              record_complete_object(etp, value);
-              if (!copy_val_from_constant(ips, elem_con, value)) {
+              mark_complete_class_object_if_needed(etp, value);
+              if (!copy_val_from_constant(
+                                     ips, elem_con, value, complete_object)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
+              elem_con = elem_con->next;
             }  /* if */
-            elem_con = elem_con->next;
-            k += 1;
+            mark_subobject_initialized(value, complete_object);
+            k  += 1;
             value += elem_size;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
@@ -2974,7 +3109,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 bcp = bcp->next;
               }  /* while */
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+              if (!copy_val_from_constant(
+                              ips, elem_con, value+offset, complete_object)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -2983,6 +3119,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                  easier -- and probably cheaper -- to do this
                  indiscriminately). */
               record_subobject_derivation(value+offset, bcp);
+              mark_subobject_initialized(value+offset, complete_object);
               bcp = bcp->next;
               elem_con = elem_con->next;
               if (bcp == NULL ||
@@ -3006,14 +3143,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             get_mapped_byte_count(&persistent_map, fp, offset);
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
-                 remainder of the class value. */
+                 remainder of the class value. FIXME*/
               a_byte_count  class_size = value_bytes_for_type(ips, tp,
                                                               &result);
               if (result) {
                 memzero(value+offset, size_t_arg(class_size-offset));
               }  /* if */
               break;
-            } else if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+            } else if (!copy_val_from_constant(
+                              ips, elem_con, value+offset, complete_object)) {
               do_constexpr_fail(result);
               break;
             } else if (fp->is_bit_field) {
@@ -3021,6 +3159,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               trim_bit_field(value+offset, fp->bit_size,
                              fp->bit_field_is_signed);
             }  /* if */
+            mark_subobject_initialized(value+offset, complete_object);
             fp = fp->next;
             elem_con = elem_con->next;
           }  /* for */
@@ -3062,7 +3201,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             break;
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
-          if (!copy_val_from_constant(ips, elem_con, value+offset)) {
+          if (!copy_val_from_constant(
+                              ips, elem_con, value+offset, complete_object)) {
             do_constexpr_fail(result);
           } else {
             if (fp->is_bit_field) {
@@ -3072,6 +3212,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* if */
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
+            mark_subobject_initialized(value+offset, complete_object);
           }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
         } else if (tp->kind == (a_type_kind)tk_vector) {
@@ -3082,7 +3223,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
-            if (!copy_val_from_constant(ips, elem_con, value)) {
+            if (!copy_val_from_constant(
+                                     ips, elem_con, value, complete_object)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
@@ -3140,7 +3282,8 @@ static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
                                         a_source_position     *pos,
-                                        a_byte                *result_storage)
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
 /*
 Evaluate the given dynamic initialization for the given storage.
 */
@@ -3151,21 +3294,22 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_constant:
     case dik_nonconstant_aggregate:
       result = copy_val_from_constant(ips, dip->variant.constant,
-                                      result_storage);
+                                      result_storage, complete_object);
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
       result = do_constexpr_expression(ips, dip->variant.expression,
-                                       result_storage);
+                                       result_storage, complete_object);
       break;
     case dik_constructor:
       result = do_constexpr_ctor(ips, dip, pos, result_storage,
-                                 /*implied_src=*/NULL);
+                                 complete_object, /*implied_src=*/NULL);
       break;
     case dik_bitwise_copy:
       { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
         if (source_expr != NULL) {
-          result = do_constexpr_expression(ips, source_expr, result_storage);
+          result = do_constexpr_expression(ips, source_expr, result_storage,
+                                           complete_object);
         } else {
           /* An implicit source: The caller should catch those cases. */
           unexpected_condition();
@@ -3271,7 +3415,9 @@ skip_typerefs(expr->type).
       ips->extension_state = &saved_stack_for_full_expr;
     }  /* if */
     get_stack_bytes(ips, cond_var, var_bytes);
-    result = do_constexpr_dynamic_init(ips, dip, &expr->position, var_bytes);
+    result = do_constexpr_dynamic_init(
+                             ips, dip, &expr->position, var_bytes, var_bytes);
+    mark_complete_object_initialized(var_bytes);
     if (cond_var->extends_lifetime) {
       /* Release the ordinary storage stack blocks for normal temporaries
          allocated for the initializer.  Any large blocks will be released by
@@ -3283,7 +3429,8 @@ skip_typerefs(expr->type).
     result = TRUE;
     expr_to_evaluate = expr;
   }  /* if */
-  if (result && !do_constexpr_expression(ips, expr_to_evaluate, value)) {
+  if (result &&
+      !do_constexpr_expression(ips, expr_to_evaluate, value, value)) {
     result = FALSE;
   }  /* if */
   release_address_structures(expr, expr_type, value);
@@ -3474,7 +3621,8 @@ Interpret the given for-statement.
                 ips->curr_call_frame->continue_active = FALSE;
               }  /* if */
               if (incr != NULL) {
-                do_constexpr_full_expression(ips, incr, incr_value, result);
+                do_constexpr_full_expression(
+                                   ips, incr, incr_value, incr_value, result);
                 release_address_structures(incr, incr_type, incr_value);
               }  /* if */
             }  /* if */
@@ -3540,6 +3688,7 @@ Interpret the given range-based for-statement.
     a_type_ptr    vtp = skip_typerefs(vp[k]->type);
     a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
     alloc_complete_object(ips, n_bytes, vtp, var_storage[k]);
+    mark_complete_object_initialized(var_storage[k]);
     /* Associate with the variable its value storage. */
     map_stack_bytes(ips, vp[k], var_storage[k]);
     /* Also associate with the variable (somewhat arbitrarily, with its
@@ -3553,7 +3702,7 @@ Interpret the given range-based for-statement.
   for (k = 1; k<4; ++k) {
     dip = vp[k]->initializer.dynamic;
     if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                   var_storage[k])) {
+                                   var_storage[k], var_storage[k])) {
       do_constexpr_fail(result);
       break;
     }  /* if */
@@ -3583,7 +3732,8 @@ Interpret the given range-based for-statement.
                              &ips->diag_list);
         do_constexpr_fail(result);
       } else {
-        do_constexpr_full_expression(ips, expr, expr_value, result);
+        do_constexpr_full_expression(
+                                   ips, expr, expr_value, expr_value, result);
         release_address_structures(expr, tp, expr_value);
         ips->cost += 1;
       }  /* if */
@@ -3599,7 +3749,7 @@ Interpret the given range-based for-statement.
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                         var_storage[0])) {
+                                         var_storage[0], var_storage[0])) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -3625,7 +3775,8 @@ Interpret the given range-based for-statement.
               ips->curr_call_frame->continue_active = FALSE;
             }  /* if */
             if (incr != NULL) {
-              do_constexpr_full_expression(ips, incr, incr_value, result);
+              do_constexpr_full_expression(
+                                   ips, incr, incr_value, incr_value, result);
               release_address_structures(incr, incr_type,
                                                   incr_value);
             }  /* if */
@@ -3671,7 +3822,8 @@ successfully interpreted, FALSE otherwise.
         alloc_complete_object(ips, n_bytes, tp, expr_value);
         if (!result) {
           /* Stop interpretation. */
-        } else if (!do_constexpr_expression(ips, expr, expr_value)) {
+        } else if (!do_constexpr_expression(
+                                         ips, expr, expr_value, expr_value)) {
           do_constexpr_fail(result);
         } else {
           release_address_structures(expr, tp, expr_value);
@@ -3797,12 +3949,13 @@ successfully interpreted, FALSE otherwise.
       { a_call_frame_ptr  frame = ips->curr_call_frame;
         if (stmt->expr != NULL) {
           do_constexpr_full_expression(ips, stmt->expr, frame->result_storage,
-                                       result);
+                                       frame->complete_object, result);
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           result = do_constexpr_dynamic_init(ips,
                                              stmt->variant.return_dynamic_init,
                                              &stmt->position, 
+                                             frame->result_storage,
                                              frame->result_storage);
         } else {
           /* Return without a value. */
@@ -3856,7 +4009,8 @@ successfully interpreted, FALSE otherwise.
                                  &ips->position, &ips->diag_list);
             do_constexpr_fail(result);
           } else {
-            do_constexpr_full_expression(ips, expr, expr_value, result);
+            do_constexpr_full_expression(
+                                   ips, expr, expr_value, expr_value, result);
             release_address_structures(expr, tp, expr_value);
             ips->cost += 1;
           }  /* if */
@@ -3906,7 +4060,8 @@ successfully interpreted, FALSE otherwise.
           a_constant_ptr  case_con = scep->case_value;
           a_type_ptr      case_tp = skip_typerefs(case_con->type);
           alloc_complete_object(ips, n_bytes, case_tp, case_bytes);
-          result = copy_val_from_constant(ips, scep->case_value, case_bytes);
+          result = copy_val_from_constant(
+                               ips, scep->case_value, case_bytes, case_bytes);
           if (!result) {
             goto done_with_switch;
           }  /* if */
@@ -3921,7 +4076,8 @@ successfully interpreted, FALSE otherwise.
             break;
 #if GNU_EXTENSIONS_ALLOWED
           } else if (scep->range_end != NULL) {
-            result = copy_val_from_constant(ips, scep->range_end, case_bytes);
+            result = copy_val_from_constant(
+                                ips, scep->range_end, case_bytes, case_bytes);
             if (!result) {
               goto done_with_switch;
             }  /* if */
@@ -4007,10 +4163,9 @@ done_with_switch:
         map_stack_bytes(ips, vp, var_storage);
         /* We also associate with the variable (somewhat arbitrarily, with its
            "storage_class" field) an allocation sequence number that may be
-           used to detect leaks.  Before the variable is initialized, however,
-           that sequence number is set to a special value used to recognize
-           attempts to access uninitialized storage. */
-        map_byte_count(&ips->map, &vp->storage_class, UNINIT_SEQ_NUMBER);
+           used to detect leaks. */
+        map_byte_count(&ips->map, &vp->storage_class,
+                       ips->storage_stack.alloc_seq_number);
         /* Evaluate the initializer. */
         save_storage_stack((ips), saved_stack_for_full_expr);
         if (vp->extends_lifetime) {
@@ -4022,7 +4177,8 @@ done_with_switch:
           ips->extension_state = &saved_stack_for_full_expr;
         }  /* if */
         result = do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                           var_storage);
+                                           var_storage, var_storage);
+        mark_complete_object_initialized(var_storage);
         if (vp->extends_lifetime) {
           /* Release the ordinary storage stack blocks for this expression.
              The large blocks will be released by the call to
@@ -4030,10 +4186,6 @@ done_with_switch:
           release_constexpr_stack(&ips->storage_stack);
         }  /* if */
         restore_storage_stack(ips, saved_stack_for_full_expr);
-        /* Now record the live allocation sequence number. */
-        unmap_ptr(&ips->map, &vp->storage_class);
-        map_byte_count(&ips->map, &vp->storage_class,
-                       ips->storage_stack.alloc_seq_number);
       }
       break;
     case stmk_decl:
@@ -4121,7 +4273,7 @@ This function currently always returns TRUE.
   bfk = (a_builtin_function_kind)callee->variant.builtin_function_kind;
   arg = *(an_integer_value*)arg_bytes;
   check_assertion(arg_tp->kind == (a_type_kind)tk_integer);
-  n_bits = arg_tp->size*targ_char_bit;
+  n_bits = arg_tp->size*CHAR_BIT;
   for (k = 0; k < n_bits; ++k) {
     a_boolean         bit, ovflo;
     an_integer_value  mask = one_int;
@@ -4244,7 +4396,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           saved_side_effects_disabled = ips->side_effects_disabled;
           ips->side_effects_disabled = TRUE;
           alloc_complete_object(ips, n_bytes, arg_type, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             *(an_integer_value*)result_storage = one_int;
           } else {
             *(an_integer_value*)result_storage = zero_int;
@@ -4265,7 +4417,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
             if (fp_is_negative(fk, fp_value(arg1_bytes))) {
               fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
@@ -4297,7 +4449,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes)) {
+          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
             if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
                                              result_storage)) {
@@ -4336,7 +4488,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes) ||
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_builtin_bitcount(
                                     callee, arg1_bytes, tp, result_storage)) {
             do_constexpr_fail(*p_result);
@@ -4421,11 +4573,12 @@ record a diagnostic in the interpreter state (using the position of expr).
 
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
-                                   a_byte                *result_storage)
+                                   a_byte                *result_storage,
+                                   a_byte                *complete_object)
 /*
-Interpret the given call node and place the result at the given storage.
-Return TRUE if no error occurred; otherwise, return FALSE and update *ips
-accordingly.
+Interpret the given call node and place the result at the given storage (which
+is part of the given complete object).  Return TRUE if no error occurred;
+otherwise, return FALSE and update *ips accordingly.
 */
 {
   an_expr_node_ptr  callee_node, arg;
@@ -4447,7 +4600,7 @@ accordingly.
     a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
     alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
     pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
-    if (do_constexpr_expression(ips, callee_node, pm_bytes)) {
+    if (do_constexpr_expression(ips, callee_node, pm_bytes, pm_bytes)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
@@ -4460,7 +4613,8 @@ accordingly.
     }  /* if */
   } else {
     a_constexpr_address  addr;
-    if (do_constexpr_expression(ips, callee_node, (a_byte*)&addr)) {
+    if (do_constexpr_expression(
+                          ips, callee_node, (a_byte*)&addr, (a_byte*)&addr)) {
       if (is_function_address(&addr)) {
         callee = addr.variant.routine;
         if (callee == NULL) {
@@ -4581,7 +4735,7 @@ accordingly.
       if (arg->is_lvalue || arg->is_xvalue ||
           tp->kind == (a_type_kind)tk_pointer) {
         /* The usual case: An address is produced. */
-        if (!do_constexpr_expression(ips, arg, this_bytes)) {
+        if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
           do_constexpr_fail(result);
           goto done;
         }  /* if */
@@ -4591,15 +4745,17 @@ accordingly.
         a_byte        *class_bytes;
         if (!result) goto done;
         alloc_complete_object(ips, n_bytes, tp, class_bytes);
-        if (!do_constexpr_expression(ips, arg, class_bytes)) {
+        if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
           do_constexpr_fail(result);
           goto done;
         }  /* if */
+        mark_complete_object_initialized(class_bytes);
         /* Store the address of the class in *this_bytes. */
         clear_address(this_bytes, class_bytes);
         ((a_constexpr_address *)this_bytes)->alloc_seq_number =
                                           ips->storage_stack.alloc_seq_number;
       }  /* if */
+      mark_complete_object_initialized(this_bytes);
       if (pm_target != NULL &&
           !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
                                pm_target, this_var->type, call_node)) {
@@ -4630,9 +4786,10 @@ accordingly.
             arg->is_xvalue = FALSE;
           }  /* if */
         }  /* if */
-        if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
+        mark_complete_object_initialized(arg_bytes);
         if (restore_lvalue) {
           arg->is_lvalue = TRUE;
         } else if (restore_xvalue) {
@@ -4661,7 +4818,8 @@ accordingly.
       p_arg_ptr += 1;
     }  /* for */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, &call_node->position, result_storage);
+    push_call_frame(ips, &frame, callee, &call_node->position,
+                    result_storage, complete_object);
     /* Run the function's top-level block statement. */
     if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
@@ -4723,14 +4881,15 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
+                                   a_byte                *complete_object,
                                    a_byte                *implied_src)
 /*
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
 *ips accordingly.  pos is the position of the call.  The object is constructed
-at the location indicated by result_storage.  If implied_src is non-NULL, this
-is a copy constructor invocation and the source object is stored at the
-location indicated by implied_src.
+at the location indicated by result_storage, which is within the given complete
+object.  If implied_src is non-NULL, this is a copy constructor invocation and
+the source object is stored at the location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreted prior to interpreting
@@ -4844,9 +5003,10 @@ the body of the (constructor) function proper.
             arg->is_xvalue = FALSE;
           }  /* if */
         }  /* if */
-        if (!do_constexpr_expression(ips, arg, arg_bytes)) {
+        if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
+        mark_complete_object_initialized(arg_bytes);
         if (restore_lvalue) {
           arg->is_lvalue = TRUE;
         } else if (restore_xvalue) {
@@ -4878,6 +5038,7 @@ the body of the (constructor) function proper.
                                                         &result);
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
+      mark_complete_object_initialized(this_bytes);
       ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
       map_stack_bytes(ips, this_var, this_bytes);
       map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
@@ -4905,7 +5066,7 @@ the body of the (constructor) function proper.
               size_t_arg(n_class_bytes-sizeof(void*)));
     }  /* if */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, pos, result_storage);
+    push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
@@ -4942,7 +5103,7 @@ the body of the (constructor) function proper.
         }  /* if */
       } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
-                                           result_storage);
+                                           result_storage, complete_object);
         break;
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
@@ -4986,10 +5147,11 @@ the body of the (constructor) function proper.
                           &args->position, ips);
             do_constexpr_fail(result);
             break;
-          } else  if (!do_constexpr_ctor(ips, sub_dip,
-                                         &callee->source_corresp.decl_position,
-                                         result_storage+offset,
-                                         src_addr->address+offset)) {
+          } else  if (!do_constexpr_ctor(
+                                       ips, sub_dip,
+                                       &callee->source_corresp.decl_position,
+                                       result_storage+offset, complete_object,
+                                       src_addr->address+offset)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -4999,13 +5161,14 @@ the body of the (constructor) function proper.
           if (!result) break;
           memzero(result_storage+offset, size_t_arg(n_bytes));
         } else if (!do_constexpr_dynamic_init(
-                                       ips, sub_dip,
-                                       &callee->source_corresp.decl_position,
-                                       result_storage+offset)) {
+                                    ips, sub_dip,
+                                    &callee->source_corresp.decl_position,
+                                    result_storage+offset, complete_object)) {
           do_constexpr_fail(result);
           break;
         }  /* if */
       }  /* if */
+      mark_subobject_initialized(result_storage+offset, complete_object);
     }  /* for */
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Run the function's top-level block statement. */
@@ -5075,7 +5238,7 @@ storage at value and return TRUE.  Otherwise, return FALSE.
                                 /*a_constexpr_evaluation_block=*/NULL,
                                 val_con)) {
     /* Copy the constant value. */
-    result = copy_val_from_constant(ips, val_con, value);
+    result = copy_val_from_constant(ips, val_con, value, value);
   } else {
     result = FALSE;
   }  /* if */
@@ -5084,16 +5247,18 @@ storage at value and return TRUE.  Otherwise, return FALSE.
 }  /* get_value_from_address_constant */
 
 
-static a_boolean do_constexpr_expression(an_interpreter_state  *ips,
-                                         an_expr_node_ptr      orig_expr,
-                                         a_byte                *result_storage)
+static a_boolean do_constexpr_expression(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      orig_expr,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
 /*
 Interpret the given expression in the given interpreter context.  If
-successful return TRUE and store the result at *result_storage.  Otherwise,
-return FALSE and update *ips accordingly.  A glvalue result is represented
-as an a_constexpr_address value, so result_storage must be at least large
-enough for that type; otherwise, it need only be large enough for the type
-of the prvalue result.
+successful return TRUE and store the result at *result_storage (which is
+storage within the given complete object).  Otherwise, return FALSE and update 
+*ips accordingly.  A glvalue result is represented as an a_constexpr_address
+value, so result_storage must be at least large enough for that type;
+otherwise, it need only be large enough for the type of the prvalue result.
 */
 {
   a_boolean            result = TRUE;
@@ -5123,7 +5288,8 @@ of the prvalue result.
         if (is_call_node(expr)) {
           /* Call nodes are handled separately because their operands are set
              up a little differently. */
-          result = do_constexpr_call(ips, expr, result_storage);
+          result = do_constexpr_call(
+                                  ips, expr, result_storage, complete_object);
           goto done;
         } else if (node_operator_is(expr, eok_class_rvalue_adjust)) {
           /* This is a pass-through operator for prvalues.  So we cannot just
@@ -5131,7 +5297,8 @@ of the prvalue result.
              Instead, the operand must be evaluated directly into the final
              result storage. */
           result = do_constexpr_expression(
-                       ips, expr->variant.operation.operands, result_storage);
+                                        ips, expr->variant.operation.operands,
+                                        result_storage, complete_object);
           goto done;
         }  /* if */
 /*
@@ -5180,6 +5347,9 @@ nodes.
       } else if (expr->volatile_fetch) {                                      \
         do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);     \
+      } else if (!is_initialized((a_constexpr_address*)(opnd))) {             \
+        do_constexpr_fail(result);                                            \
+        info_with_pos(ec_object_not_initialized, &expr->position, ips);       \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
@@ -5234,7 +5404,8 @@ type.  This includes checking the value of ovfl set by the operation.
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
         alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
-        if (result && !do_constexpr_expression(ips, opnd1, opnd1_value)) {
+        if (result &&
+            !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
           do_constexpr_fail(result);
         }  /* if */
         if (result && opnd2 != NULL &&
@@ -5253,7 +5424,8 @@ type.  This includes checking the value of ovfl set by the operation.
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
           alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
-          if (result && !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+          if (result &&
+              !do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
@@ -6316,8 +6488,8 @@ type.  This includes checking the value of ovfl set by the operation.
                   do_constexpr_fail(result);
                   info_with_pos(err_code, &expr->position, ips);
                 } else {
-                  result = copy_val_from_constant(ips, diff_con,
-                                                  result_storage);
+                  result = copy_val_from_constant(
+                               ips, diff_con, result_storage, result_storage);
                 }  /* if */
                 release_local_constant(&diff_con);
               } else if (is_array_element(addr1) && is_array_element(addr2) &&
@@ -6358,7 +6530,7 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
-                           (a_host_large_integer)(tp->size * targ_char_bit)) {
+                           (a_host_large_integer)(tp->size * CHAR_BIT)) {
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
@@ -6384,7 +6556,7 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
-                           (a_host_large_integer)(tp->size * targ_char_bit)) {
+                           (a_host_large_integer)(tp->size * CHAR_BIT)) {
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
@@ -7257,7 +7429,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
-                          (a_host_large_integer)(tp->size * targ_char_bit)) {
+                          (a_host_large_integer)(tp->size * CHAR_BIT)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
@@ -7322,7 +7494,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
-                          (a_host_large_integer)(tp->size * targ_char_bit)) {
+                          (a_host_large_integer)(tp->size * CHAR_BIT)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
@@ -7660,13 +7832,12 @@ type.  This includes checking the value of ovfl set by the operation.
                                                 &result);
                 alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
                                       opnd2_value);
-                if (result &&
-                    !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+                if (result && !do_constexpr_expression(
+                                      ips, opnd2, opnd2_value, opnd2_value)) {
                   do_constexpr_fail(result);
+                  break;
                 }  /* if */
-                if (!result) {
-                  /* Interpretation of the second operand failed. */
-                } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
+                if (opnd2_type->kind == (a_type_kind)tk_integer) {
                   int_kind = opnd2_type->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
@@ -7708,13 +7879,12 @@ type.  This includes checking the value of ovfl set by the operation.
                                                 &result);
                 alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
                                       opnd2_value);
-                if (result &&
-                    !do_constexpr_expression(ips, opnd2, opnd2_value)) {
+                if (result && !do_constexpr_expression(
+                                      ips, opnd2, opnd2_value, opnd2_value)) {
                   do_constexpr_fail(result);
+                  break;
                 }  /* if */
-                if (!result) {
-                  /* Interpretation of the second operand failed. */
-                } else if (opnd2_type->kind == (a_type_kind)tk_integer) {
+                if (opnd2_type->kind == (a_type_kind)tk_integer) {
                   int_kind = opnd2_type->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   get_int_val_from(opnd2_value, opnd2_type, bool_val, ovfl);
@@ -7734,7 +7904,8 @@ type.  This includes checking the value of ovfl set by the operation.
             }
             break;
           case eok_comma:
-            result = do_constexpr_expression(ips, opnd2, result_storage);
+            result = do_constexpr_expression(
+                                 ips, opnd2, result_storage, complete_object);
             break;
           case eok_subscript:
             /* Pointer + integer or integer + pointer. */
@@ -7815,6 +7986,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 /* The first operand is a class rvalue: Create an address for
                    it. */
+                mark_complete_object_initialized(opnd1_value);
                 clear_address(&result_addr, opnd1_value);
               }  /* if */
               if (is_runtime_data_address(&result_addr)) {
@@ -7927,7 +8099,8 @@ type.  This includes checking the value of ovfl set by the operation.
             break;
           case eok_dot_static:
           case eok_points_to_static:
-            result = do_constexpr_expression(ips, opnd2, result_storage);
+            result = do_constexpr_expression(
+                                 ips, opnd2, result_storage, complete_object);
             break;
           case eok_question:
             { a_host_large_integer  bool_val;
@@ -7942,7 +8115,8 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 unexpected_condition();
               }  /* if */
-              result = do_constexpr_expression(ips, opnd2, result_storage);
+              result = do_constexpr_expression(
+                                 ips, opnd2, result_storage, complete_object);
             }
             break;
           case eok_call:
@@ -7959,7 +8133,7 @@ type.  This includes checking the value of ovfl set by the operation.
     case enk_constant:
       {
         a_constant_ptr  con = node_constant(expr);
-        a_byte          *con_bytes;
+        a_byte          *con_bytes, *complete_dest;
         if (tp->kind == (a_type_kind)tk_array &&
             (expr->is_lvalue || expr->is_xvalue)) {
           /* An array lvalue (normally: a string literal).  Allocate the
@@ -7967,22 +8141,17 @@ type.  This includes checking the value of ovfl set by the operation.
              multiple uses of the constant produce the same address. */
           get_mapped_ptr(&ips->map, con, con_bytes);
           if (con_bytes == NULL) {
-            a_byte_count  na_bytes = f_value_bytes_for_type(ips, tp, &result);
-            if (!result) break;
-            if (!ips->static_storage_ready) {
-              /* This is the first time we allocate static storage: Initialize
-                 the associated static storage stack. */
-              init_constexpr_stack(&ips->static_storage);
-              ips->static_storage_ready = TRUE;
-            }  /* if */
-            alloc_bytes(&ips->static_storage, na_bytes, con_bytes);
+            alloc_static_object(ips, tp, con_bytes, &result);
+            mark_complete_object_initialized(con_bytes);
             map_ptr(&ips->map, con, con_bytes);
           }  /* if */
           clear_address(result_storage, con_bytes);
+          complete_dest = con_bytes;
         } else {
           con_bytes = result_storage;
+          complete_dest = complete_object;
         }  /* if */
-        result = copy_val_from_constant(ips, con, con_bytes);
+        result = copy_val_from_constant(ips, con, con_bytes, complete_dest);
       }
       break;
     case enk_variable:
@@ -7998,12 +8167,8 @@ type.  This includes checking the value of ovfl set by the operation.
             do_constexpr_fail(result);
           } else if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
-            /* Check that the variable is initialized. */
-            an_alloc_seq_number  seq;
-            get_mapped_byte_count(&ips->map, &var->storage_class, seq);
-            if (seq == UNINIT_SEQ_NUMBER) {
-              info_with_pos_sym(ec_variable_not_yet_initialized,
-                                &expr->position, symbol_for(var), ips);
+            if (!complete_object_is_initialized(var_bytes)) {
+              info_with_pos(ec_object_not_initialized, &expr->position, ips);
               do_constexpr_fail(result);
             } else {
               (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
@@ -8016,7 +8181,8 @@ type.  This includes checking the value of ovfl set by the operation.
           } else {
             a_constant_ptr  con = var_constant_value(var);
             if (con != NULL) {
-              result = copy_val_from_constant(ips, con, result_storage);
+              result = copy_val_from_constant(ips, con, result_storage,
+                                              result_storage);
             } else {
               info_with_pos_sym(ec_variable_not_constant_valued,
                                 &expr->position, symbol_for(var), ips);
@@ -8051,7 +8217,8 @@ type.  This includes checking the value of ovfl set by the operation.
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = var;
             con->type = make_reference_type(var->type);
-            result = extract_value_from_constant(ips, con, result_storage);
+            result = extract_value_from_constant(
+                                    ips, con, result_storage, result_storage);
           }  /* if */
         }  /* if */
       }
@@ -8067,12 +8234,14 @@ type.  This includes checking the value of ovfl set by the operation.
       { a_dynamic_init_ptr     dip = expr->variant.init.dynamic_init;
         a_byte                 *tmp_bytes;
         an_alloc_seq_number    alloc_seq_number;
+        a_byte_count  prefix_size;
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
+          compute_prefix_size_for_type(tp, n_bytes, prefix_size);
           if (!dip->has_temporary_lifetime && ips->extension_state != NULL) {
             /* A lifetime extended temporary.  Switch to the storage stack
                state was saved at the time the stmk_init statement was
@@ -8083,21 +8252,25 @@ type.  This includes checking the value of ovfl set by the operation.
                there is no extended-lifetime storage.  Instead, the result
                will eventually be stored in IL, which is persistent across
                interpreter invocations. */
-            alloc_bytes(ips->extension_state, n_bytes, tmp_bytes);
+            alloc_bytes(ips->extension_state, n_bytes+prefix_size, tmp_bytes);
             alloc_seq_number = ips->extension_state->alloc_seq_number;
             ips->extension_state = NULL;
           } else {
-            alloc_stack_bytes(ips, n_bytes, tmp_bytes);
+            alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
             alloc_seq_number = ips->storage_stack.alloc_seq_number;
           }  /* if */
-          record_complete_object(tp, tmp_bytes);
+          memzero(tmp_bytes, size_t_arg(prefix_size-sizeof(a_type_ptr)));
+          tmp_bytes += prefix_size;
+          record_complete_object_type(tp, tmp_bytes);
+          mark_complete_class_object_if_needed(tp, tmp_bytes);
         } else {
           /* The consumer of the temporary expects an rvalue.  So we can
              evaluate the initialization directly into result_storage. */
           tmp_bytes = result_storage;
           alloc_seq_number = 0;
         }  /* if */
-        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, tmp_bytes)) {
+        if (!do_constexpr_dynamic_init(
+                           ips, dip, &expr->position, tmp_bytes, tmp_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
@@ -8106,6 +8279,7 @@ type.  This includes checking the value of ovfl set by the operation.
           /* Record the allocation sequence number for this temporary in the
              address record. */ 
           cap->alloc_seq_number = alloc_seq_number;
+          mark_complete_object_initialized(tmp_bytes);
         }  /* if */
       }
       break;
@@ -8558,7 +8732,7 @@ return FALSE, and record diagnostic info in *diag_list.
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
-    if (!do_constexpr_call(&ips, call_expr, result_storage)) {
+    if (!do_constexpr_call(&ips, call_expr, result_storage, result_storage)) {
       do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                              &ips, result_storage, result_type, result_con)) {
@@ -8581,6 +8755,7 @@ a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
 Attempt to interpret the constructor call represented by dip.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise,
 return FALSE.
+FIXME: Add diag_list parameter
 */
 {
   a_boolean             result = TRUE;
@@ -8618,7 +8793,7 @@ return FALSE.
   alloc_complete_object(&ips, n_bytes, result_type, result_storage);
   if (result) {
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
-                           /*implied_src=*/NULL)) {
+                           result_storage, /*implied_src=*/NULL)) {
       do_constexpr_fail(result);
     } else {
       /* Map the result address (which is the "this" pointer) to a ck_address
