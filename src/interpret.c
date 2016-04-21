@@ -5866,8 +5866,16 @@ type.  This includes checking the value of ovfl set by the operation.
               int_kind = tp->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
               negate_integer_value((an_integer_value *)result_storage, &ovfl);
-              check_int_range((an_integer_value *)result_storage, tp, result,
-                              ovfl, &expr->position, ips);
+              if (!is_signed) {
+                /* Negation is always done in signed arithmetic.  Overflow is
+                   not possible in unsigned arithmetic, but we have to clear
+                   the sign-extension bits. */
+                and_integer_values((an_integer_value*)result_storage,
+                                   &max_integer_value_of_kind[int_kind]);
+              } else {
+                check_int_range((an_integer_value *)result_storage, tp, result,
+                                ovfl, &expr->position, ips);
+              }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_float) {
               err = FALSE;
               fp_negate(opnd1_type->variant.float_kind,
