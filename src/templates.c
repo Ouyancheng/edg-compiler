@@ -5975,7 +5975,7 @@ the template definition or may be a default initialization.
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   } else {
     /* In other modes, the variable should have external linkage.
-       Change it storage class from sc_extern to sc_unspecified.  For
+       Change its storage class from sc_extern to sc_unspecified.  For
        variable template instances, this may be updated later if the
        variable template has some other storage class. */
     check_assertion_str(var_ptr->storage_class == (a_storage_class)sc_extern,
@@ -6119,11 +6119,11 @@ the template definition or may be a default initialization.
                                  (a_statement_ptr)NULL);
   pop_template_instantiation_scope();
   --(tssp->pending_instantiations);
-  /* Usually template variable are instantiated "on demand" and
+  /* Usually template variables are instantiated "on demand" and
      so the referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
      a reference, we should set the referenced flag anyway, so that
-     the back-end will be sure to generate the function. */ 
+     the back-end will be sure to generate the variable. */ 
   var_ptr->source_corresp.referenced = TRUE;
   var_ptr->is_template_variable = TRUE;
   /* Note that Microsoft decl_modifiers are not processed on static

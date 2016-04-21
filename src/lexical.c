@@ -17261,16 +17261,16 @@ static a_symbol_ptr coalesce_template_variable_reference(
 			a_token_kind			next_tok,
 			a_boolean			*err)
 /*
-The current identifier is a variable template symbol.  if next_tok is
-tok_lt ("<"), is followed by a template argument list.  Scan the template
+The current identifier is a variable template symbol.  If next_tok is
+tok_lt ("<"), it is followed by a template argument list.  Scan the template
 argument list and update the locator to point to it.  Return the symbol
 of the variable template instance indicated by the template argument
 list.
 */
 {
-  a_source_position             start_position;
-  a_template_arg_ptr            arg_list = NULL;
-  a_memory_region_number        region_to_switch_back_to;
+  a_source_position		start_position;
+  a_template_arg_ptr		arg_list = NULL;
+  a_memory_region_number	region_to_switch_back_to;
   a_symbol_locator		orig_locator;
   a_boolean			any_errors = FALSE;
   a_symbol_ptr			new_sym = NULL;
@@ -17293,7 +17293,7 @@ list.
     /* Get the angle bracket token. */
     (void)get_token();
     check_assertion(curr_token == tok_lt);
-    /* Get token following opening angle bracket. */
+    /* Get the token following the opening angle bracket. */
     (void)get_token();
     /* Increment the number of template argument lists that are being
        scanned. */
@@ -17350,7 +17350,7 @@ list.
   }  /* if */
   locator_for_curr_id.is_template_id = TRUE;
   locator_for_curr_id.template_arg_list = arg_list;
-  /* Set source position for error reporting. */
+  /* Set the source position for error reporting. */
   error_position = start_position;
   *err = any_errors;
   return new_sym;
