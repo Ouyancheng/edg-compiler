@@ -2413,6 +2413,23 @@ Mark the complete object at the given address as fully initialized.
 }
 
 
+static void init_subobject_to_zero(a_byte        *subobj,
+                                   a_byte_count  n_bytes,
+                                   a_byte        *complete_obj)
+/*
+Initialize to zero the given subobject (n_bytes is the size of the subobject,
+which is within the given complete object).
+*/
+{
+  a_byte_count  k;
+
+  memzero(subobj, size_t_arg(n_bytes));
+  /* Mark possible subobject starting positions as initialized. */
+  for (k = 0; k<n_bytes; k += HOST_ALIGNMENT_REQUIRED) {
+    mark_subobject_initialized(subobj+k, complete_obj);  
+  }  /* for */
+}  /* init_subobject_to_zero */
+
 /*
 Return TRUE if the given complete object is fully initialized.
 */
@@ -3079,8 +3096,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
-              /* Not all elements are covered.  Zero the remainder. FIXME*/
-              memzero(value, size_t_arg((n_elems-k)*elem_size));
+              /* Not all elements are covered.  Zero the remainder. */
+              init_subobject_to_zero(value, size_t_arg((n_elems-k)*elem_size),
+                                     complete_object);
               break;
             } else {
               mark_complete_class_object_if_needed(etp, value);
@@ -3143,11 +3161,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             get_mapped_byte_count(&persistent_map, fp, offset);
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
-                 remainder of the class value. FIXME*/
-              a_byte_count  class_size = value_bytes_for_type(ips, tp,
-                                                              &result);
+                 remainder of the class value. */
+              a_byte_count  rem_size;
+              rem_size = value_bytes_for_type(ips, tp, &result)-offset;
               if (result) {
-                memzero(value+offset, size_t_arg(class_size-offset));
+                init_subobject_to_zero(value+offset, size_t_arg(rem_size),
+                                       complete_object);
               }  /* if */
               break;
             } else if (!copy_val_from_constant(
