@@ -3228,7 +3228,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
            contexts that disallow folding (e.g., in the case of a new
            expression that relies on the constructor call to call the
            allocation function). */
-        a_constant_ptr folded_con;
         dip = alloc_expr_ctor_dynamic_init(routine,
                                            arg_expr_list,
                                            dest_type,

@@ -551,7 +551,6 @@ given position and return an error constant.
     if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
                              /*check_constexpr=*/TRUE, diag_pos, result)) {
       /* The call to the default constructor could not be folded. */
-      // FIXME pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
       expect_error();
       set_error_constant(result);
     }  /* if */
