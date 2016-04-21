@@ -485,7 +485,7 @@ Return TRUE if var should be ignored by IL lowering and code generating
 back ends.  This is TRUE for dependent template entities.
 */
 #define ignore_variable_in_back_end(var)				\
-  ((var)->is_prototype_instantiation)
+  ((var)->is_prototype_instantiation || (var)->is_nonreal)
 
 /*
 Return TRUE if constant should be ignored by IL lowering and code generating
