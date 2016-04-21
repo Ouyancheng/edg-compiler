@@ -2037,6 +2037,10 @@ type, an lvalue is returned instead.
       node = var_lvalue_expr(temp_var);
     } else {
       node = var_rvalue_expr(temp_var);
+      if (!identical_types(temp_var->type, constant->type)) {
+        /* Preserve the original type if there's a change in type. */
+        node->orig_lvalue_type = constant->type;
+      }  /* if */
     }  /* if */
     if (constant->implicit_cast) {
       node = add_cast_if_necessary(node, constant->type);
@@ -2814,7 +2818,12 @@ not to contain any top level base class casts.
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
          constant. */
+      a_constant_ptr con = node_constant(expr);
       expr = var_addr_expr(temp);
+      if (expr->is_lvalue && !identical_types(con->type, temp->type)) {
+        /* Preserve the original type if there's a change in type. */
+        expr->orig_lvalue_type = con->type;
+      }  /* if */
     } else {
       temp = assign_expr_to_temp(expr);
       expr = make_comma_node(expr, var_addr_expr(temp));
@@ -12804,6 +12813,11 @@ variables can have changed since the first reference.
          has become a struct represented by a ck_aggregate constant.  Since a
          ck_aggregate constant is not allowed here, use the value of a
          temporary variable initialized with the ck_aggregate constant. */
+      if (expr->is_lvalue &&
+          !identical_types(node_constant(expr)->type, temp_var->type)) {
+        /* Preserve the original type if there's a change in type. */
+        expr->orig_lvalue_type = node_constant(expr)->type;
+      }  /* if */
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
       node_variable(expr) = temp_var;
     } else if (need_copy) {
@@ -15785,6 +15799,10 @@ cast.  See lower_expr for typical invocation.
                The const on the variable type won't be there, but that's
                correct; it should be dropped because the reference is an
                rvalue. */
+            if (expr->is_lvalue &&
+                !identical_types(con->type, temp_var->type)) {
+              expr->orig_lvalue_type = con->type;
+            }  /* if */
             check_assertion(f_identical_types(expr->type,
                                               make_unqualified_type(con->type),
                                               ITF_NO_FLAGS) &&
