@@ -8769,12 +8769,12 @@ done:
 
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
-                                   a_constant_ptr      result_con)
+                                   a_constant_ptr      result_con,
+                                   a_diag_list_ptr     diag_list)
 /*
 Attempt to interpret the constructor call represented by dip.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise,
-return FALSE.
-FIXME: Add diag_list parameter
+return FALSE, and record diagnostic info in *diag_list.
 */
 {
   a_boolean             result = TRUE;
@@ -8800,12 +8800,6 @@ FIXME: Add diag_list parameter
     goto done;
   } else {
     ctor = dip->variant.constructor.ptr;
-    if (!ctor->is_constexpr) {
-      info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
-                        &error_position, symbol_for(ctor), &ips);
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
   }  /* if */
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
@@ -8833,6 +8827,7 @@ FIXME: Add diag_list parameter
       release_local_constant(&this_con);
     }  /* if */
   }  /* if */
+  *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
   if (n_free_variant_path_entries != n_variant_path_entries) {
     reclaim_variant_path_entries();

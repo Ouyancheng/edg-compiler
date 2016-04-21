@@ -18491,6 +18491,7 @@ an explicit cast.  *position gives the source position.
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
                                        /*fold_constexpr=*/TRUE,
+                                       /*check_constexpr=*/FALSE,
                                        position);
     if (!is_error_type(temp_type) &&
         !error_on_abstract_class_object(temp_type, position)) {
@@ -19509,6 +19510,7 @@ happen only in C++ mode.
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
                                        /*fold_constexpr=*/FALSE,
+                                       /*check_constexpr=*/FALSE,
                                        &source_operand->position);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
@@ -19545,6 +19547,7 @@ happen only in C++ mode.
                                          /*value_init=*/FALSE,
                                          /*sequenced_args=*/FALSE,
                                          /*fold_constexpr=*/TRUE,
+                                         /*check_constexpr=*/FALSE,
                                          &source_operand->position);
       if (fill_in_dtor) {
         add_dtor_to_dynamic_init(dip, class_type, class_type,
@@ -21565,6 +21568,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
                                            /*value_init=*/TRUE,
                                            /*sequenced_args=*/FALSE,
                                            /*fold_constexpr=*/TRUE,
+                                           /*check_constexpr=*/FALSE,
                                            pos);
         if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
             folded_con->is_result_of_constexpr_call) {
@@ -22122,6 +22126,7 @@ be suppressed (i.e., SFINAE mode).
                                          /*value_init=*/FALSE,
                                          /*sequenced_args=*/temp_init_used,
                                          /*fold_constexpr=*/TRUE,
+                                         /*check_constexpr=*/FALSE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
       dip->is_explicit_cast = is_cast;

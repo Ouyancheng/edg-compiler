@@ -2527,6 +2527,7 @@ specified, and return *dip set to NULL.
                                         /*value_init=*/FALSE,
                                         /*sequenced_args=*/FALSE,
                                         /*fold_constexpr=*/FALSE,
+                                        /*check_constexpr=*/FALSE,
                                         (a_source_position *)NULL);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3237,17 +3238,11 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                            /*sequenced_args=*/
                                              (init_list_ctor_arg_list != NULL),
                                            /*fold_constexpr=*/elision_allowed,
+                                           /*check_constexpr=*/elision_allowed,
                                            source_pos);
         if (is_error_dynamic_init(dip)) {
           /* Some error. */
           dip = NULL;
-        } else if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL&&
-                   folded_con->is_result_of_constexpr_call) {
-          /* The construction was folded to a constant result. */
-        } else {
-          (void)call_did_not_fold_to_constant(routine, (an_operand *)NULL,
-                                              (a_diag_list_ptr)NULL,
-                                              source_pos);
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {
@@ -17052,6 +17047,7 @@ delegate initializer, given by rcblock->argument_list.
                                         /*value_init=*/FALSE,
                                         /*sequenced_args=*/FALSE,
                                         /*fold_constexpr=*/FALSE,
+                                        /*check_constexpr=*/FALSE,
                                         /*pos=*/NULL);
   }  /* if */
 
@@ -17364,6 +17360,7 @@ delegate initializer, given by rcblock->argument_list.
                                         /*value_init=*/FALSE,
                                         /*sequenced_args=*/FALSE,
                                         /*fold_constexpr=*/FALSE,
+                                        /*check_constexpr=*/FALSE,
                                         (a_source_position *)NULL);
   }  /* if */
   free_arg_list(operand_list);
@@ -18498,6 +18495,7 @@ expression, and return the result in *result (or an error indication in
                                                /*sequenced_args=*/FALSE,
                                                /*fold_constexpr=*/
                                                          (new_routine != NULL),
+                                               /*check_constexpr=*/FALSE,
                                                &type_position);
           }  /* if */
         }  /* if */
@@ -19054,6 +19052,7 @@ handle_empty_parens_new_initializer:
                                        /*value_init=*/FALSE,
                                        /*sequenced_args=*/FALSE,
                                        /*fold_constexpr=*/FALSE,
+                                       /*check_constexpr=*/FALSE,
                                        &start_position);
   }  /* if */
   expr_stack->inside_conditional_expression =
@@ -31194,6 +31193,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                            /*value_init=*/FALSE,
                                            /*sequenced_args=*/FALSE,
                                            /*fold_constexpr=*/TRUE,
+                                           /*check_constexpr=*/FALSE,
                                            capture_pos);
       } else {
         /* Other cases, including when dest_type is a reference (which happens
@@ -40921,6 +40921,7 @@ and the array repetition.
                                            /*value_init=*/FALSE,
                                            /*sequenced_args=*/FALSE,
                                            /*fold_constexpr=*/TRUE,
+                                           /*check_constexpr=*/FALSE,
                                            &operand.position);
         cip->source.expr = make_node_from_operand(&operand);
       }  /* if */

@@ -11616,7 +11616,10 @@ fold_constexpr_ctor should usually be called instead.
   if (is_error_dynamic_init(ctor_dip)) goto end_of_routine;
   check_assertion(ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   if (relaxed_constexpr_enabled) {
-    folded = interpret_constexpr_ctor(ctor_dip, result_con);
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
+    folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
+    discard_more_info_list(&diag_list);
     goto end_of_routine;
   }  /* if */
   ctor_routine = ctor_dip->variant.constructor.ptr;
@@ -11750,32 +11753,49 @@ node pointing to the dynamic init "dip".
 
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
+                              a_boolean          check_constexpr,
                               a_source_position  *pos,
                               a_constant         *result_con)
 /*
-ctor_dip is a dik_constructor dynamic initialization.  If the
-constructor invoked is declared constexpr, try to fold the
-construction to a constant class object.  If that's possible, place
-the constant in *result_con and return TRUE; otherwise, return FALSE.
-pos gives the source position of the initialization.  If
-record_backing_expr is TRUE, record a temp-init over ctor_dip as a
-backing expression for the resulting constant.
+ctor_dip is a dik_constructor dynamic initialization.  If the constructor
+invoked is declared constexpr, try to fold the construction to a constant
+class object.  If that's possible, place the constant in *result_con and
+return TRUE; otherwise, return FALSE.  pos gives the source position of the
+initialization.  If record_backing_expr is TRUE, record a temp-init over
+ctor_dip as a backing expression for the resulting constant.  If
+check_constexpr is TRUE, call call_did_not_fold_to_constant if folding did
+not succeed.
 */
 {
   a_boolean                    folded;
   a_constexpr_evaluation_block ceblock;
+  a_diag_list  diag_list;
 
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
+  clear_diag_list(&diag_list);
   if (relaxed_constexpr_enabled) {
-    folded = interpret_constexpr_ctor(ctor_dip, result_con);
+    folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
   } else {
     clear_constexpr_evaluation_block(&ceblock, pos);
     folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
   }  /* if */
-  if (folded && record_backing_expr) {
-    add_temp_init_backing_expression(result_con, ctor_dip);
+  if (folded) {
+    if (record_backing_expr) {
+      add_temp_init_backing_expression(result_con, ctor_dip);
+    }  /* if */
+  } else {
+    if (check_constexpr) {
+      a_routine_ptr  rp = ctor_dip->variant.constructor.ptr;
+      if (rp != NULL) {
+        (void)call_did_not_fold_to_constant(rp, (an_operand *)NULL,
+                                            &diag_list, pos); 
+      } else {
+        expect_error();
+      }  /* if */
+    }  /* if */
   }  /* if */
+  discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_ctor */
 

@@ -548,10 +548,11 @@ given position and return an error constant.
   a_routine_ptr   ctor = dip->variant.constructor.ptr;
 
   if (ctor->is_constexpr) {
-    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                             result)) {
+    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                             /*check_constexpr=*/TRUE, diag_pos, result)) {
       /* The call to the default constructor could not be folded. */
-      pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
+      // FIXME pos_ty_error(ec_default_ctor_call_not_constant, diag_pos, tp);
+      expect_error();
       set_error_constant(result);
     }  /* if */
   } else {
@@ -1177,7 +1178,8 @@ given position, unless is->no_diagnostics is TRUE.
         } else {
           a_constant_ptr  class_con = local_constant();
           if (ctor_rp->is_constexpr &&
-              fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
+              fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                                  /*check_constexpr=*/FALSE, diag_pos,
                                   class_con)) {
             if (class_con->is_partially_initialized) {
               is->partial_initializer = TRUE;
@@ -5558,6 +5560,7 @@ FALSE is returned) for non-class objects.
             init_dip->variable = var;
             folded = fold_constexpr_ctor(init_dip,
                                          /*record_backing_expr=*/TRUE,
+                                         /*check_constexpr=*/FALSE,
                                          err_pos, &folded_con);
             /* Clear the variable field again.  It may get recorded later if
                needed. */

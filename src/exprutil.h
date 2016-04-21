@@ -2013,6 +2013,7 @@ extern a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                             a_boolean         value_init,
                                             a_boolean         sequenced_args,
                                             a_boolean         fold_constexpr,
+                                            a_boolean         check_constexpr,
                                             a_source_position *pos);
 
 extern a_routine_ptr expr_select_default_constructor(

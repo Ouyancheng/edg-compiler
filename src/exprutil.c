@@ -5587,7 +5587,7 @@ expression).  routine indicates the routine that was called, or is NULL if we
 don't know the specific routine (e.g., because of an error, or because the
 call was mapped to some other nonconstant construct).  operand can be NULL if
 it's not available; in that case pos gives the source position to use.
-If diag_list is non-NULL, it describes diagnostic nodes with details of why
+If diag_list is non-NULL, it describes diagnostic notes with details of why
 folding failed.  Return TRUE if an error was issued.
 */
 {
@@ -5621,14 +5621,14 @@ folding failed.  Return TRUE if an error was issued.
          If the current expression is a constant expression, go on to the
          tests below where we will issue an error. */
     } else if (constexpr_enabled &&
-               curr_expr_kind_is_evaluated_const() &&
+               (expr_stack == NULL || curr_expr_kind_is_evaluated_const()) &&
                is_template_dependent_context()) {
       /* A dependent call might call a constexpr function and be folded,
          so turn it into a constant and await a real instantiation. */
       if (operand != NULL) {
         make_template_param_expr_constant_operand(operand);
       }  /* if */
-    } else if (curr_expr_kind_is_traditional_const()) {
+    } else if (expr_stack != NULL && curr_expr_kind_is_traditional_const()) {
       /* Unfolded routine calls are not allowed in constant expressions. */
       err = TRUE;
       if (operand != NULL) {
@@ -5636,30 +5636,37 @@ folding failed.  Return TRUE if an error was issued.
       } else {
         expr_pos_error(err_code, pos);
       }  /* if */
-    } else {
+    } else if (constexpr_enabled) {
       /* The following is similar to a call to
-         construct_not_allowed_in_cpp11_constant_expr, except that is
-         appends the diag_list notes if necessary. */
-      /* Constant expressions allow invalid operators/constructs in unevaluated
-         subexpressions, including dead operands of "?", "&&", and "||". */
-      if (constexpr_enabled && curr_expr_is_evaluated() &&
+         construct_not_allowed_in_cpp11_constant_expr, except that it appends
+         the diag_list notes if necessary. */
+      a_boolean  emit_diagnostic = FALSE;
+      if (expr_stack == NULL) {
+        emit_diagnostic = TRUE;
+        err = TRUE;
+      } else if (curr_expr_is_evaluated() &&
           !curr_expr_is_potentially_unevaluated()) {
+        /* Constant expressions allow invalid operators/constructs in
+           unevaluated subexpressions, including dead operands of "?", "&&",
+           and "||". */
         expr_stack->constant_expr_ruled_out = TRUE;
         if (curr_expr_kind_is_const()) {
           /* We're in a constant expression, so this construct is an error. */
           if (expr_error_should_be_issued()) {
-            a_diagnostic_ptr  dp;
-            dp = pos_start_diagnostic(es_error, err_code,
-                                      operand != NULL ? &operand->position :
-                                                        pos);
-            if (diag_list != NULL) {
-              add_more_info_list(dp, diag_list);
-            }  /* if */
-            end_diagnostic(dp);
+            emit_diagnostic = TRUE;
           }  /* if */
           err = TRUE;
           if (operand != NULL) conv_to_error_operand(operand);
         }  /* if */
+      }  /* if */
+      if (emit_diagnostic) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_diagnostic(es_error, err_code,
+                                  operand != NULL ? &operand->position : pos);
+        if (diag_list != NULL) {
+          add_more_info_list(dp, diag_list);
+        }  /* if */
+        end_diagnostic(dp);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5707,9 +5714,6 @@ in *diag_list).  pos is the source position of the call.
                  is_class_struct_union_type(result->type)) {
         temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
       }  /* if */
-      if (relaxed_constexpr_enabled) {
-        discard_more_info_list(diag_list);
-      }  /* if */
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
     }  /* if */
@@ -5722,6 +5726,7 @@ in *diag_list).  pos is the source position of the call.
 static a_boolean expr_fold_constexpr_ctor(
                                      a_dynamic_init_ptr ctor_dip,
                                      a_source_position  *pos,
+                                     a_boolean          check_constexpr,
                                      a_constant         *result_con)
 /*
 Interface to fold_constexpr_ctor for use within the expression-processing
@@ -5733,7 +5738,8 @@ routines.  See fold_constexpr_ctor for the description of the parameters.
   if (constexpr_call_folding_should_be_done()) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con)) {
+    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr, pos,
+                            result_con)) {
       folded = TRUE;
     }  /* if */
   }  /* if */
@@ -15138,6 +15144,7 @@ a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                      a_boolean         value_init,
                                      a_boolean         sequenced_args,
                                      a_boolean         fold_constexpr,
+                                     a_boolean         check_constexpr,
                                      a_source_position *pos)
 /*
 Allocate a dynamic initialization entry for a constructor call
@@ -15152,9 +15159,11 @@ TRUE if value-initialization is required; and sequenced_args is TRUE
 if the arguments must be evaluated left-to-right.  pos is the source
 position of the call (may be omitted if ctor_routine is NULL).
 Does not fill in the destructor information, if any.
-If C++11 constexpr is enabled, and fold_constexpr is TRUE, the
-construction may be folded to a constant (a dik_constant dynamic init
-entry is returned).
+
+If constexpr is enabled, and fold_constexpr is TRUE, the construction may be
+folded to a constant (a dik_constant dynamic init entry is returned).  If
+check_constexpr is also TRUE, diagnostic are emitted in contexts requiring
+successful folding.
 */
 {
   a_boolean          folded = FALSE;
@@ -15201,7 +15210,7 @@ entry is returned).
     if (fold_constexpr && ctor_routine->is_constexpr) {
       a_constant_ptr folded_con = local_constant();
       check_assertion(pos != NULL);
-      if (expr_fold_constexpr_ctor(dip, pos, folded_con)) {
+      if (expr_fold_constexpr_ctor(dip, pos, check_constexpr, folded_con)) {
         /* The constructor is declared constexpr and the construction has
            been folded to a constant. */
         folded = TRUE;
@@ -16261,6 +16270,7 @@ whether the call was folded or not.
         (void)call_did_not_fold_to_constant(rout, result, &diag_list,
                                             (a_source_position*)NULL);
       }  /* if */
+      discard_more_info_list(&diag_list);
     }  /* if */
   }  /* if */
   if (p_folded != NULL) *p_folded = folded;

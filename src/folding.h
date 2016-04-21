@@ -363,6 +363,7 @@ extern void add_temp_init_backing_expression(a_constant         *con,
 extern
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
+                              a_boolean          check_constexpr,
                               a_source_position  *pos,
                               a_constant         *result_con);
 
