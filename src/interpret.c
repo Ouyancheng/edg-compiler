@@ -6651,9 +6651,23 @@ type.  This includes checking the value of ovfl set by the operation.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
-                if (!is_runtime_data_address(ptr1)) {
+                if (is_function_address(ptr1) || is_function_address(ptr2)) {
+                  if (is_function_address(ptr2) && is_function_address(ptr2) &&
+                      ptr1->variant.routine == ptr2->variant.routine) {
+                    *(an_integer_value *)result_storage = one_int;
+                  } else {
+                    *(an_integer_value *)result_storage = zero_int;
+                  }  /* if */
+                } else if (!is_runtime_data_address(ptr1)) {
                   if (ptr1->address == ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
+                  } else if ((ptr1->address == ptr1->complete_object &&
+                              cannot_dereference(ptr2)) ||
+                             (ptr2->address == ptr2->complete_object &&
+                              cannot_dereference(ptr1))) {
+                    info_with_pos(ec_constexpr_equality_past_the_end_address,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
@@ -6729,9 +6743,23 @@ type.  This includes checking the value of ovfl set by the operation.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
-                if (!is_runtime_data_address(ptr1)) {
+                if (is_function_address(ptr1) || is_function_address(ptr2)) {
+                  if (is_function_address(ptr2) && is_function_address(ptr2) &&
+                      ptr1->variant.routine == ptr2->variant.routine) {
+                    *(an_integer_value *)result_storage = zero_int;
+                  } else {
+                    *(an_integer_value *)result_storage = one_int;
+                  }  /* if */
+                } else if (!is_runtime_data_address(ptr1)) {
                   if (ptr1->address != ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
+                  } else if ((ptr1->address == ptr1->complete_object &&
+                              cannot_dereference(ptr2)) ||
+                             (ptr2->address == ptr2->complete_object &&
+                              cannot_dereference(ptr1))) {
+                    info_with_pos(ec_constexpr_equality_past_the_end_address,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
