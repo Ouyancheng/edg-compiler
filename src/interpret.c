@@ -5343,7 +5343,7 @@ or a prvalue.  This is used for operations that produce glvalues but may
 incorporate an implicit lvalue-to-rvalue conversion, i.e., "rvalueable"
 nodes.
 */
-#define set_result_val_from_operand_address(opnd)                             \
+#define SET_result_val_from_operand_address(opnd)                             \
   {                                                                           \
     if (expr->is_lvalue || expr->is_xvalue || is_function_address(opnd)) {    \
       /* Copy the address. */                                                 \
@@ -5390,49 +5390,33 @@ nodes.
                      size_t_arg(n_bytes));                                    \
       }  /* if */                                                             \
     }  /* if */                                                               \
-  }  /* set_result_val_from_operand_address */
+  }  /* SET_result_val_from_operand_address */
 
 /*
-Macro that sets result to TRUE or FALSE depending on whether the integer
-result of an operation (in val) is within the range representable by its
-type.  This includes checking the value of ovfl set by the operation.
+If is_signed is TRUE, the following macro that sets result to FALSE if the
+integer result of an operation (in val) is within the range representable by
+its kind (int_kind).  This includes checking the value of the flag ovfl set
+by the operation.  If is_signed is FALSE, the macro just clears any bits not
+used by the value representation of the integer value.
 */
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-#define check_int_range(val, tp, result, ovfl, pos, ips)                      \
+#define CHECK_int_range(val, tp)                                              \
 {                                                                             \
-  if (!ovfl) {                                                                \
-    get_int_val_from((val), (tp), host_int_val, ovfl);                        \
-    if (ovfl ||                                                               \
-        host_int_val >                                                        \
-                 (a_host_large_integer)max_integer_value_of_kind[int_kind] || \
-        (is_signed &&                                                         \
-         host_int_val <                                                       \
-                (a_host_large_integer)min_integer_value_of_kind[int_kind])) { \
-      do_constexpr_fail(result);                                              \
-    }  /* if */                                                               \
-  } else {                                                                    \
+  if (!is_signed) {                                                           \
+    and_integer_values((an_integer_value*)(val),                              \
+                       &max_integer_value_of_kind[int_kind]);                 \
+  } else if (ovfl ||                                                          \
+             cmp_integer_values((an_integer_value *)(val), is_signed,         \
+                                &max_integer_value_of_kind[int_kind],         \
+                                is_signed) > 0 ||                             \
+             (is_signed &&                                                    \
+              cmp_integer_values((an_integer_value *)(val), is_signed,        \
+                                 &min_integer_value_of_kind[int_kind],        \
+                                 is_signed) < 0)) {                           \
     do_constexpr_fail(result);                                                \
+    info_with_pos_type(ec_constexpr_integer_overflow, &expr->position, tp,    \
+                       ips);                                                  \
   }  /* if */                                                                 \
-  if (!(result)) {                                                            \
-    info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
-  }  /* if */                                                                 \
-}  /* check_int_range */
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#define check_int_range(val, tp, result, ovfl, pos, ips)                      \
-{                                                                             \
-  if (ovfl ||                                                                 \
-      cmp_integer_values((an_integer_value *)(val), is_signed,                \
-                         &max_integer_value_of_kind[int_kind],                \
-                         is_signed) > 0 ||                                    \
-      (is_signed &&                                                           \
-       cmp_integer_values((an_integer_value *)(val), is_signed,               \
-                          &min_integer_value_of_kind[int_kind],               \
-                          is_signed) < 0)) {                                  \
-    do_constexpr_fail(result);                                                \
-    info_with_pos_type(ec_constexpr_integer_overflow, pos, tp, ips);          \
-  }  /* if */                                                                 \
-}  /* check_int_range */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* CHECK_int_range */
 
         opnd1 = expr->variant.operation.operands;
         opnd2 = opnd1->next;
@@ -5495,7 +5479,7 @@ type.  This includes checking the value of ovfl set by the operation.
             /* The result is either a copy of the operand (which is an
                a_constexpr_address) if the result is a glvalue or the
                value to which the address points for a prvalue. */
-            set_result_val_from_operand_address(opnd1_value);
+            SET_result_val_from_operand_address(opnd1_value);
             break;
           case eok_cast:
             if (tp->kind == opnd1_type->kind) {
@@ -5565,8 +5549,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                             (an_integer_value*)result_storage,
                                             is_signed, &depends_on_fp_mode)) {
                 ovfl = FALSE;
-                check_int_range((an_integer_value*)(result_storage), tp,
-                                result, ovfl, &expr->position, ips);
+                CHECK_int_range((an_integer_value*)(result_storage), tp);
               } else {
                 do_constexpr_fail(result);
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
@@ -5626,7 +5609,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                   &expr->position, opnd1_type, tp, ips);
               do_constexpr_fail(result);
             } else {
-              set_result_val_from_operand_address(opnd1_value);
+              SET_result_val_from_operand_address(opnd1_value);
             }  /* if */
             break;
           case eok_base_class_cast:
@@ -5882,15 +5865,7 @@ type.  This includes checking the value of ovfl set by the operation.
               int_kind = tp->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
               negate_integer_value((an_integer_value *)result_storage, &ovfl);
-              if (!is_signed) {
-                /* Unsigned negation doesn't overflow, but we have to clear
-                   the sign-extension bits. */
-                and_integer_values((an_integer_value*)result_storage,
-                                   &max_integer_value_of_kind[int_kind]);
-              } else {
-                check_int_range((an_integer_value *)result_storage, tp, result,
-                                ovfl, &expr->position, ips);
-              }  /* if */
+              CHECK_int_range((an_integer_value *)result_storage, tp);
             } else if (opnd1_type->kind == (a_type_kind)tk_float) {
               err = FALSE;
               fp_negate(opnd1_type->variant.float_kind,
@@ -5911,8 +5886,7 @@ type.  This includes checking the value of ovfl set by the operation.
               int_kind = tp->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
               ovfl = FALSE;
-              check_int_range((an_integer_value *)result_storage, tp, result,
-                              ovfl, &expr->position, ips);
+              CHECK_int_range((an_integer_value *)result_storage, tp);
             } else if (opnd1_type->kind == (a_type_kind)tk_float) {
               *fp_value(result_storage) = *fp_value(opnd1_value);
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
@@ -5930,21 +5904,7 @@ type.  This includes checking the value of ovfl set by the operation.
               is_signed = int_kind_is_signed[int_kind];
               ovfl = FALSE;
               complement_integer_value((an_integer_value *)result_storage);
-              if (!is_signed) {
-                /* Inverting the bits of a small unsigned integer value creates
-                   a very large unsigned integer value.  However, bits beyond
-                   the type representation should be cleared to ensure that
-                   comparisons (done, e.g., in check_int_range) are correct.
-                   For signed integers, this is not an issue because inverting
-                   the bits of a small unsigned integer value produces a
-                   negative value that's invariant independent of the number of
-                   leading ("sign-extended") bits. */
-                and_integer_values((an_integer_value*)result_storage,
-                                   &max_integer_value_of_kind[int_kind]);
-              } else {
-                check_int_range((an_integer_value *)result_storage, tp, result,
-                                ovfl, &expr->position, ips);
-              }  /* if */
+              CHECK_int_range((an_integer_value *)result_storage, tp);
             } else {
               /* The complement operator only applies to integer types. */
               unexpected_condition();
@@ -5979,7 +5939,7 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
-              set_result_val_from_operand_address(opnd1_value);
+              SET_result_val_from_operand_address(opnd1_value);
               /* Now increment the original value. */
               if (!result) {
                 /* Something was wrong with the operand address. */
@@ -5994,8 +5954,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(ival, &one_int, is_signed, &ovfl);
-                  check_int_range(ival, tp, result, ovfl, &expr->position,
-                                  ips);
+                  CHECK_int_range(ival, tp);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
@@ -6048,7 +6007,7 @@ type.  This includes checking the value of ovfl set by the operation.
               do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
-              set_result_val_from_operand_address(opnd1_value);
+              SET_result_val_from_operand_address(opnd1_value);
               /* Now decrement the original value. */
               if (!result) {
                 /* Something was wrong with the operand address. */
@@ -6059,7 +6018,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 is_signed = int_kind_is_signed[int_kind];
                 subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
-                check_int_range(ival, tp, result, ovfl, &expr->position, ips);
+                CHECK_int_range(ival, tp);
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
@@ -6128,7 +6087,7 @@ type.  This includes checking the value of ovfl set by the operation.
                 int_kind = tp->variant.integer.int_kind;
                 is_signed = int_kind_is_signed[int_kind];
                 add_integer_values(ival, &one_int, is_signed, &ovfl);
-                check_int_range(ival, tp, result, ovfl, &expr->position, ips);
+                CHECK_int_range(ival, tp);
               }  /* if */
             } else if (tp->kind == (a_type_kind)tk_float) {
               /* A floating-point type. */
@@ -6177,7 +6136,7 @@ type.  This includes checking the value of ovfl set by the operation.
             if (result) {
               /* Return either the address or the value, as
                  appropriate. */
-              set_result_val_from_operand_address(opnd1_value);
+              SET_result_val_from_operand_address(opnd1_value);
             }  /* if */
             break;
           case eok_pre_decr:
@@ -6197,7 +6156,7 @@ type.  This includes checking the value of ovfl set by the operation.
               is_signed = int_kind_is_signed[int_kind];
               subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
-              check_int_range(ival, tp, result, ovfl, &expr->position, ips);
+              CHECK_int_range(ival, tp);
             } else if (tp->kind == (a_type_kind)tk_float) {
               /* A floating-point type. */
               fp_subtract(tp->variant.float_kind,
@@ -6247,7 +6206,7 @@ type.  This includes checking the value of ovfl set by the operation.
             if (result) {
               /* Return either the address or the value, as
                  appropriate. */
-              set_result_val_from_operand_address(opnd1_value);
+              SET_result_val_from_operand_address(opnd1_value);
             }  /* if */
             break;
           case eok_add:
@@ -6259,8 +6218,7 @@ type.  This includes checking the value of ovfl set by the operation.
               add_integer_values((an_integer_value*)result_storage,
                                  (an_integer_value*)opnd2_value,
                                  is_signed, &ovfl);
-              check_int_range((an_integer_value*)(result_storage), tp,
-                              result, ovfl, &expr->position, ips);
+              CHECK_int_range((an_integer_value*)(result_storage), tp);
             } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
               fp_add(tp->variant.float_kind,
@@ -6285,15 +6243,7 @@ type.  This includes checking the value of ovfl set by the operation.
               subtract_integer_values((an_integer_value*)result_storage,
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
-              if (!is_signed) {
-                /* Unsigned subtraction doesn't overflow, but we have to clear
-                   the upper bits. */
-                and_integer_values((an_integer_value*)result_storage,
-                                   &max_integer_value_of_kind[int_kind]);
-              } else {
-                check_int_range((an_integer_value*)(result_storage), tp,
-                                result, ovfl, &expr->position, ips);
-              }  /* if */
+              CHECK_int_range((an_integer_value*)(result_storage), tp);
             } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
               fp_subtract(tp->variant.float_kind,
@@ -6319,8 +6269,7 @@ type.  This includes checking the value of ovfl set by the operation.
               multiply_integer_values((an_integer_value*)result_storage,
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
-              check_int_range((an_integer_value*)(result_storage), tp,
-                              result, ovfl, &expr->position, ips);
+              CHECK_int_range((an_integer_value*)(result_storage), tp);
             } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float) {
               fp_multiply(tp->variant.float_kind,
@@ -6562,8 +6511,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   ovfl = FALSE;
-                  check_int_range((an_integer_value*)result_storage, tp,
-                                  result, ovfl, &expr->position, ips);
+                  CHECK_int_range((an_integer_value*)result_storage, tp);
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
@@ -6588,8 +6536,7 @@ type.  This includes checking the value of ovfl set by the operation.
             if (result) {
               shift_left_integer_value((an_integer_value *)opnd1_value,
                                        (int)host_int_val, &ovfl);
-              check_int_range(opnd1_value, opnd1_type, result, ovfl,
-                              &expr->position, ips);
+              CHECK_int_range(opnd1_value, opnd1_type);
               if (result) {
                 *(an_integer_value *)result_storage =
                                              *(an_integer_value *)opnd1_value;
@@ -6615,8 +6562,7 @@ type.  This includes checking the value of ovfl set by the operation.
               shift_right_integer_value((an_integer_value *)opnd1_value,
                                         (int)host_int_val, is_signed,
                                         targ_right_shift_is_arithmetic);
-              check_int_range(opnd1_value, opnd1_type, result, ovfl,
-                              &expr->position, ips);
+              CHECK_int_range(opnd1_value, opnd1_type);
               if (result) {
                 *(an_integer_value *)result_storage =
                                              *(an_integer_value *)opnd1_value;
@@ -7173,8 +7119,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                      (an_integer_value*)opnd2_value,
                                      is_signed, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;
@@ -7244,8 +7189,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;
@@ -7315,8 +7259,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;
@@ -7386,8 +7329,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;
@@ -7456,8 +7398,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                          (an_integer_value*)opnd2_value,
                                          is_signed, &ovfl);
                 trim_bit_field_if_needed(dst);
-                check_int_range(int_value_at(dst), tp, result, ovfl,
-                                &expr->position, ips);
+                CHECK_int_range(int_value_at(dst), tp);
                 if (expr->is_lvalue || expr->is_xvalue) {
                   /* The assignment produces an lvalue-like result. */
                   *(a_constexpr_address*)result_storage = *dst;
@@ -7524,8 +7465,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   shift_left_integer_value(int_value_at(dst),
                                            (int)host_int_val, &ovfl);
                   trim_bit_field_if_needed(dst);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;
@@ -7589,8 +7529,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   shift_right_integer_value(int_value_at(dst),
                                             (int)host_int_val, is_signed,
                                             targ_right_shift_is_arithmetic);
-                  check_int_range(int_value_at(dst), tp, result, ovfl,
-                                  &expr->position, ips);
+                  CHECK_int_range(int_value_at(dst), tp);
                   trim_bit_field_if_needed(dst);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -8013,7 +7952,7 @@ type.  This includes checking the value of ovfl set by the operation.
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
-                  set_result_val_from_operand_address(&result_addr);
+                  SET_result_val_from_operand_address(&result_addr);
                 } else if (!is_array_element(&result_addr)) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_non_array_subscript,
@@ -8045,7 +7984,7 @@ type.  This includes checking the value of ovfl set by the operation.
                     } else {
                       result_addr.flags &= ~CA_CANNOT_DEREFERENCE;
                     }  /* if */
-                    set_result_val_from_operand_address(&result_addr);
+                    SET_result_val_from_operand_address(&result_addr);
                   }  /* if */
                 }  /* if */
               }  /* if */
@@ -8109,7 +8048,7 @@ type.  This includes checking the value of ovfl set by the operation.
                   result_addr.flags |= CA_BIT_FIELD;
                   result_addr.length = field->bit_size*2 + field->is_bit_field;
                 }  /* if */
-                set_result_val_from_operand_address(&result_addr);
+                SET_result_val_from_operand_address(&result_addr);
               }  /* if */
             }
             break;
@@ -8173,7 +8112,7 @@ type.  This includes checking the value of ovfl set by the operation.
                                          field->is_bit_field;
                   }  /* if */
                 }  /* if */
-                set_result_val_from_operand_address(&result_addr);
+                SET_result_val_from_operand_address(&result_addr);
               }  /* if */
             }
             break;
