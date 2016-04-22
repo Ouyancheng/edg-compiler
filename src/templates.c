@@ -5170,6 +5170,12 @@ user later during real instantiations.
 
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
+  if (is_variable_template &&
+      prototype_template_of(template_sym) != template_sym) {
+    /* Don't (re-do) the prototype instantiation of a member variable
+       template during an instantiation of the enclosing class. */
+    goto done;
+  }  /* if */
   var_ptr = tssp->variant.variable.prototype_variable;
   proto_sym = symbol_for(var_ptr);
   check_assertion(proto_sym != NULL);
@@ -5290,6 +5296,7 @@ user later during real instantiations.
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
+done:
   return;
 }  /* variable_template_prototype_instantiation */
 
@@ -6026,7 +6033,7 @@ the template definition or may be a default initialization.
      portion of the declaration is reached.  For variable template
      instances the template_arg_list of the variable will be non-NULL. */
   (void)push_template_instantiation_scope(
-                                   tssp_of_prototype->cache.decl_info,
+                                   tssp->cache.decl_info,
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
@@ -6110,7 +6117,8 @@ the template definition or may be a default initialization.
                                     &init_dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(&init_dps);
     } else {
-      if (!proto_var->initializer_in_class || var_ptr->is_constexpr) {
+      if (!is_var_templ_instance ||
+          !proto_var->initializer_in_class || var_ptr->is_constexpr) {
         initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
                     has_parenthesized_initializer,
                     &incomplete_type_error_reported,
@@ -22766,7 +22774,10 @@ template symbol supplement for this template should be returned to the caller.
     decl_cache = &decl_state->decl_token_cache;
     decl_state->defines_something = TRUE;
     split_location = curr_token_sequence_number;
-    if (var != NULL && var->initializer_in_class && !microsoft_mode) {
+    if (var != NULL && var->initializer_in_class &&
+        (is_variable_template || (!microsoft_mode && !sun_mode))) {
+      /* Microsoft and Sun allow a static data member defined in the class
+         to be redefined outside. */
       pos_sy_error(ec_already_initialized, &locator->source_position, sym);
     }  /* if */
     /* Skip over the tokens that are already part of the token cache. */
