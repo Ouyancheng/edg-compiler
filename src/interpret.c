@@ -8032,7 +8032,8 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
-              } else if (opnd1_type->kind == (a_type_kind)tk_union &&
+              } else if (parent_class_of(field)->kind ==
+                                                      (a_type_kind)tk_union &&
                          !add_to_variant_path(&result_addr, field)) {
                 /* We should not return from the failure of adding a variant
                    path entry. */
