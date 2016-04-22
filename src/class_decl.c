@@ -15864,18 +15864,18 @@ prototype instantiation context.
      non-constexpr case), and some versions even allow pointers to be
      initialized in this way.  C++/CLI also allows in-class initializers
      for initonly static data members. */
- if ((const_type &&
-     (is_integral_or_enum_type(type) ||
-      (gpp_mode &&
-       (is_floating_type(type) ||
-        (gnu_version < 30300 && is_pointer_type(type)))))) ||
-      (var->is_constexpr && is_literal_type(type)) ||
+  if ((const_type &&
+      (is_integral_or_enum_type(type) ||
+       (gpp_mode &&
+        (is_floating_type(type) ||
+         (gnu_version < 30300 && is_pointer_type(type)))))) ||
+       (var->is_constexpr && is_literal_type(type)) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-       var->is_initonly ||
+        var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       ((nonreal_context || is_template) &&
-        is_template_param_type(var->is_constexpr ? skip_array_types(type)
-                                                 : type))) {
+        ((nonreal_context || is_template) &&
+         is_template_param_type(var->is_constexpr ? skip_array_types(type)
+                                                  : type))) {
     result = TRUE;
   }  /* if */
   return result;
