@@ -18164,7 +18164,7 @@ handle_as_definition:
          instead. */
       write_tok_str("_Noreturn ");
     }  /* if */
-    if (rout->is_constexpr) {
+    if (rout->is_declared_constexpr || rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
          implicitly inline, we suppress the "inline" keyword in this case.
          (Note that we test is_constexpr rather than is_declared_constexpr.
