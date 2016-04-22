@@ -298,6 +298,9 @@ typedef struct a_large_block_header {
 			   NULL if none). */
   a_byte_count	block_size;
 			/* Size of this block. */
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* A sequence number used to manage deallocation. */
 } a_large_block_header;
 
 
@@ -941,8 +944,10 @@ a previously saved stack state.
       block_size = hdr_size+(n_bytes);                                       \
       large_block = (a_byte*)alloc_general(block_size);                      \
       ((a_large_block_header*)large_block)->prev_large_block =               \
-                                          (sss)->large_blocks;               \
+                                                        (sss)->large_blocks; \
       ((a_large_block_header*)large_block)->block_size = block_size;         \
+      ((a_large_block_header*)large_block)->alloc_seq_number =               \
+                                                    (sss)->alloc_seq_number; \
       (sss)->large_blocks = large_block;                                     \
       (storage_ptr) = large_block+hdr_size;                                  \
     } else {                                                                 \
@@ -994,19 +999,27 @@ Macros to save and restore an allocation stack state.
 
 #define restore_storage_stack(ips, state)                                    \
 {                                                                            \
-  a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks,            \
-          *saved_large_blocks = (state).large_blocks;                        \
+  a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks;            \
   remove_from_live_set(&(ips)->live_set,                                     \
                        (ips)->storage_stack.alloc_seq_number);               \
-  while (curr_large_blocks != saved_large_blocks) {                          \
-    a_byte  *large_block = curr_large_blocks;                                \
-    curr_large_blocks = ((a_large_block_header*)large_block)                 \
-                                                      ->prev_large_block;    \
-    free_general(large_block,                                                \
-                 ((a_large_block_header*)large_block)->block_size);          \
-  }  /* while */                                                             \
   (ips)->storage_stack = (state);                                            \
+  if (curr_large_blocks != NULL &&                                           \
+      curr_large_blocks != (state).large_blocks) {                           \
+    /* Delete large blocks no longer in the live set. */                     \
+    do {                                                                     \
+      a_byte  *large_block = curr_large_blocks;                              \
+      an_alloc_seq_number  seq = ((a_large_block_header*)large_block)        \
+                                                         ->alloc_seq_number; \
+      if (in_live_set(&(ips)->live_set, seq)) break;                         \
+      curr_large_blocks = ((a_large_block_header*)large_block)               \
+                                                      ->prev_large_block;    \
+      free_general(large_block,                                              \
+                   ((a_large_block_header*)large_block)->block_size);        \
+    } while (curr_large_blocks != NULL);                                     \
+    (ips)->storage_stack.large_blocks = curr_large_blocks;                   \
+  }  /* if */                                                                \
 }
+
 
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
 /*
@@ -3808,13 +3821,13 @@ Interpret the given range-based for-statement.
     } while (result && bool_val);
   }  /* if */
 unmap_storage:
-  /* Release and unmap the local storage. */
+  /* Unmap the local storage. */
   for (k = 4; k--;) {
     unmap_stack_bytes(ips, vp[k]);
     unmap_ptr(&ips->map, &vp[k]->storage_class);
   }  /* if */
-  restore_storage_stack(ips, saved_stack);
 done:
+  restore_storage_stack(ips, saved_stack);
   return result;
 }  /* do_constexpr_range_based_for_statement */
 
