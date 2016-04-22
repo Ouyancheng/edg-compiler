@@ -2021,7 +2021,7 @@ redo:
       result = sizeof(a_constexpr_ptr_to_mem);
       break;
     case tk_nullptr:
-      result = 1;
+      result = sizeof(a_constexpr_address);
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
