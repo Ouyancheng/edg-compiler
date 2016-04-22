@@ -15865,10 +15865,10 @@ prototype instantiation context.
      initialized in this way.  C++/CLI also allows in-class initializers
      for initonly static data members. */
  if ((const_type &&
-       (is_integral_or_enum_type(type) ||
-        (gpp_mode &&
-         (is_floating_type(type) ||
-          (gnu_version < 30300 && is_pointer_type(type)))))) ||
+     (is_integral_or_enum_type(type) ||
+      (gpp_mode &&
+       (is_floating_type(type) ||
+        (gnu_version < 30300 && is_pointer_type(type)))))) ||
       (var->is_constexpr && is_literal_type(type)) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
        var->is_initonly ||
