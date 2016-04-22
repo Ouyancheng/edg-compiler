@@ -2031,8 +2031,7 @@ type, an lvalue is returned instead.
      used directly in an expression.  For that case, create a temporary
      variable initialized with the ck_aggregate, and use the value of the
      variable. */
-  if (check_for_troublesome_aggregate_constant(constant,
-                                               &temp_var)) {
+  if (check_for_troublesome_aggregate_constant(constant, &temp_var)) {
     if (is_array_type(constant->type)) {
       node = var_lvalue_expr(temp_var);
     } else {
@@ -2817,12 +2816,9 @@ not to contain any top level base class casts.
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
-         constant. */
+         constant.  orig_lvalue_type is not set in this case (the expression
+         is known to be an rvalue). */
       expr = var_addr_expr(temp);
-      if (!identical_types(expr->type, temp->type)) {
-        /* Preserve the temporary's type if there's a change in type. */
-        expr->orig_lvalue_type = temp->type;
-      }  /* if */
     } else {
       temp = assign_expr_to_temp(expr);
       expr = make_comma_node(expr, var_addr_expr(temp));
