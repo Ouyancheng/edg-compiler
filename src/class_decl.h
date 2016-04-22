@@ -108,6 +108,22 @@ void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,
 					      unsigned long	param_number);
 
+extern
+void scan_member_constant_for_variable(a_decl_parse_state_ptr	dps,
+				       a_variable_ptr		var);
+
+extern a_boolean is_valid_static_member_constant_type(
+					a_type_ptr	type,
+					a_variable_ptr	var,
+					a_boolean	const_type,
+					a_boolean	is_template,
+					a_boolean	nonreal_context);
+
+extern
+a_type_ptr check_for_invalid_member_constant(a_decl_parse_state_ptr	dps,
+					     a_type_ptr			type,
+					     a_source_position_ptr	pos);
+
 extern a_symbol_ptr class_member_template_declaration(
                                       struct a_tmpl_decl_state  *templ_state);
 

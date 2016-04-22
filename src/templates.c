@@ -5171,9 +5171,6 @@ user later during real instantiations.
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
   var_ptr = tssp->variant.variable.prototype_variable;
-  /* For variable templates that are initialized in-class, don't do a
-     prototype instantiation. */
-  if (is_variable_template && var_ptr->initializer_in_class) goto done;
   proto_sym = symbol_for(var_ptr);
   check_assertion(proto_sym != NULL);
   decl_state->decl_parse.sym = proto_sym;
@@ -5196,8 +5193,8 @@ user later during real instantiations.
   complete_type_is_needed(var_ptr->type);
   /* We don't need to push an instantiation scope if we are in the prototype
      instantiation of the enclosing class. */
-  instantiation_scope_needed =
-                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
+  instantiation_scope_needed = !scope_stack_top().in_prototype_instantiation ||
+                               is_variable_template;
   if (instantiation_scope_needed) {
     /* Push a template instantiation scope.  For static data members, the
        argument list comes from the enclosing class that is reactivated by
@@ -5215,20 +5212,56 @@ user later during real instantiations.
   }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
-    a_boolean  incomplete_type_error_reported;
-    a_boolean  has_parenthesized_initializer;
+    a_boolean	incomplete_type_error_reported;
+    a_boolean	has_parenthesized_initializer;
+    a_boolean	saved_auto_type_specifier_seen = dps->auto_type_specifier_seen;
+    a_boolean	is_constant_member;
 
+    is_constant_member = var_ptr->initializer_in_class &&
+                         is_const_qualified_type(var_ptr->type);
     rescan_reusable_cache(&tssp->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
-    has_parenthesized_initializer = (curr_token != tok_assign &&
-                                     curr_token != tok_lbrace);
+    has_parenthesized_initializer = curr_token == tok_lparen;
+    dps->type = var_ptr->type;
     /* Bypass the "=" or "(". */
-    if (curr_token != tok_lbrace) (void)get_token();
-    initializer(dps, &template_sym->decl_position, idl_external,
-                has_parenthesized_initializer, &incomplete_type_error_reported,
-                (a_decl_pos_block_ptr)NULL);
+    if (curr_token == tok_lbrace) {
+      dps->has_direct_initializer = TRUE;
+    } else {
+      dps->has_direct_initializer = has_parenthesized_initializer;
+      /* Variable templates with in-class initializers don't have the "=" in
+         the cache. */
+      if (!is_variable_template || !var_ptr->initializer_in_class) {
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+    if (var_ptr->initializer_in_class &&
+        !is_valid_static_member_constant_type(
+                                 var_ptr->type, var_ptr, is_constant_member,
+                                 is_variable_template,
+                                 var_ptr->is_prototype_instantiation)) {
+      /* Issue a diagnostic for an invalid member constant type. */
+      var_ptr->type = check_for_invalid_member_constant(
+                                          dps, var_ptr->type, &pos_curr_token);
+      scan_and_discard_init_component(dps);
+    } else {
+      if (!var_ptr->initializer_in_class || var_ptr->is_constexpr) {
+        /* Temporarily clear the "auto type specifier seen" flag to avoid
+           having the call to "initializer" attempt to prescan the expression
+           again. */
+        dps->auto_type_specifier_seen = FALSE;
+        initializer(dps, &template_sym->decl_position, idl_external,
+                    has_parenthesized_initializer,
+                    &incomplete_type_error_reported,
+                    (a_decl_pos_block_ptr)NULL);
+        dps->auto_type_specifier_seen = saved_auto_type_specifier_seen;
+      } else {
+        /* Scan the constant expression. */
+        scan_member_constant_for_variable(dps, var_ptr);
+      }  /* if */
+      check_constant_valued_variable(dps);
+    }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
@@ -5257,7 +5290,6 @@ user later during real instantiations.
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
-done:
   return;
 }  /* variable_template_prototype_instantiation */
 
@@ -6059,7 +6091,7 @@ the template definition or may be a default initialization.
       init_dps.has_direct_initializer = has_parenthesized_initializer;
       /* Variable templates with in-class initializers don't have the "=" in
          the cache. */
-      if (!is_var_templ_instance || !proto_var->is_member_constant) {
+      if (!is_var_templ_instance || !proto_var->initializer_in_class) {
         (void)get_token();
       }  /* if */
     }  /* if */
@@ -22712,6 +22744,9 @@ template symbol supplement for this template should be returned to the caller.
     decl_cache = &decl_state->decl_token_cache;
     decl_state->defines_something = TRUE;
     split_location = curr_token_sequence_number;
+    if (var != NULL && var->initializer_in_class) {
+      pos_sy_error(ec_already_initialized, &locator->source_position, sym);
+    }  /* if */
     /* Skip over the tokens that are already part of the token cache. */
     decl_last_tsn = decl_cache->last_token->token_sequence_number;
     while (curr_token_sequence_number <= decl_last_tsn) (void)get_token();

@@ -15822,6 +15822,93 @@ data members.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+void scan_member_constant_for_variable(a_decl_parse_state_ptr	dps,
+				       a_variable_ptr		var)
+/*
+Call scan_member_constant_initializer_expression for the variable var.
+*dps tracks general information about the current declaration.
+*/
+{
+  a_constant_ptr     constant = local_constant();
+
+  /* Scan the constant expression. */
+  scan_member_constant_initializer_expression(dps, constant);
+  var->init_kind = (an_init_kind)initk_static;
+  var->initializer.constant = move_local_constant_to_il(&constant);
+}  /* scan_member_constant_for_variable */
+
+
+a_boolean is_valid_static_member_constant_type(
+					a_type_ptr	type,
+					a_variable_ptr	var,
+					a_boolean	const_type,
+					a_boolean	is_template,
+					a_boolean	nonreal_context)
+/*
+Return TRUE if type is a valid type for a static data member with an
+in-class initializer.  var is the variable for the static data member
+or variable template.  const_type is TRUE if type is const-qualified.
+is_template is TRUE if the check is being done for a variable template
+declaration.  nonreal_context is TRUE if the declaration is in a
+prototype instantiation context.
+*/
+{
+  a_boolean	result = FALSE;
+
+  /* A const integral or const enumeration type may be initialized inside
+     the class definition.  C++11 extended this to literal type members
+     for constexpr data members.  In either case the static data member
+     becomes usable as a member constant.  Note that the variable entry
+     will have an initializer but it is not yet considered defined.  GNU
+     compilers allow floating-point in-class initializers (also in the
+     non-constexpr case), and some versions even allow pointers to be
+     initialized in this way.  C++/CLI also allows in-class initializers
+     for initonly static data members. */
+ if ((const_type &&
+       (is_integral_or_enum_type(type) ||
+        (gpp_mode &&
+         (is_floating_type(type) ||
+          (gnu_version < 30300 && is_pointer_type(type)))))) ||
+      (var->is_constexpr && is_literal_type(type)) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       var->is_initonly ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+       ((nonreal_context || is_template) &&
+        is_template_param_type(var->is_constexpr ? skip_array_types(type)
+                                                 : type))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_valid_static_member_constant_type */
+
+
+a_type_ptr check_for_invalid_member_constant(a_decl_parse_state_ptr	dps,
+					     a_type_ptr			type,
+					     a_source_position_ptr	pos)
+/*
+Check whether type is a valid type for a const static data member or
+variable template.  Issue an error, if appropriate.  *dps tracks general
+information about the current declaration.  pos is the position to be
+used for an error, if any.  Return the original type, or an error type
+if an error is detected.
+*/
+{
+  if (!is_error_type(type)) {
+    if (!is_const_qualified_type(type)) {
+      pos_error(ec_member_constant_not_const, pos);
+    } else {
+      pos_ty_error(ec_invalid_member_constant_type, pos, type);
+      if (dps->auto_type_specifier_seen) {
+        /* Set the member type to an error type to avoid a spurious
+           "auto without an initializer" error. */
+        type = dps->type = error_type();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return type;
+}  /* check_for_invalid_member_constant */
+
+
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_class_def_state_ptr   class_state,
                                     a_tmpl_decl_state_ptr   templ_state,
@@ -16056,7 +16143,6 @@ template declaration and is NULL otherwise.
         ((list_init_enabled || is_immediate_managed_class_type(class_type)) &&
          next_token() == tok_lbrace))) ||
       (list_init_enabled && curr_token == tok_lbrace)) {
-    a_constant_ptr     constant = local_constant();
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
@@ -16099,8 +16185,7 @@ template declaration and is NULL otherwise.
       a_token_cache  *token_cache;
       token_cache = cache_inclass_initializer(sym);
       initializer_cache = token_cache;
-      rescan_reusable_cache(token_cache);
-      skip_cache_terminator = TRUE;
+      var->initializer_in_class = TRUE;
       srk_flags |= SRK_DEFINITION;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
@@ -16123,33 +16208,17 @@ template declaration and is NULL otherwise.
       decl_state->sym->is_invisible = TRUE;
       restore_member_visibility = TRUE;
     }  /* if */
-    if (delay_initializer_scan) {
+    if (decl_info->is_member_template) {
+      /* Don't process the initializer of a variable template. */
+    } else if (delay_initializer_scan) {
       record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
       srk_flags |= SRK_DEFINITION;
-    } else if ((constant_member &&
-                (is_integral_or_enum_type(member_type) ||
-                 (gpp_mode &&
-                  (is_floating_type(member_type) ||
-                   (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
-               (var->is_constexpr && is_literal_type(member_type)) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-               var->is_initonly ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-               ((class_state->is_nonreal_instantiation ||
-                 decl_info->is_member_template) &&
-                is_template_param_type(var->is_constexpr ?
-                                                 skip_array_types(member_type)
-                                               : member_type))) {
-      /* A const integral or const enumeration type may be initialized inside
-         the class definition.  C++11 extended this to literal type members
-         for constexpr data members.  In either case the static data member
-         becomes usable as a member constant.  Note that the variable entry
-         will have an initializer but it is not yet considered defined.  GNU
-         compilers allow floating-point in-class initializers (also in the
-         non-constexpr case), and some versions even allow pointers to be
-         initialized in this way.  C++/CLI also allows in-class initializers
-         for initonly static data members. */
+    } else if (is_valid_static_member_constant_type(
+                                      member_type, var, constant_member,
+                                      decl_info->is_member_template,
+                                      class_state->is_nonreal_instantiation)) {
+      /* The type is valid for an in-class initializer. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
       if (var->is_constexpr && curr_token != tok_lparen) {
         /* If this is a constexpr member, more initialization forms are
@@ -16173,39 +16242,22 @@ template declaration and is NULL otherwise.
         decl_state->auto_type_specifier_seen = saved_auto_type_specifier_seen;
       } else {
         /* Scan the constant expression. */
-        scan_member_constant_initializer_expression(decl_state, constant);
+        scan_member_constant_for_variable(decl_state, var);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         decl_info->decl_pos_block.var_init_range.end =
                                                   curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        var->init_kind = (an_init_kind)initk_static;
-        var->initializer.constant = move_local_constant_to_il(&constant);
       }  /* if */
       check_constant_valued_variable(decl_state);
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
-      if (!is_error_type(member_type)) {
-        if (!is_const_qualified_type(member_type)) {
-          pos_error(ec_member_constant_not_const, &init_pos);
-        } else {
-          pos_ty_error(ec_invalid_member_constant_type, &init_pos,
-                       member_type);
-          if (decl_state->auto_type_specifier_seen) {
-            /* Set the member type to an error type to avoid a spurious
-               "auto without an initializer" error. */
-            member_type = decl_state->type = error_type();
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      member_type = check_for_invalid_member_constant(decl_state, member_type,
+                                                      &init_pos);
       scan_and_discard_init_component(decl_state);
     }  /* if */
     if (restore_member_visibility) {
       /* Restore the member's visibility. */
       decl_state->sym->is_invisible = FALSE;
-    }  /* if */
-    if (constant != NULL) {
-      /* If the constant was not moved to the IL above, release it now. */
-      release_local_constant(&constant);
     }  /* if */
     if (skip_cache_terminator && curr_token == tok_end_of_source) {
       (void)get_token();
