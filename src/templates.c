@@ -6075,9 +6075,12 @@ the template definition or may be a default initialization.
   if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
-    a_boolean           incomplete_type_error_reported;
-    a_boolean           has_parenthesized_initializer;
+    a_boolean	incomplete_type_error_reported;
+    a_boolean	has_parenthesized_initializer;
+    a_boolean	is_constant_member;
 
+    is_constant_member = var_ptr->initializer_in_class &&
+                         is_const_qualified_type(var_ptr->type);
     init_decl_parse_state(&init_dps);
     rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
@@ -6096,9 +6099,28 @@ the template definition or may be a default initialization.
       }  /* if */
     }  /* if */
     init_dps.sym = var_sym;
-    initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
-                has_parenthesized_initializer, &incomplete_type_error_reported,
-                (a_decl_pos_block_ptr)NULL);
+    init_dps.type = var_ptr->type;
+    if (var_ptr->initializer_in_class &&
+        !is_valid_static_member_constant_type(
+                                 var_ptr->type, var_ptr, is_constant_member,
+                                 is_var_templ_instance,
+                                 /*nonrea_context=*/FALSE)) {
+      /* Issue a diagnostic for an invalid member constant type. */
+      var_ptr->type = check_for_invalid_member_constant(
+                                    &init_dps, var_ptr->type, &pos_curr_token);
+      scan_and_discard_init_component(&init_dps);
+    } else {
+      if (!proto_var->initializer_in_class || var_ptr->is_constexpr) {
+        initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
+                    has_parenthesized_initializer,
+                    &incomplete_type_error_reported,
+                    (a_decl_pos_block_ptr)NULL);
+      } else {
+        /* Scan the constant expression. */
+        scan_member_constant_for_variable(&init_dps, var_ptr);
+      }  /* if */
+      check_constant_valued_variable(&init_dps);
+    }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
@@ -22744,7 +22766,7 @@ template symbol supplement for this template should be returned to the caller.
     decl_cache = &decl_state->decl_token_cache;
     decl_state->defines_something = TRUE;
     split_location = curr_token_sequence_number;
-    if (var != NULL && var->initializer_in_class) {
+    if (var != NULL && var->initializer_in_class && !microsoft_mode) {
       pos_sy_error(ec_already_initialized, &locator->source_position, sym);
     }  /* if */
     /* Skip over the tokens that are already part of the token cache. */
