@@ -22560,22 +22560,21 @@ and returned.  Otherwise, NULL is returned.
   a_symbol_ptr	sym = NULL;
   a_boolean	err = FALSE;
 
-  if (is_error_locator(locator_for_curr_id)) {
+  if (is_error_locator(*locator)) {
     /* An incorrectly formed identifier. */
     err = TRUE;
-  } else if (locator_for_curr_id.is_qualified_name ||
-             locator_for_curr_id.is_template_id) {
+  } else if (locator->is_qualified_name || locator->is_template_id) {
 #if 0
     /* FIXME: partial specialization case is a template id. */
 #endif /* 0 */
     /* An error should have already been issued for this case. */
     err = TRUE;
     unexpected_condition();
-  } else if (locator_for_curr_id.is_operator_name ||
-             locator_for_curr_id.is_conversion_name) {
+  } else if (locator->is_operator_name ||
+             locator->is_conversion_name) {
     /* Issue an error for something like "operator+" or "operator int". */
     pos_error(ec_operator_name_not_allowed,
-              &locator_for_curr_id.source_position);
+              &locator->source_position);
     err = TRUE;
   } else {
     /* Look up the identifier.  If it's a qualified name there will be an
@@ -22590,13 +22589,12 @@ and returned.  Otherwise, NULL is returned.
        level for this declaration because decl_scope_level currently
        points to the template declaration scope. */
     decl_scope_level = decl_state->orig_decl_level;
-    sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
     decl_scope_level = saved_decl_scope_level;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
     decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    *locator = locator_for_curr_id;
     if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
       /* The symbol found is not a variable template.  Ignore it and a
          redeclaration error will be issued when the new symbol is
