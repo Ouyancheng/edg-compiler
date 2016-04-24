@@ -17277,7 +17277,12 @@ list.
 
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
-  if (next_tok == tok_lt) {
+  if (next_tok != tok_lt) {
+    pos_sy_error(ec_missing_template_arg_list, &start_position, template_sym);
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+    new_sym = locator_for_curr_id.specific_symbol;
+    any_errors = TRUE;
+  } else {
     /* Save the current locator. */
     orig_locator = locator_for_curr_id;
     /* Always allocate template arguments at the file scope. */
@@ -20477,9 +20482,11 @@ scanned is, in fact, an identifier).
      to a instance of the class template.  Scan the argument list and
      get a pointer to the symbol for the specific instance of the template
      class.  is_template_id will be TRUE if the template reference has already
-     been coalesced. */
+     been coalesced.  If this is a variable template without an argument list,
+     an error will be issued. */
   if (symbol != NULL &&
-      is_class_template_or_injected_template_symbol(symbol)) {
+      (is_class_template_or_injected_template_symbol(symbol) ||
+       symbol_is(symbol, sk_variable_template))) {
     if (locator_for_curr_id.is_unknown_template_reference) {
       /* This is a template class reference that was changed back to a
          template reference by ensure_correct_nonreal_instance_kind.
@@ -20504,7 +20511,17 @@ scanned is, in fact, an identifier).
         locator_for_curr_id.symbol_header = symbol->header;
       }  /* if */
     } else {
-      symbol = coalesce_template_class_reference(symbol, options, &templ_err);
+      /* Coalesce the template class or variable.  For a class, this can
+         end up being resolved (e.g., to the injected template name).
+         For the variable case, an error will result (from the missing
+         argument list). */
+      if (symbol_is(symbol, sk_class_template)) {
+        symbol = coalesce_template_class_reference(symbol, options,
+                                                   &templ_err);
+      } else if (symbol_is(symbol, sk_variable_template)) {
+        symbol = coalesce_template_variable_reference(symbol, options,
+                                                      &templ_err);
+      }  /* if */
     }  /* if */
   }  /* if */
   *err |= templ_err;
