@@ -12926,7 +12926,12 @@ of a subscript operation).
     if (did_not_fold) {
       if (constexpr_enabled &&
           (curr_expr_kind_is(ek_integral_constant) ||
-           curr_expr_kind_is(ek_template_arg)) &&
+           curr_expr_kind_is(ek_template_arg) ||
+           (curr_expr_kind_is(ek_init_constant) &&
+            scope_stack_top().decl_parse_state != NULL &&
+            scope_stack_top().decl_parse_state->sym != NULL &&
+            is_prototype_inst_of_constexpr_var_template(
+                                 scope_stack_top().decl_parse_state->sym))) &&
           (is_template_param_constant_operand(operand_1) ||
            is_template_param_constant_operand(operand_2) ||
            is_template_dependent_type(operand_1->type) ||
@@ -14649,6 +14654,13 @@ be returned for a C mode const variable.
   an_init_kind       init_kind;
   an_initializer_ptr init;
 
+  if (var->is_template_variable && var->is_constexpr &&
+      !var->is_prototype_instantiation && !var->is_nonreal &&
+      var->init_kind == (an_init_kind)initk_none) {
+    /* A variable template instance: Make sure the initializer is
+       instantiated if needed. */
+    set_instance_required(symbol_for(var), TRUE, SIR_NONE);
+  }  /* if */
   if (var->source_corresp.is_class_member &&
       var->init_kind == (an_init_kind)initk_none &&
       is_potentially_constant_valued_variable(var)) {

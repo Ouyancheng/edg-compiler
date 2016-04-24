@@ -6610,6 +6610,29 @@ variable.
 }  /* check_constant_valued_variable */
 
 
+void update_variable_decl_info(a_variable_ptr		vp,
+			       a_decl_parse_state	*dps,
+			       a_boolean		is_definition)
+/*
+This routine contains checks and other processing that must be applied
+to variables and also instances of variable templates.
+
+vp is the variable being processed.  *dps has information about the
+current declaration.  is_definition is TRUE if this is a aefinition
+of the variable.
+*/
+{
+  if (dps->dso_flags & DSO_CONSTEXPR) {
+    if (is_definition) {
+      vp->is_constexpr = TRUE;
+    } else {
+      pos_error(ec_constexpr_variable_decl_must_be_definition,
+                &dps->constexpr_pos);
+    }  /* if */
+  }  /* if */
+}  /* update_variable_decl_info */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
     !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
@@ -7064,14 +7087,9 @@ for use in generating cross-reference output describing this declaration.
   } else if (!redeclaration) {
     check_sym_of_other_decl(source_corresp_ptr, sym);
   }  /* if */
-  if (dps->dso_flags & DSO_CONSTEXPR) {
-    if (is_variable_def) {
-      variable_ptr->is_constexpr = TRUE;
-    } else {
-      pos_error(ec_constexpr_variable_decl_must_be_definition,
-                &dps->constexpr_pos);
-    }  /* if */
-  }  /* if */
+  /* Call a routine to do processing common to various forms of variable
+     declarations. */
+  update_variable_decl_info(variable_ptr, dps, is_variable_def);
   dps->sym = sym;
   attach_decl_attributes(dps, is_variable_def);
 #if GNU_EXTENSIONS_ALLOWED

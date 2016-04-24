@@ -1473,6 +1473,11 @@ extern void decl_routine(a_symbol_locator         *locator,
 
 extern void check_constant_valued_variable(a_decl_parse_state  *dps);
 
+extern
+void update_variable_decl_info(a_variable_ptr		vp,
+			       a_decl_parse_state	*dps,
+			       a_boolean		is_definition);
+
 extern void decl_variable(a_symbol_locator             *locator,
                           a_decl_parse_state           *dps,
                           a_symbol_reference_kind      srk_flags,

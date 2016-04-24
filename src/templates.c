@@ -5167,6 +5167,7 @@ user later during real instantiations.
   a_decl_parse_state                *dps = &decl_state->decl_parse;
   a_boolean                         is_variable_template;
   a_symbol_ptr                      proto_sym;
+  a_boolean                         is_definition = FALSE;
 
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
@@ -5267,6 +5268,7 @@ user later during real instantiations.
         scan_member_constant_for_variable(dps, var_ptr);
       }  /* if */
       check_constant_valued_variable(dps);
+      is_definition = TRUE;
     }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
@@ -5289,6 +5291,11 @@ user later during real instantiations.
          required. */
       check_for_missing_initializer(proto_sym, var_ptr->type);
     }  /* if */
+  }  /* if */
+  /* Call a routine to do processing common to various forms of variable
+     declarations. */
+  if (is_variable_template) {
+    update_variable_decl_info(var_ptr, dps, is_definition);
   }  /* if */
   if (instantiation_scope_needed && scope_pushed) {
     pop_template_instantiation_scope();
@@ -6079,7 +6086,13 @@ the template definition or may be a default initialization.
     add_instantiation(tip->template_sym, tssp, var_sym,
                       var_ptr->template_info->template_arg_list);
   }  /* if */
-  if (tssp_of_prototype->cache.tokens.first_token != NULL) {
+  is_definition = tssp_of_prototype->cache.tokens.first_token != NULL;
+  /* Call a routine to do processing common to various forms of variable
+     declarations. */
+  if (is_var_templ_instance) {
+    update_variable_decl_info(var_ptr, &dps, is_definition);
+  }  /* if */
+  if (is_definition) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
     a_boolean	incomplete_type_error_reported;
@@ -6136,11 +6149,9 @@ the template definition or may be a default initialization.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
-    is_definition = TRUE;
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
     /* The variable is already initialized (possibly by an in-class
        initializer). */
-    is_definition = TRUE;
   } else if (!is_var_templ_instance || template_sym->defined) {
     a_boolean	def_init_okay;
     /* The storage class must be set before def_initializer is called. */
@@ -6156,7 +6167,6 @@ the template definition or may be a default initialization.
          required. */
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
-    is_definition = TRUE;
   }  /* if */
   if (is_definition) {
     /* Set the storage class if not set above. */

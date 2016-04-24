@@ -6028,8 +6028,8 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
   ((sym)->kind == (a_symbol_kind)sk_enum_tag &&			\
    (sym)->variant.enumeration.type->variant.integer.is_template_enum)
 
-/* Return the template argument list associated with a given template class
-   template, alias template, or function template instance. */
+/* Return the template argument list associated with a given instance of a
+   class template, alias template, function template, or variable template. */
 #define template_arg_list_for_symbol(sym)				\
   ((sym)->kind == (a_symbol_kind)sk_type				\
     ? (sym)->variant.type.ptr->						\
@@ -6410,6 +6410,18 @@ supplement.
   (is_class_struct_union_symbol(sym) &&					\
    (sym)->variant.class_struct_union.type->				\
                    variant.class_struct_union.is_prototype_instantiation)
+
+/* Return TRUE if the symbol represents the prototype instantiation of a
+   variable template. */
+#define is_prototype_inst_of_var_template(sym)                               \
+  (symbol_is(sym, sk_variable) &&                                            \
+   (sym)->variant.variable.ptr->is_prototype_instantiation)
+
+/* Return TRUE if the symbol represents the prototype instantiation of a
+   variable template. */
+#define is_prototype_inst_of_constexpr_var_template(sym)                     \
+  (is_prototype_inst_of_var_template(sym) &&                                 \
+   (sym)->variant.variable.ptr->is_constexpr)
 
 /* If a symbol represents a subordinate template, return a pointer to the
    prototype template; otherwise return the symbol provided. */
