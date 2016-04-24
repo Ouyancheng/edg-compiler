@@ -20519,7 +20519,7 @@ scanned is, in fact, an identifier).
         symbol = coalesce_template_class_reference(symbol, options,
                                                    &templ_err);
       } else if (symbol_is(symbol, sk_variable_template)) {
-        symbol = coalesce_template_variable_reference(symbol, options,
+        symbol = coalesce_template_variable_reference(symbol, next_token(),
                                                       &templ_err);
       }  /* if */
     }  /* if */
