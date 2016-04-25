@@ -6117,13 +6117,11 @@ been seen).
   }  /* if */
   if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
-    a_decl_parse_state  init_dps;
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
 
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
-    init_decl_parse_state(&init_dps);
     rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
@@ -6131,17 +6129,17 @@ been seen).
     has_parenthesized_initializer = curr_token == tok_lparen;
     /* Bypass the "=" or "(". */
     if (curr_token == tok_lbrace) {
-      init_dps.has_direct_initializer = TRUE;
+      dps.has_direct_initializer = TRUE;
     } else {
-      init_dps.has_direct_initializer = has_parenthesized_initializer;
+      dps.has_direct_initializer = has_parenthesized_initializer;
       /* Variable templates with in-class initializers don't have the "=" in
          the cache. */
       if (!is_var_templ_instance || !proto_var->initializer_in_class) {
         (void)get_token();
       }  /* if */
     }  /* if */
-    init_dps.sym = var_sym;
-    init_dps.type = var_ptr->type;
+    dps.sym = var_sym;
+    dps.type = var_ptr->type;
     if (var_ptr->initializer_in_class &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
@@ -6149,20 +6147,20 @@ been seen).
                                  /*nonrea_context=*/FALSE)) {
       /* Issue a diagnostic for an invalid member constant type. */
       var_ptr->type = check_for_invalid_member_constant(
-                                    &init_dps, var_ptr->type, &pos_curr_token);
-      scan_and_discard_init_component(&init_dps);
+                                    &dps, var_ptr->type, &pos_curr_token);
+      scan_and_discard_init_component(&dps);
     } else {
       if (!is_var_templ_instance ||
           !proto_var->initializer_in_class || var_ptr->is_constexpr) {
-        initializer(&init_dps, &tip->template_sym->decl_position, idl_external,
+        initializer(&dps, &tip->template_sym->decl_position, idl_external,
                     has_parenthesized_initializer,
                     &incomplete_type_error_reported,
                     (a_decl_pos_block_ptr)NULL);
       } else {
         /* Scan the constant expression. */
-        scan_member_constant_for_variable(&init_dps, var_ptr);
+        scan_member_constant_for_variable(&dps, var_ptr);
       }  /* if */
-      check_constant_valued_variable(&init_dps);
+      check_constant_valued_variable(&dps);
     }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
@@ -6190,6 +6188,8 @@ been seen).
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
+  check_use_of_auto_type(&dps);
+  run_end_of_parse_actions(&dps, /*more_declarators=*/FALSE);
   /* Make sure the type from the declaration is a valid variable
      declaration. */
   if (is_var_templ_instance && !incomplete_type_error_reported) {
@@ -14295,7 +14295,6 @@ information.
     }  /* if */
     declarator(di_flags, state, parent_class, locator, func_info,
                decl_pos_block);
-    check_use_of_auto_type(state);
     remove_declarator_sse(state, depth_scope_stack);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
@@ -25097,6 +25096,7 @@ any non-empty template parameter lists that were scanned.
       variable_template_prototype_instantiation(decl_state, sym);
     }  /* if */
   }  /* if */
+  check_use_of_auto_type(dps);
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   /* Save the declaration sequence number at the end of this template
      declaration. */
