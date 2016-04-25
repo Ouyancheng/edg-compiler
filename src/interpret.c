@@ -4243,6 +4243,7 @@ done_with_switch:
         a_storage_stack_state  saved_stack_for_full_expr;
         /* Allocate storage for the variable. */
         n_bytes = value_bytes_for_type(ips, vtp, &result);
+        if (!result) break;
         alloc_complete_object(ips, n_bytes, vtp, var_storage);
         /* Associate with the variable its value storage. */
         map_stack_bytes(ips, vp, var_storage);
