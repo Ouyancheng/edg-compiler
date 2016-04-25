@@ -6034,14 +6034,15 @@ been seen).
   if (!is_var_templ_instance || tip->template_sym->defined) {
     master_instance_of(tip)->already_instantiated = TRUE;
   }  /* if */
+  var_ptr = variable_for_symbol(var_sym);
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
        of the same variable.  When the number of such instantiations
        exceeds a specified limit, we assume this to be a runaway recursion. */
     sym_error(ec_runaway_recursive_instantiation, var_sym);
+    var_ptr->type = error_type();
     goto done;
   }  /* if */
-  var_ptr = variable_for_symbol(var_sym);
   if (instantiation_mode == tim_local) {
     /* In -tlocal mode, put out the variable with internal linkage. */
     var_ptr->storage_class = (a_storage_class)sc_static;
