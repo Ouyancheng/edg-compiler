@@ -22882,6 +22882,9 @@ template symbol supplement for this template should be returned to the caller.
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    tssp->is_variadic = decl_state->is_variadic;
+    tssp->has_variadic_template_params =
+                                      decl_state->has_variadic_template_params;
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
        expression. */
