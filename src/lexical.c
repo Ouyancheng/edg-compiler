@@ -20515,12 +20515,12 @@ scanned is, in fact, an identifier).
          end up being resolved (e.g., to the injected template name).
          For the variable case, an error will result (from the missing
          argument list). */
-      if (symbol_is(symbol, sk_class_template)) {
-        symbol = coalesce_template_class_reference(symbol, options,
-                                                   &templ_err);
-      } else if (symbol_is(symbol, sk_variable_template)) {
+      if (symbol_is(symbol, sk_variable_template)) {
         symbol = coalesce_template_variable_reference(symbol, next_token(),
                                                       &templ_err);
+      } else {
+        symbol = coalesce_template_class_reference(symbol, options,
+                                                   &templ_err);
       }  /* if */
     }  /* if */
   }  /* if */
