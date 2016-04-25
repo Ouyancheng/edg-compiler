@@ -2051,9 +2051,6 @@ redo:
       }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    case tk_error:
-      ips->input_error = TRUE;
-      /*FALLTHROUGH*/
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
@@ -2072,6 +2069,9 @@ redo:
         result = MAX_CONSTEXPR_TYPE_SIZE+1;
       }
       break;
+    case tk_error:
+      ips->input_error = TRUE;
+      /*FALLTHROUGH*/
     case tk_template_param:
     case tk_unknown:
       /* Fail interpretation. */
