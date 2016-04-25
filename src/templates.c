@@ -6090,6 +6090,8 @@ been seen).
   complete_type_is_needed(var_ptr->type);
   if (is_var_templ_instance && is_new) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
+    /* Copy the in-class initializer flag from the prototype instantiation. */
+    var_ptr->initializer_in_class = proto_var->initializer_in_class;
   }  /* if */
   /* FIXME: should this be done elsewhere? */
   if (!tip->template_sym->is_class_member &&
