@@ -22067,11 +22067,12 @@ is done.  sym is the symbol of the template for which the template string
 is being created.
 */
 {
-  a_token_cache				*decl_cache = NULL;
+  a_token_cache	*decl_cache = NULL;
+  a_boolean	is_variable_template = symbol_is(sym, sk_variable_template);
 
   /* Determine whether there is a corresponding declaration in a prototype
      instantiation that should be used. */
-  if (sym->kind == (a_symbol_kind)sk_function_template) {
+  if (symbol_is(sym, sk_function_template) || is_variable_template) {
     a_template_symbol_supplement_ptr	proto_tssp = NULL;
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
@@ -22079,7 +22080,8 @@ is being created.
       /* A member template of a class template.  Get the template supplement
          for the prototype template. */
       proto_tssp = template_supplement_for_symbol(tssp->prototype_template);
-    } else if (decl_state->class_declared_in != NULL &&
+    } else if (!is_variable_template &&
+               decl_state->class_declared_in != NULL &&
                tssp->variant.function.prototype_friend_symbol != NULL) {
       /* A friend of a class template.  Get the template supplement for the
          friend of the prototype instantiation. */
@@ -22088,7 +22090,11 @@ is being created.
       proto_tssp = template_supplement_for_symbol(friend_sym);
     }  /* if */
     if (proto_tssp != NULL) {
-      decl_cache = &proto_tssp->variant.function.decl_cache.tokens;
+      if (is_variable_template) {
+        decl_cache = &proto_tssp->variant.variable.decl_cache.tokens;
+      } else {
+        decl_cache = &proto_tssp->variant.function.decl_cache.tokens;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (decl_cache == NULL) decl_cache = &decl_state->decl_token_cache;
