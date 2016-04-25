@@ -5959,11 +5959,15 @@ If issue_error is TRUE, issue a diagnostic about the invalid type.
 #endif /* 0 */
 
 
-static void instantiate_template_variable(a_template_instance_ptr  tip)
+static void instantiate_template_variable(a_template_instance_ptr  tip,
+                                          a_boolean                is_new)
 /*
 Generate a definition of an instance of a variable template or a static
 data member of a class template.  The definition may be based on a
-the template definition or may be a default initialization.
+the template definition or may be a default initialization.  is_new if
+this is the first attempt at instantiation (this routine can be called
+more than once if only an extern declaration of a variable template has
+been seen).
 */
 {
   a_symbol_ptr				var_sym;
@@ -6069,7 +6073,7 @@ the template definition or may be a default initialization.
     (void)is_invalid_variable_template_type(var_ptr, /*issue_error=*/TRUE);
   }  /* if */
 #endif /* 0 */
-  if (is_var_templ_instance) {
+  if (is_var_templ_instance && is_new) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
   }  /* if */
   /* FIXME: should this be done elsewhere? */
@@ -6082,7 +6086,7 @@ the template definition or may be a default initialization.
   reactivate_curr_construct_pragmas(
                                  tssp_of_prototype->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
-  if (is_var_templ_instance) {
+  if (is_var_templ_instance && is_new) {
     add_instantiation(tip->template_sym, tssp, var_sym,
                       var_ptr->template_info->template_arg_list);
   }  /* if */
@@ -8957,7 +8961,7 @@ use of the argument list in case it has been freed.
     tip = sym->variant.variable.instance_ptr;
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
-      instantiate_template_variable(tip);
+      instantiate_template_variable(tip, /*is_new=*/TRUE);
       set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
     } else {
       /* Create a nonreal variable. */
@@ -28826,7 +28830,7 @@ data member specified by tip.
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member definition. */
-    instantiate_template_variable(tip);
+    instantiate_template_variable(tip, /*is_new=*/FALSE);
   } else {
     /* Function instantiation.  The number of simultaneous function
        instantiations is limited to limit the amount of memory used by
