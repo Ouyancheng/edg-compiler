@@ -6086,7 +6086,8 @@ the template definition or may be a default initialization.
     add_instantiation(tip->template_sym, tssp, var_sym,
                       var_ptr->template_info->template_arg_list);
   }  /* if */
-  is_definition = tssp_of_prototype->cache.tokens.first_token != NULL ||
+  is_definition = !is_var_templ_instance ||
+                  tssp_of_prototype->cache.tokens.first_token != NULL ||
                   var_ptr->initializer_in_class;
   /* Call a routine to do processing common to various forms of variable
      declarations. */
