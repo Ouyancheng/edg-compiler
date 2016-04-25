@@ -6086,13 +6086,14 @@ the template definition or may be a default initialization.
     add_instantiation(tip->template_sym, tssp, var_sym,
                       var_ptr->template_info->template_arg_list);
   }  /* if */
-  is_definition = tssp_of_prototype->cache.tokens.first_token != NULL;
+  is_definition = tssp_of_prototype->cache.tokens.first_token != NULL ||
+                  var_ptr->initializer_in_class;
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance) {
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
-  if (is_definition) {
+  if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
     a_boolean	incomplete_type_error_reported;
