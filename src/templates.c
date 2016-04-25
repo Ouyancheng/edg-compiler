@@ -5940,23 +5940,33 @@ static void scan_template_variable_declaration(
 				a_template_symbol_supplement_ptr	tssp,
 				a_decl_parse_state_ptr			dps);
 
-#if 0
 
 static a_boolean is_invalid_variable_template_type(
-					a_variable_ptr	var,
-					a_boolean	issue_error)
+					a_variable_ptr		var,
+					a_source_position_ptr	error_pos,
+					a_boolean		issue_error)
 /*
 Check whether the type of the variable template instance var is a valid
 variable type.  For example, a variable template instance that is given
 a function type is not valid.  Return TRUE if the type is not valid.
-If issue_error is TRUE, issue a diagnostic about the invalid type.
+If issue_error is TRUE, issue a diagnostic about the invalid type and
+use error_pos as the position.
 */
 {
-  /* FIXME */
-  return FALSE;
-}  /* is_invalid_variable_template_type */
+  a_type_ptr	tp = var->type;
+  a_boolean	result = FALSE;
+  an_error_code	error_code = ec_no_error;
 
-#endif /* 0 */
+  check_assertion(tp != NULL);
+  if (is_function_type(tp)) {
+    result = TRUE;
+    error_code = ec_variable_templ_function_type;
+  }  /* if */
+  if (result && issue_error) {
+    pos_ty_error(error_code, error_pos, tp);
+  }  /* if */
+  return result;
+}  /* is_invalid_variable_template_type */
 
 
 static void instantiate_template_variable(a_template_instance_ptr  tip,
@@ -6067,12 +6077,12 @@ been seen).
   complete_type_is_needed(var_ptr->type);
   /* Make sure the type from the declaration is a valid variable
      declaration. */
-#if 0
-  /* FIXME */
   if (is_var_templ_instance) {
-    (void)is_invalid_variable_template_type(var_ptr, /*issue_error=*/TRUE);
+    if (is_invalid_variable_template_type(var_ptr, &dps.specifiers_pos,
+                                          /*issue_error=*/TRUE)) {
+      var_ptr->type = error_type();
+    }  /* if */
   }  /* if */
-#endif /* 0 */
   if (is_var_templ_instance && is_new) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
   }  /* if */

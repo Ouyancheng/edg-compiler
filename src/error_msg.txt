@@ -2835,6 +2835,7 @@ ec_constexpr_volatile_fetch;;"attempt to read from volatile storage"
 ec_constexpr_no_active_union_field;;"invalid access to inactive %n1 of union (no field is active)"
 ec_label_in_constexpr_function;;"label definitions cannot appear in constexpr functions"
 ec_constexpr_equality_past_the_end_address;;"cannot compare a pointer past the end of an array with a pointer to another complete object"
+ec_variable_templ_function_type;;"function type %t is an invalid type for a variable template instantiation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
