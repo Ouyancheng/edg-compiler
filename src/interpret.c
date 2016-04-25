@@ -2455,20 +2455,21 @@ Produce TRUE if the object pointed into by "cap" is initialized.
 */
 #define is_initialized(cap)                                                  \
   (complete_object_is_initialized((cap)->complete_object) ||                 \
-   subobject_is_initialized(cap))
+   subobject_is_initialized((cap)->address, (cap)->complete_object))
 
 
-static a_boolean subobject_is_initialized(a_constexpr_address  *cap)
+static a_boolean subobject_is_initialized(a_byte  *address,
+                                          a_byte  *complete_object)
 /*
-Return TRUE if the subobject pointed to by cap is initialized.
+Return TRUE if the subobject pointed to by address (part of the given complete
+object) is initialized.
 */
 {
-  a_byte        *start_byte = cap->complete_object;
-  a_byte_count  off = cap->address-start_byte;
+  a_byte_count  off = address-complete_object;
   a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
   a_byte_count  bit_pos = off%CHAR_BIT;
 
-  return (start_byte[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
+  return (complete_object[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
 }  /* subobject_is_initialized */
 
 #if DEBUG
@@ -8453,10 +8454,11 @@ a ck_address constant representing the same address.
 
 
 static a_boolean copy_interpreter_object_to_constant(
-                                                an_interpreter_state  *ips,
-                                                a_byte                *object,
-                                                a_type_ptr            type,
-                                                a_constant_ptr        con)
+                                       an_interpreter_state  *ips,
+                                       a_byte                *object,
+                                       a_byte                *complete_object,
+                                       a_type_ptr            type,
+                                       a_constant_ptr        con)
 /*
 The storage pointed to by object holds a representation of a value of the given
 type produced by the interpreter.  Create in *con a constant representing
@@ -8590,7 +8592,7 @@ diagnostic in *ips.
               con->implicit_cast = TRUE;
             }  /* if */
             if (!copy_interpreter_object_to_constant(
-                                                ips, cap->address, utp, cp)) {
+                          ips, cap->address, cap->complete_object, utp, cp)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
@@ -8643,10 +8645,16 @@ diagnostic in *ips.
           a_byte_count    offset;
           a_constant_ptr  cp;
           if (!bcp->direct || bcp->is_virtual) continue;
-          cp = fs_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, bcp, offset);
+          if (!subobject_is_initialized(object+offset, complete_object)) {
+            info_with_pos_type(ec_base_subobject_not_initialized,
+                               &ips->position, bcp->type, ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          cp = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
-                                         ips, object+offset, bcp->type, cp)) {
+                        ips, object+offset, complete_object, bcp->type, cp)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -8664,9 +8672,15 @@ diagnostic in *ips.
             continue;
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!subobject_is_initialized(object+offset, complete_object)) {
+            info_with_pos_sym(ec_field_subobject_not_initialized,
+                              &ips->position, symbol_for(fp), ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
           cp = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
-                                          ips, object+offset, fp->type, cp)) {
+                         ips, object+offset, complete_object, fp->type, cp)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -8695,7 +8709,8 @@ diagnostic in *ips.
           elem_con = fs_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
-                                    ips, object+offset, afp->type, elem_con)) {
+                                          ips, object+offset, complete_object,
+                                          afp->type, elem_con)) {
             do_constexpr_fail(result);
           } else {
             if (fp != afp) {
@@ -8721,7 +8736,7 @@ diagnostic in *ips.
           a_constant_ptr  elem_con;
           elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
-                                               ips, sub_obj, etp, elem_con)) {
+                              ips, sub_obj, complete_object, etp, elem_con)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -8741,7 +8756,7 @@ diagnostic in *ips.
           a_constant_ptr  elem_con;
           elem_con = fs_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
-                                               ips, sub_obj, etp, elem_con)) {
+                              ips, sub_obj, complete_object, etp, elem_con)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -8800,7 +8815,8 @@ return FALSE, and record diagnostic info in *diag_list.
     if (!do_constexpr_call(&ips, call_expr, result_storage, result_storage)) {
       do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
-                             &ips, result_storage, result_type, result_con)) {
+                                         &ips, result_storage, result_storage,
+                                         result_type, result_con)) {
       do_constexpr_fail(result);
     }  /* if */
   }  /* if */
@@ -8866,7 +8882,7 @@ return FALSE, and record diagnostic info in *diag_list.
       }  /* if */
       map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       if (!copy_interpreter_object_to_constant(
-                             &ips, result_storage, result_type, result_con)) {
+             &ips, result_storage, result_storage, result_type, result_con)) {
         do_constexpr_fail(result);
       }  /* if */
       unmap_stack_bytes(&ips, result_storage);
