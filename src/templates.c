@@ -516,6 +516,7 @@ Initialize a template declaration state block.
   tdsp->friend_depth_known = FALSE;
   tdsp->is_alias_redecl = FALSE;
   tdsp->is_var_templ_initial_decl = FALSE;
+  tdsp->is_enum = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -23773,7 +23774,9 @@ Return TRUE if the declaration is a class template declaration.
 Otherwise, return FALSE.  This is done by rescanning the tokens from
 the declaration declaration token cache pointed in decl_state.
 This routine also checks for a C++/CLI generic delegate declaration,
-in which case the is_delegate flag of decl_state is updated.
+in which case the is_delegate flag of decl_state is updated, and for
+enum template declarations, in which case the is_enum flag of decl_state
+is updated.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep;
@@ -23836,6 +23839,24 @@ in which case the is_delegate flag of decl_state is updated.
     }  /* if */
     result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
               next_tok == tok_lbrace || next_tok == tok_removed_template_body);
+  } else if (opaque_enum_decls_enabled && curr_token == tok_enum) {
+    /* See if this is an enum template definition.  Skip over "enum",
+       "enum class", etc. */
+    (void)get_token();
+    if (curr_token == tok_class || curr_token == tok_struct) {
+      (void)get_token();
+    }  /* if */
+    skip_over_attributes();
+    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                        GID_USE_PROTOTYPE_NOT_NONREAL |
+                                        GID_IS_TEMPLATE_PRESCAN |
+                                        GID_IMPLICIT_TYPE_CONTEXT)) {
+      a_token_kind  next_tok = next_token();
+      if (next_tok == tok_colon || next_tok == tok_lbrace ||
+          next_tok == tok_semicolon || next_tok == tok_end_of_source) {
+        decl_state->is_enum = TRUE;
+      }  /* if */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled) {
     if (check_for_cli_delegate_definition()) {
@@ -24755,7 +24776,7 @@ any non-empty template parameter lists that were scanned.
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the alias definition. */
     p_template_body_cache = &tssp->cache.tokens;
-  } else if (opaque_enum_decls_enabled && curr_token == tok_enum) {
+  } else if (decl_state->is_enum) {
     /* An enum template declaration. */
     sym = enum_template_declaration(decl_state);
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;

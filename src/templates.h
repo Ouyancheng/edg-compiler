@@ -137,6 +137,8 @@ typedef struct a_tmpl_decl_state {
   a_boolean	is_var_templ_initial_decl;
 			/* TRUE if this is the initial declaration of
 			   a variable template. */
+  a_boolean	is_enum;
+			/* TRUE if this is an enum template declaration. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
