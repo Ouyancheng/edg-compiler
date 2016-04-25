@@ -11788,8 +11788,11 @@ not succeed.
     if (check_constexpr) {
       a_routine_ptr  rp = ctor_dip->variant.constructor.ptr;
       if (rp != NULL) {
-        (void)call_did_not_fold_to_constant(rp, (an_operand *)NULL,
-                                            &diag_list, pos); 
+        if (call_did_not_fold_to_constant(rp, (an_operand *)NULL,
+                                          &diag_list, pos)) {
+          folded = TRUE;
+          set_error_constant(result_con);
+        }  /* if */
       } else {
         expect_error();
       }  /* if */

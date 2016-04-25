@@ -5661,8 +5661,17 @@ folding failed.  Return TRUE if an error was issued.
       }  /* if */
       if (emit_diagnostic) {
         a_diagnostic_ptr  dp;
-        dp = pos_start_diagnostic(es_error, err_code,
-                                  operand != NULL ? &operand->position : pos);
+        if (routine != NULL && special_kind_is(routine, sfk_constructor) &&
+            is_default_constructor(routine, /*is_declarative_context=*/TRUE)) {
+          /* Use a more specific message for default constructor
+             invocations. */
+          dp = pos_ty_start_error(ec_default_ctor_call_not_constant,
+                                  operand != NULL ? &operand->position : pos,
+                                  parent_class_of(routine));
+        } else {
+          dp = pos_start_error(err_code,
+                               operand != NULL ? &operand->position : pos);
+        }  /* if */
         if (diag_list != NULL) {
           add_more_info_list(dp, diag_list);
         }  /* if */
@@ -15233,7 +15242,7 @@ successful folding.
         release_local_constant(&folded_con);
       }  /* if */
     }  /* if */
-    if (constexpr_enabled && !folded) {
+    if (constexpr_enabled && !folded && !check_constexpr) {
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
       check_assertion(pos != NULL);

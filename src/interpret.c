@@ -756,6 +756,10 @@ typedef struct an_interpreter_state {
 			   any point since side-effects were disabled (this is
 			   used to implement __builtin_constant_p (a GCC
 			   extension). */
+  a_bit_field
+		input_error:1;
+			/* TRUE if interpretation failed because an error
+			   entry was encountered in the IL. */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -873,6 +877,7 @@ Initialize the given interpreter state.
   ips->cost = 0;
   ips->static_storage_ready = FALSE;
   ips->side_effects_disabled = FALSE;
+  ips->input_error = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -2047,6 +2052,8 @@ redo:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_error:
+      ips->input_error = TRUE;
+      /*FALLTHROUGH*/
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
@@ -2942,6 +2949,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
   }  /* if */
   switch (con->kind) {
     case ck_error:
+      ips->input_error = TRUE;
       do_constexpr_fail(result);
       break;
     case ck_integer:
@@ -2973,7 +2981,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                  it has a representation in static interpreter storage.
                  Otherwise, create a run-time address. */
               a_variable_ptr  vp = con->variant.address.variant.variable;
-              if (vp->constant_valued) {
+              if (vp->constant_valued || vp->is_constexpr) {
                 a_byte      *var_bytes;
                 a_type_ptr  vtp = skip_typerefs(vp->type);
                 get_stack_bytes(ips, vp, var_bytes);
@@ -8813,7 +8821,13 @@ return FALSE, and record diagnostic info in *diag_list.
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (!do_constexpr_call(&ips, call_expr, result_storage, result_storage)) {
-      do_constexpr_fail(result);
+      if (ips.input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+        set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
     } else if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
@@ -8869,7 +8883,13 @@ return FALSE, and record diagnostic info in *diag_list.
   if (result) {
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
                            result_storage, /*implied_src=*/NULL)) {
-      do_constexpr_fail(result);
+      if (ips.input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+        set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
     } else {
       /* Map the result address (which is the "this" pointer) to a ck_address
          constant, so that copy_interpreter_object_to_constant can turn that
