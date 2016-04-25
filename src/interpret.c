@@ -2662,35 +2662,76 @@ Return a pointer to the stack storage associated with the given pointer.
 
 #endif /* DEBUG */
 
+static void make_anon_union_path(a_symbol_ptr              au_sym,
+                                 a_variant_path_entry_ptr  *p_last_entry,
+                                 a_byte                    **p_addr)
+/*
+au_sym represents an anonymous union parent field being selected in an object
+at address *p_addr.  Update *p_addr to point to the address of the anonymous
+union parent object.  au_sym may itself be a member of anonymous enclosing
+anonymous unions; if so, append to *p_last_entry a variant path corresponding
+to those anonymous union objects.
+*/
+{
+  a_variant_path_entry_ptr  vpep;
+  a_field_ptr               aufp = au_sym->variant.field.ptr;
+  a_symbol_ptr              au_parent;
+  a_byte_count              offset;
+
+  au_parent = au_sym->variant.field.anonymous_parent_object;
+  if (au_parent != NULL) {
+    /* aufp is not the top-most anonymous union.  Recurse to determine its
+       parent's address, then append a variant entry to select it. */
+    make_anon_union_path(au_parent, p_last_entry, p_addr);
+    vpep = alloc_variant_path_entry();
+    vpep->next = NULL;
+    vpep->field = aufp;
+    vpep->base_address = *p_addr;
+    (*p_last_entry)->next = vpep;
+    *p_last_entry = vpep;
+  }  /* if */
+  get_mapped_byte_count(&persistent_map, aufp, offset);
+  *p_addr += offset;
+}  /* make_anon_union_path */
+
+
 static a_boolean add_to_variant_path(a_constexpr_address  *addr,
                                      a_field_ptr          union_field)
 /*
 The given field of a union object or subobject pointed to by addr is being
 selected.  Add that field to the variant path associated with addr (and, if
-this is the first field added to the path, also add a prefix field for
-array element selections).
+this is the first field added to the path, also add a prefix field for array
+element selections).  If union_field is an anonymous union field, addr->address
+is adjusted to the innermost anonymous union parents, and addition variant
+path entries are added for nested anonymous unions if needed.
 */
 {
-  a_variant_path_entry_ptr  *p_path_ptr;
+  a_variant_path_entry_ptr  last_entry, vpep;
+  a_symbol_ptr              au_parent;
 
   if (addr->flags & CA_VARIANT_PATH) {
     /* This entry already has a variant path: Find its end. */
-    p_path_ptr = &addr->variant.variant_path->next;
-    while (*p_path_ptr) {
-      p_path_ptr = &(*p_path_ptr)->next;
+    last_entry = addr->variant.variant_path->next;
+    while (last_entry->next != NULL) {
+      last_entry = last_entry->next;
     }  /* while */
   } else {
     /* No entries yet: Create a first entry to record an array base address if
        needed. */
     addr->variant.variant_path = alloc_variant_path_entry();
-    p_path_ptr = &addr->variant.variant_path->next;
+    last_entry = addr->variant.variant_path;
     addr->flags |= CA_VARIANT_PATH;
   }  /* if */
-  /* Add the new entry. */
-  *p_path_ptr = alloc_variant_path_entry();
-  (*p_path_ptr)->next = NULL;
-  (*p_path_ptr)->field = union_field;
-  (*p_path_ptr)->base_address = addr->address;
+  au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
+  if (au_parent != NULL) {
+    make_anon_union_path(au_parent, &last_entry, &addr->address);
+  }  /* if */
+  /* An ordinary union member.  Just add a new entry. */
+  vpep = alloc_variant_path_entry();
+  vpep->next = NULL;
+  vpep->field = union_field;
+  vpep->base_address = addr->address;
+  last_entry->next = vpep;
   return TRUE;
 }  /* add_to_variant_path */
 
