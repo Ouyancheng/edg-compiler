@@ -15956,7 +15956,8 @@ all arguments were explicit.
                      ->variant.class_struct_union.is_prototype_instantiation) {
     template_in_prototype_instantiation = TRUE;
   }  /* if */
-  if (tssp->variant.class_template.template_template_param) {
+  if (symbol_is(template_sym, sk_class_template) &&
+      tssp->variant.class_template.template_template_param) {
     a_template_ptr			subst_param_templ;
     a_template_symbol_supplement_ptr	subst_param_tssp;
     /* If this is a template template parameter, see if there is a substituted
