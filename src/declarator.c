@@ -6295,9 +6295,9 @@ result, disambiguation is not necessary.
     ssep = &scope_stack[depth_template_declaration_scope];
     if (ssep->templ_member_class_sym == NULL) {
       /* A template declaration that is not a qualified name.  This can
-         only be a function declaration (until variable templates are
-         implemented). */
-      result = TRUE;
+         only be a function declaration or a variable templates, if they
+         are enabled. */
+      result = !variable_templates_enabled;
     }  /* if */
   } else if (is_real_instantiation_context()) {
     a_scope_stack_entry_ptr	ssep;
