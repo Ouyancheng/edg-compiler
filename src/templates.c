@@ -5146,6 +5146,37 @@ user later during real instantiations.
 }  /* default_arg_prototype_instantiation */
 
 
+static a_boolean is_invalid_variable_template_type(
+					a_variable_ptr		var,
+					a_source_position_ptr	error_pos,
+					a_boolean		issue_error)
+/*
+Check whether the type of the variable template instance var is a valid
+variable type.  For example, a variable template instance that is given
+a function type is not valid.  Return TRUE if the type is not valid.
+If issue_error is TRUE, issue a diagnostic about the invalid type and
+use error_pos as the position.
+*/
+{
+  a_type_ptr	tp = var->type;
+  a_boolean	result = FALSE;
+  an_error_code	error_code = ec_no_error;
+
+  check_assertion(tp != NULL);
+  if (is_function_type(tp)) {
+    result = TRUE;
+    error_code = ec_variable_templ_function_type;
+  } else if (is_incomplete_type(tp)) {
+    result = TRUE;
+    error_code = ec_incomplete_var_type;
+  }  /* if */
+  if (result && issue_error) {
+    pos_ty_error(error_code, error_pos, tp);
+  }  /* if */
+  return result;
+}  /* is_invalid_variable_template_type */
+
+
 static void variable_template_prototype_instantiation(
                                           a_tmpl_decl_state_ptr  decl_state,
                                           a_symbol_ptr           template_sym)
@@ -5169,6 +5200,7 @@ user later during real instantiations.
   a_boolean                         is_variable_template;
   a_symbol_ptr                      proto_sym;
   a_boolean                         is_definition = FALSE;
+  a_boolean                         incomplete_type_error_reported = FALSE;
 
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
@@ -5220,7 +5252,6 @@ user later during real instantiations.
   }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
-    a_boolean	incomplete_type_error_reported;
     a_boolean	has_parenthesized_initializer;
     a_boolean	saved_auto_type_specifier_seen = dps->auto_type_specifier_seen;
     a_boolean	is_constant_member;
@@ -5291,6 +5322,14 @@ user later during real instantiations.
       /* It could not be default initialized.  See if an initializer is
          required. */
       check_for_missing_initializer(proto_sym, var_ptr->type);
+    }  /* if */
+  }  /* if */
+  /* Make sure the type from the declaration is a valid variable
+     declaration. */
+  if (is_variable_template && !incomplete_type_error_reported) {
+    if (is_invalid_variable_template_type(var_ptr, &dps->specifiers_pos,
+                                          /*issue_error=*/TRUE)) {
+      var_ptr->type = error_type();
     }  /* if */
   }  /* if */
   /* Call a routine to do processing common to various forms of variable
@@ -5942,34 +5981,6 @@ static void scan_template_variable_declaration(
 				a_decl_parse_state_ptr			dps);
 
 
-static a_boolean is_invalid_variable_template_type(
-					a_variable_ptr		var,
-					a_source_position_ptr	error_pos,
-					a_boolean		issue_error)
-/*
-Check whether the type of the variable template instance var is a valid
-variable type.  For example, a variable template instance that is given
-a function type is not valid.  Return TRUE if the type is not valid.
-If issue_error is TRUE, issue a diagnostic about the invalid type and
-use error_pos as the position.
-*/
-{
-  a_type_ptr	tp = var->type;
-  a_boolean	result = FALSE;
-  an_error_code	error_code = ec_no_error;
-
-  check_assertion(tp != NULL);
-  if (is_function_type(tp)) {
-    result = TRUE;
-    error_code = ec_variable_templ_function_type;
-  }  /* if */
-  if (result && issue_error) {
-    pos_ty_error(error_code, error_pos, tp);
-  }  /* if */
-  return result;
-}  /* is_invalid_variable_template_type */
-
-
 static void instantiate_template_variable(a_template_instance_ptr  tip,
                                           a_boolean                is_new)
 /*
@@ -5991,6 +6002,7 @@ been seen).
   a_symbol_ptr				template_sym_of_prototype;
   a_template_symbol_supplement_ptr	tssp_of_prototype;
   a_boolean				is_definition = FALSE;
+  a_boolean				incomplete_type_error_reported = FALSE;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6076,14 +6088,6 @@ been seen).
   }  /* if */
   /* If the variable type is a template class, make sure it is instantiated. */
   complete_type_is_needed(var_ptr->type);
-  /* Make sure the type from the declaration is a valid variable
-     declaration. */
-  if (is_var_templ_instance) {
-    if (is_invalid_variable_template_type(var_ptr, &dps.specifiers_pos,
-                                          /*issue_error=*/TRUE)) {
-      var_ptr->type = error_type();
-    }  /* if */
-  }  /* if */
   if (is_var_templ_instance && is_new) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
   }  /* if */
@@ -6112,7 +6116,6 @@ been seen).
   if (tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  init_dps;
-    a_boolean	incomplete_type_error_reported;
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
 
@@ -6183,6 +6186,14 @@ been seen).
       /* It could not be default initialized.  See if an initializer is
          required. */
       check_for_missing_initializer(var_sym, var_ptr->type);
+    }  /* if */
+  }  /* if */
+  /* Make sure the type from the declaration is a valid variable
+     declaration. */
+  if (is_var_templ_instance && !incomplete_type_error_reported) {
+    if (is_invalid_variable_template_type(var_ptr, &dps.specifiers_pos,
+                                          /*issue_error=*/TRUE)) {
+      var_ptr->type = error_type();
     }  /* if */
   }  /* if */
   if (is_definition) {

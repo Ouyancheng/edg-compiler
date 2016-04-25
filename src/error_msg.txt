@@ -2836,6 +2836,7 @@ ec_constexpr_no_active_union_field;;"invalid access to inactive %n1 of union (no
 ec_label_in_constexpr_function;;"label definitions cannot appear in constexpr functions"
 ec_constexpr_equality_past_the_end_address;;"cannot compare a pointer past the end of an array with a pointer to another complete object"
 ec_variable_templ_function_type;;"function type %t is an invalid type for a variable template instantiation"
+ec_incomplete_var_type;;"variable cannot have incomplete type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
