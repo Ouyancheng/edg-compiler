@@ -28258,7 +28258,11 @@ data member is a member of an unnamed namespace.
   } else if (((symbol_is(sym, sk_variable) ||
                symbol_is(sym, sk_static_data_member)) &&
               (var->storage_class == (a_storage_class)sc_static ||
-               is_or_contains_unnamed_namespace_type(var->type))) ||
+               is_or_contains_unnamed_namespace_type(var->type)))) {
+    /* Return TRUE if the static data member or variable is marked as static,
+       or if the type contains a type from an unnamed namespace. */
+    result = TRUE;
+  } else if (is_simple_function_symbol(sym) &&
              (sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static ||
               is_or_contains_unnamed_namespace_type(
