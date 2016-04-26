@@ -941,7 +941,7 @@ Macro to allocate bytes in stack storage.  Deallocation is handled by restoring
 a previously saved stack state.
 */
 #define alloc_bytes(sss, n_bytes, storage_ptr)                               \
-  { if ((n_bytes) > CONSTEXPR_STACK_ALLOC_LIMIT) {                           \
+  { if ((n_bytes) > CONSTEXPR_STACK_ALLOC_LIMIT /*lint -e506*/) {            \
       /* We'll allocate the bytes in a separate general allocation block. */ \
       a_byte        *large_block;                                            \
       a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;     \
