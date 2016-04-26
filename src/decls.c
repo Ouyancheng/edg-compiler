@@ -10548,11 +10548,12 @@ a_boolean reconcile_static_data_member_types(
 					a_type_ptr		type_ptr,
 					a_source_position_ptr	err_pos)
 /*
-The static data member specified by "sym" is being defined outside of
-its class with the type specified by "type_ptr".  Verify that the new
-type is compatible with the previously declared type.  If "sym" was
-previously declared with an incomplete array type, update the array
-size information if necessary.  Return TRUE if an error is detected in
+The static data member or variable template instance specified by "sym"
+is being defined outside of its class, or simply redeclared in the case
+of a non-member variable template, with the type specified by "type_ptr".
+Verify that the new type is compatible with the previously declared type.
+If "sym" was previously declared with an incomplete array type, update the
+array size information if necessary.  Return TRUE if an error is detected in
 the reconciliation process.
 */
 {
@@ -10560,10 +10561,10 @@ the reconciliation process.
   a_boolean		incompatible_ptr_to_member_class_types = FALSE;
   a_boolean		err = FALSE;
 
-  var = sym->variant.static_data_member.variable;
+  var = variable_for_symbol(sym);
   if (!types_are_redecl_compatible(type_ptr, var->type)) {
     /* Types are not compatible. */
-    if (microsoft_bugs &&
+    if (microsoft_bugs && symbol_is(sym, sk_static_data_member) &&
         f_types_are_compatible(type_ptr, var->type,
                                TCF_REDECLARATION |
                                TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
@@ -10586,11 +10587,15 @@ the reconciliation process.
   }  /* if */
   if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Since this is the defining declaration of the static data member,
-       record the type.  Note that this has to be done before composite
-       type is called -- in case there's some modification. */
-    check_assertion(var->declared_type == NULL);
-    var->declared_type = type_ptr;
+    if (symbol_is(sym, sk_static_data_member) {
+      /* Since this is the defining declaration of the static data member,
+         record the type.  Note that this has to be done before composite
+         type is called -- in case there's some modification. */
+      check_assertion(var->declared_type == NULL);
+      var->declared_type = type_ptr;
+    } else if (var->declared_type == NULL) {
+      var->declared_type = type_ptr;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (incompatible_ptr_to_member_class_types) {
       /* Microsoft bug -- leave the static data member type (or for
