@@ -4944,7 +4944,8 @@ done:
 
 
 static a_byte_count record_anon_union_active_field(a_field_ptr  *p_fp,
-                                                   a_byte       *storage)
+                                                   a_byte       *storage,
+                                                   a_byte       *complete_obj)
 /*
 *p_fp is a field in an anonymous union.  storage points to the representation
 of the object enclosing the one or more anonymous union parent objects of
@@ -4962,8 +4963,9 @@ of the original *p_fp field in the representation of the returned *p_fp field.
   if (symbol_for(aufp)->variant.field.anonymous_parent_object != NULL) {
     /* aufp is not the top-most anonymous union.  Recurse to determine its
        offset, and then replace it by the top-most anonymous union. */
-    offset += record_anon_union_active_field(&aufp, storage);
+    offset += record_anon_union_active_field(&aufp, storage, complete_obj);
   }  /* if */
+  mark_subobject_initialized(storage+offset, complete_obj);  
   *(a_field_ptr*)(storage+offset) = fp;
   *p_fp = aufp;
   return offset;
@@ -5182,7 +5184,8 @@ the body of the (constructor) function proper.
              the top-level anonymous union parent field, so that it can be
              recorded as the active field in case class_type itself is a union
              (see below). */
-          offset += record_anon_union_active_field(&fp, result_storage);
+          offset += record_anon_union_active_field(&fp, result_storage,
+                                                   complete_object);
         }  /* if */
         if (class_type->kind == (a_type_kind)tk_union) {
           /* Record the active field for the enclosing union. */
