@@ -4052,6 +4052,7 @@ pointer to it.
   }  /* switch */
   cip->initializer = NULL;
   cip->source.expr = NULL;
+  cip->source.arg_cache = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   cip->ctor_init_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
