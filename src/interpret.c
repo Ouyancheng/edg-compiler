@@ -3347,7 +3347,8 @@ done:
 static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
                                        a_byte                *src_bytes,
-                                       a_byte                *dst_bytes)
+                                       a_byte                *dst_bytes,
+                                       a_byte                *complete_obj)
 /*
 Copy an object of the given type from one interpreter storage location
 (src_bytes) to another (dst_bytes).
@@ -3357,7 +3358,12 @@ Copy an object of the given type from one interpreter storage location
   a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
 
   if (result) {
+    a_byte_count  k;
     (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
+    /* Mark possible subobject starting positions as initialized. */
+    for (k = 0; k<n_bytes; k += HOST_ALIGNMENT_REQUIRED) {
+      mark_subobject_initialized(dst_bytes+k, complete_obj);  
+    }  /* for */
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
@@ -5213,7 +5219,7 @@ the body of the (constructor) function proper.
           break;
         } else {
           if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
-                                     result_storage+offset)) {
+                                     result_storage+offset, complete_object)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -5245,7 +5251,8 @@ the body of the (constructor) function proper.
           /* Just zero the storage. */
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
-          memzero(result_storage+offset, size_t_arg(n_bytes));
+          init_subobject_to_zero(result_storage+offset, size_t_arg(n_bytes),
+                                 complete_object);
         } else if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
                                     &callee->source_corresp.decl_position,
@@ -5439,6 +5446,13 @@ nodes.
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
+        /* Mark the destination storage as fully initialized. */              \
+        if (is_immediate_class_type(tp) ||                                    \
+            tp->kind == (a_type_kind)tk_array) {                              \
+          a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;                 \
+          (void)memset(result_storage-bitmap_size-sizeof(a_type_ptr)-1,       \
+                       ~0, bitmap_size);                                      \
+        }  /* if */                                                           \
       }  /* if */                                                             \
     }  /* if */                                                               \
   }  /* SET_result_val_from_operand_address */
@@ -5702,7 +5716,7 @@ used by the value representation of the integer value.
               get_mapped_byte_count(&persistent_map, bcp, offset);
               if (!result) break;
               if (constexpr_copy_object(ips, tp, opnd1_value+offset,
-                                        result_storage)) {
+                                        result_storage, complete_object)) {
                 record_subobject_derivation(result_storage, NULL);
               } else {
                 do_constexpr_fail(result);
