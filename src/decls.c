@@ -10587,7 +10587,7 @@ the reconciliation process.
   }  /* if */
   if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (symbol_is(sym, sk_static_data_member) {
+    if (symbol_is(sym, sk_static_data_member)) {
       /* Since this is the defining declaration of the static data member,
          record the type.  Note that this has to be done before composite
          type is called -- in case there's some modification. */
