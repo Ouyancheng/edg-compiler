@@ -5774,6 +5774,11 @@ give the starting and ending source positions for the field reference
                   is_operation_node(result->variant.expression));
   if (compiler_generated) {
     result->variant.expression->variant.operation.compiler_generated = TRUE;
+    if (result->variant.expression->position.seq == 0) {
+      /* If the node has no explicit position, use the enk_field operand node
+         instead. */
+      result->variant.expression->position = operand_1->position;
+    }  /* if */
   }  /* if */
   /* When nonstandard anonymous unions are allowed (including C11 anonymous
      unions and anonymous structs), look for fields of the anonymous parents
