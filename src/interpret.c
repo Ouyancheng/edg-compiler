@@ -6565,7 +6565,7 @@ used by the value representation of the integer value.
                 release_local_constant(&diff_con);
               } else if (is_array_element(addr1) && is_array_element(addr2) &&
                          get_base_address(addr1) == get_base_address(addr2)) {
-                a_type_ptr    etp = opnd1_type->variant.array.element_type;
+                a_type_ptr    etp = opnd1_type->variant.pointer.type;
                 a_byte_count  elem_size = value_bytes_for_type(
                                                            ips, etp, &result);
                 if (!result) {
