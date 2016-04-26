@@ -6428,9 +6428,19 @@ used by the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                &expr->position, ips);
+                  if (cannot_dereference(result_addr) ? (host_int_val == -1)
+                                                      : (host_int_val == 1)) {
+                    /* Non-arrays are treated as arrays of length one. */
+                    if (host_int_val == 1) {
+                      result_addr->flags |= CA_CANNOT_DEREFERENCE;
+                    } else {
+                      result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    }  /* if */
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  }  /* if */
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
@@ -6496,9 +6506,19 @@ used by the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                &expr->position, ips);
+                  if (cannot_dereference(result_addr) ? (host_int_val == 1)
+                                                      : (host_int_val == -1)) {
+                    /* Non-arrays are treated as arrays of length one. */
+                    if (host_int_val == 1) {
+                      result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    } else {
+                      result_addr->flags |= CA_CANNOT_DEREFERENCE;
+                    }  /* if */
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  }  /* if */
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
