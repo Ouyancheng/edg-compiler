@@ -15187,7 +15187,7 @@ check_constexpr is also TRUE, diagnostic are emitted in contexts requiring
 successful folding.
 */
 {
-  a_boolean          folded = FALSE;
+  a_boolean          folded = FALSE, checked = FALSE;
   a_dynamic_init_ptr dip =
                  alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
 
@@ -15241,8 +15241,9 @@ successful folding.
       } else {
         release_local_constant(&folded_con);
       }  /* if */
+      checked = check_constexpr;
     }  /* if */
-    if (constexpr_enabled && !folded && !check_constexpr) {
+    if (constexpr_enabled && !folded && !checked) {
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
       check_assertion(pos != NULL);
