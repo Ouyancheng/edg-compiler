@@ -4506,100 +4506,6 @@ were __has_include.
 }  /* scan_has_include */
 
 
-static a_boolean same_macro_at_beginning(a_source_line_modif_ptr slmp,
-                                         a_const_char            *str)
-/*
-slmp is a source line modification containing the expansion of a previous
-macro invocation; str designates the expansion of a potential invocation of
-the same macro appearing within the previous expansion.  Return TRUE if
-both expansions begin with the name of the same macro, FALSE otherwise.
-*/
-{
-  a_boolean    result = FALSE;
-  a_symbol_ptr macro_sym = NULL;
-  a_const_char *p;
-  int          ch_len;
-  a_const_char *id;
-  sizeof_t     id_len;
-  a_boolean    mbc_seen = FALSE;
-
-  if (*slmp->inserted_text == ATTENTION_MARKER) {
-    /* The previous expansion of this macro began with a macro invocation
-       that has been expanded.  We'll check the name of that macro against
-       the current expansion below. */
-    macro_sym = nested_source_line_modif(slmp->inserted_text)->assoc_macro;
-  } else {
-    /* Either the previous invocation did not begin with a macro name or
-       the macro invocation hasn't been expanded yet.  We need to check if
-       the first token in each expansion is an identifier and, if so, if
-       they both designate the same macro.  Scan through the first token of
-       the previous expansion to see if it is an identifier. */
-    p = slmp->inserted_text;
-    while (*p != LE_ESCAPE &&
-           is_identifier_char(p, &ch_len, p == slmp->inserted_text)) {
-      if (ch_len > 1) {
-        /* The character is a multibyte character or UCN, so the identifier
-           needs to be canonicalized before looking it up. */
-        mbc_seen = TRUE;
-      }  /* if */
-      p += ch_len;
-    }  /* while */
-    if ((id_len = p - slmp->inserted_text) > 0) {
-      /* The previous expansion begins with an identifier.  Canonicalize
-         the identifier if necessary and look it up to see if it is a macro
-         name. */
-      a_symbol_locator    locator;
-      a_symbol_header_ptr sym_hdr;
-      id = slmp->inserted_text;
-      if (mbc_seen) {
-        /* A multibyte character or UCN appeared in the spelling of the
-           identifier.  Obtain the canonicalized spelling so it can be
-           reliably looked up. */
-        id = make_canonical_identifier(id, &id_len, /*force_ucn=*/FALSE);
-      }  /* if */
-      clear_locator(&locator, &null_source_position);
-      sym_hdr = find_symbol_header(id, id_len, &locator);
-      for (macro_sym = symbol_list_for_file_scope_symbols(sym_hdr);
-           macro_sym != NULL && macro_sym->kind != (a_symbol_kind)sk_macro;
-           macro_sym = macro_sym->next) {}
-    }  /* if */
-  }  /* if */
-  if (macro_sym != NULL) {
-    /* The previous expansion began with a macro name.  Scan through the
-       first token of the current expansion to see if it is an
-       identifier. */
-    mbc_seen = FALSE;
-    p = str;
-    while (*p != LE_ESCAPE && is_identifier_char(p, &ch_len, p == str)) {
-      if (ch_len > 1) {
-        /* The character is a multibyte character or UCN, so the identifier
-           needs to be canonicalized before comparing it against the macro
-           name. */
-        mbc_seen = TRUE;
-      }  /* if */
-      p += ch_len;
-    }  /* while */
-    if ((id_len = p - str) > 0) {
-      /* The current expansion also begins with an identifier.
-         Canonicalize the identifier if necessary and compare it against
-         the name of the macro at the beginning of the previous
-         expansion. */
-      id = str;
-      if (mbc_seen) {
-        /* A multibyte character or UCN appeared in the spelling of the
-           identifier.  Obtain the canonicalized spelling to compare it
-           against the macro name. */
-        id = make_canonical_identifier(id, &id_len, /*force_ucn=*/FALSE);
-      }  /* if */
-      /* See if the identifier from the current expansion matches the macro
-         name from the previous expansion. */
-      result = (strcmp(macro_sym->header->identifier, id) == 0);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* same_macro_at_beginning */
-
-
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -6643,24 +6549,40 @@ copy_done:
     for (slmp = invocation_slmp; slmp != NULL;
          slmp = parent_source_line_modif(slmp)) {
       if (slmp->assoc_macro == macro_symbol &&
-          same_macro_at_beginning(slmp, rescan_loc)) {
-        /* The current expansion begins with the same macro name as the
-           previous expansion.  Reset the state appropriately and treat
-           the macro name as inert. */
-        is_inert_macro = TRUE;
-        macro_depth = saved_macro_depth;
+          *slmp->inserted_text == ATTENTION_MARKER) {
+        /* The previous expansion of this macro began with a macro
+           invocation.  If the current expansion begins with that same
+           macro name, the Microsoft preprocessor does not expand the
+           current macro invocation, and we need to treat the macro name as
+           inert.  We can't simply compare the characters following the
+           ATTENTION_MARKER with the corresponding portion of the current
+           expansion, however, because the deleted text from the earlier
+           invocation may ave been removed by the buffer compaction
+           performed by expand_macro_buffer.  Instead, we compare the name
+           of the previously-expanded nested macro against the text of
+           current expansion using the name from the macro symbol. */
+        slmp2 = nested_source_line_modif(slmp->inserted_text);
+        if (slmp2->orig_char == *rescan_loc &&
+            strcmp(slmp2->assoc_macro->header->identifier + 1,
+                   rescan_loc + 1) == 0) {
+          /* The current expansion begins with the same macro name as the
+             previous expansion.  Reset the state appropriately and treat
+             the macro name as inert. */
+          is_inert_macro = TRUE;
+          macro_depth = saved_macro_depth;
 #if RECORD_MACRO_INVOCATIONS
-        revert_macro_invocation_record();
+          revert_macro_invocation_record();
 #endif /* RECORD_MACRO_INVOCATIONS */
-        free_macro_arg_entries(prev_end_of_macro_arg_list);
+          free_macro_arg_entries(prev_end_of_macro_arg_list);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-        macro_text_map.num_entries = first_text_map_entry;
+          macro_text_map.num_entries = first_text_map_entry;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-        next_avail_in_macro_buffer = (char *)rescan_loc;
+          next_avail_in_macro_buffer = (char *)rescan_loc;
           /* Skip over the macro name. */
-        curr_char_loc =
+          curr_char_loc =
               delete_source_from_loc + macro_symbol->header->identifier_length;
-        goto make_inert_macro;
+          goto make_inert_macro;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
