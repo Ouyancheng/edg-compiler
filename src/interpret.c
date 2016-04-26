@@ -4704,17 +4704,18 @@ otherwise, return FALSE and update *ips accordingly.
       goto done;
     }  /* if */
   } else {
-    a_constexpr_address  addr;
-    if (do_constexpr_expression(
-                          ips, callee_node, (a_byte*)&addr, (a_byte*)&addr)) {
-      if (is_function_address(&addr)) {
-        callee = addr.variant.routine;
+    a_byte  *addr_bytes;
+    alloc_stack_bytes(ips, sizeof(a_constexpr_address), addr_bytes);
+    if (do_constexpr_expression( ips, callee_node, addr_bytes, addr_bytes)) {
+      a_constexpr_address  *addr = (a_constexpr_address*)addr_bytes;
+      if (is_function_address(addr)) {
+        callee = addr->variant.routine;
         if (callee == NULL) {
           info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
           do_constexpr_fail(result);
           goto done;
         }  /* if */
-      } else if (addr.address == NULL) {
+      } else if (addr->address == NULL) {
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
         do_constexpr_fail(result);
         goto done;
