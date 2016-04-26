@@ -14480,7 +14480,7 @@ instantiations from the IL.
         /* For static data members, remove the instantiation unless we are
            in something like tim_used.  This is needed to avoid multiple
            definition errors. */
-        a_variable_ptr	vp = instance_sym->variant.static_data_member.variable;
+        a_variable_ptr	vp = variable_for_symbol(instance_sym);
         vp = (a_variable_ptr)canonical_il_entry_of(vp);
         if (vp->storage_class == (a_storage_class)sc_unspecified) {
           clear_variable_definition(vp);

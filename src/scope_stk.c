@@ -7242,7 +7242,7 @@ it is an external definition).
 
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       check_assertion(sym != NULL);
-      tip = sym->variant.static_data_member.instance_ptr;
+      tip = template_instance_for_symbol(sym);
       check_assertion(tip != NULL);
       mip = tip->master_instance;
       if (tip->explicit_instantiation ||
