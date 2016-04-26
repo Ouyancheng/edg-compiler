@@ -22754,8 +22754,11 @@ template symbol supplement for this template should be returned to the caller.
     /* This is a template definition of a static data member of a
        class template or a redeclaration of a variable template. */
     a_type_ptr  type = dps->type;
-    dps->is_definition = TRUE;
-    decl_state->defines_something = TRUE;
+    if (!is_variable_template ||
+        dps->storage_class != (a_storage_class)sc_extern) {
+      dps->is_definition = TRUE;
+      decl_state->defines_something = TRUE;
+    }  /* if */
 #if CHECKING
     if (!is_variable_template &&
         sym->variant.static_data_member.instance_ptr->template_sym != sym) {
@@ -22787,7 +22790,8 @@ template symbol supplement for this template should be returned to the caller.
     }  /* if */
     /* A storage class of sc_unspecified means "no storage class explicitly
        specified" -- anything else is an error. */
-    if (dps->storage_class != (a_storage_class)sc_unspecified) {
+    if (!is_variable_template &&
+        dps->storage_class != (a_storage_class)sc_unspecified) {
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
     }  /* if */
     if (!err) {
