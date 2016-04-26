@@ -6047,17 +6047,6 @@ been seen).
     /* In -tlocal mode, put out the variable with internal linkage. */
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else {
-    /* In other modes, the variable should have external linkage.
-       Change its storage class from sc_extern to sc_unspecified.  For
-       variable template instances, this may be updated later if the
-       variable template has some other storage class. */
-    check_assertion_str(var_ptr->storage_class == (a_storage_class)sc_extern,
-                        "instantiate_template_variable: bad linkage");
-    check_assertion_str2(var_ptr->source_corresp.name_linkage ==
-                                  (a_name_linkage_kind)nlk_cplusplus_external,
-                         "instantiate_template_variable:",
-                         "bad name linkage");
   }  /* if */
   /* Push a template instantiation scope.  The real values of the template
      arguments will be associated with the template parameter names. */
@@ -6098,6 +6087,7 @@ been seen).
   if (!tip->template_sym->is_class_member &&
       is_const_qualified_type(var_ptr->type)) {
     var_ptr->storage_class = (a_storage_class)sc_static;
+    var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -6120,7 +6110,6 @@ been seen).
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
-
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
     rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
@@ -6186,6 +6175,7 @@ been seen).
     if (!def_init_okay) {
       /* It could not be default initialized.  See if an initializer is
          required. */
+      error_position = dps.declarator_pos;
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
@@ -22717,8 +22707,8 @@ template symbol supplement for this template should be returned to the caller.
        is a static data member.  We make this assumption because the
        declarator is not a function and is followed by an equals sign. */
     err = TRUE;
-  } else if (!(symbol_is(sym, sk_variable_template) ||
-               symbol_is(sym, sk_static_data_member))) {
+  } else if (!symbol_is(sym, sk_variable_template) &&
+             !symbol_is(sym, sk_static_data_member)) {
     /* Not a variable template or static data member. */
     if (sym->kind == (a_symbol_kind)sk_field) {
       pos_error(ec_nonstatic_member_def_not_allowed,
@@ -22741,14 +22731,15 @@ template symbol supplement for this template should be returned to the caller.
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
-  } else if (!is_variable_template &&
+  } else if (!is_initial_decl &&
              !types_are_redecl_compatible(dps->type, var->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
-  } else if (var->is_thread_local !=
+  } else if (!is_initial_decl &&
+             var->is_thread_local !=
                                   ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
     /* If "thread_local" is specified on one declaration, it must be
        specified on all. */
@@ -22761,7 +22752,7 @@ template symbol supplement for this template should be returned to the caller.
     err = TRUE;
   } else if (!is_initial_decl) {
     /* This is a template definition of a static data member of a
-       class template. */
+       class template or a redeclaration of a variable template. */
     a_type_ptr  type = dps->type;
     dps->is_definition = TRUE;
     decl_state->defines_something = TRUE;
@@ -22872,11 +22863,6 @@ template symbol supplement for this template should be returned to the caller.
       p_token_cache = NULL;
     } /* if */
   } /* if */
-  if (err) {
-    /* If an error occurred earlier, return a NULL symbol. */
-    sym = NULL;
-    tssp = NULL;
-  } /* if */
   if (tssp != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Prevent the generation of a source sequence entry for the a_template
@@ -22921,6 +22907,11 @@ template symbol supplement for this template should be returned to the caller.
     source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  if (err) {
+    /* If an error occurred earlier, return a NULL symbol. */
+    sym = NULL;
+    tssp = NULL;
+  } /* if */
   *p_tssp = tssp;
   return sym;
 }  /* variable_template_declaration */
