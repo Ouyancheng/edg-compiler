@@ -5447,10 +5447,11 @@ nodes.
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
         /* Mark the destination storage as fully initialized. */              \
+        mark_complete_object_initialized(complete_object);                    \
         if (is_immediate_class_type(tp) ||                                    \
             tp->kind == (a_type_kind)tk_array) {                              \
           a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;                 \
-          (void)memset(result_storage-bitmap_size-sizeof(a_type_ptr)-1,       \
+          (void)memset(complete_object-bitmap_size-sizeof(a_type_ptr)-1,      \
                        ~0, bitmap_size);                                      \
         }  /* if */                                                           \
       }  /* if */                                                             \
@@ -8261,6 +8262,14 @@ used by the value representation of the integer value.
                 /* Copying an address type.  Make sure its side structures, if
                    any, are not shared. */
                 copy_address_structures(result_storage);
+              } 
+              /* Mark the destination storage as fully initialized. */
+              mark_complete_object_initialized(complete_object);
+              if (is_immediate_class_type(tp) ||
+                  tp->kind == (a_type_kind)tk_array) {
+                a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;
+                (void)memset(complete_object-bitmap_size-sizeof(a_type_ptr)-1,
+                             ~0, bitmap_size);
               }  /* if */
             }  /* if */
           } else {
