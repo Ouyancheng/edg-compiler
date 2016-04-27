@@ -2249,12 +2249,18 @@ for base class subobjects *p_field is set to NULL).
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
-    a_byte_count      offset = cap->address - parent_address, sub_offset = 0;
+    a_byte_count      offset = cap->address - parent_address, sub_offset;
     a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
     a_field_ptr       last_fp = next_initializable_field(fp);
     a_base_class_ptr  bcp, last_bcp;
     a_boolean         okay = TRUE;
+    sub_offset = sizeof(a_type_ptr);
+    do_host_alignment(sub_offset);
     /* First search through the fields. */
+    if (last_fp == NULL) {
+      /* There are no allocated fields: Look among the base cases. */
+      goto search_base_subobjects;
+    }  /* if */
     for (fp = next_initializable_field(last_fp->next);
          fp != NULL;
          last_fp = fp, fp = next_initializable_field(fp->next)) {
@@ -2264,13 +2270,14 @@ for base class subobjects *p_field is set to NULL).
         *p_bcp = NULL;
         goto done;
       }  /* if */
-    }  /* if */
+    }  /* for */
     if (offset-sub_offset < value_bytes_for_type(ips, last_fp->type, &okay)) {
       check_assertion(okay);
       *p_field = last_fp;
       *p_bcp = NULL;
       goto done;
     }  /* if */
+search_base_subobjects:
     /* Next search through direct base classes.  (If we got here, there must be
        some).  Start with nonvirtual bases. */
     bcp = base_classes_of(parent_type);
@@ -8717,6 +8724,7 @@ diagnostic in *ips.
             if (cap->address != cap->complete_object) {
               con->variant.address.offset =
                              translate_interpreter_offset(ips, cap, top_type);
+              con->implicit_cast = TRUE;
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
