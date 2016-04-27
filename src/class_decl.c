@@ -16362,22 +16362,29 @@ template declaration and is NULL otherwise.
              allocated. */
           var->template_info = alloc_variable_template_info();
         }  /* if */
-        /* Although this is not a template, it is an instantiatable variable
-           and hence we create a placeholder a_template entry for it. */
-        var->template_info->assoc_template = templ = alloc_template();
-        templ->kind = (a_template_kind)templk_static_data_member;
-        set_source_corresp(&templ->source_corresp, sym);
-        templ->source_corresp.name_linkage =
+        if (decl_info->is_member_template) {
+          /* For variable templates, the IL template will have been created
+             by the template declaration processing. */
+          templ = templ_state->il_template_entry;
+        } else {
+          /* Although this is not a template, it is an instantiatable variable
+             and hence we create a placeholder a_template entry for it. */
+          templ = alloc_template();
+          templ->kind = (a_template_kind)templk_static_data_member;
+          set_source_corresp(&templ->source_corresp, sym);
+          templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-        set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                              class_type);
+          set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                                class_type);
+          add_to_templates_list(templ, decl_scope_level);
+        }  /* if */
+        var->template_info->assoc_template = templ;
         tssp->variant.variable.prototype_variable = var;
         templ->source_corresp.access = var->source_corresp.access;
         /* Update the IL template pointer in the template symbol supplement. */
         tip->template_info->il_template_entry = templ;
         /* It is exported if the enclosing class template is exported. */
         templ->is_exported = class_is_exported(class_type);
-        add_to_templates_list(templ, decl_scope_level);
         if (prototype_instantiations_in_il) {
           templ->prototype_instantiation.variable = var;
         }  /* if */
@@ -16396,6 +16403,9 @@ template declaration and is NULL otherwise.
         set_template_cache_info(&var_templ_tssp->cache,
                                 initializer_cache,
                                 templ_state->decl_info);
+        if ((srk_flags & SRK_DEFINITION) != 0) {
+          templ_state->defines_something = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

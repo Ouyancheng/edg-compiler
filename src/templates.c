@@ -5215,7 +5215,11 @@ user later during real instantiations.
   check_assertion(proto_sym != NULL);
   decl_state->decl_parse.sym = proto_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  var_ptr->declared_type = dps->declared_type;
+  if (dps->declared_type != NULL) {
+    /* For in-class definitions, the declared type is set in
+       decl_static_data_member. */
+    var_ptr->declared_type = dps->declared_type;
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */
