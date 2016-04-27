@@ -5645,7 +5645,7 @@ folding failed.  Return TRUE if an error was issued.
         emit_diagnostic = TRUE;
         err = TRUE;
       } else if (curr_expr_is_evaluated() &&
-          !curr_expr_is_potentially_unevaluated()) {
+                 !curr_expr_is_potentially_unevaluated()) {
         /* Constant expressions allow invalid operators/constructs in
            unevaluated subexpressions, including dead operands of "?", "&&",
            and "||". */
@@ -15243,11 +15243,24 @@ successful folding.
       }  /* if */
       checked = check_constexpr;
     }  /* if */
-    if (constexpr_enabled && !folded && !checked) {
+    if (constexpr_enabled && !folded && !checked &&
+        curr_expr_kind_is_const()) {
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
       check_assertion(pos != NULL);
-      if (call_did_not_fold_to_constant(ctor_routine, (an_operand *)NULL,
+      a_boolean  prior_error = FALSE;
+      an_expr_node_ptr  arg;
+      /* If an argument produced an error already, don't issue another
+         diagnostic. */
+      for (arg = args; arg != NULL; arg = arg->next) {
+        if (is_error_node(arg) || is_error_type(arg->type)) {
+          prior_error = TRUE;
+          expect_error();
+          break;
+        }  /* if */
+      }  /* for */
+      if (!prior_error &&
+          call_did_not_fold_to_constant(ctor_routine, (an_operand *)NULL,
                                         (a_diag_list_ptr)NULL, pos)) {
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, alloc_error_constant());
