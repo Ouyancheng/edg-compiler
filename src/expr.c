@@ -7597,9 +7597,9 @@ case).
                                        rep, result);
           break;
         case sk_static_data_member:
-          /* Static data member reference. */
-          { a_variable_ptr var =
-                               member_sym->variant.static_data_member.variable;
+        case sk_variable:
+          /* Static data member or variable template reference. */
+          { a_variable_ptr var = variable_for_symbol(member_sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (var->property_or_event_descr != NULL) {
               /* A C++/CLI static event variable.  (Static properties are
