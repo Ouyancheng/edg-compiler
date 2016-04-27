@@ -6014,7 +6014,9 @@ used by the value representation of the integer value.
             break;
           case eok_dot_vacuous_destructor_call:
           case eok_points_to_vacuous_destructor_call:
-            /* This operator has no effect. */
+            info_with_pos(ec_constexpr_vacuous_dtor_call,
+                          &expr->position, ips);
+            do_constexpr_fail(result);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case eok_assume:

@@ -2839,6 +2839,7 @@ ec_variable_templ_function_type;;"function type %t is an invalid type for a vari
 ec_incomplete_var_type;;"variable cannot have incomplete type %t"
 ec_field_subobject_not_initialized;;"access to uninitialized subobject (%n)"
 ec_base_subobject_not_initialized;;"access to uninitialized subobject (base class %t)"
+ec_constexpr_vacuous_dtor_call;;"vacuous destructor call"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
