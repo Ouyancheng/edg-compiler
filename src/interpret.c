@@ -2516,8 +2516,8 @@ interpreter storage.
         a_byte_count  esize, idx1, idx2;
         a_boolean     dummy_result = TRUE;
         esize = value_bytes_for_type(ips, etp, &dummy_result);
-        idx1 = (cap1->address-parent_addr)/esize;
-        idx2 = (cap2->address-parent_addr)/esize;
+        idx1 = ((a_byte_count)(cap1->address-parent_addr))/esize;
+        idx2 = ((a_byte_count)(cap2->address-parent_addr))/esize;
         if (idx1 != idx2) {
           /* Pointers to or into different elements of the same array are
              comparable. */
