@@ -15243,8 +15243,7 @@ successful folding.
       }  /* if */
       checked = check_constexpr;
     }  /* if */
-    if (constexpr_enabled && !folded && !checked &&
-        curr_expr_kind_is_const()) {
+    if (constexpr_enabled && !folded && !checked) {
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
       a_boolean  prior_error = FALSE;
