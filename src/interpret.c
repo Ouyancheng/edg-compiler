@@ -1470,30 +1470,33 @@ the end of interpretation.  Move all allocated entries back onto the free list.
 /*
 A set of flags to describe special interpreter address attributes.
 */
-#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x4)
+#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
 		/* This flag indicates that the address is that of a run-time
 		   entity (not a value known to the interpreter). */
-#define CA_CANNOT_DEREFERENCE ((unsigned int)0x8)
+#define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
 		/* This flag indicates that the address cannot be dereferenced.
 		   It is set in particular for pointers "one position past" the
 		   end of an array. */
-#define CA_VARIANT_PATH ((unsigned int)0x10)
+#define CA_VARIANT_PATH ((unsigned int)0x4)
 		/* This flag indicates that the formation of the address
 		   included the selection of at least one union field.  Such
 		   selections must be checked for validity when the address is
 		   dereferenced. */
-#define CA_ARRAY_ELEMENT ((unsigned int)0x20)
+#define CA_ARRAY_ELEMENT ((unsigned int)0x8)
 		/* This flag indicates that the address is that of an array
 		   element.  Such an address is subject to pointer
 		   arithmetic (which requires bounds checking). */
-#define CA_BIT_FIELD ((unsigned int)0x40)
+#define CA_BIT_FIELD ((unsigned int)0x10)
 		/* This flag indicates that the address is that of a bit field.
 		   (Pointers and references to bit fields are invalid.  This is
 		   therefore always for a bit field lvalue.)  Whether the bit
 		   field is signed is encoded in the "length" field. */
-#define CA_FUNCTION ((unsigned int)0x80)
+#define CA_FUNCTION ((unsigned int)0x20)
 		/* This flag indicates that the address is that of a
 		   function. */
+#define CA_CONST_STORAGE ((unsigned int)0x40)
+		/* This flag indicates that the address is that of const
+		   storage. */
 
 /*
 Structure describing the representation of an address in the interpreter.
@@ -1564,6 +1567,9 @@ typedef struct a_constexpr_address {
 
 #define is_function_address(cap)                                             \
   ((((a_constexpr_address*)(cap))->flags & CA_FUNCTION) != 0)
+
+#define is_const_storage(cap)                                                \
+  ((((a_constexpr_address*)(cap))->flags & CA_CONST_STORAGE) != 0)
 
 
 #define get_base_address(cap)                                                \
@@ -3126,6 +3132,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   map_stack_bytes(ips, var_bytes, (a_byte*)con);
                 }  /* if */
                 clear_address(value, var_bytes);
+                if (is_const_qualified_type(vp->type)) {
+                  ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
+                }  /* if */
                 if (vtp->kind == (a_type_kind)tk_array) {
                   /* The result address must be adjusted to record array
                      characteristics. */
@@ -3158,6 +3167,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 map_stack_bytes(ips, con_bytes, (a_byte*)con);
               }  /* if */
               clear_address(value, con_bytes);
+              ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
               if (ctp->kind == (a_type_kind)tk_array) {
                 /* The result address must be adjusted to record array
                    characteristics. */
@@ -6109,6 +6119,10 @@ used by the value representation of the integer value.
             } else if (ips->side_effects_disabled) {
               /* Side-effects (like assignments) are disabled. */
               do_constexpr_fail(result);
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
+              do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
               SET_result_val_from_operand_address(opnd1_value);
@@ -6176,6 +6190,10 @@ used by the value representation of the integer value.
               do_constexpr_fail(result);
             } else if (ips->side_effects_disabled) {
               /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
               do_constexpr_fail(result);
             } else {
               /* Return a copy of the value stored at the operand address. */
@@ -6247,6 +6265,10 @@ used by the value representation of the integer value.
                             &expr->position, ips);
             } else if (ips->side_effects_disabled) {
               /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
               do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integral type. */
@@ -6320,6 +6342,10 @@ used by the value representation of the integer value.
                             &expr->position, ips);
             } else if (ips->side_effects_disabled) {
               /* Side-effects (like assignments) are disabled. */
+              do_constexpr_fail(result);
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
               do_constexpr_fail(result);
             } else if (tp->kind == (a_type_kind)tk_integer) {
               /* An integer. */
@@ -7240,6 +7266,10 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
@@ -7289,6 +7319,10 @@ used by the value representation of the integer value.
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
@@ -7361,6 +7395,10 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
@@ -7429,6 +7467,10 @@ used by the value representation of the integer value.
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
@@ -7506,6 +7548,10 @@ used by the value representation of the integer value.
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
@@ -7570,6 +7616,10 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
@@ -7626,6 +7676,10 @@ used by the value representation of the integer value.
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
                 /* Attempting to store into a non-active variant field. */
+                do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
@@ -7684,6 +7738,10 @@ used by the value representation of the integer value.
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
@@ -7751,6 +7809,10 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
@@ -7790,6 +7852,10 @@ used by the value representation of the integer value.
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
@@ -7833,6 +7899,10 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_access_to_expired_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (is_const_storage(dst)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          !check_variant_path(ips, dst, /*release=*/TRUE,
                                              &expr->position)) {
@@ -7862,6 +7932,10 @@ used by the value representation of the integer value.
               /* Side-effects (like assignments) are disabled. */
               do_constexpr_fail(result);
               break;
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
+              do_constexpr_fail(result);
             } else if (opnd1_type->kind == (a_type_kind)tk_integer) {
               /* Only possible with "bool_value += ptr_value". */
               a_host_large_integer  bool_val;
@@ -7949,11 +8023,15 @@ used by the value representation of the integer value.
                                            *(a_constexpr_address*)opnd1_value;
             break;
           case eok_psubtract_assign:
-            /* ptr_lvalue += integer_rvalue. */
+            /* ptr_lvalue -= integer_rvalue. */
             if (ips->side_effects_disabled) {
               /* Side-effects (like assignments) are disabled. */
               do_constexpr_fail(result);
               break;
+            } else if (is_const_storage(opnd1_value)) {
+              info_with_pos(ec_constexpr_modifying_const_storage,
+                            &expr->position, ips);
+              do_constexpr_fail(result);
             } else {
               a_constexpr_address  *dst = (a_constexpr_address*)result_storage;
               a_type_ptr           elem_type;
@@ -8241,6 +8319,11 @@ used by the value representation of the integer value.
                   result_addr.flags |= CA_BIT_FIELD;
                   result_addr.length = field->bit_size*2 + field->is_bit_field;
                 }  /* if */
+                if (field->is_mutable) {
+                  result_addr.flags &= ~CA_CONST_STORAGE;
+                } else if (is_const_qualified_type(field->type)) {
+                  result_addr.flags |= CA_CONST_STORAGE;
+                }  /* if */
                 SET_result_val_from_operand_address(&result_addr);
               }  /* if */
             }
@@ -8292,6 +8375,7 @@ used by the value representation of the integer value.
                 if (!adjust_this_address(ips, &result_addr, pm_value,
                                          opnd1_type, expr)) {
                   do_constexpr_fail(result);
+                  break;
                 } else {
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
@@ -8304,6 +8388,11 @@ used by the value representation of the integer value.
                     result_addr.length = field->bit_size*2 +
                                          field->is_bit_field;
                   }  /* if */
+                }  /* if */
+                if (field->is_mutable) {
+                  result_addr.flags &= ~CA_CONST_STORAGE;
+                } else if (is_const_qualified_type(field->type)) {
+                  result_addr.flags |= CA_CONST_STORAGE;
                 }  /* if */
                 SET_result_val_from_operand_address(&result_addr);
               }  /* if */
@@ -8359,6 +8448,7 @@ used by the value representation of the integer value.
           }  /* if */
           clear_address(result_storage, con_bytes);
           complete_dest = con_bytes;
+          ((a_constexpr_address*)result_storage)->flags |= CA_CONST_STORAGE;
         } else {
           con_bytes = result_storage;
           complete_dest = complete_object;
@@ -8418,6 +8508,9 @@ used by the value representation of the integer value.
                address record. */
             get_mapped_byte_count(&ips->map, &var->storage_class,
                                   cap->alloc_seq_number);
+            if (is_const_qualified_type(var->type)) {
+              cap->flags |= CA_CONST_STORAGE;
+            }  /* if */
           } else {
             /* A reference to a run-time variable. */
             a_constant_ptr  con;
@@ -8500,6 +8593,9 @@ used by the value representation of the integer value.
              address record. */ 
           cap->alloc_seq_number = alloc_seq_number;
           mark_complete_object_initialized(tmp_bytes);
+          if (is_const_qualified_type(expr->type)) {
+            cap->flags |= CA_CONST_STORAGE;
+          }  /* if */
         }  /* if */
       }
       break;
