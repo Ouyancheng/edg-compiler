@@ -2356,6 +2356,12 @@ Record the type of a complete object in its prefix.
   (*(a_type_ptr*)(data_ptr-sizeof(a_type_ptr)) = (utp))
 
 /*
+Retrieve the type of a complete object in its prefix.
+*/
+#define complete_object_type(data_ptr)                                       \
+  (*(a_type_ptr*)(data_ptr-sizeof(a_type_ptr)))
+
+/*
 Given a type utp and the size n_bytes required to represent its value, compute
 the number of bytes needed as a bookkeeping prefix for a complete object of
 that type.
@@ -2478,6 +2484,95 @@ object) is initialized.
 
   return (complete_object[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
 }  /* subobject_is_initialized */
+
+
+static a_boolean addresses_are_comparable(an_interpreter_state  *ips,
+                                          a_constexpr_address   *cap1,
+                                          a_constexpr_address   *cap2)
+/*
+Return TRUE if the given addresses can be compared using relational operators.
+The caller is responsible for ensuring that these are addresses pointing to
+interpreter storage.
+*/
+{
+  a_boolean  comparable;
+
+  if (cap1->complete_object != cap2->complete_object) {
+    /* Addresses into distinct objects are never comparable. */
+    comparable = FALSE;
+  } else if (cap1->address == cap2->address) {
+    /* Equal addresses are always comparable. */
+    comparable = TRUE;
+  } else if (cap1->address == NULL || cap2->address == NULL) {
+    /* A null pointer cannot be compared to a non-null pointer. */
+    comparable = FALSE;
+  } else {
+    a_byte*     parent_addr = cap1->complete_object;
+    a_type_ptr  parent_type = complete_object_type(parent_addr);
+    for (;;) {
+      if (parent_type->kind == (a_type_kind)tk_array) {
+        a_type_ptr    etp = skip_typerefs(
+                                     parent_type->variant.array.element_type);
+        a_byte_count  esize, idx1, idx2;
+        a_boolean     dummy_result = TRUE;
+        esize = value_bytes_for_type(ips, etp, &dummy_result);
+        idx1 = (cap1->address-parent_addr)/esize;
+        idx2 = (cap2->address-parent_addr)/esize;
+        if (idx1 != idx2) {
+          /* Pointers to or into different elements of the same array are
+             comparable. */
+          comparable = TRUE;
+          break;
+        } else {
+          /* Continue the check with the common element. */
+          parent_type = etp;
+          parent_addr += idx1*esize;
+        }  /* if */
+      } else if (is_immediate_class_type(parent_type)) {
+        a_field_ptr  fp1, fp2;
+        a_base_class_ptr  bcp1, bcp2;
+        a_byte_count      offset;
+        find_subobject_for_interpreter_address(ips, cap1, parent_addr,
+                                               parent_type, &fp1, &bcp1);
+        find_subobject_for_interpreter_address(ips, cap2, parent_addr,
+                                               parent_type, &fp2, &bcp2);
+        if (bcp1 != bcp2) {
+          /* At least one address is in a base class subobject, and the other
+             is not in that same subobject.  The addresses are not
+             comparable. */
+          comparable = FALSE;
+          break;
+        } else if (bcp1 != NULL) {
+          /* Both addresses point to or into the same base class subobject:
+             Continue the check within that. */
+          parent_type = bcp1->type;
+          get_mapped_byte_count(&persistent_map, bcp1, offset);
+          parent_addr += offset;
+        } else if (fp1 != fp2) {
+          /* Addresses to or into different fields can be compared if and only
+             if the fields have the same accessibility and are not members of a
+             union. */
+          comparable =
+                   fp1->source_corresp.access == fp2->source_corresp.access &&
+                   parent_type->kind != (a_type_kind)tk_union;
+          break;
+        } else {
+          /* Both addresses point to or into the same field subobject: Continue
+             the check within that. */
+          parent_type = skip_typerefs(fp1->type);
+          get_mapped_byte_count(&persistent_map, fp1, offset);
+          parent_addr += offset;
+        }  /* if */
+      }  else {
+        /* Since the pointers are not equal, a difference at a higher level
+           should have been found. */
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return comparable;
+}  /* addresses_are_comparable */
+
 
 #if DEBUG
 
@@ -6905,7 +7000,7 @@ used by the value representation of the integer value.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -6965,7 +7060,7 @@ used by the value representation of the integer value.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -7029,7 +7124,7 @@ used by the value representation of the integer value.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -7093,7 +7188,7 @@ used by the value representation of the integer value.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->complete_object != ptr2->complete_object) {
+                  if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
