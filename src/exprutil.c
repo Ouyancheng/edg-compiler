@@ -15247,7 +15247,6 @@ successful folding.
         curr_expr_kind_is_const()) {
       /* Construction was not folded to a constant.  In a constant expression,
          that's an error.  Pre-C++11 cases should be detected earlier. */
-      check_assertion(pos != NULL);
       a_boolean  prior_error = FALSE;
       an_expr_node_ptr  arg;
       /* If an argument produced an error already, don't issue another
@@ -15259,6 +15258,7 @@ successful folding.
           break;
         }  /* if */
       }  /* for */
+      check_assertion(pos != NULL);
       if (!prior_error &&
           call_did_not_fold_to_constant(ctor_routine, (an_operand *)NULL,
                                         (a_diag_list_ptr)NULL, pos)) {
