@@ -38530,13 +38530,12 @@ handle_deduced_return_type:
     } else if (curr_routine->is_template_function &&
                !curr_routine->is_specialized) {
       /* For an instance of a template, if the instantiation is non-constant
-         clear the constexpr flag and issue no error. */
-      curr_routine->is_constexpr = FALSE;
-      if (curr_routine->is_prototype_instantiation) {
-        /* If this applies during the prototype instantiation, the program is
-           technically ill-formed.  However, no diagnostic is required and
-           other compilers do not diagnose it. */
-        sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+         clear the constexpr flag and issue no error.  (In prototype
+         instantiations, we cannot always reliably tell whether the return
+         is really constant.  So we just silently accept nonconstant cases
+         at that point.) */
+      if (!curr_routine->is_prototype_instantiation) {
+        curr_routine->is_constexpr = FALSE;
       }  /* if */
     } else {
       sev = seq_is_in_system_header(pos->seq) ? es_warning :
