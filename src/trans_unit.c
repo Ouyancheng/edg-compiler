@@ -228,7 +228,7 @@ Register a variable that is specific to a given translation unit.
                            "duplicate registration");
     }  /* for */
   }
-  check_assertion_str2(size <= 1500, "f_register_trans_unit_variable:",
+  check_assertion_str2(size <= 2048, "f_register_trans_unit_variable:",
                        "entity registered is too large");
 #endif /* EXPENSIVE_CHECKING */
   vrp = alloc_variable_registration();
