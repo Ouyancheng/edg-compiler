@@ -14750,6 +14750,34 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* is_cli_typeid is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static an_expr_node_ptr make_typeid_node(a_type_ptr             typeid_type,
+                                         an_expr_node_ptr       typeid_expr,
+                                         a_boolean              is_cli_typeid,
+                                         a_type_ptr             node_type)
+/*
+Make an enk_typeid node for an operand represented by typeid_type and
+typeid_expr.  The node type is set to node_type.
+
+If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid). 
+*/
+{
+  an_expr_node_ptr  typeid_node;
+
+  typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
+  typeid_node->variant.typeid_info.expr = typeid_expr;
+  typeid_node->variant.typeid_info.type = typeid_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  typeid_node->is_cli_typeid = is_cli_typeid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  typeid_node->type = node_type;
+  typeid_node->is_lvalue = TRUE;
+  return typeid_node;
+}  /* make_typeid_node */
+
+
 static void make_typeid_operand(a_rescan_control_block *rcblock,
                                 a_type_ptr             typeid_type,
                                 an_expr_node_ptr       typeid_expr,
@@ -14794,6 +14822,8 @@ being done in the context of the rescan of a previously-scanned expression.
     if (!template_case) {
       /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
       make_typeid_constant(typeid_type, is_cli_typeid, typeid_con);
+      typeid_con->expr = make_typeid_node(typeid_type, typeid_expr,
+                                          is_cli_typeid, result_type);
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
@@ -14823,14 +14853,8 @@ being done in the context of the rescan of a previously-scanned expression.
     release_local_constant(&typeid_con);
   } else {
     /* Normal case: Create an enk_typeid expression. */
-    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
-    typeid_node->variant.typeid_info.expr = typeid_expr;
-    typeid_node->variant.typeid_info.type = typeid_type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    typeid_node->is_cli_typeid = is_cli_typeid;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    typeid_node->type = result_type;
-    typeid_node->is_lvalue = TRUE;
+    typeid_node = make_typeid_node(typeid_type, typeid_expr, is_cli_typeid,
+                                   result_type);
     make_glvalue_expression_operand(typeid_node, result);
   }  /* if */
   if (rcblock == NULL || !rcblock->error_detected) {
