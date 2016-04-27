@@ -3065,7 +3065,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       *fp_value(value) = con->variant.float_value;
       break;
     case ck_address:
-      {
+      if (con->variant.address.offset != 0) {
+        /* To reconstruct the offset in interpreter storage, interpret the
+           backing expression. */
+        check_assertion(con->expr != NULL);
+        do_constexpr_full_expression(
+                              ips, con->expr, value, complete_object, result);
+      } else {
         a_type_ptr  atp = NULL;
         switch (con->variant.address.kind) {
           case abk_routine:
@@ -3163,16 +3169,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           cap->flags |= CA_ARRAY_ELEMENT;
           cap->length = atp->variant.array.variant.number_of_elements;
           cap->variant.base_address = cap->address;
-          if (con->variant.address.offset != 0) {
-            a_type_ptr    etp = skip_typerefs(atp->variant.array.element_type);
-            a_byte_count  offset, elem_size;
-            offset = (a_byte_count)con->variant.address.offset/etp->size;
-            elem_size = value_bytes_for_type(ips, etp, &result);
-            if (!result) break;
-            cap->address += offset*elem_size;
-          }  /* if */
         }  /* if */
-      }
+      }  /* if */
       break;
     case ck_ptr_to_member:
       { a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
