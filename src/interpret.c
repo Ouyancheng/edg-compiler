@@ -3062,8 +3062,7 @@ If constant represents an address of a union subobject, interpreter will fail.
         break;
       case tk_class:
       case tk_struct:
-        { cap->flags &= ~CA_ARRAY_ELEMENT;
-          /* Search fields and direct nonvirtual bases for the right offset. */
+        { /* Search fields and direct nonvirtual bases for the right offset. */
           a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
           fp = next_initializable_field(fp);
           for (; fp != NULL; fp = next_initializable_field(fp->next)) {
@@ -3104,6 +3103,7 @@ If constant represents an address of a union subobject, interpreter will fail.
               goto done;
             }  /* if */
           }  /* if */
+          cap->flags &= ~CA_ARRAY_ELEMENT;
         }
         break;
       case tk_union:
