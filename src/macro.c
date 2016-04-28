@@ -10050,14 +10050,22 @@ command line -D options.
 #endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
+    unsigned long eff_microsoft_version = microsoft_version;
+    if (microsoft_version == 1901 || microsoft_version == 1902) {
+      /* Internally 1901 and 1902 are used to represent Visual Studio 2015
+         Update 1 and Update 2 respectively, but externally, they are
+         still 1900. */
+      eff_microsoft_version = 1900;
+    }  /* if */
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
-    enter_predef_num_macro(microsoft_version, "_MSC_VER");
+    enter_predef_num_macro(eff_microsoft_version, "_MSC_VER");
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
        "build number", and _MSC_BUILD which is just the "build number". */
     { char  macro_val[100], *ptr = macro_val, *build_ptr;
-      ptr += unsigned_to_string_buf((a_host_large_unsigned)microsoft_version,
-                                    ptr);
+      ptr += unsigned_to_string_buf(
+                                  (a_host_large_unsigned)eff_microsoft_version,
+                                  ptr);
       check_assertion((ptr-macro_val) < 10);
       build_ptr = ptr;
       (void)unsigned_to_string_buf(

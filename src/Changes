@@ -1,5 +1,20 @@
 Version 4.11
 
+4/28/16  [EDGcpfe/17121]
+Microsoft compatibility: emulating Visual Studio Update 1 and Update 2
+
+Visual Studio 2015 has been incrementally upgraded, including the release of
+new features, without updating the release number (i.e., 19.00.XXXXX.X),
+making it difficult to determine when new features have been added.  A change
+has been made to map the microsoft_version value of 1901 to Update 1
+(build number 23506) and 1902 to Update 2 (build number 23918).  These are
+used purely for internal distinction between these releases and outwardly
+these versions are treated as 1900 (e.g., for the value of the predefined
+macro _MSC_VER.
+
+Variable templates are now enabled when microsoft_version >= 1902.
+
+
 4/28/16  [EDGcpfe/17113]
 GNU compatibility: default to C++14 mode when gnu_version >= 60000
 
