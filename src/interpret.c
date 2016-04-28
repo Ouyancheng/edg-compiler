@@ -7261,6 +7261,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7316,6 +7321,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7390,6 +7400,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7464,6 +7479,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7538,6 +7558,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7611,6 +7636,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7667,6 +7697,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7735,6 +7770,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7804,6 +7844,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7849,6 +7894,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7894,6 +7944,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (dst->address == NULL) {
+                /* An attempt to write through a null pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
               } else if (!in_live_set(&ips->live_set, dst->alloc_seq_number)) {
                 /* Attempting to store into expired storage. */
                 info_with_pos(ec_constexpr_access_to_expired_storage,
@@ -7928,99 +7983,104 @@ used by the value representation of the integer value.
             }
             break;
           case eok_padd_assign:
-            if (ips->side_effects_disabled) {
-              /* Side-effects (like assignments) are disabled. */
-              do_constexpr_fail(result);
-              break;
-            } else if (is_const_storage(opnd1_value)) {
-              info_with_pos(ec_constexpr_modifying_const_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else if (opnd1_type->kind == (a_type_kind)tk_integer) {
-              /* Only possible with "bool_value += ptr_value". */
-              a_host_large_integer  bool_val;
-              check_assertion(is_bool_type(opnd1_type));
-              is_signed = FALSE;
-              get_int_val_from(int_value_at(opnd1_value), opnd1_type,
-                               bool_val, ovfl);
-              if (bool_val == 0) {
-                a_constexpr_address  *cap = (a_constexpr_address*)opnd2_value;
-                if (is_runtime_data_address(cap)) {
+            {
+              if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+                break;
+              } else if (is_const_storage(opnd1_value)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Only possible with "bool_value += ptr_value". */
+                a_host_large_integer  bool_val;
+                check_assertion(is_bool_type(opnd1_type));
+                is_signed = FALSE;
+                get_int_val_from(int_value_at(opnd1_value), opnd1_type,
+                                 bool_val, ovfl);
+                if (bool_val == 0) {
+                  a_constexpr_address  *cap =
+                                            (a_constexpr_address*)opnd2_value;
+                  if (is_runtime_data_address(cap)) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                  &expr->position, ips);
+                    break;
+                  } else if (is_function_address(cap) ||
+                             cap->address != NULL) {
+                    bool_val = 1;
+                  }  /* if */
+                }  /* if */
+                *int_value_at(opnd1_value) = bool_val ? one_int : zero_int;
+              } else {
+                /* ptr_lvalue += integer_rvalue. */
+                a_constexpr_address
+                                  *dst = (a_constexpr_address*)result_storage;
+                a_type_ptr        elem_type;
+                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                *dst = *(a_constexpr_address*)opnd1_value;
+                if (is_runtime_data_address(dst)) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
                   break;
-                } else if (is_function_address(cap) || cap->address != NULL) {
-                  bool_val = 1;
                 }  /* if */
-              }  /* if */
-              *int_value_at(opnd1_value) = bool_val ? one_int : zero_int;
-            } else {
-              /* ptr_lvalue += integer_rvalue. */
-              a_constexpr_address  *dst = (a_constexpr_address*)result_storage;
-              a_type_ptr           elem_type;
-              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-              *dst = *(a_constexpr_address*)opnd1_value;
-              if (is_runtime_data_address(dst)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
-                break;
-              }  /* if */
-              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
-              if (ovfl) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_integer_overflow, &expr->position, ips);
-              } else {
-                a_constexpr_address
-                                *ptr_val = (a_constexpr_address*)dst->address;
-                if (host_int_val == 0) {
-                  /* Leave the address unchanged. */
-                } else if (!is_array_element(ptr_val)) {
+                get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+                if (ovfl) {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                &expr->position, ips);
+                  info_with_pos(ec_integer_overflow, &expr->position, ips);
                 } else {
-                  a_byte_count  elem_size, byte_pos, pos, len;
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  get_array_offset(ptr_val, elem_type,
-                                   &byte_pos, &elem_size, &result);
-                  if (!result) break;
-                  pos = byte_pos / elem_size;
-                  len = ptr_val->length;
-                  if (host_int_val > 0 ?
-                                      (len-pos < (a_byte_count)host_int_val)
-                                    : (pos < (a_byte_count)-host_int_val)) {
-                    /* Out of bounds. */
+                  a_constexpr_address
+                                *ptr_val = (a_constexpr_address*)dst->address;
+                  if (host_int_val == 0) {
+                    /* Leave the address unchanged. */
+                  } else if (!is_array_element(ptr_val)) {
                     do_constexpr_fail(result);
-                    if (host_int_val > 0) {
-                      info_with_pos_num2(
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  } else {
+                    a_byte_count  elem_size, byte_pos, pos, len;
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    get_array_offset(ptr_val, elem_type,
+                                     &byte_pos, &elem_size, &result);
+                    if (!result) break;
+                    pos = byte_pos / elem_size;
+                    len = ptr_val->length;
+                    if (host_int_val > 0 ?
+                                        (len-pos < (a_byte_count)host_int_val)
+                                      : (pos < (a_byte_count)-host_int_val)) {
+                      /* Out of bounds. */
+                      do_constexpr_fail(result);
+                      if (host_int_val > 0) {
+                        info_with_pos_num2(
                                       ec_constexpr_out_of_bounds_array_access,
                                       &expr->position,
                                       (unsigned long)(pos+host_int_val),
                                       (unsigned long)len, ips);
+                      } else {
+                        info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                      &expr->position, ips);
+                      }  /* if */
                     } else {
-                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
-                                    &expr->position, ips);
-                    }  /* if */
-                  } else {
-                    if (is_runtime_data_address(ptr_val)) {
-                      ptr_val->variant.addr_con->variant.address.offset +=
-                        host_int_val * elem_size;
-                    } else {
-                      ptr_val->address += host_int_val * elem_size;
-                    }  /* if */
-                    if (pos+host_int_val == len) {
-                      ptr_val->flags |= CA_CANNOT_DEREFERENCE;
-                    } else {
-                      ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                      if (is_runtime_data_address(ptr_val)) {
+                        ptr_val->variant.addr_con->variant.address.offset +=
+                          host_int_val * elem_size;
+                      } else {
+                        ptr_val->address += host_int_val * elem_size;
+                      }  /* if */
+                      if (pos+host_int_val == len) {
+                        ptr_val->flags |= CA_CANNOT_DEREFERENCE;
+                      } else {
+                        ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
                     }  /* if */
                   }  /* if */
                 }  /* if */
               }  /* if */
-            }  /* if */
-            *(a_constexpr_address *)result_storage =
+              *(a_constexpr_address *)result_storage =
                                            *(a_constexpr_address*)opnd1_value;
+            }
             break;
           case eok_psubtract_assign:
             /* ptr_lvalue -= integer_rvalue. */
