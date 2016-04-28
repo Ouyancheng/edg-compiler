@@ -3274,7 +3274,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }
             break;
         }  /* switch */
-        if (obj_type != NULL && con->implicit_cast) {
+        if (obj_type != NULL &&
+            (con->implicit_cast || con->variant.address.offset != 0)) {
           a_constexpr_address  *cap = (a_constexpr_address*)value;
           result = translate_il_address_offset(ips, con, cap, obj_type);
         } else {
