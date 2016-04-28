@@ -1956,6 +1956,7 @@ redo:
       break;
     case tk_routine:
     case tk_pointer:
+    case tk_nullptr:
       result = sizeof(a_constexpr_address);
       break;
     case tk_array:
@@ -2030,9 +2031,6 @@ redo:
       goto redo;
     case tk_ptr_to_member:
       result = sizeof(a_constexpr_ptr_to_mem);
-      break;
-    case tk_nullptr:
-      result = sizeof(a_constexpr_address);
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
@@ -2452,21 +2450,83 @@ Mark the complete object at the given address as fully initialized.
 }
 
 
-static void init_subobject_to_zero(a_byte        *subobj,
-                                   a_byte_count  n_bytes,
-                                   a_byte        *complete_obj)
+static void init_subobject_to_zero(an_interpreter_state  *ips,
+                                   a_byte                *subobj,
+                                   a_type_ptr            tp,
+                                   a_byte                *complete_obj)
 /*
-Initialize to zero the given subobject (n_bytes is the size of the subobject,
-which is within the given complete object).
+Initialize to zero the given subobject of the given type (the subobject is
+within the given complete object).
 */
 {
-  a_byte_count  k;
-
-  memzero(subobj, size_t_arg(n_bytes));
-  /* Mark possible subobject starting positions as initialized. */
-  for (k = 0; k<n_bytes; k += HOST_ALIGNMENT_REQUIRED) {
-    mark_subobject_initialized(subobj+k, complete_obj);  
-  }  /* for */
+  switch (tp->kind) {
+    case tk_integer:
+      *((an_integer_value*)subobj) = zero_int;
+      break;
+    case tk_float:
+      *fp_value(subobj) = zero_flt[(int)tp->variant.float_kind];
+      break;
+    case tk_pointer:
+    case tk_nullptr:
+      clear_address(subobj, (a_byte*)0);
+      break;
+    case tk_array:
+      { a_type_ptr     etp = skip_typerefs(tp->variant.array.element_type);
+        a_targ_size_t  n_elems, k;
+        a_byte_count   elem_size;
+        a_boolean      result = TRUE;
+        n_elems = tp->variant.array.variant.number_of_elements;
+        elem_size = value_bytes_for_type(ips, etp, &result);
+        check_assertion(result);
+        for (k = 0; k<n_elems; k += 1) {
+          init_subobject_to_zero(ips, subobj, etp, complete_obj);
+          subobj += elem_size;
+        }  /* for */
+      }
+      break;
+    case tk_class:
+    case tk_struct:
+      { /* Initialize fields and bases. */
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        fp = next_initializable_field(fp);
+        for (; fp != NULL; fp = next_initializable_field(fp->next)) {
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          a_byte_count  offset;
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          init_subobject_to_zero(ips, subobj+offset, ftp, complete_obj);
+        }  /* for */
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct || bcp->is_virtual) {
+            a_byte_count  offset;
+            get_mapped_byte_count(&persistent_map, bcp, offset);
+            init_subobject_to_zero(ips, subobj+offset, bcp->type,
+                                   complete_obj);
+            record_subobject_derivation(subobj+offset, bcp);
+          }  /* if */
+        }  /* for */
+      }
+      break;
+    case tk_union:
+      { /* Initialize the first field (if any). */
+        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        fp = next_initializable_field(fp);
+        if (fp != NULL) {
+          a_byte_count  offset;
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          init_subobject_to_zero(ips, subobj+offset, ftp, complete_obj);
+          /* Record the active field. */
+          *(a_field_ptr*)subobj = fp;
+        } else {
+          *(a_field_ptr*)subobj = NULL;
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  mark_subobject_initialized(subobj, complete_obj);
 }  /* init_subobject_to_zero */
 
 /*
@@ -3346,14 +3406,14 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         etp = skip_typerefs(tp->variant.array.element_type);
         char_size = etp->size;
         n_elems = tp->variant.array.variant.number_of_elements;
-        elem_size = value_bytes_for_type(
-                                ips, tp->variant.array.element_type, &result);
+        elem_size = value_bytes_for_type(ips, etp, &result);
         char_ptr = con->variant.string.value;
         for (k = 0; k<n_elems; k += 1) {
           unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
           set_integer_value((an_integer_value*)value,
                             (a_host_large_integer)char_val);
+          mark_subobject_initialized(value, complete_object);
           value += elem_size;
           char_ptr += char_size;
         }  /* for */
@@ -3375,9 +3435,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
-              init_subobject_to_zero(value, size_t_arg((n_elems-k)*elem_size),
-                                     complete_object);
-              break;
+              init_subobject_to_zero(ips, value, etp, complete_object);
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
@@ -3386,8 +3444,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 break;
               }  /* if */
               elem_con = elem_con->next;
+              mark_subobject_initialized(value, complete_object);
             }  /* if */
-            mark_subobject_initialized(value, complete_object);
             k  += 1;
             value += elem_size;
           }  /* for */
@@ -3440,25 +3498,22 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
                  remainder of the class value. */
-              a_byte_count  rem_size;
-              rem_size = value_bytes_for_type(ips, tp, &result)-offset;
-              if (result) {
-                init_subobject_to_zero(value+offset, size_t_arg(rem_size),
-                                       complete_object);
-              }  /* if */
-              break;
+              a_type_ptr  ftp = skip_typerefs(fp->type);
+              init_subobject_to_zero(ips, value+offset, ftp, complete_object);
             } else if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
               do_constexpr_fail(result);
               break;
-            } else if (fp->is_bit_field) {
-              /* Fit the value in the bit field width. */
-              trim_bit_field(value+offset, fp->bit_size,
-                             fp->bit_field_is_signed);
+            } else {
+              if (fp->is_bit_field) {
+                /* Fit the value in the bit field width. */
+                trim_bit_field(value+offset, fp->bit_size,
+                               fp->bit_field_is_signed);
+              }  /* if */
+              mark_subobject_initialized(value+offset, complete_object);
+              elem_con = elem_con->next;
             }  /* if */
-            mark_subobject_initialized(value+offset, complete_object);
             fp = fp->next;
-            elem_con = elem_con->next;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_union) {
           /* Initialize the first field (unless another field is
@@ -5468,9 +5523,7 @@ the body of the (constructor) function proper.
           }  /* if */
         } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero) {
           /* Just zero the storage. */
-          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-          if (!result) break;
-          init_subobject_to_zero(result_storage+offset, size_t_arg(n_bytes),
+          init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
         } else if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
@@ -5478,9 +5531,10 @@ the body of the (constructor) function proper.
                                     result_storage+offset, complete_object)) {
           do_constexpr_fail(result);
           break;
+        } else {
+          mark_subobject_initialized(result_storage+offset, complete_object);
         }  /* if */
       }  /* if */
-      mark_subobject_initialized(result_storage+offset, complete_object);
     }  /* for */
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Run the function's top-level block statement. */
