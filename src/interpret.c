@@ -3048,7 +3048,7 @@ If constant represents an address of a union subobject, interpreter will fail.
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
           i_size = value_bytes_for_type(ips, obj_type, &result); 
           check_assertion(result);
-          t_pos = t_offset/obj_type->size;
+          t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
           cap->address += i_size*(a_byte_count)t_pos;
           t_offset -= t_pos*obj_type->size;
           if ((a_byte_count)t_pos == cap->length) {
@@ -3067,9 +3067,9 @@ If constant represents an address of a union subobject, interpreter will fail.
           fp = next_initializable_field(fp);
           for (; fp != NULL; fp = next_initializable_field(fp->next)) {
             a_type_ptr  ftp;
-            if (t_offset < fp->offset) continue;
+            if (t_offset < (a_targ_ptrdiff_t)fp->offset) continue;
             ftp = skip_typerefs(fp->type);
-            if (t_offset < fp->offset+ftp->size) {
+            if (t_offset < (a_targ_ptrdiff_t)(fp->offset+ftp->size)) {
               t_offset -= fp->offset;
               get_mapped_byte_count(&persistent_map, fp, i_offset);
               cap->address += i_offset;
@@ -3081,8 +3081,8 @@ If constant represents an address of a union subobject, interpreter will fail.
             a_base_class_ptr  bcp = base_classes_of(obj_type);
             for (; bcp != NULL; bcp = bcp->next) {
               if (!bcp->direct || bcp->is_virtual) continue;
-              if (t_offset < bcp->offset) continue;
-              if (t_offset < bcp->offset+bcp->type->size) {
+              if (t_offset < (a_targ_ptrdiff_t)bcp->offset) continue;
+              if (t_offset < (a_targ_ptrdiff_t)(bcp->offset+bcp->type->size)) {
                 if (bcp->is_optimized_empty_base &&
                     !identical_types(bcp->type, obj_type)) {
                   /* Empty base classes can overlap with other base classes.
