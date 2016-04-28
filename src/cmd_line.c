@@ -4447,6 +4447,13 @@ This function is also called in clang mode.
       extended_friends_enabled = TRUE;
     }  /* if */
   }  /* if */
+  if (gnu_version >= 60000) {
+    /* Beginning with the 6.0.0 series, C++14 features are enabled by
+       default. */
+    if (!cpp_mode_specified()) {
+      std_version = 201402;
+    }  /* if */
+  }  /* if */
   if (!cpp14_mode) {
     if (lambdas_enabled) {
       /* GCC versions that support lambdas also support generalized lambda

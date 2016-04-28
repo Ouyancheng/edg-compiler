@@ -1,5 +1,13 @@
 Version 4.11
 
+4/28/16  [EDGcpfe/17113]
+GNU compatibility: default to C++14 mode when gnu_version >= 60000
+
+GCC 6.1.0 has enabled C++14 features by default.  Accordingly, when
+gnu_version >= 60000 and no explicit C++ mode has been specified, C++14
+features are now enabled in GNU emulation mode.
+
+
 4/21/16  [EDGcpfe/17066]
 constexpr decltype(auto)
 
