@@ -9481,7 +9481,10 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     lower_os_type(variable->type);
-    lower_template_arg_list(variable->template_info->template_arg_list);
+    if (variable->is_template_variable &&
+        variable->template_info->template_arg_list != NULL) {
+      lower_template_arg_list(variable->template_info->template_arg_list);
+    }  /* if */
     if (variable->address_taken &&
         variable->storage_class == (a_storage_class)sc_register) {
       /* In C++, one can take the address of a register variable.  In C,
