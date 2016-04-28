@@ -3245,6 +3245,13 @@ argument list and to FALSE otherwise.
         *insert_space = TRUE;
       }  /* if */
     }  /* if */
+  } else if (entry_kind == iek_variable) {
+    /* Check for template arguments on a variable. */
+    a_variable_ptr var = (a_variable_ptr)scp;
+    if (var->template_info != NULL) {
+      tap = var->template_info->template_arg_list;
+      result = (tap != NULL);
+    } /* if */
   }  /* if */
   if (arg_ptr != NULL) {
     *arg_ptr = tap;
@@ -16888,9 +16895,13 @@ this one is such a continuation.
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Usually, initializers appear on a definition, but for (static) member
-     constants, they appear on the declaration. */
-  consider_initialization = is_definition;
-  if (var->is_member_constant) consider_initialization = !is_definition;
+     constants that are not variable templates, they appear on the
+     declaration. */
+  if (var->is_member_constant && template_decl == NULL) {
+    consider_initialization = !is_definition;
+  } else {
+    consider_initialization = is_definition;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI managed class types, static data members are defined in-class
      and initializers are therefore always considered. */
