@@ -6260,20 +6260,25 @@ used by the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
+                a_type_ptr           elem_type;
+                a_byte_count         elem_size;
                 ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
-                if (!is_array_element(ptr) || cannot_dereference(ptr)) {
-                  /* Not a pointer to an array element in interpreter
-                     storage. */
+                if (cannot_dereference(ptr)) {
+                  /* Invalid pointer value. */
                   info_with_pos(ec_constexpr_invalid_pointer,
                                 &expr->position, ips);
                   do_constexpr_fail(result);
+                  break;
+                }  /* if */
+                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                elem_size = value_bytes_for_type(ips, elem_type, &result);
+                ptr->address += elem_size;
+                if (!is_array_element(ptr)) {
+                  /* The address of a non-array can be treated as a pointer to
+                     an array of one element. */
+                  ptr->flags |= CA_CANNOT_DEREFERENCE;
                 } else {
-                  a_type_ptr    elem_type;
-                  a_byte_count  elem_size;
                   a_byte        *base_address;
-                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  ptr->address += elem_size;
                   base_address = get_base_address(ptr);
                   if (ptr->address == base_address + ptr->length*elem_size) {
                     /* We've reached "one past the end of the array". */
@@ -6328,33 +6333,31 @@ used by the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
+                a_type_ptr           elem_type;
+                a_byte_count         elem_size;
                 ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
                 if (!is_array_element(ptr)) {
                   /* Not a pointer to an array element in interpreter
                      storage. */
-                  info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
-                  do_constexpr_fail(result);
+                  if (!cannot_dereference(ptr)) {
+                    info_with_pos(ec_constexpr_invalid_pointer,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                    break;
+                  }  /* if */
                 } else {
-                  a_type_ptr    elem_type;
-                  a_byte_count  elem_size;
-                  a_byte        *base_address;
-                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  base_address = get_base_address(ptr);
-                  if (ptr->address == base_address) {
+                  if (ptr->address == get_base_address(ptr)) {
                     /* The pointer cannot point ahead of the array. */
                     info_with_pos(ec_constexpr_invalid_pointer,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                  } else {
-                    if (ptr->address == base_address+ptr->length*elem_size) {
-                      /* We were "one past the end of the array", but that
-                         will no longer be true. */
-                      ptr->flags &= ~CA_CANNOT_DEREFERENCE;
-                    }  /* if */
-                    ptr->address -= elem_size;
+                    break;
                   }  /* if */
                 }  /* if */
+                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                elem_size = value_bytes_for_type(ips, elem_type, &result);
+                ptr->address -= elem_size;
+                ptr->flags &= ~CA_CANNOT_DEREFERENCE;
               } else {
                 /* Invalid type for prefix --. */
                 unexpected_condition();
@@ -6401,28 +6404,25 @@ used by the value representation of the integer value.
             } else if (tp->kind == (a_type_kind)tk_pointer) {
               /* A pointer. */
               a_constexpr_address  *ptr;
+              a_type_ptr           elem_type;
+              a_byte_count         elem_size;
               ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
-              if (!is_array_element(ptr) || cannot_dereference(ptr)) {
-                /* Not a pointer to an array element in interpreter
-                   storage. */
+              if (cannot_dereference(ptr)) {
+                /* Invalid pointer value. */
+                info_with_pos(ec_constexpr_invalid_pointer,
+                              &expr->position, ips);
                 do_constexpr_fail(result);
-                if (!is_array_element(ptr)) {
-                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                &expr->position, ips);
-                } else {
-                  info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                      &expr->position,
-                                      (unsigned long)(ptr->length+1),
-                                      (unsigned long)ptr->length, ips);
-                }  /* if */
+                break;
+              }  /* if */
+              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+              elem_size = value_bytes_for_type(ips, elem_type, &result);
+              ptr->address += elem_size;
+              if (!is_array_element(ptr)) {
+                /* The address of a non-array can be treated as a pointer to
+                   an array of one element. */
+                ptr->flags |= CA_CANNOT_DEREFERENCE;
               } else {
-                a_type_ptr    elem_type;
-                a_byte_count  elem_size;
-                a_byte        *base_address;
-                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                elem_size = value_bytes_for_type(ips, elem_type, &result);
-                ptr->address += elem_size;
-                base_address = get_base_address(ptr);
+                a_byte  *base_address = get_base_address(ptr);
                 if (ptr->address == base_address + ptr->length*elem_size) {
                   /* We've reached "one past the end of the array". */
                   ptr->flags |= CA_CANNOT_DEREFERENCE;
@@ -6474,34 +6474,30 @@ used by the value representation of the integer value.
             } else if (tp->kind == (a_type_kind)tk_pointer) {
               /* A pointer. */
               a_constexpr_address  *ptr;
+              a_type_ptr           elem_type;
+              a_byte_count         elem_size;
               ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
               if (!is_array_element(ptr)) {
                 /* Not a pointer to an array element in interpreter
                    storage. */
-                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                              &expr->position, ips);
-                do_constexpr_fail(result);
+                if (!cannot_dereference(ptr)) {
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                }  /* if */
               } else {
-                a_type_ptr    elem_type;
-                a_byte_count  elem_size;
-                a_byte        *base_address;
-                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                elem_size = value_bytes_for_type(ips, elem_type, &result);
-                base_address = get_base_address(ptr);
-                if (ptr->address == base_address) {
-                  /* The pointer can point ahead of the array. */
+                if (ptr->address == get_base_address(ptr)) {
+                  /* The pointer cannot point ahead of the array. */
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                 &expr->position, ips);
-                } else {
-                  if (ptr->address == base_address + ptr->length*elem_size) {
-                    /* We were "one past the end of the array", but that will
-                       no longer be true. */
-                    ptr->flags &= ~CA_CANNOT_DEREFERENCE;
-                  }  /* if */
-                  ptr->address -= elem_size;
+                  break;
                 }  /* if */
               }  /* if */
+              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+              elem_size = value_bytes_for_type(ips, elem_type, &result);
+              ptr->address -= elem_size;
+              ptr->flags &= ~CA_CANNOT_DEREFERENCE;
             } else {
               /* Invalid type for prefix --. */
               unexpected_condition();
@@ -6661,14 +6657,13 @@ used by the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  if (cannot_dereference(result_addr) ? (host_int_val == -1)
-                                                      : (host_int_val == 1)) {
+                  if (host_int_val ==
+                                 (cannot_dereference(result_addr) ? -1 : 1)) {
                     /* Non-arrays are treated as arrays of length one. */
-                    if (host_int_val == 1) {
-                      result_addr->flags |= CA_CANNOT_DEREFERENCE;
-                    } else {
-                      result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
-                    }  /* if */
+                    a_byte_count  elem_size;
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    result_addr->flags ^= CA_CANNOT_DEREFERENCE;
+                    result_addr->address += host_int_val * elem_size;
                   } else {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
@@ -6739,14 +6734,13 @@ used by the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else if (!is_array_element(result_addr)) {
-                  if (cannot_dereference(result_addr) ? (host_int_val == 1)
-                                                      : (host_int_val == -1)) {
+                  if (host_int_val ==
+                                 (cannot_dereference(result_addr) ? 1 : -1)) {
                     /* Non-arrays are treated as arrays of length one. */
-                    if (host_int_val == 1) {
-                      result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
-                    } else {
-                      result_addr->flags |= CA_CANNOT_DEREFERENCE;
-                    }  /* if */
+                    a_byte_count  elem_size;
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    result_addr->flags ^= CA_CANNOT_DEREFERENCE;
+                    result_addr->address -= host_int_val * elem_size;
                   } else {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
@@ -8389,9 +8383,20 @@ used by the value representation of the integer value.
                   /* Leave the address unchanged. */
                   SET_result_val_from_operand_address(&result_addr);
                 } else if (!is_array_element(&result_addr)) {
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_non_array_subscript,
-                                &expr->position, ips);
+                  if (host_int_val ==
+                                (cannot_dereference(&result_addr) ? -1 : 1)) {
+                    /* A non-array element is treated as an array of one
+                       element. */
+                    a_byte_count  elem_size;
+                    elem_size = value_bytes_for_type(ips, elem_type, &result);
+                    result_addr.address += host_int_val * elem_size;
+                    result_addr.flags ^= CA_CANNOT_DEREFERENCE;
+                    SET_result_val_from_operand_address(&result_addr);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_subscript,
+                                  &expr->position, ips);
+                  }  /* if */
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
                   get_array_offset(&result_addr, elem_type,
