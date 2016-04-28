@@ -2430,7 +2430,6 @@ option values if they were not already set by a command line option.
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
-      aggregate_classes_can_have_field_initializers = TRUE;
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

@@ -15,13 +15,6 @@ In C++14 mode, the front end previously failed to treat variables declared
 with constexpr and decltype(auto) as const.  That is now fixed.
 
 
-4/20/16  [EDGcpfe/16715]
-Microsoft compatibility: Enable member initializers for aggregates
-
-The changes described in the Changes entry for EDGcpfe/14146 are now also
-enabled when microsoft_version >= 1900.
-
-
 4/20/16  [EDGcpfe/17017]
 Union failed to match template template parameter
 
