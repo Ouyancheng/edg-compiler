@@ -3039,7 +3039,10 @@ If constant represents an address of a union subobject, interpreter will fail.
   subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
   t_offset = con->variant.address.offset;
   for (;;) {
-    if (identical_types(subobj_type, obj_type)) break;
+    if (t_offset == 0 && identical_types(subobj_type, obj_type)) {
+      /* *cap is fully updated. */
+      break;
+    }  /* if */
     switch (obj_type->kind) {
       case tk_array:
         { cap->flags |= CA_ARRAY_ELEMENT;
@@ -3111,8 +3114,16 @@ If constant represents an address of a union subobject, interpreter will fail.
         info_with_pos(ec_constexpr_union_offset, &ips->position, ips);
         goto done;
       default:
-        do_constexpr_fail(result);
-        info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
+        /* Scalars are sometimes treated as arrays of one element. */
+        if (t_offset == (a_targ_ptrdiff_t)obj_type->size) {
+          i_size = value_bytes_for_type(ips, obj_type, &result); 
+          check_assertion(result);
+          cap->address += i_size;
+          cap->flags |= CA_CANNOT_DEREFERENCE;
+        } else {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
+        }  /* if */
         goto done;
     }  /* switch */
   }  /* for */
