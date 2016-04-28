@@ -5332,6 +5332,9 @@ Display the indicated template.
     case templk_function:
       (void)printf("templk_function\n");
       break;
+    case templk_variable:
+      (void)printf("templk_variable\n");
+      break;
     case templk_member_function:
       (void)printf("templk_member_function\n");
       break;
@@ -5377,6 +5380,7 @@ Display the indicated template.
                iek_routine);
       break;
     case templk_static_data_member:
+    case templk_variable:
       disp_ptr("variable", (char *)ptr->prototype_instantiation.variable,
                iek_variable);
       break;
