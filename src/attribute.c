@@ -6102,7 +6102,7 @@ return that entity.
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
   /* Check that the variable has thread-local storage. */
-  if ((!(vp->decl_modifiers & DM_THREAD)) != 0 &&
+  if ((vp->decl_modifiers & DM_THREAD) == 0 &&
       !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
     report_bad_attribute_target(es_warning, ap);
   } else {
