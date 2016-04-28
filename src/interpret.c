@@ -784,13 +784,13 @@ Initialize stack storage for the given storage stack.
   a_byte        *new_block;
   a_byte_count  ptr_size = sizeof(a_byte*);
 
+  do_host_alignment(ptr_size);
   if (free_stack_blocks == NULL) {
     new_block = (a_byte*)alloc_fe(CONSTEXPR_STACK_BLOCK_SIZE);
   } else {
     new_block = free_stack_blocks;
     free_stack_blocks = *(a_byte**)(new_block+ptr_size);
   }  /* if */
-  do_host_alignment(ptr_size);
   /* Link to the previous block (if any). */
   *(a_byte**)new_block = sss->curr_block;
   sss->curr_block = new_block;
