@@ -1518,7 +1518,7 @@ typedef struct a_constexpr_address {
 			   elements in the array.  If the CA_BIT_FIELD flag is
 			   set, twice the number of bits in the bit field
 			   designated by this lvalue, plus one if the bit field
-			   is signed. */
+			   is signed.  Otherwise, the value is undefined. */
 #define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
@@ -3018,6 +3018,108 @@ static a_boolean do_constexpr_dynamic_init(
                                       a_byte                *complete_object);
 
 
+static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
+                                             a_constant_ptr        con,
+                                             a_constexpr_address   *cap,
+                                             a_type_ptr            obj_type)
+/*
+con is an address constant being translated to *cap, a representation in
+interpreter storage of the address of the complete object of type obj_type.
+If con represent the address of a subobject, update *cap accordingly.
+
+Currently, the IL representation is insufficient to handle union members.
+If constant represents an address of a union subobject, interpreter will fail.
+*/
+{
+  a_boolean         result = TRUE;
+  a_type_ptr        subobj_type = skip_typerefs(con->type);
+  a_targ_ptrdiff_t  t_offset, t_pos;
+  a_byte_count      i_offset, i_size;
+
+  subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
+  t_offset = con->variant.address.offset;
+  for (;;) {
+    if (identical_types(subobj_type, obj_type)) break;
+    switch (obj_type->kind) {
+      case tk_array:
+        { cap->flags |= CA_ARRAY_ELEMENT;
+          cap->length = obj_type->variant.array.variant.number_of_elements;
+          cap->variant.base_address = cap->address;
+          obj_type = skip_typerefs(obj_type->variant.array.element_type);
+          i_size = value_bytes_for_type(ips, obj_type, &result); 
+          check_assertion(result);
+          t_pos = t_offset/obj_type->size;
+          cap->address += i_size*(a_byte_count)t_pos;
+          t_offset -= t_pos*obj_type->size;
+          if ((a_byte_count)t_pos == cap->length) {
+            /* One position past the end of the array.  This has to be the
+               address of the corresponding element; not that of a subobject
+               thereof. */
+            cap->flags |= CA_CANNOT_DEREFERENCE;
+            check_assertion(identical_types(subobj_type, obj_type));
+          }  /* if */
+        }
+        break;
+      case tk_class:
+      case tk_struct:
+        { cap->flags &= ~CA_ARRAY_ELEMENT;
+          /* Search fields and direct nonvirtual bases for the right offset. */
+          a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
+          fp = next_initializable_field(fp);
+          for (; fp != NULL; fp = next_initializable_field(fp->next)) {
+            a_type_ptr  ftp;
+            if (t_offset < fp->offset) continue;
+            ftp = skip_typerefs(fp->type);
+            if (t_offset < fp->offset+ftp->size) {
+              t_offset -= fp->offset;
+              get_mapped_byte_count(&persistent_map, fp, i_offset);
+              cap->address += i_offset;
+              obj_type = ftp;
+              break;
+            }  /* if */
+          }  /* for */
+          if (fp == NULL) {
+            a_base_class_ptr  bcp = base_classes_of(obj_type);
+            for (; bcp != NULL; bcp = bcp->next) {
+              if (!bcp->direct || bcp->is_virtual) continue;
+              if (t_offset < bcp->offset) continue;
+              if (t_offset < bcp->offset+bcp->type->size) {
+                if (bcp->is_optimized_empty_base &&
+                    !identical_types(bcp->type, obj_type)) {
+                  /* Empty base classes can overlap with other base classes.
+                     Skip this base if it is not the addressed subobject. */
+                  continue;
+                }  /* if */
+                t_offset -= bcp->offset;
+                get_mapped_byte_count(&persistent_map, bcp, i_offset);
+                cap->address += i_offset;
+                obj_type = bcp->type;
+                break;
+              }  /* if */
+            }  /* for */
+            if (bcp == NULL) {
+              /* The search failed. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
+              goto done;
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case tk_union:
+        do_constexpr_fail(result);
+        info_with_pos(ec_constexpr_union_offset, &ips->position, ips);
+        goto done;
+      default:
+        do_constexpr_fail(result);
+        info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
+        goto done;
+    }  /* switch */
+  }  /* for */
+done:
+  return result;
+}  /* translate_il_address_offset */
+
 /*
 Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
@@ -3078,14 +3180,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       *fp_value(value) = con->variant.float_value;
       break;
     case ck_address:
-      if (con->variant.address.offset != 0) {
+      if (con->variant.address.offset != 0 && con->expr != NULL) {
         /* To reconstruct the offset in interpreter storage, interpret the
            backing expression. */
-        check_assertion(con->expr != NULL);
         do_constexpr_full_expression(
                               ips, con->expr, value, complete_object, result);
       } else {
-        a_type_ptr  atp = NULL;
+        a_type_ptr  obj_type = NULL;
         switch (con->variant.address.kind) {
           case abk_routine:
             make_function_address(value, con->variant.address.variant.routine);
@@ -3135,11 +3236,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 if (is_const_qualified_type(vp->type)) {
                   ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
                 }  /* if */
-                if (vtp->kind == (a_type_kind)tk_array) {
-                  /* The result address must be adjusted to record array
-                     characteristics. */
-                  atp = vtp;
-                }  /* if */
+                obj_type = vtp;
               } else {
                 clear_runtime_constant_address(value, con);
               }  /* if */
@@ -3168,11 +3265,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
-              if (ctp->kind == (a_type_kind)tk_array) {
-                /* The result address must be adjusted to record array
-                   characteristics. */
-                atp = ctp;
-              }  /* if */
+              obj_type = ctp;
             }
             break;
           default:
@@ -3181,11 +3274,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }
             break;
         }  /* switch */
-        if (atp != NULL) {
+        if (obj_type != NULL && con->implicit_cast) {
           a_constexpr_address  *cap = (a_constexpr_address*)value;
-          cap->flags |= CA_ARRAY_ELEMENT;
-          cap->length = atp->variant.array.variant.number_of_elements;
-          cap->variant.base_address = cap->address;
+          result = translate_il_address_offset(ips, con, cap, obj_type);
+        } else {
+          check_assertion(con->variant.address.offset == 0);
         }  /* if */
       }  /* if */
       break;
