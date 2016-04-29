@@ -1,5 +1,16 @@
 Version 4.11
 
+4/29/16  [EDGcpfe/17127]
+Rename DEFAULT_CPP11_MODE to DEFAULT_CPP_MODE
+
+Rather than have a binary configuration macro to enable/disable each
+version of the C++ standard, a new configuration macro, DEFAULT_CPP_MODE,
+has been introduced.  Its value should correspond to the value of the
+__cplusplus predefined macro in the desired standard (e.g., 201402 for C++14).
+The default remains 199711.  If DEFAULT_CPP11_MODE is TRUE, DEFAULT_CPP_MODE
+will be set to 201103.
+
+
 4/28/16  [EDGcpfe/17121]
 Microsoft compatibility: emulating Visual Studio Update 1 and Update 2
 

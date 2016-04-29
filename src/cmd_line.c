@@ -3284,11 +3284,7 @@ setting is used, and to set various unmentioned settings as needed.
   if (std_version == 0) {
     /* No specific version of C++ has been established yet: Use the appropriate
        default. */
-#if DEFAULT_CPP11_MODE
-    std_version = 201103;
-#else /* !DEFAULT_CPP11_MODE */
-    std_version = 199711;
-#endif /* DEFAULT_CPP11_MODE */
+    std_version = DEFAULT_CPP_MODE;
   }  /* if */
   if (gnu_mode && !clang_mode && gnu_version >= 60000) {
     /* Beginning with g++ 6.1.0 (the first g++ release in the 6.x series),
@@ -5430,11 +5426,11 @@ file.
 #else /* !defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
   comment_undefined_macro_name(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
 #endif /* defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
-#if defined(DEFAULT_CPP11_MODE)
-  define_numeric_valued_macro(DEFAULT_CPP11_MODE);
-#else /* !defined(DEFAULT_CPP11_MODE) */
-  comment_undefined_macro_name(DEFAULT_CPP11_MODE);
-#endif /* defined(DEFAULT_CPP11_MODE) */
+#if defined(DEFAULT_CPP_MODE)
+  define_numeric_valued_macro(DEFAULT_CPP_MODE);
+#else /* !defined(DEFAULT_CPP_MODE) */
+  comment_undefined_macro_name(DEFAULT_CPP_MODE);
+#endif /* defined(DEFAULT_CPP_MODE) */
 #if defined(DEFAULT_CPP11_SFINAE_ENABLED)
   define_numeric_valued_macro(DEFAULT_CPP11_SFINAE_ENABLED);
 #else /* !defined(DEFAULT_CPP11_SFINAE_ENABLED) */
@@ -11063,7 +11059,7 @@ variables declared in cmd_line.h.
   binary_literals_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
-                            !DEFAULT_CPP11_MODE; /*lint !e506*/
+                            (DEFAULT_CPP_MODE < 201103); /*lint !e506*/
 #else /* !EXPORT_ENABLING_POSSIBLE */
   /* Export is not supported by this configuration -- force it to be
      disabled. */

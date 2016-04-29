@@ -715,17 +715,27 @@ range_based_for_enabled.
 #endif /* DEFAULT_RANGE_BASED_FOR_ENABLED && !CPP11_IL_EXTENSIONS_... */
 
 /*
-Flag that is TRUE if extensions added to the C++11 standard should be
-enabled by default.  This is the default value of the global variable
-cpp11_mode.
+The default C++ standard to enable.  The value for DEFAULT_CPP_MODE is the
+value of the __cplusplus predefined macro for the desired standard, e.g.,
+201103 for C++11, and becomes the default value of the global variable
+std_version.
 */
-#ifndef DEFAULT_CPP11_MODE
-#define DEFAULT_CPP11_MODE FALSE
-#endif /* DEFAULT_CPP11_MODE */
-#if DEFAULT_CPP11_MODE && !CPP11_IL_EXTENSIONS_SUPPORTED
- #error -- Cannot set DEFAULT_CPP11_MODE to TRUE when \
+#if defined(DEFAULT_CPP11_MODE) && DEFAULT_CPP11_MODE
+/* DEFAULT_CPP11_MODE is no longer used. */
+#define DEFAULT_CPP_MODE 201103
+#endif /* if defined(DEFAULT_CPP11_MODE) && DEFAULT_CPP11_MODE */
+#ifndef DEFAULT_CPP_MODE
+#define DEFAULT_CPP_MODE 199711
+#endif /* ifndef DEFAULT_CPP_MODE */
+#if (DEFAULT_CPP_MODE >= 201103) && !CPP11_IL_EXTENSIONS_SUPPORTED
+ #error -- Invalid value for DEFAULT_CPP_MODE when \
            CPP11_IL_EXTENSIONS_SUPPORTED is FALSE
-#endif /* DEFAULT_CPP11_MODE && !CPP11_IL_EXTENSIONS_SUPPORTED */
+#endif /* (DEFAULT_CPP_MODE >= 201103) && !CPP11_IL_EXTENSIONS_SUPPORTED */
+#if (DEFAULT_CPP_MODE != 199711) && \
+    (DEFAULT_CPP_MODE != 201103) && \
+    (DEFAULT_CPP_MODE != 201402)
+ #error -- Invalid value for DEFAULT_CPP_MODE
+#endif /* (DEFAULT_CPP_MODE != 199711) && ... */
 
 /*
 Flag that is TRUE if the front end should assign sequence numbers to
