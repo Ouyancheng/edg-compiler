@@ -10581,7 +10581,8 @@ pm_field_selection:
               copy_constant_for_constexpr_evaluation(op1_constant,
                                                      result_con);
             }  /* if */
-          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address) {
+          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address ||
+                     is_null_pointer_value(op1_constant)) {
             /* An address constant.  Fold the base class cast into it. */
             if (is_template_dependent_type(expr->type)) {
               make_template_param_cast_constant(
