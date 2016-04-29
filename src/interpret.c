@@ -5956,11 +5956,10 @@ used by the value representation of the integer value.
                 opnd1->is_lvalue || opnd1->is_xvalue) {
               /* An address adjustment. */
               a_constexpr_address  *result_addr =
-                                         (a_constexpr_address*)result_storage;
+                                         (a_constexpr_address*)opnd1_value;
               a_type_ptr           dtp, btp;
               a_base_class_ptr     bcp;
               a_byte_count         offset;
-              *result_addr = *(a_constexpr_address *)opnd1_value;
               if (is_runtime_data_address(result_addr)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
@@ -5982,6 +5981,7 @@ used by the value representation of the integer value.
               get_mapped_byte_count(&persistent_map, bcp, offset);
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
+              SET_result_val_from_operand_address(result_addr);
             } else {
               /* Slicing. */
               a_base_class_ptr     bcp;
