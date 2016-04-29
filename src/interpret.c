@@ -5982,7 +5982,13 @@ used by the value representation of the integer value.
               get_mapped_byte_count(&persistent_map, bcp, offset);
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
-              SET_result_val_from_operand_address(result_addr);
+              if (tp->kind == (a_type_kind)tk_pointer) {
+                *(a_constexpr_address*)result_storage = *result_addr;
+              } else {
+                /* The node may be rvalued, in which case slicing is
+                   involved. */
+                SET_result_val_from_operand_address(result_addr);
+              }  /* if */
             } else {
               /* Slicing. */
               a_base_class_ptr     bcp;
