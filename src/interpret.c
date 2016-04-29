@@ -2638,9 +2638,10 @@ interpreter storage.
           parent_addr += offset;
         }  /* if */
       }  else {
-        /* Since the pointers are not equal, a difference at a higher level
-           should have been found. */
-        unexpected_condition();
+        /* This can happen when comparing a pointer to a scalar object, and
+           one "past the end" of that object. */
+        comparable = TRUE;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
