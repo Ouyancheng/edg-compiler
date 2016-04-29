@@ -2399,10 +2399,6 @@ is invalid.  Also promote the fields of the union type to the current scope.
                              (a_namespace_ptr)NULL);
   } else if (innermost_function_scope != NULL) {
     vp->source_corresp.is_local_to_function = TRUE;
-    if (relaxed_constexpr_enabled &&
-        innermost_function_scope->variant.routine.ptr->is_constexpr) {
-      check_var_in_constexpr_function(vp, &dps->specifiers_pos);
-    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Mark the type declaration as autonomous. */
@@ -2414,6 +2410,10 @@ is invalid.  Also promote the fields of the union type to the current scope.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (unrestricted_unions_enabled) {
     (void)def_initializer(assoc_object_sym, &dps->start_pos);
+  }  /* if */
+  if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.ptr->is_constexpr) {
+    check_var_in_constexpr_function(vp, &dps->specifiers_pos);
   }  /* if */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */

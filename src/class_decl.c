@@ -16836,7 +16836,10 @@ nonstandard anonymous unions is_nonstd is TRUE.
     case sk_variable:
       assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
       assoc_object_type = skip_typerefs(assoc_object_type);
-      check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
+      if (assoc_object_type->kind != (a_type_kind)tk_union) {
+        expect_error();
+        goto done;
+      }  /* if */
       assoc_object_access = (an_access_specifier)as_public;
       break;
     case sk_field:
@@ -17234,6 +17237,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
                                         cssp->num_unparsed_field_initializers;
     cssp->num_unparsed_field_initializers = 0;
   }  /* if */
+done:
   db_exit();
 }  /* check_anonymous_union_symbols */
 
