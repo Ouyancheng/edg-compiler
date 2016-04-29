@@ -3290,6 +3290,13 @@ setting is used, and to set various unmentioned settings as needed.
     std_version = 199711;
 #endif /* DEFAULT_CPP11_MODE */
   }  /* if */
+  if (gnu_mode && !clang_mode && gnu_version >= 60000) {
+    /* Beginning with g++ 6.1.0 (the first g++ release in the 6.x series),
+       C++14 features are enabled by default. */
+    if (!cpp_mode_specified()) {
+      std_version = 201402;
+    }  /* if */
+  }  /* if */
   /* Reset the SVR4 C compatibility flag just in case it is set by
      default. */
   SVR4_C_mode = FALSE;
@@ -4210,7 +4217,9 @@ static void check_and_set_gpp_mode_options(void)
 Set the options needed to emulate GNU C++ compilers, and check that no other
 modes conflict with this one.  (The processing of some modes, like ANSI,
 exclude the GNU C++ mode already.  Hence those are not checked again here.)
-This function is also called in clang mode.
+This function is also called in clang mode.  Note that when gnu_version >=
+60000, the default C++ mode is to enable C++14 features, but that is set
+before this routine is called.
 */
 {
   check_and_set_gnu_mode_options();
@@ -4456,13 +4465,6 @@ This function is also called in clang mode.
       /* GCC versions since 4.7, as well as clang, accept the extended
          friend syntax in non-C++11 mode. */
       extended_friends_enabled = TRUE;
-    }  /* if */
-  }  /* if */
-  if (gnu_version >= 60000) {
-    /* Beginning with the 6.0.0 series, C++14 features are enabled by
-       default. */
-    if (!cpp_mode_specified()) {
-      std_version = 201402;
     }  /* if */
   }  /* if */
   if (!cpp14_mode) {
