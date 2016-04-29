@@ -19712,6 +19712,8 @@ already indicates the load.
           case eok_indirect:
           case eok_ref_indirect:
           case eok_ref_cast:
+          case eok_base_class_cast:
+          case eok_derived_class_cast:
           case eok_lvalue_adjust:
           case eok_ref_dynamic_cast:
           case eok_va_arg:
@@ -19728,8 +19730,6 @@ already indicates the load.
                                     change the underlying operand too. */
           case eok_dot_static:   /* Ditto. */
           case eok_points_to_static:    /* Ditto. */
-          case eok_base_class_cast:     /* Ditto. */
-          case eok_derived_class_cast:  /* Ditto. */
           case eok_unbox:        /* Not rvalueable: the version with is_lvalue
                                     FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit

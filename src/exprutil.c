@@ -17940,13 +17940,17 @@ from being re-introduced once lowering has eliminated it).
         break;
       case eok_base_class_cast:
       case eok_derived_class_cast:
-        /* Base and derived class casts (class prvalue --> class prvalue).
-           Try to transform the operand to an lvalue. */
-        op1 = conv_prvalue_expr_to_lvalue(op1, &possible,
-                                          see_if_possible,
-                                          gcc_lvalue,
-                                          /*ignore_casts=*/FALSE,
-                                          &lvalue_type);
+        if (!is_glvalue_node(op1)) {
+          /* Base and derived class casts (class prvalue --> class prvalue).
+             Try to transform the operand to an lvalue. */
+          op1 = conv_prvalue_expr_to_lvalue(op1, &possible,
+                                            see_if_possible,
+                                            gcc_lvalue,
+                                            /*ignore_casts=*/FALSE,
+                                            &lvalue_type);
+        } else {
+          possible = TRUE;
+        }  /* if */
         if (possible) {
           lvalue_type = type_plus_qualifiers_from_second_type(node->type,
                                                               lvalue_type);
@@ -18929,22 +18933,11 @@ it might produce an error).
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_base_class_cast:
-        case eok_derived_class_cast:
-          /* Base or derived class cast (class lvalue --> class lvalue).
-             Apply the transformation to the operand; the cast becomes a
-             cast from a class prvalue to a class prvalue. */
-          op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
-                                             (a_constant_ptr *)NULL,
-                                             err_pos);
-          node->variant.operation.operands = op1;
-          if (op == (an_expr_operator_kind)eok_base_class_cast &&
-              is_constant_node(op1) && constexpr_enabled &&
-              allow_folding != NULL) {
-            /* This is a cast of a class constant to a base class.
-               Extract the required base class subobject from the class
-               object. */
-            con_expr_value = fold_constant_base_class_cast(node,
-                                                           (a_constant *)NULL);
+          /* Derived-to-base class: Perform address folding if needed before
+             marking the cast result as an rvalue. */
+          if (constexpr_enabled && allow_folding != NULL) {
+            con_expr_value = constant_value_addressed_by_node(
+                                                       node, &node->position);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
           node->type = prvalue_node_type;

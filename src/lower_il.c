@@ -10562,9 +10562,7 @@ more than once.
                   (node_operator_is(node, eok_derived_class_cast) ||
                    node_operator_is(node, eok_base_class_cast)));
   change_xvalue_node_to_lvalue(node->variant.operation.operands);
-  check_assertion(node->is_lvalue ==
-                                 node->variant.operation.operands->is_lvalue &&
-                  is_ptr_or_ref_type(node->type) ==
+  check_assertion(is_ptr_or_ref_type(node->type) ==
                    is_ptr_or_ref_type(node->variant.operation.operands->type));
   *base_class_for_virtual_step = NULL;
   *complete_object = FALSE;

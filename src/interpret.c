@@ -187,10 +187,10 @@ corresponding to the "active field" (attempting to read a non-active field
 results in interpretation failure).  
 
 The storage of a non-union class type ("class" or "struct") starts with a
-pointer to an IL entry for the type of the next-derived subobject, or NULL
-for the most-derived subobject.  This is used to catch invalid base-to-derived
-casts (or certain invalid accesses to a derived-object member through a
-pointer-to-member value).
+pointer to an IL entry for the corresponding direct base class entry of the
+next-derived subobject, or NULL for the most-derived subobject.  This is used
+to catch invalid base-to-derived casts (or certain invalid accesses to a
+derived-object member through a pointer-to-member value).
 
 Pointers (and references, lvalues, and xvalues) are represented with type
 a_constexpr_address.  Often, all that is needed is a pointer into interpreter
@@ -6007,13 +6007,11 @@ used by the value representation of the integer value.
                 *(a_constexpr_address*)result_storage = *src;
               } else {
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
-                if (bcp != NULL && bcp->type == tp) {
+                if (bcp != NULL && bcp->derived_class == tp) {
                   a_byte_count  offset;
-                  a_constexpr_address  *dst =
-                                (a_constexpr_address*)result_storage;
                   get_mapped_byte_count(&persistent_map, bcp, offset);
-                  *dst = *src;
-                  dst->address -= offset;
+                  src->address -= offset;
+                  SET_result_val_from_operand_address(src);
                 } else {
                   a_type_ptr  derived_class;
                   if (bcp != NULL) {
