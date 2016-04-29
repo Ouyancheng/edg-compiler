@@ -5536,7 +5536,6 @@ the body of the (constructor) function proper.
         }  /* if */
       }  /* if */
     }  /* for */
-    remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
@@ -5563,6 +5562,7 @@ the body of the (constructor) function proper.
     }  /* for */
     unmap_stack_bytes(ips, this_var);
     unmap_ptr(&ips->map, &this_var->storage_class);
+    remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-1;
   }  /* if */
