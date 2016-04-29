@@ -4,13 +4,13 @@ Version 4.11
 Microsoft compatibility: emulating Visual Studio Update 1 and Update 2
 
 Visual Studio 2015 has been incrementally upgraded, including the release of
-new features, without updating the release number (i.e., 19.00.XXXXX.X),
-making it difficult to determine when new features have been added.  A change
-has been made to map the microsoft_version value of 1901 to Update 1
-(build number 23506) and 1902 to Update 2 (build number 23918).  These are
-used purely for internal distinction between these releases and outwardly
-these versions are treated as 1900 (e.g., for the value of the predefined
-macro _MSC_VER.
+new features, without updating the release number (i.e., 19.00), making it
+difficult to specify the set of features that should be supported by the front
+end when emulating Visual Studio.  A change has been made to map the
+microsoft_version value of 1901 to Update 1 (build number 23506) and 1902 to
+Update 2 (build number 23918).  These are used purely for internal distinction
+between these releases; the value of MSC_VER is still 1900 in both cases, for
+compatibility with the corresponding Visual Studio releases.
 
 Variable templates are now enabled when microsoft_version >= 1902.
 
