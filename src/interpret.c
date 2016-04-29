@@ -2246,7 +2246,8 @@ cap represents an interpreter address pointing into interpreter storage for an
 object X of type parent_type stored at parent_address (not necessarily a
 complete object).  Return the direct subobject of X that cap points to (or
 "into") via *p_field and *p_bcp (for field subobjects *p_bcp is set to NULL;
-for base class subobjects *p_field is set to NULL).
+for base class subobjects *p_field is set to NULL).  If cap points "one past
+the end" of a field subobject, that field is returned.
 */
 {
   if (parent_type->kind != (a_type_kind)tk_union) {
@@ -2269,13 +2270,13 @@ for base class subobjects *p_field is set to NULL).
          fp != NULL;
          last_fp = fp, fp = next_initializable_field(fp->next)) {
       get_mapped_byte_count(&persistent_map, fp, sub_offset);
-      if (offset < sub_offset) {
+      if (offset <= sub_offset) {
         *p_field = last_fp;
         *p_bcp = NULL;
         goto done;
       }  /* if */
     }  /* for */
-    if (offset-sub_offset < value_bytes_for_type(ips, last_fp->type, &okay)) {
+    if (offset-sub_offset <= value_bytes_for_type(ips, last_fp->type, &okay)) {
       check_assertion(okay);
       *p_field = last_fp;
       *p_bcp = NULL;
@@ -8892,22 +8893,8 @@ a ck_address constant representing the same address.
     a_base_class_ptr  bcp = NULL;
     do {
       a_byte_count  i_offset;
-      if (type->kind == (a_type_kind)tk_array) {
-        i_offset = address-parent_address;
-        if (i_offset != 0) {
-          a_type_ptr    elem_type;
-          a_byte_count  pos, elem_size;
-          a_boolean     okay = TRUE;
-          elem_type = skip_typerefs(type->variant.array.element_type);
-          elem_size = value_bytes_for_type(ips, elem_type, &okay);
-          check_assertion(okay);
-          pos = i_offset/elem_size;
-          t_offset += pos*elem_type->size;
-          i_offset = pos*elem_size;
-        }  /* if */
-      } else {
+      if (is_immediate_class_type(type)) {
         void  *ptr;
-        check_assertion(is_immediate_class_type(type));
         find_subobject_for_interpreter_address(ips, cap, parent_address, type,
                                                &fp, &bcp);
         if (fp != NULL) {
@@ -8921,6 +8908,25 @@ a ck_address constant representing the same address.
           ptr = (void*)bcp;
         }  /* if */
         get_mapped_byte_count(&persistent_map, ptr, i_offset);
+      } else {
+        i_offset = address-parent_address;
+        if (i_offset != 0) {
+          a_type_ptr    elem_type;
+          a_byte_count  pos, elem_size;
+          a_boolean     okay = TRUE;
+          if (type->kind == (a_type_kind)tk_array) {
+            elem_type = skip_typerefs(type->variant.array.element_type);
+          } else {
+            /* Non-array objects are treated as arrays of one element in this
+               context. */
+            elem_type = type;
+          }  /* if */
+          elem_size = value_bytes_for_type(ips, elem_type, &okay);
+          check_assertion(okay);
+          pos = i_offset/elem_size;
+          t_offset += pos*elem_type->size;
+          i_offset = pos*elem_size;
+        }  /* if */
       }  /* if */
       parent_address += i_offset;
     } while (parent_address != address);
