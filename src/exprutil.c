@@ -5551,17 +5551,18 @@ This is only used in C++, for some strange cases.
 
 a_boolean in_potential_constant_constexpr_context(void)
 /*
-Return TRUE if we're inside the definition of a constexpr function or
-constructor, including the header, and we're in an expression that
-is not required to be constant in the definition but might be constant
-in an invocation of the function, e.g., the return expression.  Used to
-avoid setting the constant_expr_ruled_out flag for expressions that
-might turn out to be constant in the actual use.
+Return TRUE if we're inside the definition of a C++11 constexpr function or
+constructor, including the header, and we're in an expression that is not
+required to be constant in the definition but might be constant in an
+invocation of the function, e.g., the return expression.  Used to avoid
+setting the constant_expr_ruled_out flag for expressions that might turn
+out to be constant in the actual use.  (Return false in C++14 mode, since
+folding of C++14 constexpr functions is done using the interpreter.)
 */
 {
   a_boolean potential_constant_context = FALSE;
 
-  if (constexpr_enabled) {
+  if (constexpr_enabled && !relaxed_constexpr_enabled) {
     if (innermost_function_scope != NULL &&
         current_routine_entry()->is_constexpr &&
         !curr_expr_kind_is_const()) {
