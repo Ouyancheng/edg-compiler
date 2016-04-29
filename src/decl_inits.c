@@ -6467,13 +6467,15 @@ static void check_constexpr_ctor_init(a_routine_ptr      ctor,
                                       a_source_position  *diag_pos)
 /*
 is describes the initialization state for a mem-initializer of the given
-constructor.  If the constructor is "constexpr" and the initializer is not a
-constant, either issue an error if the constructor is not a template instance,
-or silently set the is_constexpr flag of the constructor to FALSE (except for
-the prototype instantiation).
+constructor.  If ctor is a C++11 constexpr constructor and the initializer is
+not a constant, either issue an error if the constructor is not a template
+instance, or silently set the is_constexpr flag of the constructor to FALSE
+(except for the prototype instantiation).  (For C++14 constructors
+constructors, these constraints are not imposed.)
 */
 {
-  if (ctor->is_constexpr && is->constant_expr_ruled_out) {
+  if (ctor->is_constexpr && !relaxed_constexpr_enabled &&
+      is->constant_expr_ruled_out) {
     /* A constexpr constructor requires constant initialization.  In the
        template case, the "constexpr" property is silently dropped.  In other
        cases, an error is issued. */
