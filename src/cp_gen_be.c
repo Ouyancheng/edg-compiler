@@ -16897,7 +16897,9 @@ this one is such a continuation.
   /* Usually, initializers appear on a definition, but for (static) member
      constants that are not variable templates, they appear on the
      declaration. */
-  if (var->is_member_constant && template_decl == NULL) {
+  if (var->is_member_constant &&
+      (var->template_info == NULL ||
+       var->template_info->template_arg_list == NULL)) {
     consider_initialization = !is_definition;
   } else {
     consider_initialization = is_definition;
