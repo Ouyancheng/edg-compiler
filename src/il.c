@@ -19712,8 +19712,6 @@ already indicates the load.
           case eok_indirect:
           case eok_ref_indirect:
           case eok_ref_cast:
-          case eok_base_class_cast:
-          case eok_derived_class_cast:
           case eok_lvalue_adjust:
           case eok_ref_dynamic_cast:
           case eok_va_arg:
@@ -19722,6 +19720,14 @@ already indicates the load.
           case eok_imag_part:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
             rvalueable = TRUE;
+            break;
+          case eok_base_class_cast:
+          case eok_derived_class_cast:
+            /* A base <-> derived conversion between pointers is an rvalue
+               operation (and is therefore not rvalueable), but such a
+               conversion can also apply to an lvalue of class type and in
+               that case the result is rvalueable. */
+            rvalueable = is_class_struct_union_type(node->type);
             break;
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
