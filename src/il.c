@@ -19727,7 +19727,8 @@ already indicates the load.
                operation (and is therefore not rvalueable), but such a
                conversion can also apply to an lvalue of class type and in
                that case the result is rvalueable. */
-            rvalueable = is_class_struct_union_type(node->type);
+            rvalueable = is_class_struct_union_type(node->type) &&
+                         is_glvalue_node(node->variant.operation.operands);
             break;
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
