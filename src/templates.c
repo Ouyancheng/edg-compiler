@@ -8972,11 +8972,9 @@ use of the argument list in case it has been freed.
     for (; ps_sym != NULL; ps_sym = ps_sym->next) {
       /* Get the symbol associated with the prototype instantiation of this
          partial specialization. */
-      a_symbol_ptr		ps_prototype_sym;
       a_variable_ptr		ps_var;
       a_template_arg_ptr	old_list;
       ps_var = variable_for_symbol(ps_sym);
-      ps_prototype_sym = symbol_for(ps_var);
       /* Old list is the template argument list associated with the
          prototype instantiation of the partial specialization.  See if
          the list passed in matches it. */
@@ -16185,11 +16183,13 @@ instance to the definitions list for the template.
           tssp = template_supplement_for_symbol(sym);
           if (symbol_is(sym, sk_variable_template) &&
               tssp->token_sequence_number != token_sequence_number) {
+            a_symbol_ptr				ps_sym;
             /* Check each of its partial specializations. */
-            for (sym = tssp->partial_specializations;
-                 sym != NULL; sym = sym->next) {
+            for (ps_sym = tssp->partial_specializations;
+                 ps_sym != NULL; ps_sym = ps_sym->next) {
               tssp = sym->variant.template_info;
               if (tssp->token_sequence_number == token_sequence_number) {
+                sym = ps_sym;
                 break;
               }  /* if */
             }  /* for */
