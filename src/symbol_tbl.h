@@ -2558,6 +2558,22 @@ typedef struct a_template_symbol_supplement {
 			   instantiations of this template.  NULL if no
 			   instances have been created or if a hash table is
 			   not used for this kind of template. */
+  a_symbol_ptr
+		partial_specializations;
+			/* A list of symbols for partial specializations of
+			   a class template or variable template.
+			   This is present only for templates that are
+			   "primary" templates (i.e., those that are not
+			   already partial specializations).  NULL for
+			   templates with no partial specializations, for
+			   templates that are already partial
+			   specializations, and for templates that cannot
+			   be partially specialized. */
+  a_symbol_ptr
+		primary_template_sym;
+			/* For partial specialization, points back to the
+			   primary template of which this is a partial
+			   specialization. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
@@ -2620,21 +2636,6 @@ typedef struct a_template_symbol_supplement {
 			   instantiation.  For class templates, this is a
 			   class.  For alias templates, this is a type.  For
 			   an enumeration, this is an enum type. */
-      a_symbol_ptr
-		partial_specializations;
-			/* A list of class template symbols for partial
-			   specializations of the current class template.
-			   This is present only for class templates that are
-			   "primary" templates (i.e., those that are not
-			   already partial specializations).  NULL for
-			   templates with no partial specializations, for
-			   templates that are already partial
-			   specializations, and for alias templates. */
-      a_symbol_ptr
-		primary_template_sym;
-			/* For partial specialization, points back to the
-			   primary template of which this is a partial
-			   specialization. */
       an_out_of_class_partial_spec_ptr
 		out_of_class_partial_specs;
 			/* When a partial specialization of a class template

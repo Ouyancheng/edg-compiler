@@ -4973,6 +4973,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     a_boolean  another_pointer_declarator = FALSE;
     a_boolean  ptr_to_member_case = FALSE, rvalue_ref_case = FALSE;
     a_boolean  plain_ptr = (curr_token == tok_star), managed_type = FALSE;
+#if 0
+#else
+    /* FIXME: */
+    if (scope_is(&scope_stack_top(), sck_template_declaration)) {
+      (void)is_generalized_identifier_start(GID_USE_PROTOTYPE_NOT_NONREAL);
+    }  /* if */
+#endif
     if ((plain_ptr ||
          (reference_allowed && (curr_token == tok_ampersand ||
                                 (rvalue_references_enabled &&
@@ -5605,9 +5612,16 @@ declared entity is known to not be a function.
   if (input_flags & DI_IS_FRIEND_DECL) {
     options |= GID_IS_FRIEND_DECL;
   }  /* if */
-  if (is_specialization_or_instantiation ||
-      ((input_flags & DI_IS_FRIEND_DECL) &&
-       !(options & GID_IS_TEMPLATE_DECLARATION))) {
+  if (variable_templates_enabled &&
+      (options & GID_IS_TEMPLATE_DECLARATION) != 0) {
+    /* Explicit template arguments are not allowed on most declarators in
+       template declarations, but are allowed for variable template partial
+       specializations.  We don't know if that is what we have now, but
+       we need to allow for that case. */
+    explicit_template_args_allowed = TRUE;
+  } else if (is_specialization_or_instantiation ||
+             ((input_flags & DI_IS_FRIEND_DECL) &&
+             !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;
   } else if (microsoft_mode &&
              depth_innermost_function_scope == NO_SCOPE_DEPTH) {

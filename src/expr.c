@@ -39592,7 +39592,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     case enk_variable:
       { a_variable_ptr               var = expr->variant.variable.ptr;
         a_variable_template_info_ptr vtip = var->template_info;
-        if (var->is_nonreal) {
+        if (var->is_nonreal && !var->is_prototype_instantiation) {
           a_boolean           copy_error = FALSE;
           a_template_arg_ptr  t_args = vtip->template_arg_list;
           a_symbol_ptr        t_sym = symbol_for(vtip->assoc_template);
@@ -39608,7 +39608,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             make_error_operand(result);
             copy_operand_position(&eriep->saved_operand, result);
           } else {
-            sym = find_template_variable(t_sym, &t_args);
+            sym = find_template_variable(t_sym, &t_args,
+                                         /*prototype_allowed=*/FALSE);
           }  /* if */
         }  /* if */
       }

@@ -15942,6 +15942,7 @@ template declaration and is NULL otherwise.
   a_template_symbol_supplement_ptr
                            var_templ_tssp = NULL;
   a_token_cache_ptr        initializer_cache = NULL;
+  a_token_sequence_number  start_tsn = curr_token_sequence_number;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -16080,9 +16081,19 @@ template declaration and is NULL otherwise.
                        effective_decl_level, /*suppress_redecl_error=*/FALSE);
   } else {
     check_assertion(decl_info->is_member_template && templ_state != NULL);
-    /* For variable templates, the variable is created above by the
-       call to create_variable_template_symbol.  Fill in the type now. */
-    sym = create_variable_template_symbol(templ_state, locator);
+    sym = locator->specific_symbol;
+    if (sym != NULL && symbol_is(sym, sk_variable) &&
+        locator->is_template_id) {
+      /* This is either a partial specialization of the variable template
+         of an error.  Call a routine to handle the partial specialization
+         (and check for error cases). */
+      sym = variable_template_partial_specialization(sym, templ_state,
+                                                     locator);
+    } else {
+      /* For variable templates, the variable is created above by the
+         call to create_variable_template_symbol.  Fill in the type now. */
+      sym = create_variable_template_symbol(templ_state, locator);
+    }  /* if */
     var_templ_tssp = sym->variant.template_info;
     var = var_templ_tssp->variant.variable.prototype_variable;
     var->type = member_type;
@@ -16348,15 +16359,22 @@ template declaration and is NULL otherwise.
         sym->variant.static_data_member.instance_ptr = tip;
         tip->instance_sym = sym;
         tip->template_sym = sym;
-        tssp = alloc_template_symbol_supplement(sym->kind);
+        if (symbol_is(sym, sk_static_data_member)) {
+          /* For static data member templates, allocate a template symbol
+             supplement now. */
+          tssp = alloc_template_symbol_supplement(sym->kind);
+        } else {
+          check_assertion(symbol_is(sym, sk_variable_template));
+          tssp = sym->variant.template_info;
+        }  /* if */
         tip->template_info = tssp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         tip->template_info->is_generic =
                   class_type->variant.class_struct_union.is_generic_instance;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        tip->template_info->token_sequence_number = curr_token_sequence_number;
         var->is_template_variable = TRUE;
         var->is_prototype_instantiation = TRUE;
+        var->is_nonreal = TRUE;
         if (var->template_info == NULL) {
           /* For variable templates, the template_info will have already been
              allocated. */
@@ -16389,13 +16407,14 @@ template declaration and is NULL otherwise.
           templ->prototype_instantiation.variable = var;
         }  /* if */
         templ->canonical_template = templ;
+        tssp->token_sequence_number = start_tsn;
       } else {
         /* We must be in the midst of a template class instantiation.  We need
            to bind this static data member or variable template to the one
            that was created for it in the prototype instantiation.  This will
            enable the compiler to generate a definition if a defining template
            is declared. */
-        find_variable_member_template(sym, prototype_tag_sym);
+        find_variable_member_template(sym, prototype_tag_sym, start_tsn);
       }  /* if */
       if (decl_info->is_member_template) {
         /* Record the cache information for the later instantiation of

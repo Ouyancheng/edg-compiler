@@ -1200,7 +1200,7 @@ do_variable:
             db_symbol(inst_sym, "", indentation + 4);
           }  /* if */
           /* Display any partial specializations. */
-          inst_sym = tssp->variant.class_template.partial_specializations;
+          inst_sym = tssp->partial_specializations;
           while (inst_sym != NULL) {
             fprintf(f_debug, "%*spartial specialization:\n", indentation, "");
             fprintf(f_debug, "%*s", indentation + 2, "");
@@ -3421,6 +3421,8 @@ and return a pointer to it.
   tssp->name = NULL;
   tssp->attributes = NULL;
   tssp->instantiation_hash_table = NULL;
+  tssp->partial_specializations = NULL;
+  tssp->primary_template_sym = NULL;
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
@@ -3443,8 +3445,6 @@ and return a pointer to it.
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.prototype_instantiation = NULL;
-      tssp->variant.class_template.partial_specializations = NULL;
-      tssp->variant.class_template.primary_template_sym = NULL;
       tssp->variant.class_template.out_of_class_partial_specs = NULL;
       tssp->variant.class_template.friend_info = NULL;
       tssp->variant.class_template.is_alias_template = FALSE;

@@ -16970,8 +16970,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
            specialization, use the primary template instead for the purpose
            of determining whether the template being used matches the template
            of which a member is being defined. */
-        if (tmc_tssp->variant.class_template.primary_template_sym != NULL) {
-          tmc_sym = tmc_tssp->variant.class_template.primary_template_sym;
+        if (tmc_tssp->primary_template_sym != NULL) {
+          tmc_sym = tmc_tssp->primary_template_sym;
         }  /* if */
         if (tmc_sym == template_sym) {
           is_templ_member_class_sym = TRUE;
@@ -17259,13 +17259,15 @@ is the one actually associated with this reference.
 
 static a_symbol_ptr coalesce_template_variable_reference(
 			a_symbol_ptr			template_sym,
+			an_identifier_options_set	options,
 			a_token_kind			next_tok,
 			a_boolean			*err)
 /*
 The current identifier is a variable template symbol.  If next_tok is
 tok_lt ("<"), it is followed by a template argument list.  Scan the template
-argument list and update the locator to point to it.  Return the symbol
-of the variable template instance indicated by the template argument
+argument list and update the locator to point to it.  options is the set
+of options flags passed into the identifier scanning routines.  Return the
+symbol of the variable template instance indicated by the template argument
 list.
 */
 {
@@ -17348,7 +17350,10 @@ list.
       locator_for_curr_id.source_position = orig_locator.source_position;
       new_sym = locator_for_curr_id.specific_symbol;
     } else {
-      new_sym = find_template_variable(template_sym, &arg_list);
+      a_boolean	prototype_allowed;
+      prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
+      new_sym = find_template_variable(template_sym, &arg_list,
+                                       prototype_allowed);
       locator_for_curr_id = orig_locator;
     }  /* if */
     curr_token = tok_identifier;
@@ -17456,7 +17461,7 @@ the class template argument list or diagnose an invalid template reference.
 
   if (template_sym != NULL &&
       symbol_is(template_sym, sk_variable_template)) {
-    result_sym = coalesce_template_variable_reference(template_sym,
+    result_sym = coalesce_template_variable_reference(template_sym, options,
                                                       next_tok, err);
   } else if (template_sym != NULL &&
              !is_class_template_or_injected_template_symbol(template_sym) && 
@@ -20521,7 +20526,8 @@ scanned is, in fact, an identifier).
          For the variable case, an error will result (from the missing
          argument list). */
       if (symbol_is(symbol, sk_variable_template)) {
-        symbol = coalesce_template_variable_reference(symbol, next_token(),
+        symbol = coalesce_template_variable_reference(symbol, options,
+                                                      next_token(),
                                                       &templ_err);
       } else {
         symbol = coalesce_template_class_reference(symbol, options,

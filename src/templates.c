@@ -1432,10 +1432,11 @@ pointer.
   a_symbol_ptr				result_sym;
 
   if (sym != NULL) {
-    check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
+    check_assertion(symbol_is(sym, sk_class_template) ||
+                    symbol_is(sym, sk_variable_template));
     tssp = sym->variant.template_info;
-    result_sym = tssp->variant.class_template.primary_template_sym != NULL
-                     ? tssp->variant.class_template.primary_template_sym
+    result_sym = tssp->primary_template_sym != NULL
+                     ? tssp->primary_template_sym
                      : sym;
   } else {
     result_sym = NULL;
@@ -1505,7 +1506,7 @@ is the token sequence number to be used as the identifier for this template.
       tssp = sym->variant.template_info;
       if (tssp->token_sequence_number != token_sequence_number) {
         /* Check each of its partial specializations. */
-        for (sym = tssp->variant.class_template.partial_specializations;
+        for (sym = tssp->partial_specializations;
              sym != NULL; sym = sym->next) {
           tssp = sym->variant.template_info;
           if (tssp->token_sequence_number == token_sequence_number) break;
@@ -3327,7 +3328,7 @@ with that partial specialization; otherwise return NULL.
   tssp = template_sym->variant.template_info;
   /* Get the template argument list with respect to the primary template. */
   ctsp = class_type->variant.class_struct_union.extra_info;
-  for (ps_sym = tssp->variant.class_template.partial_specializations;
+  for (ps_sym = tssp->partial_specializations;
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
     if (matches_partial_specialization(ps_sym, instance_sym,
@@ -3904,7 +3905,7 @@ be completed here.
        partial specialization.  This is only done for class templates, not
        normal nested classes of class templates. */
     if (template_sym->kind == (a_symbol_kind)sk_class_template &&
-        tssp->variant.class_template.partial_specializations != NULL) {
+        tssp->partial_specializations != NULL) {
       a_symbol_ptr		partial_spec_sym;
       partial_spec_sym = check_partial_specializations(
                                        instance_sym, class_type, template_sym);
@@ -7518,7 +7519,7 @@ can have a Microsoft mode nonreal instantiation.
 
   if (!is_variadic_template_context() &&
       !primary_tssp->is_variadic &&
-      primary_tssp->variant.class_template.partial_specializations == NULL &&
+      primary_tssp->partial_specializations == NULL &&
       primary_tssp->variant.class_template.prototype_instantiation_complete) {
     result = TRUE;
   }  /* if */
@@ -8641,7 +8642,7 @@ exist.
   }  /* if */
 #endif /* DEBUG */
   /* The template symbol must be for the primary template. */
-  check_assertion(!tssp->variant.class_template.primary_template_sym);
+  check_assertion(tssp->primary_template_sym == NULL);
   eta_options = eta_options_for_template(template_sym, tssp);
   if (is_template_dependent_context()) {
     /* Make a copy of the original list before stripping certain typerefs. */
@@ -8696,7 +8697,7 @@ exist.
       /* The list passed in did not match the primary prototype instantiation.
          See if it matches any of the partial specializations. */
       a_symbol_ptr	ps_sym;
-      ps_sym = tssp->variant.class_template.partial_specializations;
+      ps_sym = tssp->partial_specializations;
       for (; ps_sym != NULL; ps_sym = ps_sym->next) {
         /* Get the symbol associated with the prototype instantiation of this
            partial specialization. */
@@ -8928,12 +8929,14 @@ Update var with a dependent type.
 
 a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
-				a_template_arg_ptr	*new_templ_arg_list)
+				a_template_arg_ptr	*new_templ_arg_list,
+				a_boolean		prototype_allowed)
 /*
 Given a variable template symbol (template_sym) and a template argument
 list (*new_templ_arg_list), look for an existing variable template
-instance, or create a new instance if none is found.  Return the symbol
-for the instance.
+instance, or create a new instance if none is found.  If prototype_allowed
+is TRUE, return a prototype instantiation if it matches the argument
+list.  Return the symbol for the instance found.
 
 If a new template instance is created, the template argument list is
 attached to that new instance.  If an existing instance is found, the
@@ -8942,10 +8945,11 @@ the pointer provided by the caller is set to NULL to prevent subsequent
 use of the argument list in case it has been freed.
 */
 {
-  a_symbol_ptr				sym;
+  a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_template_instance_ptr		tip = NULL;
   a_boolean				is_nonreal = FALSE;
+  an_equiv_templ_arg_options_set	eta_options;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   template_sym = fundamental_symbol_of(template_sym);
@@ -8958,7 +8962,34 @@ use of the argument list in case it has been freed.
       template_arg_list_is_dependent(*new_templ_arg_list)) {
     is_nonreal = TRUE;
   }  /* if */
-  { a_symbol_ptr	*hash_table_sym = NULL;
+  /* The template symbol must be for the primary template. */
+  check_assertion(tssp->primary_template_sym == NULL);
+  eta_options = eta_options_for_template(template_sym, tssp);
+  if (is_nonreal && prototype_allowed) {
+    /* See if the list matches a partial specialization. */
+    a_symbol_ptr	ps_sym;
+    ps_sym = tssp->partial_specializations;
+    for (; ps_sym != NULL; ps_sym = ps_sym->next) {
+      /* Get the symbol associated with the prototype instantiation of this
+         partial specialization. */
+      a_symbol_ptr		ps_prototype_sym;
+      a_variable_ptr		ps_var;
+      a_template_arg_ptr	old_list;
+      ps_var = variable_for_symbol(ps_sym);
+      ps_prototype_sym = symbol_for(ps_var);
+      /* Old list is the template argument list associated with the
+         prototype instantiation of the partial specialization.  See if
+         the list passed in matches it. */
+      old_list = ps_var->template_info->template_arg_list;
+      if (equiv_template_arg_lists(old_list, *new_templ_arg_list,
+                                   eta_options | ETA_IS_PROTOTYPE)) {
+        sym = ps_sym;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (sym == NULL) {
+    a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
     hash_table_sym = find_instantiation(template_sym, tssp,
                                         *new_templ_arg_list,
@@ -8966,11 +8997,11 @@ use of the argument list in case it has been freed.
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
-  }
+  }  /* if */
   if (sym != NULL) {
     tip = template_instance_for_symbol(sym);
   }  /* if */
-  if (tip == NULL) {
+  if (sym == NULL) {
     /* No match was found, so create a new template variable.  That means
        create a symbol entry, a variable entry, and a template instance
        entry, and linking all these appropriately. */
@@ -8996,7 +9027,6 @@ use of the argument list in case it has been freed.
     /* We are reusing a template function that already exists, so
        *new_templ_arg_list will not be used. */
     free_template_arg_list(*new_templ_arg_list);
-    sym = tip->instance_sym;
   }  /* if */
   /* The list is cleared in all cases.  The caller cannot use the list
      after we return because it may have been freed. */
@@ -16069,16 +16099,21 @@ error_exit:
 }  /* find_member_function_template */
 
 
-void find_variable_member_template(a_symbol_ptr  var_sym,
-                                   a_symbol_ptr  corresp_prototype_tag_sym)
+void find_variable_member_template(
+			a_symbol_ptr		var_sym,
+			a_symbol_ptr		corresp_prototype_tag_sym,
+			a_token_sequence_number	token_sequence_number)
 /*
-var_sym is a symbol representing a static data member or variable template of
-a real instantiation of a class template.  corresp_prototype_tag_sym identifies
-the nonreal prototype instantiation of the same class template.  Find the
-static data member or variable template symbol from the prototype
+var_sym is a symbol representing a static data member or variable template
+of a real instantiation of a class template.  corresp_prototype_tag_sym
+identifies the nonreal prototype instantiation of the same class template.
+Find the static data member or variable template symbol from the prototype
 instantiation (it serves as the template for the real static data member),
 and record it in the template instance entry already associated with var_sym.
-Also, add the instance to the definitions list for the template.
+token_sequence_number identifies the location of the declaration within
+the class and is used to determine which of several potential declarations
+should be used (in the case of partial specializations).  Also, add the
+instance to the definitions list for the template.
 */
 {
   a_type_ptr                        tp, member_type;
@@ -16114,7 +16149,7 @@ Also, add the instance to the definitions list for the template.
           a_template_symbol_supplement_ptr	tssp;
           tssp = template_supplement_for_symbol(sym);
           check_assertion(tssp != NULL);
-          if (tssp->token_sequence_number == curr_token_sequence_number) {
+          if (tssp->token_sequence_number == token_sequence_number) {
             break;
           } else {
             sym = NULL;
@@ -16141,6 +16176,24 @@ Also, add the instance to the definitions list for the template.
         if (sym->kind == var_sym->kind &&
             (symbol_is(sym, sk_variable_template) ||
              template_instance_for_symbol(sym) != NULL)) {
+          /* For variable templates, make sure that the tokens sequence
+             number of the template matches the one we are looking for.
+             If not, it is probably a partial specialization.  This is
+             not done for static data members because __if_exist can
+             cause a mismatch. */
+          a_template_symbol_supplement_ptr	tssp;
+          tssp = template_supplement_for_symbol(sym);
+          if (symbol_is(sym, sk_variable_template) &&
+              tssp->token_sequence_number != token_sequence_number) {
+            /* Check each of its partial specializations. */
+            for (sym = tssp->partial_specializations;
+                 sym != NULL; sym = sym->next) {
+              tssp = sym->variant.template_info;
+              if (tssp->token_sequence_number == token_sequence_number) {
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (sym->kind == (a_symbol_kind)sk_property_set) {
@@ -17452,7 +17505,7 @@ generated.
       /* When a member class template is specialized, the list of partial
          specializations should be cleared because those partial
          specializations were associated with the prototype template. */
-      tssp->variant.class_template.partial_specializations = NULL;
+      tssp->partial_specializations = NULL;
       for (slep = tssp->variant.class_template.instantiations; slep != NULL;
            slep = slep->next) {
         /* It is only an error if the class type is complete and is not a
@@ -17546,12 +17599,12 @@ sure it matches the primary template.
   } else if (sym_is_namespace_member(primary_sym)) {
     sym->parent.namespace_ptr = sym_parent_namespace_or_null(primary_sym);
   }  /* if */
-  tssp->variant.class_template.primary_template_sym = primary_sym;
+  tssp->primary_template_sym = primary_sym;
   if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
     /* Only link the symbol to the primary template if some error has not
        already occurred. */
-    sym->next = primary_tssp->variant.class_template.partial_specializations;
-    primary_tssp->variant.class_template.partial_specializations = sym;
+    sym->next = primary_tssp->partial_specializations;
+    primary_tssp->partial_specializations = sym;
     /* Make sure that the type kind of the partial specialization matches the
        type kind of the primary template. */
     if ((type_kind == (a_type_kind)tk_union) !=
@@ -18022,7 +18075,7 @@ subordinate templates.
   if (primary_sym == NULL) {
     /* When no primary template symbol is passed in, use the one pointed
        to by this partial specialization. */
-    primary_sym = ps_tssp->variant.class_template.primary_template_sym;
+    primary_sym = ps_tssp->primary_template_sym;
   }  /* if */
   primary_tssp = primary_sym->variant.template_info;
   for (slep = primary_tssp->variant.class_template.instantiations;
@@ -18054,7 +18107,7 @@ subordinate templates.
       instance_ct_sym = sym->
                          variant.class_struct_union.extra_info->class_template;
       instance_tssp = instance_ct_sym->variant.template_info;
-      if (instance_tssp->variant.class_template.primary_template_sym == NULL) {
+      if (instance_tssp->primary_template_sym == NULL) {
         /* The instance was generated from the primary template. */
         pos_sy_diagnostic(severity, ec_partial_spec_after_instantiation,
                           &ps_sym->decl_position, sym);
@@ -19446,8 +19499,7 @@ friend_template_checks_done:
     if (is_prototype_instantiation_symbol(sym)) {
       sym = sym->variant.class_struct_union.extra_info->class_template;
       check_assertion(sym != NULL);
-      if (sym->variant.template_info->
-                         variant.class_template.primary_template_sym == NULL) {
+      if (sym->variant.template_info->primary_template_sym == NULL) {
         /* The template found is the prototype instantiation of the primary
            template.  This occurs if the primary template was named in the
            template argument list of a partial specialization.  This is
@@ -20136,7 +20188,7 @@ friend_template_checks_done:
        primary template to a partial or normal specialization. */
     if (decl_state->is_partial_specialization) {
       decl_state->il_template_entry->min_template_arguments =
-              tssp->variant.class_template.primary_template_sym->
+              tssp->primary_template_sym->
               variant.template_info->il_template_entry->min_template_arguments;
     } else if (tssp->prototype_template != NULL) {
       decl_state->il_template_entry->min_template_arguments =
@@ -22520,6 +22572,7 @@ Create the variable entry variable template specified by template_sym.
   var = prototype_sym->variant.variable.ptr;
   tssp->variant.variable.prototype_variable = var;
   var->is_prototype_instantiation = TRUE;
+  var->is_nonreal = TRUE;
   var->type = dps->type;
   /* FIXME: check after decl_variable refactoring. */
   var->storage_class = dps->storage_class;
@@ -22554,9 +22607,15 @@ variable template specified by locator.  Return the symbol.
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
 
-  sym = enter_symbol((a_symbol_kind)sk_variable_template, locator,
-                     decl_state->effective_decl_level,
-                     /*suppress_error=*/FALSE);
+  if (!decl_state->is_partial_specialization) {
+    sym = enter_symbol((a_symbol_kind)sk_variable_template, locator,
+                       decl_state->effective_decl_level,
+                       /*suppress_error=*/FALSE);
+  } else {
+    sym = alloc_symbol((a_symbol_kind)sk_variable_template,
+                       locator->symbol_header,
+                       &locator->source_position);
+  }  /* if */
   set_membership_of_template(decl_state, sym);
   tssp = sym->variant.template_info;
   set_il_template_entry(decl_state, sym, tssp);
@@ -22593,13 +22652,6 @@ and returned.  Otherwise, NULL is returned.
   if (is_error_locator(*locator)) {
     /* An incorrectly formed identifier. */
     err = TRUE;
-  } else if (locator->is_qualified_name || locator->is_template_id) {
-#if 0
-    /* FIXME: partial specialization case is a template id. */
-#endif /* 0 */
-    /* An error should have already been issued for this case. */
-    err = TRUE;
-    unexpected_condition();
   } else if (locator->is_operator_name ||
              locator->is_conversion_name) {
     /* Issue an error for something like "operator+" or "operator int". */
@@ -22649,6 +22701,76 @@ and returned.  Otherwise, NULL is returned.
 }  /* check_variable_template_declaration */
 
 
+a_symbol_ptr variable_template_partial_specialization(
+				a_symbol_ptr		orig_sym,
+				a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_locator	*locator)
+/*
+ps_sym is points to a variable template instance such as x<T*>.  See if
+there is a variable template "x" for which this should be considered a
+partial specialization.  If so, create a new variable template symbol
+for the partial specialization, link it to the primary template, and
+return the new symbol.
+
+If this is not a partial specialization, issue an appropriate error and
+return NULL.
+*/
+{
+  a_variable_ptr	orig_var;
+  a_symbol_ptr		ps_sym = NULL;
+
+  orig_var = variable_for_symbol(orig_sym);
+  check_assertion(symbol_is(orig_sym, sk_variable));
+  if (!orig_var->is_nonreal) {
+    pos_sy_error(ec_bad_partial_specialization, &locator->source_position,
+                 orig_sym);
+    decl_state->decl_scope_err = TRUE;
+    set_to_named_error_locator(*locator);
+  } else {
+    a_symbol_ptr			primary_sym;
+    a_template_symbol_supplement_ptr	primary_tssp;
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_ptr			templ;
+    a_variable_template_info_ptr	vtip;
+    a_variable_ptr			ps_var;
+
+    check_assertion(orig_var->is_template_variable);
+    decl_state->is_partial_specialization = TRUE;
+    templ = orig_var->template_info->assoc_template;
+    primary_sym = symbol_for(templ);
+    check_assertion(primary_sym != NULL &&
+                    primary_sym->kind == (a_symbol_kind)sk_variable_template);
+    primary_sym = primary_template_of(primary_sym);
+    primary_tssp = primary_sym->variant.template_info;
+    ps_sym = create_variable_template_symbol(decl_state, locator);
+    ps_sym->decl_scope = primary_sym->decl_scope;
+    tssp = ps_sym->variant.template_info;
+    tssp->primary_template_sym = primary_sym;
+    ps_var = variable_for_symbol(ps_sym);
+    vtip = ps_var->template_info;
+    /* The call to create_variable_template_symol above created a
+       template argument list based on the parameters of the partial
+       specialization.  That should be used as the
+       partial_spec_template_arg_list.  The template_arg_list should be the
+       one specified on the declaration.  For example, for the declarations:
+         template <typename U> T x<U> = z1;
+         template <typename T> T* x<T*> = z2;
+       the template_arg_list for the partial specialization would be T*, while
+       the partial_spec_template_arg_list would just be T. */
+    vtip->partial_spec_template_arg_list = vtip->template_arg_list;
+    vtip->template_arg_list =
+            copy_template_arg_list(orig_var->template_info->template_arg_list);
+    if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
+      /* Only link the symbol to the primary template if some error has not
+         already occurred. */
+      ps_sym->next = primary_tssp->partial_specializations;
+      primary_tssp->partial_specializations = ps_sym;
+    }  /* if */
+  }  /* if */
+  return ps_sym;
+}  /* variable_template_partial_specialization */
+
+
 static a_symbol_ptr variable_template_declaration(
                                   a_tmpl_decl_state_ptr            decl_state,
                                   a_symbol_locator                 *locator,
@@ -22679,6 +22801,12 @@ template symbol supplement for this template should be returned to the caller.
     dps->type = make_qualified_type(dps->type, (a_type_qualifier_set)TQ_CONST);
   }  /* if */
   sym = locator->specific_symbol;
+  if (sym != NULL && symbol_is(sym, sk_variable) && locator->is_template_id) {
+    /* This is either a partial specialization of the variable template
+       of an error.  Call a routine to handle the partial specialization
+       (and check for error cases). */
+    sym = variable_template_partial_specialization(sym, decl_state, locator);
+  }  /* if */
   if (sym == NULL) {
     /* The declaration did not refer to a previously declared variable
        template or static data member. */
@@ -24839,6 +24967,7 @@ any non-empty template parameter lists that were scanned.
       a_symbol_locator   locator;
       a_func_info_block  func_info;
       a_boolean          is_function_template;
+      a_symbol_ptr       loc_sym;
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
       scan_template_declaration(dps, /*is_initial_decl=*/TRUE,
@@ -24867,8 +24996,14 @@ any non-empty template parameter lists that were scanned.
         set_to_named_error_locator(locator);
       }  /* if */
       is_function_template = is_function_type(dps->type);
+      loc_sym = locator.specific_symbol;
       if (!is_function_template &&
-          (variable_templates_enabled || locator.specific_symbol != NULL)) {
+          (variable_templates_enabled ||
+           (loc_sym != NULL &&
+            (symbol_is(loc_sym, sk_static_data_member) ||
+             symbol_is(loc_sym, sk_variable_template))))) {
+        /* A template static data member or a variable template
+           declaration. */
         sym = variable_template_declaration(decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any

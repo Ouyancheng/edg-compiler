@@ -521,8 +521,7 @@ name of an instance of a class template in Microsoft mode.
         /* However, we do need to record that partial specializations are
            hidden, as they are treated as separate templates whose
            instances do not refer back to the primary template. */
-        for (sym = hidden_sym->variant.template_info->
-                                variant.class_template.partial_specializations;
+        for (sym = hidden_sym->variant.template_info->partial_specializations;
              sym != NULL;
              sym = sym->next) {
           record_defeatable_name_hiding_for_single_entity(

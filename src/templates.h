@@ -473,7 +473,8 @@ extern a_symbol_ptr find_class_template_instance(
 
 extern a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
-				a_template_arg_ptr	*new_templ_arg_list);
+				a_template_arg_ptr	*new_templ_arg_list,
+				a_boolean		prototype_allowed);
 
 extern a_namespace_ptr determine_referencing_namespace(void);
 
@@ -677,8 +678,9 @@ extern void find_member_function_template(
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
 extern void find_variable_member_template(
-                                    a_symbol_ptr  var_sym,
-                                    a_symbol_ptr  corresp_prototype_tag_sym);
+			a_symbol_ptr		var_sym,
+			a_symbol_ptr		corresp_prototype_tag_sym,
+			a_token_sequence_number	token_sequence_number);
 
 extern void find_inclass_field_initializer_for_instance(
 				a_symbol_ptr	field_sym,
@@ -909,6 +911,11 @@ extern void begin_special_variadic_template_arg_list_traversal(
 extern void special_variadic_advance_to_next_template_arg(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap);
+
+extern a_symbol_ptr variable_template_partial_specialization(
+				a_symbol_ptr		orig_sym,
+				a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_locator	*locator);
 
 extern a_symbol_ptr create_variable_template_symbol(
                                   a_tmpl_decl_state_ptr            decl_state,

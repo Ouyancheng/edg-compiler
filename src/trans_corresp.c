@@ -5843,18 +5843,16 @@ return NULL.
                   corresp_tssp = template_supplement_for_symbol(sym);
 
   /* The symbol "sym" always corresponds to a primary symbol. */
-  check_assertion(
-           corresp_tssp->variant.class_template.primary_template_sym == NULL);
+  check_assertion(corresp_tssp->primary_template_sym == NULL);
   if (tssp->variant.class_template.is_alias_template !=
                      corresp_tssp->variant.class_template.is_alias_template) {
     /* Class templates cannot match alias templates. */
-  } else if (tssp->variant.class_template.primary_template_sym != NULL) {
+  } else if (tssp->primary_template_sym != NULL) {
     /* The given template is a partial specialization: look for a partial
        specialization with the same set of parameters and arguments.
        First, however, we must check that they come from corresponding
        primary templates. */
-    a_symbol_ptr    prim_templ_sym =
-                            tssp->variant.class_template.primary_template_sym;
+    a_symbol_ptr    prim_templ_sym = tssp->primary_template_sym;
     a_template_ptr  prim_templ =
                            template_supplement_for_symbol(prim_templ_sym)
                                                           ->il_template_entry;
@@ -5862,7 +5860,7 @@ return NULL.
     if (corresponding_templates(prim_templ, corresp_prim_templ)) {
       /* The two partial specializations specialize the same primary
          template. */
-      for (sym = corresp_tssp->variant.class_template.partial_specializations;
+      for (sym = corresp_tssp->partial_specializations;
            sym != NULL;
            sym = sym->next) {
         corresp_tssp = template_supplement_for_symbol(sym);
@@ -7014,7 +7012,7 @@ corresponding instance, or NULL if no corresponding instance is found.
       /* Check whether a partial specialization prototype instantiation is
          a match. */
       a_symbol_ptr	ps_sym;
-      for (ps_sym = tssp->variant.class_template.partial_specializations;
+      for (ps_sym = tssp->partial_specializations;
            ps_sym != NULL; ps_sym = ps_sym->next) {
         candidate_sym = ps_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
@@ -7222,11 +7220,10 @@ does not set either return value.
     a_template_symbol_supplement_ptr	tssp;
     a_symbol_ptr			primary_sym;
     tssp = sym_to_find->variant.template_info;
-    primary_sym = tssp->variant.class_template.primary_template_sym;
+    primary_sym = tssp->primary_template_sym;
     if (primary_sym != NULL) {
       primary_sym = find_corresponding_symbol(primary_sym, tup);
-      *symbols = primary_sym->variant.template_info->
-                                variant.class_template.partial_specializations;
+      *symbols = primary_sym->variant.template_info->partial_specializations;
     }  /* if */
   }  /* if */
 }  /* get_symbol_list_for_corresp_symbol */
