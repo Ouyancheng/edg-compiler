@@ -3532,9 +3532,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           elem_con = con->variant.aggregate.first_constant;
           if (elem_con == NULL) {
             fp = tp->variant.class_struct_union.field_list;
+            fp = next_initializable_field(fp);
             if (fp == NULL) {
               /* An empty union: Nothing more to do. */
-              break;
+            } else if (con->explicit_braces_on_aggregate) {
+              /* A value-initialized union (e.g., "U x{};").  Initialize the
+                 first field to zero. */
+              a_type_ptr  ftp = skip_typerefs(fp->type);
+              get_mapped_byte_count(&persistent_map, fp, offset);
+              init_subobject_to_zero(ips, value+offset, ftp, complete_object);
+              /* Record the active field. */
+              *(a_field_ptr*)value = fp;
             } else {
               a_source_position  *diag_pos =
                                            &con->source_corresp.decl_position;
@@ -3545,6 +3553,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                 diag_pos, symbol_for(fp), ips);
               do_constexpr_fail(result);
             }  /* if */
+            break;
           } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
             fp = elem_con->variant.designator.variant.field;
             elem_con = elem_con->next;
@@ -3552,7 +3561,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             fp = tp->variant.class_struct_union.field_list;
             fp = next_initializable_field(fp);
           }  /* if */
-          if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
+          if (fp == NULL || elem_con->next != NULL) {
             /* Unions should have only one actual initializer constant
                (possibly following a designator).  This can happen with
                severe errors, however. */
