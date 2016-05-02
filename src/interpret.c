@@ -2903,6 +2903,7 @@ path entries are added for nested anonymous unions if needed.
        needed. */
     addr->variant.variant_path = alloc_variant_path_entry();
     last_entry = addr->variant.variant_path;
+    last_entry->next = NULL;
     addr->flags |= CA_VARIANT_PATH;
   }  /* if */
   au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
@@ -5202,7 +5203,15 @@ otherwise, return FALSE and update *ips accordingly.
     p_arg_ptr = (a_byte**)arg_ptrs;
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       a_type_ptr  tp = skip_typerefs(arg->type);
-      release_address_structures(arg, tp, *p_arg_ptr);
+      if ((arg->is_lvalue || arg->is_xvalue) &&
+          !(tp->kind == (a_type_kind)tk_pointer &&
+            tp->variant.pointer.is_reference)) {
+          /* When a class-type argument is passed by-value via a copy
+             constructor call, the argument is left as an lvalue.  However,
+             such cases aren't passed via an address above. */
+      } else {
+        release_address_structures(arg, tp, *p_arg_ptr);
+      }  /* if */
       p_arg_ptr += 1;
     }  /* for */
     pop_call_frame(ips);
@@ -5557,7 +5566,15 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr  tp = skip_typerefs(arg->type);
-      release_address_structures(arg, tp, *p_arg_ptr);
+      if ((arg->is_lvalue || arg->is_xvalue) &&
+          !(tp->kind == (a_type_kind)tk_pointer &&
+            tp->variant.pointer.is_reference)) {
+          /* When a class-type argument is passed by-value via a copy
+             constructor call, the argument is left as an lvalue.  However,
+             such cases aren't passed via an address above. */
+      } else {
+        release_address_structures(arg, tp, *p_arg_ptr);
+      }  /* if */
       p_arg_ptr += 1;
     }  /* for */
     pop_call_frame(ips);
