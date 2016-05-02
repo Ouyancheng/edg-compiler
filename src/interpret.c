@@ -3229,12 +3229,18 @@ formats as necessary.  Return FALSE if the constant is an error constant.
 {
   a_boolean  result = TRUE;
 
-  if (con->implicit_cast && con->expr != NULL) {
-    /* If the constant includes an implicit cast, evaluate the constant
-       through the backing expression so that the cast is correctly applied. */
-    do_constexpr_full_expression(
+  if (con->implicit_cast) {
+    if (con->is_reinterpret_cast) {
+      info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
+      do_constexpr_fail(result);
+    } else if (con->expr != NULL) {
+      /* If the constant includes an implicit cast, evaluate the constant
+         through the backing expression so that the cast is correctly
+         applied. */
+      do_constexpr_full_expression(
                               ips, con->expr, value, complete_object, result);
-    goto done;
+      goto done;
+    }  /* if */
   }  /* if */
   switch (con->kind) {
     case ck_error:
