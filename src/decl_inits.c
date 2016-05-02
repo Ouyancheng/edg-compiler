@@ -7772,6 +7772,9 @@ initialized.  These are addressed in the course of the processing.
           /* No additional pack elements follow.  Ensure we have reached the
              end of the token cache. */
           if (curr_token != tok_end_of_source) {
+            if (curr_token == tok_ellipsis) {
+              pos_error(ec_exp_lbrace, &pos_curr_token);
+            }  /* if */
             expect_error();
             /* If necessary, keep flushing until end-of-source is found. */
             while (curr_token != tok_end_of_source) (void)get_token();
