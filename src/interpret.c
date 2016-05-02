@@ -3272,6 +3272,18 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                               ips, con->expr, value, complete_object, result);
       } else {
         a_type_ptr  obj_type = NULL;
+        if (con->explicit_cast_applied) {
+          a_type_ptr  ptr_type = skip_typerefs(con->type);
+          if (ptr_type->kind != (a_type_kind)tk_pointer) {
+            /* A reinterpret-like cast from pointer to integer. */
+            check_assertion(con->orig_type != NULL);
+            info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                &ips->position, con->orig_type, con->type,
+                                ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+        }  /* if */
         switch (con->variant.address.kind) {
           case abk_routine:
             make_function_address(value, con->variant.address.variant.routine);
