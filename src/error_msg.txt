@@ -2843,6 +2843,7 @@ ec_constexpr_vacuous_dtor_call;;"vacuous destructor call"
 ec_constexpr_modifying_const_storage;;"attempt to modify const storage"
 ec_constexpr_union_offset;;"address constants pointing to union members are not yet supported in C++14 constexpr functions"
 ec_constexpr_bad_address;;"address constant cannot be folded for evaluation of C++14 constexpr function"
+ec_constexpr_access_past_object;;"attempt to access storage one position past an object treated as an array of one element"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

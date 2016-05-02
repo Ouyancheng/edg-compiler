@@ -1900,20 +1900,25 @@ static void info_one_past_end_of_array(a_constexpr_address   *addr,
                                        an_interpreter_state  *ips)
 /*
 expr is an rvalue whose evaluation requires the indirection of addr, but it
-turns out addr is pointing one position past an array.  Record diagnostic
-information describing the problem.
+turns out addr is pointing one position past the end of an array or a single
+object treated as an array of one element.  Record diagnostic information
+describing the problem.
 */
 {
   a_byte_count  elem_size, pos;
   a_byte        *base_address;
   a_boolean     local_result = TRUE;
 
-  elem_size = value_bytes_for_type(ips, expr->type, &local_result);
-  check_assertion(local_result);
-  base_address = get_base_address(addr);
-  pos = (a_byte_count)(addr->address - base_address) / elem_size;
-  info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
-                    pos, ips);
+  if (is_array_element(addr)) {
+    elem_size = value_bytes_for_type(ips, expr->type, &local_result);
+    check_assertion(local_result);
+    base_address = get_base_address(addr);
+    pos = (a_byte_count)(addr->address - base_address) / elem_size;
+    info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
+                      pos, ips);
+  } else {
+    info_with_pos(ec_constexpr_access_past_object, &expr->position, ips);
+  }  /* if */
 }  /* info_one_past_end_of_array */
 
 
