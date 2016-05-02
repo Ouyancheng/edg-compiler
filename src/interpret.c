@@ -5419,8 +5419,9 @@ the body of the (constructor) function proper.
                                                         &result);
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
-      mark_complete_object_initialized(this_bytes);
+      ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
       ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+      mark_complete_object_initialized(this_bytes);
       map_stack_bytes(ips, this_var, this_bytes);
       map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
     }  /* if */
@@ -8730,15 +8731,15 @@ used by the value representation of the integer value.
                 /* Copying an address type.  Make sure its side structures, if
                    any, are not shared. */
                 copy_address_structures(result_storage);
-              } 
-              /* Mark the destination storage as fully initialized. */
-              mark_complete_object_initialized(complete_object);
-              if (is_immediate_class_type(tp) ||
-                  tp->kind == (a_type_kind)tk_array) {
+              } else if (is_immediate_class_type(tp) ||
+                         tp->kind == (a_type_kind)tk_array) {
+                /* Mark subobjects as initialized. */
                 a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;
                 (void)memset(complete_object-bitmap_size-sizeof(a_type_ptr)-1,
                              ~0, bitmap_size);
               }  /* if */
+              /* Mark the destination storage as fully initialized. */
+              mark_complete_object_initialized(complete_object);
             }  /* if */
           } else {
             a_constant_ptr  con = var_constant_value(var);
