@@ -12234,9 +12234,6 @@ Can be used in C mode (though that's not typical).
   char                      *prefixed_name;
   sizeof_t                  mangled_name_length, info_name_length;
   sizeof_t                  prefix_length, alloc_length;
-#if IA64_ABI
-  a_mangling_control_block  mctl;
-#endif /* IA64_ABI */
 
   if (scp->name_has_been_mangled || C_mode()) {
     /* In many cases the object's name has already been mangled (e.g.,
@@ -12245,26 +12242,7 @@ Can be used in C mode (though that's not typical).
     mangled_name = scp->name;
   } else {
     if (kind == (an_il_entry_kind)iek_variable) {
-      if (scp_is_class_or_namespace_member(scp)) {
-        /* A static data member or member of a namespace needs to be
-           appropriately qualified. */
-        mangled_name = get_mangled_variable_name((a_variable_ptr)scp);
-      } else {
-        /* A file-scope variable needs no qualification, so provide the
-           appropriate mangled encoding for the variable name here. */
-        check_assertion(!scp->is_local_to_function &&
-                        in_file_scope(scp) &&
-                        scp->name != NULL);
-#if IA64_ABI
-        /* Just the variable's name with a preceding length. */
-        start_mangling(&mctl);
-        mangled_name_with_length(scp->name, &mctl);
-        mangled_name = end_mangling(/*final=*/TRUE, &mctl);
-#else /* !IA64_ABI */
-        /* Just the variable's name. */
-        mangled_name = scp->name;
-#endif /* IA64_ABI */
-      }  /* if */
+      mangled_name = get_mangled_variable_name((a_variable_ptr)scp);
     } else if (kind == (an_il_entry_kind)iek_routine) {
       mangled_name = get_mangled_function_name((a_routine_ptr)scp);
     } else {
