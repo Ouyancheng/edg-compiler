@@ -5287,14 +5287,19 @@ user later during real instantiations.
     /* Push a template instantiation scope.  For static data members, the
        argument list comes from the enclosing class that is reactivated by
        push_template_instantiation_scope. */
+    a_template_arg_ptr	templ_arg_list;
     tcp = cache_for_template(tssp);
+    templ_arg_list = var_ptr->template_info->partial_spec_template_arg_list;
+    if (templ_arg_list == NULL) {
+      templ_arg_list = var_ptr->template_info->template_arg_list;
+    }  /* if */
     scope_pushed = push_template_instantiation_scope(
                                     tcp->decl_info,
                                     (a_type_ptr)NULL,
                                     (a_routine_ptr)NULL,
                                     proto_sym,
                                     template_sym,
-                                    var_ptr->template_info->template_arg_list,
+                                    templ_arg_list,
                                     /*push_lex_state=*/TRUE,
                                     PS_PROTOTYPE_INSTANTIATION);
   }  /* if */
