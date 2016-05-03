@@ -10142,6 +10142,10 @@ evaluation (e.g., parameter values).
                                             (unsigned int)(target_type->size));
           set_integer_constant(char_con, char_val,
                                target_type->variant.integer.int_kind);
+          if (is_plain_char_type(elem_type) && targ_has_signed_chars) {
+            sign_extend_integer_value(&char_con->variant.integer_value,
+                                      targ_char_bit);
+          }  /* if */
           result_con = char_con;
         }  /* if */
       }  /* if */

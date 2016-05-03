@@ -1,5 +1,19 @@
 Version 4.11
 
+5/3/16   [EDGcpfe/17123]
+Sign extension for folding subscripted character string literal
+
+The front end previously failed to do sign extension when folding a
+subscripted reference to a character string literal in a configuration
+in which TARG_HAS_SIGNED_CHARS is TRUE.  This is now fixed.  For
+example, with --strict --c++11:
+
+  bool f() {
+    constexpr const char* p = "\200";
+    return p[0] == '\200';   // Previously returned false with signed chars
+  }
+
+
 4/29/16  [EDGcpfe/17127]
 Rename DEFAULT_CPP11_MODE to DEFAULT_CPP_MODE
 
