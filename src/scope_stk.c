@@ -8763,9 +8763,14 @@ being popped.
       a_symbol_ptr  ns_sym = symbol_for(ssep->assoc_namespace);
       a_namespace_symbol_supplement_ptr
                     nssp = ns_sym->variant.namespace_info.extra_info;
-      nssp->last_unnamed_type_number =
+      if (ssep->name_discr.last_unnamed_type_number >
+                                             nssp->last_unnamed_type_number) {
+        nssp->last_unnamed_type_number =
                                     ssep->name_discr.last_unnamed_type_number;
-      nssp->last_closure_type_number = ssep->last_closure_type_number;
+      }  /* if */
+      if (ssep->last_closure_type_number > nssp->last_closure_type_number) {
+        nssp->last_closure_type_number = ssep->last_closure_type_number;
+      }  /* if */
 #endif /* NEED_NAME_MANGLING */
     }  /* if */
     /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.
