@@ -2255,23 +2255,27 @@ the fields implied by the lambda's capture list).
       a_symbol_ptr  parent_sym = dps->sym;
       if (symbol_is(parent_sym, sk_static_data_member) ||
           symbol_is(parent_sym, sk_variable)) {
-        a_template_instance_ptr  tip;
-        tip = symbol_is(parent_sym, sk_static_data_member) ?
+        a_variable_ptr  vp = variable_for_symbol(parent_sym);
+        if (!vp->source_corresp.is_local_to_function) {
+          a_template_instance_ptr  tip;
+          tip = symbol_is(parent_sym, sk_static_data_member) ?
                          parent_sym->variant.static_data_member.instance_ptr :
                          parent_sym->variant.variable.instance_ptr;
-        if (tip != NULL) {
-          cssp->lambda_subject_to_trans_unit_corresp = TRUE;
-        }  /* if */
+          if (tip != NULL) {
+            cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+          }  /* if */
 #if NEED_NAME_MANGLING
-        ctsp->defined_in_variable_initializer = TRUE;
-        ctsp->lambda_parent.variable = variable_for_symbol(parent_sym);
-        /* If the parent variable is a template instance, the top of the scope
-           stack is a template instantiation scope or a reactivation scope.
-           Either way, the numbering will be local to this instantiation.
-           In other cases, the discriminator is more arbitrary (but still
-           unique), but its actual value is unimportant. */
-        cssp->discriminator = ++scope_stack_top().last_closure_type_number;
+          ctsp->defined_in_variable_initializer = TRUE;
+          ctsp->lambda_parent.variable = vp;
+          /* If the parent variable is a template instance, the top of the
+             scope stack is a template instantiation scope or a reactivation
+             scope.  Either way, the numbering will be local to this
+             instantiation.  In other cases, the discriminator is more
+             arbitrary (but still unique), but its actual value is
+             unimportant. */
+          cssp->discriminator = ++scope_stack_top().last_closure_type_number;
 #endif /* NEED_NAME_MANGLING */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
