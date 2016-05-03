@@ -7707,9 +7707,9 @@ typedef struct a_class_type_supplement {
   a_bit_field	defined_in_variable_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a static data member
-			   or variable template (closure classes nested in such
-			   closure classes do not necessarily have this flag
-			   set to TRUE). */
+			   or variable (closure classes nested in such closure
+			   classes do not necessarily have this flag set to
+			   TRUE). */
   a_bit_field	defined_in_field_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a field (closure
@@ -7895,9 +7895,9 @@ typedef struct a_class_type_supplement {
 		variable;
 			/* If this entry is for a closure type defined directly
 			   in the initializer of a static data member or
-			   variable template (i.e.,
-			   defined_in_variable_initializer is TRUE), this
-			   points to the entry representing that variable. */
+			   variable (i.e., defined_in_variable_initializer is
+			   TRUE), this points to the entry representing that
+			   variable. */
     /* When defined_in_field_initializer is TRUE: */
     a_field_ptr
 		field;

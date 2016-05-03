@@ -2248,8 +2248,8 @@ the fields implied by the lambda's capture list).
 #endif /* NEED_NAME_MANGLING */
     cssp->lambda_subject_to_trans_unit_corresp = TRUE;
   } else {
-    /* Check if we are in the initializer for a variable or static data member
-       or variable. */
+    /* Check if we are in the initializer for a static data member or
+       variable. */
     a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
     if (dps != NULL && dps->sym != NULL) {
       a_symbol_ptr  parent_sym = dps->sym;

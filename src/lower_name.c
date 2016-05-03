@@ -657,6 +657,8 @@ static a_const_char *give_unnamed_namespace_a_name(
 static void add_abi_tag_mangling(an_attribute_ptr         ap,
                                  a_mangling_control_block *mctl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+static void add_variable_template_indication(a_variable_ptr           vp,
+                                             a_mangling_control_block *mctl);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -1775,8 +1777,6 @@ Return the routine in which the lambda appears in a default argument in
                   cssp != NULL &&
                   cssp->lambda_immediately_inside_default_arg_expression);
   check_assertion(!type_is_lambda_in_initializer(type));
-  check_assertion(!ctsp->defined_in_variable_initializer &&
-                  !ctsp->defined_in_field_initializer);
   routine = ctsp->lambda_parent.routine;
   check_assertion(routine != NULL);
   if (enclosing_routine != NULL) *enclosing_routine = routine;
@@ -6633,8 +6633,6 @@ in a default argument of a function.
     if (cssp->lambda_immediately_inside_default_arg_expression) {
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
       check_assertion(!type_is_lambda_in_initializer(type));
-      check_assertion(!ctsp->defined_in_variable_initializer &&
-                      !ctsp->defined_in_field_initializer);
       if (ctsp->lambda_parent.routine != NULL) {
         result = TRUE;
       } else {
@@ -6775,7 +6773,6 @@ returned and mctl->lacking_module_id is set to TRUE.
                                          &local_mctl);
       add_local_name_suffix((unsigned long)0, enclosing_routine, &local_mctl);
     } else {
-      /* FIXME */
       /* All other lambdas are given a name with the following format:
 
            __Ul1_Fif <-- name given to lambda:
@@ -7935,26 +7932,36 @@ static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
                                                an_il_entry_kind        kind)
 /*
 Return TRUE if the indicated entity (as identified by scp and kind) needs a
-parent (class, namespace, or scoped enum) qualifier.  In the IA-64 ABI, lambda
-closures defined in default arguments of member functions or functions in a
-namespace don't need their parent entity (their actual class/namespace parent
-is replaced by a reference to a default argument in a local function).
+parent qualifier (typically a class, namespace, or scoped enum, but could also
+be a static data member or variable template for lambdas in initializers).  In
+the IA-64 ABI, lambda closures defined in default arguments of member functions
+or functions in a namespace don't need their parent entity (their actual
+class/namespace parent is replaced by a reference to a default argument in a
+local function).
 */
 {
   a_boolean result = FALSE;
 
   if (((scp_is_class_or_namespace_member(scp)
 #if IA64_ABI
-        && !((kind) == (an_il_entry_kind)iek_type &&
-             mangle_as_lambda_in_default_argument((a_type_ptr)(scp)))
+        && !(kind == (an_il_entry_kind)iek_type &&
+             mangle_as_lambda_in_default_argument((a_type_ptr)scp))
 #endif /* IA64_ABI */
                                                                      ) ||
     scp_is_enum_member(scp))
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-    && !(((kind) == (an_il_entry_kind)iek_type) &&
-         ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling)
+    && !((kind == (an_il_entry_kind)iek_type) &&
+         ((a_type *)scp)->use_cfront_transitional_nested_type_name_mangling)
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
                                                                             ) {
+    result = TRUE;
+  } else if (kind == (an_il_entry_kind)iek_type &&
+             type_is_lambda_in_initializer((a_type_ptr)scp)) {
+    /* A lambda that occurs in an initializer is mangled as though the entity
+       being initialized is its parent.  For example:
+         template <class T> int V = []{ return 0; }();
+       the mangled name is effectively V::<lambda> to differentiate it from
+       other lambdas. */
     result = TRUE;
   }  /* if */
   return result;
@@ -8198,8 +8205,9 @@ For most cases, the parent entity as specified by the IL is used for
 mangling purposes, but in two special cases the parent processing is
 non-standard.  In the first case (needs_to_be_individuated == TRUE), a
 top-level namespace is used as a parent entity (see above).  In the case
-of a lambda defined in the initializer list of a static data member, the
-static data member is used as the parent entity for mangling purposes.
+of a lambda defined in the initializer list of a static data member or variable
+template, the static data member or variable template is used as the parent
+entity for mangling purposes.
 */
 {
   a_type_ptr              type = NULL;
@@ -8388,9 +8396,10 @@ static data member is used as the parent entity for mangling purposes.
      for the specified entity, emit the proper encoding for the parent. */
   if (kind == iek_type &&
       type_is_lambda_in_initializer((a_type_ptr)scp)) {
-    /* Lambda in initializer list.  Simply add the name of the data
-       member or variable template along with its length. */
+    /* Lambda in initializer list.  Mangle as though the variable template
+       or static data member is the "parent" of the lambda. */
 #if IA64_ABI
+    a_boolean variable_template_case = FALSE;
     if (add_substitution_if_available((char *)parent_scp, parent_kind,
                                       /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
@@ -8403,17 +8412,32 @@ static data member is used as the parent entity for mangling purposes.
                                    mctl);
       }  /* if */
     }  /* if */
-#endif /* IA64_ABI */
     mangled_name_with_length(unmangled_or_fabricated_name_of(parent_scp),
                              mctl);
-    /* FIXME: template arguments? */
-#if IA64_ABI
-    /* FIXME: Skip this in variable template case: */
-    /* Mangling for lambda in initializer. */
-    add_to_mangled_name('M', mctl);
-    /* Add a substitution for this variable. */
+    /* Add a substitution for this variable/field. */
     alloc_substitution((char *)parent_scp, parent_kind,
                        /*is_pack_expansion=*/FALSE, mctl);
+    if (parent_kind == iek_variable) {
+      a_variable_ptr vp = (a_variable_ptr)parent_scp;
+      if (vp->is_template_variable &&
+          vp->template_info->template_arg_list != NULL) {
+        /* Mangle the template arguments for a variable template. */
+        add_variable_template_indication(vp, mctl);
+        variable_template_case = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!variable_template_case) {
+      /* Mangling for lambda in static data initializer. */
+      add_to_mangled_name('M', mctl);
+    }  /* if */
+#else /* !IA64_ABI */
+    a_length_reservation  length_reservation;
+    reserve_space_for_length(&length_reservation, mctl);
+    add_str_to_mangled_name(unmangled_or_fabricated_name_of(parent_scp), mctl);
+    if (parent_kind == iek_variable) {
+      add_variable_template_indication((a_variable_ptr)parent_scp, mctl);
+    }  /* if */
+    fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
   } else if (scp->is_class_member) {
     /* Class name. */
