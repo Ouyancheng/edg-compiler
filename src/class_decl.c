@@ -2267,13 +2267,19 @@ the fields implied by the lambda's capture list).
 #if NEED_NAME_MANGLING
           ctsp->defined_in_variable_initializer = TRUE;
           ctsp->lambda_parent.variable = vp;
-          /* If the parent variable is a template instance, the top of the
-             scope stack is a template instantiation scope or a reactivation
-             scope.  Either way, the numbering will be local to this
-             instantiation.  In other cases, the discriminator is more
-             arbitrary (but still unique), but its actual value is
-             unimportant. */
-          cssp->discriminator = ++scope_stack_top().last_closure_type_number;
+          /* If the parent variable is a template instance, use the
+             instantiation scope stack entry to count discriminators, which
+             ensures that the count is local to this instance.  In other
+             cases, the discriminator is more arbitrary (but still unique),
+             but its actual value is unimportant. */
+          { a_scope_stack_entry_ptr  ssep;
+            if (tip != NULL) {
+              ssep = &scope_stack[depth_innermost_instantiation_scope];
+            } else {
+              ssep = &scope_stack_top();
+            }  /* if */
+            cssp->discriminator = ++ssep->last_closure_type_number;
+          }
 #endif /* NEED_NAME_MANGLING */
         }  /* if */
       }  /* if */
