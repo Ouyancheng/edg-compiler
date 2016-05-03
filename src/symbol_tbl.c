@@ -3513,7 +3513,8 @@ and return a pointer to it.
       tssp->variant.variable.prototype_variable = NULL;
       clear_template_cache(&tssp->variant.variable.decl_cache,
                           /*reusable=*/TRUE);
-      break;
+      tssp->variant.variable.declarator_name_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+     break;
     default:
       unexpected_condition_str(
                           "alloc_template_symbol_supplement: bad symbol kind");

@@ -2971,6 +2971,10 @@ typedef struct a_template_symbol_supplement {
 			   first token of the declaration (the token after the
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the declarator. */
+      a_token_sequence_number
+		declarator_name_tsn;
+			/* The token sequence number of the identifier
+			   in the declarator. */
     } variable;
   } variant;
 } a_template_symbol_supplement;

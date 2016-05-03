@@ -1535,6 +1535,12 @@ typedef struct a_scope_stack_entry {
 			/* The original return type of the function (when kind
 			   is sck_function).  The final return type can change
 			   (e.g., because of "auto" deduction). */
+  a_token_sequence_number
+		var_templ_decl_name_tsn;
+			/* If we are in the instantiation of a variable
+			   template this is the token sequence number of
+			   the declarator name.  NO_TOKEN_SEQUENCE_NUMBER
+			   in other cases. */
 } a_scope_stack_entry;
 
 /*

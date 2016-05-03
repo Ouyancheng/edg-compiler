@@ -17277,9 +17277,11 @@ list.
   a_symbol_locator		orig_locator;
   a_boolean			any_errors = FALSE;
   a_symbol_ptr			new_sym = NULL;
+  a_token_sequence_number	start_tsn;
 
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
+  start_tsn = curr_token_sequence_number;
   if (next_tok != tok_lt) {
     pos_sy_error(ec_missing_template_arg_list, &start_position, template_sym);
     make_specific_symbol_error_locator(&locator_for_curr_id);
@@ -17349,6 +17351,13 @@ list.
       make_specific_symbol_error_locator(&locator_for_curr_id);
       locator_for_curr_id.source_position = orig_locator.source_position;
       new_sym = locator_for_curr_id.specific_symbol;
+    } else if (scope_stack_top().var_templ_decl_name_tsn == start_tsn) {
+      /* We are scanning a variable template partial specialization and have
+         hit the template argument list following the declarator name.
+         Ignore this template argument list. */
+      new_sym = NULL;
+      free_template_arg_list(arg_list);
+      arg_list = NULL;
     } else {
       a_boolean	prototype_allowed;
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
@@ -17362,9 +17371,9 @@ list.
     locator_for_curr_id.specific_symbol = new_sym;
     locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
     locator_for_curr_id.symbol_header = new_sym->header;
+    locator_for_curr_id.is_template_id = TRUE;
+    locator_for_curr_id.template_arg_list = arg_list;
   }  /* if */
-  locator_for_curr_id.is_template_id = TRUE;
-  locator_for_curr_id.template_arg_list = arg_list;
   /* Set the source position for error reporting. */
   error_position = start_position;
   *err = any_errors;

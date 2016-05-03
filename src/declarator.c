@@ -6005,6 +6005,7 @@ declared entity is known to not be a function.
     }  /* if */
     /* Save information on the identifier to be declared. */
     *locator = locator_for_curr_id;
+    dps->declarator_name_tsn = curr_token_sequence_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {
       decl_pos_block->identifier_range.end = end_pos_curr_token;
@@ -6066,6 +6067,7 @@ declared entity is known to not be a function.
             set_to_error_locator(*locator);
           } else {
             *locator = locator_for_curr_id;
+            dps->declarator_name_tsn = curr_token_sequence_number;
             *p_member_parent_type = ssep->il_scope->variant.assoc_type;
           }  /* if */
         }  /* if */

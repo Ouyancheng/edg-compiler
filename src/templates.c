@@ -3113,12 +3113,24 @@ should be preferred over templ_sym2.
      The deduced value is T*.  So, template1 is more specialized than
      template1. */
   tssp1 = template_sym1->variant.template_info;
-  prototype_sym1 = tssp1->variant.class_template.prototype_instantiation;
+  if (symbol_is(template_sym1, sk_class_template)) {
+    prototype_sym1 = tssp1->variant.class_template.prototype_instantiation;
+  } else {
+    a_variable_ptr	proto_var;
+    proto_var = variable_for_symbol(template_sym1);
+    prototype_sym1 = symbol_for(proto_var);
+  }  /* if */
   match1 = matches_partial_specialization(template_sym2, prototype_sym1,
                                           (a_template_arg_ptr*)NULL);
   /* Attempt the deduction in the other direction. */
   tssp2 = template_sym2->variant.template_info;
-  prototype_sym2 = tssp2->variant.class_template.prototype_instantiation;
+  if (symbol_is(template_sym2, sk_class_template)) {
+    prototype_sym2 = tssp2->variant.class_template.prototype_instantiation;
+  } else {
+    a_variable_ptr	proto_var;
+    proto_var = variable_for_symbol(template_sym2);
+    prototype_sym2 = symbol_for(proto_var);
+  }  /* if */
   match2 = matches_partial_specialization(template_sym1, prototype_sym2,
                                            (a_template_arg_ptr*)NULL);
   if (match1 && !match2) {
@@ -3131,14 +3143,11 @@ should be preferred over templ_sym2.
        variadic parameters. */
     if (tssp1->has_variadic_template_params &&
         tssp2->has_variadic_template_params) {
-      a_class_type_supplement_ptr		ctsp1;
-      a_class_type_supplement_ptr		ctsp2;
-      ctsp1 = prototype_sym1->variant.class_struct_union.type->
-                                        variant.class_struct_union.extra_info;
-      ctsp2 = prototype_sym2->variant.class_struct_union.type->
-                                        variant.class_struct_union.extra_info;
-      result = compare_variadic_template_arg_lists(ctsp1->template_arg_list,
-                                                   ctsp2->template_arg_list);
+      a_template_arg_ptr	tap1;
+      a_template_arg_ptr	tap2;
+      tap1 = template_arg_list_for_symbol(prototype_sym1);
+      tap2 = template_arg_list_for_symbol(prototype_sym2);
+      result = compare_variadic_template_arg_lists(tap1, tap2);
     } else if (tssp2->has_variadic_template_params) {
       result = 1;
     } else if (tssp1->has_variadic_template_params) {
@@ -6039,6 +6048,7 @@ been seen).
   a_template_symbol_supplement_ptr	tssp_of_prototype;
   a_boolean				is_definition = FALSE;
   a_boolean				incomplete_type_error_reported = FALSE;
+  a_template_arg_ptr			templ_arg_list;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6105,16 +6115,27 @@ been seen).
      Class reactivations are ignored for the initial portion of the
      static data member rescan.  They are considered once the declarator
      portion of the declaration is reached.  For variable template
-     instances the template_arg_list of the variable will be non-NULL. */
+     instances the template_arg_list of the variable will be non-NULL.
+     If there is a partial specialization template argument list, use that.
+     Otherwise, use the normal template argument list. */
+  templ_arg_list = var_ptr->template_info->partial_spec_template_arg_list;
+  if (templ_arg_list == NULL) {
+    templ_arg_list = var_ptr->template_info->template_arg_list;
+  }  /* if */
   (void)push_template_instantiation_scope(
                                    tssp->cache.decl_info,
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
                                    tip->template_sym,
-                                   var_ptr->template_info->template_arg_list,
+                                   templ_arg_list,
                                    /*push_lex_state=*/TRUE,
                                    PS_IGNORE_CLASS_CONTEXT);
+   /* Record the token sequence number of the declarator in the scope stack
+      entry.  This is used to allow the template argument list of
+      a partial specialization to be ignored. */
+   scope_stack_top().var_templ_decl_name_tsn =
+                                    tssp->variant.variable.declarator_name_tsn;
   /* Scan or rescan the declaration of the variable template or static
      data member. */
   scan_template_variable_declaration(tip, var_sym, tssp_of_prototype, &dps);
@@ -16232,12 +16253,12 @@ instance to the definitions list for the template.
             /* Check each of its partial specializations. */
             for (ps_sym = tssp->partial_specializations;
                  ps_sym != NULL; ps_sym = ps_sym->next) {
-              tssp = sym->variant.template_info;
+              tssp = ps_sym->variant.template_info;
               if (tssp->token_sequence_number == token_sequence_number) {
-                sym = ps_sym;
                 break;
               }  /* if */
             }  /* for */
+            sym = ps_sym;
           }  /* if */
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23070,6 +23091,7 @@ template symbol supplement for this template should be returned to the caller.
       set_template_cache_info(&tssp->variant.variable.decl_cache,
                               &decl_state->decl_token_cache,
                               decl_state->decl_info);
+      tssp->variant.variable.declarator_name_tsn = dps->declarator_name_tsn;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);

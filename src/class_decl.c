@@ -16101,6 +16101,8 @@ template declaration and is NULL otherwise.
                             &templ_state->decl_token_cache,
                             templ_state->decl_info);
     templ_state->decl_token_cache_used = TRUE;
+    var_templ_tssp->variant.variable.declarator_name_tsn =
+                                               decl_state->declarator_name_tsn;
   }  /* if */
   /* For a variable template, get the symbol associated with the prototype
      instantiation. */

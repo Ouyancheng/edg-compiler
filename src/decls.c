@@ -248,6 +248,7 @@ be restored).
   dps->do_flags = DO_NO_OUTPUT_FLAGS;
   dps->declarator_start_pos = null_source_position;
   dps->declarator_pos = null_source_position;
+  dps->declarator_name_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   dps->is_definition = FALSE;
   dps->in_nested_declarator = FALSE;
   dps->pack_ellipsis_allowed = FALSE;

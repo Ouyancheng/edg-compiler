@@ -612,6 +612,11 @@ typedef struct a_decl_parse_state {
 		declarator_pos;
 			/* The position of the declarator-id if there is one.
 			   Otherwise, same as declarator_start_pos. */
+  a_token_sequence_number
+		declarator_name_tsn;
+			/* The token sequence number of the identifier
+			   in the declarator or NO_TOKEN_SEQUENCE_NUMBER
+			   if there is none. */
   a_source_position
 		return_type_pos;
 			/* When the declarator is a function declarator, this
