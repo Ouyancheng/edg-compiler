@@ -22940,6 +22940,25 @@ template symbol supplement for this template should be returned to the caller.
 		 &locator->source_position, sym);
     err = TRUE;
   } else if (!is_initial_decl &&
+             tssp->variant.variable.decl_cache.decl_info != NULL &&
+             !equiv_template_param_lists(tssp->variant.variable.decl_cache.
+                                                         decl_info->parameters,
+                                         decl_state->decl_info->parameters,
+                                         /*issue_errors=*/TRUE,
+                                         ETP_NO_OPTIONS,
+                                         &locator->source_position,
+                                         es_error)) {
+    err = TRUE;
+  } else  if (!is_initial_decl && sym->is_class_member &&
+              !in_prototype_instantiation_or_cli_generic(decl_state) &&
+              decl_state->class_declared_in == NULL &&
+              !member_template_param_list_matches_class(
+                           decl_state, sym,
+                           /*allow_missing_member_constraint=*/TRUE,
+                           &error_position)) {
+    /* The template parameter list does not match previous declaration. */
+    err = TRUE;
+  } else if (!is_initial_decl &&
              var->is_thread_local !=
                                   ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
     /* If "thread_local" is specified on one declaration, it must be
@@ -22971,16 +22990,7 @@ template symbol supplement for this template should be returned to the caller.
     check_nonfunction_declaration_errors(&decl_state->decl_parse, locator);
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
-    /* Make sure the parameter list matches the class declaration. */
-    if (sym->is_class_member &&
-        !in_prototype_instantiation_or_cli_generic(decl_state) &&
-        decl_state->class_declared_in == NULL &&
-        !member_template_param_list_matches_class(
-                           decl_state, sym,
-                           /*allow_missing_member_constraint=*/TRUE,
-                           &error_position)) {
-      err = TRUE;
-    } else if ((is_ptr_or_ref_type(type) &&
+    if ((is_ptr_or_ref_type(type) &&
                 is_function_type(type_pointed_to(type))) ||
                (is_ptr_to_member_type(type) &&
                 is_function_type(pm_member_type(type)))) {
