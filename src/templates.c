@@ -5189,30 +5189,31 @@ user later during real instantiations.
 
 static a_boolean is_invalid_variable_template_type(
 					a_variable_ptr		var,
-					a_source_position_ptr	error_pos,
+					a_decl_parse_state_ptr	dps,
 					a_boolean		issue_error)
 /*
 Check whether the type of the variable template instance var is a valid
 variable type.  For example, a variable template instance that is given
-a function type is not valid.  Return TRUE if the type is not valid.
-If issue_error is TRUE, issue a diagnostic about the invalid type and
-use error_pos as the position.
+a function type is not valid.  dps provides information about the declaration.
+Return TRUE if the type is not valid.  If issue_error is TRUE, issue a
+diagnostic about the invalid type.
 */
 {
   a_type_ptr	tp = var->type;
   a_boolean	result = FALSE;
   an_error_code	error_code = ec_no_error;
+  a_boolean	is_extern = dps->storage_class == (a_storage_class)sc_extern;
 
   check_assertion(tp != NULL);
   if (is_function_type(tp)) {
     result = TRUE;
     error_code = ec_variable_templ_function_type;
-  } else if (is_incomplete_type(tp)) {
+  } else if (!is_extern && is_incomplete_type(tp)) {
     result = TRUE;
     error_code = ec_incomplete_var_type;
   }  /* if */
   if (result && issue_error) {
-    pos_ty_error(error_code, error_pos, tp);
+    pos_ty_error(error_code, &dps->specifiers_pos, tp);
   }  /* if */
   return result;
 }  /* is_invalid_variable_template_type */
@@ -5264,9 +5265,11 @@ user later during real instantiations.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */
-  var_ptr->storage_class = (a_storage_class)sc_unspecified;
-  var_ptr->source_corresp.name_linkage =
+  if (dps->storage_class != (a_storage_class)sc_extern) {
+    var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    var_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
   var_ptr->is_template_variable = TRUE;
   if (!is_variable_template) {
     /* Set the referencing namespace for the prototype instantiation. */
@@ -5372,7 +5375,7 @@ user later during real instantiations.
   /* Make sure the type from the declaration is a valid variable
      declaration. */
   if (is_variable_template && !incomplete_type_error_reported) {
-    if (is_invalid_variable_template_type(var_ptr, &dps->specifiers_pos,
+    if (is_invalid_variable_template_type(var_ptr, dps,
                                           /*issue_error=*/TRUE)) {
       var_ptr->type = error_type();
     }  /* if */
@@ -6255,7 +6258,7 @@ been seen).
   /* Make sure the type from the declaration is a valid variable
      declaration. */
   if (is_var_templ_instance && !incomplete_type_error_reported) {
-    if (is_invalid_variable_template_type(var_ptr, &dps.specifiers_pos,
+    if (is_invalid_variable_template_type(var_ptr, &dps,
                                           /*issue_error=*/TRUE)) {
       var_ptr->type = error_type();
     }  /* if */
