@@ -39611,6 +39611,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             sym = find_template_variable(t_sym, &t_args,
                                          /*prototype_allowed=*/FALSE);
           }  /* if */
+        } else {
+          sym = symbol_for(var);
         }  /* if */
       }
       break;
