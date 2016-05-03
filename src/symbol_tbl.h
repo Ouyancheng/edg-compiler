@@ -2234,6 +2234,16 @@ typedef struct a_template_instance {
                            template_sym == instance_sym when instance_sym is
 			   a member of prototype instantiation; when this is
 			   the case template_info is non-NULL.) */
+  a_symbol_ptr	template_used_for_instantiation;
+			/* For a variable template instance this points to
+			   the template symbol used for the instantiation.
+			   This is the same as template_sym unless a
+			   partial specialization was used.  A variable
+			   template can be instantiated more than once if
+			   it is initially declared extern, instantiated,
+			   and then later has a definition supplied.  This
+			   is used to make sure the same partial specialization
+			   is used at both points. */
   a_namespace_ptr
 		referencing_namespace;
 			/* Pointer to the namespace in which the use that
@@ -6056,6 +6066,21 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
       : symbol_is((sym), sk_variable)					\
         ? (sym)->variant.variable.ptr->template_info->template_arg_list	\
         : (sym)->variant.routine.ptr->template_arg_list)
+
+
+/*
+Return the address of the pointer to the partial specialization argument
+list for the given symbol.
+*/
+#define partial_spec_template_arg_list_addr_for_symbol(sym)		\
+  (is_class_struct_union_symbol(sym)					\
+    ? &(sym)->variant.class_struct_union.type->variant.			\
+        class_struct_union.extra_info->partial_spec_template_arg_list	\
+    : (symbol_is(sym, sk_variable)				\
+      ? &(sym)->variant.variable.ptr->template_info->			\
+                                   partial_spec_template_arg_list	\
+      : NULL))
+
 
 /* Return TRUE if the given symbol kind corresponds to a tag. */
 #define is_tag_symbol_kind(kind)                                 \

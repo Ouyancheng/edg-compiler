@@ -15000,6 +15000,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->master_instance             = NULL;
   tip->instance_sym                = NULL;
   tip->template_sym                = NULL;
+  tip->template_used_for_instantiation
+                                   = NULL;
   tip->referencing_namespace       = NULL;
   tip->template_info               = NULL;
   tip->prototype_scope_symbols     = NULL;

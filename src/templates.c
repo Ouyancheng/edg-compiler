@@ -465,6 +465,10 @@ static void update_instantiation_required_flag(
 			a_boolean				value,
 			a_set_instance_required_options_set	options);
 
+static an_equiv_templ_arg_options_set eta_options_for_template(
+			a_symbol_ptr				template_sym,
+			a_template_symbol_supplement_ptr	tssp);
+
 static a_template_ptr copy_template_with_substitution(
 			a_template_ptr			templ,
 			a_template_arg_ptr		templ_arg_list,
@@ -2988,23 +2992,38 @@ in ps_arg_list.
   a_boolean				result = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				prototype_sym;
-  a_type_ptr				prototype_type;
-  a_type_ptr				instance_type;
   a_template_param_ptr			templ_param_list;
   a_template_arg_ptr			local_arg_list;
   a_boolean				local_arg_list_used = FALSE;
+  a_template_arg_ptr			instance_tap;
+  a_template_arg_ptr			prototype_tap;
+  a_symbol_ptr				primary_template_sym;
+  a_template_symbol_supplement_ptr	primary_tssp;
+  a_template_param_ptr			primary_templ_param_list;
   
+  primary_template_sym = primary_template_of(template_sym);
+  primary_tssp = template_supplement_for_symbol(primary_template_sym);
   /* Get a pointer to the prototype instantiation associated with this
      partial specialization.  Then get the template argument list from
      the prototype instantiation. */
-  tssp = template_sym->variant.template_info;
-  prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  prototype_type = type_symbol_type(prototype_sym);
-  instance_type = type_symbol_type(instance_sym);
+  tssp = template_supplement_for_symbol(template_sym);
   /* Get the template parameter list associated with this partial
      specialization. */
-  templ_param_list = tssp->
+  if (symbol_is(template_sym, sk_class_template)) {
+    prototype_sym = tssp->variant.class_template.prototype_instantiation;
+    templ_param_list = tssp->
                variant.class_template.initial_decl_cache.decl_info->parameters;
+    primary_templ_param_list = primary_tssp->
+               variant.class_template.initial_decl_cache.decl_info->parameters;
+  } else {
+    a_variable_ptr	prototype_var;
+    check_assertion(symbol_is(template_sym, sk_variable_template));
+    prototype_var = variable_for_symbol(template_sym);
+    prototype_sym = symbol_for(prototype_var);
+    templ_param_list = tssp->variant.variable.decl_cache.decl_info->parameters;
+    primary_templ_param_list =
+               primary_tssp->variant.variable.decl_cache.decl_info->parameters;
+  }  /* if */
   /* If no template argument list was provided by the caller, use a local
      one.  This is the case when the caller doesn't care about the
      argument list. */
@@ -3016,26 +3035,37 @@ in ps_arg_list.
   *ps_arg_list = create_initial_template_arg_list(templ_param_list,
                                                   *ps_arg_list,
                                                   &null_source_position);
-  if (matches_template_type(instance_type, prototype_type, ps_arg_list,
-                            templ_param_list, MTT_NO_FLAGS)) {
+  instance_tap = template_arg_list_for_symbol(instance_sym);
+  prototype_tap = template_arg_list_for_symbol(prototype_sym);
+  if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
+                                templ_param_list)) {
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
                         /*is_partial_order_check=*/FALSE)) {
-      a_type_ptr	test_type;
-      a_boolean		copy_error = FALSE;
-      a_ctws_state	ctws_state;
+      a_template_arg_ptr		test_arg_list;
+      a_boolean				copy_error = FALSE;
+      a_ctws_state			ctws_state;
+      an_equiv_templ_arg_options_set	eta_options;
       init_ctws_state(&ctws_state);
       /* Substitute the template parameters of the template with the deduced
-         arguments.  We should end up with the original type.  This main
-         purpose of this test is to make sure that template parameters in
-         nondeduced contexts yield the expected types once substituted. */
-      test_type = copy_type_with_substitution(prototype_type,
-                                              *ps_arg_list, templ_param_list,
-					      &template_sym->decl_position,
-					      CTWS_NO_OPTIONS,
-					      &copy_error, &ctws_state);
-      if (!copy_error && identical_types(instance_type, test_type)) {
+         arguments.  We should end up with the original argument list.
+         The main purpose of this test is to make sure that template
+         parameters in nondeduced contexts yield the expected types once
+         substituted. */
+      test_arg_list = copy_template_arg_list_with_substitution(
+                                           template_sym,
+                                           prototype_tap,
+                                           primary_templ_param_list,
+                                           *ps_arg_list, templ_param_list,
+                                           &template_sym->decl_position,
+                                           CTWS_NO_OPTIONS,
+                                           /*orig_is_nonreal_template=*/FALSE,
+                                           &copy_error, &ctws_state);
+      eta_options = eta_options_for_template(template_sym, tssp);
+      eta_options |= ETA_EXACT_MATCH_REQUIRED;
+      if (!copy_error &&
+          equiv_template_arg_lists(instance_tap, test_arg_list, eta_options)) {
         result = TRUE;
       }  /* if */
     }  /* if */
@@ -3132,7 +3162,7 @@ entry is a poorer match than an entry already on the list, don't add
 it.  Go through the existing list and remove any entries that are
 poorer candidates than the new entry. templ_arg_list is the template
 argument list associated with new_sym, and is only supplied when the
-templates being ordered are class template partial specializations.
+templates being ordered are class or variable template partial specializations.
 */
 {
   a_partial_order_candidate_ptr	prev_pscp = NULL;
@@ -3149,7 +3179,8 @@ templates being ordered are class template partial specializations.
     int		result;
     next_pscp = pscp->next;
     fund_curr_sym = fundamental_symbol_of(pscp->symbol);
-    if (fund_new_sym->kind == (a_symbol_kind)sk_class_template) {
+    if (symbol_is(fund_new_sym, sk_class_template) ||
+        symbol_is(fund_new_sym, sk_variable_template)) {
       result = compare_partial_specializations(fund_new_sym, fund_curr_sym);
     } else {
       check_assertion(fund_new_sym->kind ==
@@ -3308,26 +3339,26 @@ to TRUE.
 
 static a_symbol_ptr check_partial_specializations(
 				a_symbol_ptr		instance_sym,
-				a_type_ptr		class_type,
 				a_symbol_ptr		template_sym)
 /*
-instance_sym identifies a template class that is about to be instantiated.
-template_sym points to the primary template on which the instantiation
-will be based.  class_type points to the class associated with instance_sym.
-If a matching partial specialization is found, return the symbol associate
-with that partial specialization; otherwise return NULL.
+instance_sym identifies a template class or variable that is about to be
+instantiated.  template_sym points to the primary template on which the
+instantiation will be based.  If a matching partial specialization is found,
+return the symbol associate with that partial specialization; otherwise
+return NULL.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				matching_sym = NULL;
   a_symbol_ptr				ps_sym;
-  a_class_type_supplement_ptr		ctsp;
   a_partial_order_candidate_ptr		candidate_list = NULL;
+  a_template_arg_ptr			*p_partial_spec_arg_list;
 
   db_enter(3, "check_partial_specializations");
   tssp = template_sym->variant.template_info;
   /* Get the template argument list with respect to the primary template. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
+  p_partial_spec_arg_list =
+                 partial_spec_template_arg_list_addr_for_symbol(instance_sym);
   for (ps_sym = tssp->partial_specializations;
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
@@ -3344,7 +3375,7 @@ with that partial specialization; otherwise return NULL.
        will report the ambiguity. */
     select_best_partial_order_candidate(candidate_list, instance_sym,
                                         &matching_sym,
-                                        &ctsp->partial_spec_template_arg_list,
+                                        p_partial_spec_arg_list,
                                         (a_boolean*)NULL);
   }  /* if */
 #if DEBUG
@@ -3908,7 +3939,7 @@ be completed here.
         tssp->partial_specializations != NULL) {
       a_symbol_ptr		partial_spec_sym;
       partial_spec_sym = check_partial_specializations(
-                                       instance_sym, class_type, template_sym);
+                                                   instance_sym, template_sym);
       if (partial_spec_sym != NULL) {
         template_sym = partial_spec_sym;
         tssp = template_supplement_for_symbol(template_sym);
@@ -6012,8 +6043,21 @@ been seen).
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
   template_sym = tip->template_sym;
-  tssp = template_supplement_for_symbol(template_sym);
   if (is_var_templ_instance) {
+    if (tip->template_used_for_instantiation == NULL) {
+      /* Determine the symbol to be used for the instantiation.  This is
+         typically template_sym, but can be a partial specialization.
+         A variable template can be instantiated more than once if
+         it is initially declared extern, instantiated, and then later has
+         a definition supplied.  This is used to make sure the same
+         partial specialization is used at both points. */
+      a_symbol_ptr	new_templ_sym;
+      new_templ_sym = check_partial_specializations(var_sym, template_sym);
+      if (new_templ_sym == NULL) new_templ_sym = template_sym;
+      tip->template_used_for_instantiation = new_templ_sym;
+    }  /* if */
+    template_sym = tip->template_used_for_instantiation;
+    tssp = template_supplement_for_symbol(template_sym);
     /* For variable templates, get the information about the prototype
        template (if any). */
     template_sym_of_prototype = prototype_template_of(template_sym);
@@ -6021,6 +6065,7 @@ been seen).
                      template_supplement_for_symbol(template_sym_of_prototype);
   } else {
     template_sym_of_prototype = template_sym;
+    tssp = template_supplement_for_symbol(template_sym);
     tssp_of_prototype = tssp;
   }  /* if */
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
