@@ -6803,8 +6803,8 @@ Display the indicated class type supplement entry.
     disp_boolean("has_anonymous_union_member", TRUE);
   }  /* if */
 #if NEED_NAME_MANGLING
-  if (ptr->defined_in_static_data_member_initializer) {
-    disp_boolean("defined_in_static_data_member_initializer", TRUE);
+  if (ptr->defined_in_variable_initializer) {
+    disp_boolean("defined_in_variable_initializer", TRUE);
   }  /* if */
   if (ptr->defined_in_field_initializer) {
     disp_boolean("defined_in_field_initializer", TRUE);
@@ -6880,7 +6880,7 @@ Display the indicated class type supplement entry.
 #endif /* DO_IL_LOWERING */
   disp_int32("min_template_arguments", ptr->min_template_arguments);
 #if NEED_NAME_MANGLING
-  if (ptr->defined_in_static_data_member_initializer) {
+  if (ptr->defined_in_variable_initializer) {
     disp_ptr("lambda_parent.variable", (char*)ptr->lambda_parent.variable,
              iek_variable);
   } else if (ptr->defined_in_field_initializer) {

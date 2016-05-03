@@ -1775,7 +1775,7 @@ Return the routine in which the lambda appears in a default argument in
                   cssp != NULL &&
                   cssp->lambda_immediately_inside_default_arg_expression);
   check_assertion(!type_is_lambda_in_initializer(type));
-  check_assertion(!ctsp->defined_in_static_data_member_initializer &&
+  check_assertion(!ctsp->defined_in_variable_initializer &&
                   !ctsp->defined_in_field_initializer);
   routine = ctsp->lambda_parent.routine;
   check_assertion(routine != NULL);
@@ -6610,11 +6610,11 @@ which these types are lacking).
 static a_boolean type_is_lambda_in_initializer(a_type_ptr type)
 /*
 Returns TRUE if the specified type is a lambda closure that was defined
-in a (static or nonstatic) data member initializer.
+in a (static or nonstatic) data member or variable template initializer.
 */
 {
   return type_is_lambda_closure(type) &&
-         (class_type_supp(type)->defined_in_static_data_member_initializer ||
+         (class_type_supp(type)->defined_in_variable_initializer ||
           class_type_supp(type)->defined_in_field_initializer);
 }  /* type_is_lambda_in_initializer */
 
@@ -6633,7 +6633,7 @@ in a default argument of a function.
     if (cssp->lambda_immediately_inside_default_arg_expression) {
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
       check_assertion(!type_is_lambda_in_initializer(type));
-      check_assertion(!ctsp->defined_in_static_data_member_initializer &&
+      check_assertion(!ctsp->defined_in_variable_initializer &&
                       !ctsp->defined_in_field_initializer);
       if (ctsp->lambda_parent.routine != NULL) {
         result = TRUE;
@@ -6775,6 +6775,7 @@ returned and mctl->lacking_module_id is set to TRUE.
                                          &local_mctl);
       add_local_name_suffix((unsigned long)0, enclosing_routine, &local_mctl);
     } else {
+      /* FIXME */
       /* All other lambdas are given a name with the following format:
 
            __Ul1_Fif <-- name given to lambda:
@@ -7497,10 +7498,10 @@ static void parent_for_lambda_in_initializer(a_type_ptr              lambda,
                                              a_source_correspondence **scp,
                                              an_il_entry_kind        *kind)
 /*
-Returns the variable (if the lambda is in a static data member initializer)
-or the field (if the lambda is in a nonstatic data member initializer) in
-which the lambda is defined.  The variable or field is used as a
-"pseudo-parent" for the lambda for mangling purposes.  *scp is set to the
+Returns the variable (if the lambda is in a static data member or variable
+template initializer) or the field (if the lambda is in a nonstatic data member
+initializer) in which the lambda is defined.  The variable or field is used as
+a "pseudo-parent" for the lambda for mangling purposes.  *scp is set to the
 source correspondence of the variable or field and *kind is set to iek_variable
 or iek_field as appropriate.
 */
@@ -7512,7 +7513,7 @@ or iek_field as appropriate.
     *scp = &(class_type_supp(lambda)->lambda_parent.field->source_corresp);
     *kind = iek_field;
   } else {
-    check_assertion(ctsp->defined_in_static_data_member_initializer);
+    check_assertion(ctsp->defined_in_variable_initializer);
     *scp = &(class_type_supp(lambda)->lambda_parent.variable->source_corresp);
     *kind = iek_variable;
   }  /* if */
@@ -8219,8 +8220,9 @@ static data member is used as the parent entity for mangling purposes.
      of mangling. */
   if (kind == iek_type &&
       type_is_lambda_in_initializer((a_type_ptr)scp)) {
-    /* This lambda closure was defined in an initializer for a data member.
-       Use the data member as its "parent" for mangling purposes. */
+    /* This lambda closure was defined in an initializer for a data member or
+       variable template.  Use the data member or variable template as its
+       "parent" for mangling purposes. */
     parent_for_lambda_in_initializer((a_type_ptr)scp, &parent_scp,
                                      &parent_kind);
     more_levels = entity_needs_parent_qualifier(parent_scp, parent_kind);
@@ -8387,7 +8389,7 @@ static data member is used as the parent entity for mangling purposes.
   if (kind == iek_type &&
       type_is_lambda_in_initializer((a_type_ptr)scp)) {
     /* Lambda in initializer list.  Simply add the name of the data
-       member along with its length. */
+       member or variable template along with its length. */
 #if IA64_ABI
     if (add_substitution_if_available((char *)parent_scp, parent_kind,
                                       /*is_pack_expansion=*/FALSE, mctl)) {
@@ -8404,7 +8406,9 @@ static data member is used as the parent entity for mangling purposes.
 #endif /* IA64_ABI */
     mangled_name_with_length(unmangled_or_fabricated_name_of(parent_scp),
                              mctl);
+    /* FIXME: template arguments? */
 #if IA64_ABI
+    /* FIXME: Skip this in variable template case: */
     /* Mangling for lambda in initializer. */
     add_to_mangled_name('M', mctl);
     /* Add a substitution for this variable. */

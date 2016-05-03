@@ -841,7 +841,7 @@ initializer, sym represents that data member (otherwise, it is NULL).
         if (sym == NULL) {
           /* Nothing more to be done. */
         } else if (symbol_is(sym, sk_static_data_member)) {
-          ctsp->defined_in_static_data_member_initializer = TRUE;
+          ctsp->defined_in_variable_initializer = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -888,7 +888,7 @@ may be NULL in error cases.)
         if (parent_sym == NULL) {
           /* An error case (e.g., a lambda in a default argument of what turned
              out not to be a function declaration). */
-          ctsp->defined_in_static_data_member_initializer = FALSE;
+          ctsp->defined_in_variable_initializer = FALSE;
           ctsp->defined_in_field_initializer = FALSE;
           expect_error();
         } else if (symbol_is(parent_sym, sk_static_data_member)) {

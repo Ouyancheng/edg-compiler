@@ -7704,12 +7704,12 @@ typedef struct a_class_type_supplement {
 			   member (which makes it a union-like class in C++11
 			   parlance). */
 #if NEED_NAME_MANGLING
-  a_bit_field	defined_in_static_data_member_initializer:1;
+  a_bit_field	defined_in_variable_initializer:1;
 			/* TRUE if the class is a closure class defined
-			   directly in the initializer for a static data
-			   member (closure classes nested in such closure
-			   classes do not necessarily have this flag set to
-			   TRUE). */
+			   directly in the initializer for a static data member
+			   or variable template (closure classes nested in such
+			   closure classes do not necessarily have this flag
+			   set to TRUE). */
   a_bit_field	defined_in_field_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a field (closure
@@ -7883,21 +7883,21 @@ typedef struct a_class_type_supplement {
 			   arguments were always explicitly specified. */
 #if NEED_NAME_MANGLING
   union {
-    /* When defined_in_static_data_member_initializer and
+    /* When defined_in_variable_initializer and
        defined_in_field_initializer are both FALSE: */
     a_routine_ptr
 		routine;
 			/* If this entry is for a closure type defined directly
 			   in a default argument, this points to the entry
 			   for the routine that has that default argument. */
-    /* When defined_in_static_data_member_initializer is TRUE: */
+    /* When defined_in_variable_initializer is TRUE: */
     a_variable_ptr
 		variable;
 			/* If this entry is for a closure type defined directly
-			   in the initializer of a static data member (i.e.,
-			   defined_in_static_data_member_initializer is TRUE),
-			   this points to the entry representing that data
-			   member. */
+			   in the initializer of a static data member or
+			   variable template (i.e.,
+			   defined_in_variable_initializer is TRUE), this
+			   points to the entry representing that variable. */
     /* When defined_in_field_initializer is TRUE: */
     a_field_ptr
 		field;

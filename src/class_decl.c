@@ -2254,7 +2254,7 @@ the fields implied by the lambda's capture list).
       a_symbol_ptr  parent_sym = dps->sym;
       if (parent_sym != NULL && symbol_is(parent_sym, sk_static_data_member)) {
 #if NEED_NAME_MANGLING
-        ctsp->defined_in_static_data_member_initializer = TRUE;
+        ctsp->defined_in_variable_initializer = TRUE;
         ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
         cssp->discriminator = ++scope_stack_top().last_closure_type_number;

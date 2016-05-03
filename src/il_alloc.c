@@ -1730,8 +1730,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->has_initializer_list_ctor         = FALSE;
   ctsp->has_anonymous_union_member        = FALSE;
 #if NEED_NAME_MANGLING
-  ctsp->defined_in_static_data_member_initializer
-                                          = FALSE;
+  ctsp->defined_in_variable_initializer   = FALSE;
   ctsp->defined_in_field_initializer      = FALSE;
 #endif /* NEED_NAME_MANGLING */
   ctsp->befriending_classes               = NULL;
