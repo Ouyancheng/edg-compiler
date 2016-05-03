@@ -5880,8 +5880,12 @@ used by the value representation of the integer value.
                 /* Integers: Somewhat surprisingly, narrowing conversions are
                    valid here ("implementation-defined").  So we don't check
                    that the result is in range. */
-                *(an_integer_value *)result_storage =
-                                             *(an_integer_value *)opnd1_value;
+                an_integer_value  *r_int = (an_integer_value *)result_storage;
+                *r_int = *(an_integer_value *)opnd1_value;
+                if (int_kind_is_signed[tp->variant.integer.int_kind]) {
+                  int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
+                  sign_extend_integer_value(r_int, n_bits);
+                }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
                 a_boolean  depends_of_fp_mode;
                 fp_change_kind(fp_value(opnd1_value),
