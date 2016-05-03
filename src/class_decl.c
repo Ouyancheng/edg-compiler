@@ -2248,20 +2248,30 @@ the fields implied by the lambda's capture list).
 #endif /* NEED_NAME_MANGLING */
     cssp->lambda_subject_to_trans_unit_corresp = TRUE;
   } else {
-    /* Check if we are in the initializer for a static data member. */
+    /* Check if we are in the initializer for a variable or static data member
+       or variable. */
     a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
-    if (dps != NULL) {
+    if (dps != NULL && dps->sym != NULL) {
       a_symbol_ptr  parent_sym = dps->sym;
-      if (parent_sym != NULL && symbol_is(parent_sym, sk_static_data_member)) {
-#if NEED_NAME_MANGLING
-        ctsp->defined_in_variable_initializer = TRUE;
-        ctsp->lambda_parent.variable =
-                              parent_sym->variant.static_data_member.variable;
-        cssp->discriminator = ++scope_stack_top().last_closure_type_number;
-#endif /* NEED_NAME_MANGLING */
-        if (parent_sym->variant.static_data_member.instance_ptr != NULL) {
+      if (symbol_is(parent_sym, sk_static_data_member) ||
+          symbol_is(parent_sym, sk_variable)) {
+        a_template_instance_ptr  tip;
+        tip = symbol_is(parent_sym, sk_static_data_member) ?
+                         parent_sym->variant.static_data_member.instance_ptr :
+                         parent_sym->variant.variable.instance_ptr;
+        if (tip != NULL) {
           cssp->lambda_subject_to_trans_unit_corresp = TRUE;
         }  /* if */
+#if NEED_NAME_MANGLING
+        ctsp->defined_in_variable_initializer = TRUE;
+        ctsp->lambda_parent.variable = variable_for_symbol(parent_sym);
+        /* If the parent variable is a template instance, the top of the scope
+           stack is a template instantiation scope or a reactivation scope.
+           Either way, the numbering will be local to this instantiation.
+           In other cases, the discriminator is more arbitrary (but still
+           unique), but its actual value is unimportant. */
+        cssp->discriminator = ++scope_stack_top().last_closure_type_number;
+#endif /* NEED_NAME_MANGLING */
       }  /* if */
     }  /* if */
   }  /* if */
