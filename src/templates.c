@@ -28719,8 +28719,8 @@ this overrides an "extern template" directive.
 */
 {
   a_boolean		result = TRUE;
-  a_boolean		template_def;
-  a_boolean		specialized;
+  a_boolean		template_def = FALSE;
+  a_boolean		specialized = FALSE;
   a_master_instance_ptr	mip;
 
   mip = master_instance_of(tip);
@@ -28730,25 +28730,30 @@ this overrides an "extern template" directive.
       symbol_is(tip->instance_sym, sk_variable)) {
     a_variable_ptr	vp;
     vp = variable_for_symbol(tip->instance_sym);
-    specialized = vp->is_specialized;
-    template_def = tip->template_sym->defined;
-    if (!template_def && !specialized && export_template_allowed) {
-      /* When exported templates are being used, look for an exported
-         definition of this template */
-      template_def = exported_definition_is_available(tip);
-    }  /* if */
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specialized && !tip->suppress_instantiation &&
-        !tip->explicit_do_not_instantiate &&
-        !mip->already_instantiated && implicit_template_inclusion_mode &&
-        implicit_inclusion_okay) {
-      /* If a template definition is not present, attempt to include a
-         source file that will provide the definition.  Then check
-         again to see if a template definition is present. */
-      do_implicit_include_if_needed(tip);
+    if (vp->is_nonreal) {
+      /* Nonreal instances can't be instantiated. */
+      result = FALSE;
+    } else {
+      specialized = vp->is_specialized;
       template_def = tip->template_sym->defined;
-    }  /* if */
+      if (!template_def && !specialized && export_template_allowed) {
+        /* When exported templates are being used, look for an exported
+           definition of this template */
+        template_def = exported_definition_is_available(tip);
+      }  /* if */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+      if (!template_def && !specialized && !tip->suppress_instantiation &&
+          !tip->explicit_do_not_instantiate &&
+          !mip->already_instantiated && implicit_template_inclusion_mode &&
+          implicit_inclusion_okay) {
+        /* If a template definition is not present, attempt to include a
+           source file that will provide the definition.  Then check
+           again to see if a template definition is present. */
+        do_implicit_include_if_needed(tip);
+        template_def = tip->template_sym->defined;
+      }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    }  /* if */
   } else {
     a_symbol_ptr		      template_sym;
     a_template_symbol_supplement_ptr  tssp;

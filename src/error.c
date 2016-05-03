@@ -1434,7 +1434,6 @@ specified by dp.
       entity_kind = ec_no_error;
       goto symbol_name;
     case sk_variable_template:
-      /* FIXME: get type from prototype instantiation? */
       entity_kind = ec_variable_template;
       is_declaration_like = TRUE;
       goto symbol_name;
