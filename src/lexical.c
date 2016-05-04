@@ -2742,6 +2742,79 @@ tokens therein and clear the cache.
 }  /* discard_token_cache */
 
 
+static a_symbol_ptr ud_lit_op_sym_from_token_cache(a_cached_token_ptr ctp)
+/*
+Set up locator_for_curr_id for the user-defined literal token designated by
+ctp and lookup and return the symbol for the associated literal operator or
+literal operator template.  If the lookup finds an overload set and the
+original symbol recorded with the token designates a specific literal
+operator or literal operator template, attempt to find a similar member of
+the overload set and return that symbol; if no such symbol can be found,
+return NULL.
+*/
+{
+  a_symbol_ptr sym;
+
+  make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
+                              &locator_for_curr_id, &pos_curr_token);
+  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  if (sym != NULL && symbol_is(sym, sk_overloaded_function) &&
+      ctp->ud_lit_op_sym != NULL &&
+      !symbol_is(ctp->ud_lit_op_sym, sk_overloaded_function)) {
+    /* This lookup found an overload set, but the original cached token was
+       associated with a specific literal operator or literal operator
+       template.  Try to find a member of the overload set that is similar
+       to the original.  (It may not be the same symbol, e.g., because of a
+       using-directive in the token cache that would not have been
+       processed at the time the original lookup for the token was
+       done.) */
+    a_symbol_ptr list_sym;
+    a_boolean    found = FALSE;
+    for (list_sym = sym->variant.overloaded_function.symbols;
+         list_sym != NULL && !found; list_sym = list_sym->next) {
+      if (symbol_is(list_sym, sk_function_template) &&
+          symbol_is(ctp->ud_lit_op_sym, sk_function_template)) {
+        /* There can be only one literal operator template in scope, so
+           we've found the matching symbol. */
+        sym = list_sym;
+        found = TRUE;
+      } else if (symbol_is(list_sym, sk_routine) &&
+                 symbol_is(ctp->ud_lit_op_sym, sk_routine)) {
+        /* This symbol and the previously-recorded symbol are both literal
+           operators.  Compare the parameter lists to see if we've found
+           the matching symbol. */
+        a_routine_type_supplement_ptr orig_rtsp;
+        a_routine_type_supplement_ptr list_rtsp;
+        orig_rtsp = ctp->ud_lit_op_sym->variant.routine.ptr->type->
+                                                    variant.routine.extra_info;
+        list_rtsp = list_sym->variant.routine.ptr->type->
+                                                    variant.routine.extra_info;
+        if (orig_rtsp->param_type_list == NULL ||
+            list_rtsp->param_type_list == NULL) {
+          /* A literal operator must have at least one parameter.  An error
+             should already have been issued. */
+          expect_error();
+        } else if (identical_types(orig_rtsp->param_type_list->type,
+                                   list_rtsp->param_type_list->type) &&
+                   (orig_rtsp->param_type_list->next == NULL) ==
+                                  (list_rtsp->param_type_list->next == NULL)) {
+          /* Both symbols have the same first parameter type and number of
+             parameters, so we've found the matching symbol. */
+          sym = list_sym;
+          found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (!found) {
+      /* We didn't find a matching symbol, so return NULL instead of the
+         overload set. */
+      sym = NULL;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* ud_lit_op_sym_from_token_cache */
+
+
 static a_token_kind get_token_from_cached_token_rescan_list(void)
 /*
 Remove the first token from cached_token_rescan_list, establish it as the
@@ -2825,10 +2898,7 @@ an equivalent change.
          the original lookup, e.g., because of a using-directive in this
          scope that would not have been parsed before the UDL was
          cached.) */
-      make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
-                                  &locator_for_curr_id, &pos_curr_token);
-      ud_lit_op_sym_for_curr_token = normal_id_lookup(&locator_for_curr_id,
-                                                      IDL_NO_OPTIONS);
+      ud_lit_op_sym_for_curr_token = ud_lit_op_sym_from_token_cache(ctp);
     }  /* if */
   }  /* if */
   free_cached_token(ctp);
@@ -2943,10 +3013,7 @@ an equivalent change.
          the original lookup, e.g., because of a using-directive in this
          scope that would not have been parsed before the UDL was
          cached.) */
-      make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
-                                  &locator_for_curr_id, &pos_curr_token);
-      ud_lit_op_sym_for_curr_token = normal_id_lookup(&locator_for_curr_id,
-                                                      IDL_NO_OPTIONS);
+      ud_lit_op_sym_for_curr_token = ud_lit_op_sym_from_token_cache(ctp);
     }  /* if */
   }  /* if */
   /* Check whether we have reached the end of this cache. */
