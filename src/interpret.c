@@ -6348,33 +6348,194 @@ used by the value representation of the integer value.
             }  /* if */
             break;
           case eok_post_incr:
-            if (is_runtime_data_address(opnd1_value)) {
-              /* Cannot modify the value of an object whose lifetime began
-                 outside the current evaluation. */
-              info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else if (ips->side_effects_disabled) {
-              /* Side-effects (like assignments) are disabled. */
-              do_constexpr_fail(result);
-            } else if (is_const_storage(opnd1_value)) {
-              info_with_pos(ec_constexpr_modifying_const_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else {
-              /* Return a copy of the value stored at the operand address. */
-              SET_result_val_from_operand_address(opnd1_value);
-              /* Now increment the original value. */
-              if (!result) {
-                /* Something was wrong with the operand address. */
+            { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (cap->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+              } else if (is_const_storage(cap)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else {
+                /* Return a copy of the value stored at the operand address. */
+                SET_result_val_from_operand_address(cap);
+                /* Now increment the original value. */
+                if (!result) {
+                  /* Something was wrong with the operand address. */
+                } else if (tp->kind == (a_type_kind)tk_integer) {
+                  /* An integral type. */
+                  an_integer_value  *ival = int_value_at(cap);
+                  if (tp->variant.integer.bool_type) {
+                    /* Incrementing a bool variable sets it to TRUE. */
+                    *ival = one_int;
+                  } else {
+                    /* An integer. */
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    add_integer_values(ival, &one_int, is_signed, &ovfl);
+                    CHECK_int_range(ival, tp);
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_float) {
+                  /* A floating-point type. */
+                  fp_add(tp->variant.float_kind,
+                         fp_value_at(cap),
+                         &one_flt[(int)tp->variant.float_kind],
+                         fp_value_at(cap), &err, &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_pointer) {
+                  /* A pointer. */
+                  a_constexpr_address  *ptr;
+                  a_type_ptr           elem_type;
+                  a_byte_count         elem_size;
+                  ptr = (a_constexpr_address*)value_bytes_at(cap);
+                  if (cannot_dereference(ptr)) {
+                    /* Invalid pointer value. */
+                    info_with_pos(ec_constexpr_invalid_pointer,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                    break;
+                  }  /* if */
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  ptr->address += elem_size;
+                  if (!is_array_element(ptr)) {
+                    /* The address of a non-array can be treated as a pointer
+                       to an array of one element. */
+                    ptr->flags |= CA_CANNOT_DEREFERENCE;
+                  } else {
+                    a_byte        *base_address;
+                    base_address = get_base_address(ptr);
+                    if (ptr->address == base_address + ptr->length*elem_size) {
+                      /* We've reached "one past the end of the array". */
+                      ptr->flags |= CA_CANNOT_DEREFERENCE;
+                    }    /* if */
+                  }  /* if */
+                } else {
+                  /* Invalid type for postfix ++. */
+                  unexpected_condition();
+                }  /* if */
+              }  /* if */
+              break;
+            }
+          case eok_post_decr:
+            { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (cap->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+              } else if (is_const_storage(cap)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else {
+                /* Return a copy of the value stored at the operand address. */
+                SET_result_val_from_operand_address(cap);
+                /* Now decrement the original value. */
+                if (!result) {
+                  /* Something was wrong with the operand address. */
+                } else if (tp->kind == (a_type_kind)tk_integer) {
+                  /* An integer. */
+                  an_integer_value  *ival = int_value_at(cap);
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  subtract_mixed_signed_integer_values(
+                                 ival, is_signed, &one_int, is_signed, &ovfl);
+                  CHECK_int_range(ival, tp);
+                } else if (tp->kind == (a_type_kind)tk_float) {
+                  /* A floating-point type. */
+                  fp_subtract(tp->variant.float_kind,
+                              fp_value_at(cap),
+                              &one_flt[(int)tp->variant.float_kind],
+                              fp_value_at(cap), &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  }  /* if */
+                } else if (tp->kind == (a_type_kind)tk_pointer) {
+                  /* A pointer. */
+                  a_constexpr_address  *ptr;
+                  a_type_ptr           elem_type;
+                  a_byte_count         elem_size;
+                  ptr = (a_constexpr_address*)value_bytes_at(cap);
+                  if (!is_array_element(ptr)) {
+                    /* Not a pointer to an array element in interpreter
+                       storage. */
+                    if (!cannot_dereference(ptr)) {
+                      info_with_pos(ec_constexpr_invalid_pointer,
+                                    &expr->position, ips);
+                      do_constexpr_fail(result);
+                      break;
+                    }  /* if */
+                  } else {
+                    if (ptr->address == get_base_address(ptr)) {
+                      /* The pointer cannot point ahead of the array. */
+                      info_with_pos(ec_constexpr_invalid_pointer,
+                                    &expr->position, ips);
+                      do_constexpr_fail(result);
+                      break;
+                    }  /* if */
+                  }  /* if */
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                  elem_size = value_bytes_for_type(ips, elem_type, &result);
+                  ptr->address -= elem_size;
+                  ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                } else {
+                  /* Invalid type for prefix --. */
+                  unexpected_condition();
+                }  /* if */
+              }  /* if */
+            }
+            break;
+          case eok_pre_incr:
+            { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              } else if (cap->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+              } else if (is_const_storage(cap)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integral type. */
-                an_integer_value  *ival = int_value_at(opnd1_value);
                 if (tp->variant.integer.bool_type) {
                   /* Incrementing a bool variable sets it to TRUE. */
-                  *ival = one_int;
+                  *(an_integer_value *)value_bytes_at(cap) = one_int;
                 } else {
                   /* An integer. */
+                  an_integer_value  *ival = int_value_at(cap);
                   int_kind = tp->variant.integer.int_kind;
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(ival, &one_int, is_signed, &ovfl);
@@ -6383,9 +6544,9 @@ used by the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
                 fp_add(tp->variant.float_kind,
-                       fp_value_at(opnd1_value),
+                       fp_value_at(cap),
                        &one_flt[(int)tp->variant.float_kind],
-                       fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
+                       fp_value_at(cap), &err, &depends_on_fp_mode);
                 if (err) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
@@ -6395,7 +6556,7 @@ used by the value representation of the integer value.
                 a_constexpr_address  *ptr;
                 a_type_ptr           elem_type;
                 a_byte_count         elem_size;
-                ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                ptr = (a_constexpr_address*)value_bytes_at(cap);
                 if (cannot_dereference(ptr)) {
                   /* Invalid pointer value. */
                   info_with_pos(ec_constexpr_invalid_pointer,
@@ -6411,42 +6572,45 @@ used by the value representation of the integer value.
                      an array of one element. */
                   ptr->flags |= CA_CANNOT_DEREFERENCE;
                 } else {
-                  a_byte        *base_address;
-                  base_address = get_base_address(ptr);
+                  a_byte  *base_address = get_base_address(ptr);
                   if (ptr->address == base_address + ptr->length*elem_size) {
                     /* We've reached "one past the end of the array". */
                     ptr->flags |= CA_CANNOT_DEREFERENCE;
-                  }    /* if */
+                  }  /* if */
                 }  /* if */
               } else {
-                /* Invalid type for postfix ++. */
+                /* Invalid type for prefix ++. */
                 unexpected_condition();
               }  /* if */
-            }  /* if */
+              if (result) {
+                /* Return either the address or the value, as
+                   appropriate. */
+                SET_result_val_from_operand_address(cap);
+              }  /* if */
+            }
             break;
-          case eok_post_decr:
-            if (is_runtime_data_address(opnd1_value)) {
-              /* Cannot modify the value of an object whose lifetime began
-                 outside the current evaluation. */
-              info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else if (ips->side_effects_disabled) {
-              /* Side-effects (like assignments) are disabled. */
-              do_constexpr_fail(result);
-            } else if (is_const_storage(opnd1_value)) {
-              info_with_pos(ec_constexpr_modifying_const_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else {
-              /* Return a copy of the value stored at the operand address. */
-              SET_result_val_from_operand_address(opnd1_value);
-              /* Now decrement the original value. */
-              if (!result) {
-                /* Something was wrong with the operand address. */
+          case eok_pre_decr:
+            { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              } else if (cap->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else if (ips->side_effects_disabled) {
+                /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+              } else if (is_const_storage(cap)) {
+                info_with_pos(ec_constexpr_modifying_const_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integer. */
-                an_integer_value  *ival = int_value_at(opnd1_value);
+                an_integer_value  *ival = int_value_at(cap);
                 int_kind = tp->variant.integer.int_kind;
                 is_signed = int_kind_is_signed[int_kind];
                 subtract_mixed_signed_integer_values(
@@ -6455,9 +6619,9 @@ used by the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
-                            fp_value_at(opnd1_value),
+                            fp_value_at(cap),
                             &one_flt[(int)tp->variant.float_kind],
-                            fp_value_at(opnd1_value), &err,
+                            fp_value_at(cap), &err,
                             &depends_on_fp_mode);
                 if (err) {
                   do_constexpr_fail(result);
@@ -6468,22 +6632,21 @@ used by the value representation of the integer value.
                 a_constexpr_address  *ptr;
                 a_type_ptr           elem_type;
                 a_byte_count         elem_size;
-                ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
+                ptr = (a_constexpr_address*)value_bytes_at(cap);
                 if (!is_array_element(ptr)) {
                   /* Not a pointer to an array element in interpreter
                      storage. */
                   if (!cannot_dereference(ptr)) {
-                    info_with_pos(ec_constexpr_invalid_pointer,
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                    break;
                   }  /* if */
                 } else {
                   if (ptr->address == get_base_address(ptr)) {
                     /* The pointer cannot point ahead of the array. */
-                    info_with_pos(ec_constexpr_invalid_pointer,
-                                  &expr->position, ips);
                     do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                  &expr->position, ips);
                     break;
                   }  /* if */
                 }  /* if */
@@ -6495,151 +6658,12 @@ used by the value representation of the integer value.
                 /* Invalid type for prefix --. */
                 unexpected_condition();
               }  /* if */
-            }  /* if */
-            break;
-          case eok_pre_incr:
-            if (is_runtime_data_address(opnd1_value)) {
-              /* Cannot modify the value of an object whose lifetime began
-                 outside the current evaluation. */
-              do_constexpr_fail(result);
-              info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
-            } else if (ips->side_effects_disabled) {
-              /* Side-effects (like assignments) are disabled. */
-              do_constexpr_fail(result);
-            } else if (is_const_storage(opnd1_value)) {
-              info_with_pos(ec_constexpr_modifying_const_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else if (tp->kind == (a_type_kind)tk_integer) {
-              /* An integral type. */
-              if (tp->variant.integer.bool_type) {
-                /* Incrementing a bool variable sets it to TRUE. */
-                *(an_integer_value *)value_bytes_at(opnd1_value) = one_int;
-              } else {
-                /* An integer. */
-                an_integer_value  *ival = int_value_at(opnd1_value);
-                int_kind = tp->variant.integer.int_kind;
-                is_signed = int_kind_is_signed[int_kind];
-                add_integer_values(ival, &one_int, is_signed, &ovfl);
-                CHECK_int_range(ival, tp);
+              if (result) {
+                /* Return either the address or the value, as
+                   appropriate. */
+                SET_result_val_from_operand_address(cap);
               }  /* if */
-            } else if (tp->kind == (a_type_kind)tk_float) {
-              /* A floating-point type. */
-              fp_add(tp->variant.float_kind,
-                     fp_value_at(opnd1_value),
-                     &one_flt[(int)tp->variant.float_kind],
-                     fp_value_at(opnd1_value), &err, &depends_on_fp_mode);
-              if (err) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
-              }  /* if */
-            } else if (tp->kind == (a_type_kind)tk_pointer) {
-              /* A pointer. */
-              a_constexpr_address  *ptr;
-              a_type_ptr           elem_type;
-              a_byte_count         elem_size;
-              ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
-              if (cannot_dereference(ptr)) {
-                /* Invalid pointer value. */
-                info_with_pos(ec_constexpr_invalid_pointer,
-                              &expr->position, ips);
-                do_constexpr_fail(result);
-                break;
-              }  /* if */
-              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-              elem_size = value_bytes_for_type(ips, elem_type, &result);
-              ptr->address += elem_size;
-              if (!is_array_element(ptr)) {
-                /* The address of a non-array can be treated as a pointer to
-                   an array of one element. */
-                ptr->flags |= CA_CANNOT_DEREFERENCE;
-              } else {
-                a_byte  *base_address = get_base_address(ptr);
-                if (ptr->address == base_address + ptr->length*elem_size) {
-                  /* We've reached "one past the end of the array". */
-                  ptr->flags |= CA_CANNOT_DEREFERENCE;
-                }  /* if */
-              }  /* if */
-            } else {
-              /* Invalid type for prefix ++. */
-              unexpected_condition();
-            }  /* if */
-            if (result) {
-              /* Return either the address or the value, as
-                 appropriate. */
-              SET_result_val_from_operand_address(opnd1_value);
-            }  /* if */
-            break;
-          case eok_pre_decr:
-            if (is_runtime_data_address(opnd1_value)) {
-              /* Cannot modify the value of an object whose lifetime began
-                 outside the current evaluation. */
-              do_constexpr_fail(result);
-              info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
-            } else if (ips->side_effects_disabled) {
-              /* Side-effects (like assignments) are disabled. */
-              do_constexpr_fail(result);
-            } else if (is_const_storage(opnd1_value)) {
-              info_with_pos(ec_constexpr_modifying_const_storage,
-                            &expr->position, ips);
-              do_constexpr_fail(result);
-            } else if (tp->kind == (a_type_kind)tk_integer) {
-              /* An integer. */
-              an_integer_value  *ival = int_value_at(opnd1_value);
-              int_kind = tp->variant.integer.int_kind;
-              is_signed = int_kind_is_signed[int_kind];
-              subtract_mixed_signed_integer_values(
-                                 ival, is_signed, &one_int, is_signed, &ovfl);
-              CHECK_int_range(ival, tp);
-            } else if (tp->kind == (a_type_kind)tk_float) {
-              /* A floating-point type. */
-              fp_subtract(tp->variant.float_kind,
-                          fp_value_at(opnd1_value),
-                          &one_flt[(int)tp->variant.float_kind],
-                          fp_value_at(opnd1_value), &err,
-                          &depends_on_fp_mode);
-              if (err) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
-              }  /* if */
-            } else if (tp->kind == (a_type_kind)tk_pointer) {
-              /* A pointer. */
-              a_constexpr_address  *ptr;
-              a_type_ptr           elem_type;
-              a_byte_count         elem_size;
-              ptr = (a_constexpr_address*)value_bytes_at(opnd1_value);
-              if (!is_array_element(ptr)) {
-                /* Not a pointer to an array element in interpreter
-                   storage. */
-                if (!cannot_dereference(ptr)) {
-                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                &expr->position, ips);
-                  do_constexpr_fail(result);
-                }  /* if */
-              } else {
-                if (ptr->address == get_base_address(ptr)) {
-                  /* The pointer cannot point ahead of the array. */
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_pointer_ahead_of_array,
-                                &expr->position, ips);
-                  break;
-                }  /* if */
-              }  /* if */
-              elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-              elem_size = value_bytes_for_type(ips, elem_type, &result);
-              ptr->address -= elem_size;
-              ptr->flags &= ~CA_CANNOT_DEREFERENCE;
-            } else {
-              /* Invalid type for prefix --. */
-              unexpected_condition();
-            }  /* if */
-            if (result) {
-              /* Return either the address or the value, as
-                 appropriate. */
-              SET_result_val_from_operand_address(opnd1_value);
-            }  /* if */
+            }
             break;
           case eok_add:
             if (expr->variant.operation.type_kind == (a_type_kind)tk_integer) {
