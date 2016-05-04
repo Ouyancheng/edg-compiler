@@ -5700,6 +5700,7 @@ in *diag_list).  pos is the source position of the call.
 
   if (constexpr_call_folding_should_be_done()) {
     a_constant_ptr  result_con = local_constant();
+    a_boolean       release_constant = TRUE;
     an_error_code   failure_warning = ec_no_error;
     if (relaxed_constexpr_enabled) {
       folded = interpret_constexpr_call(call_expr, result_con, diag_list);
@@ -5722,12 +5723,22 @@ in *diag_list).  pos is the source position of the call.
         }  /* if */
       } else if (!curr_expr_kind_is_const() &&
                  is_class_struct_union_type(result->type)) {
-        temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
+        /* Create a temporary to hold the result of the function call. */
+        a_dynamic_init_ptr  temp_dip;
+        an_expr_node_ptr    temp_node;
+        temp_node = create_expr_temporary(result->type, /*is_lvalue=*/FALSE,
+                                          /*is_explicit_cast=*/FALSE,
+                                          /*suppress_abstract_test=*/TRUE,
+                                          (a_dynamic_init_kind)dik_constant,
+                                          pos, &temp_dip);
+        temp_dip->variant.constant = move_local_constant_to_il(&result_con);
+        release_constant = FALSE;
+        make_expression_operand(temp_node, result);
       }  /* if */
     } else if (failure_warning != ec_no_error) {
       expr_pos_warning(failure_warning, pos);
     }  /* if */
-    release_local_constant(&result_con);
+    if (release_constant) release_local_constant(&result_con);
   }  /* if */
   return folded;
 }  /* expr_fold_constexpr_call */
