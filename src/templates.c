@@ -6173,10 +6173,6 @@ been seen).
   reactivate_curr_construct_pragmas(
                                  tssp_of_prototype->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
-  if (is_var_templ_instance && is_new) {
-    add_instantiation(tip->template_sym, tssp, var_sym,
-                      var_ptr->template_info->template_arg_list);
-  }  /* if */
   is_definition = !is_var_templ_instance ||
                   tssp_of_prototype->cache.tokens.first_token != NULL ||
                   var_ptr->initializer_in_class;
@@ -9081,6 +9077,8 @@ use of the argument list in case it has been freed.
     sym = make_template_variable(template_sym, *new_templ_arg_list);
     var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
+    add_instantiation(tip->template_sym, tssp, sym,
+                      var->template_info->template_arg_list);
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
       instantiate_template_variable(tip, /*is_new=*/TRUE);
