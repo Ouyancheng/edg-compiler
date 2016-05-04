@@ -2846,6 +2846,7 @@ ec_constexpr_bad_address;;"address constant cannot be folded for evaluation of C
 ec_constexpr_access_past_object;;"attempt to access storage one position past an object treated as an array of one element"
 ec_constexpr_reinterpret_cast;;"cannot use reinterpret_cast in constant-expression evaluation"
 ec_constexpr_invalid_null_ptr_operation;;"operation not allowed on null pointer"
+ec_star_this_not_constant_valued;;"the value of *this cannot be used as a constant"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

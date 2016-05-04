@@ -29703,12 +29703,14 @@ normal_function:
               rep = NULL;
               break;
             } else {
-              a_variable_ptr       this_var;
+              a_variable_ptr    this_var;
+              an_expr_node_ptr  this_var_node;
               /* Create a "this" operand explicitly (the ordinary path ignores
                  closure types). */
               this_var = this_variable_for_lambda_closure();
-              make_expression_operand(var_rvalue_expr(this_var),
-                                      &this_pointer_operand);
+              this_var_node = var_rvalue_expr(this_var);
+              this_var_node->position = pos_curr_token;
+              make_expression_operand(this_var_node, &this_pointer_operand);
               this_operand_set = TRUE;
               sym_ptr = symbol_for(lcp->closure_field);
               locator.specific_symbol = sym_ptr;

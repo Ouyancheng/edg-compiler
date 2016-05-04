@@ -8836,8 +8836,13 @@ used by the value representation of the integer value.
               result = copy_val_from_constant(ips, con, result_storage,
                                               result_storage);
             } else {
-              info_with_pos_sym(ec_variable_not_constant_valued,
-                                &expr->position, symbol_for(var), ips);
+              if (var->is_this_parameter) {
+                info_with_pos(ec_star_this_not_constant_valued,
+                              &expr->position, ips);
+              } else {
+                info_with_pos_sym(ec_variable_not_constant_valued,
+                                  &expr->position, symbol_for(var), ips);
+              }  /* if */
               do_constexpr_fail(result);
             }  /* if */
           }  /* if */
