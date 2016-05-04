@@ -5365,7 +5365,7 @@ user later during real instantiations.
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
     /* The variable is already initialized (possibly by an in-class
        initializer). */
-  } else {
+  } else if (decl_state->class_declared_in == NULL) {
     a_boolean	def_init_okay;
     /* There's no explicit initializer.  See if the static data member
        can be default-initialized. */
@@ -26074,18 +26074,18 @@ that follows.
           /* Okay. */
           is_instance = TRUE;
         }  /* if */
-      } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-                 sym->variant.static_data_member.instance_ptr != NULL) {
-        if (!types_are_redecl_compatible(dps->type,
-                                         sym->variant.static_data_member.
-                                                            variable->type)) {
+      } else if ((symbol_is(sym, sk_static_data_member) ||
+                  symbol_is(sym, sk_variable)) &&
+                 template_instance_for_symbol(sym) != NULL) {
+        a_variable_ptr	var = variable_for_symbol(sym);
+        if (!types_are_redecl_compatible(dps->type, var->type)) {
           /* The type of the static data member definition does not match
              the declaration in the class. */
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator.source_position, sym);
           sym = NULL;
-        } else if (sym->variant.static_data_member.variable->is_thread_local !=
-                   ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
+        } else if (var->is_thread_local !=
+                                  ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
           /* If "thread_local" is specified on one declaration, it must be
              specified on all. */
           pos2_diagnostic(es_error,
@@ -26093,8 +26093,7 @@ that follows.
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
                    &locator.source_position,
-                   &sym->variant.static_data_member.variable->
-                                                 source_corresp.decl_position);
+                   &var->source_corresp.decl_position);
           sym = NULL;
         }  /* if */
       } else if (microsoft_bugs && microsoft_version <= 1300) {
@@ -26170,8 +26169,9 @@ that follows.
       /* Determine whether this entity has already been referenced by
          looking at the source correspondence entry.  An entity that
          has already been referenced cannot be specialized. */
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        vp = sym->variant.static_data_member.variable;
+      if (symbol_is(sym, sk_static_data_member) ||
+          symbol_is(sym, sk_variable)) {
+        vp = variable_for_symbol(sym);
         scp = &vp->source_corresp;
         already_specialized = vp->is_specialized;
         /* Update the variable type if needed: The specialization may have

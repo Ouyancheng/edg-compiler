@@ -17137,6 +17137,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
         /* Remove the symbol and don't reenter it. */
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         break;
+      case sk_variable_template:
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members,
            and the nonstandard case is only allowed to have fields.  Ignore
