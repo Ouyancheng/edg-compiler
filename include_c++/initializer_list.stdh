@@ -32,7 +32,8 @@ namespace std {
     __EDG_CONSTEXPR size_type size() const { return this->__length; }
     __EDG_CONSTEXPR iterator begin() const { return this->__array; }
     __EDG_CONSTEXPR iterator end() const {
-      return this->__array + this->__length;
+      return this->__length == 0 ? this->__array
+                                 : this->__array + this->__length;
     }
   private:
     iterator __array;

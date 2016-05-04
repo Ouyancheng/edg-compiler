@@ -1,5 +1,20 @@
 Version 4.11
 
+5/4/16   [EDGcpfe/17147]
+Undefined behavior in std::initializer_list<T>::end
+
+Previously, the implementation of std::initializer_list<T>::end provided with
+the front end returned the expression
+
+    this->__array + this->__length
+
+which technically resulted in undefined behavior for empty initializer lists,
+where __array is a null pointer and __length is zero.  (Although this is
+usually benign with most code generators, the constexpr interpreter -- see
+entry for EDGcpfe/14149 -- must diagnose any undefined behavior.) This is now
+fixed.
+
+
 5/3/16   [EDGcpfe/17123]
 Sign extension for folding subscripted character string literal
 
