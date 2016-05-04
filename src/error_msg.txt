@@ -2845,6 +2845,7 @@ ec_constexpr_union_offset;;"address constants pointing to union members are not 
 ec_constexpr_bad_address;;"address constant cannot be folded for evaluation of C++14 constexpr function"
 ec_constexpr_access_past_object;;"attempt to access storage one position past an object treated as an array of one element"
 ec_constexpr_reinterpret_cast;;"cannot use reinterpret_cast in constant-expression evaluation"
+ec_constexpr_invalid_null_ptr_operation;;"operation not allowed on null pointer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

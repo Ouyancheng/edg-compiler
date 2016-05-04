@@ -6781,6 +6781,11 @@ used by the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                               &expr->position, ips);
+              } else if (result_addr->address == NULL &&
+                         !is_runtime_data_address(result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                              &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
@@ -6857,6 +6862,11 @@ used by the value representation of the integer value.
               } else if (is_function_address(result_addr)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                              &expr->position, ips);
+              } else if (result_addr->address == NULL &&
+                         !is_runtime_data_address(result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_invalid_null_ptr_operation,
                               &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
@@ -8505,6 +8515,11 @@ used by the value representation of the integer value.
               } else if (is_function_address(&result_addr)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_non_array_subscript,
+                              &expr->position, ips);
+              } else if (result_addr.address == NULL &&
+                         !is_runtime_data_address(&result_addr)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_invalid_null_ptr_operation,
                               &expr->position, ips);
               } else {
                 if (host_int_val == 0) {
