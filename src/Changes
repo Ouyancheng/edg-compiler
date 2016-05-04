@@ -1,5 +1,17 @@
 Version 4.11
 
+5/4/16   [EDGcpfe/8647,EDGcpfe/8225]
+GNU C++ compatibility: template parameter name declared as function parameter
+
+g++ allows a template parameter name to be used as a function parameter
+name, hiding the template parameter.  Such hiding is not allowed by
+the standard.  We now accept this (with a warning) in g++ mode.
+
+  template<int I, void (*fp)(int I)> static void f() {
+    fp(I); 
+  }
+
+
 5/4/16   [EDGcpfe/17115]
 Reference to non-const erroneously treated as constant-valued
 

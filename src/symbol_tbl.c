@@ -4804,6 +4804,11 @@ severity to be used for the diagnostic when TRUE is returned.
     starting_depth = depth_template_declaration_scope;
     *severity = es_error;
   }  /* if */
+  if (gpp_mode && !clang_mode && symbol_is(sym, sk_parameter)) {
+    /* In g++ mode, reduce the severity to a warning for a redeclaration
+       that is a parameter name. */
+    *severity = es_warning;
+  }  /* if */
   for (ssep = scope_stack_entry_for(starting_depth);
        ssep != NULL; ssep = previous_scope_of(ssep)) {
     /* Only look at template instantiation and declaration scopes. */
