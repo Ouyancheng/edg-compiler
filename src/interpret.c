@@ -5482,12 +5482,16 @@ the body of the (constructor) function proper.
       a_byte_count        offset;
       a_dynamic_init_ptr  sub_dip;
       a_type_ptr          tp;
+      a_boolean           record_param_ref = FALSE;
       if (ctor_init->kind == (a_constructor_init_kind)cik_field) {
         a_field_ptr  fp = ctor_init->variant.field;
         tp = skip_typerefs(fp->type);
         get_mapped_byte_count(&persistent_map, fp, offset);
         if (ctor_init->use_field_initializer) {
           sub_dip = fp->initializer;
+          /* Field initializers may contain enk_param_ref nodes representing
+             "this": We provide a mapping for those below. */
+          record_param_ref = TRUE;
         } else {
           sub_dip = ctor_init->initializer;
         }  /* if */
@@ -5569,14 +5573,24 @@ the body of the (constructor) function proper.
           /* Just zero the storage. */
           init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
-        } else if (!do_constexpr_dynamic_init(
+        } else {
+          if (record_param_ref) {
+            /* Associate the "this" pointer value (arbitrarily) with
+               ips->curr_call_frame. */
+            map_stack_bytes(ips, &ips->curr_call_frame, result_storage);
+          }  /* if */
+          if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
                                     &callee->source_corresp.decl_position,
                                     result_storage+offset, complete_object)) {
-          do_constexpr_fail(result);
-          break;
-        } else {
-          mark_subobject_initialized(result_storage+offset, complete_object);
+            do_constexpr_fail(result);
+            break;
+          } else {
+            mark_subobject_initialized(result_storage+offset, complete_object);
+          }  /* if */
+          if (record_param_ref) {
+            unmap_stack_bytes(ips, &ips->curr_call_frame);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -8886,6 +8900,21 @@ used by the value representation of the integer value.
     case enk_object_lifetime:
       result = do_constexpr_expression(ips, expr->variant.object_lifetime.expr,
                                        result_storage, complete_object);
+      break;
+    case enk_param_ref:
+      if (expr->variant.param_ref.param_num == 0) {
+        /* An entry representing "this" in a field initializer.  The code
+           handling constructor calls (which initializers members based on
+           field initializers when needed) associated the address of the object
+           being initializer with (arbitrarily) &ips->curr_call_frame. */
+        a_byte  *this_bytes;
+        get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+        clear_address(result_storage, this_bytes);
+        ((a_constexpr_address*)result_storage)->complete_object =
+                                                              complete_object;
+      } else {
+        unexpected_condition();
+      }  /* if */
       break;
     default:
       do_constexpr_fail(result);
