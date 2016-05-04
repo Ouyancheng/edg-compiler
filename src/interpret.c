@@ -4119,8 +4119,13 @@ Interpret the given range-based for-statement.
     alloc_complete_object(ips, n_bytes, tp, expr_value);
     n_bytes = expr_result_size(ips, incr, incr_type, &result);
     alloc_complete_object(ips, n_bytes, incr_type, incr_value);
-    if (!result) goto unmap_storage;
     dip = vp[0]->initializer.dynamic;
+    if (dip == NULL) {
+      /* This is possible in some error situations. */
+      do_constexpr_fail(result);
+      expect_error();
+    }  /* if */
+    if (!result) goto unmap_storage;
     do {
       /* Evaluate the test expression. */
       if (cost_exceeded(ips)) {
