@@ -9836,6 +9836,21 @@ function for additional information.
 }  /* next_non_generated_initializable_field */
 
 
+static a_boolean addr_con_target_type_is_const(a_constant_ptr addr_con)
+/*
+Return TRUE if the type of the object designated by addr_con (a ck_address
+constant) is const-qualified (and not volatile-qualified), FALSE otherwise.
+*/
+{
+  a_type_ptr targ_type;
+
+  check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
+                  addr_con->type->kind == (a_type_kind)tk_pointer);
+  targ_type = type_pointed_to(addr_con->type);
+  return get_type_qualifiers(targ_type) == TQ_CONST ;
+}  /* addr_con_target_type_is_const */
+
+
 a_constant_ptr constant_value_at_address(
                                        a_constant_ptr               addr_con,
                                        a_constexpr_evaluation_block *ceblock,
@@ -9864,6 +9879,7 @@ evaluation (e.g., parameter values).
       result_con = alloc_error_constant();
     }  /* if */
   } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
+             addr_con_target_type_is_const(addr_con) &&
              (addr_con->variant.address.kind ==
                                         (an_address_base_kind)abk_variable ||
               addr_con->variant.address.kind ==

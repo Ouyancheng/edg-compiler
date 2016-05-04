@@ -1,5 +1,20 @@
 Version 4.11
 
+5/4/16   [EDGcpfe/17115]
+Reference to non-const erroneously treated as constant-valued
+
+The front end previously incorrectly allowed a reference to a non-const
+object to appear in a constant expression.  This is now fixed.  For example,
+with --strict --c++11:
+
+  void f() {
+    static constexpr int &&r = 2;
+    r = 1;
+    static_assert(r == 2, "Fail");  // Previously succeeded, now correctly
+                                    // diagnosed as not a constant expression
+  }
+
+
 5/4/16   [EDGcpfe/17147]
 Undefined behavior in std::initializer_list<T>::end
 
