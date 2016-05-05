@@ -3741,12 +3741,19 @@ do_constexpr_condition).  Save the previous storage state in *vs_state if
 successful.
 */
 {
-  a_boolean  result = TRUE;
+  a_boolean                   result = TRUE;
   a_condition_supplement_ptr  csp = expr->variant.condition;
-  a_variable_ptr              cond_var = csp->dynamic_init->variable;
-  a_type_ptr                  vtp = skip_typerefs(cond_var->type);
+  a_variable_ptr              cond_var;
+  a_type_ptr                  vtp;
   a_byte_count                n_bytes;
 
+  if (csp->dynamic_init == NULL) {
+    expect_error()
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  cond_var = csp->dynamic_init->variable;
+  vtp = skip_typerefs(cond_var->type);
   n_bytes = value_bytes_for_type(ips, vtp, &result);
   if (result) {
     a_byte  *var_bytes;
@@ -3756,6 +3763,7 @@ successful.
     map_byte_count(&ips->map, &cond_var->storage_class,
                    ips->storage_stack.alloc_seq_number);
   }  /* if */
+done:
   return result;
 }  /* do_constexpr_condition_alloc */
 
