@@ -3690,10 +3690,11 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_nonconstant_aggregate:
       { /* Set up a "this" pointer in case we run into enk_param_ref nodes.
            It is associated with &ips->curr_call_frame. */
-        a_byte          *this_bytes;
         a_constant_ptr  con = dip->variant.constant;
-        alloc_complete_object(ips, sizeof(a_constexpr_address),
-                              make_pointer_type(con->type), this_bytes);
+        a_type_ptr      this_type = make_pointer_type(con->type);
+        a_byte          *this_bytes;
+        alloc_complete_object(ips, sizeof(a_constexpr_address), this_type,
+                             this_bytes);
         clear_address(this_bytes, result_storage);
         ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
         ((a_constexpr_address *)this_bytes)->alloc_seq_number =
