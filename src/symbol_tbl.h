@@ -6441,18 +6441,6 @@ supplement.
    (sym)->variant.class_struct_union.type->				\
                    variant.class_struct_union.is_prototype_instantiation)
 
-/* Return TRUE if the symbol represents the prototype instantiation of a
-   variable template. */
-#define is_prototype_inst_of_var_template(sym)                               \
-  (symbol_is(sym, sk_variable) &&                                            \
-   (sym)->variant.variable.ptr->is_prototype_instantiation)
-
-/* Return TRUE if the symbol represents the prototype instantiation of a
-   variable template. */
-#define is_prototype_inst_of_constexpr_var_template(sym)                     \
-  (is_prototype_inst_of_var_template(sym) &&                                 \
-   (sym)->variant.variable.ptr->is_constexpr)
-
 /* If a symbol represents a subordinate template, return a pointer to the
    prototype template; otherwise return the symbol provided. */
 #define prototype_template_of(sym)					\
