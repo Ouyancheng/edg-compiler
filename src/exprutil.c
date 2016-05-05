@@ -12951,8 +12951,11 @@ of a subscript operation).
            (curr_expr_kind_is(ek_init_constant) &&
             scope_stack_top().decl_parse_state != NULL &&
             scope_stack_top().decl_parse_state->sym != NULL &&
-            is_prototype_inst_of_constexpr_var_template(
-                                 scope_stack_top().decl_parse_state->sym))) &&
+            (symbol_is(scope_stack_top().decl_parse_state->sym, sk_variable) ||
+             symbol_is(scope_stack_top().decl_parse_state->sym,
+                                                    sk_static_data_member)) &&
+            variable_for_symbol(scope_stack_top().decl_parse_state->sym)
+                                             ->is_prototype_instantiation)) &&
           (is_template_param_constant_operand(operand_1) ||
            is_template_param_constant_operand(operand_2) ||
            is_template_dependent_type(operand_1->type) ||

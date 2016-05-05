@@ -40729,14 +40729,23 @@ standard form).  Assumes copy-initialization ("="-form).
 {
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
+  a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if ((gpp_mode || microsoft_mode) && !braced_initializer_next(dps)) {
+  scope_stack_top().decl_parse_state = dps;
+  if ((gpp_mode || microsoft_mode) && !braced_initializer_next(dps) &&
+      !(constexpr_enabled && dps->sym != NULL &&
+        symbol_is(dps->sym, sk_static_data_member) &&
+        dps->sym->variant.static_data_member.variable
+                ->is_prototype_instantiation)) {
     /* GNU and Microsoft C++ allow more than the standard allows. */
     /* Note than g++ did start disallowing some extensions in version 3.4,
-       but it continues to allow float constants, so we continue to
-       use the slightly-too-broad extended version. */
+       but it continues to allow float constants, so we continue to use the
+       slightly-too-broad extended version.  When constexpr is enabled, we use
+       the standard routines for the prototype instantiations of static data
+       members, because they will represent seemingly nonconstant expressions
+       into tpck_expression constants if needed. */
     scan_constant_initializer_expression(dps->type, dps, constant);
   } else {
     an_init_component_ptr  icp;
@@ -40769,6 +40778,7 @@ standard form).  Assumes copy-initialization ("="-form).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  scope_stack_top().decl_parse_state = saved_dps;
   db_exit();
 }  /* scan_member_constant_initializer_expression */
 
