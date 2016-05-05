@@ -21154,6 +21154,16 @@ the conversion.
       add_copy_to_temp_for_microsoft_rvalue_question_mark(source_operand);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_a_prvalue(source_operand) && is_constant_operand(source_operand) &&
+        !is_any_reference_type(source_operand->type)) {
+      /* Turn a class prvalue constant into a glvalue to avoid slicing the
+         result when folding later on. */
+      take_reference_to_operand(source_operand, is_rvalue_ref);
+      add_reference_indirection(source_operand);
+      if (is_rvalue_ref) {
+        conv_rvalue_reference_result_to_xvalue(source_operand);
+      }  /* if */
+    }  /* if */
     full_adjust_class_object_type(source_operand, adj_base_dest_type);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
