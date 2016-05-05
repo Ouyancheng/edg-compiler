@@ -10187,6 +10187,21 @@ evaluation (e.g., parameter values).
 }  /* constant_value_at_address */
 
 
+static a_boolean addr_con_target_type_is_const(a_constant_ptr addr_con)
+/*
+Return TRUE if the type of the object designated by addr_con (a ck_address
+constant) is const-qualified (and not volatile-qualified), FALSE otherwise.
+*/
+{
+  a_type_ptr targ_type;
+
+  check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
+                  addr_con->type->kind == (a_type_kind)tk_pointer);
+  targ_type = type_pointed_to(addr_con->type);
+  return get_type_qualifiers(targ_type) == TQ_CONST ;
+}  /* addr_con_target_type_is_const */
+
+
 a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
                                                 a_source_position *pos)
 /*
@@ -10213,7 +10228,8 @@ the variable to which p points has a constant value, return that value.
       /* A dependent address.  Create a template parameter constant. */
       result_con = alloc_constant((a_constant_repr_kind)ck_template_param);
       make_template_param_expr_constant(expr, result_con);
-    } else {
+    } else if (addr_con_target_type_is_const(addr_con)) {
+      /* The object at the constant address is a constant object. */
       result_con = constant_value_at_address(
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
