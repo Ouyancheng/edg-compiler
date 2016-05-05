@@ -3949,7 +3949,7 @@ Interpret the given for-statement.
 */
 {
   a_boolean              result = TRUE;
-  a_storage_stack_state  saved_stack;
+  a_storage_stack_state  saved_stack, cond_saved_stack;
   a_for_loop_ptr         loop_info = stmt->variant.for_loop.extra_info;
   a_statement_ptr        init = loop_info->initialization;
 
@@ -3976,7 +3976,7 @@ Interpret the given for-statement.
       /* Check if we have to allocate a condition variable. */
       has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
       if (has_cond_var &&
-          !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+          !do_constexpr_condition_alloc(ips, expr, &cond_saved_stack)) {
         do_constexpr_fail(result);
         has_cond_var = FALSE;
         goto unmap_storage;
@@ -4057,7 +4057,7 @@ Interpret the given for-statement.
     } while (result && bool_val);
 unmap_storage:
     if (has_cond_var) {
-      do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+      do_constexpr_condition_dealloc(ips, expr, &cond_saved_stack);
     }  /* if */
   }  /* if */
   { /* Unmap the local storage if necessary. */
