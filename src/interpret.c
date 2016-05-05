@@ -5582,7 +5582,7 @@ the body of the (constructor) function proper.
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
                ips->curr_call_frame. */
-            map_stack_bytes(ips, &ips->curr_call_frame, result_storage);
+            map_stack_bytes(ips, &ips->curr_call_frame, (a_byte*)this_var);
           }  /* if */
           if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
@@ -8951,18 +8951,22 @@ used by the value representation of the integer value.
                                        result_storage, complete_object);
       break;
     case enk_param_ref:
-      { a_byte  *this_bytes = NULL;
+      { a_byte  *ptr = NULL;
         if (expr->variant.param_ref.param_num == 0) {
           /* An entry representing "this" in a field initializer.  The code
-             handling constructor calls (which initializers members based on
+             handling constructor calls (which initializes members based on
              field initializers when needed) associated the address of the
-             object being initialized with &ips->curr_call_frame. */
-          get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+             "this" pointer variable for the constructor with
+             &ips->curr_call_frame. */
+          get_stack_bytes(ips, &ips->curr_call_frame, ptr);
         }  /* if */
-        if (this_bytes != NULL) {
-          clear_address(result_storage, this_bytes);
-          ((a_constexpr_address*)result_storage)->complete_object =
-                                                              complete_object;
+        if (ptr != NULL) {
+          a_variable_ptr  this_var = (a_variable_ptr)ptr;
+          a_byte          *var_bytes;
+          get_stack_bytes(ips, this_var, var_bytes);
+          (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+          copy_address_structures(result_storage);
+          mark_complete_object_initialized(complete_object);
         } else {
           do_constexpr_fail(result);
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
