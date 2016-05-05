@@ -8951,19 +8951,24 @@ used by the value representation of the integer value.
                                        result_storage, complete_object);
       break;
     case enk_param_ref:
-      if (expr->variant.param_ref.param_num == 0) {
-        /* An entry representing "this" in a field initializer.  The code
-           handling constructor calls (which initializers members based on
-           field initializers when needed) associated the address of the object
-           being initializer with (arbitrarily) &ips->curr_call_frame. */
-        a_byte  *this_bytes;
-        get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
-        clear_address(result_storage, this_bytes);
-        ((a_constexpr_address*)result_storage)->complete_object =
+      { a_byte  *this_bytes = NULL;
+        if (expr->variant.param_ref.param_num == 0) {
+          /* An entry representing "this" in a field initializer.  The code
+             handling constructor calls (which initializers members based on
+             field initializers when needed) associated the address of the
+             object being initialized with &ips->curr_call_frame. */
+          get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+        }  /* if */
+        if (this_bytes != NULL) {
+          clear_address(result_storage, this_bytes);
+          ((a_constexpr_address*)result_storage)->complete_object =
                                                               complete_object;
-      } else {
-        unexpected_condition();
-      }  /* if */
+        } else {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                        &expr->position, ips);
+        }  /* if */
+      }
       break;
     default:
       do_constexpr_fail(result);
