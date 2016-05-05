@@ -5731,7 +5731,8 @@ in *diag_list).  pos is the source position of the call.
                                           /*suppress_abstract_test=*/TRUE,
                                           (a_dynamic_init_kind)dik_constant,
                                           pos, &temp_dip);
-        temp_dip->variant.constant = move_local_constant_to_il(&result_con);
+        set_dynamic_init_constant(temp_dip,
+                                  move_local_constant_to_il(&result_con));
         release_constant = FALSE;
         make_expression_operand(temp_node, result);
       }  /* if */
