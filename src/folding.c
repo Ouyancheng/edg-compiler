@@ -10190,13 +10190,13 @@ evaluation (e.g., parameter values).
 static a_boolean addr_con_target_type_is_const(a_constant_ptr addr_con)
 /*
 Return TRUE if the type of the object designated by addr_con (a ck_address
-constant) is const-qualified (and not volatile-qualified), FALSE otherwise.
+constant or null pointer constant) is const-qualified (and not
+volatile-qualified), FALSE otherwise.
 */
 {
   a_type_ptr targ_type;
 
-  check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
-                  addr_con->type->kind == (a_type_kind)tk_pointer);
+  check_assertion(addr_con->type->kind == (a_type_kind)tk_pointer);
   targ_type = type_pointed_to(addr_con->type);
   return get_type_qualifiers(targ_type) == TQ_CONST ;
 }  /* addr_con_target_type_is_const */
