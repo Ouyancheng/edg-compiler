@@ -3687,8 +3687,25 @@ Evaluate the given dynamic initialization for the given storage.
   a_boolean  result = FALSE;
 
   switch (dip->kind) {
-    case dik_constant:
     case dik_nonconstant_aggregate:
+      { /* Set up a "this" pointer in case we run into enk_param_ref nodes.
+           It is associated with &ips->curr_call_frame. */
+        a_byte          *this_bytes;
+        a_constant_ptr  con = dip->variant.constant;
+        alloc_complete_object(ips, sizeof(a_constexpr_address),
+                              make_pointer_type(con->type), this_bytes);
+        clear_address(this_bytes, result_storage);
+        ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
+        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+                                                   ips->curr_alloc_seq_number;
+        mark_complete_object_initialized(this_bytes);
+        map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+        result = copy_val_from_constant(ips, dip->variant.constant,
+                                        result_storage, complete_object);
+        unmap_stack_bytes(ips, &ips->curr_call_frame);
+      }
+      break;
+    case dik_constant:
       result = copy_val_from_constant(ips, dip->variant.constant,
                                       result_storage, complete_object);
       break;
@@ -5348,7 +5365,7 @@ the body of the (constructor) function proper.
     a_constructor_init_ptr
                          ctor_init;
     a_byte_count         n_args = 1, n_params = 1;
-    a_byte               *arg_ptrs, **p_arg_ptr;
+    a_byte               *arg_ptrs, **p_arg_ptr, *this_bytes;
     a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
     a_type_ptr           class_type = parent_class_of(callee);
@@ -5453,10 +5470,8 @@ the body of the (constructor) function proper.
       do_constexpr_fail(result);
       goto done;
     } else {
-      a_byte        *this_bytes;
       a_type_ptr    this_type = skip_typerefs(this_var->type);
-      a_byte_count  this_n_bytes = value_bytes_for_type(ips, this_type,
-                                                        &result);
+      a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
       ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
@@ -5589,8 +5604,8 @@ the body of the (constructor) function proper.
         } else {
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
-               ips->curr_call_frame. */
-            map_stack_bytes(ips, &ips->curr_call_frame, (a_byte*)this_var);
+               &ips->curr_call_frame. */
+            map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
           }  /* if */
           if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
@@ -8959,20 +8974,17 @@ used by the value representation of the integer value.
                                        result_storage, complete_object);
       break;
     case enk_param_ref:
-      { a_byte  *ptr = NULL;
+      { a_byte  *this_bytes = NULL;
         if (expr->variant.param_ref.param_num == 0) {
           /* An entry representing "this" in a field initializer.  The code
              handling constructor calls (which initializes members based on
              field initializers when needed) associated the address of the
              "this" pointer variable for the constructor with
              &ips->curr_call_frame. */
-          get_stack_bytes(ips, &ips->curr_call_frame, ptr);
+          get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
         }  /* if */
-        if (ptr != NULL) {
-          a_variable_ptr  this_var = (a_variable_ptr)ptr;
-          a_byte          *var_bytes;
-          get_stack_bytes(ips, this_var, var_bytes);
-          (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+        if (this_bytes != NULL) {
+          (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
           copy_address_structures(result_storage);
           mark_complete_object_initialized(complete_object);
         } else {
