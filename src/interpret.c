@@ -115,11 +115,11 @@ uses a separate allocation strategy.
 
 Mappings
 --------
-The interpret makes use of an efficient hash table data structure that maps
+The interpreter makes use of an efficient hash table data structure that maps
 pointers (the "key") to either pointers or byte counts (the "value").  The
 type describing such a "map" is a_data_map.  A new (key, value) pair can be
 added with macro map_ptr or map_byte_count.  A mapping can then be retrieved
-with get_mapper_ptr or get_mapped_byte_count.  An recorded mapping for a given
+with get_mapped_ptr or get_mapped_byte_count.  An recorded mapping for a given
 key can be revoked with unmap_ptr.  (Most of the time, the key is a pointer
 into IL.)
 
