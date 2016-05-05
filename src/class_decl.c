@@ -16149,6 +16149,12 @@ template declaration and is NULL otherwise.
   } else if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
   }  /* if */
+  if (decl_info->is_member_template ||
+      in_class_template_definition(class_state)) {
+    var->is_template_variable = TRUE;
+    var->is_prototype_instantiation = TRUE;
+    var->is_nonreal = TRUE;
+  }  /* if */
   /* Static data members will have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal linkage
      -- if and when its linkage is promoted to C++, the linkage of the static
@@ -16394,9 +16400,6 @@ template declaration and is NULL otherwise.
         tip->template_info->is_generic =
                   class_type->variant.class_struct_union.is_generic_instance;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        var->is_template_variable = TRUE;
-        var->is_prototype_instantiation = TRUE;
-        var->is_nonreal = TRUE;
         if (var->template_info == NULL) {
           /* For variable templates, the template_info will have already been
              allocated. */
