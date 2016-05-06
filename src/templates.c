@@ -3063,7 +3063,6 @@ in ps_arg_list.
                                            /*orig_is_nonreal_template=*/FALSE,
                                            &copy_error, &ctws_state);
       eta_options = eta_options_for_template(template_sym, tssp);
-      eta_options |= ETA_EXACT_MATCH_REQUIRED;
       if (!copy_error &&
           equiv_template_arg_lists(instance_tap, test_arg_list, eta_options)) {
         result = TRUE;
