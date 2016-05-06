@@ -4145,11 +4145,13 @@ Interpret the given range-based for-statement.
     alloc_complete_object(ips, n_bytes, tp, expr_value);
     n_bytes = expr_result_size(ips, incr, incr_type, &result);
     alloc_complete_object(ips, n_bytes, incr_type, incr_value);
-    dip = vp[0]->initializer.dynamic;
-    if (dip == NULL) {
+    if (vp[0]->init_kind != (an_init_kind)initk_dynamic ||
+        vp[0]->initializer.dynamic == NULL) {
       /* This is possible in some error situations. */
       do_constexpr_fail(result);
       expect_error();
+    } else {
+      dip = vp[0]->initializer.dynamic;
     }  /* if */
     if (!result) goto unmap_storage;
     do {
