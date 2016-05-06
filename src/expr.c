@@ -40745,7 +40745,7 @@ standard form).  Assumes copy-initialization ("="-form).
        slightly-too-broad extended version.  When constexpr is enabled, we use
        the standard routines for the prototype instantiations of static data
        members, because they will represent seemingly nonconstant expressions
-       into tpck_expression constants if needed. */
+       as tpck_expression constants if needed. */
     scan_constant_initializer_expression(dps->type, dps, constant);
   } else {
     an_init_component_ptr  icp;
