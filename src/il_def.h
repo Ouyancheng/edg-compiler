@@ -4250,6 +4250,11 @@ typedef struct a_constant {
     struct {
       an_address_base_kind
                 kind;
+      a_bit_field
+		from_reference_variable:1;
+			/* TRUE if this constant was folded from the value
+			   of a reference variable; FALSE for other address
+			   constants. */
       union {
         /* The entity whose address is the base for this address constant. */
         /* When kind == abk_cli_array, no variant fields. */

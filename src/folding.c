@@ -10229,9 +10229,9 @@ the variable to which p points has a constant value, return that value.
       result_con = alloc_constant((a_constant_repr_kind)ck_template_param);
       make_template_param_expr_constant(expr, result_con);
     } else if (addr_con_target_type_is_const(addr_con) ||
-               expr->kind == (an_expr_node_kind)enk_temp_init) {
-      /* The object at the constant address is a constant object or is
-         a temporary created within the current expression. */
+               !addr_con->variant.address.from_reference_variable) {
+      /* The object at the constant address is a constant object or is not
+         accessible via variable reference to non-const. */
       result_con = constant_value_at_address(
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,

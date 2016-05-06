@@ -14368,7 +14368,10 @@ on output it will be an lvalue.
          result is an lvalue for that variable. */
       node = var_lvalue_expr(var);
     } else {
+      a_boolean from_reference_variable;
       node = make_node_from_operand(result);
+      from_reference_variable = (node->kind ==
+                                              (an_expr_node_kind)enk_variable);
       if (is_an_lvalue(result)) {
         a_boolean constant_addr;
         /* Convert from an lvalue for the reference to a prvalue for the value
@@ -14377,6 +14380,10 @@ on output it will be an lvalue.
         node = conv_glvalue_expr_to_prvalue(node, &constant_addr,
                                             (a_constant_ptr *)NULL,
                                             &result->position);
+        if (node->kind == (an_expr_node_kind)enk_constant) {
+          node_constant(node)->variant.address.from_reference_variable =
+                                                       from_reference_variable;
+        }  /* if */
         if (!in_potential_constant_constexpr_context() &&
             !constant_addr &&
             !potential_gnu_ignored_object_expr(node, next_token()) &&
