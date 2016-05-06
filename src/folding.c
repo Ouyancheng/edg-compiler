@@ -10198,7 +10198,7 @@ volatile-qualified), FALSE otherwise.
 
   check_assertion(addr_con->type->kind == (a_type_kind)tk_pointer);
   targ_type = type_pointed_to(addr_con->type);
-  return get_type_qualifiers(targ_type) == TQ_CONST ;
+  return get_type_qualifiers(targ_type) == TQ_CONST;
 }  /* addr_con_target_type_is_const */
 
 
@@ -10231,7 +10231,7 @@ the variable to which p points has a constant value, return that value.
     } else if (addr_con_target_type_is_const(addr_con) ||
                !addr_con->variant.address.from_reference_variable) {
       /* The object at the constant address is a constant object or is not
-         accessible via variable reference to non-const. */
+         accessible via a variable reference to non-const. */
       result_con = constant_value_at_address(
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
