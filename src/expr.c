@@ -39611,7 +39611,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             copy_operand_position(&eriep->saved_operand, result);
           } else {
             sym = find_template_variable(t_sym, &t_args,
-                                         /*prototype_allowed=*/FALSE);
+                                         /*prototype_allowed=*/FALSE,
+                                         /*is_use=*/TRUE);
           }  /* if */
         } else {
           sym = symbol_for(var);

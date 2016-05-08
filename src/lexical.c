@@ -17427,9 +17427,10 @@ list.
       arg_list = NULL;
     } else {
       a_boolean	prototype_allowed;
+      a_boolean	is_use = (options & GID_IS_EXPR_CONTEXT) != 0;
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
       new_sym = find_template_variable(template_sym, &arg_list,
-                                       prototype_allowed);
+                                       prototype_allowed, is_use);
       locator_for_curr_id = orig_locator;
     }  /* if */
     curr_token = tok_identifier;

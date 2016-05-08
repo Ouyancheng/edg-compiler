@@ -474,7 +474,8 @@ extern a_symbol_ptr find_class_template_instance(
 extern a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list,
-				a_boolean		prototype_allowed);
+				a_boolean		prototype_allowed,
+				a_boolean		is_use);
 
 extern a_namespace_ptr determine_referencing_namespace(void);
 

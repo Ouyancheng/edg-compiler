@@ -1,5 +1,17 @@
 Version 4.11
 
+5/8/16   [EDGcpfe/17118]
+C++14: Variable Templates
+
+C++14 variable templates (the initial specification of which was specified
+in N3641) are now supported.
+
+  template <typename T> T x = 1;
+  int main() {
+    return x<int> + x<double>;
+  }
+
+
 5/5/16   [EDGcpfe/17108]
 Spurious error in const static data member initializer in GNU C++ mode
 

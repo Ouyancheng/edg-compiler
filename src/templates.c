@@ -6034,14 +6034,16 @@ static void scan_template_variable_declaration(
 
 
 static void instantiate_template_variable(a_template_instance_ptr  tip,
-                                          a_boolean                is_new)
+                                          a_boolean                is_new,
+                                          a_boolean                is_use)
 /*
 Generate a definition of an instance of a variable template or a static
 data member of a class template.  The definition may be based on a
 the template definition or may be a default initialization.  is_new if
 this is the first attempt at instantiation (this routine can be called
 more than once if only an extern declaration of a variable template has
-been seen).
+been seen).  is_use is TRUE if this a use (i.e., a reference from an
+expression context) rather than a declaration.
 */
 {
   a_symbol_ptr				var_sym;
@@ -6098,18 +6100,21 @@ been seen).
      exist (such as runaway instantiation), to prevent the compiler from
      attempting to instantiate this variable again. */
   find_or_create_master_instance(tip);
-  if (!is_var_templ_instance || tip->template_sym->defined) {
+  if (!is_var_templ_instance) {
     master_instance_of(tip)->already_instantiated = TRUE;
   }  /* if */
   var_ptr = variable_for_symbol(var_sym);
-  if (tssp->pending_instantiations >= max_pending_instantiations) {
+  if (tssp_of_prototype->pending_instantiations >=
+                                                  max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
        of the same variable.  When the number of such instantiations
        exceeds a specified limit, we assume this to be a runaway recursion. */
     sym_error(ec_runaway_recursive_instantiation, var_sym);
     var_ptr->type = error_type();
+    master_instance_of(tip)->already_instantiated = TRUE;
     goto done;
   }  /* if */
+  ++(tssp_of_prototype->pending_instantiations);
   if (instantiation_mode == tim_local) {
     /* In -tlocal mode, put out the variable with internal linkage. */
     var_ptr->storage_class = (a_storage_class)sc_static;
@@ -6171,22 +6176,24 @@ been seen).
      instance. */
   reactivate_curr_construct_pragmas(
                                  tssp_of_prototype->pragmas_bound_to_template);
-  ++(tssp->pending_instantiations);
   is_definition = !is_var_templ_instance ||
-                  tssp_of_prototype->cache.tokens.first_token != NULL ||
-                  var_ptr->initializer_in_class;
+                  (is_use &&
+                   (tssp_of_prototype->cache.tokens.first_token != NULL ||
+                    var_ptr->initializer_in_class));
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance) {
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
-  if (tssp_of_prototype->cache.tokens.first_token != NULL) {
+  if (is_definition &&
+      tssp_of_prototype->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
     rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
+    master_instance_of(tip)->already_instantiated = TRUE;
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
@@ -6236,7 +6243,7 @@ been seen).
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
     /* The variable is already initialized (possibly by an in-class
        initializer). */
-  } else if (!is_var_templ_instance || template_sym->defined) {
+  } else if (!is_var_templ_instance || (template_sym->defined && is_use)) {
     a_boolean	def_init_okay;
     /* The storage class must be set before def_initializer is called. */
     if (var_ptr->storage_class == (a_storage_class)sc_extern) {
@@ -6275,23 +6282,22 @@ been seen).
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
-     depends on it. */
-  record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION |
-                              (is_definition ? SRK_DEFINITION : SRK_NONE),
-                            var_sym,
-                            &tip->template_sym->decl_position,
-                            (a_source_sequence_entry_ptr)NULL);
+     depends on it.  This is not called for variable template instances
+     in declarative contexts because those should not prevent a later
+     specialization. */
+  if (!is_var_templ_instance || is_definition || is_use) {
+    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION |
+                                (is_definition ? SRK_DEFINITION : SRK_NONE),
+                              var_sym,
+                              &tip->template_sym->decl_position,
+                              (a_source_sequence_entry_ptr)NULL);
+    var_ptr->source_corresp.referenced = TRUE;
+  }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(var_sym,
                                  (a_statement_ptr)NULL);
   pop_template_instantiation_scope();
-  --(tssp->pending_instantiations);
-  /* Usually template variables are instantiated "on demand" and
-     so the referenced flag will already have been set.  But if the
-     instantiation mode says to instantiate whether or not there is
-     a reference, we should set the referenced flag anyway, so that
-     the back-end will be sure to generate the variable. */ 
-  var_ptr->source_corresp.referenced = TRUE;
+  --(tssp_of_prototype->pending_instantiations);
   var_ptr->is_template_variable = TRUE;
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
@@ -8999,13 +9005,15 @@ Update var with a dependent type.
 a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list,
-				a_boolean		prototype_allowed)
+				a_boolean		prototype_allowed,
+				a_boolean		is_use)
 /*
 Given a variable template symbol (template_sym) and a template argument
 list (*new_templ_arg_list), look for an existing variable template
 instance, or create a new instance if none is found.  If prototype_allowed
 is TRUE, return a prototype instantiation if it matches the argument
-list.  Return the symbol for the instance found.
+list.    is_use is TRUE if this a use (i.e., a reference from an expression
+context) rather than a declaration.Return the symbol for the instance found.
 
 If a new template instance is created, the template argument list is
 attached to that new instance.  If an existing instance is found, the
@@ -9080,7 +9088,7 @@ use of the argument list in case it has been freed.
                       var->template_info->template_arg_list);
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
-      instantiate_template_variable(tip, /*is_new=*/TRUE);
+      instantiate_template_variable(tip, /*is_new=*/TRUE, is_use);
       set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
     } else {
       /* Create a nonreal variable. */
@@ -9093,6 +9101,10 @@ use of the argument list in case it has been freed.
     }  /* if */
 #endif /* DEBUG */
   } else {
+    if (!is_nonreal && !sym->defined &&
+        !master_instance_of(tip)->already_instantiated) {
+      instantiate_template_variable(tip, /*is_new=*/FALSE, is_use);
+    }  /* if */
     /* We are reusing a template function that already exists, so
        *new_templ_arg_list will not be used. */
     free_template_arg_list(*new_templ_arg_list);
@@ -25621,6 +25633,7 @@ issued.
     case sk_class_template:
     case sk_function_template:
     case sk_variable_template:
+    case sk_variable:
       is_template = TRUE;
       break;
     case sk_static_data_member:
@@ -26291,7 +26304,8 @@ that follows.
       dps->sym = sym;
       if (dps->is_definition) {
         srk_flags |= SRK_DEFINITION;
-        if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        if (symbol_is(sym, sk_static_data_member) ||
+           symbol_is(sym, sk_variable)) {
           srk_flags |= SRK_INITIALIZATION;
           /* Set the IL referenced flag since, as an externally visible
              variable, it could be referenced from another translation unit. */
@@ -26319,7 +26333,8 @@ that follows.
         check_template_nesting_depth(sym, &locator.source_position,
                                      decl_state);
       }  /* if */
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      if (symbol_is(sym, sk_static_data_member) ||
+          symbol_is(sym, sk_variable)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         a_name_reference_ptr  name_ref = NULL;
         /* Do fixup on the source sequence entry that was just created to
@@ -29109,7 +29124,7 @@ data member specified by tip.
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member definition. */
-    instantiate_template_variable(tip, /*is_new=*/FALSE);
+    instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
   } else {
     /* Function instantiation.  The number of simultaneous function
        instantiations is limited to limit the amount of memory used by

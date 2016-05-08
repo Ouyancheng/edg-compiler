@@ -6629,6 +6629,7 @@ of the variable.
     } else {
       pos_error(ec_constexpr_variable_decl_must_be_definition,
                 &dps->constexpr_pos);
+      vp->type = error_type();
     }  /* if */
   }  /* if */
 }  /* update_variable_decl_info */
