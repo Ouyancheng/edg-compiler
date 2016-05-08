@@ -6153,7 +6153,6 @@ expression context) rather than a declaration.
   scan_template_variable_declaration(tip, var_sym, tssp_of_prototype, &dps);
   if (var_ptr->initializer_in_class &&
       gpp_mode && gnu_version >= 40100 && !clang_mode) {
-    /* FIXME: is this correct for variable templates? */
     /* In GNU C++ mode, in-class initializers are instantiated only when
        needed.  Since we're about to instantiate the definition, ensure it
        will have an associated initializer. */
@@ -6166,7 +6165,6 @@ expression context) rather than a declaration.
     /* Copy the in-class initializer flag from the prototype instantiation. */
     var_ptr->initializer_in_class = proto_var->initializer_in_class;
   }  /* if */
-  /* FIXME: should this be done elsewhere? */
   if (!tip->template_sym->is_class_member &&
       is_const_qualified_type(var_ptr->type)) {
     var_ptr->storage_class = (a_storage_class)sc_static;
@@ -6301,7 +6299,6 @@ expression context) rather than a declaration.
   var_ptr->is_template_variable = TRUE;
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
-  /* FIXME: should something be done for variable template instances? */
   var_ptr->template_info->assoc_template = tssp->il_template_entry;
   /* Notify the correspondence routines that a definition of this function
      is now present. */
@@ -14541,13 +14538,11 @@ by this routine.
   var = variable_for_symbol(sym);
   if (!sym->is_class_member && symbol_is(sym, sk_variable) &&
       dps->storage_class == (a_storage_class)sc_static) {
-    /* FIXME: check after decl_variable refactoring. */
     var->storage_class = dps->storage_class;
   }  /* if */
   if (var->type == NULL) {
     var->type = dps->type;
   } else {
-    /* FIXME: Is this right for variable templates? */
     (void)reconcile_static_data_member_types(sym, dps->type,
                                              &locator.source_position);
   }  /* if */
@@ -22657,7 +22652,6 @@ Create the variable entry variable template specified by template_sym.
   var->is_prototype_instantiation = TRUE;
   var->is_nonreal = TRUE;
   var->type = dps->type;
-  /* FIXME: check after decl_variable refactoring. */
   var->storage_class = dps->storage_class;
   if (prototype_instantiations_in_il || tssp->is_generic) {
     if (decl_state->decl_scope_err) {

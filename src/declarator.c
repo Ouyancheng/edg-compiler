@@ -4973,13 +4973,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     a_boolean  another_pointer_declarator = FALSE;
     a_boolean  ptr_to_member_case = FALSE, rvalue_ref_case = FALSE;
     a_boolean  plain_ptr = (curr_token == tok_star), managed_type = FALSE;
-#if 0
-#else
-    /* FIXME: */
+    /* In case we end up scanning a variable template, pre-coalesce the
+       identifier before is_ptr_to_member_declarator_start would do it
+       below. */
     if (scope_is(&scope_stack_top(), sck_template_declaration)) {
       (void)is_generalized_identifier_start(GID_USE_PROTOTYPE_NOT_NONREAL);
     }  /* if */
-#endif
     if ((plain_ptr ||
          (reference_allowed && (curr_token == tok_ampersand ||
                                 (rvalue_references_enabled &&

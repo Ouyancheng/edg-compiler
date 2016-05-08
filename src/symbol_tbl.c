@@ -1259,7 +1259,6 @@ do_variable:
             tip = tip->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_variable_template) {
-          /* FIXME */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
