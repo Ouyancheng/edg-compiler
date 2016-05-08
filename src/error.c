@@ -1070,8 +1070,11 @@ level.
         }
         break;
       case sk_static_data_member:
+      case sk_variable:
         {
+          a_variable_ptr	vp = variable_for_symbol(sym);
           decl_info = tssp->cache.decl_info;
+          tap = vp->template_info->template_arg_list;
         }
         break;
       default:
@@ -1309,6 +1312,21 @@ specified by dp.
       goto symbol_name;
     case sk_variable:
       type = fund_sym->variant.variable.ptr->type;
+      tip = fund_sym->variant.variable.instance_ptr;
+      if (tip != NULL && distinct_template_signatures) {
+        /* When a template variable is displayed, it is done by displaying
+           the variable from the prototype instantiation and the template
+           arguments used for each template parameter list.  Get the template
+           symbol to be displayed. */
+        a_variable_ptr	vp;
+        a_template_ptr	var_templ;
+        vp = variable_for_symbol(fund_sym);
+        var_templ = vp->template_info->assoc_template;
+        corresp_template_sym = symbol_for(var_templ);
+        corresp_template_sym = prototype_template_of(corresp_template_sym);
+        vp = variable_for_symbol(corresp_template_sym);
+        type = vp->type;
+      }  /* if */
       if (fund_sym->variant.variable.ptr->is_parameter) {
         entity_kind = ec_parameter;
       } else if (fund_sym->variant.variable.ptr->is_handler_param) {
