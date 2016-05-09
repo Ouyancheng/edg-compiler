@@ -1887,7 +1887,7 @@ static void clear_instantation_correspondences(a_template_ptr  templ,
                                                a_boolean       visited)
 /*
 Mark all instantiations associated with the given template as having no
-correspondences.  If visited is TRUE, also record those instantiations of the
+correspondences.  If visited is TRUE, also record those instantiations on the
 all_instantiations list of the associated template symbol supplement.
 */
 {
