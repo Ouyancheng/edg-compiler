@@ -6410,7 +6410,6 @@ used by the value representation of the integer value.
                     is_signed = int_kind_is_signed[int_kind];
                     add_integer_values(ival, &one_int, is_signed, &ovfl);
                     CHECK_int_range(ival, tp);
-                    trim_bit_field_if_needed(cap);
                   }  /* if */
                 } else if (tp->kind == (a_type_kind)tk_float) {
                   /* A floating-point type. */
@@ -6490,7 +6489,6 @@ used by the value representation of the integer value.
                   subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
-                  trim_bit_field_if_needed(cap);
                 } else if (tp->kind == (a_type_kind)tk_float) {
                   /* A floating-point type. */
                   fp_subtract(tp->variant.float_kind,
@@ -6556,9 +6554,6 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
-              } else if (!is_initialized(cap)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integral type. */
                 if (tp->variant.integer.bool_type) {
@@ -6571,7 +6566,6 @@ used by the value representation of the integer value.
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(ival, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
-                  trim_bit_field_if_needed(cap);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
@@ -6640,9 +6634,6 @@ used by the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
-              } else if (!is_initialized(cap)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integer. */
                 an_integer_value  *ival = int_value_at(cap);
@@ -6651,7 +6642,6 @@ used by the value representation of the integer value.
                 subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                 CHECK_int_range(ival, tp);
-                trim_bit_field_if_needed(cap);
               } else if (tp->kind == (a_type_kind)tk_float) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
