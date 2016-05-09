@@ -2951,6 +2951,11 @@ typedef struct a_template_symbol_supplement {
 			/* Pointer to a list of entries specifying definitions
 			   for static data members of instantiated template
 			   classes.  NULL for variable templates. */
+      a_symbol_list_entry_ptr
+		instantiations;
+                        /* For variable templates, a pointer to a list of
+			   symbols for the variables instantiated from this
+			   template. */
       a_variable_ptr
 		prototype_variable;
 			/* Pointer to the variable for the prototype

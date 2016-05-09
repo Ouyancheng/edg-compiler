@@ -3509,6 +3509,7 @@ and return a pointer to it.
     case sk_static_data_member:
     case sk_variable_template:
       tssp->variant.variable.definitions = NULL;
+      tssp->variant.variable.instantiations = NULL;
       tssp->variant.variable.prototype_variable = NULL;
       clear_template_cache(&tssp->variant.variable.decl_cache,
                           /*reusable=*/TRUE);

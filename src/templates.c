@@ -7530,6 +7530,12 @@ and tssp.
     slep->symbol = instance_sym;
     slep->next = tssp->variant.class_template.instantiations;
     tssp->variant.class_template.instantiations = slep;
+  } else if (symbol_is(template_sym, sk_variable_template)) {
+    /* Add this to the instantiations list for the variable template. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = instance_sym;
+    slep->next = tssp->variant.variable.instantiations;
+    tssp->variant.variable.instantiations = slep;
   }  /* if */
   *hash_table_sym = instance_sym;
 }  /* add_instantiation */
