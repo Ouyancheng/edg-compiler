@@ -4059,7 +4059,13 @@ Interpret the given for-statement.
               if (incr != NULL) {
                 do_constexpr_full_expression(
                                    ips, incr, incr_value, incr_value, result);
-                release_address_structures(incr, incr_type, incr_value);
+                if (result) {
+                  release_address_structures(incr, incr_type, incr_value);
+                } else {
+                  /* The initialization state of incr_value is uncertain.
+                     Rely on reclaim_variant_path_entries to recover entries
+                     in that case. */
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
