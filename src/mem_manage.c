@@ -1904,8 +1904,7 @@ Display the IL entry prefix of the given IL entry.
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if ORPHAN_PROCESSING_NEEDED
     if (il_entry_prefix_of(entry).file_scope) {
-      fprintf(f_debug, "\norphan ptr = %lx ",
-              (long)fs_orphan_pointer_of(entry));
+      fprintf(f_debug, "\norphan ptr = %p ", fs_orphan_pointer_of(entry));
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */

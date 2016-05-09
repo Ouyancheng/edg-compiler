@@ -1422,7 +1422,7 @@ the pointer, right-shifted six bits to account for the size of a typical IL
 entry.
 */
 {
-  return (a_hash_value)(((unsigned long)ptr) >> 6);
+  return (a_hash_value)((possible_lossy_cast_from_pointer(ptr)) >> 6);
 }  /* hash_IL_ptr */
 
 

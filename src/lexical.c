@@ -3252,7 +3252,7 @@ the indicated address (often the line_loc field value of a source
 line modification).
 */
 #define hash_value_for_source_line_modif(loc) \
-  ((((unsigned long)(loc))/HOST_ALIGNMENT_REQUIRED)% \
+  (((possible_lossy_cast_from_pointer(loc))/HOST_ALIGNMENT_REQUIRED)% \
    SOURCE_LINE_MODIF_HASH_TABLE_SIZE)
 
 

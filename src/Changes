@@ -1,5 +1,17 @@
 Version 4.11
 
+5/9/16   [EDGcpfe/17160]
+Eliminate warnings when compiling with Visual Studio in 64-bit mode
+
+A number of places in the front end assume that a pointer can be converted
+to a host unsigned long without loss of data.  Such conversions cause
+warnings when the front end is compiled by Microsoft Visual Studio in
+64-bit mode.  A change has been made to eliminate some of the conversions.
+In other cases the remaining conversions now use the new
+possible_lossy_cast_from_pointer macro to allow the conversion without
+warning.
+
+
 5/8/16   [EDGcpfe/17118]
 C++14: Variable Templates
 

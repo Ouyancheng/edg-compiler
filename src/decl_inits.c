@@ -7092,7 +7092,7 @@ a_hash_value hash_void_pointer(a_void_ptr  p)
 Return a hash value for the given pointer.
 */
 {
-  a_hash_value  h = (a_hash_value)(unsigned long)p;
+  a_hash_value  h = (a_hash_value)possible_lossy_cast_from_pointer(p);
   /* Jenkins integer hashing algorithm: */
   h -= (h<<6);
   h ^= (h>>17);

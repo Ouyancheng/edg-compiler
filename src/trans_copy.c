@@ -210,8 +210,7 @@ in the current IL walk.
         set_entry_needs_copy_flag(ptr);
 #if DEBUG
         if (db_trace("trans_copy", ptr, kind)) {
-          fprintf(f_debug, "assigned addr for copy to primary at %lx:\n",
-                           (unsigned long)copy);
+          fprintf(f_debug, "assigned addr for copy to primary at %p:\n", copy);
           db_entity_info(ptr, kind);
         }  /* if */
 #endif /* DEBUG */
@@ -463,8 +462,7 @@ and remap the pointers in the copy.
     }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
-      fprintf(f_debug, "copying from secondary to %lx:\n",
-                       (unsigned long)copy);
+      fprintf(f_debug, "copying from secondary to %p:\n", copy);
       db_entity_info(ptr, kind);
     }  /* if */
 #endif /* DEBUG */
@@ -976,8 +974,7 @@ is called.
     set_entry_needs_copy_flag(ptr);
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
-      fprintf(f_debug, "assigned addr for copy in secondary at %lx:\n",
-                       (unsigned long)copy);
+      fprintf(f_debug, "assigned addr for copy in secondary at %p:\n", copy);
       db_entity_info(ptr, kind);
     }  /* if */
 #endif /* DEBUG */
@@ -2091,8 +2088,8 @@ unit set to the primary translation unit.
 #if DEBUG
         if (db_trace("trans_copy", corresp_type, iek_type)) {
           fprintf(f_debug,
-                  "finish_trans_unit_copy, merging into %lx after copy:\n",
-                  (unsigned long)primary_type);
+                  "finish_trans_unit_copy, merging into %p after copy:\n",
+                  primary_type);
           db_entity_info((char *)corresp_type, iek_type);
         }  /* if */
 #endif /* DEBUG */
@@ -2184,8 +2181,8 @@ unit set to the primary translation unit.
 #if DEBUG
         if (db_trace("trans_copy", corresp_variable, iek_variable)) {
           fprintf(f_debug,
-                  "finish_trans_unit_copy, merging into %lx after copy:\n",
-                  (unsigned long)primary_variable);
+                  "finish_trans_unit_copy, merging into %p after copy:\n",
+                  primary_variable);
           db_entity_info((char *)corresp_variable, iek_variable);
         }  /* if */
 #endif /* DEBUG */
@@ -2305,8 +2302,8 @@ unit set to the primary translation unit.
 #if DEBUG
         if (db_trace("trans_copy", corresp_routine, iek_routine)) {
           fprintf(f_debug,
-                  "finish_trans_unit_copy, merging into %lx after copy:\n",
-                  (unsigned long)primary_routine);
+                  "finish_trans_unit_copy, merging into %p after copy:\n",
+                  primary_routine);
           db_entity_info((char *)corresp_routine, iek_routine);
         }  /* if */
 #endif /* DEBUG */

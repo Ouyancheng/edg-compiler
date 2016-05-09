@@ -2531,7 +2531,7 @@ Dump a statement, for debug purposes.
           db_name(&sp->variant.label.ptr->source_corresp);
           fputc('"', f_debug);
         } else {
-          fprintf(f_debug, " <%lx>", (long)(sp->variant.label.ptr));
+          fprintf(f_debug, " <%p>", sp->variant.label.ptr);
         }  /* if */
         break;
       case stmk_switch_case:
@@ -22182,13 +22182,13 @@ about it).
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
-    fprintf(f_debug, "expr-node@%lx:", (unsigned long)(olp->entity.ptr));
+    fprintf(f_debug, "expr-node@%p:", olp->entity.ptr);
     db_expr_summary((an_expr_node_ptr)(olp->entity.ptr));
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
     fputs("<unbound>", f_debug);
   } else {
-    fprintf(f_debug, "%s@%lx", il_entry_kind_names[(int)olp->entity.kind],
-                               (unsigned long)(olp->entity.ptr));
+    fprintf(f_debug, "%s@%p", il_entry_kind_names[(int)olp->entity.kind],
+                              olp->entity.ptr);
   }  /* if */
   fputc(']', f_debug);
 }  /* db_object_lifetime_name */

@@ -622,7 +622,7 @@ The output includes template arguments on template classes.
 #if DEBUG
       if (octl->debug_output) {
         octl->output_str("@", octl);
-        form_unsigned_hex((unsigned long)scp, octl);
+        form_unsigned_hex(possible_lossy_cast_from_pointer(scp), octl);
       }  /* if */
 #endif /* DEBUG */
       octl->output_str(">", octl);

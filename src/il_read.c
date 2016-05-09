@@ -235,7 +235,8 @@ to has kind entry_kind.
   char                    *ptr;
   a_boolean               is_in_file_scope;
   an_il_entry_number      entry_number;
-  an_encoded_entry_number encoded_number = (an_encoded_entry_number)old_ptr;
+  an_encoded_entry_number encoded_number =
+                    (an_encoded_entry_number)unique_id_for_il_pointer(old_ptr);
 
   if (encoded_number == 0) {
     /* A zero encoded entry number means a NULL pointer. */
@@ -544,7 +545,8 @@ necessary to make it directly accessible in memory.
         an_encoded_entry_number
                            orphan_number;
         fread_with_check((char *)&orphan_ptr, sizeof(orphan_ptr));
-        orphan_number = (an_encoded_entry_number)orphan_ptr;
+        orphan_number =
+                 (an_encoded_entry_number)unique_id_for_il_pointer(orphan_ptr);
         /* Remap the entry number to a pointer immediately. */
         fs_orphan_pointer_of(entry_ptr) =
                                      remap_encoded_number_to_ptr(orphan_number,
@@ -669,12 +671,12 @@ necessary to make it directly accessible in memory.
     fread_with_check((char *)&old_block_header, sizeof(old_block_header));
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "start_of_block = %lx\n",
-                       (unsigned long)old_block_header.start_of_block);
-      fprintf(f_debug, "next_avail_in_block = %lx\n",
-                       (unsigned long)old_block_header.next_avail_in_block);
-      fprintf(f_debug, "after_end_of_block = %lx\n",
-                       (unsigned long)old_block_header.after_end_of_block);
+      fprintf(f_debug, "start_of_block = %p\n",
+                       old_block_header.start_of_block);
+      fprintf(f_debug, "next_avail_in_block = %p\n",
+                       old_block_header.next_avail_in_block);
+      fprintf(f_debug, "after_end_of_block = %p\n",
+                       old_block_header.after_end_of_block);
     }  /* if */
 #endif /* DEBUG */
     total_bytes -= sizeof(old_block_header);

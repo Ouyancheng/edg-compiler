@@ -48,7 +48,7 @@ Display a list of pragmas for debugging purposes.
   for (; pp != NULL; pp = pp->next) {
     fprintf(f_debug, "  Entity kind: %s, ",
                      il_entry_kind_names[(int)pp->entity.kind]);
-    fprintf(f_debug, "entity ptr: %lx", (unsigned long)pp->entity.ptr);
+    fprintf(f_debug, "entity ptr: %p", pp->entity.ptr);
     if (pp->entity.ptr != NULL) {
       scp = source_corresp_for_il_entry(pp->entity.ptr,
                                         (an_il_entry_kind)pp->entity.kind);

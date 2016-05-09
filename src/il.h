@@ -690,13 +690,24 @@ extern void set_instantiation_needed_flag(a_source_correspondence *scp,
 
 
 /*
+Macro that casts a pointer to an unsigned long.  Such a conversion may be
+lossy in some configurations, and in most cases where this macro is used
+(e.g., when creating hash values), that may be okay.
+*/
+#define possible_lossy_cast_from_pointer(x) ((unsigned long)(size_t)(x))
+
+/*
 Macro that generates a unique unsigned long identifier from an IL pointer.
 This is useful for generating names for unnamed symbols, for cross-reference
 information, and for debug prints.  On most machines, the unique identifier
 can simply be the pointer converted to unsigned long.  If that won't work,
 a function can be substituted that does something else.
+
+Note that this mapping will not be unique on platforms where sizeof(void *) >
+sizeof(unsigned long).  In that case it is recommended that a different
+mapping be supplied.
 */
-#define unique_id_for_il_pointer(ptr) ((unsigned long)(ptr))
+#define unique_id_for_il_pointer(ptr) (possible_lossy_cast_from_pointer((ptr)))
 
 
 extern void set_inline_flag(a_routine_ptr  rp,
