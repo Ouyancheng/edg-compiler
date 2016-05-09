@@ -9807,7 +9807,7 @@ typedef struct a_variable {
 			   resulted from an instantiation using a dependent
 			   argument list. */
   a_bit_field	is_specialized:1;
-			/* TRUE when is_template_static_data_member is TRUE
+			/* TRUE when is_template_variable is TRUE
 			   but the definition is supplied independently of
 			   the template with which it is associated.  This
 			   flag may be set as a result of a specialization
