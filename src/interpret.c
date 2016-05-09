@@ -3839,6 +3839,15 @@ skip_typerefs(expr->type).
     get_stack_bytes(ips, cond_var, var_bytes);
     result = do_constexpr_dynamic_init(
                              ips, dip, &expr->position, var_bytes, var_bytes);
+    if (!result) {
+      /* Zero the variable, so do_constexpr_condition_clean does not attempt
+         to access uninitialized storage. */
+      a_type_ptr    vtp = skip_typerefs(cond_var->type);
+      a_boolean     local_result = TRUE;
+      a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &local_result);
+      check_assertion(local_result);
+      memzero(var_bytes, size_t_arg(n_bytes));
+    }  /* if */
     mark_complete_object_initialized(var_bytes);
     if (cond_var->extends_lifetime) {
       /* Release the ordinary storage stack blocks for normal temporaries
@@ -3875,9 +3884,11 @@ loop constructs it may be needed again).
   a_variable_ptr              cond_var = csp->dynamic_init->variable;
 
   if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
-    a_byte  *var_bytes;
+    a_byte               *var_bytes;
+    a_constexpr_address  *cap;
     get_stack_bytes(ips, cond_var, var_bytes);
-    release_variant_path_if_needed(var_bytes);
+    cap = (a_constexpr_address*)var_bytes;
+    release_variant_path_if_needed(cap);
   }  /* if */
 }  /* do_constexpr_condition_cleanup */
 
