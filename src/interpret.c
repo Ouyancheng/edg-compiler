@@ -9006,7 +9006,8 @@ used by the value representation of the integer value.
           tmp_bytes = result_storage;
           alloc_seq_number = 0;
         }  /* if */
-        if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+        if (dip->kind == (a_dynamic_init_kind)dik_zero &&
+            dip->destructor == NULL) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_bytes);
         } else if (!do_constexpr_dynamic_init(
                            ips, dip, &expr->position, tmp_bytes, tmp_bytes)) {
