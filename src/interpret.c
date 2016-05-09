@@ -3940,7 +3940,10 @@ Interpret the given block statement and its associated scope (if any).
       if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
         a_byte  *var_bytes;
         get_stack_bytes(ips, vp, var_bytes);
-        if (var_bytes != NULL) {
+        if (var_bytes != NULL && result) {
+          /* If interpretation failed, the initialization state of var_bytes
+             is uncertain.  Rely on reclaim_variant_path_entries to recover
+             entries in that case. */
           release_variant_path_if_needed(var_bytes);
         }  /* if */
       }  /* if */
