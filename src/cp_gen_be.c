@@ -18220,6 +18220,7 @@ handle_as_definition:
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (il_header.source_language == sl_C) {
+#if GNU_EXTENSIONS_ALLOWED
           if (rout->suppress_inline_body &&
               (il_header.gnu_c89_inlining || rout->gnu_c89_inline) &&
               storage_class == (a_storage_class)sc_unspecified) {
@@ -18231,6 +18232,7 @@ handle_as_definition:
                error.) */
             write_tok_str("extern ");
           }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           write_tok_str("__inline__ ");
         } else {
           write_tok_str("inline ");
