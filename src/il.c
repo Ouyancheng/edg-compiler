@@ -2531,7 +2531,7 @@ Dump a statement, for debug purposes.
           db_name(&sp->variant.label.ptr->source_corresp);
           fputc('"', f_debug);
         } else {
-          fprintf(f_debug, " <%p>", sp->variant.label.ptr);
+          fprintf(f_debug, " <%p>", (void *)sp->variant.label.ptr);
         }  /* if */
         break;
       case stmk_switch_case:

@@ -365,10 +365,10 @@ Dump selected information about the specified context.
   if (context == NULL) {
     fputs("<null context>\n", f_debug);
   } else {
-    fprintf(f_debug, "[context@%p]:\n", context);
+    fprintf(f_debug, "[context@%p]:\n", (void *)context);
     if (context->parent != NULL) {
       fprintf(f_debug, 
-              "  parent: [context@%p]\n", context->parent);
+              "  parent: [context@%p]\n", (void *)context->parent);
     }  /* if */
     if (context->scope != NULL) {
       fputs("  scope: ", f_debug);

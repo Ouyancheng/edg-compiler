@@ -2089,7 +2089,7 @@ unit set to the primary translation unit.
         if (db_trace("trans_copy", corresp_type, iek_type)) {
           fprintf(f_debug,
                   "finish_trans_unit_copy, merging into %p after copy:\n",
-                  primary_type);
+                  (void *)primary_type);
           db_entity_info((char *)corresp_type, iek_type);
         }  /* if */
 #endif /* DEBUG */
@@ -2182,7 +2182,7 @@ unit set to the primary translation unit.
         if (db_trace("trans_copy", corresp_variable, iek_variable)) {
           fprintf(f_debug,
                   "finish_trans_unit_copy, merging into %p after copy:\n",
-                  primary_variable);
+                  (void *)primary_variable);
           db_entity_info((char *)corresp_variable, iek_variable);
         }  /* if */
 #endif /* DEBUG */
@@ -2303,7 +2303,7 @@ unit set to the primary translation unit.
         if (db_trace("trans_copy", corresp_routine, iek_routine)) {
           fprintf(f_debug,
                   "finish_trans_unit_copy, merging into %p after copy:\n",
-                  primary_routine);
+                  (void *)primary_routine);
           db_entity_info((char *)corresp_routine, iek_routine);
         }  /* if */
 #endif /* DEBUG */
