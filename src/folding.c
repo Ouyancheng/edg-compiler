@@ -10162,7 +10162,8 @@ evaluation (e.g., parameter values).
           copy_constant_for_constexpr_evaluation(result_con, target_con);
           result_con = target_con;
         } else {
-          result_con = copy_unshared_constant(result_con);
+          result_con = copy_constant_full(result_con, (a_constant *)NULL,
+                                          CE_COPYING_FOR_CONSTEXPR_FOLDING);
         }  /* if */
       } else {
         /* We ran off the end of the aggregate initializer, so the
