@@ -868,7 +868,28 @@ of the whole initialization (*is) as appropriate.
     *init_con = NULL;
   } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
-    aggr_init_simple_element(&icp, gtype, is, init_con);
+    if (is_unknown_template_param_type(gtype)) {
+      /* For elements on an unknown type don't call aggr_init_simple_element
+         because the result may not have enough type information to, e.g.,
+         reconstruct a prototype instantiation in the C++-generating back
+         end. */
+      *init_con = convert_generic_aggr_init_element(icp, is);
+      if (is->has_dynamic_init_component) {
+        /* Avoid spurious declared-but-not-referenced warnings in generic
+           contexts. */
+        a_decl_parse_state  *dps = is->decl_parse_state;
+        if (dps != NULL && dps->sym != NULL) {
+          a_variable_ptr  vp = variable_for_symbol(dps->sym);
+          if (vp != NULL) {
+            dps->sym->referenced = TRUE;
+            vp->source_corresp.referenced = TRUE;
+            vp->used = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else {
+      aggr_init_simple_element(&icp, gtype, is, init_con);
+    }  /* if */
   } else if (is_braced_init_component(icp)) {
     /* A braced list: Recursively treat every item in the list. */
     a_type_ptr  dest_type = type_of_unknown_templ_param_nontype;

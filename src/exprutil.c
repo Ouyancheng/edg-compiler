@@ -13539,7 +13539,7 @@ some other kind of expression (e.g., a constructor call).
     node->is_pack_expansion = TRUE;
   }  /* if */
   set_expr_position(node, pos, end_pos, (a_source_position *)NULL);
-  if (expr_stack->possible_rescan_context) {
+  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
     /* In a potential rescan context, make a dummy operand that has the
        source position information and record it as rescan information. */
     an_operand dummy_operand;

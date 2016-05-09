@@ -250,6 +250,7 @@ extern a_boolean is_std_nothrow_type(a_type_ptr tp);
 extern a_boolean is_ptr_to_member_type(a_type_ptr tp);
 extern a_boolean is_abstract_class_type(a_type_ptr tp);
 extern a_boolean is_template_param_type(a_type_ptr tp);
+extern a_boolean is_unknown_template_param_type(a_type_ptr tp);
 extern a_boolean is_template_class_type(a_type_ptr tp);
 extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
 extern a_boolean is_auto_type(a_type_ptr tp);

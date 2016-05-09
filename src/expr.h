@@ -645,6 +645,10 @@ void convert_initializer(an_init_component_ptr icp,
                          a_boolean             fill_in_dtor,
                          an_init_state         *is);
 
+extern
+a_constant_ptr convert_generic_aggr_init_element(an_init_component_ptr icp,
+                                                 an_init_state         *is);
+
 typedef struct an_arg_match_summary an_arg_match_summary_dummy_typedef;
 extern void record_aggr_init_match(struct an_arg_match_summary *arg_match);
 

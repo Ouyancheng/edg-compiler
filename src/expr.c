@@ -34515,6 +34515,45 @@ dynamic init entry if one is created to represent this initializer
 }  /* convert_initializer */
 
 
+a_constant_ptr convert_generic_aggr_init_element(an_init_component_ptr icp,
+                                                 an_init_state         *is)
+/*
+The given ick_expression component is an aggregate initializer in a
+template-dependent context.  Convert it to a constant entry and return a
+pointer to that entry (or NULL in error cases).  If needed, update *is
+(e.g., to indicate the presence of a dynamic initializer).
+*/
+{
+  an_operand      *operand;
+  a_constant_ptr  cp;
+
+  check_assertion(is_expression_component(icp));
+  operand = operand_of_arg_list_elem(icp);
+  prep_generic_operand(operand);
+  record_operand_ref_entries(operand);
+  if (is_error_operand(operand)) {
+    cp = alloc_error_constant();
+    is->init_error = TRUE;
+  } else if (is_constant_operand(operand)) {
+    cp = alloc_unshared_constant(&operand->variant.constant);
+  } else if (is_expression_operand(operand)) {
+    an_expr_node_ptr    expr = operand->variant.expression;
+    a_dynamic_init_ptr  dip;
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = expr;
+    cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    cp->type = expr->type;
+    cp->variant.dynamic_init = dip;
+    is->has_dynamic_init_component = TRUE;
+  } else {
+    expect_error();
+    cp = alloc_error_constant();
+    is->init_error = TRUE;
+  }  /* if */
+  return cp;
+}  /* convert_generic_aggr_init_element */
+
+
 void record_aggr_init_match(an_arg_match_summary_ptr arg_match)
 /*
 Update arg_match, which is a record of the worst conversion found in an

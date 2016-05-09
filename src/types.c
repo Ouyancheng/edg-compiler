@@ -2422,6 +2422,19 @@ Return TRUE if the given type is a template parameter type.
   return is_template_param(tp);
 }  /* is_template_param_type */
 
+
+a_boolean is_unknown_template_param_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template parameter type of tptk_unknown
+kind.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp) &&
+         tp->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_unknown;
+}  /* is_template_param_type */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean is_template_not_cli_generic_param_type(a_type_ptr tp)
