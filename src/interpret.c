@@ -7588,8 +7588,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -7648,8 +7649,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -7727,8 +7729,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -7806,8 +7809,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -7881,8 +7885,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(dst)) {
@@ -7963,8 +7968,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -8020,8 +8026,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(dst)) {
@@ -8097,8 +8104,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -8171,8 +8179,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -8221,8 +8230,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -8271,8 +8281,9 @@ used by the value representation of the integer value.
                               &expr->position, ips);
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
-                         !check_variant_path(ips, dst, /*release=*/TRUE,
-                                             &expr->position)) {
+                         (!is_initialized(dst) ||
+                          !check_variant_path(ips, dst, /*release=*/TRUE,
+                                              &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
