@@ -564,7 +564,7 @@ and FALSE otherwise.
     *err = ((sign_1 == sign_of(*op_2)) && (sign_1 != sign_of(result)));
   }  /* if */
   *op_1 = result;
-#else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int			i;
   a_host_large_integer	carry = 0;
   a_boolean		sign_1 = sign_of(*op_1);

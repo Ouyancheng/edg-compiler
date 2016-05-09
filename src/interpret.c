@@ -6552,6 +6552,11 @@ used by the value representation of the integer value.
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
+              } else if (is_variant_path(cap) &&
+                         !check_variant_path(ips, cap, /*release=*/TRUE,
+                                             &expr->position)) {
+                /* An attempt to dereference an inactive variant path. */
+                do_constexpr_fail(result);
               } else if (is_const_storage(cap)) {
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
@@ -6635,6 +6640,11 @@ used by the value representation of the integer value.
                               ips);
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
+                do_constexpr_fail(result);
+              } else if (is_variant_path(cap) &&
+                         !check_variant_path(ips, cap, /*release=*/TRUE,
+                                             &expr->position)) {
+                /* An attempt to dereference an inactive variant path. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(cap)) {
                 info_with_pos(ec_constexpr_modifying_const_storage,
