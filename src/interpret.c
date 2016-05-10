@@ -24,8 +24,6 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "interpret.h"
 
-#include "pch.h"
-
 #include "exprutil.h"
 
 #include "folding.h"
