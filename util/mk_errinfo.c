@@ -701,7 +701,7 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
         }  /* if */
         break;
       case 'd':
-        output_doc_string("\"number\"", 0, fk_em);
+        output_doc_string("n", 0, fk_em);
         break;
       default:
         me_error("unexpected message fill-in: %s", orig_ptr);
