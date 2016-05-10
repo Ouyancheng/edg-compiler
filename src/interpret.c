@@ -6063,10 +6063,11 @@ the value representation of the integer value.
                function type, it is possible that the type of this node was
                later "decayed" to a pointer-to-function type (to match the
                expectations of a parent node); that case is valid, too. */
-            if (tp != opnd1_type &&
-                !(opnd1_type->kind == (a_type_kind)tk_routine &&
-                  tp->kind == (a_type_kind)tk_pointer &&
-                  skip_typerefs(tp->variant.pointer.type) == opnd1_type)) {
+            if (expr->variant.operation.is_reinterpret_cast ||
+                (tp != opnd1_type &&
+                 !(opnd1_type->kind == (a_type_kind)tk_routine &&
+                   tp->kind == (a_type_kind)tk_pointer &&
+                   skip_typerefs(tp->variant.pointer.type) == opnd1_type))) {
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                   &expr->position, opnd1_type, tp, ips);
               do_constexpr_fail(result);
