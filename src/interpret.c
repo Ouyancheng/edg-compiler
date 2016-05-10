@@ -9624,6 +9624,29 @@ done:
 }  /* interpret_constexpr_ctor */
 
 
+void clean_up_interpreter(void)
+/*
+Release the persistent storage stack and the persistent map (making that
+storage available for another compilation, if any).
+*/
+{
+  a_byte  *large_blocks = persistent_data.large_blocks;
+
+  /* First release any large blocks. */
+  while (large_blocks != NULL) {
+    a_byte  *large_block = large_blocks;
+    large_blocks = ((a_large_block_header*)large_block)->prev_large_block;
+    free_general(large_block,
+                 ((a_large_block_header*)large_block)->block_size);
+  }  /* while */
+  persistent_data.large_blocks = NULL;
+  /* Now release the storage stack itself. */
+  release_constexpr_stack(&persistent_data);
+  /* Release the persistent map. */
+  release_data_map_table(&persistent_map);
+}  /* clean_up_interpreter */
+
+
 void interpret_trans_unit_init(void)
 /*
 Initialize static variables related to the interpreter.  These are variables
@@ -9639,23 +9662,8 @@ void interpret_one_time_init(void)
 One-time initialization for interpret.c static variables.
 */
 {
-  /* Save variables that are needed for precompiled headers */
-  if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(persistent_data),
-      pch_saved_var_array_elem(persistent_map),
-      pch_saved_var_array_elem(free_stack_blocks),
-      pch_saved_var_array_elem(free_map_tables),
-      pch_saved_var_array_elem(free_live_set_tables),
-      pch_saved_var_array_elem(variant_path_entries),
-      pch_saved_var_array_elem(free_variant_path_entries),
-      pch_saved_var_array_elem(n_variant_path_entries),
-      pch_saved_var_array_elem(n_free_variant_path_entries),
-      pch_saved_var_array_terminating_elem()
-    };
-    register_pch_saved_variables(saved_vars);
-  }  /* if */
   /* Static variables in interpret.c. */
+  register_trans_unit_variable(trans_unit_initialization_needed);
   register_trans_unit_variable(persistent_data);
   register_trans_unit_variable(persistent_map);
   register_trans_unit_variable(variant_path_entries);

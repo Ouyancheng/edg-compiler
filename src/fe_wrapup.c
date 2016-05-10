@@ -24,6 +24,7 @@ fe_wrapup.c - End of front end processing.
 
 #include "fe_wrapup.h"
 #include "class_decl.h"
+#include "interpret.h"
 #include "macro.h"  /*lint -esym(766, macro.h)*/
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
@@ -371,6 +372,9 @@ it needs to be executed after all templates have been instantiated.
       reset_template_parent_info(il_scope);
     }  /* if */
   }  /* if */
+
+  /* Release any persistent storage held by the C++14 constexpr interpreter. */
+  clean_up_interpreter();
 }  /* file_scope_il_wrapup_part_1 */
 
 
