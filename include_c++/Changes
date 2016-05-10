@@ -1,3 +1,18 @@
+Version 4.11
+
+5/4/16   [EDGcpfe/17147]
+Undefined behavior in std::initializer_list<T>::end
+
+Previously, the implementation of std::initializer_list<T>::end provided with
+the front end returned the expression
+
+    this->__array + this->__length
+
+which technically resulted in undefined behavior for empty initializer lists,
+where __array is a null pointer and __length is zero.  This is now fixed.
+
+
+-------------------------------------------------------------------------------
 Version 4.10.1, June 23, 2015
 
 3/5/15  [EDGcpfe/14687]
