@@ -24,6 +24,27 @@ in N3641) are now supported.
   }
 
 
+5/8/16  [EDGcpfe/17166]
+IL changes for variable templates (IL CHANGE)
+
+The addition of variable templates and their instantiations required a
+number of changes to the IL.  Most of these were done to provide more
+uniform names for entities, but there were a few structural changes.  The
+most significant structural change was moving some template-related fields
+out of the a_variable entry into a separate a_variable_template_info
+entry.  The template_arg_list and assoc_template fields are the fields
+formerly in a_variable.  The new entry is pointed to by the template_info
+field of a_variable.
+
+The following names were changed or added:
+  - in a_variable, is_template_static_data_member -> is_template_variable
+  - in a_variable, is_nonreal was added
+  - a new templk_variable kind was added
+  - a new sk_variable_template symbol kind was added
+  - in a_template_symbol_supplement, the static_data_member variant was
+    renamed variable
+
+
 5/5/16   [EDGcpfe/17108]
 Spurious error in const static data member initializer in GNU C++ mode
 
