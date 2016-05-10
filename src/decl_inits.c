@@ -869,7 +869,7 @@ of the whole initialization (*is) as appropriate.
   } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
     if (is_unknown_template_param_type(gtype)) {
-      /* For elements on an unknown type don't call aggr_init_simple_element
+      /* For elements of an unknown type don't call aggr_init_simple_element
          because the result may not have enough type information to, e.g.,
          reconstruct a prototype instantiation in the C++-generating back
          end. */
