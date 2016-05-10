@@ -1927,7 +1927,6 @@ all_instantiations list of the associated template symbol supplement.
       }  /* if */
     }  /* for */
   } else if (symbol_is(templ_sym, sk_variable_template)) {
-    unexpected_condition();
   } else {
     /* A function template. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
