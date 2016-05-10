@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -33,6 +33,6 @@ extern void __edg_exit(int val);
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -41,6 +41,6 @@ Performs initialization of global variables used by the runtime.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

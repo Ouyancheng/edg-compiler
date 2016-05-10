@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -38,6 +38,6 @@ PFV _ctors[] = {0};
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1188,6 +1188,6 @@ The name is intended to describe the nature of the problem to the user
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
