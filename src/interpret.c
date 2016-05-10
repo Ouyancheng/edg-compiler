@@ -9628,20 +9628,21 @@ Release the persistent storage stack and the persistent map (making that
 storage available for another compilation, if any).
 */
 {
-  a_byte  *large_blocks = persistent_data.large_blocks;
-
-  /* First release any large blocks. */
-  while (large_blocks != NULL) {
-    a_byte  *large_block = large_blocks;
-    large_blocks = ((a_large_block_header*)large_block)->prev_large_block;
-    free_general(large_block,
+  if (!trans_unit_initialization_needed) {
+    a_byte  *large_blocks = persistent_data.large_blocks;
+    /* First release any large blocks. */
+    while (large_blocks != NULL) {
+      a_byte  *large_block = large_blocks;
+      large_blocks = ((a_large_block_header*)large_block)->prev_large_block;
+      free_general(large_block,
                  ((a_large_block_header*)large_block)->block_size);
-  }  /* while */
-  persistent_data.large_blocks = NULL;
-  /* Now release the storage stack itself. */
-  release_constexpr_stack(&persistent_data);
-  /* Release the persistent map. */
-  release_data_map_table(&persistent_map);
+    }  /* while */
+    persistent_data.large_blocks = NULL;
+    /* Now release the storage stack itself. */
+    release_constexpr_stack(&persistent_data);
+    /* Release the persistent map. */
+    release_data_map_table(&persistent_map);
+  }  /* if */
 }  /* clean_up_interpreter */
 
 
