@@ -22900,6 +22900,8 @@ template symbol supplement for this template should be returned to the caller.
   }  /* if */
   is_variable_template = sym != NULL && symbol_is(sym, sk_variable_template);
   if (sym != NULL) {
+    check_assertion(symbol_is(sym, sk_static_data_member) ||
+                    symbol_is(sym, sk_variable_template));
     tssp = template_supplement_for_symbol(sym);
     if (tssp != NULL) {
       var = tssp->variant.variable.prototype_variable;
@@ -25092,12 +25094,14 @@ any non-empty template parameter lists that were scanned.
       is_function_template = is_function_type(dps->type);
       loc_sym = locator.specific_symbol;
       if (!is_function_template &&
-          (variable_templates_enabled ||
+          ((loc_sym == NULL && variable_templates_enabled) ||
            (loc_sym != NULL &&
             (symbol_is(loc_sym, sk_static_data_member) ||
-             symbol_is(loc_sym, sk_variable_template))))) {
+             symbol_is(loc_sym, sk_variable_template) ||
+             (symbol_is(loc_sym, sk_variable)))))) {
         /* A template static data member or a variable template
-           declaration. */
+           declaration.  The sk_variable case comes up in the initial
+           declaration of a partial specialization of a variable template. */
         sym = variable_template_declaration(decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any
