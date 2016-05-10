@@ -2953,7 +2953,7 @@ typedef struct a_template_symbol_supplement {
 			   classes.  NULL for variable templates. */
       a_symbol_list_entry_ptr
 		instantiations;
-                        /* For variable templates, a pointer to a list of
+			/* For variable templates, a pointer to a list of
 			   symbols for the variables instantiated from this
 			   template. */
       a_variable_ptr

@@ -16105,7 +16105,7 @@ template declaration and is NULL otherwise.
     if (sym != NULL && symbol_is(sym, sk_variable) &&
         locator->is_template_id) {
       /* This is either a partial specialization of the variable template
-         of an error.  Call a routine to handle the partial specialization
+         or an error.  Call a routine to handle the partial specialization
          (and check for error cases). */
       sym = variable_template_partial_specialization(sym, templ_state,
                                                      locator);

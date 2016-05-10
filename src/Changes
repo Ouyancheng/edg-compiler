@@ -13,7 +13,7 @@ warning.
 
 
 5/8/16   [EDGcpfe/17118]
-C++14: Variable Templates
+C++14: Variable templates
 
 C++14 variable templates (the initial specification of which was specified
 in N3641) are now supported.

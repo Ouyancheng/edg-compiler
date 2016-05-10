@@ -3352,7 +3352,7 @@ static a_symbol_ptr check_partial_specializations(
 instance_sym identifies a template class or variable that is about to be
 instantiated.  template_sym points to the primary template on which the
 instantiation will be based.  If a matching partial specialization is found,
-return the symbol associate with that partial specialization; otherwise
+return the symbol associated with that partial specialization; otherwise
 return NULL.
 */
 {
@@ -9016,7 +9016,7 @@ list (*new_templ_arg_list), look for an existing variable template
 instance, or create a new instance if none is found.  If prototype_allowed
 is TRUE, return a prototype instantiation if it matches the argument
 list.    is_use is TRUE if this a use (i.e., a reference from an expression
-context) rather than a declaration.Return the symbol for the instance found.
+context) rather than a declaration.  Return the symbol for the instance found.
 
 If a new template instance is created, the template argument list is
 attached to that new instance.  If an existing instance is found, the
@@ -9055,7 +9055,7 @@ use of the argument list in case it has been freed.
       a_variable_ptr		ps_var;
       a_template_arg_ptr	old_list;
       ps_var = variable_for_symbol(ps_sym);
-      /* Old list is the template argument list associated with the
+      /* old_list is the template argument list associated with the
          prototype instantiation of the partial specialization.  See if
          the list passed in matches it. */
       old_list = ps_var->template_info->template_arg_list;
@@ -16261,7 +16261,7 @@ instance to the definitions list for the template.
           /* For variable templates, make sure that the tokens sequence
              number of the template matches the one we are looking for.
              If not, it is probably a partial specialization.  This is
-             not done for static data members because __if_exist can
+             not done for static data members because __if_exists can
              cause a mismatch. */
           a_template_symbol_supplement_ptr	tssp;
           tssp = template_supplement_for_symbol(sym);
@@ -22886,7 +22886,7 @@ template symbol supplement for this template should be returned to the caller.
   sym = locator->specific_symbol;
   if (sym != NULL && symbol_is(sym, sk_variable) && locator->is_template_id) {
     /* This is either a partial specialization of the variable template
-       of an error.  Call a routine to handle the partial specialization
+       or an error.  Call a routine to handle the partial specialization
        (and check for error cases). */
     sym = variable_template_partial_specialization(sym, decl_state, locator);
   }  /* if */
