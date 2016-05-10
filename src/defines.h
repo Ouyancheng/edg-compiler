@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1302,6 +1302,6 @@ SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2015 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
