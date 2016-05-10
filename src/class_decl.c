@@ -15674,7 +15674,7 @@ Cache the tokens that make up an in-class initializer for the static data
 member, nonstatic data member, or variable template specified by sym.
 Return a pointer to the token cache that was created.  This used for
 C++11-style field initializers, but also for C++14 variable templates,
-static data members of class templates in GNU C++ mode and static data
+static data members of class templates in GNU C++ mode, and static data
 members of managed class types in some Microsoft modes.
 */
 {
@@ -15875,15 +15875,15 @@ prototype instantiation context.
 {
   a_boolean	result = FALSE;
 
-  /* A const integral or const enumeration type may be initialized inside
-     the class definition.  C++11 extended this to literal type members
-     for constexpr data members.  In either case the static data member
-     becomes usable as a member constant.  Note that the variable entry
-     will have an initializer but it is not yet considered defined.  GNU
-     compilers allow floating-point in-class initializers (also in the
-     non-constexpr case), and some versions even allow pointers to be
-     initialized in this way.  C++/CLI also allows in-class initializers
-     for initonly static data members. */
+  /* A static data member of const integral or const enumeration type may
+     be initialized inside the class definition.  C++11 extended this to
+     literal type members for constexpr static data members.  In either case
+     the static data member becomes usable as a member constant.  Note that
+     the variable entry will have an initializer but it is not yet
+     considered defined.  GNU compilers allow floating-point in-class
+     initializers (also in the non-constexpr case), and some versions even
+     allow pointers to be initialized in this way.  C++/CLI also allows
+     in-class initializers for initonly static data members. */
   if ((const_type &&
       (is_integral_or_enum_type(type) ||
        (gpp_mode &&

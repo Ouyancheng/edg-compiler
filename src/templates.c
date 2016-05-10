@@ -6039,10 +6039,10 @@ static void instantiate_template_variable(a_template_instance_ptr  tip,
 /*
 Generate a definition of an instance of a variable template or a static
 data member of a class template.  The definition may be based on a
-the template definition or may be a default initialization.  is_new if
-this is the first attempt at instantiation (this routine can be called
-more than once if only an extern declaration of a variable template has
-been seen).  is_use is TRUE if this a use (i.e., a reference from an
+the template definition or may be a default initialization.  is_new is
+TRUE if this is the first attempt at instantiation (this routine can be
+called more than once if only an extern declaration of a variable template
+has been seen).  is_use is TRUE if this a use (i.e., a reference from an
 expression context) rather than a declaration.
 */
 {
@@ -16304,9 +16304,9 @@ instance to the definitions list for the template.
                        "find_variable_member_template:",
                        "no corresponding template");
   if (sym != NULL) {
-    /* sym is the template symbol with which var_sym is
-       associated.  Create a static data member def entry and set the pointers
-       to bind them all together. */
+    /* sym is the template symbol with which var_sym is associated.  Create
+       a static data member def entry and set the pointers to bind them
+       all together. */
     a_template_instance_ptr		tip = alloc_template_instance();
     a_variable_ptr			proto_var;
     proto_var = variable_for_symbol(sym);
@@ -22913,7 +22913,7 @@ template symbol supplement for this template should be returned to the caller.
     }  /* if */
     if (is_variable_template &&
         dps->storage_class != (a_storage_class)sc_extern) {
-      /* A variable template, unless it is marked "extern" is a definition. */
+      /* A variable template is a definition except when declared "extern". */
       decl_state->defines_something = TRUE;
     }  /* if */
   }  /* if */

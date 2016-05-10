@@ -450,7 +450,7 @@ vp had an incomplete array type that has been completed by an initializer.
        for cases like
          main () {extern char a[5];}
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
-       Instances of variable templates are cannot be linked with other
+       Instances of variable templates cannot be linked with other
        external symbols.  In addition, in prototype instantiations variables
        with linkage aren't really allocated and should therefore not be
        unified with other declarations. */
