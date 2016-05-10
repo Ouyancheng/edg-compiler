@@ -25098,7 +25098,7 @@ any non-empty template parameter lists that were scanned.
            (loc_sym != NULL &&
             (symbol_is(loc_sym, sk_static_data_member) ||
              symbol_is(loc_sym, sk_variable_template) ||
-             (symbol_is(loc_sym, sk_variable)))))) {
+             symbol_is(loc_sym, sk_variable))))) {
         /* A template static data member or a variable template
            declaration.  The sk_variable case comes up in the initial
            declaration of a partial specialization of a variable template. */
