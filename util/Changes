@@ -1,5 +1,12 @@
 Version 4.11
 
+5/10/16  [EDGcpfe/17165]
+mk_errinfo: Add support for %d fill-in
+
+The changes for EDGcpfe/16084 added the %d fill-in, but mk_errinfo had not
+been updated to support it (with the -mml command-line option).  Now fixed.
+
+
 2/26/16  [EDGcpfe/16845]
 Remove __has_include and __has_include_next as predefined macros
 

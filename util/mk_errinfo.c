@@ -603,7 +603,7 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
   fis_ptr = fill_in_specifier;
   if (*ptr == '[') {
     /* A label fill-in; copy through to the closing bracket (nesting is
-       not allowed. */
+       not allowed). */
     *fis_ptr++ = *ptr++;
     while (*ptr != '\0' && *ptr != ']') {
       *fis_ptr++ = *ptr++;
@@ -699,6 +699,9 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
         if (*fis_ptr != ']') {
           me_error("unterminated label fill-in: %s", orig_ptr);
         }  /* if */
+        break;
+      case 'd':
+        output_doc_string("\"number\"", 0, fk_em);
         break;
       default:
         me_error("unexpected message fill-in: %s", orig_ptr);
