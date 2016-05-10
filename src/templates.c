@@ -5201,13 +5201,18 @@ diagnostic about the invalid type.
   a_type_ptr	tp = var->type;
   a_boolean	result = FALSE;
   an_error_code	error_code = ec_no_error;
-  a_boolean	is_extern = dps->storage_class == (a_storage_class)sc_extern;
+  a_boolean	is_extern = var->storage_class == (a_storage_class)sc_extern;
 
   check_assertion(tp != NULL);
   if (is_function_type(tp)) {
     result = TRUE;
     error_code = ec_variable_templ_function_type;
-  } else if (!is_extern && is_incomplete_type(tp)) {
+  } else if (is_incomplete_array_type(tp)) {
+    if (!is_extern) {
+      result = TRUE;
+      error_code = ec_incomplete_var_type;
+    }  /* if */
+  } else if (is_incomplete_type(tp)) {
     result = TRUE;
     error_code = ec_incomplete_var_type;
   }  /* if */
