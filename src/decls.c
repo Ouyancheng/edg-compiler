@@ -2302,13 +2302,18 @@ the function non-constexpr in that case).
     pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
     innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
   } else if (!is_template_dependent_context()) {
+    a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     if (!is_literal_type(vp->type)) {
-      pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
-      vp->type = error_type();
-      innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+      if (!rp->is_template_function || rp->is_specialized) {
+        pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
+        vp->type = error_type();
+      }  /* if */
+      rp->is_constexpr = FALSE;
     } else if (vp->init_kind == (an_init_kind)initk_none) {
-      pos_error(ec_uninitialized_var_in_constexpr_function, pos);
-      innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+      if (!rp->is_template_function || rp->is_specialized) {
+        pos_error(ec_uninitialized_var_in_constexpr_function, pos);
+      }  /* if */
+      rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
 }  /* check_var_in_constexpr_function */
