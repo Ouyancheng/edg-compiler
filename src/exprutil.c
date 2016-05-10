@@ -15206,7 +15206,7 @@ Does not fill in the destructor information, if any.
 
 If constexpr is enabled, and fold_constexpr is TRUE, the construction may be
 folded to a constant (a dik_constant dynamic init entry is returned).  If
-check_constexpr is also TRUE, diagnostic are emitted in contexts requiring
+check_constexpr is also TRUE, diagnostics are emitted in contexts requiring
 successful folding.
 */
 {

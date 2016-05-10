@@ -109,8 +109,8 @@ uses a storage stack (see the static variable persistent_data), although the
 ability to efficiently deallocate is not exploited in that case.  The macro
 alloc_bytes can be used for these allocations.
 
-The fourth kind of storage is that held managed by maps (see below).  This
-uses a separate allocation strategy.
+The fourth kind of storage is that managed by maps (see below).  This uses a
+separate allocation strategy.
 
 
 Mappings
@@ -177,7 +177,7 @@ whole integer value, but every "store" to a bit field is appropriately trimmed.
 
 Class type objects and subobjects start with an IL pointer (described below),
 followed by storage for the fields, storage for nonvirtual direct base classes,
-and finally storage for virtual bases classes (all in declaration order).
+and finally storage for virtual base classes (all in declaration order).
 A derived-to-base class cast therefore always corresponds to a positive offset
 of the "this" pointer, whereas a base-to-derived class cast involves negative
 offset.
@@ -264,7 +264,7 @@ general memory.
 
 /*
 Macro defining the largest chunk size to be carved from storage stack blocks
-(see CONSTEXPR_STACK_BLOCK_SIZE  above).  Invocations of alloc__bytes that
+(see CONSTEXPR_STACK_BLOCK_SIZE above).  Invocations of alloc_bytes that
 request larger chunks are handled in terms of individual calls to alloc_general
 (and are freed by a call to free_general).
 */
@@ -983,7 +983,7 @@ interpreter state.
 {                                                                            \
   if (!(ips)->static_storage_ready) {                                        \
     /* This is the first time we allocate static storage: Initialize */      \
-    /*  the associated static storage stack. */                              \
+    /* the associated static storage stack. */                               \
     alloc_constexpr_stack_block(&(ips)->static_storage);                     \
     (ips)->static_storage_ready = TRUE;                                      \
     (ips)->static_storage.alloc_seq_number = 0;                              \
@@ -1393,9 +1393,10 @@ typedef struct a_variant_path_entry {
   a_variant_path_entry_ptr
 		next;
 			/* For entries on a variant path, the next entry on
-			   that path (or NULL if there is none.  Otherwise, the
-			   entry is on the free entries list and this points to
-			   the next free entry (or NULL if there is none). */
+			   that path (or NULL if there is none).  Otherwise,
+			   the entry is on the free entries list and this field
+			   points to the next free entry (or NULL if there is
+			   none). */
   a_variant_path_entry_ptr
 		next_allocated;
 			/* The next entry on the list of all allocated variant
@@ -2268,7 +2269,7 @@ the end" of a field subobject, that field is returned.
     do_host_alignment(sub_offset);
     /* First search through the fields. */
     if (last_fp == NULL) {
-      /* There are no allocated fields: Look among the base cases. */
+      /* There are no allocated fields: Look among the base classes. */
       goto search_base_subobjects;
     }  /* if */
     for (fp = next_initializable_field(last_fp->next);
@@ -2885,8 +2886,8 @@ The given field of a union object or subobject pointed to by addr is being
 selected.  Add that field to the variant path associated with addr (and, if
 this is the first field added to the path, also add a prefix field for array
 element selections).  If union_field is an anonymous union field, addr->address
-is adjusted to the innermost anonymous union parents, and addition variant
-path entries are added for nested anonymous unions if needed.
+is adjusted to the innermost anonymous union parent and additional variant path
+entries are added for nested anonymous unions if needed.
 */
 {
   a_variant_path_entry_ptr  last_entry, vpep;
@@ -3656,7 +3657,8 @@ static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_byte                *complete_obj)
 /*
 Copy an object of the given type from one interpreter storage location
-(src_bytes) to another (dst_bytes).
+(src_bytes) to another (dst_bytes).  complete_obj points to the complete
+object of the destination (dst_bytes is within that object).
 */
 {
   a_boolean     result = TRUE;
@@ -5849,11 +5851,11 @@ nodes.
   }  /* SET_result_val_from_operand_address */
 
 /*
-If is_signed is TRUE, the following macro that sets result to FALSE if the
-integer result of an operation (in val) is within the range representable by
-its kind (int_kind).  This includes checking the value of the flag ovfl set
-by the operation.  If is_signed is FALSE, the macro just clears any bits not
-used by the value representation of the integer value.
+If is_signed is TRUE, the following macro sets result to FALSE if the integer
+result of an operation (in val) is within the range representable by its kind
+(int_kind).  This includes checking the value of the flag ovfl set by the
+operation.  If is_signed is FALSE, the macro just clears any bits not used by
+the value representation of the integer value.
 */
 #define CHECK_int_range(val, tp)                                              \
 {                                                                             \
