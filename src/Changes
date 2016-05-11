@@ -1,4 +1,4 @@
-Version 4.11
+Version 4.11, May 12, 2016
 
 5/9/16   [EDGcpfe/17160]
 Eliminate warnings when compiling with Visual Studio in 64-bit mode
