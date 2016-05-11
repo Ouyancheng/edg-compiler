@@ -9653,6 +9653,9 @@ storage available for another compilation, if any).
     release_constexpr_stack(&persistent_data);
     /* Release the persistent map. */
     release_data_map_table(&persistent_map);
+    /* Clear pointer to stack blocks (they are allocated in front end memory,
+       which is about to be reclaimed). */
+    free_stack_blocks = NULL;
   }  /* if */
 }  /* clean_up_interpreter */
 
@@ -9681,6 +9684,8 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(n_variant_path_entries);
   register_trans_unit_variable(n_free_variant_path_entries);
   useful_constants_initialized = FALSE;
+  free_stack_blocks = NULL;
+  free_variant_path_entries = NULL;
 }  /* interpret_one_time_init */
 
 
