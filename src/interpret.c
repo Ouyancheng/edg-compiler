@@ -225,6 +225,16 @@ needed when comparing pointers or when translating interpreter addresses back
 to a_constant/ck_address entries.
 
 Pointer-to-member values are represented by the a_constexpr_ptr_to_mem type.
+
+
+Local Macro Names
+-----------------
+The implementation of the interpreter makes liberal use of macros.  In a few
+cases, the macros are specific to a local function context and they make use
+of local variables not passed through parameters.  Such local macros are named
+with a capitalized leading word (a visual reminder that their effect is broader
+than may seem at first).  See, e.g., SET_result_val_from_operand_address in
+do_constexpr_expression.
 */
 
 typedef unsigned int a_byte_count;
