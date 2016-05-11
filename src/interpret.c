@@ -9686,6 +9686,7 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_map_tables = NULL;
+  free_live_set_tables = NULL;
   free_variant_path_entries = NULL;
 }  /* interpret_one_time_init */
 
