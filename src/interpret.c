@@ -117,7 +117,7 @@ The interpreter makes use of an efficient hash table data structure that maps
 pointers (the "key") to either pointers or byte counts (the "value").  The
 type describing such a "map" is a_data_map.  A new (key, value) pair can be
 added with macro map_ptr or map_byte_count.  A mapping can then be retrieved
-with get_mapped_ptr or get_mapped_byte_count.  An recorded mapping for a given
+with get_mapped_ptr or get_mapped_byte_count.  A recorded mapping for a given
 key can be revoked with unmap_ptr.  (Most of the time, the key is a pointer
 into IL.)
 
@@ -3103,10 +3103,10 @@ static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
 /*
 con is an address constant being translated to *cap, a representation in
 interpreter storage of the address of the complete object of type obj_type.
-If con represent the address of a subobject, update *cap accordingly.
+If con represents the address of a subobject, update *cap accordingly.
 
 Currently, the IL representation is insufficient to handle union members.
-If constant represents an address of a union subobject, interpreter will fail.
+If con represents an address of a union subobject, interpretation will fail.
 */
 {
   a_boolean         result = TRUE;

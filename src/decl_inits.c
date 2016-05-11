@@ -6491,8 +6491,8 @@ is describes the initialization state for a mem-initializer of the given
 constructor.  If ctor is a C++11 constexpr constructor and the initializer is
 not a constant, either issue an error if the constructor is not a template
 instance, or silently set the is_constexpr flag of the constructor to FALSE
-(except for the prototype instantiation).  (For C++14 constructors
-constructors, these constraints are not imposed.)
+(except for the prototype instantiation).  (For C++14 constructors, these
+constraints are not imposed.)
 */
 {
   if (ctor->is_constexpr && !relaxed_constexpr_enabled &&
