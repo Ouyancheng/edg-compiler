@@ -2881,6 +2881,15 @@ If no match is found, return NULL.
   a_symbol_ptr			result_sym = NULL;
   a_partial_order_candidate_ptr	candidate_list = NULL;
 
+  if (deduced_return_types_enabled) {
+    a_type_ptr  utp = skip_typerefs(result_type);
+    while (utp->kind == (a_type_kind)tk_pointer) {
+      utp = skip_typerefs(utp->variant.pointer.type);
+    }  /* if */
+    if (is_auto_type(utp)) {
+      goto done;
+    }  /* if */
+  }  /* if */
   /* Loop though each of the templates.  Stop if we determine that the
      lookup is ambiguous. */
   for (slep = conversion_templates; slep != NULL; slep = slep->next) {
@@ -2961,6 +2970,7 @@ If no match is found, return NULL.
       result_sym = new_sym;
     }  /* if */
   }  /* if */
+done:
   return result_sym;
 }  /* find_conversion_template_instance */
 
