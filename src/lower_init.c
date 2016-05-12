@@ -7950,7 +7950,9 @@ from entity_type itself.  Insert the code for the call at *insert_location.
       /* For variably-sized arrays, make sure we have a run-time count of
          the number of elements in the array. */
       check_assertion(num_elem_node != NULL);
-    } else {
+    } else if (source_node == NULL) {
+      /* In the zeroing case, flatten the array (the array_element_count
+         already represents the flattened count otherwise). */
       array_element_count *= num_array_elements(entity_type);
     }  /* if */
   }  /* if */

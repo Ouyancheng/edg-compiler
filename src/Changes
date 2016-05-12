@@ -1,3 +1,26 @@
+Version 4.12
+
+5/12/16  [EDGcpfe/17146]
+Initialization of some multi-dimensional arrays could result in overrunning
+array bounds
+
+In configurations with lowering, certain initialization of multi-dimensional
+arrays could end up overrunning the bounds of the array at run time.  In
+the example below, a helper routine had been invoked to initialize 3600 entries
+((10-1)*20*20) rather than 180 ((10-1)*20):
+
+  struct A {
+    int x;
+    constexpr A() : x(37) {}
+  };
+  int main() {
+    A a;
+    new A[10][20]{ {a} };
+    return 0;
+  }
+
+
+-------------------------------------------------------------------------------
 Version 4.11, May 12, 2016
 
 5/9/16   [EDGcpfe/17160]
