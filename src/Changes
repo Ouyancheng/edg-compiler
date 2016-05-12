@@ -1,5 +1,34 @@
 Version 4.12
 
+5/12/16  [EDGcpfe/17148]
+Exception stack handling incorrect at run time
+
+In configurations where DO_FULL_PORTABLE_EH_LOWERING and
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS are both TRUE,
+it was possible for lowering to emit code to modify the global variable
+__eh_curr_region in cases where no exception stack had been pushed onto
+the stack (potentially resulting in incorrect behavior at run time during
+exception handling).  Now fixed.  For example (with -x):
+
+  struct A {
+    ~A() { while(0); }
+  };
+  struct B {
+    ~B() { /* Must be empty. */ }
+  };
+  void f() {
+    B b;
+    for (;;) { break; }
+    throw 1;
+  }
+  int main() {
+    A a;
+    try {
+      f();
+    } catch (...) { }
+  }
+
+
 5/12/16  [EDGcpfe/17146]
 Initialization of some multi-dimensional arrays could result in overrunning
 array bounds

@@ -84,6 +84,8 @@ extern void clone_region_table_entry_list(a_dynamic_init_ptr dip,
 
 #endif /* GENERATE_EH_TABLES */
 
+extern a_boolean has_destructions(an_object_lifetime_ptr lifetime);
+
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
 extern an_expr_node_ptr make_caught_object_address_node(void);

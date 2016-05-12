@@ -15981,7 +15981,7 @@ gen_dtor_member_and_base_destructions.
   if (destruction_code != NULL) {
     if (label_added) {
       if (exceptions_enabled &&
-          innermost_function_scope->lifetime != NULL) {
+          has_destructions(innermost_function_scope->lifetime)) {
         /* Set the cleanup state to the first destruction in the epilogue, if
            there is one. */
         curr_context->curr_cleanup_state =
@@ -16000,7 +16000,7 @@ gen_dtor_member_and_base_destructions.
        do. */
     if (label_added) {
       if (exceptions_enabled &&
-          innermost_function_scope->lifetime != NULL) {
+          has_destructions(innermost_function_scope->lifetime)) {
         curr_context->curr_cleanup_state =
             curr_context->latest_initialization = NULL;
         insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,

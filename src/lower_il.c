@@ -18130,7 +18130,7 @@ statements don't contain an enk_condition).
       gen_cleanup_actions(scope->lifetime, &insert_location);
     }  /* if */
     if (created_break_label && exceptions_enabled &&
-        innermost_function_scope->lifetime != NULL) {
+        has_destructions(innermost_function_scope->lifetime)) {
       /* If a break label was inserted, insert code to set the cleanup state
          after it. */
       insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
@@ -18628,7 +18628,7 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_label:
         set_curr_cleanup_state_to_latest_initialization();
         if (exceptions_enabled &&
-            innermost_function_scope->lifetime != NULL) {
+            has_destructions(innermost_function_scope->lifetime)) {
           /* Exceptions are enabled and the current function has
              destructible objects.  Insert code to set the cleanup state. */
           set_insert_location(statement, &insert_location);

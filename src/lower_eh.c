@@ -87,7 +87,6 @@ static a_boolean
 /* Forward declaration needed because of mutual recursion: */
 static a_type_ptr make_base_class_spec_type(void);
 
-
 static a_type_ptr array_of(a_type_ptr elem_type)
 /*
 Make an array type whose elements have type elem_type, and return a pointer
@@ -4738,7 +4737,7 @@ inserted at *insert_location.
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
-static a_boolean has_destructions(an_object_lifetime_ptr lifetime)
+a_boolean has_destructions(an_object_lifetime_ptr lifetime)
 /*
 Returns TRUE if the specified lifetime (which can be NULL) or any of its
 sub-lifetimes contain at least one destruction.  Object lifetimes without
@@ -6131,6 +6130,9 @@ tables).
 
   check_assertion_str(exceptions_enabled,
      "insert_code_to_indicate_cleanup_state: called with exceptions disabled");
+  check_assertion(long_lifetime_temps ||
+                  (innermost_function_scope != NULL &&
+                   has_destructions(innermost_function_scope->lifetime)));
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */
   node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
