@@ -4627,6 +4627,16 @@ successfully emitted.
       }  /* if */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+    if (use_name_reference &&
+        (nrp->special_kind ==
+                (a_special_function_kind)sfk_gnu_atomic_nongeneric_function ||
+         nrp->special_kind ==
+                   (a_special_function_kind)sfk_gnu_sync_concrete_function)) {
+      /* These are special cases handled by gen_name_from_routine_node. */
+      use_name_reference = FALSE;
+    }  /* if */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
     for (qual = nrp->qualifier;
          use_name_reference && qual != NULL && qual->is_class;
          qual = qual->previous_qualifier) {

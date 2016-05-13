@@ -1,5 +1,22 @@
 Version 4.12
 
+5/13/16  [EDGcpfe/17107]
+C++-generating back end: Generic GNU built-in rendered with concrete name
+
+The changes for EDGcpfe/16510 introduced a regression in the C++-generating
+back end, causing it to render an invocation of a "generic" GNU built-in
+function (e.g., __atomic_store_n) using its concrete ABI name for that
+particular call (e.g., __atomic_store_8).  For example:
+
+  struct S {
+    void f() { __atomic_store_n(&v1, v2, 0); }
+      // Previously rendered as __atomic_store_8(&(v1), v2, 0);
+    int *v1, *v2;
+  };
+
+This is now fixed.
+
+
 5/13/16  [EDGcpfe/17133]
 Abort on nonstandard anonymous union with default initializer in template
 
