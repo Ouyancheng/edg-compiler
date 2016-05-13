@@ -7202,6 +7202,42 @@ are issued at the position it indicates.
 }  /* fold_offsetof */
 
 
+static void fold_builtin_addressof(
+                              an_expr_node_ptr             expr,
+                              a_constant_ptr               constant,
+                              a_boolean                    maintain_expression,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_boolean                    *not_a_constant)
+/*
+Fold the __builtin_address of expression, returning the result in constant
+if possible.  maintain_expression is TRUE if the expression should become
+a backing expression for the folded constant.  ceblock points to the
+constant expression environment in which expr occurs.  *not_a_constant will
+be set to TRUE if the expression was folded.
+*/
+{
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg != NULL && arg->next == NULL &&
+                  *not_a_constant == FALSE);
+  if (is_template_dependent_type(arg->type)) {
+    /* The template-dependent case. */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    /* Fold the expression if possible. */
+    *not_a_constant = !fold_glvalue_expr(arg, ceblock, constant);
+  }  /* if */
+  if (!*not_a_constant) {
+    if (maintain_expression) constant->expr = expr;
+    constant->type = expr->type;
+  }  /* if */
+}  /* fold_builtin_addressof */
+
+
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant,
                             a_boolean          maintain_expression)
@@ -8461,11 +8497,13 @@ constant will be set as well.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
-                                        a_constant_ptr     constant,
-                                        a_boolean          maintain_expression,
-                                        a_source_position  *pos,
-                                        a_boolean          *not_a_constant)
+void fold_builtin_operation_if_possible(
+                              an_expr_node_ptr             expr,
+                              a_constant_ptr               constant,
+                              a_boolean                    maintain_expression,
+                              a_source_position            *pos,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_boolean                    *not_a_constant)
 /*
 The given expression is a node of kind enk_builtin_operation.  If any of its
 operands are template-dependent, the result is not foldable and a
@@ -8478,15 +8516,24 @@ the folding is successful, the result is returned through *constant.  If the
 folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
 If maintain_expression is TRUE, the backing expression for the returned
-constant is set as well.
+constant is set as well.  ceblock indicates the constant evaluation block
+context for the expression and may be NULL in cases where the expression is
+not being evaluated in a constant expression context.
 */
 {
   a_boolean         has_error = FALSE;
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+  a_constexpr_evaluation_block
+                    local_ceblock;
 
   /* Most built-in operations result in constants.  So we start with that
      assumption. */
   *not_a_constant = FALSE;
+  if (ceblock == NULL) {
+    /* If the caller didn't specify a ceblock, point to a local one. */
+    clear_constexpr_evaluation_block(&local_ceblock, pos);
+    ceblock = &local_ceblock;
+  }  /* if */
   check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
   /* Check if an error was already encountered.  In that case, we silently
      produce an error constant. */
@@ -8580,6 +8627,10 @@ constant is set as well.
       case bok_is_trivially_assignable:
       case bok_is_assignable:
         fold_is_assignable(expr, constant, maintain_expression);
+        break;
+      case bok_builtin_addressof:
+        fold_builtin_addressof(expr, constant, maintain_expression, ceblock,
+                               not_a_constant);
         break;
       default:
         unexpected_condition();
@@ -9810,7 +9861,15 @@ it doesn't matter.
     if (valcon != NULL) {
       folded = TRUE;
       if (want_addr) {
-        set_temporary_address_constant(valcon, result_con);
+        /* Make an address constant for the specified variable.  We can't
+           use set_variable_address_constant because that assumes that the
+           variable has static or thread storage duration or is constexpr,
+           while this routine allows folding C++03-style constants as
+           well. */
+        clear_constant(result_con, (a_constant_repr_kind)ck_address);
+        result_con->variant.address.kind = (an_address_base_kind)abk_variable;
+        result_con->variant.address.variant.variable = var;
+        result_con->type = make_pointer_type(var->type);
       } else {
         copy_constant(valcon, result_con);
       }  /* if */
@@ -10841,6 +10900,13 @@ pm_field_selection:
                                expr->type,
                                ceblock,
                                result_con);
+  } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
+    /* Fold a builtin operation if possible. */
+    a_boolean not_a_constant;
+    fold_builtin_operation_if_possible(expr, result_con,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &expr->position, ceblock, &not_a_constant);
+    folded = !not_a_constant;
   }  /* if */
   return folding_result(folded);
 }  /* fold_expr */

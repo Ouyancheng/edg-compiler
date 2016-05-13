@@ -5745,6 +5745,43 @@ storage at value and return TRUE.  Otherwise, return FALSE.
 }  /* get_value_from_address_constant */
 
 
+static a_boolean do_constexpr_builtin_operation(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      orig_expr,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+Interpret the given builtin expression in the given interpreter context.  If
+successful return TRUE and store the result at *result_storage (which is
+storage within the given complete object).  Otherwise, return FALSE and update
+*ips accordingly.
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  expr = skip_parens(orig_expr);
+
+  switch (expr->variant.builtin_operation.kind) {
+    case bok_builtin_addressof:
+      { an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
+        if (opnd1->is_lvalue || opnd1->is_xvalue) {
+          if (!do_constexpr_expression(ips, opnd1, result_storage,
+                                       complete_object)) {
+            do_constexpr_fail(result);
+          }  /* if */
+        } else {
+          unexpected_condition();
+        }  /* if */
+      }
+      break;
+    default:
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &expr->position, ips);
+  }  /* switch */
+  return result;
+}  /* do_constexpr_builtin_operation */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -5937,9 +5974,7 @@ the value representation of the integer value.
               *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
             } else {
-              /* Return the address of the (class) prvalue: We made sure above
-                 that opnd1_value is allocated in the storage stack (rather
-                 than via a local variable) in this case. */
+              /* Return the address of the (class) prvalue. */
               clear_address(result_storage, opnd1_value);
               ((a_constexpr_address *)result_storage)->alloc_seq_number =
                                           ips->storage_stack.alloc_seq_number;
@@ -9066,6 +9101,10 @@ the value representation of the integer value.
                         &expr->position, ips);
         }  /* if */
       }
+      break;
+    case enk_builtin_operation:
+      result = do_constexpr_builtin_operation(ips, expr, result_storage,
+                                              complete_object);
       break;
     default:
       do_constexpr_fail(result);

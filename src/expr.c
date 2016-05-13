@@ -11561,7 +11561,8 @@ indication in *rcblock).
     fold_builtin_operation_if_possible(
                      node, offset_constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_position, &nonconstant_offset);
+                     &start_position, (a_constexpr_evaluation_block*)NULL,
+                     &nonconstant_offset);
     if (nonconstant_offset) {
       /* The offset is not a constant. */
       make_expression_operand(node, result);
@@ -11587,6 +11588,114 @@ indication in *rcblock).
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
 }  /* scan_offsetof */
+
+
+static void scan_builtin_addressof(a_rescan_control_block *rcblock,
+                                   an_operand             *result)
+/*
+Scan the __builtin_addressof construct, which takes the general form:
+
+	__builtin_addressof ( <operand> )
+
+This routine assumes the current token is __builtin_addressof, scans the
+construct, and either creates an address constant operand or a builtin
+function call.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned __builtin_addressof expression, and return the result in
+*result (or an error indication in *rcblock).
+*/
+{
+  a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_operand          operand;
+  a_boolean           err = FALSE;
+  a_token_sequence_number
+                      start_tok_seq_number;
+
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_ampersand);
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &start_position, &start_tok_seq_number,
+                         (a_source_position *)NULL);
+  } else {
+    a_decl_parse_state  dps;
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+    /* Pass over the __builtin_addressof token. */
+    check_assertion(curr_token == tok_builtin_addressof);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    init_decl_parse_state(&dps);
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (is_a_prvalue(&operand) || is_an_xvalue(&operand)) {
+      /* It appears that clang doesn't allow xvalues in this case. */
+      error_in_operand(ec_expr_not_an_lvalue_or_function_designator, &operand);
+    }  /* if */
+  }  /* if */
+  if (is_error_operand(&operand)) {
+    err = TRUE;
+  } else {
+    /* Use the same operand transformations as are found in
+       scan_ampersand_operator. */
+    do_operand_transformations(&operand,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+    take_address_of_or_reference_to_lvalue(&operand,
+                                           /*reference_case=*/FALSE,
+                                           /*rvalue_reference_case=*/FALSE,
+                                           /*use_handle_for_ref_class=*/FALSE,
+                                           /*is_builtin_addressof=*/TRUE,
+                                           &start_position);
+    if (is_constant_operand(&operand)) {
+      /* In some cases the operand is created as a constant. */
+      copy_operand(&operand, result);
+    } else {
+      /* If the operand has not been folded to a constant, try to fold it
+         now. */
+      a_constant_ptr   addressof_constant = local_constant();
+      a_boolean        not_a_constant;
+      fold_builtin_operation_if_possible(
+                     make_node_from_operand(&operand), addressof_constant,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &start_position, (a_constexpr_evaluation_block *)NULL,
+                     &not_a_constant);
+      if (not_a_constant) {
+        /* Failed to fold. */
+        copy_operand(&operand, result);
+      } else {
+        /* Folded to a (possibly template-dependent) constant. */
+        make_constant_operand(addressof_constant, result);
+        result->type = result->variant.constant.type;
+      }  /* if */
+      release_local_constant(&addressof_constant);
+    }  /* if */
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(&operand);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  record_operator_position_in_rescan_info(result, &start_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          (a_source_position *)NULL);
+  if (rcblock == NULL) {
+    remove_stop_token(tok_rparen);
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+}  /* scan_builtin_addressof */
 
 
 static an_expr_node_ptr scan_builtin_operation_arg(
@@ -11803,7 +11912,8 @@ indication in *rcblock).
     fold_builtin_operation_if_possible(
                      expr, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_position, &not_a_constant);
+                     &start_position, (a_constexpr_evaluation_block*)NULL,
+                     &not_a_constant);
     check_assertion(!not_a_constant);
     result->type = result->variant.constant.type;
     result->state = (an_operand_state)os_prvalue;
@@ -32163,6 +32273,11 @@ handle_coroutine_yield:
       scan_offsetof((a_rescan_control_block *)NULL, &local_result);
       break;
 
+    case tok_builtin_addressof:
+      /* __builtin_addressof construct. */
+      scan_builtin_addressof((a_rescan_control_block *)NULL, &local_result);
+      break;
+
     case tok_has_assign:
     case tok_has_copy:
     case tok_has_nothrow_assign:
@@ -40335,6 +40450,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_builtin_offsetof:
         /* __builtin_offsetof construct. */
         scan_offsetof(rcblock, result);
+        break;
+      case tok_builtin_addressof:
+        /* __builtin_addressof construct. */
+        scan_builtin_addressof(rcblock, result);
         break;
       case tok_noexcept:
         /* C++11 noexcept operator. */

@@ -17150,11 +17150,12 @@ we test for a limited set of cases, and only lvalues.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- use_handle_for_ref_class is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void take_address_of_or_reference_to_lvalue(
+void take_address_of_or_reference_to_lvalue(
                                     an_operand        *operand,
                                     a_boolean         reference_case,
                                     a_boolean         rvalue_reference_case,
                                     a_boolean         use_handle_for_ref_class,
+                                    a_boolean         is_builtin_addressof,
                                     a_source_position *operator_position)
 /*
 Change operand (an lvalue or a function designator) to a prvalue that is:
@@ -17171,6 +17172,8 @@ the reference being bound is an rvalue reference.
 In both cases, check that the operand's address can be taken, and set the
 address_taken flag.  When operator_position is non-NULL, there is an
 explicit "&" operator in the source and *operator_position gives its position.
+When is_builtin_addressof is TRUE, the __builtin_addressof operator appears
+in the source (and *operator_position gives its position).
 */
 {
   a_source_position *err_pos = &operand->position;
@@ -17344,12 +17347,24 @@ explicit "&" operator in the source and *operator_position gives its position.
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
             } else {
-              /* An explicit "&" operator. */
               a_type_ptr addr_type = (template_constant ?
                                         type_of_unknown_templ_param_nontype :
                                         type_of_address_of(expr));
-              expr = make_operator_node((an_expr_operator_kind)eok_address_of,
-                                        addr_type, expr);
+              if (is_builtin_addressof) {
+                /* Create IL for __builtin_addressof. */
+                an_expr_node_ptr new_expr =
+                     alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+                new_expr->variant.builtin_operation.kind =
+                               (a_builtin_operation_kind)bok_builtin_addressof;
+                new_expr->variant.builtin_operation.operands = expr;
+                new_expr->type = addr_type;
+                expr = new_expr;
+              } else {
+                /* An explicit "&" operator. */
+                expr = make_operator_node(
+                                         (an_expr_operator_kind)eok_address_of,
+                                         addr_type, expr);
+              }  /* if */
               if (is_implicit)  {
                 expr->variant.operation.compiler_generated = TRUE;
               } else {
@@ -17393,6 +17408,7 @@ in the source and *operator_position gives its position.
                                          /*reference_case=*/FALSE,
                                          /*rvalue_reference_case=*/FALSE,
                                          /*use_handle_for_ref_class=*/FALSE,
+                                         /*is_builtin_addressof=*/FALSE,
                                          operator_position);
 }  /* take_address_of_lvalue */
 
@@ -17416,6 +17432,7 @@ is an rvalue reference.
                                            /*reference_case=*/TRUE,
                                            rvalue_reference_case,
                                            /*use_handle_for_ref_class=*/FALSE,
+                                           /*is_builtin_addressof=*/FALSE,
                                            (a_source_position *)NULL);
   } else {
     /* Binding a reference to a class prvalue. */
@@ -18342,6 +18359,7 @@ to a C++/CLI handle instead of a pointer.
                                            /*reference_case=*/FALSE,
                                            /*rvalue_reference_case=*/FALSE,
                                            /*use_handle_for_ref_class=*/TRUE,
+                                           /*is_builtin_addressof=*/FALSE,
                                            (a_source_position *)NULL);
   } else if (is_a_prvalue(operand)) {
     /* The operand is a prvalue.  Turn it into an lvalue and take its
@@ -18351,6 +18369,7 @@ to a C++/CLI handle instead of a pointer.
                                            /*reference_case=*/FALSE,
                                            /*rvalue_reference_case=*/FALSE,
                                            /*use_handle_for_ref_class=*/TRUE,
+                                           /*is_builtin_addressof=*/FALSE,
                                            (a_source_position *)NULL);
   }  /* if */
 }  /* conv_class_operand_to_object_pointer */

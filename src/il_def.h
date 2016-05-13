@@ -1264,6 +1264,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_assignable,
   tok_is_trivially_copy_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tok_builtin_addressof,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1435,6 +1436,7 @@ EXTERN a_const_char
    "__is_assignable",
    "__is_trivially_copy_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "__builtin_addressof",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -15350,6 +15352,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_trivially_copy_assignable,
 			/* Microsoft's __is_trivially_copy_assignable.  Two
 			   type operands. */
+  bok_builtin_addressof,/* __builtin_addressof.  One lvalue operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -19533,6 +19536,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_shufflevector",
   "__is_assignable",
   "__is_trivially_copy_assignable",
+  "__builtin_addressof",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

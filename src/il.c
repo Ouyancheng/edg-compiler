@@ -16004,6 +16004,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
     fold_builtin_operation_if_possible(expr_copy, constant,
                                        /*maintain_expression=*/FALSE,
                                        (a_source_position*)NULL,
+                                       (a_constexpr_evaluation_block *)NULL,
                                        &not_a_constant);
     /* Currently, an operation that doesn't always produce a constant causes
        copy_template_param_expr to set *copy_error to TRUE. */

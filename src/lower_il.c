@@ -14016,6 +14016,22 @@ Lower the given __builtin_complex node.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
+static void lower_builtin_addressof(an_expr_node_ptr  expr)
+/*
+Lower the __builtin_addressof construct (by effectively replacing it with
+an eok_address_of operation).
+*/
+{
+  an_expr_node_ptr new_expr;
+
+  lower_expr(expr->variant.builtin_operation.operands);
+  new_expr = add_address_of_to_node(expr->variant.builtin_operation.operands);
+  check_assertion(expr->is_lvalue == new_expr->is_lvalue &&
+                  identical_types(expr->type, new_expr->type));
+  overwrite_node(expr, new_expr);
+}  /* lower_builtin_addressof */
+
+
 void lower_builtin_operation(an_expr_node_ptr expr)
 /*
 Lower an enk_builtin_operation node.  Most builtin operations currently result
@@ -14044,6 +14060,9 @@ bok_offsetof, which can include nonconstant subscripts.
       lower_builtin_complex(expr);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case bok_builtin_addressof:
+      lower_builtin_addressof(expr);
+      break;
     default:
       unexpected_condition();
   }  /* switch */ /*lint !e764 */

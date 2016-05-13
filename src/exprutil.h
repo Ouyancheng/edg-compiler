@@ -1547,6 +1547,14 @@ extern a_boolean microsoft_template_arg_constant_glvalue_address(
                                                     an_expr_node_ptr expr,
                                                     a_constant       *conaddr);
 
+extern void take_address_of_or_reference_to_lvalue(
+                                    an_operand        *operand,
+                                    a_boolean         reference_case,
+                                    a_boolean         rvalue_reference_case,
+                                    a_boolean         use_handle_for_ref_class,
+                                    a_boolean         is_builtin_addressof,
+                                    a_source_position *operator_position);
+
 extern void take_address_of_lvalue(an_operand *operand,
                                    a_source_position *operator_position);
 

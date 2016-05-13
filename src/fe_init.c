@@ -1008,6 +1008,9 @@ Install the keywords in the symbol table.
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
+  if (ms_extensions || clang_mode) {
+    enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_attributes_enabled) {
     enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
