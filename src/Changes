@@ -1,5 +1,15 @@
 Version 4.12
 
+5/13/16  [EDGcpfe/17084]
+Aggregate element constants allocated by C++14 interpreter
+
+Previously, the C++14 interpreter always allocated the elements of an aggregate
+constant (resulting from a successful interpretation) in file scope memory.
+The parent ck_aggregate constant is sometimes allocated by the caller and not
+always in file scope memory.  Now the interpreter allocates the element
+constants in the current memory region.
+
+
 5/13/16  [EDGcpfe/16715]
 Microsoft compatibility: Enable member initializers for aggregates
 

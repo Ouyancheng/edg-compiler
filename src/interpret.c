@@ -9277,7 +9277,7 @@ diagnostic in *ips.
               top_type = skip_typerefs(cp->type);
               if (!in_file_scope(cp) && in_file_scope(con)) {
                 a_constant_ptr new_cp;
-                new_cp = fs_constant((a_constant_repr_kind)ck_error);
+                new_cp = alloc_constant((a_constant_repr_kind)ck_error);
                 (void)copy_constant_full(cp, new_cp, CE_NO_OPTIONS);
                 cp = new_cp;
               }  /* if */
@@ -9289,7 +9289,7 @@ diagnostic in *ips.
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
-            cp = fs_constant((a_constant_repr_kind)ck_error);
+            cp = alloc_constant((a_constant_repr_kind)ck_error);
             if (is_array_element(cap)) {
               /* If we're pointing into an array, a constant for the whole
                  array must be allocated. */
@@ -9374,7 +9374,7 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          cp = fs_constant((a_constant_repr_kind)ck_error);
+          cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                         ips, object+offset, complete_object, bcp->type, cp)) {
             do_constexpr_fail(result);
@@ -9400,7 +9400,7 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          cp = fs_constant((a_constant_repr_kind)ck_error);
+          cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                          ips, object+offset, complete_object, fp->type, cp)) {
             do_constexpr_fail(result);
@@ -9428,7 +9428,7 @@ diagnostic in *ips.
         } else {
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
-          elem_con = fs_constant((a_constant_repr_kind)ck_error);
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
                                           ips, object+offset, complete_object,
@@ -9437,7 +9437,7 @@ diagnostic in *ips.
           } else {
             if (fp != afp) {
               /* Add a designator for the active field. */
-              des_con = fs_constant((a_constant_repr_kind)ck_designator);
+              des_con = alloc_constant((a_constant_repr_kind)ck_designator);
               des_con->variant.designator.is_field_designator = TRUE;
               des_con->variant.designator.variant.field = afp;
               add_constant_to_aggregate(des_con, con);
@@ -9456,7 +9456,7 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
-          elem_con = fs_constant((a_constant_repr_kind)ck_error);
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                               ips, sub_obj, complete_object, etp, elem_con)) {
             do_constexpr_fail(result);
@@ -9476,7 +9476,7 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
-          elem_con = fs_constant((a_constant_repr_kind)ck_error);
+          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                               ips, sub_obj, complete_object, etp, elem_con)) {
             do_constexpr_fail(result);
