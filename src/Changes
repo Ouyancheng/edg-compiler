@@ -1,5 +1,11 @@
 Version 4.12
 
+5/13/16  [EDGcpfe/17091]
+C++/CX: Abort on __is_ref_array
+
+Most invocations of __is_ref_array aborted in C++/CX mode.  That is fixed now.
+
+
 5/13/16  [EDGcpfe/17107]
 C++-generating back end: Generic GNU built-in rendered with concrete name
 

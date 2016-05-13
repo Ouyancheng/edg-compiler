@@ -8353,14 +8353,15 @@ constant will be set as well.
         result = cli_class_type_kind_is(type, cctk_interface);
         break;
       case bok_is_ref_array:
-        /* System::Array isn't technically a ref array, but it supports the
-           subscript operator, and ref arrays all derive from it, so it is
-           considered a ref array. */
-        if (cli_or_cx_enabled) {
+        if (cli_or_cx_enabled && class_type_supp(type)->is_cli_array) {
+          result = TRUE;
+        } else if (cppcli_enabled) {
+          /* System::Array isn't technically a ref array, but it supports the
+             subscript operator, and ref arrays all derive from it, so it is
+             considered a ref array. */
           a_type_ptr  array_tp = cli_class_type_for(csk_system_array);
-          result = class_type_supp(type)->is_cli_array ||
-                   identical_types(type, array_tp);
-        }  else {
+          result = identical_types(type, array_tp);
+        } else {
           result = FALSE;
         }  /* if */
         break;
