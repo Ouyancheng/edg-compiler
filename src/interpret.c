@@ -2269,11 +2269,12 @@ the end" of a field subobject, that field is returned.
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
-    a_byte_count      offset = cap->address - parent_address, sub_offset;
     a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
     a_field_ptr       last_fp = next_initializable_field(fp);
     a_base_class_ptr  bcp, last_bcp;
     a_boolean         okay = TRUE;
+    a_byte_count      offset = cap->address - parent_address, sub_offset,
+                      type_size;
     sub_offset = sizeof(a_type_ptr);
     do_host_alignment(sub_offset);
     /* First search through the fields. */
@@ -2285,13 +2286,16 @@ the end" of a field subobject, that field is returned.
          fp != NULL;
          last_fp = fp, fp = next_initializable_field(fp->next)) {
       get_mapped_byte_count(&persistent_map, fp, sub_offset);
-      if (offset <= sub_offset) {
+      if (offset < sub_offset ||
+          (offset == sub_offset && cannot_dereference(cap))) {
         *p_field = last_fp;
         *p_bcp = NULL;
         goto done;
       }  /* if */
     }  /* for */
-    if (offset-sub_offset <= value_bytes_for_type(ips, last_fp->type, &okay)) {
+    type_size = value_bytes_for_type(ips, last_fp->type, &okay);
+    if (offset-sub_offset < type_size ||
+        (offset-sub_offset == type_size && cannot_dereference(cap))) {
       check_assertion(okay);
       *p_field = last_fp;
       *p_bcp = NULL;
