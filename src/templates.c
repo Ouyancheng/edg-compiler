@@ -1567,7 +1567,9 @@ corresponds to field_sym in an actual instantiation.
   /* Skip over any anonymous union parent types. */
   parent_type = corresp_prototype_tag_sym->variant.class_struct_union.type;
   while (class_type_supp(parent_type)->anonymous_union_kind !=
-                                          (an_anonymous_union_kind)auk_none) {
+                                          (an_anonymous_union_kind)auk_none ||
+         parent_type->variant.class_struct_union
+                             .is_nonstd_anonymous_union_type) {
     parent_type = parent_class_of(parent_type);
     check_assertion(parent_type != NULL);
   }  /* while */

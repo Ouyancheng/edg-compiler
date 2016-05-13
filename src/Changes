@@ -1,5 +1,23 @@
 Version 4.12
 
+5/13/16  [EDGcpfe/17133]
+Abort on nonstandard anonymous union with default initializer in template
+
+In configurations that accept nonstandard anonymous unions in C++11 mode, the
+front end triggered an internal error during IL lowering (in lower_constant)
+after attempting to instantiate a class template containing a nonstandard
+anonymous union with a default member initializer.  For example:
+
+  template<typename T> struct S {
+    struct {
+      float f = 0;
+    };  // Nonstandard anonymous union.
+  };
+  S<int> si;
+
+This is now fixed.
+
+
 5/12/16  [EDGcpfe/17174]
 Missing diagnostic on invalid use of "operator auto"
 
