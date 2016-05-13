@@ -1,5 +1,12 @@
 Version 4.12
 
+5/13/16  [EDGcpfe/16715]
+Microsoft compatibility: Enable member initializers for aggregates
+
+The changes described in the Changes entry for EDGcpfe/14146 are now also
+enabled when microsoft_version >= 1903.
+
+
 5/13/16  [EDGcpfe/17091]
 C++/CX: Abort on __is_ref_array
 
