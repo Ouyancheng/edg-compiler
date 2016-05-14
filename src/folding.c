@@ -8531,7 +8531,8 @@ not being evaluated in a constant expression context.
   *not_a_constant = FALSE;
   if (ceblock == NULL) {
     /* If the caller didn't specify a ceblock, point to a local one. */
-    clear_constexpr_evaluation_block(&local_ceblock, pos);
+    clear_constexpr_evaluation_block(&local_ceblock,
+                                     pos != NULL ? pos : &expr->position);
     ceblock = &local_ceblock;
   }  /* if */
   check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
