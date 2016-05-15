@@ -5363,7 +5363,9 @@ If no symbol is found in the specified namespace, NULL is returned.
       sym = lookup_in_namespace(locator, assoc_namespace, options,
                                 orig_ns_ptr, synth_sym,
                                 inline_namespace_only, any_errors);
-      if (sym != NULL && !sym->synthesized_namespace_projection) {
+      if (sym != NULL && sym->synthesized_namespace_projection) {
+        *synth_sym = sym;
+      } else if (sym != NULL) {
         /* If this lookup found a symbol, add it to the lookup set.
            Don't do this if it is already a synthesized namespace
            projection -- such symbols are already represented in synth_sym. */

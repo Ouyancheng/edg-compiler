@@ -1,5 +1,31 @@
 Version 4.12
 
+5/16/16  [EDGcpfe/16650]
+Issues with nested inline namespaces and overloaded functions
+
+Name lookup did not produce the correct result in some cases involving
+nested inline functions containing overloaded functions.  Now fixed.
+
+  namespace N1 {
+    inline namespace I1 {
+      void f1(int) {}
+      inline namespace I2 { void f1(int, int) {} }
+    }
+  }
+  namespace N2 {
+    inline namespace I2 {
+      void f2(int) {}
+      inline namespace I2 { void f2(int, int) {} }
+    }
+  }
+  using N1::f1;
+  using namespace N2;
+  void g() {
+    f1(10);  // spurious "too few arguments"
+    N2::f2(10);  // spurious "too few arguments"
+  }
+
+
 5/13/16  [EDGcpfe/16955]
 __builtin_addressof
 
