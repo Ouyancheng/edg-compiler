@@ -6679,7 +6679,7 @@ constructor).
      as a constructor declaration if the next two tokens are a left paren
      and declaration start token.  Use token caching in the look-ahead,
      since the tokens will have to be rescanned no matter what. */
-  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  tag_sym = symbol_for(class_type);
   ctor_type_sym = locator_for_curr_id.specific_symbol;
   if (ctor_type_sym != NULL) {
     fund_ctor_type_sym = fundamental_symbol_of(ctor_type_sym);
@@ -6689,12 +6689,13 @@ constructor).
     if (ctor_type_sym != NULL) {
       if (ctor_type_sym == tag_sym) {
         /* The type specified matches the class type symbol. */
-      } else if (ctor_type_sym->kind == (a_symbol_kind)sk_type &&
+      } else if (symbol_is(ctor_type_sym, sk_type) &&
                  ctor_type_sym->variant.type.is_injected_class_name &&
                  same_entities(ctor_type_sym->variant.type.ptr, class_type)) {
         /* The type specified is the injected class symbol.  This is okay. */
       } else if (ms_extensions && fund_ctor_type_sym != NULL &&
                  ctor_type_sym != fund_ctor_type_sym &&
+                 symbol_is(fund_ctor_type_sym, sk_type) &&
                  fund_ctor_type_sym->variant.type.is_injected_class_name &&
                  is_template_class_and_not_specific_def_symbol(tag_sym)) {
         /* The symbol found is the injected class name from a base class of
@@ -6702,6 +6703,18 @@ constructor).
            the Microsoft compiler does not create an injected class name for
            nonspecialized template classes, we should ignore the injected class
            name found from the base class. */
+      } else if (class_type->variant.class_struct_union
+                                    .is_ms_instantiated_nonreal_class &&
+                 symbol_is(fund_ctor_type_sym, sk_class_or_struct_tag) &&
+                 identical_types(class_type,
+                                 fund_ctor_type_sym
+                                         ->variant.class_struct_union.type)) {
+        /* We're in a Microsoft-mode nonreal instantiation of a class
+           (performed to better approximate MSVC behavior).  In such cases,
+           explicit template arguments on the constructor name will produce a
+           nonreal type that is distinct from the enclosing class type (with
+           a distinct symbol).  However, f_identical_types can tell the two
+           are the same. */
       } else {
         /* The names match, but the types don't.  This happens in templates
            when the class name is "A" but the constructor was specified as
@@ -6799,8 +6812,7 @@ constructor).
                              IDL_TENTATIVE_TYPE_LOOKUP |
                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS |
                              IDL_DO_NOT_CREATE_PROJ_SYM);
-      if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-          !sym->ambiguous) {
+      if (sym != NULL && symbol_is(sym, sk_type) && !sym->ambiguous) {
         sym_type = skip_typerefs(sym->variant.type.ptr);
       }  /* if */
       if (sym_type != NULL && same_entities(sym_type, class_type)) {
@@ -6831,17 +6843,17 @@ constructor).
           } else if (cli_or_cx_enabled && is_static_constructor_symbol(sym)) {
             /* Okay. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          } else if (sym->kind == (a_symbol_kind)sk_type &&
+          } else if (symbol_is(sym, sk_type) &&
                      (sym_type = f_skip_typerefs(sym->variant.type.ptr),
                       same_entities(sym_type, class_type))) {
             /* There is a typedef for the class type with the same name as
                the class.  It was found instead of the class on the lookup.
                That's okay. */
-          } else if (sym->kind != (a_symbol_kind)sk_projection ||
+          } else if (!symbol_is(sym, sk_projection) ||
                      sym->variant.projection.is_using_decl) {
             /* This can only mean that another member has been
                declared with the class name.  Issue an error. */
-            check_assertion(sym->kind == (a_symbol_kind)sk_field);
+            check_assertion(symbol_is(sym, sk_field));
             pos_error(ec_field_name_conflicts_with_class, &sym->decl_position);
           }  /* if */
         }  /* if */
