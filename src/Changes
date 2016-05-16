@@ -1,5 +1,23 @@
 Version 4.12
 
+5/16/16  [EDGcpfe/15094]
+GNU C++ compatibility: disambiguation and qualified names
+
+Disambiguation is supposed to be "syntactic", but g++ considers whether
+an identifier is qualified when determining whether a name is a nested
+declarator or an expression in disambiguation.  We now emulate this in
+g++ mode.
+
+  struct B {
+    enum E {e};
+    B(int i) {}
+    void f(int){}
+  };
+  int main() {
+    B g(B(B::e));  // now declares object in g++ mode
+    g.f(1);
+  }
+
 5/16/16  [EDGcpfe/15937]
 Spurious error on Microsoft-mode constructor declaration in template
 

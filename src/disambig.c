@@ -1268,10 +1268,13 @@ part of a declarator is found, may_be_decl is set to FALSE.
        declarators are not allowed in this context, so tildes don't need
        to be handled. */
     /* Declarator names cannot contain global qualifiers (e.g., ::i). This
-       is allowed for template prescans. */
+       is allowed for template prescans.  In g++ mode, a nested declarator
+       that is a qualified name forces this to be not a declarator name. */
     is_name_start = curr_token == tok_identifier &&
                     (!locator_for_curr_id.is_global_qualified_name ||
-                     is_template_decl(flags));
+                     is_template_decl(flags)) &&
+                    !(gpp_mode && !is_top_level &&
+                      locator_for_curr_id.is_qualified_name);
     if (!real_declarator_allowed(flags) ||
         (abstract_declarator_allowed(flags) && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator. */
