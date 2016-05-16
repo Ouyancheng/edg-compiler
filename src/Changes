@@ -1,5 +1,16 @@
 Version 4.12
 
+5/16/16  [EDGcpfe/16878]
+Attempt to form a pointer or reference to qualified function type not always
+treated as SFINAE
+
+Forming a pointer or reference to a qualified function type is invalid, but
+doing so through template parameter substitution is subject to SFINAE.  The
+front end, however, only applied the SFINAE rules in the reference case and
+only if the qualified function type was not expressed through a typedef or
+alias.  This is now fixed.
+
+
 5/16/16  [EDGcpfe/16650]
 Issues with nested inline namespaces and overloaded functions
 

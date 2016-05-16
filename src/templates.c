@@ -12312,13 +12312,12 @@ a pointer over a reference type or creating an array of references.
                                            (a_source_position*)NULL)) {
           /* A C++/CLI-specific substitution failure. */
           *copy_error = TRUE;
+        } else if (is_qualified_function_type(tp)) {
+          /* A reference to a qualified function type is not allowed. */
+          *copy_error = TRUE;
         } else if (type->variant.pointer.is_reference) {
           if (is_void_type(tp)) {
             /* A reference to void would be invalid. */
-            *copy_error = TRUE;
-          } else if (tp->kind == (a_type_kind)tk_routine &&
-                     is_qualified_function_type(tp)) {
-            /* A reference to a qualified function type is not allowed. */
             *copy_error = TRUE;
           } else if (is_any_reference_type(tp)) {
             /* A reference to reference.  We may have to merge qualifiers. */
