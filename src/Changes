@@ -1,5 +1,24 @@
 Version 4.12
 
+5/17/16  [EDGcpfe/15566]
+Microsoft compatibility: handling of member function qualifiers in deduction
+
+In Microsoft mode we emulated a Microsoft bug where member function
+qualifiers were sometimes ignored in template argument deduction.  This
+seems to have been corrected in recent versions of the Microsoft compiler.
+We now only do this emulation when microsoft_version < 1700.  See the entry
+for EDGcpfe/9743 on 4/28/09 for information about the original change.
+
+  struct A {
+    void f() const {}
+    void f() {}
+  };
+  template<typename T> void g(void (T::*f)() const) {}
+  int main() {
+    g(&A::f);  // Formerly "no instance ... matches"
+  }
+
+
 5/17/16  [EDGcpfe/16761]
 C++/CLI: Lookup of default properties
 

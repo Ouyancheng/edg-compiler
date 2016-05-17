@@ -10952,10 +10952,11 @@ points to the template parameter list.
                 /* They both have this class types, make sure the
                    types match.  Construct an implicit this type so that
                    the qualifiers will be processed too. */
-                if (microsoft_mode &&
+                if (microsoft_mode && microsoft_version < 1700 &&
                     type->variant.routine.extra_info->qualifiers == TQ_NONE) {
                   /* The Microsoft compiler does not compare the qualifiers
-                     if the type has no qualifiers. */
+                     if the type has no qualifiers.  This quirk was fixed
+                     in MSVC 1700. */
                 } else {
                   tp =  implicit_this_param_type_of(type);
                   ttp =  implicit_this_param_type_of(templ_type);
