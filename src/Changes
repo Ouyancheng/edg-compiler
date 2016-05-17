@@ -1,5 +1,32 @@
 Version 4.12
 
+5/17/16  [EDGcpfe/16761]
+C++/CLI: Lookup of default properties
+
+In C++/CLI mode, when default properties are inherited from base classes at
+different derivation depth, the "deeper" declarations were not always found
+(a failure of "hide-by-sig" lookup), which in turn could lead to spurious
+errors.  For example:
+
+  class X {};
+  ref struct B {
+    property int default[int] {
+        int get(int) { return 0; }
+    }
+  };
+  ref struct C: B {
+    property int default[X] {
+        int get(X) { return 1; }
+    }
+  };
+  ref struct D: C {};
+  void g(D^ hd) {
+    hd[0];  // Previously triggered an error because B::default::get was not
+  }         // found.  Now accepted.
+
+This is now fixed.
+
+
 5/17/16  [EDGcpfe/16712,EDGcpfe/16713]
 C++17 compatibility: Add nested namespace definitions
 

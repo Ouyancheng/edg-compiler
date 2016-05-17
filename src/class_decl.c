@@ -8580,14 +8580,12 @@ issue an error and return FALSE.
 static void add_projections_for_symbols(a_symbol_ptr      b_sym_list,
                                         a_boolean         single,
                                         a_base_class_ptr  bcp,
-                                        a_symbol_ptr      *p_d_symbol_list,
-                                        a_boolean         invisible)
+                                        a_symbol_ptr      *p_d_symbol_list)
 /*
 b_sym_list points to a list (possibly empty) list of symbols from the base
 class described by bcp.  Append projection symbols for every of element of
 that list (or just the first one if single is TRUE) to the list pointed to by
-*p_d_symbol_list (associated with the derived class).  Mark the new projection
-symbols as invisible if invisible is TRUE.
+*p_d_symbol_list (associated with the derived class).
 */
 {
   a_type_ptr           d_type = bcp->derived_class;
@@ -8615,7 +8613,6 @@ symbols as invisible if invisible is TRUE.
     *p_d_sym = make_projection_symbol(b_sym, d_type, f_bcp,
                                       (a_derivation_step_ptr)NULL,
                                       b_sym->ambiguous);
-    (*p_d_sym)->is_invisible = invisible;
     (*p_d_sym)->variant.projection.access =
                          compute_access(access_for_symbol(b_sym), bcp_access);
     p_d_sym = &(*p_d_sym)->next;
@@ -8654,8 +8651,7 @@ be NULL.
        overloaded projections. */
     prev_d_next = (*p_d_accessors != NULL) ? (*p_d_accessors)->next
                                            : (a_symbol_ptr)NULL;
-    add_projections_for_symbols(b_sym_list, single, bcp, p_d_sym_list,
-                                /*invisible=*/TRUE);
+    add_projections_for_symbols(b_sym_list, single, bcp, p_d_sym_list);
     if ((*p_d_accessors)->next != prev_d_next) {
       /* The derived-class accessor set has become an overload set (it wasn't
          before).  Create the sk_overloaded_function symbol for it. */
@@ -8697,6 +8693,15 @@ accessors) in the derived class.
   a_property_set_symbol_supplement_ptr
               d_set, b_set;
 
+  if (cli_class_type_kind_is(b_type, cctk_interface) ||
+       (cli_class_type_kind_is(b_type, cctk_ref) &&
+        is_cli_system_object_type(b_type))) {
+    /* If lookup starts in a ref class, base interface members are ignored
+       (see ECMA-372, section 10.7).  So skip this process in such cases. */ 
+    if (!cli_class_type_kind_is(d_type, cctk_interface)) {
+      goto done;
+    }  /* if */
+  }  /* if */
   check_assertion(b_cssp->default_indexed_properties != NULL);
   b_set = b_cssp->default_indexed_properties->variant.property_info;
   if (d_cssp->default_indexed_properties == NULL) {
@@ -8713,12 +8718,13 @@ accessors) in the derived class.
   d_set = d_cssp->default_indexed_properties->variant.property_info;
   /* First add projections for the property member symbols to the set. */
   add_projections_for_symbols(b_set->properties, /*single=*/FALSE, bcp,
-                              &d_set->properties, /*invisible=*/FALSE);
+                              &d_set->properties);
   /* Next, add projections for the accessors. */
   add_projections_for_accessors(b_set->get_accessors, bcp,
                                 &d_set->get_accessors);
   add_projections_for_accessors(b_set->set_accessors, bcp,
                                 &d_set->set_accessors);
+done:;
 }  /* inherit_default_indexed_properties */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
