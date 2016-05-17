@@ -7213,14 +7213,14 @@ Fold the __builtin_address of expression, returning the result in constant
 if possible.  maintain_expression is TRUE if the expression should become
 a backing expression for the folded constant.  ceblock points to the
 constant expression environment in which expr occurs.  *not_a_constant will
-be set to TRUE if the expression was folded.
+be set to TRUE if the expression could not be folded (and FALSE otherwise).
 */
 {
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg != NULL && arg->next == NULL &&
-                  *not_a_constant == FALSE);
+  check_assertion(arg != NULL && arg->next == NULL);
+  *not_a_constant = FALSE;
   if (is_template_dependent_type(arg->type)) {
     /* The template-dependent case. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
@@ -8516,9 +8516,9 @@ the folding is successful, the result is returned through *constant.  If the
 folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
 If maintain_expression is TRUE, the backing expression for the returned
-constant is set as well.  ceblock indicates the constant evaluation block
-context for the expression and may be NULL in cases where the expression is
-not being evaluated in a constant expression context.
+constant is set as well.  ceblock gives context information for the evaluation
+and may be NULL in cases where the expression is not being evaluated in a
+constant expression context.
 */
 {
   a_boolean         has_error = FALSE;
