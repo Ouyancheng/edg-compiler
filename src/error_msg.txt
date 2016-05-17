@@ -2847,6 +2847,7 @@ ec_constexpr_access_past_object;;"attempt to access storage one position past an
 ec_constexpr_reinterpret_cast;;"cannot use reinterpret_cast in constant-expression evaluation"
 ec_constexpr_invalid_null_ptr_operation;;"operation not allowed on null pointer"
 ec_star_this_not_constant_valued;;"the value of *this cannot be used as a constant"
+ec_inline_on_nested_namespace;;"the \"inline\" keyword cannot be used on a nested namespace declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

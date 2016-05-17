@@ -2446,6 +2446,7 @@ option values if they were not already set by a command line option.
       if (microsoft_version >= 1903) {
         /* Emulate Visual Studio 2015 Update 3. */
         aggregate_classes_can_have_field_initializers = TRUE;
+        nested_namespace_definitions_enabled = TRUE;
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
@@ -3197,6 +3198,7 @@ default mode (e.g., exception handling).
     if (cpp17_mode) {
       /* Features enabled in C++17 mode. */
       namespace_attributes_enabled = TRUE;
+      nested_namespace_definitions_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
@@ -10934,6 +10936,7 @@ variables declared in cmd_line.h.
   inline_namespaces_enabled = FALSE;
   std_attributes_enabled = FALSE;
   namespace_attributes_enabled = FALSE;
+  nested_namespace_definitions_enabled = FALSE;
   enumerator_attributes_enabled = FALSE;
   variable_templates_enabled = FALSE;
   alignas_enabled = FALSE;

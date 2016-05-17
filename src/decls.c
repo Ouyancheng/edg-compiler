@@ -13992,26 +13992,31 @@ pushed.
 }  /* add_implicit_using_directive */
 
 
-static void namespace_declaration(a_token_kind  *final_token)
+static void namespace_declaration(a_token_kind  *final_token,
+                                  a_boolean     in_nested_namespace_decl)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
-an extension namespace definition, an unnamed namespace definition, or a
-namespace alias definition.  The syntax is:
+an extension namespace definition, an unnamed namespace definition, a
+nested namespace definition or a namespace alias definition.  The syntax is:
 
-  original-namespace-definition:
-    inline opt namespace identifier { namespace-body }
+  named-namespace-definition:
+    inline opt namespace attribute-specifier-seq opt identifier
+                                                             { namespace-body }
 
-  extension-namespace-definition:
-    inline opt namespace original-namespace-name { namespace-body }
+  unnamed-namespace-definition:
+    inline opt namespace attribute-specifier-seq opt { namespace-body }
 
-  unnamed-namespace:
-    inline opt namespace { namespace-body }
+  nested-namespace-definition:
+    namespace enclosing-namespace-specifier :: identifier { namespace-body }
 
   namespace-alias-definition:
-    namespace identifier = qualified-namespace-specifier;
+    namespace identifier = qualified-namespace-specifier ;
 
 *final_token is set to tok_semicolon if this is a namespace alias definition
 and to tok_brace otherwise; the final token is swallowed by the caller.
+This routine is called recursively (for each segment of a qualified name)
+for a nested namespace declaration.  In those cases, in_nested_namespace_decl
+is set to TRUE.
 */
 {
   a_source_position           namespace_pos;
@@ -14026,6 +14031,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_symbol_locator            locator;
   a_boolean                   is_unnamed_namespace = TRUE;
   a_boolean                   is_namespace_alias = FALSE;
+  a_boolean                   is_enclosing_namespace_specifier = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
@@ -14037,25 +14043,34 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_boolean	              is_inline = FALSE;
 
   db_enter(3, "namespace_declaration");
-  /* Save the source position of the start of the declaration. */
-  start_pos = pos_curr_token;
-  if (curr_token == tok_inline) {
-    /* This is an inline namespace declaration. */
-    is_inline = TRUE;
-    (void)get_token();
-    check_assertion(curr_token == tok_namespace);
-  }  /* if */
-  /* Save the source position of the namespace keyword. */
-  namespace_pos = pos_curr_token;
-  /* A namespace declaration is outside the "Embedded C++" subset. */
-  feature_is_not_part_of_embedded_cplusplus_subset(
+  if (in_nested_namespace_decl) {
+    /* A nested namespace declaration is being parsed and at least one segment
+       has already been processed.  Skip the initial processing associated with
+       the declaration and go directly to the next segment of the qualified
+       name.  This processing effectively treats "namespace N1::N2 {}" as
+       "namespace N1 { namespace N2 {}}". */
+    is_unnamed_namespace = FALSE;
+  } else {
+    /* Save the source position of the start of the declaration. */
+    start_pos = pos_curr_token;
+    if (curr_token == tok_inline) {
+      /* This is an inline namespace declaration. */
+      is_inline = TRUE;
+      (void)get_token();
+      check_assertion(curr_token == tok_namespace);
+    }  /* if */
+    /* Save the source position of the namespace keyword. */
+    namespace_pos = pos_curr_token;
+    /* A namespace declaration is outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
                                           ec_namespaces_in_embedded_cplusplus);
-  /* Bypass "namespace". */
-  (void)get_token();
-  if (namespace_attributes_enabled) {
-    /* Scan any standard attributes. */
-    attributes = scan_attributes(al_namespace);
+    /* Bypass "namespace". */
+    (void)get_token();
+    if (namespace_attributes_enabled) {
+      /* Scan any standard attributes. */
+      attributes = scan_attributes(al_namespace);
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -14073,25 +14088,48 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     switch_back_to_original_region(region_to_switch_back_to);
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
+  if (curr_token == tok_identifier) {
     /* Save the identifier's locator before bypassing it. */
     locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     identifier_end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Issue an error if this is not a simple identifier name. */
-    if (locator.is_qualified_name) {
-      pos_error(ec_qualified_name_not_allowed, &error_position);
-      set_to_error_locator(locator);
-      err = TRUE;
-    } else if (locator.is_operator_name || locator.is_conversion_name ||
-               locator.is_udl_operator_name) {
+    if (locator.is_operator_name || locator.is_conversion_name ||
+        locator.is_udl_operator_name) {
       pos_error(ec_operator_name_not_allowed, &error_position);
       set_to_error_locator(locator);
       err = TRUE;
     }  /* if */
     is_unnamed_namespace = FALSE;
     (void)get_token();
+    if (curr_token == tok_colon_colon) {
+      /* Bypass the "::". */
+      (void)get_token();
+      if (nested_namespace_definitions_enabled) {
+        /* An enclosing namespace specifier in a nested namespace
+           definition. */
+        is_enclosing_namespace_specifier = TRUE;
+        if (curr_token != tok_identifier) {
+          /* This isn't processed now, but make sure an identifier follows
+             "::". */
+          pos_error(ec_exp_identifier, &pos_curr_token);
+          set_to_error_locator(locator);
+          err = TRUE;
+        }  /* if */
+      } else {
+        /* A qualified name is not allowed. */
+        pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+        set_to_error_locator(locator);
+        err = TRUE;
+        while (curr_token == tok_identifier) {
+          /* Skip the entire qualified name. */
+          (void)get_token();
+          if (curr_token == tok_colon_colon) {
+            (void)get_token();
+          }  /* if */
+        }  /* while */
+      }  /* if */
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   } else {
     identifier_end_pos = null_source_position;
@@ -14103,17 +14141,20 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                                              al_gnu_namespace);
   }  /* if */
   if (curr_token == tok_lbrace) {
-    /* A namespace or namespace-extension definition. */
+    /* A namespace or namespace-extension definition, or the final identifier
+       in a nested namespace declaration. */
   } else if (curr_token == tok_assign && !is_unnamed_namespace) {
     /* This must be a namespace alias definition. */
     is_namespace_alias = TRUE;
-    if (attributes != NULL) {
-      pos_error(ec_attribute_not_allowed, &attributes->position);
-      attributes = NULL;
-    }  /* if */
     if (is_inline) {
       /* The inline specifier cannot be used on a namespace alias. */
       pos_error(ec_inline_on_alias, &start_pos);
+    }  /* if */
+  } else if (is_enclosing_namespace_specifier) {
+    /* A nested namespace declaration. */
+    if (is_inline) {
+      /* The inline specifier cannot be used on a nested namespace. */
+      pos_error(ec_inline_on_nested_namespace, &start_pos);
     }  /* if */
   } else {
     /* A syntax error */
@@ -14136,6 +14177,12 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_start_pos = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (attributes != NULL &&
+      (is_namespace_alias || is_enclosing_namespace_specifier)) {
+    /* Attributes aren't allowed on namespace aliases or nested namespaces. */
+    pos_error(ec_attribute_not_allowed, &attributes->position);
+    attributes = NULL;
+  }  /* if */
   if (depth_scope_stack != depth_innermost_namespace_scope) {
     /* The current scope is not the file scope or a namespace scope. */
     if (!is_namespace_alias) {
@@ -14175,9 +14222,9 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       make_locator_for_symbol(ns_sym, &locator);
     }  /* if */
   } else {
-    /* A named namespace definition or a namespace alias.  Look up the
-       identifier (which should be the current token) and see if it is
-       already a namespace name in the current scope. */
+    /* A named namespace definition (possibly nested) or a namespace alias.
+       Look up the identifier (which should be the current token) and see if it
+       is already a namespace name in the current scope. */
     if (!err) {
       ns_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
       if (ns_sym != NULL) {
@@ -14430,7 +14477,11 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     attach_attributes(attributes, (char*)nsp, iek_namespace);
-    if (!required_token(tok_lbrace, ec_exp_lbrace)) {
+    if (is_enclosing_namespace_specifier && curr_token == tok_identifier) {
+      /* For a nested namespace definition (e.g., "namespace N1::N2..."),
+         recurse to process the remaining namespace names. */
+      namespace_declaration(final_token, /*in_nested_namespace_decl=*/TRUE);
+    } else if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
     } else {
       /* Scan the namespace body. */
@@ -14455,7 +14506,9 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                                         (char *)nsp,
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
+    if (is_enclosing_namespace_specifier) {
+      /* Any pragmas are only processed at the bottom of the recursion. */
+    } else if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
       /* Closing right brace was found. */
       cannot_bind_to_curr_construct();
     } else {
@@ -17269,7 +17322,7 @@ processing should proceed after the call.
           a "namespace" declaration. */
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
-      namespace_declaration(final_token);
+      namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE);
       if (gpp_mode) {
         /* The C++11 standard doesn't allow namespace alias declarations in
            constexpr function definition, but GCC does. */

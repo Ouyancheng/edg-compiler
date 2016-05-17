@@ -1332,6 +1332,11 @@ EXTERN a_boolean
 			   declarations (see N4266). */
 
 EXTERN a_boolean
+		nested_namespace_definitions_enabled;
+			/* TRUE if nested namespace definitions are enabled on
+			   namespace declarations (see N4230). */
+
+EXTERN a_boolean
 		enumerator_attributes_enabled;
 			/* TRUE if standard attributes are enabled on
 			   enumerator declarations (see N4266). */
