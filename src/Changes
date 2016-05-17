@@ -1,6 +1,6 @@
 Version 4.12
 
-5/16/16  [EDGcpfe/15094]
+5/16/16  [EDGcpfe/15094,EDGcpfe/14777]
 GNU C++ compatibility: disambiguation and qualified names
 
 Disambiguation is supposed to be "syntactic", but g++ considers whether
