@@ -177,10 +177,10 @@ a conversion function template.  For example:
 
   struct S { template<typename T> operator T(); };
   void g() {
-    S().operator auto();  // 
+    S().operator auto();  // Previously accepted; now an error.
   }
 
-This is now fixed (i.e., an error is not issued in such cases).
+This is now fixed (i.e., an error is now issued in such cases).
 
 
 5/12/16  [EDGcpfe/17148]
