@@ -2430,20 +2430,22 @@ option values if they were not already set by a command line option.
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
-      if (microsoft_version >= 1903) {
-        /* Emulate Visual Studio 2015 Update 3. */
-        aggregate_classes_can_have_field_initializers = TRUE;
-      } else if (microsoft_version >= 1902) {
+      if (microsoft_version >= 1901) {
+        /* Emulate Visual Studio 2015 Update 1. */
+        if (!option_kind_used[(int)optk_microsoft_build_number]) {
+          microsoft_build_number = 23506;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1902) {
         /* Emulate Visual Studio 2015 Update 2. */
         if (!option_kind_used[(int)optk_microsoft_build_number]) {
           microsoft_build_number = 23918;
         }  /* if */
         variable_templates_enabled = TRUE;
-      } else if (microsoft_version >= 1901) {
-        /* Emulate Visual Studio 2015 Update 1. */
-        if (!option_kind_used[(int)optk_microsoft_build_number]) {
-          microsoft_build_number = 23506;
-        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1903) {
+        /* Emulate Visual Studio 2015 Update 3. */
+        aggregate_classes_can_have_field_initializers = TRUE;
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
