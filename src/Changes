@@ -52,7 +52,7 @@ alias.  This is now fixed.
 Issues with nested inline namespaces and overloaded functions
 
 Name lookup did not produce the correct result in some cases involving
-nested inline functions containing overloaded functions.  Now fixed.
+nested inline namespaces containing overloaded functions.  Now fixed.
 
   namespace N1 {
     inline namespace I1 {
