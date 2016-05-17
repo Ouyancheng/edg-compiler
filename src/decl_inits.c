@@ -7864,7 +7864,16 @@ initialized.  These are addressed in the course of the processing.
         prev_cip = cip;
         continue;
       }  /* if */
+    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Handling implicit initializations is not needed for templates. */
+      if (prev_cip == NULL) {
+        cib.cip_list = cip->next;
+      } else {
+        prev_cip->next = cip->next;
+      }  /* if */
+      continue;
     }  /* if */
+    /* Do processing for implicit initializations. */
     array_type = NULL;
     object_class_type = NULL;
     object_qualifiers = TQ_NONE;
@@ -7898,7 +7907,6 @@ initialized.  These are addressed in the course of the processing.
       object_class_type = class_type;
       if (!user_defined) err_pos = cip->variant.base_class->decl_position;
     }  /* if */
-    /* Do processing for implicit initializations. */
     if (dip == NULL || dip->kind == (a_dynamic_init_kind)dik_none) {
       if (is_generated_cctor || is_generated_mctor) {
         /* The constructor for the object as a whole is a generated copy/move

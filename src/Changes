@@ -1,5 +1,29 @@
 Version 4.12
 
+5/17/16  [EDGcpfe/16839]
+Default constructor initializers and class templates
+
+The front end no longer checks implicit constructor initializers when parsing
+a constructor in its generic form.  This avoids some problems that can occur
+during that parsing; in particular, a spurious error that could occur in
+Microsoft mode:
+
+  template<typename T> struct B {
+    B(T = T());
+  };
+  template<typename T> struct D: B<T> {
+    D() {}  // Previously an error with "--microsoft --parse_templates"
+  };        // ("no default constructor exists").  Now accepted.
+
+Previously, this example elicited an error in Microsoft mode with prototype
+instantiations of nonclass templates enabled (option "--parse_templates")
+because the implicit initializer for the base class B<T> can not reliably
+determine whether B<T> has a default constructor.  Now that check is not
+performed and the code is accepted.
+
+This also generalizes the change for EDGcpfe/16896 to apply to all modes.
+
+
 5/16/16  [EDGcpfe/15094,EDGcpfe/14777]
 GNU C++ compatibility: disambiguation and qualified names
 
