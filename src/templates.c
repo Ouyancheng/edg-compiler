@@ -9918,9 +9918,23 @@ of types after all of the function arguments have been processed.
     if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
       /* This is either an array bound of unknown type, or no value has
          yet been deduced. */
-      if (!tap->is_array_bound_of_unknown_type) {
-        /* No value has been deduced yet.  Use this as the value and
-           consider it a match. */
+      if (!tap->is_array_bound_of_unknown_type &&
+          is_integral_type(templ_constant->type)) {
+        /* If the type of the parameter is an integral type, use it as the
+           type of the constant. */
+        a_constant_ptr	constant;
+        a_type_ptr	constant_type = templ_constant->type;
+        constant = fs_constant((a_constant_repr_kind)ck_integer);
+        set_unsigned_integer_constant(
+                   constant, (a_host_large_unsigned)elements,
+                   skip_typerefs(constant_type)->variant.integer.int_kind);
+        tap->variant.constant = constant;
+        tap->is_array_bound_of_unknown_type = FALSE;
+        match = TRUE;
+      } else if (!tap->is_array_bound_of_unknown_type) {
+        /* No value has been deduced yet, and we the parameter type is not
+           integral (probably a template parameter type).  Use this as
+           the value and consider it a match. */
         tap->variant.integer_value = elements;
         match = TRUE;
         tap->is_array_bound_of_unknown_type = TRUE;

@@ -1,5 +1,23 @@
 Version 4.12
 
+5/17/16  [EDGcpfe/16873]
+Internal error on nontype template argument first deduced as array bound
+
+An internal error could occur (in copy_template_param_con) when a
+nontype template argument has its value first deduced from an array
+bound and is then used later in a nondeduced context.  Now fixed.
+
+  template <bool> struct A { typedef void type; };
+  template <unsigned O> struct B {
+    template <typename T, unsigned N,
+              typename E = typename A<(N > O)>::type>
+    static auto f(T (&t)[N]) -> unsigned char(&)[N - O];
+  };
+  template <class T, unsigned N> auto f(T (&t)[N]) -> decltype(B<4>::f(t));
+  char arr[]{0, 0, 0, 0, 1, 2};
+  static_assert(sizeof(f(arr)) == 2, "error");
+
+
 5/17/16  [EDGcpfe/15566]
 Microsoft compatibility: handling of member function qualifiers in deduction
 
