@@ -6862,7 +6862,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
           start_of_curr_phys_line += 2;
         }  /* if */
         seq_number              = olmp->variant.line_splice_seq_number;
-        column_adjustment       = 0;
+        column_adjustment       = logical_column_offset(olmp->line_loc);
       } else if (adj_loc_in_line == olmp->line_loc) {
         /* This position matches the position in the current entry, so
            the position we have is right. */

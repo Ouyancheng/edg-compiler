@@ -1,5 +1,20 @@
 Version 4.12
 
+5/17/16  [EDGcpfe/17124]
+Incorrect column positions after a multibyte character and a line splice
+
+When a line in the source code contains both a multibyte character and a
+line splice, the front end incorrectly calculated the column positions of
+tokens on the physical line following the splice.  This is now fixed.  For
+example (with --multibyte_chars --unicode_source_kind=UTF-8, where the
+character in the comment is the UTF-8 encoding of 'e' with a grave accent),
+the caret in the error message diagnosing "x" as undefined pointed to the
+space before the identifier:
+
+  int j = /* è */ \
+   x;
+
+
 5/17/16  [EDGcpfe/16873]
 Internal error on nontype template argument first deduced as array bound
 
