@@ -10970,7 +10970,7 @@ points to the template parameter list.
                     type->variant.routine.extra_info->qualifiers == TQ_NONE) {
                   /* The Microsoft compiler does not compare the qualifiers
                      if the type has no qualifiers.  This quirk was fixed
-                     in MSVC 1700. */
+                     in more recent versions. */
                 } else {
                   tp =  implicit_this_param_type_of(type);
                   ttp =  implicit_this_param_type_of(templ_type);
