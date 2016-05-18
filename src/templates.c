@@ -8820,6 +8820,7 @@ exist.
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes &&
       is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
+       (sym == NULL || !is_prototype_instantiation_symbol(sym)) &&
       template_arg_list_is_dependent(list_for_prototype_check)) {
     /* Check whether the scope stack contains any classes that have
        Microsoft mode nonreal instantiations as base classes.  If so, this
