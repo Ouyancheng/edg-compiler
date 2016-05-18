@@ -9932,7 +9932,7 @@ of types after all of the function arguments have been processed.
         tap->is_array_bound_of_unknown_type = FALSE;
         match = TRUE;
       } else if (!tap->is_array_bound_of_unknown_type) {
-        /* No value has been deduced yet, and we the parameter type is not
+        /* No value has been deduced yet, and the parameter type is not
            integral (probably a template parameter type).  Use this as
            the value and consider it a match. */
         tap->variant.integer_value = elements;
