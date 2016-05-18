@@ -26219,6 +26219,7 @@ that case.
                                      expr_stack->inside_conditional_expression;
   a_boolean             is_gnu_two_operand_form = FALSE;
   a_boolean             suppress_class_rvalue_temp = FALSE;
+  a_boolean             suppress_class_temp_optimization = FALSE;
   a_boolean             microsoft_rvalue_temp_bug =
                                                   (microsoft_bugs &&
                                                    microsoft_version < 1600 &&
@@ -26657,6 +26658,18 @@ that case.
       } else {
         /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
+        if (microsoft_mode &&
+            is_an_lvalue(&operand_2) != is_an_lvalue(&operand_3)) {
+          /* MSVC does not optimize an unnecessary temporary created to convert
+             an lvalue to an rvalue in cases like the following:
+                  struct X { X(); X(X const&); X(X&&); };
+                  X g() {
+                    X x;
+                    return true ? x : X();  // x is copied through the copy
+                  }                         // constructor.
+          */
+          suppress_class_temp_optimization = TRUE;
+        }  /* if */
       }  /* if */
       if (constexpr_enabled && curr_expr_kind_is_const() &&
           is_constant_operand(operand_1) &&
@@ -27097,8 +27110,8 @@ that case.
     /* Build the expression. */
     do_question_operation(operand_1, &operand_2, &operand_3, result_type,
                           result_is_a_glvalue, suppress_class_rvalue_temp,
-                          /*template_case=*/FALSE,
-                          is_gnu_two_operand_form,
+                          suppress_class_temp_optimization,
+                          /*template_case=*/FALSE, is_gnu_two_operand_form,
                           &question_position, &colon_position,
                           result);
     if (result_is_a_glvalue) {

@@ -13998,6 +13998,7 @@ void do_question_operation(an_operand        *operand_1,
                            a_type_ptr        result_type,
                            a_boolean         result_is_an_lvalue,
                            a_boolean         suppress_class_rvalue_temp,
+                           a_boolean         suppress_class_temp_optimization,
                            a_boolean         template_case,
                            a_boolean         is_gnu_two_operand_form,
                            a_source_position *question_position,
@@ -14010,11 +14011,13 @@ if result_is_an_lvalue is TRUE (note that for xvalue cases the result is
 built here as an lvalue and then changed by the caller to an xvalue, so
 result_is_an_lvalue will be passed in TRUE).  The operand is built in *result.
 Constant operations are folded if appropriate.  suppress_class_rvalue_temp
-is TRUE if the generation of an extra temporary for the result of a
-class rvalue case should be suppressed.  template_case is TRUE if this
-is a template-dependent case.  is_gnu_two_operand_form is TRUE if this is
-a GNU two-operand "?" (a synthesized operand_2 is still provided).
-question_position and colon_position give the position of the "?" and ":".
+is TRUE if the generation of an extra temporary for the result of a class
+rvalue case should be suppressed.  suppress_class_temp_optimization is TRUE if
+no attempt should be made to eliminate an unneeded temporary copy for a class
+rvalue result.  template_case is TRUE if this is a template-dependent case.
+is_gnu_two_operand_form is TRUE if this is a GNU two-operand "?" (a synthesized
+operand_2 is still provided).  question_position and colon_position give the
+position of the "?" and ":".
 */
 {
   a_boolean  operand_1_is_const, do_folding = FALSE, template_constant;
@@ -14231,13 +14234,16 @@ question_position and colon_position give the position of the "?" and ":".
         result->position = operand_2->position;
         if (optimizable) {
           /* Do the copy optimization. */
-          do_class_rvalue_question_optimization(dip_2, dip_3, result);
+          if (!suppress_class_temp_optimization) { 
+            do_class_rvalue_question_optimization(dip_2, dip_3, result);
+          }  /* if */
         } else {
           /* For the unoptimized class rvalue case, make an extra copy,
              producing a single temporary result for the whole operation. */
           temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
         }  /* if */
-        if (!is_error_operand(result)) {
+        if (!is_error_operand(result) &&
+            !(optimizable && suppress_class_temp_optimization)) {
           /* Mark the initialization as being for a class rvalue "?". */
           check_assertion(is_expression_operand(result) &&
                           result->variant.expression->kind ==
@@ -14302,6 +14308,7 @@ the positions of the "?" and ":" operators.
                         type_of_unknown_templ_param_nontype,
                         /*result_is_an_lvalue=*/FALSE,
                         /*suppress_class_rvalue_temp=*/TRUE,
+                        /*suppress_class_temp_optimization=*/FALSE,
                         /*template_case=*/TRUE,
                         is_gnu_two_operand_form,
                         question_position, colon_position,
