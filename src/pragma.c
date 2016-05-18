@@ -1603,6 +1603,8 @@ are included by EDG for testing purposes.
 #if DEBUG
   if (db_flag_is_set("test_pragmas")) {
     fprintf(f_debug, "In test_next_construct pragma\n");
+    db_sym(sym_ptr);
+    db_statement(stmt_ptr);
   }  /* if */
 #endif /* DEBUG */
 }  /* test_next_construct_pragma */

@@ -13993,7 +13993,8 @@ pushed.
 
 
 static void namespace_declaration(a_token_kind  *final_token,
-                                  a_boolean     in_nested_namespace_decl)
+                                  a_boolean     in_nested_namespace_decl,
+                                  a_symbol_ptr  *ns_definition_sym)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, a
@@ -14015,8 +14016,10 @@ nested namespace definition or a namespace alias definition.  The syntax is:
 *final_token is set to tok_semicolon if this is a namespace alias definition
 and to tok_brace otherwise; the final token is swallowed by the caller.
 This routine is called recursively (for each segment of a qualified name)
-for a nested namespace declaration.  In those cases, in_nested_namespace_decl
-is set to TRUE.
+for a nested namespace definition.  In those cases, in_nested_namespace_decl
+is set to TRUE.  On return, *ns_definition_sym is set to the symbol for the
+(most nested level of the) namespace definition (if it's a definition and NULL
+otherwise).
 */
 {
   a_source_position           namespace_pos;
@@ -14043,6 +14046,7 @@ is set to TRUE.
   a_boolean	              is_inline = FALSE;
 
   db_enter(3, "namespace_declaration");
+  *ns_definition_sym = NULL;
   if (in_nested_namespace_decl) {
     /* A nested namespace declaration is being parsed and at least one segment
        has already been processed.  Skip the initial processing associated with
@@ -14419,9 +14423,12 @@ is set to TRUE.
                                            within_unnamed_namespace = TRUE;
       }  /* if */
       add_to_namespaces_list(nsp);
-      /* Do processing required for any pragmas bound to the current
-         declaration. */
-      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      if (!is_enclosing_namespace_specifier) {
+        /* Do processing required for any pragmas bound to the current
+           declaration.  For nested namespace definitions, apply any pragmas
+           only to the most nested namespace. */
+        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      }  /* if */
       if (!ignore_std_namespace || ns_sym != symbol_for_namespace_std) {
         /* Push a scope for the scanning the namespace body.  This is not done
            when using the g++ compatibility feature that makes "std" a
@@ -14440,9 +14447,12 @@ is set to TRUE.
     } else {
       /* An extension of the original definition of this namespace -- push
          a scope for scanning the namespace body. */
-      /* Do processing required for any pragmas bound to the current
-         declaration. */
-      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      if (!is_enclosing_namespace_specifier) {
+        /* Do processing required for any pragmas bound to the current
+           declaration.  For nested namespace definitions, apply any pragmas
+           only to the most nested namespace. */
+        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      }  /* if */
       nsp = ns_sym->variant.namespace_info.ptr;
       /* If any declaration of a namespace is inline, all declarations
          must be. */
@@ -14496,7 +14506,8 @@ is set to TRUE.
     if (is_enclosing_namespace_specifier && curr_token == tok_identifier) {
       /* For a nested namespace definition (e.g., "namespace N1::N2..."),
          recurse to process the remaining namespace names. */
-      namespace_declaration(final_token, /*in_nested_namespace_decl=*/TRUE);
+      namespace_declaration(final_token, /*in_nested_namespace_decl=*/TRUE,
+                            ns_definition_sym);
     } else if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
     } else {
@@ -14514,6 +14525,10 @@ is set to TRUE.
          scope is popped and before add_end_of_construct_source_sequence_entry
          is called. */
       process_curr_token_pragmas();
+      if (in_nested_namespace_decl && ns_definition_sym != NULL) {
+        /* Record the symbol of the (most nested) namespace definition. */
+        *ns_definition_sym = ns_sym;
+      }  /* if */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the namespace
@@ -14544,6 +14559,16 @@ is set to TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Pop the namespace or namespace-extension scope. */
       pop_namespace_scope();
+    }  /* if */
+    if (is_enclosing_namespace_specifier && !in_nested_namespace_decl &&
+        *ns_definition_sym != NULL) {
+      /* A nested namespace definition has just been processed; apply any
+         pragmas to the most-nested level of the namespace definition
+         (e.g., to "C" for "A::B::C").  This is somewhat arbitrary (i.e.,
+         should the pragma apply to the first, last, or all namespaces
+         in the nested definition?). */
+      process_curr_construct_pragmas(*ns_definition_sym,
+                                     (a_statement_ptr)NULL);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -17336,9 +17361,11 @@ processing should proceed after the call.
                 next_token() == tok_namespace)) {
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */
+      a_symbol_ptr dummy_sym;
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
-      namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE);
+      namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE,
+                            &dummy_sym);
       if (gpp_mode) {
         /* The C++11 standard doesn't allow namespace alias declarations in
            constexpr function definition, but GCC does. */
