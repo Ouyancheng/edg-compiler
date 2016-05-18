@@ -94,8 +94,8 @@ Default constructor initializers and class templates
 
 The front end no longer checks implicit constructor initializers when parsing
 a constructor in its generic form.  This avoids some problems that can occur
-during that parsing; in particular, a spurious error that could occur in
-Microsoft mode:
+during that parsing; in particular, a spurious error could occur in Microsoft
+mode:
 
   template<typename T> struct B {
     B(T = T());
@@ -106,7 +106,7 @@ Microsoft mode:
 
 Previously, this example elicited an error in Microsoft mode with prototype
 instantiations of nonclass templates enabled (option "--parse_templates")
-because the implicit initializer for the base class B<T> can not reliably
+because the implicit initializer for the base class B<T> cannot reliably
 determine whether B<T> has a default constructor.  Now that check is not
 performed and the code is accepted.
 
