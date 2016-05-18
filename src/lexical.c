@@ -17345,15 +17345,24 @@ list.
   a_boolean			any_errors = FALSE;
   a_symbol_ptr			new_sym = NULL;
   a_token_sequence_number	start_tsn;
+  a_boolean			is_template_id = TRUE;
 
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
   start_tsn = curr_token_sequence_number;
   if (next_tok != tok_lt) {
-    pos_sy_error(ec_missing_template_arg_list, &start_position, template_sym);
-    make_specific_symbol_error_locator(&locator_for_curr_id);
-    new_sym = locator_for_curr_id.specific_symbol;
-    any_errors = TRUE;
+    if ((options & GID_TEMPLATE_ARGS_OPTIONAL) != 0) {
+      /* If template arguments are not required, return the template
+         symbol. */
+      new_sym = template_sym;
+      is_template_id = FALSE;
+    } else {
+      pos_sy_error(ec_missing_template_arg_list, &start_position,
+                   template_sym);
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+      new_sym = locator_for_curr_id.specific_symbol;
+      any_errors = TRUE;
+    }  /* if */
   } else {
     /* Save the current locator. */
     orig_locator = locator_for_curr_id;
@@ -17437,9 +17446,9 @@ list.
   }  /* if */
   if (new_sym != NULL) {
     locator_for_curr_id.specific_symbol = new_sym;
-    locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+    locator_for_curr_id.do_not_clear_specific_symbol = is_template_id;
     locator_for_curr_id.symbol_header = new_sym->header;
-    locator_for_curr_id.is_template_id = TRUE;
+    locator_for_curr_id.is_template_id = is_template_id;
     locator_for_curr_id.template_arg_list = arg_list;
   }  /* if */
   /* Set the source position for error reporting. */

@@ -1,5 +1,18 @@
 Version 4.12
 
+5/18/16  [EDGcpfe/17196]
+Variable template not accepted in using-declaration
+
+A using-declaration of a variable template results in a spurious
+"argument list ... is missing" error.  Now fixed.
+
+  namespace N {
+    template <class T> T x = T();
+  }
+  using N::x;
+  int i = x<int>;
+
+
 5/17/16  [EDGcpfe/16812]
 Microsoft C++ compatibility: Class type temporaries in conditional operators
 
