@@ -1,5 +1,20 @@
 Version 4.12
 
+5/19/16  [EDGcpfe/16078]
+Microsoft compatibility: operator template-ids in dependent member selection
+expressions
+
+In a template-dependent context, the Microsoft compiler does not accept the
+"template" prefix in an expression like "x.template operator+<int>()" where
+x is dependent.  However, previously the front end required the prefix during
+prototype instantiations.  Now, in Microsoft C++ mode, the selection of an
+operator name followed by a "<" token but not prefixed with "template" in a
+template-dependent context is treated as if the "template" prefix were present.
+
+Furthermore, when MSVC_IS_GENERATED_CODE_TARGET is TRUE, the C++-generating
+back end not omits the "template" prefix in such cases.
+
+
 5/19/16  [EDGcpfe/16807]
 GNU/clang C++ compatibility: designated initializers and constexpr
 

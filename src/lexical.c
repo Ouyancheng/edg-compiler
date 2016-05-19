@@ -18814,6 +18814,15 @@ selection operator, in which case it points to the type of the left operand.
   if (curr_token == tok_operator) {
     get_opname(/*is_class_member=*/FALSE,
                (a_parent_class_or_namespace*)NULL, field_sel_type);
+    if (microsoft_mode && !follows_template && field_sel_type != NULL &&
+        is_template_dependent_context() && next_token() == tok_lt) {
+      /* MSVC accepts "x.operator+<int>()" with a dependent x, but not
+         "x.template operator+<int>()".  We therefore treat the special case
+         of an operator name followed by "<" in a template-dependent field
+         selection context as if it were prefixed with the "template"
+         keyword. */
+      follows_template = TRUE;
+    }  /* if */
   }  /* if */
   /* For the next token to be part of the qualifier it must be a class name
      followed by "::".  Templates make it more difficult to detect this

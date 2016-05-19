@@ -4011,6 +4011,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     (scp->member_of_unknown_base) ? scp : NULL;
   a_boolean               is_partial_spec_prototype_inst = FALSE;
   a_boolean               is_decltype = FALSE;
+  a_boolean               is_unknown_function_operator = FALSE;
 
   if (entry_kind == (an_il_entry_kind)iek_constant) {
     a_constant_ptr con = (a_constant_ptr)scp;
@@ -4019,6 +4020,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
          too. */
       if (con->variant.template_param.is_qualified_name) {
         force_qualified_name = TRUE;
+      }  /* if */
+      if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function &&
+          con->variant.template_param.variant.unknown_function.opname_kind !=
+                                                    (an_opname_kind)onk_none) {
+        /* If this constant is for a dependent invocation of an overloaded
+           operator, make note of the fact; the Microsoft compiler has a
+           bug that causes it to issue spurious errors if an operator name
+           is qualified with the "template" keyword, so we must suppress it
+           for this case. */
+        is_unknown_function_operator = TRUE;
       }  /* if */
     }  /* if */
   } else if (in_class_scope_with_dependent_base &&
@@ -4320,7 +4332,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             (name_has_template_arguments(scp, entry_kind,
                                          (a_template_arg_ptr *)NULL,
                                          /*insert_space=*/(a_boolean *)NULL) ||
-             (options & GN_TEMPLATE))) {
+             (options & GN_TEMPLATE)) &&
+            !(msvc_is_generated_code_target && is_unknown_function_operator)) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
              template template parameter. */
@@ -6462,10 +6475,9 @@ template.
     write_tok_str("template ");
     gen_bare_name(scp, kind);
   } else {
-    a_gen_name_options_set options = GN_NO_OPTIONS;
+    a_gen_name_options_set options = GN_TEMPLATE;
     a_boolean              saved_force_qualified_name =
                                                      octl.force_qualified_name;
-    options = GN_TEMPLATE;
     if (octl.force_qualified_name) {
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
