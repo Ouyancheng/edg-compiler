@@ -6187,7 +6187,7 @@ expression context) rather than a declaration.
                     var_ptr->initializer_in_class));
   /* Call a routine to do processing common to various forms of variable
      declarations. */
-  if (is_var_templ_instance) {
+  if (is_var_templ_instance && is_use) {
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
   if (is_definition &&
@@ -26114,7 +26114,17 @@ that follows.
                   symbol_is(sym, sk_variable)) &&
                  template_instance_for_symbol(sym) != NULL) {
         a_variable_ptr	var = variable_for_symbol(sym);
-        if (!types_are_redecl_compatible(dps->type, var->type)) {
+        if (symbol_is(sym, sk_variable)) {
+          /* Variable template specializations take the type from the
+             specialization. */
+          var->type = dps->type;
+          if (is_invalid_variable_template_type(var, dps,
+                                                /*issue_error=*/TRUE)) {
+            var->type = error_type();
+          }  /* if */
+        }  /* if */
+        if (!symbol_is(sym, sk_variable) &&
+            !types_are_redecl_compatible(dps->type, var->type)) {
           /* The type of the static data member definition does not match
              the declaration in the class. */
           pos_sy_error(ec_not_compatible_with_previous_decl,

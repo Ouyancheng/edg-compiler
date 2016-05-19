@@ -1,5 +1,18 @@
 Version 4.12
 
+5/19/16  [EDGcpfe/17199]
+Variable template specialization issues
+
+Explicit specializations of variable templates were not handled properly
+in some cases.  A spurious error would result if the variable template
+was declared constexpr.  In addition, a spurious error was issued if
+the type of the specialization did mot match the type that would have
+resulted from the instantiation of the template.  Now fixed.
+
+  template <typename T> constexpr T x = T { 1.1 };
+  template <> constexpr int x<int> = 4;
+
+
 5/18/16  [EDGcpfe/17196]
 Variable template not accepted in using-declaration
 
