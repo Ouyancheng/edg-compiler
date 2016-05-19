@@ -1289,14 +1289,11 @@ definition or a class member with external visibility.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_and_adjust_parameter_type(a_decl_parse_state  *dps,
-                                     unsigned long       param_num,
                                      a_source_position   *error_pos)
 /*
 This routine is called for all function parameter declarations.  It does
 error checking and type adjustments as required.  dps describes the parameter
-declaration.  param_num is the ordinal position of the parameter (zero for
-old-style parameter declarations).  error_pos is the default position for
-diagnostics.
+declaration.  error_pos is the default position for diagnostics.
 */
 {
   if (any_cfront_mode() &&
@@ -15696,8 +15693,7 @@ cases).
       param_id->declared_type = state->declared_type;
     }  /* if */
     /* Check that the type is legal, and do required adjustments. */
-    check_and_adjust_parameter_type(state, /*param_num=*/0,
-                                    &state->start_pos);
+    check_and_adjust_parameter_type(state, &state->start_pos);
     /* For pcc compatibility, promote float parameters to double. */
     if (C_dialect == C_dialect_pcc) {
       promote_float_to_double(state->type);

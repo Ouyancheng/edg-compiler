@@ -10325,30 +10325,6 @@ argument deduction purposes.
 }  /* matches_template_type_with_qualification_conversion */
 
 
-a_boolean is_parameter_type_with_special_ref_deduction(
-                                        a_type_ptr           tp,
-                                        a_template_param_ptr templ_param_list)
-/*
-Return TRUE if tp represents a type T&& (without an intervening typeref) where
-T is a template parameter from the given list.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (tp->kind == (a_type_kind)tk_pointer &&
-      tp->variant.pointer.is_rvalue_reference) {
-    a_type_ptr  utp = tp->variant.pointer.type;
-    if (utp->kind == (a_type_kind)tk_template_param &&
-        is_template_param_from_list(&utp->variant.template_param.extra_info
-                                        ->coordinates,
-                                    templ_param_list)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_parameter_type_with_special_ref_deduction */
-
-
 static a_boolean is_instantiation_of_nonreal_member(a_type_ptr	type)
 /*
 type is a nonreal class type.  Return TRUE if it is a reference to a

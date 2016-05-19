@@ -3038,8 +3038,7 @@ an error if a default argument expression is encountered.
         if (!C_mode()) {
           check_use_of_auto_type(&param_state);
         }  /* if */
-        check_and_adjust_parameter_type(&param_state, param_number,
-                                        &param_type_pos);
+        check_and_adjust_parameter_type(&param_state, &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
