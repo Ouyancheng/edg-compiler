@@ -9488,44 +9488,6 @@ pop the active_calls stack.
 }  /* decr_constexpr_call_depth */
 
 
-static a_boolean aggregate_is_literal_type_constant(a_constant_ptr aggr_con)
-/*
-Return TRUE if aggr_con (which must be a ck_aggregate constant) is suitable
-for use in a C++11 constant expression.  In particular, if the type of
-aggr_con is or contains a non-union class for which a designated
-initializer was specified (a g++ extension), return FALSE (because we
-cannot tell whether the object is fully initialized or not).
-*/
-{
-  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
-  a_boolean      result = is_literal_type(aggr_type);
-  a_constant_ptr cp;
-
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  if (result &&
-      (is_class_or_struct(aggr_type) || is_array_type(aggr_type)) &&
-      aggr_con->uses_designated_initializers &&
-      aggr_con->is_partially_initialized) {
-    /* The uses_designated_initializer and is_partially_initialized flags
-       are cumulative over nested aggregates as well, so we must walk
-       through the class member values and check those as well.  A
-       designated initializer in a union member does not disqualify the
-       containing aggregate, since the union will still be fully
-       initialized. */
-    for (cp = aggr_con->variant.aggregate.first_constant;
-         result && cp != NULL; cp = cp->next) {
-      if (cp->kind == (a_constant_repr_kind)ck_designator) {
-        result = FALSE;
-      } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* Recursively check for designators. */
-        result = aggregate_is_literal_type_constant(cp);
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* aggregate_is_literal_type_constant */
-
-
 static void copy_constant_for_constexpr_evaluation(a_constant *con,
                                                    a_constant *result_con)
 /*
@@ -9623,84 +9585,79 @@ in *result_con and return TRUE; otherwise, return FALSE.
   a_boolean      folded = FALSE;
   a_constant_ptr new_aggr;
   a_constant_ptr elem_con;
+  an_aggr_init_con_elem aggr_init_con;
 
   check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!aggregate_is_literal_type_constant(aggr)) {
-    /* The constant is not (or may not be) fully initialized, so
-       folding fails. */
-  } else {
-    an_aggr_init_con_elem aggr_init_con;
-    new_aggr = result_con;
-    clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
-    new_aggr->type = aggr->type;
-    new_aggr->partial_aggr_value = aggr->partial_aggr_value;
-    new_aggr->is_partially_initialized = aggr->is_partially_initialized;
-    folded = TRUE;
-    push_aggr_init_constant(new_aggr, &aggr_init_con);
-    /* Loop through the elements of the aggregate and copy each one.
-       Dynamic constants get parameter substitution. */
-    for (elem_con = aggr->variant.aggregate.first_constant;
-         elem_con != NULL;
-         elem_con = elem_con->next) {
-      a_constant_ptr new_elem_con = NULL;
-      if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        a_constant_ptr con = local_constant();
-        if (fold_dynamic_init(elem_con->variant.dynamic_init,
-                              elem_con->type,
-                              ceblock,
-                              con)) {
-          new_elem_con = move_local_constant_to_il(&con);
-        } else {
-          release_local_constant(&con);
-        }  /* if */
-      } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        /* A repeated constant.  If the repeated constant is a
-           ck_dynamic_init, try to fold it via a recursive call.  If it
-           folds successfully, or for other kinds of repeated
-           constants, copy this constant and the repeated constant. */
-        a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
-        a_constant_ptr init_con = local_constant();
-        if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-          if (fold_dynamic_init(rep_con->variant.dynamic_init,
-                                rep_con->type, ceblock, init_con)) {
-            /* The repeated dynamic initialization folded to a constant,
-               so use that in folding this constant. */
-            rep_con = init_con;
-          } else {
-            /* The repeated dynamic initialization could not be folded,
-               so this initialization cannot be folded. */
-            rep_con = NULL;
-          }  /* if */
-        }  /* if */
-        if (rep_con != NULL) {
-          new_elem_con = alloc_unshared_constant(elem_con);
-          new_elem_con->variant.init_repeat.constant =
-                                              alloc_unshared_constant(rep_con);
-        }  /* if */
-        release_local_constant(&init_con);
-      } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
-        /* Just make a copy of the designator (the field and element
-           number are constant and don't change). */
-        new_elem_con = alloc_unshared_constant(elem_con);
-      } else if (elem_con->kind == (a_constant_repr_kind)ck_aggregate) {
-        a_constant_ptr elem_aggr_con = local_constant();
-        if (fold_aggregate_constant(elem_con, ceblock, elem_aggr_con)) {
-          new_elem_con = move_local_constant_to_il(&elem_aggr_con);
-        } else {
-          release_local_constant(&elem_aggr_con);
-        }  /* if */
+  new_aggr = result_con;
+  clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
+  new_aggr->type = aggr->type;
+  new_aggr->partial_aggr_value = aggr->partial_aggr_value;
+  new_aggr->is_partially_initialized = aggr->is_partially_initialized;
+  folded = TRUE;
+  push_aggr_init_constant(new_aggr, &aggr_init_con);
+  /* Loop through the elements of the aggregate and copy each one.
+     Dynamic constants get parameter substitution. */
+  for (elem_con = aggr->variant.aggregate.first_constant;
+       elem_con != NULL;
+       elem_con = elem_con->next) {
+    a_constant_ptr new_elem_con = NULL;
+    if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      a_constant_ptr con = local_constant();
+      if (fold_dynamic_init(elem_con->variant.dynamic_init,
+                            elem_con->type,
+                            ceblock,
+                            con)) {
+        new_elem_con = move_local_constant_to_il(&con);
       } else {
-        /* Normal constant. */
+        release_local_constant(&con);
+      }  /* if */
+    } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* A repeated constant.  If the repeated constant is a
+         ck_dynamic_init, try to fold it via a recursive call.  If it
+         folds successfully, or for other kinds of repeated
+         constants, copy this constant and the repeated constant. */
+      a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
+      a_constant_ptr init_con = local_constant();
+      if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        if (fold_dynamic_init(rep_con->variant.dynamic_init,
+                              rep_con->type, ceblock, init_con)) {
+          /* The repeated dynamic initialization folded to a constant,
+             so use that in folding this constant. */
+          rep_con = init_con;
+        } else {
+          /* The repeated dynamic initialization could not be folded,
+             so this initialization cannot be folded. */
+          rep_con = NULL;
+        }  /* if */
+      }  /* if */
+      if (rep_con != NULL) {
         new_elem_con = alloc_unshared_constant(elem_con);
+        new_elem_con->variant.init_repeat.constant =
+                                            alloc_unshared_constant(rep_con);
       }  /* if */
-      if (new_elem_con == NULL) {
-        folded = FALSE;
-        break;
+      release_local_constant(&init_con);
+    } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+      /* Just make a copy of the designator (the field and element
+         number are constant and don't change). */
+      new_elem_con = alloc_unshared_constant(elem_con);
+    } else if (elem_con->kind == (a_constant_repr_kind)ck_aggregate) {
+      a_constant_ptr elem_aggr_con = local_constant();
+      if (fold_aggregate_constant(elem_con, ceblock, elem_aggr_con)) {
+        new_elem_con = move_local_constant_to_il(&elem_aggr_con);
+      } else {
+        release_local_constant(&elem_aggr_con);
       }  /* if */
-      add_constant_to_aggregate(new_elem_con, new_aggr);
-    }  /* for */
-    pop_aggr_init_constant(&aggr_init_con);
-  }  /* if */
+    } else {
+      /* Normal constant. */
+      new_elem_con = alloc_unshared_constant(elem_con);
+    }  /* if */
+    if (new_elem_con == NULL) {
+      folded = FALSE;
+      break;
+    }  /* if */
+    add_constant_to_aggregate(new_elem_con, new_aggr);
+  }  /* for */
+  pop_aggr_init_constant(&aggr_init_con);
   return folding_result(folded);
 }  /* fold_aggregate_constant */
 
@@ -9987,10 +9944,6 @@ evaluation (e.g., parameter values).
       } else {
         result_con = alloc_error_constant();
       }  /* if */
-    } else if (result_con->kind == (a_constant_repr_kind)ck_aggregate &&
-               !aggregate_is_literal_type_constant(result_con)) {
-      /* The aggregate is not suitable for use in a constant expression. */
-      result_con = NULL;
     } else {
       /* Either the value is result_con or some subobject thereof or it's a
          zero value resulting from an aggregate initializer with fewer
@@ -10032,6 +9985,9 @@ evaluation (e.g., parameter values).
           /* curr_type is either an array or a class type, and offset
              represents one of its subobjects.  Step into curr_type and
              continue scanning for the matching offset. */
+          a_boolean      may_have_designator =
+                                      result_con->uses_designated_initializers;
+          a_constant_ptr possible_result_con = NULL;
           check_assertion(cum_offset + (a_targ_ptrdiff_t)curr_type->size >
                                                                        offset);
           result_con = result_con->variant.aggregate.first_constant;
@@ -10039,41 +9995,85 @@ evaluation (e.g., parameter values).
             /* Find the element of the array that is at or contains the
                specified offset.  We'll then go back through the main loop
                again looking at that element. */
-            a_boolean  found_element = FALSE;
+            a_boolean        found_element = FALSE;
+            a_targ_ptrdiff_t array_offset = cum_offset;
+            a_targ_ptrdiff_t possible_result_offset = 0;
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
             while (result_con != NULL && !found_element) {
+              if (result_con->kind == (a_constant_repr_kind)ck_designator) {
+                /* Compute the offset of the designated element and advance
+                   result_con to point to the associated value. */
+                check_assertion(!result_con->
+                                       variant.designator.is_field_designator);
+                cum_offset = array_offset +
+                         result_con->variant.designator.variant.array_element *
+                                                               curr_type->size;
+                result_con = result_con->next;
+              }  /* if */
               if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
                 /* This constant represents some number of elements of the
                    array.  Get the cumulative size of those elements and
                    check if the offset designates one of them. */
                 a_targ_size_t this_initializer_size =
                        result_con->variant.init_repeat.count * curr_type->size;
-                if ((a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
+                if (cum_offset <= offset &&
+                    (a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
                                                                       offset) {
                   /* The offset lies within this repeated group.  Set
                      result_con to that repeated constant and adjust
                      cum_offset to reflect its position in the array. */
-                  found_element = TRUE;
-                  result_con = result_con->variant.init_repeat.constant;
-                  cum_offset += ((a_targ_size_t)(offset - cum_offset) /
+                  if (may_have_designator) {
+                    /* Record the repeated constant as a possible result
+                       and continue to loop in case of a later
+                       designator. */
+                    possible_result_con =
+                                      result_con->variant.init_repeat.constant;
+                    possible_result_offset =
+                           cum_offset + ((a_targ_size_t)(offset - cum_offset) /
+                                         curr_type->size) * curr_type->size;
+                    result_con = result_con->variant.init_repeat.constant;
+                    cum_offset += ((a_targ_size_t)(offset - cum_offset) /
                                             curr_type->size) * curr_type->size;
+                  } else {
+                    /* This is the result. */
+                    found_element = TRUE;
+                    result_con = result_con->variant.init_repeat.constant;
+                    cum_offset += ((a_targ_size_t)(offset - cum_offset) /
+                                            curr_type->size) * curr_type->size;
+                  }  /* if */
                 } else {
                   /* Skip over this group and continue with the next array
                      element. */
                   result_con = result_con->next;
                   cum_offset += this_initializer_size;
                 }  /* if */
-              } else if ((a_targ_ptrdiff_t)(cum_offset + curr_type->size) >
+              } else if (cum_offset <= offset &&
+                         (a_targ_ptrdiff_t)(cum_offset + curr_type->size) >
                                                                       offset) {
                 /* The offset designates this array element or a subobject
                    therein. */
-                found_element = TRUE;
+                if (may_have_designator) {
+                  /* Record this constant as a possible result and continue
+                     to loop in case of a later designator. */
+                  possible_result_con = result_con;
+                  possible_result_offset = cum_offset;
+                  result_con = result_con->next;
+                  cum_offset += curr_type->size;
+                } else {
+                  found_element = TRUE;
+                }  /* if */
               } else {
                 /* Step to the next element. */
                 result_con = result_con->next;
                 cum_offset += curr_type->size;
               }  /* if */
             }  /* while */
+            if (!found_element && possible_result_con != NULL) {
+              /* Take the last matching constant that was found as the
+                 result. */
+              result_con = possible_result_con;
+              cum_offset = possible_result_offset;
+            }  /* if */
           } else {
             /* A class type.  Scan through its subobjects (base classes and
                members) to find which is at or contains the specified
@@ -10136,12 +10136,13 @@ evaluation (e.g., parameter values).
                  class. */
               cum_offset += bp->offset;
               curr_type = bp->type;
-            } else if (result_con != NULL && result_con->kind ==
-                                         (a_constant_repr_kind)ck_designator) {
+            } else if (result_con != NULL &&
+                       result_con->kind ==
+                                         (a_constant_repr_kind)ck_designator &&
+                       curr_type->kind == (a_type_kind)tk_union) {
               /* The value is that of a specified union member. */
-              check_assertion(
-                          curr_type->kind == (a_type_kind)tk_union &&
-                          result_con->variant.designator.is_field_designator);
+              check_assertion(result_con->
+                                       variant.designator.is_field_designator);
               curr_type =
                     skip_typerefs(result_con->variant.designator.variant.field
                                             ->type);
@@ -10150,20 +10151,59 @@ evaluation (e.g., parameter values).
               /* The offset is in a member subobject.  Scan for it and then
                  go back through the main loop. */
               a_field_ptr curr_field;
+              a_field_ptr possible_field = NULL;
+              a_boolean   found_field = FALSE;
               curr_field = next_non_generated_initializable_field(
                              curr_type->variant.class_struct_union.field_list);
-              while (curr_field != NULL && result_con != NULL &&
-                     (curr_field->bit_size != 0 ||
-                      (a_targ_ptrdiff_t)(cum_offset + curr_field->offset +
-                                        skip_typerefs(curr_field->type)->size)
-                                                                  <= offset)) {
-                /* The address can't designate a bit-field, so we skip to
-                   the next field for bit-fields or if we haven't reached
-                   the member containing the address yet. */
-                curr_field =
+              while (!found_field &&
+                                   (result_con != NULL || curr_field != NULL) {
+                a_targ_ptrdiff_t field_offset;
+                if (result_con != NULL &&
+                    result_con->kind == (a_constant_repr_kind)ck_designator) {
+                  /* Set curr_field to the designated field and advance
+                     result_con to the associated value. */
+                  check_assertion(result_con->
+                                       variant.designator.is_field_designator);
+                  curr_field = result_con->variant.designator.variant.field;
+                  result_con = result_con->next;
+                }  /* if */
+                if (curr_field == NULL) {
+                  /* We've run out of fields. */
+                  break;
+                }  /* if */
+                field_offset = cum_offset + curr_field->offset;
+                if (curr_field->bit_size == 0 && field_offset <= offset &&
+                    (a_targ_ptrdiff_t)(field_offset +
+                                       skip_typerefs(curr_field->type)->size)
+                                                                    > offset) {
+                  /* The specified offset denotes this field or a subobject
+                     thereof. */
+                  if (may_have_designator) {
+                    /* Record this field as a possible result and continue
+                       to loop in case of a later designator. */
+                    possible_result_con = result_con;
+                    possible_field = curr_field;
+                    curr_field =
                       next_non_generated_initializable_field(curr_field->next);
-                result_con = result_con->next;
+                    if (result_con != NULL) {
+                      result_con = result_con->next;
+                    }  /* if */
+                  } else {
+                    found_field = TRUE;
+                  }  /* if */
+                } else {
+                  /* This is not the field for the specified offset. */
+                  curr_field =
+                      next_non_generated_initializable_field(curr_field->next);
+                  if (result_con != NULL) {
+                    result_con = result_con->next;
+                  }  /* if */
+                }  /* if */
               }  /* while */
+              if (!found_field && possible_field != NULL) {
+                result_con = possible_result_con;
+                curr_field = possible_field;
+              }  /* if */
               check_assertion(curr_field != NULL);
               curr_type = skip_typerefs(curr_field->type);
               cum_offset += curr_field->offset;
@@ -11941,6 +11981,8 @@ otherwise, return FALSE.
     int              anon_union_member_depth = 0;
     a_boolean        union_member_mismatch = FALSE;
     a_boolean        implicit_constant = FALSE;
+    a_boolean        may_have_designator =
+                                     eff_obj_con->uses_designated_initializers;
     /* Check to see if the requested field is a member of an anonymous
        union.  If so, set anon_union_member_type to be the type of the
        immediate anonymous union member of class_type and set
@@ -11980,17 +12022,56 @@ otherwise, return FALSE.
          fields of class_type, breaking out of the loop when we've found
          either the indicated field or the anonymous union member of which
          the indicated field is a (possibly indirect) member. */
-      while (member_con != NULL && curr_field != NULL &&
-             curr_field != field) {
+      a_boolean      found = FALSE;
+      a_constant_ptr possible_value = NULL;
+      a_field_ptr    possible_field = NULL;
+      while (!found && (member_con != NULL || curr_field != NULL)) {
+        if (member_con != NULL &&
+            member_con->kind == (a_constant_repr_kind)ck_designator) {
+          /* Set curr_field to the designated field and advance
+             member_con to the associated value. */
+          check_assertion(member_con->variant.designator.is_field_designator);
+          curr_field = member_con->variant.designator.variant.field;
+          member_con = member_con->next;
+        }  /* if */
+        if (curr_field == NULL) {
+          /* We've run out of fields. */
+          break;
+        }  /* if */
         if (curr_field->type == anon_union_member_type) {
           /* We have found the anonymous union member to which field
              belongs. */
           check_assertion(curr_field->is_anonymous_parent_object);
-          break;
+          found = TRUE;
+        } else if (curr_field == field) {
+          if (may_have_designator) {
+            /* Record this field's value, if any, as a possible result and
+               continue the loop in case of a later designator. */
+            possible_value = member_con;
+            possible_field = curr_field;
+            if (member_con != NULL) {
+              member_con = member_con->next;
+            }  /* if */
+            curr_field =
+                      next_non_generated_initializable_field(curr_field->next);
+          } else {
+            /* This field's value, if any, is the result. */
+            found = TRUE;
+          }  /* if */
+        } else {
+          /* This field is not the one we're looking for. */
+          if (member_con != NULL) {
+            member_con = member_con->next;
+          }  /* if */
+          curr_field =
+                      next_non_generated_initializable_field(curr_field->next);
         }  /* if */
-        member_con = member_con->next;
-        curr_field = next_non_generated_initializable_field(curr_field->next);
       }  /* while */
+      if (!found && possible_value != NULL) {
+        /* Use the last designated value as the result. */
+        member_con = possible_value;
+        curr_field = possible_field;
+      }  /* if */
     }  /* if */
     if (member_con != NULL && !union_member_mismatch) {
       check_assertion(curr_field != NULL);
@@ -12022,6 +12103,7 @@ otherwise, return FALSE.
          that. */
 #if CHECKING
       if (!eff_obj_con->partial_aggr_value &&
+          !eff_obj_con->is_partially_initialized &&
           curr_init_aggr_con == NULL &&
           !empty_anonymous_union_initializer) {
         /* This must have been the result of an error upstream. */
