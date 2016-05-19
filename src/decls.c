@@ -13998,7 +13998,7 @@ static void namespace_declaration(a_token_kind  *final_token,
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, a
-nested namespace definition or a namespace alias definition.  The syntax is:
+nested namespace definition, or a namespace alias definition.  The syntax is:
 
   named-namespace-definition:
     inline opt namespace attribute-specifier-seq opt identifier
