@@ -2073,35 +2073,6 @@ setting of this flag.
 #endif /* ifndef DEFAULT_LONG_PRESERVING_RULES */
 
 /*
-Flag to control whether in C++ a function parameter type may involve a pointer
-to an array of unknown bounds.  It is the initial value of global variable
-ptr_to_unknown_bound_array_allowed_in_param_type.  The variable is set to TRUE
-in Microsoft and cfront compatibility modes.  It is set to FALSE in strict
-ANSI mode.
-*/
-#ifndef DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
-#define DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE FALSE
-#endif /* ifndef DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE */
-
-/*
-Flag to control whether in C++ a function parameter type may involve a
-reference to an array of unknown bounds.  It is the initial value of global
-variable ref_to_unknown_bound_array_allowed_in_param_type.  The variable is
-set to TRUE in cfront compatibility mode.  It is set to FALSE in strict ANSI
-mode.  This macro should not be set to TRUE if the macro
-DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE is set to FALSE.
-*/
-#ifndef DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
-#define DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE FALSE
-#endif /* ifndef DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE */
-
-#if DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE && \
-    !DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
- #error -- DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE requires \
-           DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
-#endif /* DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE && ... */
-
-/*
 Flag that is TRUE if the nonstandard deduction using the qualifier
 portion of a qualified name should be performed.  It is the initial
 value of the global variable nonstandard_qualifier_deduction.

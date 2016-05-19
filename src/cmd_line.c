@@ -2213,7 +2213,6 @@ option values if they were not already set by a command line option.
         microsoft_type_dependent_for_init_scope = TRUE;
       }  /* if */
     }  /* if */
-    ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
     if (!option_kind_used[(int)optk_enum_overloading]) {
       /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
       operator_overloading_on_enums_enabled = microsoft_version >= 1000;
@@ -2616,8 +2615,6 @@ by a command line option.
     nonstandard_default_arg_deduction = TRUE;
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
-  ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
-  ref_to_unknown_bound_array_allowed_in_param_type = TRUE;
   /* Cfront does not check accessibility of friend function declarations. */
   no_access_check_on_friend_declarator_ids = TRUE;
   if (!option_kind_used[(int)optk_implicit_noexcept]) {
@@ -3709,8 +3706,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     }  /* if */
   } else {
     /* Set optional features to standard settings for strict C++ mode. */
-    ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
-    ref_to_unknown_bound_array_allowed_in_param_type = FALSE;
     single_ref_qual_ovl_res_tiebreaker = FALSE;
     floating_point_template_parameters_allowed = FALSE;
     no_access_check_on_friend_declarator_ids = FALSE;
@@ -4487,8 +4482,6 @@ before this routine is called.
   if (clang_mode && clang_version >= 30000) {
     inline_namespaces_enabled = TRUE;
   }  /* if */
-  ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
-  ref_to_unknown_bound_array_allowed_in_param_type = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -5864,13 +5857,6 @@ file.
 #else /* !defined(DEFAULT_PREALLOCATED_PCH_MEM_SIZE) */
   comment_undefined_macro_name(DEFAULT_PREALLOCATED_PCH_MEM_SIZE);
 #endif /* defined(DEFAULT_PREALLOCATED_PCH_MEM_SIZE) */
-#if defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE)
-  define_numeric_valued_macro(
-                     DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
-#else /* !defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
-  comment_undefined_macro_name(
-                     DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
-#endif /* defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
 #if defined(DEFAULT_RANGE_BASED_FOR_ENABLED)
   define_numeric_valued_macro(DEFAULT_RANGE_BASED_FOR_ENABLED);
 #else /* !defined(DEFAULT_RANGE_BASED_FOR_ENABLED) */
@@ -5881,13 +5867,6 @@ file.
 #else /* !defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
   comment_undefined_macro_name(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE);
 #endif /* defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
-#if defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE)
-  define_numeric_valued_macro(
-                     DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
-#else /* !defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
-  comment_undefined_macro_name(
-                     DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
-#endif /* defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
 #if defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES)
   define_numeric_valued_macro(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES);
 #else /* !defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES) */
@@ -10629,10 +10608,6 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
-  /* Sanity-check the values of some global variables that cannot be set
-     individually from the command line. */
-  check_assertion(!(ref_to_unknown_bound_array_allowed_in_param_type &&
-                    !ptr_to_unknown_bound_array_allowed_in_param_type));
   /* Only one C-style inlining mode can be in effect. */
   check_assertion(!(std_c99_inlining && gnu_c89_inlining));
 }  /* proc_command_line */
@@ -11004,10 +10979,6 @@ variables declared in cmd_line.h.
   null_chars_allowed_in_source = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE;
   report_embedded_cplusplus_noncompliance = FALSE;
   report_gnu_extensions = FALSE;
-  ptr_to_unknown_bound_array_allowed_in_param_type =
-                      DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
-  ref_to_unknown_bound_array_allowed_in_param_type =
-                      DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
   nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
   nonstandard_default_arg_deduction =
                                      DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION;

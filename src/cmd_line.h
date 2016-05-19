@@ -1654,24 +1654,6 @@ EXTERN a_boolean
 			   GNU extensions outside system header files. */
 
 EXTERN a_boolean
-		ptr_to_unknown_bound_array_allowed_in_param_type;
-			/* TRUE if in C++ a function parameter type may
-			   include a pointer to an array of unknown size.
-			   The standard disallows such parameter types, but
-			   they are accepted by cfront, MSVC++, and
-			   (reportedly) other C++ compilers. */
-
-EXTERN a_boolean
-		ref_to_unknown_bound_array_allowed_in_param_type;
-			/* TRUE if in C++ a function parameter type may
-			   include a reference to an array of unknown size.
-			   The standard disallows such parameter types, but
-			   they are accepted by cfront.  This variable should
-			   not be set to TRUE when the similar flag variable
-			   ptr_to_unknown_bound_array_allowed_in_param_type
-			   is FALSE. */
-
-EXTERN a_boolean
 		nonstandard_qualifier_deduction;
 			/* TRUE if the nonstandard deduction using the
 			   qualifier portion of a qualified name should be

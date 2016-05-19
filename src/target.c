@@ -927,7 +927,7 @@ file.  Called after target configuration (if any) has been determined.
 #endif /* !LONG_LONG_ALLOWED */
 #endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
-  check_target_configuration();
+  // FIXME check_target_configuration();
 #endif /* CHECKING */
 }  /* target_one_time_init */
 

@@ -12353,30 +12353,6 @@ a pointer over a reference type or creating an array of references.
             new_type = make_tracking_reference_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
-            if (microsoft_mode && ctws_state->routine_type_levels >= 0 &&
-                is_lvalue_reference_type(type) &&
-                is_incomplete_array_type(tp)) {
-              /* During substitution in the parameters of a function template,
-                 the Microsoft compiler transforms an lvalue reference to an
-                 incomplete array type into an lvalue reference to an array of
-                 size 1. */
-              a_type_ptr	new_tp;
-#if CHECKING
-              a_type_ptr	array_tp;
-#endif /* CHECKING */
-              new_tp = alloc_type(tp->kind);
-              copy_type(tp, new_tp);
-#if CHECKING
-              array_tp = skip_typerefs(new_tp);
-              check_assertion(array_tp->kind == (a_type_kind)tk_array);
-#endif /* CHECKING */
-              new_tp->variant.array.variant.number_of_elements = 1;
-              tp = new_tp;
-              /* If the array is too large, set copy_error. */
-              if (!set_array_type_size(tp, /*suppress_error=*/TRUE)) {
-                *copy_error = TRUE;
-              }  /* if */
-            }  /* if */
             new_type = make_reference_type(tp);
           }  /* if */
         } else {

@@ -1261,58 +1261,6 @@ warning.
   }  /* if */
 }  /* report_qualifiers_as_useless */
 
-
-static void check_ptr_or_ref_to_unspecified_bound_array(
-                                                a_type_ptr         tp,
-                                                a_source_position  *error_pos)
-/*
-Check that the given parameter type does not include a reference or a pointer
-to an array of unspecified bound and issue an error at the given position if
-needed.  This restriction was introduced in the standard to avoid having
-certain constructs valid in both C and C++ mean different things in those two
-languages.  For example:
-    void f(int (*)[]);
-    void f(int (*)[3]);  // Redeclaration in C, but could be an overloaded
-                         // declaration in C++.
-
-Nested function declarator parameters are not examined, since they will have
-been checked earlier.  Template arguments and pointer-to-members are not
-examined either (they pose no problem).  In some modes the constraints are
-relaxed: see the configurations macros
-DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
-DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
-*/
-{
-  a_boolean   is_ref = FALSE;
-
-  tp = skip_typerefs(tp);
-  for (;;) {
-    if (tp->kind == (a_type_kind)tk_pointer) {
-      is_ref = tp->variant.pointer.is_reference;
-      tp = type_pointed_to(tp);
-      tp = skip_typerefs(tp);
-    } else if (tp->kind == (a_type_kind)tk_routine) {
-      tp = skip_typerefs(tp->variant.routine.return_type);
-    } else if (tp->kind == (a_type_kind)tk_array) {
-      if (is_incomplete_array_type(tp)) {
-        if (ref_to_unknown_bound_array_allowed_in_param_type && is_ref) {
-          check_assertion(ptr_to_unknown_bound_array_allowed_in_param_type);
-        } else if (!ptr_to_unknown_bound_array_allowed_in_param_type ||
-                   is_ref) {
-          pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
-                             ec_param_type_ptr_to_array_of_unknown_bound,
-                    error_pos);
-          break;
-        }  /* if */
-      }  /* if */
-      tp = skip_typerefs(tp->variant.array.element_type);
-    } else {
-      /* No need to look further. */
-      break;
-    }  /* if */
-  }  /* for */
-}  /* check_ptr_or_ref_to_unknown_bound_array */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean in_cppcx_externally_visible_parameter_scope()
@@ -1339,44 +1287,6 @@ definition or a class member with external visibility.
 }  /* in_cppcx_externally_visible_parameter_scope */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static a_boolean is_special_rvalue_ref_generic_parameter_at_pos(
-                                                    a_symbol_ptr   func_templ,
-                                                    unsigned long  param_pos)
-/*
-Return true if the parameter of the given function template at the given
-position (1, 2, 3, ...) is of the form "T&&" where T is a parameter of the
-function template.  (Such parameters are subject to special deduction rules,
-and in Microsoft mode the constraint that T not be substituted by an array of
-unknown length is not enforced for such parameters.)
-*/
-{
-  a_boolean                 result = FALSE;
-  a_type_ptr                ftp;
-  a_param_type_ptr          ptp;
-  a_template_decl_info_ptr  tdip;
-
-  check_assertion(param_pos >= 1 &&
-                  func_templ != NULL &&
-                  symbol_is(func_templ, sk_function_template));
-  ftp = func_templ->variant.template_info->variant.function.routine->type;
-  check_assertion(ftp->kind == (a_type_kind)tk_routine);
-  ptp = ftp->variant.routine.extra_info->param_type_list;
-  check_assertion(ptp != NULL);
-  /* Move ptp to the given numbered parameter if necessary. */
-  while (ptp->param_num != param_pos) {
-    ptp = ptp->next;
-    check_assertion(ptp != NULL);
-  }  /* while */
-  tdip = func_templ->variant.template_info->cache.decl_info;
-  if (tdip != NULL &&
-      is_parameter_type_with_special_ref_deduction(ptp->type,
-                                                   tdip->parameters)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* is_special_rvalue_ref_generic_parameter_at_pos */
-
 
 void check_and_adjust_parameter_type(a_decl_parse_state  *dps,
                                      unsigned long       param_num,
@@ -1436,36 +1346,6 @@ diagnostics.
       pos_error(ec_cppcx_non_const_array_parameter, error_pos);
       dps->type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
-                         ref_to_unknown_bound_array_allowed_in_param_type)) {
-        /* In C++ disallow a parameter type that includes a pointer or
-           reference to an array of unspecified size.  This restriction is
-           relaxed in cfront mode and (for the pointer case) in Microsoft mode;
-           it can also be relaxed in default mode -- see
-           DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
-           DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
-           The check is also skipped for a reference to an array type during
-           instantiations in GNU C++ mode; the same is true in Microsoft mode,
-           but only if the reference to array type was produced through the
-           (special) deduction from a parameter of the form T&& (with T a
-           template parameter). */
-        if (!dps->is_old_style_param_decl &&
-            dps->assoc_func_decl_state->is_template_rescan &&
-            scope_stack[depth_scope_stack-1].function_partial_instantiation &&
-            (gpp_mode ||
-             (microsoft_mode && rvalue_references_enabled &&
-              /* Ignore nested function declarators and function declarators
-                 in return types. */
-              dps->assoc_func_decl_state->assoc_func_decl_state == NULL &&
-              !dps->assoc_func_decl_state->function_declarator_seen &&
-              is_special_rvalue_ref_generic_parameter_at_pos(
-                                scope_stack[depth_scope_stack-1].template_sym,
-                                param_num)))) {
-        } else {
-          check_ptr_or_ref_to_unspecified_bound_array(dps->type, error_pos);
-        }  /* if */
-      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_and_adjust_parameter_type */
