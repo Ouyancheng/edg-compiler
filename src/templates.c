@@ -26066,6 +26066,12 @@ that follows.
                   symbol_is(sym, sk_variable)) &&
                  template_instance_for_symbol(sym) != NULL) {
         a_variable_ptr	var = variable_for_symbol(sym);
+        if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+            !is_const_qualified_type(dps->type)) {
+          /* constexpr variables are implicitly const. */
+          dps->type = make_qualified_type(dps->type,
+                                            (a_type_qualifier_set)TQ_CONST);
+        }  /* if */
         if (symbol_is(sym, sk_variable)) {
           /* Variable template specializations take the type from the
              specialization. */
@@ -26181,6 +26187,9 @@ that follows.
         dps->is_definition = (microsoft_bugs || curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
+        if (symbol_is(sym, sk_variable)) {
+          update_variable_decl_info(vp, dps, dps->is_definition);
+        }  /* if */
       } else {
         a_boolean  defaulted;
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
