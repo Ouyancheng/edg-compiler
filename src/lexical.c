@@ -14777,8 +14777,7 @@ identifier, else to NULL.
   }  /* if */
   /* Get the next token that is not a pragma state entry. */
   while (ctp != NULL &&
-         ctp->extra_info_kind ==
-                             (a_token_extra_info_kind)teik_pragma) {
+         ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
     ctp = ctp->next;
   }  /* for */
   /* If there is no cached token or if the token is the end-of-source token
@@ -19383,27 +19382,6 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_template_sym = NULL;
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (((gpp_mode && gnu_version >= 30400) || microsoft_mode ||
-               clang_mode) &&
-              (options & GID_IS_UNKNOWN_TEMPLATE_ARG) == 0 &&
-              is_template_dependent_context()) {
-            /* g++, Clang and Microsoft allow usage like "p->A::template f()",
-               where the name (at least during the prototype instantiation)
-               is not a template.  Ignore the template keyword in this case.
-               An exception is made when the caller specifies the
-               GID_CLASS_TEMPLATE_REQUIRED option.  This usage is not
-               permitted in dependent template argument lists (indicated in
-               this case by the unknown template arg flag), so suppress the
-               special processing in such contexts.  Note that this only
-               occurs in Microsoft mode if parsing of nonclass templates
-               has been enabled.*/
-            a_token_kind	second_token;
-            (void)next_two_tokens(tok_identifier, &second_token);
-            if (second_token != tok_lt && second_token != tok_error &&
-                (options & GID_CLASS_TEMPLATE_REQUIRED) == 0) {
-              is_template = FALSE;
-            }  /* if */
-          }  /* if */
           if (!cpp11_mode && strict_ansi_mode &&
               !is_template_context() && !in_if_exists) {
             /* In strict C++98 mode the template keyword, when used for
@@ -19435,6 +19413,25 @@ selection operator, in which case it points to the type of the left operand.
             parent.namespace_ptr = qualifier_namespace;
           }  /* if */
           get_opname(qualifier_is_type, &parent, field_sel_type);
+        }  /* if */
+        if (is_template && curr_token == tok_identifier &&
+            ((gpp_mode && gnu_version >= 30400) || microsoft_mode ||
+             clang_mode) &&
+            (options & (GID_IS_UNKNOWN_TEMPLATE_ARG |
+                        GID_CLASS_TEMPLATE_REQUIRED)) == 0 &&
+            is_template_dependent_context() &&
+            !locator_for_curr_id.is_template_id &&
+            next_token() != tok_lt) {
+          /* g++, Clang and Microsoft allow usage like "p->A::template f()",
+             where the name (at least during the prototype instantiation) is
+             not a template.  Ignore the template keyword in this case.  An
+             exception is made when the caller specifies the
+             GID_CLASS_TEMPLATE_REQUIRED option.  This usage is not permitted
+             in dependent template argument lists (indicated in this case by
+             the unknown template arg flag), so suppress the special processing
+             in such contexts.  Note that this only occurs in Microsoft mode if
+             parsing of nonclass templates has been enabled.*/
+          is_template = FALSE;
         }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter
                                             (qualifier_separator, &next_tok_2);
