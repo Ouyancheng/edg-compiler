@@ -10156,7 +10156,7 @@ evaluation (e.g., parameter values).
               curr_field = next_non_generated_initializable_field(
                              curr_type->variant.class_struct_union.field_list);
               while (!found_field &&
-                                   (result_con != NULL || curr_field != NULL) {
+                                  (result_con != NULL || curr_field != NULL)) {
                 a_targ_ptrdiff_t field_offset;
                 if (result_con != NULL &&
                     result_con->kind == (a_constant_repr_kind)ck_designator) {
