@@ -9582,9 +9582,9 @@ for parameters.  If the aggregate folds to a constant, place the constant
 in *result_con and return TRUE; otherwise, return FALSE.
 */
 {
-  a_boolean      folded = FALSE;
-  a_constant_ptr new_aggr;
-  a_constant_ptr elem_con;
+  a_boolean             folded = FALSE;
+  a_constant_ptr        new_aggr;
+  a_constant_ptr        elem_con;
   an_aggr_init_con_elem aggr_init_con;
 
   check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
