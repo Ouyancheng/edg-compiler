@@ -5423,6 +5423,12 @@ do_argument_again:
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
+            } else if (comma_ignored_inside_argument &&
+                       curr_token == tok_comma && paren_count == 0) {
+              /* Mark this comma as not delimiting arguments. */
+              ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+              *(map->raw_text+map->raw_len++) = LE_ESCAPE;
+              *(map->raw_text+map->raw_len++) = LE_COMMA_FROM_ARGUMENT;
             }  /* if */
             if (scanning_text_not_in_primary_source_line) {
               /* This token was fetched from a source line modification.
