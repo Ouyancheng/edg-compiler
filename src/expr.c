@@ -38531,6 +38531,10 @@ wrap_up_coroutine_result_expression.)
       expr_pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                        &pos_curr_token);
     }  /* if */
+    /* Returning a braced initializer rules out the named return value
+       optimization. */
+    scope_stack[depth_innermost_function_scope]
+                                  .return_value_optimization_possible = FALSE;
     icp = parse_braced_init_list(/*bundle=*/FALSE);
 #if COROUTINES_ALLOWED
     if (curr_routine->is_coroutine) {

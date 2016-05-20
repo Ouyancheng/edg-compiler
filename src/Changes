@@ -1,5 +1,27 @@
 Version 4.12
 
+5/20/16  [EDGcpfe/17182]
+Named return value optimization and braced initializers
+
+The changes for EDGcpfe/16778 in version 4.11 introduced a regression by
+failing to disqualify the "named return value optimization" (see the entry of
+4/27/94) when a return statement in the function returns a braced initializer
+list.  This resulted in invalid IL and generated code.  For example:
+
+  struct S { S(); ~S(); };
+  S f(bool b) {
+    if (!b) return {};
+    S s;
+    return s;
+  }
+  S r = f(false);
+
+Here, the front end erroneously considered the return value of f to be the
+content of the variable s (mapped by lowering to the returned object).  The
+default constructor was never called for the "return {};" statement.  This is
+now fixed.
+
+
 5/19/16  [EDGcpfe/16325]
 Microsoft compatibility: commas in unexpanded macro argument text
 
