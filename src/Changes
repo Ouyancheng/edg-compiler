@@ -15,7 +15,7 @@ class nested in a class template.  For example:
   };
   template<typename T> X<T>::N::N(N const&) {}     // (1)
   template<typename T>
-    template<typename U> X<T>::N::N(typename S<U>::N const&) {}
+    template<typename U> X<T>::N::N(typename X<U>::N const&) {}
       // Previously erroneously considered a malformed redefinition of (1).
 
 This is now fixed.
