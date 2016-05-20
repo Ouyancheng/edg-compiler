@@ -16995,7 +16995,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (!any_errors && template_sym != NULL) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed.  There can be two instances
-       of a class A<T> One is the prototype instantiation which is
+       of a class A<T>.  One is the prototype instantiation which is
        used when A<T> is referenced within the definition of class
        template A or in the declarator of an out-of-line definition of a member
        function or static data member.  The other is the nonreal class
@@ -17091,6 +17091,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (gpp_mode && prototype_allowed &&
+        scope_is(&scope_stack_top(), sck_template_declaration) &&
         (!is_templ_member_class_sym || !is_outermost_tmc) &&
         ((options & (GID_IS_TEMPLATE_PRESCAN |
                      GID_IS_CLASS_TEMPLATE_DECL)) == 0) &&

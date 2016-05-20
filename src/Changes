@@ -1,5 +1,26 @@
 Version 4.12
 
+5/20/16  [EDGcpfe/17212]
+Spurious errors on definition of member of class nested in class template
+
+The changes for EDGcpfe/16371 triggered a regression in GNU C++ mode when
+processing template arguments while parsing the definition of a member of a
+class nested in a class template.  For example:
+
+  template<typename> struct X {
+    struct N {
+      N(N const&);
+      template<typename U> N(typename X<U>::N const&);
+    };
+  };
+  template<typename T> X<T>::N::N(N const&) {}     // (1)
+  template<typename T>
+    template<typename U> X<T>::N::N(typename S<U>::N const&) {}
+      // Previously erroneously considered a malformed redefinition of (1).
+
+This is now fixed.
+
+
 5/20/16  [EDGcpfe/17182]
 Named return value optimization and braced initializers
 
