@@ -1,5 +1,17 @@
 Version 4.12
 
+5/20/16  [EDGcpfe/17210]
+Error on opaque enum declaration with typename
+
+A spurious error could result if an opaque enum declaration specified
+an underlying type using the "typename" keyword.  Now fixed.
+
+  template <class T> struct A {
+    typedef int Type;
+    enum E : typename A<T>::Type;
+  };
+
+
 5/20/16  [EDGcpfe/17212]
 Spurious errors on definition of member of class nested in class template
 

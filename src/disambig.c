@@ -856,11 +856,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
             type_specifier_seen = TRUE;
           }  /* if */
         }  /* if */
-        if ((flags & DFS_POSSIBLE_ENUM_BASE) != 0 &&
-            next_token() == tok_lbrace) {
-          /* Something like "enum : typename T::X {...".  Treat this as
-             an enum declaration. */
-          state->terminate = TRUE;
+        if ((flags & DFS_POSSIBLE_ENUM_BASE) != 0) {
+          a_token_kind	next_tok = next_token();
+          if (next_tok == tok_lbrace || next_tok == tok_semicolon) {
+            /* Something like "enum : typename T::X {..." or
+               "enum : typename T::X;".  Treat this as an enum declaration. */
+            state->terminate = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case tok_ellipsis:
