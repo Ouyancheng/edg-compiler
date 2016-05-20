@@ -12332,7 +12332,7 @@ a pointer over a reference type or creating an array of references.
             if (microsoft_mode && microsoft_version < 1700 &&
                 is_lvalue_reference_type(type) &&
                 is_incomplete_array_type(tp)) {
-              /* During substitution, the MSVC 16.00 and earlier transform an
+              /* During substitution, MSVC 16.00 and earlier transform an
                  lvalue reference to an incomplete array type to an lvalue
                  reference to an array of size 1. */
               a_type_ptr  new_tp = alloc_type(tp->kind), array_tp;
