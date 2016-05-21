@@ -24186,7 +24186,15 @@ can convert to or from handles.
         conv->std.cast_base_class = bcp;
         conv->std.nontrivial_conversion = (bcp != NULL);
         conv->class_object_adjustment_required = TRUE;
-        conv->result_is_a_glvalue = FALSE;
+        if (microsoft_mode && is_an_lvalue(op1) && !is_an_lvalue(op2)) {
+          /* MSVC forces a copy of an lvalue operand using the copy constructor
+             if the other operand is an rvalue.  Avoid forcing the result to an
+             rvalue since that would cause the copy operation to select a move
+             constructor instead (if available). */
+          conv->result_is_a_glvalue = TRUE;
+        } else {
+          conv->result_is_a_glvalue = FALSE;
+        }  /* if */
       }  /* if */
     } else {
       /* Not related classes.  See whether op1 can be converted to the
