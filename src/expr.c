@@ -26221,9 +26221,7 @@ that case.
   a_boolean             suppress_class_rvalue_temp = FALSE;
   a_boolean             suppress_class_temp_optimization = FALSE;
   a_boolean             microsoft_rvalue_temp_bug =
-                                                  (microsoft_bugs &&
-                                                   microsoft_version < 1600 &&
-                                                   !rvalue_references_enabled);
+                                ms_rvalue_temp_in_cond_operator_bug_enabled();
   an_expr_operator_kind op = (an_expr_operator_kind)eok_question;
 
   db_enter(4, "scan_conditional_operator");
@@ -26658,7 +26656,7 @@ that case.
       } else {
         /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
-        if (microsoft_mode &&
+        if (microsoft_mode && !microsoft_rvalue_temp_bug &&
             is_an_lvalue(&operand_2) != is_an_lvalue(&operand_3)) {
           /* MSVC does not optimize an unnecessary temporary created to convert
              an lvalue to an rvalue in cases like the following:
