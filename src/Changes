@@ -1,5 +1,28 @@
 Version 4.12
 
+5/23/16  [EDGcpfe/17187]
+Destructions with --no_exceptions
+
+A change (EDGcpfe/16372) had been made to suppress destructions in certain
+cases when exceptions are disabled, but that change caused a regression in
+a case like this (--c++11 --no_exceptions):
+
+  extern "C" int printf(const char *,...);
+  struct A {
+    A(const void*) {}
+    ~A() { printf("here\n"); }    // Not called previously.
+  };
+  int main() {
+    int *pi = 0;
+    A a{&pi};
+    return 0;
+  }
+
+The change for EDGcpfe/16372 has been backed out (so the test above now works)
+and the issue described in EDGcpfe/16372 has since been addressed by the
+changes for EDGcpfe/16432.
+
+
 5/23/16  [EDGcpfe/17173]
 Default value for RUNTIME_SUPPORTS_SIZED_DEALLOCATION
 
