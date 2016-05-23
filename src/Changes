@@ -1,5 +1,13 @@
 Version 4.12
 
+5/23/16  [EDGcpfe/17173]
+Default value for RUNTIME_SUPPORTS_SIZED_DEALLOCATION
+
+The default value for RUNTIME_SUPPORTS_SIZED_DEALLOCATION had been TRUE,
+but that caused build issues when ABI_COMPATIBILITY_VERSION is set to a
+value less than 411.  It is now set to FALSE by default in those cases.
+
+
 5/20/16  [EDGcpfe/17210]
 Error on opaque enum declaration with typename
 
