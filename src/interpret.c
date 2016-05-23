@@ -5634,6 +5634,8 @@ the body of the (constructor) function proper.
                                        src_addr->address+offset)) {
             do_constexpr_fail(result);
             break;
+          } else {
+            mark_subobject_initialized(result_storage+offset, complete_object);
           }  /* if */
         } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero) {
           /* Just zero the storage. */
