@@ -9722,6 +9722,9 @@ evaluation.
       /* These cases don't fold. */
       break;
   }  /* switch */
+  if (dip->is_explicit_cast) {
+    result_con->explicit_cast_applied = TRUE;
+  }  /* if */
 end_of_routine:
   return folding_result(folded);
 }  /* fold_dynamic_init */

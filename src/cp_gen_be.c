@@ -5653,6 +5653,7 @@ field designator.
        (to indicate which element of a union should be initialized), and the
        designator would be invalid without the braces. */
     if (!constant->explicit_braces_on_aggregate &&
+        !constant->explicit_cast_applied &&
         !(first_con != NULL &&
           first_con->kind == (a_constant_repr_kind)ck_designator)) {
       suppress_braces = TRUE;
@@ -5662,11 +5663,10 @@ field designator.
         /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
            type name and left brace were already put out by the caller when
            suppress_braces is TRUE.) */
-        if (type != NULL) {
-          gen_type_reference(type);
-        } else {
-          gen_type_reference(constant->type);
-        }  /* if */
+        a_type_ptr  cast_type = type != NULL ? type : constant->type;
+        /* Skip type qualifiers (which can be specified on the cast). */
+        cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
+        gen_type_reference(cast_type);
       }  /* if */
       write_tok_ch('{');
     }  /* if */
