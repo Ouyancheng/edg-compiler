@@ -23383,8 +23383,10 @@ a real instantiation.
   encl_class = decl_state->class_declared_in;
   encl_class_sym = (a_symbol_ptr)encl_class->source_corresp.assoc_info;
   if (is_prototype_instantiation_symbol(encl_class_sym)) {
-    proto_sym = encl_class_sym;
-    set_friend_info_for_prototype(proto_sym, sym);
+    if (!encl_class->variant.class_struct_union.is_in_class_specialization) {
+      proto_sym = encl_class_sym;
+      set_friend_info_for_prototype(proto_sym, sym);
+    }  /* if */
   } else {
     proto_sym = corresp_prototype_for_class_symbol(encl_class_sym);
     if (proto_sym == NULL) {

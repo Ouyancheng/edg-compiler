@@ -1,5 +1,20 @@
 Version 4.12
 
+5/23/16  [EDGcpfe/15623]
+Microsoft compatibility: abort on function template in in-class specialization
+
+An abort could occur, in set_friend_info_for_prototype, when a friend
+function template was declared inside a Microsoft in-class specialization.
+Now fixed.
+
+  template <class T> struct A {
+    template <class U> struct B {};
+    template <> struct B<double> {
+      template <class V> friend void f() {}
+    };
+  };
+
+
 5/23/16  [EDGcpfe/17179]
 Folded initializer not render by C++-generating back end
 
