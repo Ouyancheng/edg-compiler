@@ -1,5 +1,25 @@
 Version 4.12
 
+5/23/16  [EDGcpfe/15481]
+Incorrect processing matching template template argument with parameter
+
+The processing to determine whether a template template argument matches
+a template parameter was done incorrectly in some cases.  This could result
+in a deduction or partial ordering failure or (as in the case below) an
+abort (in get_template_arg_by_list_pos).  Now fixed.
+
+  template<typename T, template<T> class TTP> struct A {
+    static const unsigned value = 0;
+  };
+  template<template<int> class TTP> struct A<int, TTP> {
+    static const unsigned value = 1;
+  };
+  template<int> struct B;
+  template<long> struct C;
+  int arr1[A<long, C>::value == 0 ? 1 : -1];
+  int arr2[A<int, B>::value == 1 ? 1 : -1];
+
+
 5/23/16  [EDGcpfe/15623]
 Microsoft compatibility: abort on function template in in-class specialization
 

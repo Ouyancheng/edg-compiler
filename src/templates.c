@@ -11369,7 +11369,8 @@ parameters.
     if (have_params && templ != orig_templ) {
       /* Make sure the substituted template matches the template parameter. */
       if (!template_template_arg_matches_param(
-                                    tap, tpp, templ_arg_list, templ_param_list,
+                                    tap, tpp, arg_list_to_copy,
+                                    param_list_for_copy,
                                     source_pos)) {
         *copy_error = TRUE;
       }  /* if */
