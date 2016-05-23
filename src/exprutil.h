@@ -2677,10 +2677,10 @@ void do_question_operation(an_operand        *operand_1,
                            an_operand        *result);
 
 /*
-Version of MSVC prior to 10.00 had an odd bug when dealing with certain rvalues
-in conditional operators.  The following macro decides when the emulation of
-that bug is enabled.  Since the bug interacts dangerously with xvalues, we
-disable its emulation if rvalue references have been enabled.
+Versions of MSVC prior to 10.00 had an odd bug when dealing with certain
+rvalues in conditional operators.  The following macro decides when the
+emulation of that bug is enabled.  Since the bug interacts dangerously with
+xvalues, we disable its emulation if rvalue references have been enabled.
 */
 #define ms_rvalue_temp_in_cond_operator_bug_enabled()                        \
   (microsoft_bugs && microsoft_version < 1600 &&                             \
