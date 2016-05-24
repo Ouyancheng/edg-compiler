@@ -24763,7 +24763,8 @@ next_function:;
          case, we can use a bitwise copy instead. */
       a_routine_ptr  ctor = cctor_sym->variant.routine.ptr;
       if (ctor->is_trivial_copy_function && !ctor->is_deleted &&
-          cssp->construction_by_bitwise_copy_allowed) {
+          cssp->construction_by_bitwise_copy_allowed &&
+          !routine_is_move_constructor(ctor)) {
         *class_bitwise_copy = TRUE;
         cctor_sym = NULL;
       }  /* if */

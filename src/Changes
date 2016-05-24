@@ -1,5 +1,29 @@
 Version 4.12
 
+5/23/16  [EDGcpfe/17220]
+Front end erroneously selects copy constructor over trivial move constructor
+
+In some situations, the front end erroneously selected an ordinary copy
+constructor to copy an rvalue when a trivial move constructor is available.
+This could result in spurious errors.  For example:
+
+  struct A {
+    A(int &&i): m(static_cast<int&&>(i)) {}
+    int &&m;  // Causes the generated copy constructor to be deleted.
+  };          // A also has a trivial move constructor.
+  struct B {
+    B(): a(1) {}  
+    A a;
+  };
+  B g() {
+    return B();  // Triggers the generation of B's move constructor, which
+  }              // should select A's move constructor, but previously the
+                 // deleted copy constructor was selected instead (causing
+                 // an error to be issued).
+
+This is now fixed.
+
+
 5/23/16  [EDGcpfe/15481]
 Incorrect processing matching template template argument with parameter
 
