@@ -1,5 +1,19 @@
 Version 4.12
 
+5/24/16  [EDGcpfe/17154]
+Assertion failure in apply_class_modifiers
+
+The use of an alias template in certain cases had resulted in an assertion
+failure in apply_class_modifiers.  That is now fixed.  The following example
+(with --c++11) had generated such an assertion and now generates the
+appropriate error:
+
+  template <class T> using V = T;
+  struct C {
+    template <class> friend class V;
+  };
+
+
 5/24/16  [EDGcpfe/16842]
 GNU compatibility: ignore carries_dependency standard attributes
 

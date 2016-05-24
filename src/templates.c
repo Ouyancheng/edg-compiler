@@ -19679,8 +19679,13 @@ friend_template_checks_done:
        that error will be diagnosed later.  Issue an error if this is
        a qualified name.  If it is not a qualified name, clear the symbol
        and let a redeclaration error be reported later. */ 
-    if (sym->kind != (a_symbol_kind)sk_class_template &&
-        !is_class_struct_union_symbol(sym)) {
+    a_template_symbol_supplement_ptr  tst_tssp;
+    tst_tssp = symbol_is(sym, sk_class_template) ? sym->variant.template_info
+                                                 : NULL;
+    if ((sym->kind != (a_symbol_kind)sk_class_template &&
+         !is_class_struct_union_symbol(sym)) ||
+        (tst_tssp != NULL &&
+         tst_tssp->variant.class_template.is_alias_template)) {
       if (locator.is_qualified_name) {
         pos_sy_error(ec_sym_not_a_class_template, &locator.source_position,
                      sym);
