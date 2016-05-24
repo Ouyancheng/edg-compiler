@@ -42605,7 +42605,8 @@ destination types in Microsoft mode.
     if (src_val != NULL) {
       a_boolean           incomplete;
       a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
-                                          CCO_MOVE_OPTIMIZATION_ALLOWED);
+                                          CCO_MOVE_OPTIMIZATION_ALLOWED |
+                                          CCO_TYPE_TRAITS_CHECK);
       an_operand          *opnd = operand_of_arg_list_elem(src_val);
       if (type_returned_by_cctor(dst_type, &incomplete)) {
         a_dynamic_init_ptr  dip;

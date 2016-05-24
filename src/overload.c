@@ -23509,10 +23509,15 @@ describes the context of the conversion.
        return expr;
      and
        A x = expr;
-     as direct-initialization.  Argument passing is not affected. */
+     as direct-initialization.  Argument passing is not affected.  However,
+     the outcome of the type traits checking operation __is_convertible_to,
+     which is normally defined in terms of a return operation, is not affected
+     by this oddity. */
   if (microsoft_bugs &&
       (conv_context &
-       (CCO_INITIALIZING_RETURN_VALUE | CCO_INITIALIZING_VARIABLE))) {
+       (CCO_INITIALIZING_RETURN_VALUE | CCO_INITIALIZING_VARIABLE)) &&
+      !(microsoft_version >= 1900 &&
+        (conv_context & CCO_TYPE_TRAITS_CHECK))) {
     is_copy_initialization = FALSE;
   }  /* if */
   if (is_error_operand(source_operand)) {

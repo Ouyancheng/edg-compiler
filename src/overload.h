@@ -265,6 +265,10 @@ typedef int a_conv_context_set;
 			/* Used when calling prep_elision_initializer_operand
 			   for the result expression of a GNU statement
 			   expression. */
+#define CCO_TYPE_TRAITS_CHECK ((a_conv_context_set)0x40000)
+			/* Used when a conversion is being checked for a
+			   type traits helper function (e.g.,
+			   __is_convertible_to). */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the
