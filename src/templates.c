@@ -10668,12 +10668,25 @@ points to the template parameter list.
                 /* If we have already found one match, a second match should
                    cause deduction to fail. */
                 if (matching_base_class != NULL) {
-                  matching_base_class = NULL;
-                  break;
+                  if (find_base_class_of(matching_base_class,
+                                         bcp->type) != NULL) {
+                    /* The new base class is a base of the previously found
+                       one.  Ignore the new one. */
+                  } else if (find_base_class_of(bcp->type,
+                                                matching_base_class) != NULL) {
+                    /* The new class is derived from the previous one.  Use
+                       the new one. */
+                    matching_base_class = bcp->type;
+                  } else {
+                    /* They are unrelated -- there is no match. */
+                    matching_base_class = NULL;
+                    break;
+                  }  /* if */
+                } else {
+                  /* This is the first match.  Keep searching in case the
+                     conversion is ambiguous. */
+                  matching_base_class = bcp->type;
                 }  /* if */
-                /* This is the first match.  Keep searching in case the
-                   conversion is ambiguous. */
-                matching_base_class = bcp->type;
               }  /* if */
               bcp = bcp->next;
             }  /* while */

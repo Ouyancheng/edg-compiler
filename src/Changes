@@ -1,5 +1,23 @@
 Version 4.12
 
+5/24/16  [EDGcpfe/15599]
+Template argument deduction with multiple matching base classes
+
+Template argument deduction allows a derived class to match a function
+parameter that is a base class.  Formerly, if more than once base class
+matched, deduction would always fail.  Now, if one of the matching base
+classes is a base class of the other, the most derived class is used.
+
+  template <typename... T> struct A;
+  template <> struct A<> {};
+  template <typename T, typename... Ts> struct A<T, Ts...> : A<Ts...> {};
+  struct B : A<int> {};
+  template <typename... T> void f(const A<T...>&);
+  int main() {
+    f(B{});  // Now calls f(const A<int>&)
+  }
+
+
 5/24/16  [EDGcpfe/17154]
 Assertion failure in apply_class_modifiers
 
