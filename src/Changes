@@ -1,5 +1,22 @@
 Version 4.12
 
+5/24/16  [EDGcpfe/17213]
+Abort in make_node_from_operand on braced initializer in template
+
+The changes for EDGcpfe/16312 introduced a regression in the handling of
+certain braced initializers in templates (in GNU and Clang mode), causing the
+front end to abort in make_node_from_operand (exprutil.c).  For example,
+with "--g++ --no_defer_parse_function_templates":
+
+  template<typename> void ft();
+  struct S { void (*pf)(); };
+  template<typename T> void g() {
+    S s = { ft<T> };  // Previously triggered an abort in GNU and Clang
+  }                   // modes during prototype instantiation.
+ 
+This is now fixed.
+
+
 5/23/16  [EDGcpfe/17220]
 Front end erroneously selects copy constructor over trivial move constructor
 
