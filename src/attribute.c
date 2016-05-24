@@ -4104,7 +4104,12 @@ The given entity must be a parameter or a routine.  Apply the
 {
   a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
 
-  if (entity_kind == iek_param_type) {
+  if (gpp_mode && !clang_mode) {
+    /* GCC doesn't yet recognize the carries_dependency attribute; give a
+       warning. */
+    pos_warning(ec_carries_dependency_ignored, &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (entity_kind == iek_param_type) {
     /* The constraints cannot be checked until the declarator containing these
        parameters is fully processed. */
     dps = dps->assoc_func_decl_state;

@@ -1,5 +1,19 @@
 Version 4.12
 
+5/24/16  [EDGcpfe/16842]
+GNU compatibility: ignore carries_dependency standard attributes
+
+GCC doesn't yet support the carries_dependency attribute, issuing a warning
+on its use, and the front end now does the same.  The following example is
+accepted (with two warnings) where it had been diagnosed with errors previously
+(with --c++11 --g++):
+
+  struct S {
+    friend int f[[carries_dependency]](void);
+  };
+  int f[[carries_dependency]](void) { return 0; }
+
+
 5/24/16  [EDGcpfe/17213]
 Abort in make_node_from_operand on braced initializer in template
 
