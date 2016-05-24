@@ -11591,25 +11591,31 @@ TRUE, record call_expr as a backing expression for the resulting constant.
 
 static a_boolean init_class_aggr_con_from_ctor_init_list(
                                 a_type_ptr                   class_type,
+                                an_expr_node_ptr             args,
                                 a_constexpr_evaluation_block *ceblock,
                                 a_constructor_init_ptr       *p_ctor_init_list,
                                 a_constant                   *aggr_con)
 /*
 As part of expanding a constexpr constructor invocation, take zero or more
 constructor-init entries from the list given by p_ctor_init_list and use
-them to initialize members of the class class_type.  aggr_con is already
-a ck_aggregate constant on entry, possibly non-empty, and any member
-initializers are added at the end of the existing member constants list.
-On return, *p_ctor_init_list is updated to point to the remaining
-constructor-inits on the list that have not been taken.  Return TRUE
-if the initialization went okay, FALSE if there was some error that
-prevents folding.  ceblock gives context information for the evaluation.
+them to initialize members of the class class_type.  If non-NULL, args is
+the argument list for the constructor invocation, for use in the case when
+a field's dynamic initialization is a dik_bitwise_copy with an implied
+source.  aggr_con is already a ck_aggregate constant on entry, possibly
+non-empty, and any member initializers are added at the end of the existing
+member constants list.  On return, *p_ctor_init_list is updated to point to
+the remaining constructor-inits on the list that have not been taken.
+Return TRUE if the initialization went okay, FALSE if there was some error
+that prevents folding.  ceblock gives context information for the
+evaluation.
 */
 {
   a_constructor_init_ptr ctor_init = *p_ctor_init_list;
   a_field_ptr            field;
   a_boolean              okay = TRUE;
   a_constant_ptr         member_con = local_constant();
+  a_constant_ptr         source_obj = NULL;
+  a_boolean              source_cannot_be_folded = FALSE;
 
   check_assertion(is_immediate_class_type(class_type));
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -11674,10 +11680,8 @@ prevents folding.  ceblock gives context information for the evaluation.
          anonymous struct. */
       clear_constant(member_con, (a_constant_repr_kind)ck_aggregate);
       member_con->type = field->type;
-      if (!init_class_aggr_con_from_ctor_init_list(field->type,
-                                                   ceblock,
-                                                   &ctor_init,
-                                                   member_con)) {
+      if (!init_class_aggr_con_from_ctor_init_list(field->type, args, ceblock,
+                                                   &ctor_init, member_con)) {
         /* There was some error in processing. */
         okay = FALSE;
         break;
@@ -11693,6 +11697,8 @@ prevents folding.  ceblock gives context information for the evaluation.
         break;
       } else {
         a_dynamic_init_ptr dip;
+        a_boolean          implicit_source_case = FALSE;
+        a_constant_ptr     source_member_con;
         if (ctor_init_field != field) {
           /* Something is messed up, e.g., there's a field that's not
              represented by a ctor-init. */
@@ -11709,9 +11715,57 @@ prevents folding.  ceblock gives context information for the evaluation.
         }  /* if */
         check_assertion(dip != NULL);
         /* Try to fold the initialization to a constant. */
+        if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+            dip->variant.bitwise_copy.source == NULL && args != NULL &&
+            !source_cannot_be_folded) {
+          /* The source is implied.  Try to extract a constant value from
+             the corresponding field of the constructor argument and, if
+             successful, temporarily transform the dynamic initializer to
+             a dik_constant. */
+          if (source_obj == NULL && !source_cannot_be_folded) {
+            /* Attempt to fold the constructor argument into a constant. */
+            a_constant_ptr addr_con = local_constant();
+            if (fold_expr(args, ceblock, addr_con)) {
+              check_assertion(addr_con->kind ==
+                                             (a_constant_repr_kind)ck_address);
+              source_obj = local_constant();
+              if (constant_value_at_address(addr_con, ceblock, source_obj) ==
+                                                                        NULL) {
+                source_cannot_be_folded = TRUE;
+                release_local_constant(&source_obj);
+              }  /* if */
+            } else {
+              source_cannot_be_folded = TRUE;
+            }  /* if */
+            release_local_constant(&addr_con);
+          }  /* if */
+          if (source_obj != NULL) {
+            /* Try to extract a constant for the relevant member. */
+            source_member_con = local_constant();
+            if (fold_constant_field_selection(source_obj,
+                                              /*pointer_case=*/FALSE, field,
+                                              source_member_con)) {
+              /* Convert the initializer to a constant initialization. */
+              implicit_source_case = TRUE;
+              dip->kind = (a_dynamic_init_kind)dik_constant;
+              dip->variant.constant = source_member_con;
+            } else {
+              release_local_constant(&source_member_con);
+            }  /* if */
+          }  /* if */
+        }  /* if */
         if (!fold_dynamic_init(dip, ctor_init_field->type,
                                ceblock, member_con)) {
           okay = FALSE;
+        }  /* if */
+        if (implicit_source_case) {
+          /* Restore the original values in the dynamic initializer and
+             release the local constant. */
+          dip->kind = (a_dynamic_init_kind)dik_bitwise_copy;
+          dip->variant.bitwise_copy.source = NULL;
+          release_local_constant(&source_member_con);
+        }  /* if */
+        if (!okay) {
           break;
         }  /* if */
         add_constant_to_aggregate(alloc_unshared_constant(member_con),
@@ -11724,6 +11778,9 @@ prevents folding.  ceblock gives context information for the evaluation.
   }  /* for */
   *p_ctor_init_list = ctor_init;
   release_local_constant(&member_con);
+  if (source_obj != NULL) {
+    release_local_constant(&source_obj);
+  }  /* if */
   return okay;
 }  /* init_class_aggr_con_from_ctor_init_list */
 
@@ -11835,9 +11892,8 @@ fold_constexpr_ctor should usually be called instead.
           }  /* for */
           /* Now process the ctor-inits for the nonstatic data members of
              the class. */
-          if (!init_class_aggr_con_from_ctor_init_list(class_type,
-                                                       ceblock,
-                                                       &ctor_init,
+          if (!init_class_aggr_con_from_ctor_init_list(class_type, args,
+                                                       ceblock, &ctor_init,
                                                        aggr_con)) {
             /* There was some error in processing. */
             goto fail;
