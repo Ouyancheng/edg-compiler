@@ -9899,11 +9899,14 @@ typedef struct a_variable {
 			   the IL to represent the source construct "i" is
 			   "<anonymous-parent-object>.i". */
   a_bit_field	is_member_constant:1;
-			/* TRUE if the variable represents a static data
-			   member for which an initializer was specified at
-			   its declaration within the class definition.
-			   (It is referred to as a "member constant" in part
-			   because it can be used in constant expressions
+			/* TRUE if the variable represents a static data member
+			   for which an initializer was specified at its
+			   declaration within the class definition.  In modes
+			   that delay parsing of the initializers of static
+			   data member instantiations (e.g., GNU C++ mode), the
+			   flag is set to TRUE only after that instantiation is
+			   done.  (It is referred to as a "member constant" in
+			   part because it can be used in constant expressions
 			   elsewhere in the class definition.) */
   a_bit_field	is_constexpr:1;
 			/* TRUE if this is a static data member declared with
