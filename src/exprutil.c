@@ -21167,7 +21167,6 @@ transformations.
 }  /* do_operand_transformations */
 
 
-
 static a_boolean expr_gets_volatile_lvalue_to_rvalue_conv(
                                                          an_expr_node_ptr expr)
 /*
