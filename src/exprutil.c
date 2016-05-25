@@ -8024,6 +8024,31 @@ raw type based on the function selected.
 }  /* cast_overloaded_function */
 
 
+static an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node)
+/*
+If node points to a sequence of eok_cast operations, return the (non-eok_cast)
+node pointed to by that sequence.  Otherwise, return node.
+*/
+{
+  an_expr_node_ptr snode;
+
+  /* Parentheses above (but not below) a cast are skipped also. */
+  while ((snode = skip_parens(node), is_operation_node(snode)) &&
+         node_operator_is(snode, eok_cast)) {
+    an_expr_node_ptr op1 = snode->variant.operation.operands;
+    if (is_template_dependent_context() &&
+        (could_be_dependent_class_type(node->type) ||
+         could_be_dependent_class_type(op1->type))) {
+      /* Template-dependent casts can't be discarded if they might be
+         user-defined conversions. */
+      break;
+    }  /* if */
+    node = op1;
+  }  /* while */
+  return node;
+}  /* remove_cast_operations */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* result_of_stmt_expr is not used in all configurations. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -17664,31 +17689,6 @@ result type for the lvalue operation.
   }  /* if */
   return okay;
 }  /* okay_as_gcc_lvalue_question */
-
-
-an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node)
-/*
-If node points to a sequence of eok_cast operations, return the (non-eok_cast)
-node pointed to by that sequence.  Otherwise, return node.
-*/
-{
-  an_expr_node_ptr snode;
-
-  /* Parentheses above (but not below) a cast are skipped also. */
-  while ((snode = skip_parens(node), is_operation_node(snode)) &&
-         node_operator_is(snode, eok_cast)) {
-    an_expr_node_ptr op1 = snode->variant.operation.operands;
-    if (is_template_dependent_context() &&
-        (could_be_dependent_class_type(node->type) ||
-         could_be_dependent_class_type(op1->type))) {
-      /* Template-dependent casts can't be discarded if they might be
-         user-defined conversions. */
-      break;
-    }  /* if */
-    node = op1;
-  }  /* while */
-  return node;
-}  /* remove_cast_operations */
 
 
 static an_expr_node_ptr conv_prvalue_expr_to_lvalue(

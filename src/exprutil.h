@@ -1563,8 +1563,6 @@ extern void take_reference_to_operand(an_operand *operand,
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
-extern an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node);
-
 extern void conv_prvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
                                                 a_boolean        *converted);
 
