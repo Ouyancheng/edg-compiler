@@ -75,7 +75,7 @@ matches MSVC in Microsoft mode.
 Template argument deduction with multiple matching base classes
 
 Template argument deduction allows a derived class to match a function
-parameter that is a base class.  Formerly, if more than once base class
+parameter that is a base class.  Formerly, if more than one base class
 matched, deduction would always fail.  Now, if one of the matching base
 classes is a base class of the other, the most derived class is used.
 
