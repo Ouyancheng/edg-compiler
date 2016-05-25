@@ -1777,6 +1777,9 @@ extern a_boolean conv_bound_function_to_static_selection(
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 
+extern void do_void_operand_transformations(an_operand *operand,
+                                            a_boolean  force_lvalue_to_rvalue);
+
 extern void eliminate_unusual_operand_kinds(an_operand *operand);
 
 extern a_type_ptr boolean_result_type(void);
@@ -2392,6 +2395,13 @@ extern void cast_overloaded_function(a_type_ptr type_cast_to,
                                      a_boolean  is_static_cast,
                                      a_boolean  skip_final_adjustment);
 
+extern an_expr_node_ptr make_node_from_void_expression_operand(
+                                          an_operand_ptr  operand,
+                                          a_boolean       result_of_stmt_expr);
+
+extern void cast_operand_to_void(an_operand *operand,
+                                 a_type_ptr type_cast_to);
+
 extern
 void cast_operand_full(a_type_ptr        new_type,
                        an_operand        *operand,
@@ -2553,6 +2563,8 @@ extern void conv_array_operand_to_pointer_operand(an_operand *operand);
 extern a_type_ptr type_after_function_to_pointer_transformation(
                                                       a_type_ptr arg_type,
                                                       an_operand *arg_operand);
+
+extern a_type_ptr type_of_call(an_expr_node_ptr  expr);
 
 extern void conv_sym_for_member_operand_to_ptr_to_member(
                                         an_operand        *operand,

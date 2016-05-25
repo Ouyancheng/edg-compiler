@@ -640,6 +640,7 @@ destination type (this comes up in a Microsoft-mode extension).
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
   a_boolean        is_ref_to_const = FALSE, is_rvalue_ref = FALSE;
+  a_boolean        is_void = FALSE;
   a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class = NULL, ptr_routine_type;
@@ -678,12 +679,15 @@ destination type (this comes up in a Microsoft-mode extension).
     dest_class = pm_class_type(dest_type);
     is_ptr_to_member = TRUE;
     dest_underlying_type = pm_member_type(dest_type);
+  } else if (is_void_type(dest_type) && is_template_id) {
+    is_void = TRUE;
+    dest_underlying_type = dest_type;
   }  /* if */
-  if (is_ptr || is_ref || is_ptr_to_member) {
-    /* dest_type is a pointer, reference, or pointer-to-member type.
-       The underlying type is not necessarily a function type.  (For
-       one thing, a pointer to void can be made to match any function
-       type.  Of course, that case is always ambiguous.) */
+  if (is_ptr || is_ref || is_ptr_to_member || is_void) {
+    /* dest_type is a pointer, reference, or pointer-to-member type, or it is
+       a void type.  The underlying type is not necessarily a function type.
+       (For one thing, a pointer to void can be made to match any function
+       type.) */
     dest_type_has_type_qualifiers = is_qualified_type(dest_underlying_type);
     dest_underlying_type = skip_typerefs(dest_underlying_type);
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
@@ -980,7 +984,7 @@ is_ambiguous:
       match_sym = NULL;
     }  /* if */
   }  /* if */
-  if (match_sym != NULL && std_conv != NULL) {
+  if (match_sym != NULL && std_conv != NULL && !is_void) {
     /* If the pointer type we converted to has extra type qualifiers,
        set the tie-breaker flag in the standard conversion description.
        The flag might also have been set by the call of

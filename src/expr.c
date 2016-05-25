@@ -641,85 +641,6 @@ on the next_operand_ref field.
 }  /* merge_ref_lists */
 
 
-static a_boolean expr_gets_volatile_lvalue_to_rvalue_conv(
-                                                         an_expr_node_ptr expr)
-/*
-Return TRUE if the expression expr has one of the forms described in
-[expr]p11 for discarded-value expressions that get the glvalue-to-prvalue
-conversion for a volatile glvalue.
-*/
-{
-  a_boolean do_conv = FALSE;
-
-  expr = skip_parens(expr);
-  if (is_variable_node(expr)) {
-    /* id-expression. */
-    do_conv = TRUE;
-  } else if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      op1 = expr->variant.operation.operands;
-    switch (op) {
-      case eok_subscript:
-      case eok_dot_field:
-      case eok_points_to_field:
-      case eok_indirect:
-      case eok_pm_field:
-      case eok_pm_points_to_field:
-        do_conv = TRUE;
-        break;
-      case eok_question:
-      case eok_vector_question:
-        /* "?" gets the conversion if both the 2nd and 3rd operands do. */
-        do_conv = (expr_gets_volatile_lvalue_to_rvalue_conv(op1->next) &&
-                   expr_gets_volatile_lvalue_to_rvalue_conv(op1->next->next));
-        break;
-      case eok_comma:
-        /* "," gets the conversion if the 2nd operand does. */
-        do_conv = expr_gets_volatile_lvalue_to_rvalue_conv(op1->next);
-        break;
-      default:
-        break;
-    }  /* switch */
-  }  /* if */
-  return do_conv;
-}  /* expr_gets_volatile_lvalue_to_rvalue_conv */
-
-
-static void do_void_operand_transformations(an_operand *operand,
-                                            a_boolean  force_lvalue_to_rvalue)
-/*
-Do whatever transformations are appropriate on a void expression operand,
-e.g., lvalue-to-rvalue in C, not in C++.  If force_lvalue_to_rvalue is
-TRUE, the lvalue-to-rvalue (etc.) transformations are forced even in C++ mode.
-*/
-{
-  a_transformation_options_set options = TOPT_NO_OPTIONS;
-
-  if (!C_mode() && !force_lvalue_to_rvalue) {
-    /* In C++, lvalue-to-rvalue transformations are not done on an expression
-       scanned as a void expression. */
-    options = TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
-    if ((cpp11_mode || gpp_mode) &&
-        is_volatile_qualified_type(operand->type)) {
-      /* C++11 requires an lvalue-to-rvalue conversion on lvalues with a
-         volatile type that have a certain form.  g++ seems to have done this
-         (or just the C semantics) all along. */
-      if (is_expression_operand(operand) &&
-          expr_gets_volatile_lvalue_to_rvalue_conv(
-                                                operand->variant.expression)) {
-        /* Do not suppress the lvalue-to-rvalue conversion. */
-        options = TOPT_NO_OPTIONS;
-      }  /* if */
-    }  /* if */
-    /* The array-to-pointer and function-to-pointer conversions are
-       suppressed in all cases in C++ mode. */
-    options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
-  }  /* if */
-  do_operand_transformations(operand, options);
-}  /* do_void_operand_transformations */
-
-
 static void process_void_operand(an_operand *operand)
 /*
 Examine the operand given by *operand, which has been scanned as a void
@@ -12893,42 +12814,6 @@ __builtin_complex construct.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-static a_type_ptr type_of_call(an_expr_node_ptr  expr)
-/*
-Return the type of the routine called by expr (the static type, which may be
-different from the type of the routine that is actually invoked if virtual
-function overriding is involved).  The returned type is usually a routine
-type, but it can be a template parameter type or an error type.  The caller
-must ensure that expr is a call node (parens must be stripped off already
-if necessary).
-*/
-{
-  a_type_ptr  result;
-
-  check_assertion(is_call_node(expr));
-  result = skip_typerefs(expr->variant.operation.operands->type);
-  if (!is_error_type(result)) {
-    if (node_operator_is(expr, eok_dot_pm_call) ||
-        node_operator_is(expr, eok_points_to_pm_call)) {
-      check_assertion(result->kind == (a_type_kind)tk_ptr_to_member);
-      result = pm_member_type(result);
-    } else if (result->kind == (a_type_kind)tk_pointer) {
-      result = type_pointed_to(result);
-    } else if (is_template_dependent_context()) {
-      /* We don't know what routine is called. */
-      result = type_of_unknown_templ_param_nontype;
-    } else {
-      unexpected_condition();
-    }  /* if */
-    result = skip_typerefs(result);
-    check_assertion(result->kind == (a_type_kind)tk_routine ||
-                    result->kind == (a_type_kind)tk_template_param ||
-                    is_error_type(result));
-  }  /* if */
-  return result;
-}  /* type_of_call */
-
-
 static void catch_up_on_checks_for_calls_in_decltype(an_operand  *operand)
 /*
 The given operand is the left operand of a comma expression appearing in a
@@ -20039,70 +19924,6 @@ C++ functional-notation type conversions, and C++ new-style casts.
   if (err) *p_type_cast_to = error_type();
   return err;
 }  /* cast_type_pre_check */
-
-
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* result_of_stmt_expr is not used in all configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-an_expr_node_ptr make_node_from_void_expression_operand(
-                                          an_operand_ptr  operand,
-                                          a_boolean       result_of_stmt_expr)
-/*
-*operand is an expression scanned as a void expression, or cast to void.
-Determine an expression representation for the operand, and return a pointer
-to the expression.  result_of_stmt_expr is TRUE if operand corresponds to an
-expression statement that is the last statement of a GNU statement expression
-(and therefore that statement expression's result).
-*/
-{
-  an_expr_node_ptr node = make_node_from_operand(operand);
-
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && !result_of_stmt_expr) {
-    /* In GNU mode, check for void expressions that are calls to a function
-       marked with the "warn_unused_result" attribute.  Such calls should be
-       warned about. */
-    /* A cast is not treated as a "use" of a returned value in this context. */
-    an_expr_node_ptr  expr = remove_cast_operations(node);
-    expr = skip_parens(expr);
-    if (is_call_node(expr)) {
-      /* Retrieve the type of the routine being called. */
-      a_type_ptr  tp = type_of_call(expr);
-      if (tp->kind == (a_type_kind)tk_routine &&
-          tp->variant.routine.extra_info->result_should_be_used) {
-        expr_pos_warning(ec_call_result_should_be_used, &operand->position);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  return node;
-}  /* make_node_from_void_expression_operand */
-
-
-static void cast_operand_to_void(an_operand *operand,
-                                 a_type_ptr type_cast_to)
-/*
-Cast the indicated operand to void.  This is used for explicit casts
-to void.  type_cast_to gives the (possibly cv-qualified) void type.
-Lvalue-to-rvalue transformations are done on the operand if appropriate
-(yes in C, no in C++).  Other transformations are done in all cases.
-*/
-{
-  an_expr_node_ptr             node;
-
-  do_void_operand_transformations(operand, /*force_lvalue_to_rvalue=*/FALSE);
-  /* For casts to void, we build an expression node that is a cast to void.
-     This special cast to void is only used for the case handled here,
-     i.e., for an explicit cast to void.  cast_operand is not used because
-     we do not wish to try to change the types of constants to void. */
-  node = make_node_from_void_expression_operand(
-                                      operand, /*result_of_stmt_expr=*/FALSE);
-  node = make_operator_node((an_expr_operator_kind)eok_cast,
-                            type_cast_to,
-                            node);
-  make_expression_operand(node, operand);
-  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, operand);
-}  /* cast_operand_to_void */
 
 
 static a_boolean cast_is_valid_in_current_expression_kind(
