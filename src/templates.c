@@ -10004,10 +10004,12 @@ partial specialization.
 {
   a_boolean				match = FALSE;
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
+  a_template_arg_ptr			prev_templ_tap = NULL;
 
   begin_template_arg_list_traversal_simple(tap, &tap);
   begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
   for (match = TRUE; match && tap != NULL && templ_tap != NULL; ) {
+    prev_templ_tap = templ_tap;
     if (pesep == NULL && templ_tap->pack_expansion_descr != NULL) {
       /* The argument from the template is of the form "T...".  This
          is a template parameter pack deduction context. */
@@ -10058,12 +10060,19 @@ partial specialization.
        list. */
     templ_tap = NULL;
   }  /* if */
-  /* If either list has arguments remaining, this is not a match.  It is
-     okay for the template list to have another parameter if it is a
-     parameter pack. */
-  if ((tap == NULL) !=
+  /* Advance to the next argument to see if it is a placeholder. */
+  if (prev_templ_tap != NULL) prev_templ_tap = prev_templ_tap->next;
+  if (tap != NULL &&
+      templ_tap == NULL && prev_templ_tap != NULL &&
+      is_start_of_pack_expansion_templ_arg(prev_templ_tap)) {
+    /* There are more real arguments and the template argument is pack
+       placeholder.  Consider that a match. */
+  } else if ((tap == NULL) !=
       (templ_tap == NULL ||
        templ_tap->pack_expansion_descr != NULL)) {
+    /* If either list has arguments remaining, this is not a match.  It is
+       okay for the template list to have another parameter if it is a
+       parameter pack. */
     match = FALSE;
   }  /* if */
   return match;

@@ -1,5 +1,20 @@
 Version 4.12
 
+5/25/16  [EDGcpfe/17001]
+Template argument deduction with default arguments and variadic parameter
+
+Deduction could fail when a template template parameter has a variadic
+template parameter and the deduced template template argument has
+a default argument.  Now fixed.
+
+  template <typename T1, typename T2 = int> struct A { };
+  template<class T, template <class, class...> class C> void f(T,  C<T>){}
+  int main() {
+    A<int> ai;
+    f(1, ai);
+  }
+
+
 5/24/16  [EDGcpfe/16571]
 User-defined literals in precompiled headers
 
