@@ -1,5 +1,25 @@
 Version 4.12
 
+5/25/16  [EDGcpfe/16987]
+auto/decltype(auto) variables and template-dependent template-id initializers
+
+The front end previously incorrectly handled the initializer of an auto or
+decltype(auto) variable that consists of a template-dependent template-id
+identifying a function template instance.  In the "auto" case, a spurious
+error was issued during prototype instantiation.  In the "decltype(auto)"
+case, a spurious error followed by an internal error (and abort) was issued
+during a real instantiation.  For example (in C++11 mode):
+
+  template<typename T> T ft() { return 1; };
+  template<typename T> T g() {
+    auto pf = ft<T>;  // Previously triggered a spurious deduction error.
+    return pf();      // Now okay.
+  }
+  int main() { return g<int>(); }
+
+This is now fixed.
+
+
 5/25/16  [EDGcpfe/12386,EDGcpfe/16977,EDGcpfe/17015]
 Casting a template-id for a function template instance to void
 

@@ -364,6 +364,11 @@ was not attempted because the types involved are still dependent,
       } else {
         p_operand = initializer_operand;
       }  /* if */
+      if (p_operand->is_template_id &&
+          is_indefinite_function_operand(p_operand)) {
+        convert_function_template_to_single_function_if_possible(
+                                              p_operand, /*will_call=*/FALSE);
+      }  /* if */
       *deduced_auto_type = decltype_from_operand(p_operand,
                                                  &no_parens_matters);
       if (keep_placeholder) {

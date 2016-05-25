@@ -25117,6 +25117,11 @@ TRUE and FALSE is returned.
     }  /* if */
   }  /* if */
   if (initializer_operand != NULL) {
+    if (initializer_operand->is_template_id &&
+        is_indefinite_function_operand(initializer_operand)) {
+      convert_function_template_to_single_function_if_possible(
+                                    initializer_operand, /*will_call=*/FALSE);
+    }  /* if */
     arg_type = initializer_operand->type;
     if (is_managed_nullptr_type(arg_type)) {
       /* The Microsoft C++/CLI compiler deduces std::nullptr_t from an auto
