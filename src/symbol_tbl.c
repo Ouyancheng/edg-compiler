@@ -16348,6 +16348,7 @@ are handled in symbol_tbl_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(conversion_header_list),
+      pch_saved_var_array_elem(literal_operator_header_list),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(ms_attr_alt_name_entry_list),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
