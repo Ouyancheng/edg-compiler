@@ -66,9 +66,9 @@ though it still treats actual return operations that way).  For example:
 Here the conversion function from F to T is explicit and therefore not
 applicable in a standard return value (explicit conversion functions are not
 considered for copy initialization).  MSVC does consider it in an actual
-return statement (because that is modeled as an explicit return statement),
-but not for the __is_convertible_to(F, T) evaluation.  The front end now
-matches MSVC in Microsoft mode.
+return statement (because there it is treated as direct initialization), but
+not for the __is_convertible_to(F, T) evaluation.  The front end now matches
+MSVC in Microsoft mode.
 
 
 5/24/16  [EDGcpfe/15599]
