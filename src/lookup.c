@@ -2405,7 +2405,8 @@ lookup processing.
      noexcept contexts. */
   saved_check_decl_seq = lookup_state->check_decl_seq;
   if (lookup_state->inclass_exception_spec &&
-      (kind == sck_func_prototype || kind == sck_function)) {
+      (kind == (a_scope_kind)sck_func_prototype ||
+       kind == (a_scope_kind)sck_function)) {
     lookup_state->check_decl_seq = FALSE;
   }  /* if */
   if (lookup_state->skip_curr_scope) {
