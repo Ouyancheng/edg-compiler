@@ -13328,6 +13328,7 @@ accordingly.
   a_template_symbol_supplement_ptr  tssp = NULL;
   an_exception_specification_ptr    esp = NULL;
   a_symbol_ptr                      template_sym = NULL;
+  a_symbol_ptr                      decl_seq_sym = sym;
   a_boolean                         is_member_of_class_template = FALSE;
   
   check_assertion(is_simple_function_symbol(sym));
@@ -13338,6 +13339,9 @@ accordingly.
     esp = rp->type->variant.routine.extra_info->exception_specification;
     template_sym = tip->template_sym;
     if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* When doing the special g++ processing below, use the decl_seq of
+         the template. */
+      decl_seq_sym = template_sym;
       template_sym = prototype_template_of(template_sym);
     }  /* if */
     tssp = template_supplement_for_symbol(template_sym);
@@ -13397,7 +13401,7 @@ accordingly.
          instantiations of class members this is sometimes not the case. */
       if (is_member_of_class_template || rp->is_prototype_instantiation) {
         scope_stack_top().exception_specification = TRUE;
-        scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
+        scope_stack_top().exception_spec_decl_seq = decl_seq_sym->decl_seq - 1;
       }  /* if */
       scope_stack_top().outside_parameter_list = TRUE;
       if (tip->prototype_scope_symbols != NULL) {

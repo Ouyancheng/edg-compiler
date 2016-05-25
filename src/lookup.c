@@ -2391,6 +2391,7 @@ lookup processing.
   a_symbol_ptr		active_sym;
   a_symbol_ptr		prev_active_sym = NULL;
   a_symbol_ptr		type_tag_symbol = NULL;
+  a_boolean		saved_check_decl_seq;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -2400,6 +2401,13 @@ lookup processing.
    is_acceptable_symbol(sym, fund_sym, *lookup_state,			     \
                         /*invisible_okay=*/FALSE))
 
+  /* The decl_seq check should not be done function parameters in certain
+     noexcept contexts. */
+  saved_check_decl_seq = lookup_state->check_decl_seq;
+  if (lookup_state->inclass_exception_spec &&
+      (kind == sck_func_prototype || kind == sck_function)) {
+    lookup_state->check_decl_seq = FALSE;
+  }  /* if */
   if (lookup_state->skip_curr_scope) {
     /* Skip this scope.  Note that we still look for a projected symbol. */
   } else {
@@ -2475,6 +2483,7 @@ lookup processing.
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
   }  /* if */
+  lookup_state->check_decl_seq = saved_check_decl_seq;
   return sym;
 #undef is_acceptable_active_symbol
 }  /* active_scope_lookup */

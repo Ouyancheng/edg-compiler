@@ -1,5 +1,31 @@
 Version 4.12
 
+5/26/16  [EDGcpfe/16939]
+GNU C++ compatibility: spurious lookup error in noexcept
+
+In g++ mode a nonstandard lookup is done of names in noexcept contexts of
+members functions and member function templates of class templates (the
+lookup ignores member functions declared later in the class).  This
+did not work properly in some cases when deferral of function prototype
+instantiations was being done, causing some lookups of members to fail.
+Now fixed.
+
+  struct A {};
+  template <typename T> struct B {
+    typedef decltype(T()(0)) type;
+  };
+  template <typename T> struct C {
+    int i;
+    // Formerly: "i" is undefined at instantiation time
+    template <typename U> int operator ()(U) noexcept(noexcept(i));
+  };
+  int main() {
+    typedef C<int A::*>  c;
+    typedef B<c>::type type;
+    c()(0);
+  }
+
+
 5/25/16  [EDGcpfe/16987]
 auto/decltype(auto) variables and template-dependent template-id initializers
 
