@@ -10065,7 +10065,7 @@ partial specialization.
   if (tap != NULL &&
       templ_tap == NULL && prev_templ_tap != NULL &&
       is_start_of_pack_expansion_templ_arg(prev_templ_tap)) {
-    /* There are more real arguments and the template argument is pack
+    /* There are more real arguments and the template argument is a pack
        placeholder.  Consider that a match. */
   } else if ((tap == NULL) !=
       (templ_tap == NULL ||
