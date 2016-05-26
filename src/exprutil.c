@@ -8158,7 +8158,9 @@ user-defined conversions.
     /* Casting to an error type.  Produce an error operand. */
     conv_to_error_operand(operand);
   } else if (is_void_type(new_type)) {
-    cast_operand_to_void(operand, new_type);
+    if (!is_void_type(operand->type)) {
+      cast_operand_to_void(operand, new_type);
+    }  /* if */
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && operand->is_simple_string_literal &&
