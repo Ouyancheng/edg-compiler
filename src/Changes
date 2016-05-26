@@ -1,5 +1,15 @@
 Version 4.12
 
+5/26/16  [EDGcpfe/17231]
+Missing error on use of UDL operator as class or alias template name
+
+A user-defined literal operator name was incorrectly allowed as a class
+or alias template name.  Now fixed.
+
+  template <class T> class operator "" _X {};
+  template <class T> using operator "" _Y = int;
+
+
 5/26/16  [EDGcpfe/16994]
 Spurious attempt to implicitly invoke copy constructor
 

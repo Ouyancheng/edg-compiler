@@ -19413,6 +19413,7 @@ declaration of a partial specialization declared outside of its class.
     set_to_error_locator(locator);
     next_tok = next_token();
   } else if (locator_for_curr_id.is_operator_name ||
+             locator_for_curr_id.is_udl_operator_name ||
              locator_for_curr_id.is_conversion_name) {
     /* Issue an error for something like "class operator+" or
        "class operator int". */
@@ -22759,6 +22760,7 @@ and returned.  Otherwise, NULL is returned.
     /* An incorrectly formed identifier. */
     err = TRUE;
   } else if (locator->is_operator_name ||
+             locator_for_curr_id.is_udl_operator_name ||
              locator->is_conversion_name) {
     /* Issue an error for something like "operator+" or "operator int". */
     pos_error(ec_operator_name_not_allowed,
@@ -24651,6 +24653,14 @@ alias
     /* Not an identifier. */
     pos_error(ec_exp_identifier, &pos_curr_token);
     set_to_error_locator(locator);
+  } else if (locator_for_curr_id.is_operator_name ||
+             locator_for_curr_id.is_udl_operator_name ||
+             locator_for_curr_id.is_conversion_name) {
+    /* Issue an error for something like "operator+" or "operator int". */
+    pos_error(ec_operator_name_not_allowed,
+              &locator_for_curr_id.source_position);
+    set_to_error_locator(locator);
+    (void)get_token();
   } else if (locator_for_curr_id.is_template_id) {
     /* A template-id is not allowed. */
     pos_error(ec_template_id_not_allowed, &pos_curr_token);
