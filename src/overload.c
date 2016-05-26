@@ -21506,15 +21506,22 @@ TRUE, the result *p_dip and *p_constant are not constructed.
       /* A nonreal class type. */
     } else {
       /* A real class type.  Find the default constructor. */
-      a_boolean def_ctor_err;
-      a_boolean local_error_detected;
-      a_boolean *p_error_detected = NULL;
+      a_boolean   def_ctor_err, local_error_detected;
+      a_boolean   *p_error_detected = NULL;
+      a_type_ptr  object_class_type = unqual_dest_type;
       if (!issue_errors) p_error_detected = &local_error_detected;
       /* Don't check access if we're doing overload resolution. */
+      if (is != NULL && is->ctor_initializer) {
+        /* This is the initialization of a subobject.  Make sure the object
+           class type is set correctly (this matters if access checking is
+           performed). */
+        a_routine_ptr  ctor = current_routine_entry();
+        object_class_type = parent_class_of(ctor);
+      }  /* if */
       ctor_routine =
          select_default_constructor_full(unqual_dest_type,
                                          pos,
-                                         unqual_dest_type,
+                                         object_class_type,
                                          /*declarative_context=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
                                          generate_il &&

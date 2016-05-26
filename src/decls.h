@@ -495,6 +495,9 @@ typedef struct an_init_state {
 			/* TRUE while processing an element of an aggregate
 			   constant that will appear under a ck_init_repeat
 			   constant (unless no IL is generated). */
+  a_bit_field	ctor_initializer:1;
+			/* TRUE for an entry representing the initializer for
+			   a ctor-initializer. */
 } an_init_state;
 
 

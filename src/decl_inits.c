@@ -6527,6 +6527,7 @@ given type, and record the initializer in *cip if cip is non-NULL.
   is.direct_init = TRUE;
   is.force_dynamic_init = TRUE;
   is.elements_are_full_expressions = TRUE;
+  is.ctor_initializer = TRUE;
   if (strict_ansi_mode) {
     is.error_on_narrowing = TRUE;
   } else {
@@ -6601,6 +6602,7 @@ cases, array_type is NULL).
     clear_init_state(&is);
     is.direct_init = TRUE;
     is.force_dynamic_init = TRUE;
+    is.ctor_initializer = TRUE;
     if (dependent_class_init) {
       scan_dependent_type_parenthesized_initializer(&is);
     } else {
