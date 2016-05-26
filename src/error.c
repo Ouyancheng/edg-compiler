@@ -2948,6 +2948,27 @@ at a severity of discretionary error or above.
 }  /* is_effective_error */
 
 
+a_boolean is_effective_sfinae_error(an_error_code	error_code,
+                                    an_error_severity	severity)
+/*
+This routine is similar to is_effective_error but is called when a
+SFINAE error is detected.  If diag_override_does_not_affect_sfinae is
+FALSE, it simply calls is_effective_error.  But if it is TRUE then
+the determination is based on the severity passed in (ignoring any
+overridden severities).  Return TRUE if the diagnostic would be issued
+at a severity of discretionary error or above.
+*/
+{
+  a_boolean	result;
+
+  if (!diag_override_does_not_affect_sfinae) {
+    check_for_overridden_severity(error_code, &severity);
+  }  /* if */
+  result = (int)severity >= (int)es_discretionary_error;
+  return result;
+}  /* is_effective_sfinae_error */
+
+
 a_boolean is_effective_diagnostic(an_error_code     error_code,
                                   an_error_severity severity)
 /*

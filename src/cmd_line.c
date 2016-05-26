@@ -2031,6 +2031,8 @@ static a_flag_name
   { "suppress_deferral_on_partial_spec_members",
     &suppress_deferral_on_partial_spec_members },
   { "no_very_expensive_checking", &no_very_expensive_checking },
+  { "diag_override_does_not_affect_sfinae",
+    &diag_override_does_not_affect_sfinae },
   { NULL, NULL }  /* must be last */
 };
 
@@ -2815,6 +2817,7 @@ process.
   nullptr_enabled = FALSE;
   cpp11_sfinae_enabled = FALSE;
   cpp11_sfinae_ignore_access = FALSE;
+  diag_override_does_not_affect_sfinae = FALSE;
   variadic_templates_enabled = FALSE;
   gnu_bases_operators_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
@@ -5472,6 +5475,11 @@ file.
 #else /* !defined(DEFAULT_DESIGNATORS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_DESIGNATORS_ALLOWED);
 #endif /* defined(DEFAULT_DESIGNATORS_ALLOWED) */
+#if defined(DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE)
+  define_numeric_valued_macro(DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE);
+#else /* !defined(DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE) */
+  comment_undefined_macro_name(DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE);
+#endif /* defined(DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE) */
 #if defined(DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES)
   define_numeric_valued_macro(
                      DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES);
@@ -11181,6 +11189,8 @@ variables declared in cmd_line.h.
   cpp11_sfinae_enabled = DEFAULT_CPP11_SFINAE_ENABLED;
   cpp11_sfinae_ignore_access = cpp11_sfinae_enabled &&
                             DEFAULT_CPP11_SFINAE_IGNORE_ACCESS; /*lint !e506*/
+  diag_override_does_not_affect_sfinae =
+                                  DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE;
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;

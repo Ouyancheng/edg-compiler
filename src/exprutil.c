@@ -5965,8 +5965,8 @@ a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
 Return TRUE if a diagnostic with the indicated severity and error code
 should be issued.  More precisely, return FALSE if the diagnostic should
 not be issued because we are in a template deduction context.  In that
-case, if the effective level of the diagnostic (after adjustment because
-of command-line options or pragmas) is an error of some kind, set the
+case, if the effective level of the diagnostic (after possible adjustment
+because of command-line options or pragmas) is an error of some kind, set the
 any_suppressed_error flag in the expression stack.
 */
 {
@@ -5975,7 +5975,7 @@ any_suppressed_error flag in the expression stack.
   if (expr_stack != NULL) {
     if (expr_stack->suppress_diagnostics) {
       should_issue = FALSE;
-      if (is_effective_error(err_code, sev)) {
+      if (is_effective_sfinae_error(err_code, sev)) {
         record_suppressed_error();
       }  /* if */
     }  /* if */

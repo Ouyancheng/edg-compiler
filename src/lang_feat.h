@@ -1497,6 +1497,16 @@ later.
 #endif /* DEFAULT_CPP11_SFINAE_IGNORE_ACCESS */
 
 /*
+Flag that is TRUE if features that override diagnostic severities
+(i.e., command-line options, pragmas) should not affect the severity of a
+diagnostic for SFINAE purposes when C++11 SFINAE is enabled.  This macro is
+used to initialize the global variable diag_override_does_not_affect_sfinae.
+*/
+#ifndef DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE
+#define DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE FALSE
+#endif /* DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.
@@ -2495,6 +2505,14 @@ EXTERN a_boolean
 			/* When cpp11_sfinae_enabled is TRUE and this is TRUE,
 			   access checking errors are ignored and do not cause
 			   deduction failure. */
+
+EXTERN a_boolean
+		diag_override_does_not_affect_sfinae;
+			/* TRUE if features that override diagnostic
+			   severities (i.e., command-line options,
+			   pragmas) should not affect the severity of
+			   the condition when uses for SFINAE purposes
+			   when C++11 SFINAE is enabled. */
 
 EXTERN a_boolean
 		range_based_for_enabled;

@@ -302,6 +302,9 @@ a_boolean set_severity_for_error_number(int		  error_number,
 extern a_boolean is_effective_error(an_error_code	error_code,
                                     an_error_severity	severity);
 
+extern a_boolean is_effective_sfinae_error(an_error_code	error_code,
+                                           an_error_severity	severity);
+
 extern a_boolean is_effective_diagnostic(an_error_code     error_code,
                                          an_error_severity severity);
 

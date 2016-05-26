@@ -1,5 +1,21 @@
 Version 4.12
 
+5/26/16  [EDGcpfe/17224]
+Flag to prevent diagnostic overrides from affecting SFINAE
+
+The severity of some diagnostics can be overridden by command-line
+options and/or pragmas.  The overridden severity has been used for
+both diagnostics and to determine if a construct is should cause
+a substitution failure, under the assumption that a given construct
+should have the same semantics in and out of SFINAE contexts.  Some
+customers would like to be able to override diagnostic severities
+without impacting SFINAE behavior.  This is now controlled with the
+variable diag_override_does_not_affect_sfinae, which is initialized
+with the macro DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE.  The
+macro is FALSE by default (so there is no behavior change unless this
+macro is set).
+
+
 5/26/16  [EDGcpfe/17231]
 Missing error on use of UDL operator as class or alias template name
 
