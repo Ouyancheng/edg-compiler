@@ -4,7 +4,7 @@ Version 4.12
 GNU C++ compatibility: spurious lookup error in noexcept
 
 In g++ mode a nonstandard lookup is done of names in noexcept contexts of
-members functions and member function templates of class templates (the
+member functions and member function templates of class templates (the
 lookup ignores member functions declared later in the class).  This
 did not work properly in some cases when deferral of function prototype
 instantiations was being done, causing some lookups of members to fail.

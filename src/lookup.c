@@ -2401,7 +2401,7 @@ lookup processing.
    is_acceptable_symbol(sym, fund_sym, *lookup_state,			     \
                         /*invisible_okay=*/FALSE))
 
-  /* The decl_seq check should not be done function parameters in certain
+  /* The decl_seq check should not be done on function parameters in certain
      noexcept contexts. */
   saved_check_decl_seq = lookup_state->check_decl_seq;
   if (lookup_state->inclass_exception_spec &&
