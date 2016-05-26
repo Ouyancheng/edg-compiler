@@ -11341,8 +11341,7 @@ there is some kind of failure.
            treatment (it's more constant than is usually assumed), so
            find it and mark it. */
         an_expr_node_ptr under_arg = arg->variant.operation.operands;
-        top_temp_dip = find_top_temporary(under_arg,
-                                          /*create_class_temp=*/FALSE);
+        top_temp_dip = find_top_temporary(under_arg);
         if (top_temp_dip != NULL) {
           saved_flag = top_temp_dip
                               ->is_top_temporary_for_constexpr_reference_param;
