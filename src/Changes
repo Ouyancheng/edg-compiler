@@ -23,7 +23,7 @@ Flag to prevent diagnostic overrides from affecting SFINAE
 
 The severity of some diagnostics can be overridden by command-line
 options and/or pragmas.  The overridden severity has been used for
-both diagnostics and to determine if a construct is should cause
+both diagnostics and to determine if a construct should cause
 a substitution failure, under the assumption that a given construct
 should have the same semantics in and out of SFINAE contexts.  Some
 customers would like to be able to override diagnostic severities

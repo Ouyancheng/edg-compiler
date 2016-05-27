@@ -2511,7 +2511,7 @@ EXTERN a_boolean
 			/* TRUE if features that override diagnostic
 			   severities (i.e., command-line options,
 			   pragmas) should not affect the severity of
-			   the condition when uses for SFINAE purposes
+			   the condition when used for SFINAE purposes
 			   when C++11 SFINAE is enabled. */
 
 EXTERN a_boolean
