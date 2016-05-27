@@ -62,7 +62,7 @@ spurious errors.  For example:
 This is now fixed.
 
 
-5/26/16  [EDGcpfe/16939]
+5/26/16  [EDGcpfe/16939,EDGcpfe/17208]
 GNU C++ compatibility: spurious lookup error in noexcept
 
 In g++ mode a nonstandard lookup is done of names in noexcept contexts of
