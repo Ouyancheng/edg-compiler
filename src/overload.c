@@ -20164,12 +20164,16 @@ must be considered.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
-a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node)
+a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
+                                      a_boolean        create_class_temp)
 /*
 Return the dynamic init entry for the top temporary of the indicated
 expression, if there is one.  Return NULL if not.  The top temporary is
 the one whose lifetime is extended if the expression is bound to a
-reference (see [class.temporary]p5).
+reference (see [class.temporary]p5).  If create_class_temp is TRUE,
+create a temporary for a by-value class return so we can mark it
+(that option should be used only within the expression processing
+routines).
 */
 {
   a_dynamic_init_ptr dip = NULL;
@@ -20200,6 +20204,34 @@ reference (see [class.temporary]p5).
     }  /* if */
     node = skip_parens(node);
   }  /* while */
+  if (create_class_temp &&
+      !is_glvalue_node(node) &&
+      is_call_node(node)) {
+    a_type_ptr  rtp = skip_typerefs(node->type);
+    if (is_immediate_class_type(rtp)) {
+      /* A call returning a class object by value.  Add an enk_temp_init
+         to create a front-end temporary so we can adjust its lifetime. */
+      an_expr_node_ptr node_copy, new_node;
+      an_operand       local_operand;
+      a_class_symbol_supplement_ptr
+                       cssp = class_symbol_supp(symbol_for(rtp));
+      node_copy = copy_node(node);
+      make_expression_operand(node_copy, &local_operand);
+      if (cssp->construction_by_bitwise_copy_allowed) {
+        temp_init_by_bitwise_copy_from_operand(&local_operand, node->type,
+                                               /*result_is_lvalue=*/FALSE,
+                                               /*is_explicit_cast=*/FALSE);
+      } else {
+        temp_init_from_operand(&local_operand, /*result_is_lvalue=*/FALSE);
+      }  /* if */
+      new_node = make_node_from_operand(&local_operand);
+      /* Overwrite the original node so we alter the original expression,
+         under any nodes we might have stripped off above. */
+      check_assertion(identical_types(node_copy->type, new_node->type) ||
+                      is_error_node(new_node) || is_error_node(node_copy));
+      overwrite_node(node, new_node);
+    }  /* if */
+  }  /* if */
   if (node->kind == (an_expr_node_kind)enk_temp_init) {
     dip = node->variant.init.dynamic_init;
   } else if (node->kind == (an_expr_node_kind)enk_lambda) {
@@ -20278,7 +20310,8 @@ like
 */
 {
   if (is_expression_operand(operand)) {
-    a_dynamic_init_ptr dip = find_top_temporary(operand->variant.expression);
+    a_dynamic_init_ptr dip = find_top_temporary(operand->variant.expression,
+                                                /*create_class_temp=*/TRUE);
     if (dip != NULL) {
       /* Extend the temporary lifetime appropriately. */
       extend_temporary_lifetime(dip, static_lifetime);
