@@ -14328,6 +14328,9 @@ position of the "?" and ":".
           /* Do the copy optimization. */
           if (!suppress_class_temp_optimization) { 
             do_class_rvalue_question_optimization(dip_2, dip_3, result);
+          } else {
+            dip_2->inside_conditional_expression = TRUE;
+            dip_3->inside_conditional_expression = TRUE;
           }  /* if */
         } else {
           /* For the unoptimized class rvalue case, make an extra copy,
