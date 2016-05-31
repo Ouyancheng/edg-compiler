@@ -15314,7 +15314,8 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
              was present (if any).  If no qualifier was present, look up the
              destructor/finalizer in the field selection class. */
           other_locator = locator_for_curr_id;
-          if (qualifier_sym != NULL || is_file_scope_qualified_name) {
+          if (!is_template_dependent_type(field_sel_type) &&
+              (qualifier_sym != NULL || is_file_scope_qualified_name)) {
             other_sym = look_up_destructor_or_finalizer_name(
                                                  &other_locator,
                                                  is_file_scope_qualified_name,

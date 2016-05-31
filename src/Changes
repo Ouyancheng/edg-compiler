@@ -1,5 +1,16 @@
 Version 4.12
 
+5/31/16  [EDGcpfe/17030]
+Spurious error on destructor call with dependent qualifier
+
+A spurious error was issued if a destructor call used a dependent type for
+the qualifier but a non-dependent name for the destructor.  Now fixed.
+
+  template<typename T> void f(T* p) {
+    p->decltype(T{})::~X();
+  }
+
+
 5/26/16  [EDGcpfe/17037]
 Spurious access error on braced constructor initializer
 
