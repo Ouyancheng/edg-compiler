@@ -7035,7 +7035,6 @@ to match GNU's behavior).
         nsp->has_gnu_abi_tag_attribute = TRUE;
         /* Also indicate that entities defined in this namespace scope are
            subject to the attributes defined by this namespace. */
-        assert_is_valid_scope_depth(depth_scope_stack);
         check_assertion(scope_stack_top().assoc_namespace == nsp);
         scope_stack_top().in_gnu_abi_tag_namespace = TRUE;
       } else {
