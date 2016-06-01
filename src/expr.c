@@ -25962,6 +25962,16 @@ third operands of a "?" operator, have the same type.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_a_glvalue(operand_2) && is_a_glvalue(operand_3) &&
+      is_an_xvalue(operand_2) == is_an_xvalue(operand_3) &&
+      !microsoft_mode & !(gpp_mode && !clang_mode && gnu_version < 50100)) {
+    /* N4582, 5.16/4: "... or if both are glvalues of the same value category
+       and the same type except for cv-qualification ...".  This is a change
+       introduced by the resolution of Core issue 587; MSVC doesn't implement
+       it yet and earlier versions of GCC didn't either. */
+    type_2 = skip_typerefs(type_2);
+    type_3 = skip_typerefs(type_3);
+  }  /* if */
   types_are_the_same = identical_types(type_2, type_3);
   return types_are_the_same;
 }  /* same_types_for_question_operator */
@@ -26540,7 +26550,17 @@ that case.
     result_type = operand_2.type;  /* Assume. */
     if (!C_mode() && types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
-         is needed. */
+         is needed, but cv-qualifiers must be combined for glvalues. */
+      if (result_is_a_glvalue &&
+          !is_a_function_designator(&operand_2) &&
+          !is_a_function_designator(&operand_3)) {
+        /* The changes for Core issue 587 allow for cv-qualifier differences
+           in glvalue operands.  See also same_types_for_question_operator. */
+        result_type = type_plus_qualifiers_from_second_type(operand_2.type,
+                                                            operand_3.type);
+        adjust_glvalue_type(&operand_2, result_type);
+        adjust_glvalue_type(&operand_3, result_type);
+      }  /* if */
       /* If either operand has an error type, make sure the result type is
          an error type. */
       if (is_error_type(operand_3.type)) {
