@@ -25964,7 +25964,7 @@ third operands of a "?" operator, have the same type.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_a_glvalue(operand_2) && is_a_glvalue(operand_3) &&
       is_an_xvalue(operand_2) == is_an_xvalue(operand_3) &&
-      !microsoft_mode & !(gpp_mode && !clang_mode && gnu_version < 50100)) {
+      !microsoft_mode && !(gpp_mode && !clang_mode && gnu_version < 50100)) {
     /* N4582, 5.16/4: "... or if both are glvalues of the same value category
        and the same type except for cv-qualification ...".  This is a change
        introduced by the resolution of Core issue 587; MSVC doesn't implement
