@@ -1,5 +1,21 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/17031]
+Defaulted default constructors and constexpr
+
+The front end previously did not mark defaulted default constructors as being
+"constexpr" even when the conditions for doing so hold.  This could lead to
+spurious errors, particularly in strict C++11 mode.  For example:
+
+  struct S {
+    S() = default;  // Previously, this constructor was not constexpr.
+    constexpr S(S const&) {}
+  };
+  constexpr S s{};  // Previously triggered a spurious error in strict mode.
+
+This is now fixed.
+
+
 6/2/16   [EDGcpfe/17239,EDGcpfe/17204]
 Microsoft compatibility: unbounded recursion in macro expansion
 
