@@ -1197,13 +1197,33 @@ the specifiers and declarator that formed the new type.
                                         &dps->return_type_pos :
                                         &error_position)) {
           err = TRUE;
-        } else if (C_dialect == C_dialect_pcc) {
-          /* In pcc mode, promote float functions to double functions.
-             Any type qualifiers or typedef information on the new type
-             are discarded. */
-          promote_float_to_double(new_type_ptr);
         }  /* if */
-        if (err) new_type_ptr = error_type();
+        if (err) {
+          new_type_ptr = error_type();
+        } else {
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, promote float functions to double functions.
+               Any type qualifiers or typedef information on the new type
+               are discarded. */
+            promote_float_to_double(new_type_ptr);
+          }  /* if */
+          if (gcc_mode) {
+            /* GCC essentially ignores the "volatile" qualifier on C-mode
+               return types.  We also drop it, to avoid redeclaration errors
+               in cases like the following:
+                  int volatile f();
+                  int f();  // Not an error in GNU C mode.
+               Note that a warning is likely to have been issued by the call to
+               check_return_type. */
+            a_type_qualifier_set  tqs = get_type_qualifiers(new_type_ptr);
+            if ((tqs & TQ_VOLATILE) != TQ_NONE &&
+                !is_void_type(new_type_ptr)) {
+              tqs &= ~(a_type_qualifier_set)tqs;
+              new_type_ptr = make_qualified_type(skip_typerefs(new_type_ptr),
+                                                 tqs);
+            }  /* if */
+          }  /* if */
+        }  /* if */
         check_assertion((*bottom_derived_type)->kind ==
                                                     (a_type_kind)tk_routine);
         (*bottom_derived_type)->variant.routine.return_type = new_type_ptr;

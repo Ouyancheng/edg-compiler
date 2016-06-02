@@ -1,5 +1,15 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/16882]
+GNU C compatibility: Volatile return types
+
+In GNU C mode, volatile type qualifiers are dropped (possibly after issuing a
+warning) on non-void return types.  This avoids errors in cases like this:
+
+  volatile int g();  // A warning is issued; "volatile" is otherwise ignored.
+  int g();           // No longer an error in GNU C mode.
+
+
 6/1/16   [EDGcpfe/17010]
 Cast type vs. expression disambiguation
 
