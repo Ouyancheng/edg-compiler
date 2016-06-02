@@ -3152,6 +3152,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_boolean               is_local_class = FALSE, class_key_is_missing = FALSE;
   a_boolean               is_abstract = FALSE, is_final = FALSE,
                           is_sealed = FALSE;
+  a_boolean               is_event_interface = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
   an_assembly_visibility  cli_visibility = (an_assembly_visibility)av_none;
@@ -3240,6 +3241,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          C++/CLI "interface class" and "interface struct" keywords). */
       type_kind = (a_type_kind)tk_struct;
       is_interface = TRUE;
+      is_event_interface = dps->has_event_keyword;
       break;
     case tok_value_struct:
       type_kind     = (a_type_kind)tk_struct;
@@ -3362,7 +3364,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
                             no_definition_allowed,
-                            is_interface && dps->has_event_keyword,
+                            is_event_interface,
                             &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
@@ -4708,7 +4710,8 @@ Handle an "__event __interface" declaration in (a COM) class_type.
                                  scope_stack_top().end_of_source_sequence_list;
           a_src_seq_secondary_decl_ptr sssd;
           check_assertion(sse != NULL &&
-                          sse->entity.kind == iek_src_seq_secondary_decl);
+                          sse->entity.kind ==
+                             (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
           sssd = (a_src_seq_secondary_decl_ptr)sse->entity.ptr;
           sssd->is_event_interface = TRUE;
         }
