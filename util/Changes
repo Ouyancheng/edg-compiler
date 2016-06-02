@@ -1,3 +1,12 @@
+Version 4.12
+
+6/2/16   [EDGcpfe/17260]
+Add _M_X64 to make_win_predef_macro_table.c
+
+The macro _M_X64 is now checked for by make_win_predef_macro_table.c.
+
+
+-------------------------------------------------------------------------------
 Version 4.11, May 12, 2016
 
 5/10/16  [EDGcpfe/17165]

@@ -145,6 +145,9 @@ int main(int argc, char *argv[]) {
 #ifdef _M_IX86_FP
   define_predefined_macro(_M_IX86_FP)
 #endif /* _M_IX86_FP */
+#ifdef _M_X64
+  define_predefined_macro(_M_X64)
+#endif /* _M_X64 */
 #ifdef _MFC_VER
   define_predefined_macro(_MFC_VER)
 #endif /* _MFC_VER */
