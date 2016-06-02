@@ -2686,7 +2686,7 @@ instead of being mapped on an actual header file.
     /* Use type_underlying_va_list if it has been configured. */
     tp = type_underlying_va_list;
   } else {
-    if (targ_supports_x86_64) {
+    if (targ_supports_x86_64 && !microsoft_mode) {
       /* The x86-64 __builtin_va_list type is defined as follows:
            struct __va_list_tag {
              unsigned int  gp_offset;

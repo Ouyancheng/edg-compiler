@@ -575,7 +575,7 @@ command-line when compiling system headers.
 #define TARG_SIZE_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_long_long)
 #define TARG_SIZE_T_MAX_win64 ((a_targ_size_t)(9223372036854775807LL * 2ULL + 1))
 #define TARG_SSIZE_T_INT_KIND_win64 ((an_integer_kind)ik_long_long)
-#define TARG_SUPPORTS_X86_64_win64 0
+#define TARG_SUPPORTS_X86_64_win64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_win64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win64 0
 #define TARG_UNWIND_WORD_MODE_win64 ((a_type_mode_kind)tmk_SI)

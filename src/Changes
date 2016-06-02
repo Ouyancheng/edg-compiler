@@ -1,5 +1,22 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/17257]
+Microsoft compatibility: va_list type in 64-bit mode
+
+Previously the predefined type used for va_list in Microsoft mode in 64-bit
+mode was an array of __va_list_tag structures (as is used in most Linux
+instances).  A change has been made to use "char *", as is used currently
+in the 32-bit mode.  For example, with --microsoft (in a configuration where
+TARG_SUPPORTS_X86_64 is TRUE):
+
+  #include <stdarg.h>
+  void f(char *);
+  int main() {
+    va_list vl;
+    f(vl);
+  }
+
+
 6/2/16   [EDGcpfe/10994]
 Microsoft compatibility: __event __interface
 
