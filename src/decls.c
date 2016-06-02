@@ -193,6 +193,7 @@ be restored).
     dps->has_cli_event_keyword = FALSE;
     dps->has_cli_initonly_keyword = FALSE;
     dps->has_cli_literal_keyword = FALSE;
+    dps->has_event_keyword = FALSE;
     dps->initializer_is_single_expr = FALSE;
     dps->is_explicit_instantiation = FALSE;
     dps->range_based_for = FALSE;

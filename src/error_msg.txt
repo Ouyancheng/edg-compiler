@@ -2849,6 +2849,9 @@ ec_constexpr_invalid_null_ptr_operation;;"operation not allowed on null pointer"
 ec_star_this_not_constant_valued;;"the value of *this cannot be used as a constant"
 ec_inline_on_nested_namespace;;"the \"inline\" keyword cannot be used on a nested namespace declaration"
 ec_carries_dependency_ignored;;"the \"carries_dependency\" attribute is ignored"
+ec_event_interface_cannot_have_definition;;"an \"__event __interface\" cannot have a definition here"
+ec_invalid_event_handler_type;;"an event handler must have a void or integral return type"
+ec_event_interface_must_be_previously_defined;;"an \"__event __interface\" must have been previously defined"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

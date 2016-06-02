@@ -1020,6 +1020,7 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_boolean         no_definition_allowed,
+                                  a_boolean         is_event_interface,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
                                   a_boolean         *is_predeclared_type_decl,
@@ -1041,7 +1042,9 @@ however, the flag will be reset to FALSE and a normal lookup will be done.
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  no_definition_allowed is TRUE if no definition
 is considered in this context (e.g., if the declaration appears in a C++11
-trailing return type).  *effective_decl_level will have been initialized to
+trailing return type).  is_event_interface is TRUE if the __event keyword
+precedes the __interface keyword meaning that an "__event __interface" is
+being declared.  *effective_decl_level will have been initialized to
 decl_scope_level by the caller; it may be changed in C++ for a forward
 reference to a tag within a function prototype or a class definition -- the
 tag is entered into the innermost non-class/non-prototype scope, which is
@@ -1671,7 +1674,7 @@ caution when modifying this routine.
           clear_specific_symbol(*locator);
         }  /* if */
       }  /* if */
-      if (is_vacuous_declaration) {
+      if (is_vacuous_declaration && !is_event_interface) {
         /* This is a vacuous declaration.  Leave tag_sym set to NULL to force
            creation of a new symbol in the current scope. */
       } else {
@@ -2700,16 +2703,17 @@ issued in some cases.
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_membership_of_class(a_symbol_ptr       tag_sym,
                                 a_boolean          def_or_vacuous_decl,
+                                a_boolean          is_event_interface,
                                 a_scope_depth      decl_level,
                                 a_source_position  *diag_pos)
 /*
 The given class/struct/union symbol has just been created.  Record its class
-or namespace membership if appropriate.  In C++ mode, also set is name
+or namespace membership if appropriate.  In C++ mode, also set its name
 linkage if necessary.  A few other related peripheral fields are set by this
-routine.
-def_or_vacuous_decl is TRUE if this is a definition or a vacuous declaration.
-decl_level determines the scope in which the declaration appears.  Diagnostics
-may be emitted at the given position.
+routine.  def_or_vacuous_decl is TRUE if this is a definition or a vacuous
+declaration.  is_event_interface is TRUE if the symbol represents an "__event
+__interface".  decl_level determines the scope in which the declaration
+appears.  Diagnostics may be emitted at the given position.
 */
 {
   a_boolean  is_local_class = FALSE;
@@ -2756,7 +2760,10 @@ may be emitted at the given position.
               }  /* if */
             }  /* if */
             /* coverity[dead_error_condition] */
-            if (class_type->variant.class_struct_union.is_interface) {
+            if (class_type->variant.class_struct_union.is_interface &&
+                !is_event_interface) {
+              /* In the __event __interface case, a more specific error is
+                 given later. */
               pos_error(ec_interface_cannot_be_nested_class, diag_pos);
             }  /* if */
           }  /* if */
@@ -3230,7 +3237,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_interface:
       /* The Microsoft C++ "__interface" keyword (not to be confused with the
-         C++/CLI "interface class" and "interface struct" keywords. */
+         C++/CLI "interface class" and "interface struct" keywords). */
       type_kind = (a_type_kind)tk_struct;
       is_interface = TRUE;
       break;
@@ -3354,7 +3361,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
-                            no_definition_allowed, &effective_decl_level,
+                            no_definition_allowed,
+                            is_interface && dps->has_event_keyword,
+                            &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
@@ -4056,6 +4065,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     /* Set parent class or namespace pointers, if appropriate, and adjust
        related fields (e.g., name linkage). */
     update_membership_of_class(tag_sym, def_or_vacuous_decl,
+                               is_interface && dps->has_event_keyword,
                                effective_decl_level, &decl_start_pos);
     if (is_friend_decl && tag_id_present &&
         secondary_translation_unit_seen()) {
@@ -4617,6 +4627,97 @@ static an_integer_kind
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void validate_event_handler(a_routine_ptr rp)
+/*
+The routine is being used in the context of an event handler; issue an error
+if it doesn't meet the criteria for an event handler.
+*/
+{
+  a_type_ptr return_type, rout_type = skip_typerefs(rp->type);
+
+  check_assertion(is_function_type(rout_type));
+  return_type = skip_typerefs(rout_type->variant.routine.return_type);
+  if (is_void_type(return_type) || is_integral_type(return_type)) {
+    /* Valid return types for an event handler. */
+  } else {
+    pos_error(ec_invalid_event_handler_type,
+              &rp->source_corresp.decl_position);
+  }  /* if */
+}  /* validate_event_handler */
+
+
+void scan_and_record_event_interface_declaration(a_decl_parse_state *dps,
+                                                 a_type_ptr         class_type)
+/*
+Handle an "__event __interface" declaration in (a COM) class_type.
+*/
+{
+  a_boolean         declares_something, defines_something;
+  a_type_ptr        interface_type;
+  a_source_position event_pos = pos_curr_token;
+
+  check_assertion(curr_token == tok_event &&
+                  is_immediate_class_type(class_type));
+  dps->has_event_keyword = TRUE;
+  (void)get_token();
+  check_assertion(curr_token == tok_interface);
+  if (class_specifier(dps, DSI_NO_INPUT_FLAGS, /*vacuous_decl_allowed=*/TRUE,
+                     /*is_friend_decl=*/FALSE,
+                     /*marked_as_gnu_extension=*/FALSE, &interface_type,
+                     &declares_something, &defines_something,
+                     (a_decl_pos_block *)NULL)) {
+    if (defines_something) {
+      /* An event interface cannot be defined in a class. */
+      pos_error(ec_event_interface_cannot_have_definition,
+                &interface_type->source_corresp.decl_position);
+    } else if (!declares_something) {
+      expect_error();
+    } else {
+      a_class_type_supplement_ptr  ictsp = class_type_supp(interface_type);
+      if (ictsp->assoc_scope == NULL) {
+        /* The interface class must have been previously defined. */
+        pos_error(ec_event_interface_must_be_previously_defined,
+                  &interface_type->source_corresp.decl_position);
+      } else {
+        a_routine_ptr rp;
+        an_event_interface_ptr eip = alloc_event_interface();
+        a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+        eip->interface_type = interface_type;
+        eip->pos = event_pos;
+        if (ctsp->event_interfaces == NULL) {
+          ctsp->event_interfaces = eip;
+        } else {
+          an_event_interface_ptr ptr;
+          for (ptr = ctsp->event_interfaces;
+               ptr->next != NULL;
+               ptr = ptr->next) {}
+          ptr->next = eip;
+        }  /* if */
+        /* All user-specified methods of the interface must be valid event
+           handlers (note that base classes are not checked since MSVS
+           doesn't seem to check them). */
+        for (rp = ictsp->assoc_scope->routines; rp != NULL; rp = rp->next) {
+          if (rp->special_kind == (a_special_function_kind)sfk_none) {
+            validate_event_handler(rp);
+          }  /* if */
+        }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Add an indication that this is an "__event __interface". */
+        { a_source_sequence_entry_ptr sse =
+                                 scope_stack_top().end_of_source_sequence_list;
+          a_src_seq_secondary_decl_ptr sssd;
+          check_assertion(sse != NULL &&
+                          sse->entity.kind == iek_src_seq_secondary_decl);
+          sssd = (a_src_seq_secondary_decl_ptr)sse->entity.ptr;
+          sssd->is_event_interface = TRUE;
+        }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* scan_and_record_event_interface_declaration */
+
 
 static a_boolean validate_cppcli_enum_base_type(
                                               a_type_ptr         *p_base_type,
@@ -5806,6 +5907,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                             &is_friend_decl, &vacuous_decl_allowed,
                             (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                             (dsi_flags & DSI_NO_TAG_DEFINITION) != 0,
+                            /*is_event_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
     is_definition = tag_definition_next(

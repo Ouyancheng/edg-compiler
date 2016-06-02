@@ -878,6 +878,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	has_cli_literal_keyword:1;
 			/* TRUE if a C++/CLI context-sensitive keyword
 			   "literal" was seen in a member declaration. */
+  a_bit_field	has_event_keyword:1;
+			/* TRUE if the "__event" keyword has been seen (in
+			   Microsoft mode).  Could be a COM event interface
+			   or a native C++ event method (not implemented). */
   a_bit_field	override_okay:1;
 			/* TRUE if this is a member function on which the
 			   "override" attribute (C++11) attribute or modifier

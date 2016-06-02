@@ -2294,7 +2294,8 @@ the fields implied by the lambda's capture list).
     type->variant.class_struct_union.is_nonreal_class = TRUE;
     is_prototype_instantiation = TRUE;
   }  /* if */
-  update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
+  update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE,
+                             /*is_event_interface=*/FALSE, decl_level,
                              decl_position);
   /* In some contexts the closure type is recorded with the entity associated
      with the expression containing the lambda (e.g., a closure type from a
@@ -24770,7 +24771,8 @@ whose declaration was already loaded: class_type represents the corresponding
     dps->sym->variant.class_struct_union.type = class_type;
     set_source_corresp(&(class_type->source_corresp), dps->sym);
     update_membership_of_class(dps->sym, /*def_or_vacuous_decl=*/TRUE,
-                               decl_level, &dps->start_pos);
+                               /*is_event_interface=*/FALSE, decl_level,
+                               &dps->start_pos);
     add_to_types_list(class_type, decl_level);
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
@@ -24807,6 +24809,17 @@ a delegate definition corresponding to the assembly file.)
   }  /* if */
   scan_and_record_cli_delegate_definition(&dps, class_type);
 }  /* scan_cli_delegate_definition_from_assembly_import */
+
+
+static a_boolean check_for_event_interface_declaration(void)
+/*
+Returns TRUE if the next two tokens are "__event" and "__interface", indicating
+a COM event interface.  Note that these two tokens must be sequential
+(though they're not treated as a single keyword).
+*/
+{
+  return curr_token == tok_event && next_token() == tok_interface;
+}  /* check_for_event_interface_declaration */
 
 
 static a_boolean check_for_cli_field_modifier(a_decl_parse_state  *dps)
@@ -26521,6 +26534,11 @@ that is provided if this is a member template declaration.
           cannot_bind_to_curr_construct();
           goto next_declaration;
         }  /* if */
+      }  /* if */
+      if (check_for_event_interface_declaration()) {
+        /* An "__event __interface". */
+        scan_and_record_event_interface_declaration(dps, class_type);
+        goto next_declaration;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

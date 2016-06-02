@@ -1,5 +1,19 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/10994]
+Microsoft compatibility: __event __interface
+
+The "__event __interface" construct is now supported for COM event sources.
+For example, with --microsoft:
+
+  __interface IEvents {
+    void MyEvent(int value);
+  };
+  class CSource {
+    __event __interface IEvents;
+  };
+
+
 6/2/16   [EDGcpfe/17031]
 Defaulted default constructors and constexpr
 

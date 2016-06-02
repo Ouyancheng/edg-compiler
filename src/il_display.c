@@ -5921,6 +5921,17 @@ Display the indicated property/event description.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_property_or_event_descr */
 
+
+static void disp_event_interface(an_event_interface_ptr  eip)
+/*
+Display the indicated event interface.
+*/
+{
+  disp_ptr("next", (char *)eip->next, iek_event_interface);
+  disp_ptr("interface_type", (char *)eip->interface_type, iek_type);
+  disp_source_position("pos", &eip->pos);
+}  /* disp_event_interface */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -6914,6 +6925,10 @@ Display the indicated class type supplement entry.
   if (ptr->invocation_type != NULL) {
     disp_ptr("invocation_type", (char*)ptr->invocation_type, iek_type);
   }  /* if */
+  if (ptr->event_interfaces != NULL) {
+    disp_ptr("event_interfaces", (char*)ptr->event_interfaces,
+             iek_event_interface);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->proxy_of_type != NULL) {
@@ -7131,6 +7146,11 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->is_alias) {
     disp_boolean("is_alias", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sssdp->is_event_interface) {
+    disp_boolean("is_event_interface", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_src_seq_secondary_decl */
 
 
@@ -7400,6 +7420,9 @@ This routine is called during IL walking.
           break;
         case iek_generic_constraint:
           disp_generic_constraint((a_generic_constraint_ptr)entry_ptr);
+          break;
+        case iek_event_interface:
+          disp_event_interface((an_event_interface_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

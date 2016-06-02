@@ -535,6 +535,8 @@ static void gen_type_operator(a_type_ptr tp);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
+static void set_decl_position(a_source_correspondence      *scp,
+                              a_src_seq_secondary_decl_ptr sec_decl);
 /* Interfaces to gen_expr for the usual cases. */
 /* Note that gen_expr_with_parens does not force parentheses around the
    expression; it puts them there if there's some possibility of
@@ -2298,7 +2300,7 @@ static a_boolean is_autonomous_decl(a_type_ptr                   type,
 /*
 Return TRUE if the indicated type is a tag and its declaration is an
 autonomous declaration (i.e., it's not part of something else), or if
-the type is not a tag (a therefore its declaration is always autonomous).
+the type is not a tag (and therefore its declaration is always autonomous).
 sec_decl is non-NULL to indicate the secondary declaration entry, or NULL
 to indicate a primary declaration.
 */
@@ -7065,6 +7067,25 @@ one is required.
   restore_source_sequence_scan_state(&saved_state);
 }  /* gen_access_specifier_before_ms_attributes_if_needed */
 
+
+static void gen_event_interface_decl(a_type_ptr                   type,
+                                     a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Generate an "__event __interface" declaration for the specified type.
+*/
+{
+  /* Set the output position. */
+  set_decl_position(&type->source_corresp, sec_decl);
+  /* Set the right access mode. */
+  gen_member_access_specifier_for_decl_of(&type->source_corresp);
+  /* Emit the __event keyword (the __interface keyword is emitted by
+     gen_tag_reference). */
+  write_tok_str("__event ");
+  gen_tag_reference(type, GN_NO_OPTIONS, (an_attribute_ptr)NULL);
+  write_tok_str("; ");
+  adv_curr_source_sequence_entry();
+}  /* gen_event_interface_decl */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -8933,11 +8954,19 @@ this one is such a continuation.
   check_assertion(!(type->size != 0 && type->incomplete));
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
-    /* This type declaration is embedded in another declaration.
-       Do not put it out at this time.  Mark it for processing when
-       it is encountered while traversing the IL tree.  Note that
-       anonymous unions associated with variables get this processing too. */
-    skip_type_and_delay_definition(type, is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (sec_decl != NULL && sec_decl->is_event_interface) {
+      gen_event_interface_decl(type, sec_decl);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* This type declaration is embedded in another declaration.
+         Do not put it out at this time.  Mark it for processing when
+         it is encountered while traversing the IL tree.  Note that
+         anonymous unions associated with variables get this processing too. */
+      skip_type_and_delay_definition(type, is_definition);
+    }  /* if */
   } else {
     /* Set the output position. */
     set_decl_position(&type->source_corresp, sec_decl);

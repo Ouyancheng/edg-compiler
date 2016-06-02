@@ -174,6 +174,8 @@ void clear_generic_constraint_clause(a_generic_constraint_clause_ptr gccp);
 
 extern a_generic_constraint_clause_ptr alloc_generic_constraint_clause(void);
 
+extern an_event_interface_ptr alloc_event_interface(void);
+
 extern a_partial_class_body_ptr alloc_partial_class_body(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

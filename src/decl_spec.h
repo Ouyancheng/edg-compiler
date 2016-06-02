@@ -60,6 +60,10 @@ extern void scan_and_discard_extended_decl_modifiers(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern void scan_and_record_event_interface_declaration(
+                                                a_decl_parse_state *dps,
+                                                a_type_ptr         class_type);
+
 extern an_assembly_visibility scan_cli_visibility_specifier_if_any(
                                                      a_source_position  *pos);
 
@@ -151,6 +155,7 @@ extern void set_name_linkage_for_type(a_type_ptr  tp);
 
 extern void update_membership_of_class(a_symbol_ptr       tag_sym,
                                        a_boolean          def_or_vacuous_decl,
+                                       a_boolean          is_event_interface,
                                        a_scope_depth      decl_level,
                                        a_source_position  *diag_pos);
 

@@ -3197,6 +3197,8 @@ after_entry_from_class:
         walk_ptr_not_needed(ptr->base_object_finalize_routine, a_routine_ptr,
                             iek_routine);
         walk_ptr(ptr->invocation_type, a_type_ptr, iek_type);
+        walk_ptr(ptr->event_interfaces, an_event_interface_ptr,
+                 iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->proxy_of_type, a_type_ptr, iek_type);
@@ -3730,6 +3732,14 @@ after_entry_from_class:
       }
       break;
 #endif /* COROUTINES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_event_interface:
+      { an_event_interface_ptr ptr = (an_event_interface_ptr)entry_ptr;
+        walk_ptr(ptr->next, an_event_interface_ptr, iek_event_interface);
+        remap_ptr(ptr->interface_type, a_type_ptr, iek_type);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

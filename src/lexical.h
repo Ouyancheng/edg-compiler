@@ -437,6 +437,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_super */
    (an_opname_kind)onk_none,          /* tok_noop */
    (an_opname_kind)onk_none,          /* tok_interface */
+   (an_opname_kind)onk_none,          /* tok_event */
    (an_opname_kind)onk_none,          /* tok_microsoft_ptr32 */
    (an_opname_kind)onk_none,          /* tok_microsoft_ptr64 */
    (an_opname_kind)onk_none,          /* tok_microsoft_sptr */

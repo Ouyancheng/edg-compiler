@@ -886,6 +886,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
       enter_keyword((a_token_kind)tok_super, "__super");
       enter_keyword((a_token_kind)tok_interface, "__interface");
+      enter_keyword((a_token_kind)tok_event, "__event");
     }  /* if */
     if (microsoft_version >= 1300) {
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");

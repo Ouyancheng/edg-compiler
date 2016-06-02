@@ -696,6 +696,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_coroutine_descr,	/* a_coroutine_descr */
 #endif /* COROUTINES_ALLOWED */
   iek_variable_template_info,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_event_interface,  /* an_event_interface */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -861,6 +864,9 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_coroutine_descr */		"coroutine-descr",
 #endif /* COROUTINES_ALLOWED */
 /* iek_variable_template_info */        "variable-template-info",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* iek_event_interface */               "event-interface",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -1052,6 +1058,7 @@ typedef enum /*a_token_kind*/ {
   tok_super,
   tok_noop,
   tok_interface,
+  tok_event,
   tok_microsoft_ptr32,
   tok_microsoft_ptr64,
   tok_microsoft_sptr,
@@ -1317,7 +1324,7 @@ EXTERN a_const_char
    "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
    "end of __if_exists",
    "__super",
-   "__noop", "__interface",
+   "__noop", "__interface", "__event",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
    "__LPREFIX", "__identifier", "uuid", "in", "gcnew", "safe_cast",
    "__implements", "__unresolved_type",
@@ -1819,6 +1826,11 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	is_alias:1;
 			/* TRUE if this declaration is for a typedef declared
 			   using the alias syntax; e.g., "using T = int;". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_event_interface:1;
+			/* TRUE if this declaration is for an "__event
+			   __interface". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
@@ -7486,6 +7498,17 @@ typedef struct an_ms_attribute_usage {
 			   classes and overriding members. */
 } an_ms_attribute_usage;
 
+/* Entry describing an "__event __interface". */
+typedef struct an_event_interface *an_event_interface_ptr;
+typedef struct an_event_interface {
+  an_event_interface_ptr
+                next;   /* A pointer to the next entry. */
+  a_type_ptr    interface_type;
+                        /* A pointer to the type of the interface. */
+  a_source_position
+                pos;    /* Position of the "__event" keyword. */
+} an_event_interface;
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Entry containing additional information about a class type (tk_class,
@@ -7952,6 +7975,10 @@ typedef struct a_class_type_supplement {
 			   type with which the delegate was declared.  This is
 			   a type that doesn't include a "this" parameter.
 			   NULL if this entry isn't for a delegate class. */
+  an_event_interface_ptr
+		event_interfaces;
+			/* A pointer to all "__event __interface" types
+			   in this class.  NULL if there are none. */
   an_ms_attribute_usage
 		attribute_usage;
 			/* If is_cli_attribute is TRUE, identifies the kinds
@@ -19700,6 +19727,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_coroutine_descr),
 #endif /* COROUTINES_ALLOWED */
   sizeof(a_variable_template_info),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(an_event_interface),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

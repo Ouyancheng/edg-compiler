@@ -1758,6 +1758,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->base_idisposable_dispose_routine  = NULL;
   ctsp->base_object_finalize_routine      = NULL;
   ctsp->invocation_type                   = NULL;
+  ctsp->event_interfaces                  = NULL;
   clear_ms_attribute_usage(&ctsp->attribute_usage);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -4593,6 +4594,9 @@ and return a pointer to it.
   sssdp->is_decl_after_first_in_comma_list = FALSE;
   sssdp->explicit_storage_class      = FALSE;
   sssdp->is_alias                    = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sssdp->is_event_interface          = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -5295,6 +5299,21 @@ pointer to it.
   clear_generic_constraint_clause(gccp);
   return gccp;
 }  /* alloc_generic_constraint_clause */
+
+
+an_event_interface_ptr alloc_event_interface(void)
+/*
+Allocate an entry describing an "__event __interface".
+*/
+{
+  an_event_interface_ptr eip;
+
+  eip = alloc_il_of_type(an_event_interface);
+  eip->next = NULL;
+  eip->interface_type = NULL;
+  eip->pos = null_source_position;
+  return eip;
+}  /* alloc_event_interface */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
