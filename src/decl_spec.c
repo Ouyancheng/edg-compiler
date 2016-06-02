@@ -4709,11 +4709,12 @@ Handle an "__event __interface" declaration in (a COM) class_type.
         { a_source_sequence_entry_ptr sse =
                                  scope_stack_top().end_of_source_sequence_list;
           a_src_seq_secondary_decl_ptr sssd;
-          check_assertion(sse != NULL &&
-                          sse->entity.kind ==
+          if (sse != NULL) {
+            check_assertion(sse->entity.kind ==
                              (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
-          sssd = (a_src_seq_secondary_decl_ptr)sse->entity.ptr;
-          sssd->is_event_interface = TRUE;
+            sssd = (a_src_seq_secondary_decl_ptr)sse->entity.ptr;
+            sssd->is_event_interface = TRUE;
+          }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
