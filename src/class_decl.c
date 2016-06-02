@@ -19946,7 +19946,8 @@ issue an error if it is not actually constexpr.
   check_assertion(constexpr_enabled);
   if (ctor != NULL) {
     ctor_rp = ctor->variant.routine.ptr;
-    if (!ctor_rp->compiler_generated && !ctor_rp->is_constexpr) {
+    if (!(ctor_rp->compiler_generated || ctor_rp->is_defaulted) &&
+        !ctor_rp->is_constexpr) {
       /* The default constructor was user-declared, but not declared
          constexpr.  Nothing more needs to be done. */
       ctor = NULL;
