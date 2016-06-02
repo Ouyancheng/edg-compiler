@@ -719,6 +719,7 @@ extern int fileno(FILE *);
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_invalid_event_handler_type)*/
 /*lint -esym(769,ec_event_interface_must_be_previously_defined)*/
+/*lint -esym(769,ec_event_interface_cannot_have_definition)*/
 /*lint -esym(769,ec_cl_unrecognized_calling_convention)*/
 /*lint -esym(769,ec_cl_calling_convention_list)*/
 /*lint -esym(769,ec_microsoft_interface)*/

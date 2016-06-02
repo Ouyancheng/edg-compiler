@@ -4067,8 +4067,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     /* Set parent class or namespace pointers, if appropriate, and adjust
        related fields (e.g., name linkage). */
     update_membership_of_class(tag_sym, def_or_vacuous_decl,
-                               is_interface && dps->has_event_keyword,
-                               effective_decl_level, &decl_start_pos);
+                               is_event_interface, effective_decl_level,
+                               &decl_start_pos);
     if (is_friend_decl && tag_id_present &&
         secondary_translation_unit_seen()) {
       /* This class type entry might have been generated during the
