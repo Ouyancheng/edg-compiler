@@ -22984,12 +22984,20 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
       } else {
         /* Initialization case (not overload resolution). */
+        a_type_ptr  object_class_type = NULL;
+        if (is != NULL && is->ctor_initializer) {
+          /* This is the initialization of a subobject.  Make sure the object
+             class type is set correctly (this matters if access checking is
+             performed). */
+          a_routine_ptr  ctor = current_routine_entry();
+          object_class_type = parent_class_of(ctor);
+        }  /* if */
         check_assertion(generate_il);
         unbundle_init_component_list_expressions(list);
         force_narrowing_check_on_arg_list_members(list, /*value=*/TRUE);
         scan_ctor_arguments(ctor_sym,
                             start_position,
-                            (a_type_ptr)NULL,
+                            object_class_type,
                             (a_type_ptr)NULL,
                             fill_in_dtor,
                             /*elision_allowed=*/TRUE,
