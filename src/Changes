@@ -1,5 +1,18 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/17239,EDGcpfe/17204]
+Microsoft compatibility: unbounded recursion in macro expansion
+
+The change for EDGcpfe/16200 (in version 4.11) introduced a regression that
+resulted in unbounded recursion when a macro definition directly invokes
+the macro from a position other than the first token.  This is now fixed.
+For example, with --microsoft:
+
+  int M(int i) { return i; }
+  #define M(a) 1+M(a)
+  int j = M(M(2));
+
+
 6/2/16   [EDGcpfe/17022]
 Core issue 1684: constexpr member functions in non-literal types
 
