@@ -2485,7 +2485,7 @@ ec_constexpr_variable_must_have_literal_type;;"a constexpr variable must have a 
 ec_constexpr_ctor_with_virtual_base;;"a constructor for a class with virtual bases cannot be constexpr"
 ec_bad_cpp11_constant_function_call;;"function call must have a constant value in a constant expression"
 ec_constexpr_main;;"function \"main\" may not be declared constexpr"
-ec_constexpr_nonstatic_member_func_in_nonliteral_class;;"a constexpr member function is only permitted in a literal class type"
+REMOVED;ec_constexpr_nonstatic_member_func_in_nonliteral_class;;"a constexpr member function is only permitted in a literal class type"
 ec_tag_defined_in_constexpr_body;;"a class or enumeration type definition cannot appear in a constexpr function or constructor body"
 ec_only_gnu_attributes_here;;"only GNU-style attributes are permitted here"
 ec_auto_used_two_ways;;"nonstandard use of \"auto\" to both deduce the type from an initializer and to announce a trailing return type"
