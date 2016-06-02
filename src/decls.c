@@ -13877,9 +13877,10 @@ pushed.
 }  /* add_implicit_using_directive */
 
 
-static void namespace_declaration(a_token_kind  *final_token,
-                                  a_boolean     in_nested_namespace_decl,
-                                  a_symbol_ptr  *ns_definition_sym)
+static void namespace_declaration(a_token_kind      *final_token,
+                                  a_boolean         in_nested_namespace_decl,
+                                  a_source_position *nested_namespace_pos,
+                                  a_symbol_ptr      *ns_definition_sym)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, a
@@ -13902,9 +13903,10 @@ nested namespace definition, or a namespace alias definition.  The syntax is:
 and to tok_brace otherwise; the final token is swallowed by the caller.
 This routine is called recursively (for each segment of a qualified name)
 for a nested namespace definition.  In those cases, in_nested_namespace_decl
-is set to TRUE.  On return, *ns_definition_sym is set to the symbol for the
-(most nested level of the) namespace definition (if it's a definition and NULL
-otherwise).
+is set to TRUE and *nested_namespace_pos is set to the source position of the
+"namespace" keyword.  On return, *ns_definition_sym is set to the symbol for
+the (most nested level of the) namespace definition (if it's a definition and
+NULL otherwise).
 */
 {
   a_source_position           namespace_pos;
@@ -13939,6 +13941,7 @@ otherwise).
        name.  This processing effectively treats "namespace N1::N2 {}" as
        "namespace N1 { namespace N2 {}}". */
     is_unnamed_namespace = FALSE;
+    namespace_pos = *nested_namespace_pos;
   } else {
     /* Save the source position of the start of the declaration. */
     start_pos = pos_curr_token;
@@ -14392,7 +14395,7 @@ otherwise).
       /* For a nested namespace definition (e.g., "namespace N1::N2..."),
          recurse to process the remaining namespace names. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/TRUE,
-                            ns_definition_sym);
+                            &namespace_pos, ns_definition_sym);
     } else if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
     } else {
@@ -17249,7 +17252,7 @@ processing should proceed after the call.
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE,
-                            &dummy_sym);
+                            (a_source_position *)NULL, &dummy_sym);
       if (gpp_mode) {
         /* The C++11 standard doesn't allow namespace alias declarations in
            constexpr function definition, but GCC does. */
