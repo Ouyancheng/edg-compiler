@@ -26102,11 +26102,6 @@ that follows.
           pos_sy_error(ec_entity_cannot_be_specialized,
                        &locator.source_position, sym);
           sym = NULL;
-        } else if (sym->variant.routine.ptr->is_deleted) {
-          /* A deleted function cannot be specialized. */
-          pos_sy_error(ec_deleted_function_cannot_be_specialized,
-                       &locator.source_position, sym);
-          sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (sym->variant.routine.ptr->is_generic_instance) {
           /* A C++/CLI generic function cannot be specialized. */
@@ -26268,6 +26263,16 @@ that follows.
           } else {
             func_info.is_deleted = TRUE;
           }  /* if */
+        }  /* if */
+        if (rp->is_deleted && !already_specialized) {
+          /* The template was declared "= delete".  Clear the flag and mark
+             the specialization as not defined. */
+          rp->is_deleted = FALSE;
+          rp->defined = FALSE;
+          sym->defined = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          rp->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
         dps->is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||
