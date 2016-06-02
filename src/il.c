@@ -27003,7 +27003,9 @@ local).  See the descriptions of each of the flags for more information.
         kind = iek_routine;
         flag = WP_ROUTINE;
       } else if (scp->is_class_member) {
-        a_type_ptr parent_class = scp_parent_class(scp);
+        a_type_ptr parent_class;
+        check_assertion(scp->parent_scope != NULL);
+        parent_class = scp_parent_class(scp);
         check_assertion(parent_class != NULL);
         scp = &parent_class->source_corresp;
         kind = iek_type;
