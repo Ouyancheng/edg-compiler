@@ -1,5 +1,14 @@
 Version 4.12
 
+6/3/16   [EDGcpfe/17058]
+Core issue 903: "false" as a null pointer constant
+
+In C++11 mode, the front end no longer accepts the boolean literal "false" as
+a null pointer constant.  This falls out of the resolution of Core issue 903.
+A global variable false_literal_is_not_null_pointer_constant is available to
+control this behavior.
+
+
 6/3/16   [EDGcpfe/14954]
 Cast of call with incomplete return type in call not handled correctly in
 some SFINAE contexts

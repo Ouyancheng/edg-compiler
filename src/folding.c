@@ -2439,6 +2439,10 @@ Return TRUE if the given constant is a null pointer constant.
       if (!enum_type_is_integral && is_enum_type(tp)) {
         /* In C++ (except for cfront compatibility) an enumerator with value
            zero is not a null pointer constant. */
+      } else if (false_literal_is_not_null_pointer_constant &&
+                 is_bool_type(tp)) {
+        /* The resolution of Core issue 903 removed "false" from the set of
+           valid null pointer constants. */
       } else {
         is_null_pointer = TRUE;
       }  /* if */

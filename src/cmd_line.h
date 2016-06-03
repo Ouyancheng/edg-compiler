@@ -1464,6 +1464,13 @@ EXTERN a_boolean
 			   enabled. */
 
 EXTERN a_boolean
+		false_literal_is_not_null_pointer_constant;
+			/* Early specifications of the C++ standard permitted
+			   the use of "false" as a null pointer constant.
+			   This variable is TRUE if that is not the case,
+			   reflecting the resolution of Core issue 903. */
+
+EXTERN a_boolean
 		allow_decl_after_stmt;
 			/* Indicates whether a declaration can appear after a
 			   statement in C mode. */
@@ -2067,6 +2074,7 @@ EXTERN a_boolean
 			   "_Thread_local" specifier should be accepted to
 			   indicate that a variable should reside in
 			   thread-local storage. */
+
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 EXTERN a_boolean
 		all_thread_locals_have_wrappers;

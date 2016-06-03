@@ -3205,6 +3205,9 @@ default mode (e.g., exception handling).
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Disable "false" as a null pointer constant in C++11 mode (as per Core
+     issue 903). */
+  false_literal_is_not_null_pointer_constant = value;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -10952,6 +10955,7 @@ variables declared in cmd_line.h.
                     FALSE;
 #endif /* BOOL_ENABLING_POSSIBLE */
   c99_bool_is_keyword = FALSE;
+  false_literal_is_not_null_pointer_constant = FALSE;
   allow_decl_after_stmt = FALSE;
   default_max_member_alignment = 0;
   alternative_tokens_allowed = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED;
