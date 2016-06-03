@@ -4930,7 +4930,7 @@ match.
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
-      fprintf(f_debug, "determine_function_viability: default arg match\n");
+      fprintf(f_debug, "arg_count_mismatch: default arg match\n");
     }  /* if */
 #endif /* DEBUG */
   }  /* if */

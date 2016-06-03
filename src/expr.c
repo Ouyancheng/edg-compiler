@@ -6858,7 +6858,14 @@ a left parenthesis in the source.
                 locator->symbol_header = symbol_for(member_con)->header;
                 sym = look_up_selection_name(locator, class_struct_union_type);
                 if (sym != NULL) {
-                  if (symbol_is(sym, sk_class_template)) {
+                  if (locator->specific_symbol->ambiguous) {
+                    /* If a projection symbol was created, it may refer to an
+                       ambiguous member.  sym is already reduced in such cases,
+                       but the locator still points to the original projection
+                       symbol.  Pretend we found nothing so that a SFINAE
+                       failure is recorded. */
+                    sym = NULL;
+                  } else if (symbol_is(sym, sk_class_template)) {
                     if (!is_template_ref) {
                       /* This is a class template, but there's no explicit
                          template argument list.  Pretend we found nothing. */
