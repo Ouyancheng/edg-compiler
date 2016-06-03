@@ -4491,7 +4491,7 @@ before this routine is called.
     inline_namespaces_enabled = TRUE;
   }  /* if */
   /* GCC 5.x and earlier accept "false" as a null pointer constant. */
-  if (!clang_mode && clang_version < 60000) {
+  if (!clang_mode && gnu_version < 60000) {
     false_literal_is_not_null_pointer_constant = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
