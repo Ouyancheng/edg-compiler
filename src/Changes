@@ -10,7 +10,7 @@ associated candidate function.  For example:
   struct I f();  // Incomplete return type.
   template<typename T> int g(decltype(f(T{}), 0));  // (1)
   template<typename T> char g(...);
-  static_assert(sizeof(g<int>()) == 1, "Unexpected!");
+  static_assert(sizeof(g<int>(42)) == 1, "Unexpected!");
     // Previously triggered an "incomplete return type" error while
     //  considering candidate (1).
 
