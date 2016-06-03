@@ -1,5 +1,28 @@
 Version 4.12
 
+6/2/16   [EDGcpfe/17036]
+Spurious error on class template with pure virtual member instantiated with
+local type
+
+The front end spuriously issued an error message requiring the definition of
+a pure virtual member function of a class template instantiated over a local
+type.  For example:
+
+  template<typename T> struct B {
+    virtual void pv() const = 0;
+  };
+  template<typename T> struct D: B<T> {
+    virtual void pv() const {}
+  };
+  int main() {
+    enum E {};
+    B<E> const &r = D<E>();  // Previously triggered an error requiring the
+    r.pv();                  // definition of B<E>::pv() const.
+  }
+
+This is now fixed.
+
+
 6/2/16   [EDGcpfe/10970,EDGcpfe/15318,EDGcpfe/17032]
 Core issue 941: Specialization of deleted function templates
 
