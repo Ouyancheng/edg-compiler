@@ -6,7 +6,8 @@ Core issue 903: "false" as a null pointer constant
 In C++11 mode, the front end no longer accepts the boolean literal "false" as
 a null pointer constant.  This falls out of the resolution of Core issue 903.
 A global variable false_literal_is_not_null_pointer_constant is available to
-control this behavior.
+control this behavior.  The previous behavior is retained in Microsoft modes
+and in GNU modes with gnu_version < 60000.
 
 
 6/3/16   [EDGcpfe/14954]

@@ -2508,6 +2508,8 @@ option values if they were not already set by a command line option.
   /* MSVC doesn't treat bit fields in any special way wrt. promotion, much
      less operations applied to bit fields. */
   bit_field_promotion_applies_to_some_operations = FALSE;
+  /* MSVC still accepts "false" as a null pointer constant. */
+  false_literal_is_not_null_pointer_constant = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4487,6 +4489,10 @@ before this routine is called.
   }  /* if */
   if (clang_mode && clang_version >= 30000) {
     inline_namespaces_enabled = TRUE;
+  }  /* if */
+  /* GCC 5.x and earlier accept "false" as a null pointer constant. */
+  if (!clang_mode && clang_version < 60000) {
+    false_literal_is_not_null_pointer_constant = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
