@@ -84,7 +84,7 @@ spurious errors, particularly in strict C++11 mode.  For example:
 This is now fixed.
 
 
-6/2/16   [EDGcpfe/17239,EDGcpfe/17204]
+6/2/16   [EDGcpfe/17204,EDGcpfe/17239]
 Microsoft compatibility: unbounded recursion in macro expansion
 
 The change for EDGcpfe/16200 (in version 4.11) introduced a regression that
@@ -94,7 +94,7 @@ For example, with --microsoft:
 
   int M(int i) { return i; }
   #define M(a) 1+M(a)
-  int j = M(M(2));
+  int j = M(M(2));    // Previously caused unbounded recursion
 
 
 6/2/16   [EDGcpfe/17022]
