@@ -1498,8 +1498,9 @@ later.
 
 /*
 Flag that is TRUE if features that override diagnostic severities
-(i.e., command-line options, pragmas) should not affect the severity of a
-diagnostic for SFINAE purposes when C++11 SFINAE is enabled.  This macro is
+(i.e., command-line options, pragmas) should not affect the severity of
+a diagnostic for SFINAE purposes when C++11 SFINAE is enabled, and for other
+SFINAE-like processing that can affect overload resolution.  This macro is
 used to initialize the global variable diag_override_does_not_affect_sfinae.
 */
 #ifndef DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE
@@ -2512,7 +2513,9 @@ EXTERN a_boolean
 			   severities (i.e., command-line options,
 			   pragmas) should not affect the severity of
 			   the condition when used for SFINAE purposes
-			   when C++11 SFINAE is enabled. */
+			   when C++11 SFINAE is enabled, and for other
+			   SFINAE-like processing that can affect overload
+			   resolution. */
 
 EXTERN a_boolean
 		range_based_for_enabled;

@@ -732,7 +732,7 @@ remove_any_extraneous_braces:
                  icp->variant.braced.list != NULL);
       }  /* if */
       if (is->no_diagnostics) {
-        is->init_error = is_effective_error(ec_nonstd_braces, sev);
+        is->init_error = is_effective_sfinae_error(ec_nonstd_braces, sev);
       } else {
         pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
       }  /* if */
@@ -8777,7 +8777,7 @@ declaration that has internal linkage because of the explicit presence of a
              [expr.new]). */
           check_assertion(!type_has_user_provided_default_constructor(type));
           if (err != NULL) {
-            if (is_effective_error(
+            if (is_effective_sfinae_error(
                               ec_missing_default_constructor_on_unnamed_const,
                               es_discretionary_error)) {
               *err = TRUE;
@@ -8789,7 +8789,8 @@ declaration that has internal linkage because of the explicit presence of a
           }  /* if */
         } else {
           if (err != NULL) {
-            if (is_effective_error(ec_missing_initializer_on_unnamed_const,
+            if (is_effective_sfinae_error(
+                                   ec_missing_initializer_on_unnamed_const,
                                    es_discretionary_error)) {
               *err = TRUE;
             }  /* if */
@@ -8854,7 +8855,8 @@ declaration that has internal linkage because of the explicit presence of a
         } else {
           /* New object -- there's no name to display. (C++ only.) */
           if (err != NULL) {
-            if (is_effective_error(ec_missing_initializer_on_unnamed_const,
+            if (is_effective_sfinae_error(
+                                   ec_missing_initializer_on_unnamed_const,
                                    es_discretionary_error)) {
               *err = TRUE;
             }  /* if */

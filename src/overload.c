@@ -22718,7 +22718,7 @@ will be an lvalue instead of the usual prvalue.
                                     strict_ansi_discretionary_severity :
                                     es_warning;
         if (arg_match != NULL) {
-          if (is_effective_error(ec_braced_init_in_paren_init, sev)) {
+          if (is_effective_sfinae_error(ec_braced_init_in_paren_init, sev)) {
             arg_match_err = TRUE;
           }  /* if */
         } else {

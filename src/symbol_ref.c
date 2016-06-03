@@ -2057,14 +2057,22 @@ elided copy constructor.
       /* Use a specific message for a default constructor.  This is clearer
          when the class is unnamed, as for a lambda. */
       err_code = ec_deleted_default_constructor;
-      err = is_effective_error(err_code, sev);
-      if (pos != NULL) {
+      /* If we are not issuing an error, call the "sfinae" version of the
+         routine that can potentially ignore overridden severities. */
+      if (pos == NULL) {
+        err = is_effective_sfinae_error(err_code, sev);
+      } else {
+        err = is_effective_error(err_code, sev);
         pos_ty_diagnostic(sev, err_code, pos, parent_class_of(rout));
       }  /* if */
     } else {
       err_code = elided_ref ? ec_deleted_elided_cctor : ec_deleted_function;
-      err = is_effective_error(err_code, sev);
-      if (pos != NULL) {
+      /* If we are not issuing an error, call the "sfinae" version of the
+         routine that can potentially ignore overridden severities. */
+      if (pos == NULL) {
+        err = is_effective_sfinae_error(err_code, sev);
+      } else {
+        err = is_effective_error(err_code, sev);
         pos_sy_diagnostic(sev, err_code, pos, rout_sym);
       }  /* if */
     }  /* if */

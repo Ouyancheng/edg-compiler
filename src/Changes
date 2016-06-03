@@ -259,7 +259,9 @@ without impacting SFINAE behavior.  This is now controlled with the
 variable diag_override_does_not_affect_sfinae, which is initialized
 with the macro DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE.  The
 macro is FALSE by default (so there is no behavior change unless this
-macro is set).
+macro is set).  The flag is also used in other processing that can
+affect overload resolution (e.g., validity of initializations and
+accessibility of certain entities).
 
 
 5/26/16  [EDGcpfe/17231]

@@ -10443,8 +10443,8 @@ and do not issue any diagnostics (including warnings).
       /* MSVC++ 8.0 issues an error if a suppressed destructor would have
          been called. */
       if (error_detected != NULL) {
-        if (is_effective_error(ec_suppressed_dtor_needed,
-                               es_discretionary_error)) {
+        if (is_effective_sfinae_error(ec_suppressed_dtor_needed,
+                                      es_discretionary_error)) {
           *error_detected = TRUE;
         }  /* if */
       } else {
@@ -11892,7 +11892,9 @@ diagnostic would actually be an error.
     }  /* if */
   }  /* if */
   if (!issue_diagnostics) {
-    *error_detected = is_effective_error(error_code, severity);
+    /* In some modes, is_effective_sfinae_error will ignore diagnostic
+       overrides in making the error determination. */
+    *error_detected = is_effective_sfinae_error(error_code, severity);
   }  /* if */
 }  /* issue_access_error */
 
