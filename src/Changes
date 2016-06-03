@@ -1,5 +1,22 @@
 Version 4.12
 
+6/3/16   [EDGcpfe/17263]
+Spurious error on UDL referenced from cached context
+
+A spurious error could be issued if a user-defined literal was referenced
+from a context rescanned from a token cache, and the UDL operator was
+found via a using-directive.  Now fixed.
+
+  namespace N {
+    int operator "" _XX (unsigned long long) { return 0; }
+    int operator "" _XX (long double) { return 1; }
+  }
+  using namespace N;
+  template <typename T> T f() {
+    int i= 1_XX;
+  }
+
+
 6/2/16   [EDGcpfe/17036]
 Spurious error on class template with pure virtual member instantiated with
 local type

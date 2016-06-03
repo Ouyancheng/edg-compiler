@@ -2772,13 +2772,14 @@ return NULL.
     a_boolean    found = FALSE;
     for (list_sym = sym->variant.overloaded_function.symbols;
          list_sym != NULL && !found; list_sym = list_sym->next) {
-      if (symbol_is(list_sym, sk_function_template) &&
+      a_symbol_ptr	fund_list_sym = fundamental_symbol_of(list_sym);
+      if (symbol_is(fund_list_sym, sk_function_template) &&
           symbol_is(ctp->ud_lit_op_sym, sk_function_template)) {
         /* There can be only one literal operator template in scope, so
            we've found the matching symbol. */
-        sym = list_sym;
+        sym = fund_list_sym;
         found = TRUE;
-      } else if (symbol_is(list_sym, sk_routine) &&
+      } else if (symbol_is(fund_list_sym, sk_routine) &&
                  symbol_is(ctp->ud_lit_op_sym, sk_routine)) {
         /* This symbol and the previously-recorded symbol are both literal
            operators.  Compare the parameter lists to see if we've found
@@ -2787,7 +2788,7 @@ return NULL.
         a_routine_type_supplement_ptr list_rtsp;
         orig_rtsp = ctp->ud_lit_op_sym->variant.routine.ptr->type->
                                                     variant.routine.extra_info;
-        list_rtsp = list_sym->variant.routine.ptr->type->
+        list_rtsp = fund_list_sym->variant.routine.ptr->type->
                                                     variant.routine.extra_info;
         if (orig_rtsp->param_type_list == NULL ||
             list_rtsp->param_type_list == NULL) {
@@ -2800,7 +2801,7 @@ return NULL.
                                   (list_rtsp->param_type_list->next == NULL)) {
           /* Both symbols have the same first parameter type and number of
              parameters, so we've found the matching symbol. */
-          sym = list_sym;
+          sym = fund_list_sym;
           found = TRUE;
         }  /* if */
       }  /* if */
