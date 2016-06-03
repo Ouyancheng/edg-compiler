@@ -10,7 +10,7 @@ associated candidate function.  For example:
   struct I f();  // Incomplete return type.
   template<typename T> int g(decltype(f(T{}), 0));  // (1)
   template<typename T> char g(...);
-  static_assert(sizeof(g<int>()) == 1, "Unexpected!");
+  static_assert(sizeof(g<int>(42)) == 1, "Unexpected!");
     // Previously triggered an "incomplete return type" error while
     //  considering candidate (1).
 
@@ -29,10 +29,8 @@ spurious errors.  For example:
   struct B2 { int x; };
   struct D: public B1, B2 {};
   template<typename T> decltype(T().x) f(T*);  // (1)
-  template<typename T> char f(T);              // (2)
-  void g() {
-    static_assert(sizeof(f((D*)0)) == 1, "Unexpected!");
-  }
+  template<typename T> char f(T);
+  static_assert(sizeof(f((D*)0)) == 1, "Unexpected!");
 
 Previously, this triggered an ambiguity error for "T().x" because candidate (1)
 was not discarded during SFINAE processing.  This is now fixed.
