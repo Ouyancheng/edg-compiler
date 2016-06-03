@@ -15669,6 +15669,8 @@ indication in *rcblock).
   a_local_expr_options_set
              options = EOPT_OPERAND_OF_CAST;
 
+  /* Don't permit a call with incomplete type to be cast. */
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (gpp_mode && gnu_version >= 40400 &&
       source_form == csf_reinterpret_cast) {
     /* g++ 4.4 and beyond allow a cast of a bound function to some
@@ -23395,6 +23397,8 @@ freed by this routine.
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
+  /* Don't permit a call with incomplete type to be cast. */
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_typename);
