@@ -411,14 +411,15 @@ current compilation.
 
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,
-                                     a_source_position  *err_pos,
+                                     a_source_position  *diag_pos,
                                      a_boolean          is_expr_use,
                                      a_boolean          evaluated,
                                      a_boolean          incomplete_return_okay,
                                      a_routine_ptr      rout_ptr)
 /*
-Given a routine type, check that the return type is valid, issuing an error
-if not (additional checks are performed by add_to_derived_type_list).
+Given a routine type, return TRUE if the return type is valid and FALSE
+otherwise  (add_to_derived_type_list already performed checks not repeated
+here).  If diag_pos is non-NULL, issue diagnostics at that position.
 is_expr_use is TRUE if the function is being called or its address is being
 taken; otherwise, the function is being defined (nondefining declarations are
 checked by add_to_derived_type_list).  When is_expr_use is TRUE, evaluated is
@@ -430,7 +431,7 @@ NULL.
 {
   a_type_ptr  return_type;
   a_boolean   err = FALSE;
-  a_boolean   incomplete_type_error = FALSE;
+  a_boolean   issue_incomplete_type_error = FALSE;
   a_type_ptr  orig_return_type;
 
   rout_type = skip_typerefs(rout_type);
@@ -447,8 +448,10 @@ NULL.
       /* In strict C mode a void return type on a function definition cannot
          have a qualifier. */
       err = (strict_ansi_error_severity == es_error);
-      diagnostic(strict_ansi_error_severity,
-                 ec_type_qualifier_on_void_return_type);
+      if (diag_pos != NULL) {
+        diagnostic(strict_ansi_error_severity,
+                   ec_type_qualifier_on_void_return_type);
+      }  /* if */
     } else {
       /* Okay. */
     }  /* if */
@@ -474,18 +477,21 @@ NULL.
              called function is a prototype instantiation (verified with GCC
              and Clang); in nonstrict modes, we therefore just issue a warning
              as well. */
-          pos_ty_warning(ec_incomplete_class_return_type, err_pos,
-                         orig_return_type);
-        } else {
-          a_routine_type_supplement_ptr  rtsp = rout_type->
-                                                 variant.routine.extra_info;
-
-          if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
-            /* If a diagnostic has already been issued on calling (or taking
-               the address of) this routine.  No need to do it again. */
-            incomplete_type_error = TRUE;
+          if (diag_pos != NULL) {
+            pos_ty_warning(ec_incomplete_class_return_type, diag_pos,
+                           orig_return_type);
           }  /* if */
-          rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+        } else {
+          if (diag_pos != NULL) {
+            a_routine_type_supplement_ptr  rtsp = rout_type->
+                                                 variant.routine.extra_info;
+            if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
+              /* If a diagnostic has already been issued on calling (or taking
+                 the address of) this routine.  No need to do it again. */
+              issue_incomplete_type_error = TRUE;
+            }  /* if */
+            rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+          }  /* if */
           /* Note that err is set (for the return value) even if no diagnostic
              is actually issued. */
           err = TRUE;
@@ -502,24 +508,28 @@ NULL.
           /* In GNU C++ mode, we only check for abstract return types on
              function definitions.  In other C++ modes, this is done whenever
              a function type is created. */
-          abstract_class_diagnostic(
+          if (diag_pos != NULL) {
+            abstract_class_diagnostic(
                                es_error, ec_function_returning_abstract_class,
-                               orig_return_type, err_pos);
+                               orig_return_type, diag_pos);
+          }  /* if */
           err = TRUE;
         }  /* if */
       } else {
         err = TRUE;
-        if (is_immediate_class_type(return_type) &&
-            is_incomplete_type(return_type)) {
-          incomplete_type_error = TRUE;
-        } else {
-          pos_error(ec_bad_function_return_type, err_pos);
-          rout_type->variant.routine.return_type = error_type();
+        if (diag_pos != NULL) {
+          if (is_immediate_class_type(return_type) &&
+              is_incomplete_type(return_type)) {
+            issue_incomplete_type_error = TRUE;
+          } else {
+            pos_error(ec_bad_function_return_type, diag_pos);
+            rout_type->variant.routine.return_type = error_type();
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-    if (incomplete_type_error) {
-      report_incomplete_function_return_type(orig_return_type, err_pos,
+    if (issue_incomplete_type_error) {
+      report_incomplete_function_return_type(orig_return_type, diag_pos,
                                              rout_ptr);
     }  /* if */
   }  /* if */

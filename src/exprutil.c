@@ -16184,21 +16184,29 @@ error cases.
                      is_class_struct_union_type(function_type)));
     unknown_dependent_function = TRUE;
   }  /* if */
-  /* The function return type must be void or object type and not array
-     type.  Half of this check is in add_to_derived_type_list.
-     The check here is necessary because it is valid to declare a
-     function returning a class/struct/enum type that is incomplete
-     at the point of declaration of the function so long as it is completed
-     by the time the function is defined or called (if it is). */
-  if (!unknown_dependent_function &&
-      !check_function_return_type(function_type, pos, /*is_expr_use=*/TRUE,
-                                  curr_expr_is_evaluated(),
-                                  expr_stack
+  if (!unknown_dependent_function) {
+    /* The function return type must be void or object type and not array type.
+       Half of this check is in add_to_derived_type_list.  The check here is
+       necessary because it is valid to declare a function returning a
+       class/struct/enum type that is incomplete at the point of declaration of
+       the function so long as it is completed by the time the function is
+       defined or called (if it is). */
+    a_source_position  *diag_pos = expr_stack->suppress_diagnostics ? NULL
+                                                                    : pos;
+    if (!check_function_return_type(function_type, diag_pos,
+                                    /*is_expr_use=*/TRUE,
+                                    curr_expr_is_evaluated(),
+                                    expr_stack
                                       ->allow_call_with_incomplete_return_type,
-                                  rout)) {
-    /* There was some error in the return type, and a diagnostic was issued. */
-    call_node = error_node();
-    goto done;
+                                    rout)) {
+      /* There was some error in the return type.  A diagnostic was issued in
+         non-SFINAE contexts. */
+      call_node = error_node();
+      if (expr_stack->suppress_diagnostics) {
+        record_suppressed_error();
+      }  /* if */
+      goto done;
+    }  /* if */
   }  /* if */
   if (rout != NULL) {
     /* We know which routine is being called. */
