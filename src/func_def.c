@@ -418,7 +418,7 @@ a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_routine_ptr      rout_ptr)
 /*
 Given a routine type, return TRUE if the return type is valid and FALSE
-otherwise  (add_to_derived_type_list already performed checks not repeated
+otherwise (add_to_derived_type_list already performed checks not repeated
 here).  If diag_pos is non-NULL, issue diagnostics at that position.
 is_expr_use is TRUE if the function is being called or its address is being
 taken; otherwise, the function is being defined (nondefining declarations are
@@ -487,7 +487,8 @@ NULL.
                                                  variant.routine.extra_info;
             if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
               /* If a diagnostic has already been issued on calling (or taking
-                 the address of) this routine.  No need to do it again. */
+                 the address of) this routine, there is no need to do it
+                 again. */
               issue_incomplete_type_error = TRUE;
             }  /* if */
             rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
