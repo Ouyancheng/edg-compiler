@@ -31443,7 +31443,8 @@ issue an error; otherwise, return TRUE.
     (void)find_literal_operator(
           ud_suffix_from_literal_operator_id(sym_hdr->identifier),
           sym_hdr->identifier_length - LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
-          &pos_curr_token, const_for_curr_token.type, dp);
+          &pos_curr_token, const_for_curr_token.type, /*from_cache=*/FALSE,
+          dp);
     end_diagnostic(dp);
     make_error_operand(result);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {

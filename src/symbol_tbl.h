@@ -6546,6 +6546,7 @@ extern a_symbol_ptr find_literal_operator(a_const_char      *name,
                                           sizeof_t          name_len,
                                           a_source_position *pos,
                                           a_type_ptr        literal_type,
+                                          a_boolean         from_cache,
                                           a_diagnostic_ptr  dp);
 
 /*

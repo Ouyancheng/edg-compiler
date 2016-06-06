@@ -2839,6 +2839,7 @@ an equivalent change.
                find_literal_operator(ctp->variant.ud_lit.suffix,
                                      strlen(ctp->variant.ud_lit.suffix),
                                      &pos_curr_token, ctp->variant.ud_lit.type,
+                                     /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
@@ -2960,6 +2961,7 @@ an equivalent change.
                find_literal_operator(ctp->variant.ud_lit.suffix,
                                      strlen(ctp->variant.ud_lit.suffix),
                                      &pos_curr_token, ctp->variant.ud_lit.type,
+                                     /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
@@ -9495,6 +9497,7 @@ fixed_point_suffix:
                               find_literal_operator(canonical_id, id_len,
                                                     &start_pos,
                                                     ud_lit_type_for_curr_token,
+                                                    /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
       if (err_code != ec_no_error &&
           ud_lit_op_sym_for_curr_token != NULL) {
@@ -10511,6 +10514,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
           ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
+                                             /*from_cache=*/FALSE,
                                              (a_diagnostic_ptr)NULL);
           ud_lit_type_for_curr_token = const_for_curr_token.type;
         }  /* if */
@@ -12100,6 +12104,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
                                              ud_lit_suffix_buffer->size - 1,
                                              &pos_curr_token,
                                              const_for_curr_token.type,
+                                             /*from_cache=*/FALSE,
                                              (a_diagnostic_ptr)NULL);
       ud_lit_type_for_curr_token = const_for_curr_token.type;
       ctoken = tok_ud_literal;

@@ -15166,6 +15166,7 @@ a_symbol_ptr find_literal_operator(a_const_char      *name,
                                    sizeof_t          name_len,
                                    a_source_position *pos,
                                    a_type_ptr        literal_type,
+                                   a_boolean         from_cache,
                                    a_diagnostic_ptr  dp)
 /*
 name and name_len specify the ud-suffix of a user-defined literal (C++11
@@ -15178,9 +15179,14 @@ return the corresponding symbol; otherwise, return the overloaded function
 symbol or NULL, if no literal operator or literal operator template with
 the designated name has yet been declared.  If ambiguous symbols are found
 and dp is non-NULL, put out an "additional info" diagnostic for each one.
-dp is a pointer to the primary diagnostic entry with which any new
-messages should be attached.  As a side effect, locator_for_curr_id is set
-to refer to the corresponding literal-operator-id.
+dp is a pointer to the primary diagnostic entry with which any new messages
+should be attached.  As a side effect, locator_for_curr_id is set to refer
+to the corresponding literal-operator-id.  If from_cache is FALSE and a raw
+literal operator or literal operator template is selected, a string literal
+containing the portion of the current token preceding the ud-suffix is
+created and copied to const_for_curr_token.  (If from_cache is TRUE, the
+lookup is being performed while fetching a token from a token cache, and
+const_for_curr_token is set up from the information stored in the cache.)
 */
 {
   a_type_ptr              req_param1_type = NULL;
@@ -15390,7 +15396,7 @@ to refer to the corresponding literal-operator-id.
           token_string_needed = TRUE;
         }  /* if */
       }  /* if */
-      if (token_string_needed) {
+      if (token_string_needed && !from_cache) {
         /* There was exactly one matching raw literal operator or literal
            operator template.  These operate on the spelling of the
            literal (before the suffix), so replace const_for_curr_token
