@@ -8380,6 +8380,8 @@ added_to_list:;
       any_virtual_functions_including_in_base_classes =
                              class_type->variant.class_struct_union.
                                any_virtual_functions_including_in_base_classes;
+    subobject_ctsp->size_without_virtual_base_classes =
+                                       ctsp->size_without_virtual_base_classes;
     subobject_ctsp->virtual_function_info_offset =
                                             ctsp->virtual_function_info_offset;
     /* Preserve the information on sharing of virtual function table pointers.

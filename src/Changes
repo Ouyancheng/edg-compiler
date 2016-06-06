@@ -1,5 +1,14 @@
 Version 4.12
 
+6/6/16   [EDGcpfe/17268]
+Assertion failure in constant_value_at_address
+
+In some configurations (notably where TARG_REUSE_TAIL_PADDING is TRUE),
+the size_without_virtual_base_classes field of the subobject type of a
+class could be zero, causing an assertion failure in constant_value_at_address.
+Now fixed.
+
+
 6/3/16   [EDGcpfe/17058]
 Core issue 903: "false" as a null pointer constant
 
