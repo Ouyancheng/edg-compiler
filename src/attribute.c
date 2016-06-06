@@ -3541,9 +3541,8 @@ an error.
                                                        &pesep, &ctws_state,
                                                        &err);
         if (!any_more && aap->is_pack_expansion) {
-          // FIXME: test this
-          //expect_error();
-          (*p_aap)->kind = aak_empty;
+          /* Indicate an empty pack expansion. */
+          (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
         }  /* if */
         while (any_more) {
           /* Substitute template parameters in the attribute arguments. */
