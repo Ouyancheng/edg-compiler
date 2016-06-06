@@ -14,8 +14,8 @@ member, which could cause unexpected behavior.  For example:
     constexpr static E const sm = E(e|e);
   };
   X<int>::E operator|(X<int>::E, X<int>::E);
-  template<> constexpr A<int>::E A<int>::sm;  // Explicit specialization.
-  A<int>::E xe = A<int>::sm;
+  template<> constexpr X<int>::E X<int>::sm;  // Explicit specialization.
+  X<int>::E xe = X<int>::sm;
     // Previously instantiated the in-class initializer of X<T>::sm for
     // T == int, triggering an error because the user-defined operator|
     // doesn't produce a constant-expression.  Now, the initializer is no
