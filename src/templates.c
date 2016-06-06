@@ -11652,8 +11652,6 @@ to an alias template, the substituted type is returned in *new_type
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
   a_boolean				templ_param_is_alias = FALSE;
-  a_symbol_ptr				orig_instance_sym;
-  a_symbol_ptr				orig_template_sym;
 
   if (new_type != NULL) *new_type = NULL;  
   template_sym = primary_template_of(template_sym);
@@ -11674,12 +11672,6 @@ to an alias template, the substituted type is returned in *new_type
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   orig_is_prototype = orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
-  /* Get the template symbol of the template associated with the original
-     type. */
-  orig_instance_sym =
-                    (a_symbol_ptr)orig_type->source_corresp.assoc_info;
-  orig_template_sym =
-      orig_instance_sym->variant.class_struct_union.extra_info->class_template;
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
