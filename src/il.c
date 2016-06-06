@@ -17449,7 +17449,6 @@ name lookup options.
                                              template_param_list,
                                              source_pos,
                                              options,
-                                             /*orig_is_nonreal_template=*/TRUE,
                                              copy_error,
                                              ctws_state);
           /* Apply the template argument list to the template. */
