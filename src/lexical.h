@@ -1994,8 +1994,7 @@ typedef struct a_cached_token {
 			   when a user-defined literal is used to declare
 			   the first literal operator or literal operator
 			   template with that name and thus there is no
-			   existing symbol for ud_lit_op_sym).  NULL for
-			   tokens other than tok_ud_literal. */
+			   existing symbol for ud_lit_op_sym). */
       a_type_ptr
 		type;	/* The type of the literal, to be passed to
 			   find_literal_operator when repeating the operator
