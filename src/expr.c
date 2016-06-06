@@ -15668,8 +15668,11 @@ indication in *rcblock).
              *bound_function_selector = NULL;
   a_local_expr_options_set
              options = EOPT_OPERAND_OF_CAST;
+  a_boolean  saved_allow_call_with_incomplete_return_type;
 
   /* Don't permit a call with incomplete type to be cast. */
+  saved_allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (gpp_mode && gnu_version >= 40400 &&
       source_form == csf_reinterpret_cast) {
@@ -15753,6 +15756,8 @@ indication in *rcblock).
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
   }  /* if */
+  expr_stack->allow_call_with_incomplete_return_type = 
+                                 saved_allow_call_with_incomplete_return_type;
   return !err;
 }  /* scan_new_style_cast */
 
@@ -23394,10 +23399,13 @@ freed by this routine.
   a_boolean                     scanning_source = (rcblock == NULL &&
                                                    !arg_list_supplied);
   an_init_component_ptr         braced_init_list = NULL;
+  a_boolean                     saved_allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
   /* Don't permit a call with incomplete type to be cast. */
+  saved_allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
@@ -23858,6 +23866,8 @@ have_result:
                                       type_cast_to);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
 end_of_routine:
+  expr_stack->allow_call_with_incomplete_return_type = 
+                                 saved_allow_call_with_incomplete_return_type;
   free_init_component_list(braced_init_list);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
