@@ -10,25 +10,6 @@ control this behavior.  The previous behavior is retained in Microsoft modes
 and in GNU modes with gnu_version < 60000.
 
 
-6/3/16   [EDGcpfe/14954]
-Cast of call with incomplete return type in call not handled correctly in
-some SFINAE contexts
-
-A function call can return an incomplete type if it is the direct operand of a
-decltype construct.  However, the front end failed to trigger a SFINAE failure
-(i.e., discard the associated candidate) if the call is under a functional-
-notation cast or a new-style cast.  For example:
-
-  struct I f(int);  // Incomplete return type.
-  template<typename T> int g(decltype((void)f(T()))*);  // (1)
-  template<typename T> char g(...);
-  static_assert(sizeof(g<int>(nullptr)) == 1, "Unexpected!");
-    // Previously triggered an "incomplete return type" error after selecting
-    // candidate (1).
-
-This is now fixed.
-
-
 6/3/16   [EDGcpfe/17040]
 Incomplete return type in call not handled during SFINAE processing
 
