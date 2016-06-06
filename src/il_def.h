@@ -2349,6 +2349,11 @@ typedef struct an_attribute_arg {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if the argument is a variadic template pack
 			   expansion, i.e., it's followed by "...". */
+  struct a_pack_expansion_descr
+		*pack_expansion_descr;
+			/* If non-NULL, the attribute value is a pack
+			   expansion, and this points to the expansion
+			   and this points to the expansion description. */
   a_source_position
 		position;
 			/* The source position of the argument. */
@@ -2703,6 +2708,13 @@ typedef struct an_attribute {
 		end_position;
 			/* The position of the end of the attribute. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  struct a_pack_expansion_descr
+		*pack_expansion_descr;
+			/* If non-NULL, the attribute is a pack expansion,
+			   and this points to the expansion description.
+			   Note that this field is set, but not currently used;
+			   the standard doesn't specify any attributes that
+			   can be used in this manner. */
 } an_attribute;
 
 

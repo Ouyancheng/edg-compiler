@@ -1,5 +1,20 @@
 Version 4.12
 
+6/6/16   [EDGcpfe/16835,EDGcpfe/17222]
+Parameter packs in attribute arguments
+
+The changes for EDGcpfe/15940 added the mechanism for variadic parameter
+packs in attribute (or alignas) arguments, but the parameter pack expansion
+was never performed.  That has now been fixed.  For example (with --c++11):
+
+  template <class... T> struct alignas(T...) A {};
+  template <int... T> struct alignas(T...) B {};
+  void f() {
+    static_assert(alignof(A<char, double, int>) == alignof(double), "");
+    static_assert(alignof(B<1, 8, 4>) == 8, "");
+  }
+
+
 6/6/16   [EDGcpfe/17235]
 GNU compatibility: Static data member initializers and explicit specialization
 

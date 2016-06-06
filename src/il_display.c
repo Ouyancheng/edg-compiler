@@ -5675,6 +5675,7 @@ Display the indicated attribute entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &ap->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* pack_expansion_descr is not displayed because it is front end only. */
 }  /* disp_attribute */
 
 
@@ -5699,6 +5700,7 @@ Display the indicated attribute argument entry.
   if (aap->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
+  /* pack_expansion_descr is not displayed because it is front end only. */
   disp_source_position("position", &aap->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &aap->end_position);

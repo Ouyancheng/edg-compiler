@@ -1623,10 +1623,14 @@ ak_unrecognized.
           check_attr_config(FALSE, ap,
                             "invalid attribute signature configuration");
       }  /* switch */
-      if (end_potential_pack_expansion_context(pesep,
-                                            /*is_declarator=*/FALSE) != NULL) {
-        (*p_aap)->is_pack_expansion = TRUE;
-      }  /* if */
+      { a_pack_expansion_descr_ptr pedep;
+        pedep = end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        if (pedep != NULL && *p_aap != NULL) {
+          (*p_aap)->pack_expansion_descr = pedep;
+          (*p_aap)->is_pack_expansion = TRUE;
+        }  /* if */
+      }
       while (*p_aap != NULL) p_aap = &(*p_aap)->next;
       any_more = advance_to_next_pack_element(pesep);
       if (*sig == '+') {
@@ -1986,11 +1990,12 @@ appear.
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL) {
           if (*p_attribute == NULL) {
-            /* In error cases, scan_attribute may not have produced an 
+            /* In error cases, scan_attribute may not have produced an
                attribute entry. */
             expect_error();
           } else {
             (*p_attribute)->is_pack_expansion = TRUE;
+            (*p_attribute)->pack_expansion_descr = pedep;
           }  /* if */
         }  /* if */
       }
@@ -3352,6 +3357,7 @@ static void substitute_attribute_arg_constant(
                                            a_template_param_ptr  t_params,
                                            a_template_arg_ptr    t_args,
                                            a_type_ptr            parent_class,
+                                           a_ctws_state          *ctws_state,
                                            a_boolean             *p_error)
 /*
 aap is an attribute argument encapsulating a ck_template_param constant that
@@ -3361,8 +3367,10 @@ applied to E.  t_args is NULL if E is a non-template member of a class template
 instance; otherwise, it corresponds to the template arguments for E, and
 t_params are the corresponding template parameters.  If E is a class member,
 parent_class points to the entry for its parent class (which may imply
-additional substitutions); otherwise, parent_class is NULL.  *p_error is set to
-TRUE if a substitution error occurs.
+additional substitutions); otherwise, parent_class is NULL.  ctws_state points
+to state information for the substitution (primarily used for the case when the
+type argument is a parameter pack).  *p_error is set to TRUE if a substitution
+error occurs.
 */
 {
   check_assertion(aap->variant.constant->kind ==
@@ -3379,16 +3387,14 @@ TRUE if a substitution error occurs.
                                               &parent_t_args);
     substitute_attribute_arg_constant(aap, parent_t_params, parent_t_args,
                                       parent_class_or_null(parent_class),
-                                      p_error);
+                                      ctws_state, p_error);
   }  /* if */
   if (!*p_error && t_args != NULL &&
       aap->variant.constant->kind == (a_constant_repr_kind)ck_template_param) {
-    a_ctws_state		ctws_state;
-    init_ctws_state(&ctws_state);
     aap->variant.constant = copy_template_param_con_with_substitution(
                                    aap->variant.constant, t_args, t_params,
                                    (a_type_ptr)NULL, &aap->position,
-                                   CTWS_NO_OPTIONS, p_error, &ctws_state);
+                                   CTWS_NO_OPTIONS, p_error, ctws_state);
   }  /* if */
 }  /* substitute_attribute_arg_constant */
 
@@ -3397,6 +3403,7 @@ static void substitute_attribute_arg_type(an_attribute_arg_ptr  aap,
                                           a_template_param_ptr  t_params,
                                           a_template_arg_ptr    t_args,
                                           a_type_ptr            parent_class,
+                                          a_ctws_state          *ctws_state,
                                           a_boolean             *p_error)
 /*
 aap is an attribute type argument that will be applied to a nondependent
@@ -3407,7 +3414,9 @@ member of a class template instance; otherwise, it corresponds to the template
 arguments for E, and t_params are the corresponding template parameters.  If E
 is a class member, parent_class points to the entry for its parent class
 (which may imply additional substitutions); otherwise, parent_class is NULL.
-*p_error is set to TRUE if a substitution error occurs.
+ctws_state points to state information for the substitution (primarily used for
+the case when the type argument is a parameter pack).  *p_error is set to TRUE
+if a substitution error occurs.
 */
 {
   if (parent_class != NULL &&
@@ -3421,15 +3430,14 @@ is a class member, parent_class points to the entry for its parent class
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
     substitute_attribute_arg_type(aap, parent_t_params, parent_t_args,
-                                  parent_class_or_null(parent_class), p_error);
+                                  parent_class_or_null(parent_class),
+                                  ctws_state, p_error);
   }  /* if */
   if (!*p_error && t_args != NULL) {
-    a_ctws_state		ctws_state;
-    init_ctws_state(&ctws_state);
     aap->variant.type = copy_type_with_substitution(
                                     aap->variant.type, t_args, t_params,
                                     &aap->position, CTWS_NO_OPTIONS, p_error,
-                                    &ctws_state);
+                                    ctws_state);
   }  /* if */
 }  /* substitute_attribute_arg_type */
 
@@ -3515,57 +3523,89 @@ an error.
     }  /* if */
     copy_attribute(ap, *p_attr);
     if ((*p_attr)->arguments != NULL) {
-      an_attribute_arg_ptr  *p_aap = &(*p_attr)->arguments, aap = *p_aap;
+      a_ctws_state		       ctws_state;
+      a_pack_expansion_descr_ptr       pedep;
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        any_more;
+      an_attribute_arg_ptr             *p_aap = &(*p_attr)->arguments;
+      an_attribute_arg_ptr             aap = *p_aap;
+
+      init_ctws_state(&ctws_state);
       do {
         *p_aap = alloc_attribute_arg();
         **p_aap = *aap;
-        /* Substitute template parameters in the attribute arguments. */
-        switch (aap->kind) {
-          case aak_empty:
-          case aak_raw_token:
-          case aak_token:
-            /* Nothing to do. */
-            break;
-          case aak_constant:
-            if (aap->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
-              (*p_aap)->variant.constant = aap->variant.constant;
-              substitute_attribute_arg_constant(*p_aap, t_params, t_args,
-                                                parent_class, &err);
-
-            } else {
-              an_expr_node_ptr        saved_expr = aap->variant.constant->expr;
-              a_memory_region_number  region_to_switch_back_to;
-              /* Do not copy the backing expression since it may have a
-                 dependent component (which we cannot easily substitute). */
-              aap->variant.constant->expr = NULL;
-              switch_to_file_scope_region(&region_to_switch_back_to);
-              (*p_aap)->variant.constant =
-                               alloc_unshared_constant(aap->variant.constant);
-              switch_back_to_original_region(region_to_switch_back_to);
-              if (saved_expr != NULL && in_file_scope(saved_expr)) {
-                aap->variant.constant->expr = saved_expr;
-              }  /* if */
-            }  /* if */
-            break;
-          case aak_type:
-            (*p_aap)->variant.type = aap->variant.type;
-            substitute_attribute_arg_type(*p_aap, t_params, t_args,
-                                          parent_class, &err);
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
-        if (err) {
-          /* A substitution error.  Issue a diagnostic for the first error if
-             p_error is NULL (i.e., the caller cannot be notified directly of
-             the error). */
-          if (p_error == NULL && !substitution_error_reported) {
-            pos_error(ec_bad_attribute_template_substitution, &aap->position);
-            substitution_error_reported = TRUE;
-          }  /* if */
-          make_attr_unrecognized(*p_attr);
+        /* Boilerplate code for handling a pack expansion in an attribute
+           argument (alignas is currently the only case). */
+        pedep = aap->pack_expansion_descr;
+        any_more = begin_rescan_pack_expansion_context(pedep, t_params, t_args,
+                                                       &pesep, &ctws_state,
+                                                       &err);
+        if (!any_more && aap->is_pack_expansion) {
+          // FIXME: test this
+          //expect_error();
+          (*p_aap)->kind = aak_empty;
         }  /* if */
+        while (any_more) {
+          /* Substitute template parameters in the attribute arguments. */
+          switch (aap->kind) {
+            case aak_empty:
+            case aak_raw_token:
+            case aak_token:
+              /* Nothing to do. */
+              break;
+            case aak_constant:
+              if (aap->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+                (*p_aap)->variant.constant = aap->variant.constant;
+                substitute_attribute_arg_constant(*p_aap, t_params, t_args,
+                                                  parent_class, &ctws_state,
+                                                  &err);
+
+              } else {
+                an_expr_node_ptr      saved_expr = aap->variant.constant->expr;
+                a_memory_region_number  region_to_switch_back_to;
+                /* Do not copy the backing expression since it may have a
+                   dependent component (which we cannot easily substitute). */
+                aap->variant.constant->expr = NULL;
+                switch_to_file_scope_region(&region_to_switch_back_to);
+                (*p_aap)->variant.constant =
+                                alloc_unshared_constant(aap->variant.constant);
+                switch_back_to_original_region(region_to_switch_back_to);
+                if (saved_expr != NULL && in_file_scope(saved_expr)) {
+                  aap->variant.constant->expr = saved_expr;
+                }  /* if */
+              }  /* if */
+              break;
+            case aak_type:
+              (*p_aap)->variant.type = aap->variant.type;
+              substitute_attribute_arg_type(*p_aap, t_params, t_args,
+                                            parent_class, &ctws_state, &err);
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          if (err) {
+            /* A substitution error.  Issue a diagnostic for the first error if
+               p_error is NULL (i.e., the caller cannot be notified directly of
+               the error). */
+            if (p_error == NULL && !substitution_error_reported) {
+              pos_error(ec_bad_attribute_template_substitution,
+                        &aap->position);
+              substitution_error_reported = TRUE;
+            }  /* if */
+            make_attr_unrecognized(*p_attr);
+          }  /* if */
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+          any_more = advance_to_next_pack_element(pesep);
+          if (any_more) {
+            /* Allocate another attribute argument for the next element of
+               the pack expansion. */
+            p_aap = &(*p_aap)->next;
+            *p_aap = alloc_attribute_arg();
+            **p_aap = *aap;
+          }  /* if */
+        }  /* while */
         p_aap = &(*p_aap)->next;
         aap = aap->next;
       } while (aap != NULL);

@@ -3668,11 +3668,13 @@ after_entry_from_class:
         walk_ptr(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
         walk_ptr(ptr->group, an_attribute_group_ptr, iek_attribute_group);
         conditionally_clear_fe_pointer(ptr->assoc_info);
+        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
       }
       break;
     case iek_attribute_arg:
       { an_attribute_arg_ptr  ptr = (an_attribute_arg_ptr)entry_ptr;
         walk_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
+        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
         switch (ptr->kind) {
           case aak_empty:
             /* Nothing to do. */
