@@ -1,5 +1,27 @@
 Version 4.12
 
+6/6/16   [EDGcpfe/17235]
+GNU compatibility: Static data member initializers and explicit specialization
+
+In GNU C++ mode, the in-class initializer of a static data member of a class
+template is not instantiated unless it is needed (see the entry for
+EDGcpfe/16403,EDGcpfe/16644).  Previously, explicitly specializing such a
+static data member did not disassociate the initializer from the specialized
+member, which could cause unexpected behavior.  For example:
+
+  template<typename T> struct X {
+    enum E { e };
+    constexpr static E const sm = E(e|e);
+  };
+  X<int>::E operator|(X<int>::E, X<int>::E);
+  template<> constexpr A<int>::E A<int>::sm;  // Explicit specialization.
+  A<int>::E xe = A<int>::sm;
+    // Previously instantiated the in-class initializer of X<T>::sm for
+    // T == int, triggering an error because the user-defined operator|
+    // doesn't produce a constant-expression.  Now, the initializer is no
+    // longer instantiated.
+
+
 6/6/16   [EDGcpfe/17268,EDGcpfe/16646,EDGcpfe/16589]
 Assertion failure in constant_value_at_address
 

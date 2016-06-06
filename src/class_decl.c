@@ -3620,6 +3620,11 @@ constant-expression.
       token_cache = sdmsp->token_cache;
       /* Clear the cache pointer to avoid runaway recursion. */
       sdmsp->token_cache = NULL;
+      if (var->is_specialized) {
+        /* If the static data member was explicit specialized, its initializer
+           can no longer be instantiated. */
+        token_cache = NULL;
+      }  /* if */
     }  /* if */
   } else if (cli_or_cx_enabled) {
     if (!class_type->incomplete ||
