@@ -22636,6 +22636,10 @@ it in the IL template entry.
           /* Hash the asm string. */
           value = hash_string(token->variant.asm_string);
           break;
+        case teik_ud_lit:
+          /* Get a hash value for the constant. */
+          value = (unsigned long)hash_constant(token->variant.ud_lit.constant);
+          break;
         default:
           /* For other tokens, just use the token kind. */
           value = (unsigned long)token->token;

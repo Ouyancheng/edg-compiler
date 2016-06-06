@@ -1389,8 +1389,6 @@ by the caller (including token, source_position, and extra_info_kind).
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;                \
   ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;         \
   ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
-  ctp->ud_lit_op_sym = NULL;                                            \
-  ctp->ud_suffix = NULL;                                                \
 }  /* alloc_cached_token */
 
 
@@ -1540,9 +1538,15 @@ It is expected that no pragma entries will be pointed to at the time
 the cached token is freed.
 */
 #define free_cached_token(ctp)                                          \
-{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) { \
+{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant || \
+      ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {   \
     /* The entry points to a constant entry; free it. */                \
-    a_constant_ptr con = ctp->variant.constant;                         \
+    a_constant_ptr con;                                                 \
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) { \
+      con = ctp->variant.ud_lit.constant;                               \
+    } else {                                                            \
+      con = ctp->variant.constant;                                      \
+    }  /* if */                                                         \
     con->next = avail_cached_constants;                                 \
     avail_cached_constants = con;                                       \
   }  /* if */                                                           \
@@ -1796,23 +1800,24 @@ This is used to save tokens for later rescanning.
   } else if (curr_token == tok_microsoft_asm) {
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_asm_string;
     ctp->variant.asm_string = curr_token_asm_string;
-  } else if (is_literal_constant_token(curr_token) ||
-             curr_token == tok_ud_literal) {
-    /* Literal constant or user-defined literal -- save the constant's
-       value. */
+  } else if (is_literal_constant_token(curr_token)) {
+    /* Literal constant -- save the constant's value. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
     ctp->variant.constant = alloc_cached_constant();
     /* Copy the constant.  Note that anything pointed to by the constant
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
-    if (curr_token == tok_ud_literal) {
-      /* Save the symbol for the associated literal operator or literal
-         operator template and the ud_suffix spelling. */
-      ctp->ud_lit_op_sym = ud_lit_op_sym_for_curr_token;
-      ctp->ud_suffix = ud_suffix_from_literal_operator_id(
+  } else if (curr_token == tok_ud_literal) {
+      /* Save the information needed to restore the user-defined literal
+         from the cache. */
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
+    ctp->variant.ud_lit.constant = alloc_cached_constant();
+    copy_constant(&const_for_curr_token, ctp->variant.ud_lit.constant);
+    ctp->variant.ud_lit.op_sym = ud_lit_op_sym_for_curr_token;
+    ctp->variant.ud_lit.suffix = ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
-    }  /* if */
+    ctp->variant.ud_lit.type = ud_lit_type_for_curr_token;
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -1888,6 +1893,10 @@ to by the token.
   if (extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     to_ctp->variant.constant = alloc_cached_constant();
     copy_constant(from_ctp->variant.constant, to_ctp->variant.constant);
+  } else if (extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    to_ctp->variant.constant = alloc_cached_constant();
+    copy_constant(from_ctp->variant.ud_lit.constant,
+                  to_ctp->variant.ud_lit.constant);
   } else if (extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
     to_ctp->variant.pragmas =
                            make_copy_of_pragma_list(from_ctp->variant.pragmas);
@@ -2742,80 +2751,6 @@ tokens therein and clear the cache.
 }  /* discard_token_cache */
 
 
-static a_symbol_ptr ud_lit_op_sym_from_token_cache(a_cached_token_ptr ctp)
-/*
-Set up locator_for_curr_id for the user-defined literal token designated by
-ctp and lookup and return the symbol for the associated literal operator or
-literal operator template.  If the lookup finds an overload set and the
-original symbol recorded with the token designates a specific literal
-operator or literal operator template, attempt to find a similar member of
-the overload set and return that symbol; if no such symbol can be found,
-return NULL.
-*/
-{
-  a_symbol_ptr sym;
-
-  make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
-                              &locator_for_curr_id, &pos_curr_token);
-  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-  if (sym != NULL && symbol_is(sym, sk_overloaded_function) &&
-      ctp->ud_lit_op_sym != NULL &&
-      !symbol_is(ctp->ud_lit_op_sym, sk_overloaded_function)) {
-    /* This lookup found an overload set, but the original cached token was
-       associated with a specific literal operator or literal operator
-       template.  Try to find a member of the overload set that is similar
-       to the original.  (It may not be the same symbol, e.g., because of a
-       using-directive in the token cache that would not have been
-       processed at the time the original lookup for the token was
-       done.) */
-    a_symbol_ptr list_sym;
-    a_boolean    found = FALSE;
-    for (list_sym = sym->variant.overloaded_function.symbols;
-         list_sym != NULL && !found; list_sym = list_sym->next) {
-      a_symbol_ptr	fund_list_sym = fundamental_symbol_of(list_sym);
-      if (symbol_is(fund_list_sym, sk_function_template) &&
-          symbol_is(ctp->ud_lit_op_sym, sk_function_template)) {
-        /* There can be only one literal operator template in scope, so
-           we've found the matching symbol. */
-        sym = fund_list_sym;
-        found = TRUE;
-      } else if (symbol_is(fund_list_sym, sk_routine) &&
-                 symbol_is(ctp->ud_lit_op_sym, sk_routine)) {
-        /* This symbol and the previously-recorded symbol are both literal
-           operators.  Compare the parameter lists to see if we've found
-           the matching symbol. */
-        a_routine_type_supplement_ptr orig_rtsp;
-        a_routine_type_supplement_ptr list_rtsp;
-        orig_rtsp = ctp->ud_lit_op_sym->variant.routine.ptr->type->
-                                                    variant.routine.extra_info;
-        list_rtsp = fund_list_sym->variant.routine.ptr->type->
-                                                    variant.routine.extra_info;
-        if (orig_rtsp->param_type_list == NULL ||
-            list_rtsp->param_type_list == NULL) {
-          /* A literal operator must have at least one parameter.  An error
-             should already have been issued. */
-          expect_error();
-        } else if (identical_types(orig_rtsp->param_type_list->type,
-                                   list_rtsp->param_type_list->type) &&
-                   (orig_rtsp->param_type_list->next == NULL) ==
-                                  (list_rtsp->param_type_list->next == NULL)) {
-          /* Both symbols have the same first parameter type and number of
-             parameters, so we've found the matching symbol. */
-          sym = fund_list_sym;
-          found = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (!found) {
-      /* We didn't find a matching symbol, so return NULL instead of the
-         overload set. */
-      sym = NULL;
-    }  /* if */
-  }  /* if */
-  return sym;
-}  /* ud_lit_op_sym_from_token_cache */
-
-
 static a_token_kind get_token_from_cached_token_rescan_list(void)
 /*
 Remove the first token from cached_token_rescan_list, establish it as the
@@ -2891,16 +2826,21 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
-    if (ctoken == tok_ud_literal) {
-      /* Set up locator_for_curr_id and look up the symbol for the literal
-         operator or literal operator template.  (The lookup must be
-         repeated here, rather than using the symbol stored with the token,
-         to handle cases where the result will be different from that of
-         the original lookup, e.g., because of a using-directive in this
-         scope that would not have been parsed before the UDL was
-         cached.) */
-      ud_lit_op_sym_for_curr_token = ud_lit_op_sym_from_token_cache(ctp);
-    }  /* if */
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    /* Restore const_for_curr_token. */
+    copy_constant(ctp->variant.ud_lit.constant, &const_for_curr_token);
+    /* Set up locator_for_curr_id and look up the symbol for the literal
+       operator or literal operator template.  (The lookup must be repeated
+       here, rather than using the symbol stored with the token, to handle
+       cases where the result will be different from that of the original
+       lookup, e.g., because of a using-directive in this scope that would
+       not have been parsed before the UDL was cached.) */
+    ud_lit_op_sym_for_curr_token =
+               find_literal_operator(ctp->variant.ud_lit.suffix,
+                                     strlen(ctp->variant.ud_lit.suffix),
+                                     &pos_curr_token, ctp->variant.ud_lit.type,
+                                     (a_diagnostic_ptr)NULL);
+    ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   free_cached_token(ctp);
   if (cached_token_rescan_list == NULL) {
@@ -3006,16 +2946,22 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
-    if (ctoken == tok_ud_literal) {
-      /* Set up locator_for_curr_id and look up the symbol for the literal
-         operator or literal operator template.  (The lookup must be
-         repeated here, rather than using the symbol stored with the token,
-         to handle cases where the result will be different from that of
-         the original lookup, e.g., because of a using-directive in this
-         scope that would not have been parsed before the UDL was
-         cached.) */
-      ud_lit_op_sym_for_curr_token = ud_lit_op_sym_from_token_cache(ctp);
-    }  /* if */
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    /* Restore const_for_curr_token. */
+    copy_constant(ctp->variant.ud_lit.constant, &const_for_curr_token);
+    /* Set up locator_for_curr_id and look up the symbol for the literal
+       operator or literal operator template.  (The lookup must be
+       repeated here, rather than using the symbol stored with the token,
+       to handle cases where the result will be different from that of
+       the original lookup, e.g., because of a using-directive in this
+       scope that would not have been parsed before the UDL was
+       cached.) */
+    ud_lit_op_sym_for_curr_token =
+               find_literal_operator(ctp->variant.ud_lit.suffix,
+                                     strlen(ctp->variant.ud_lit.suffix),
+                                     &pos_curr_token, ctp->variant.ud_lit.type,
+                                     (a_diagnostic_ptr)NULL);
+    ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while ((reusable_cache_stack->next_cached_token == NULL ||
@@ -9531,7 +9477,6 @@ fixed_point_suffix:
       /* A syntactically-correct user-defined literal was seen. */
       a_const_char *canonical_id;
       sizeof_t     id_len;
-      a_type_ptr   literal_type;
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len,
                                                /*force_ucn=*/FALSE);
@@ -9539,17 +9484,18 @@ fixed_point_suffix:
         /* The literal overflowed/underflowed, which is not an error for
            raw literal operators and literal operator templates.
            Synthesize an appropriate type for the lookup. */
-        literal_type = (kind != k_float)
+        ud_lit_type_for_curr_token = (kind != k_float)
                          ? integer_type((an_integer_kind)ik_unsigned_long_long)
                          : float_type((a_float_kind)fk_long_double);
       } else {
         /* Use the actual type of the literal. */
-        literal_type = const_for_curr_token.type;
+        ud_lit_type_for_curr_token = const_for_curr_token.type;
       }  /* if */
       ud_lit_op_sym_for_curr_token =
-                               find_literal_operator(canonical_id, id_len,
-                                                     &start_pos, literal_type,
-                                                     (a_diagnostic_ptr)NULL);
+                              find_literal_operator(canonical_id, id_len,
+                                                    &start_pos,
+                                                    ud_lit_type_for_curr_token,
+                                                    (a_diagnostic_ptr)NULL);
       if (err_code != ec_no_error &&
           ud_lit_op_sym_for_curr_token != NULL) {
         /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
@@ -10566,6 +10512,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
                                              (a_diagnostic_ptr)NULL);
+          ud_lit_type_for_curr_token = const_for_curr_token.type;
         }  /* if */
       }  /* if */
       if (err_code == ec_no_error) {
@@ -12154,6 +12101,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
                                              &pos_curr_token,
                                              const_for_curr_token.type,
                                              (a_diagnostic_ptr)NULL);
+      ud_lit_type_for_curr_token = const_for_curr_token.type;
       ctoken = tok_ud_literal;
     }  /* if */
   }  /* if */
@@ -21422,7 +21370,7 @@ of characters added.
     if (token == tok_ud_literal) {
       /* Put out a user-defined literal. */
       a_boolean    use_token_spelling = FALSE;
-      a_symbol_ptr ud_lit_op_sym = ctp->ud_lit_op_sym;
+      a_symbol_ptr ud_lit_op_sym = ctp->variant.ud_lit.op_sym;
       if (ud_lit_op_sym == NULL) {
         /* The associated symbol was not known when the token was cached. */
       } else if (symbol_is(ud_lit_op_sym, sk_function_template)) {
@@ -21450,7 +21398,7 @@ of characters added.
         octl.part_of_ud_literal = FALSE;
       }  /* if */
       /* Now put out the ud-suffix. */
-      put_str_to_temp_text_buffer(ctp->ud_suffix);
+      put_str_to_temp_text_buffer(ctp->variant.ud_lit.suffix);
       if (octl.pending_right_paren) {
         /* The il_to_str routines preceded the literal portion with a left
            parenthesis.  Close it now. */
@@ -22144,6 +22092,7 @@ Display a single cached token.
       case teik_pp_token:       s = "pp_token"; break;
       case teik_extracted_body: s = "extracted_body"; break;
       case teik_asm_string:     s = "asm_string"; break;
+      case teik_ud_lit:         s = "ud_lit"; break;
       default:                  unexpected_condition();
     }  /* switch */
     fprintf(f_debug, "  extra_info_kind: %s\n", s);
@@ -22154,10 +22103,13 @@ Display a single cached token.
       fprintf(f_debug, "  Pragma: %s\n",
               pragma_ids[(int)ppp->descr_ptr->kind]);
     }  /* for */
-  } else if (ctp->ud_lit_op_sym != NULL) {
-    db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
-  } else if (ctp->ud_suffix != NULL) {
-    fprintf(f_debug, "  Literal operator suffix: %s\n", ctp->ud_suffix);
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    if (ctp->variant.ud_lit.op_sym != NULL) {
+      db_symbol(ctp->variant.ud_lit.op_sym, "  Literal operator: ", 4);
+    } else if (ctp->variant.ud_lit.suffix != NULL) {
+      fprintf(f_debug, "  Literal operator suffix: %s\n",
+              ctp->variant.ud_lit.suffix);
+    }  /* if */
   }  /* if */
 }  /* db_cached_token */
 

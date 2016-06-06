@@ -1583,6 +1583,13 @@ EXTERN a_symbol_ptr
 			   otherwise, it designates the specific function
 			   or template to be used to produce the value of
 			   this literal. */
+EXTERN a_type_ptr
+		ud_lit_type_for_curr_token;
+			/* If the current token is a user-defined literal
+			   (tok_ud_literal), this is the type passed to
+			   find_literal_operator to look up the associated
+			   literal operator or literal operator
+			   template. */
 EXTERN an_error_code
 		err_code_for_error_token;
 			/* If the current token is tok_error, this is the
@@ -1884,13 +1891,13 @@ enum a_token_extra_info_kind_tag {
   /* Kind of additional information saved in a cached token entry. */
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
-  teik_constant,	/* Extra information for a literal constant or
-			   user-defined literal. */
+  teik_constant,	/* Extra information for a literal constant. */
   teik_pragma,		/* Extra information for a pragma. */
   teik_pp_token,        /* Extra information for a pp token. */
   teik_extracted_body,  /* Extra information for an extracted template body. */
   teik_asm_string,	/* Extra information for a Microsoft asm block. */
-  teik_insert_string    /* Extra information for an inserted token string. */
+  teik_insert_string,   /* Extra information for an inserted token string. */
+  teik_ud_lit           /* Extra information for a user-defined literal. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -1934,20 +1941,6 @@ typedef struct a_cached_token {
 			   a token from a reusable cache is later placed in
 			   a non-reusable one, this still refers to the
 			   entry in the reusable cache. */
-  a_symbol_ptr	ud_lit_op_sym;
-			/* For user-defined literal tokens (tok_ud_literal),
-			   the literal operator or literal operator template
-			   selected to produce the value of the literal, if
-			   any; otherwise, NULL. */
-  a_const_char	*ud_suffix;
-			/* For user-defined literal tokens (tok_ud_literal),
-			   the identifier portion of the literal operator
-			   or literal operator template name (this is needed
-			   when a user-defined literal is used to declare
-			   the first literal operator or literal operator
-			   template with that name and thus there is no
-			   existing symbol for ud_lit_op_sym).  NULL for
-			   tokens other than tok_ud_literal. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
@@ -1958,13 +1951,7 @@ typedef struct a_cached_token {
     a_constant_ptr
 		constant;
 			/* Pointer to a constant entry (in front end storage)
-			   giving the value for the literal constant.  For
-			   tok_ud_literal tokens, this is the value to be
-			   passed as the first argument to the literal
-			   operator designated by ud_lit_op_sym or the
-			   ck_string containing the characters of the token
-			   spelling with which the literal operator template
-			   is to be instantiated. */
+			   giving the value for the literal constant. */
     /* When extra_info_kind == teik_pragma: */
     struct a_pending_pragma
 		*pragmas;
@@ -1985,6 +1972,35 @@ typedef struct a_cached_token {
     /* When extra_info_kind == teik_asm_string: */
     char	*asm_string;
 			/* The string representing a Microsoft asm block. */
+    /* When extra_info_kind == teik_ud_lit: */
+    struct {
+      a_constant_ptr
+		constant;
+			/* Pointer to a constant entry (in front end
+			   storage) giving the value to be passed as the
+			   first argument to the literal operator
+			   designated by ud_lit_op_sym or the ck_string
+			   containing the characters of the token spelling
+			   with which the literal operator template is to
+			   be instantiated. */
+      a_symbol_ptr
+		op_sym;	/* The literal operator or literal operator template
+			   selected to produce the value of the literal, if
+			   any; otherwise, NULL. */
+      a_const_char
+		*suffix;
+			/* The identifier portion of the literal operator
+			   or literal operator template name (this is needed
+			   when a user-defined literal is used to declare
+			   the first literal operator or literal operator
+			   template with that name and thus there is no
+			   existing symbol for ud_lit_op_sym).  NULL for
+			   tokens other than tok_ud_literal. */
+      a_type_ptr
+		type;	/* The type of the literal, to be passed to
+			   find_literal_operator when repeating the operator
+			   lookup for a cached token. */
+    } ud_lit;
   } variant;
 } a_cached_token;
 
