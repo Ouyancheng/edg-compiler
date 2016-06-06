@@ -6605,7 +6605,6 @@ copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 			a_template_param_ptr	templ_param_list,
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
-			a_boolean		orig_is_nonreal_template,
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state)
 /*
@@ -6626,7 +6625,6 @@ routines.
                                                      templ_param_list,
                                                      source_pos,
                                                      options,
-                                                     orig_is_nonreal_template,
                                                      copy_error,
                                                      ctws_state);
   return new_tap;
@@ -6667,7 +6665,6 @@ to the given locator.
                                              rcblock->template_param_list,
                                              &locator->source_position,
                                              rcblock->options,
-                                             /*orig_is_nonreal_template=*/TRUE,
                                              &copy_error,
                                              rcblock->ctws_state);
   if (copy_error) {
@@ -39640,7 +39637,6 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                   t_sym, t_args, (a_template_param_ptr)NULL,
                   rcblock->template_arg_list, rcblock->template_param_list,
                   &rcblock->expr->position, rcblock->options,
-                  /*orig_is_nonreal_template=*/FALSE,
                   &copy_error, rcblock->ctws_state);
           if (copy_error) {
             rcblock->error_detected = TRUE;
