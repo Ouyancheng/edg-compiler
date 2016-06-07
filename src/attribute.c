@@ -3594,6 +3594,9 @@ an error.
             }  /* if */
             make_attr_unrecognized(*p_attr);
           }  /* if */
+          /* If the argument was a parameter pack expansion, it's been expanded
+             now so reset the flag. */
+          (*p_aap)->is_pack_expansion = FALSE;
           (void)end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
           any_more = advance_to_next_pack_element(pesep);
