@@ -40664,9 +40664,20 @@ function or template.
       guide_type != NULL) {
     /* Resolve the instance of an overloaded function or template based
        on the destination guide type. */
-    cast_overloaded_function(guide_type, &result, /*is_cast=*/FALSE,
-                             /*is_static_cast=*/FALSE,
-                             /*skip_final_adjustment=*/FALSE);
+    if (nontype_template_arg) {
+      /* For template arguments, certain conversions are not permitted.
+         (For example, certain pointer-to-member function conversions.)
+         Use prep_initializer_operand to catch such cases. */
+      prep_initializer_operand(&result, guide_type, (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE,
+                               CCO_NONTYPE_TEMPLATE_ARG,
+                               ec_bad_nontype_template_arg);
+    } else {
+      cast_overloaded_function(guide_type, &result, /*is_cast=*/FALSE,
+                               /*is_static_cast=*/FALSE,
+                               /*skip_final_adjustment=*/FALSE);
+    }  /* if */
   }  /* if */
   if (rcblock->error_detected) {
     set_error_constant(constant);
