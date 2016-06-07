@@ -8221,7 +8221,15 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
          sp != NULL;
          sp = sp->parent) {
       if (sp->kind == (a_scope_kind)sck_function) {
+        /* Directly nested functions. */
         sp->variant.routine.ptr->lowering_delayed_on_nested_function = TRUE;
+      } else if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr class_type = sp->variant.assoc_type;
+        if (class_type->source_corresp.is_local_to_function) {
+          /* Functions containing local class with delayed routine. */
+          enclosing_routine_for_local_type(class_type)->
+                                    lowering_delayed_on_nested_function = TRUE;
+        }  /* if */
       }  /* if */
     }  /* for */
     /* Record that lowering has been delayed on at least one function in the

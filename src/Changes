@@ -1,5 +1,30 @@
 Version 4.12
 
+6/7/16   [EDGcpfe/17230]
+Failure to initialize virtual tables of some local classes
+
+In some cases (more likely with --c++14 and relaxed constexpr), the virtual
+function tables for a local class had failed to be initialized, causing the
+potential for undefined behavior at runtime.  A change has been made to
+delay lowering on functions with local classes which contain functions that
+themselves have had lowering delayed.  For example (with --c++14):
+
+  struct A {
+    virtual int f() {return 1;}
+  };
+  template <class T> struct B {
+    A* f() {
+      struct X : A {
+        virtual int f() {return 2;}
+      };
+      return new X;
+    }
+  };
+  int main() {
+    return B<A>().f()->f() != 2;
+  }
+
+
 6/7/16   [EDGcpfe/17238,EDGcpfe/17258]
 Internal error on use of carries_dependency in friend declaration
 
