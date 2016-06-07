@@ -834,6 +834,7 @@ Release the storage stack pointed to by sss for reuse.
          blocks to those about to be freed. */
       a_byte        *block, *next_block;
       a_byte_count  ptr_size = sizeof(a_byte*);
+      do_host_alignment(ptr_size);
       for (block = first_block; ; block = next_block) {
         next_block = *(a_byte**)(block+ptr_size);
         if (next_block == NULL) break;

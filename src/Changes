@@ -1,5 +1,14 @@
 Version 4.12
 
+
+6/7/16   [EDGcpfe/17278]
+Abort in C++14 interpreter due to misaligned access
+
+On some platforms (notably, Win32) the front end could abort in the C++14
+constexpr interpreter because the function release_constexpr_stack failed to
+correctly align pointer offsets.  This is now fixed.
+
+
 6/7/16   [EDGcpfe/17060]
 SFINAE and nontype template argument conversions
 
