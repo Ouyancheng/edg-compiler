@@ -10754,8 +10754,6 @@ possibility.
             pos_error(ec_inline_not_allowed, &error_position);
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (sym != NULL) {
         if (sym->defined && func_info->is_definition) {
           /* Trying to define a function that's already defined. */
           pos_sy_error(ec_function_redefinition,
@@ -10763,6 +10761,8 @@ possibility.
           set_to_error_locator(*locator);
         } else {
           a_routine_ptr  rp = sym->variant.routine.ptr;
+          state->sym = sym;
+          state->prev_type = rp->type;
           if (func_info->is_definition) {
             /* Member functions cannot be defined as part of a friend
                declaration. */

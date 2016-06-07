@@ -1,5 +1,22 @@
 Version 4.12
 
+6/7/16   [EDGcpfe/17238,EDGcpfe/17258]
+Internal error on use of carries_dependency in friend declaration
+
+The use of a carries_dependency attribute on a parameter in a friend
+declaration where no carries_dependency attribute appeared in the first
+declaration had resulted in an internal error (in
+check_carries_dependency_for_params) rather than an error.  Now fixed.
+For example (with --c++11):
+
+  struct S {
+    void f(int);
+  };
+  struct A {
+    friend void S::f([[carries_dependency]] int);
+  };
+
+
 6/7/16   [EDGcpfe/17275]
 Abort in define_member_function on attempt to define invalid class member
 
