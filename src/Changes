@@ -130,7 +130,7 @@ Previously, this triggered an ambiguity error for "T().x" because candidate (1)
 was not discarded during SFINAE processing.  This is now fixed.
 
 
-6/3/16   [EDGcpfe/17263]
+6/3/16   [EDGcpfe/17272,EDGcpfe/17188,EDGcpfe/17263]
 Spurious error on UDL referenced from cached context
 
 A spurious error could be issued if a user-defined literal was referenced
