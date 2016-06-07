@@ -1,5 +1,16 @@
 Version 4.12
 
+6/7/16   [EDGcpfe/17275]
+Abort in define_member_function on attempt to define invalid class member
+
+The changes for EDGcpfe/16170 introduced a regression in GNU C++ modes with
+gnu_version < 40700 whereby the front end aborted (null pointer indirection)
+after issuing an error for attempting to define a non-existing member function.
+For example:
+
+  struct S { void f(int); };
+  void S::f(char) {}
+
 
 6/7/16   [EDGcpfe/17278]
 Abort in C++14 interpreter due to misaligned access

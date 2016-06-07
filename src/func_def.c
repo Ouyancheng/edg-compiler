@@ -1903,7 +1903,8 @@ member declaration (allowed in some Microsoft modes only).
       sym = NULL;
     }  /* if */
   }  /* if */
-  if (gpp_mode && gnu_version < 40700 && defaulted_special_members_enabled) {
+  if (gpp_mode && gnu_version < 40700 && defaulted_special_members_enabled &&
+      sym != NULL) {
     /* Some versions of GCC accept an explicit out-of-class definition after a
        special member has been defaulted in the class.  If that's the case,
        discard the prior "definition". */
