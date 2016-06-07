@@ -710,6 +710,7 @@ extern a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_template_param_ptr	templ_param_list,
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state);
 
