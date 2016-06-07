@@ -3621,8 +3621,8 @@ constant-expression.
       /* Clear the cache pointer to avoid runaway recursion. */
       sdmsp->token_cache = NULL;
       if (var->is_specialized) {
-        /* If the static data member was explicit specialized, its initializer
-           can no longer be instantiated. */
+        /* If the static data member was explicitly specialized, its
+           initializer can no longer be instantiated. */
         token_cache = NULL;
       }  /* if */
     }  /* if */
