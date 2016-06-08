@@ -142,6 +142,22 @@ member, which could cause unexpected behavior.  For example:
 
   template<typename T> struct X {
     enum E { e };
+    static E const sm = E(e|e);
+  };
+  X<int>::E operator|(X<int>::E, X<int>::E);
+  template<typename T>
+    typename X<T>::E X<int>::sm;
+  X<int>::E xe = X<int>::sm;
+    // Previously triggered an error because the user-defined operator|
+    // doesn't produce a constant-expression.  Now, the initializer is no
+    // longer required to be a constant-expression.
+
+Furthermore, if such a static data member is instantiated after the
+out-of-class definition is seen, it is no longer assumed to be a constant
+initializer.  For example:
+
+  template<typename T> struct X {
+    enum E { e };
     constexpr static E const sm = E(e|e);
   };
   X<int>::E operator|(X<int>::E, X<int>::E);

@@ -3654,12 +3654,12 @@ constant-expression.
   }  /* if */
   if (token_cache != NULL) {
     a_decl_parse_state           dps;
-    a_constant_ptr               constant = local_constant();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     push_lexical_state_stack();
+    rescan_reusable_cache(token_cache);
     /* Re-create a declaration parsing state before parsing the
        initializer. */
     init_decl_parse_state(&dps);
@@ -3670,22 +3670,53 @@ constant-expression.
     push_class_and_template_reactivation_scope(
           class_type, /*is_template_based=*/gpp_mode,
           /*extend_namespace=*/TRUE);
-    rescan_reusable_cache(token_cache);
-    scan_member_constant_initializer_expression(&dps, constant);
-    var->init_kind = (an_init_kind)initk_static;
-    var->initializer.constant = move_local_constant_to_il(&constant);
+    if (gpp_mode && var->template_info != NULL &&
+        var->template_info->assoc_template->definition_template != NULL) {
+      /* In GNU C++ mode, if an out-of-class definition has been seen prior to
+         the instantiation of the initializer, the initializer is not
+         necessarily required to be a constant. */
+      a_boolean  incomplete_type_error_reported = FALSE;
+      a_boolean  is_parenthesized_initializer = FALSE;
+      a_boolean  saved_auto_type_specifier_seen = dps.auto_type_specifier_seen;
+      a_source_position
+                 var_pos;
+      a_decl_pos_block
+                 decl_pos_block;
+      clear_decl_pos_block(&decl_pos_block);
+      decl_pos_block.var_init_range.start = pos_curr_token;
+      if (curr_token == tok_lparen) {
+        is_parenthesized_initializer = TRUE;
+        (void)get_token();
+      }  /* if */
+      /* Temporarily clear the "auto type specifier seen" flag to avoid
+         having the call to "initializer" attempt to prescan the expression
+           again. */
+      dps.auto_type_specifier_seen = FALSE;
+      var_pos = var->source_corresp.decl_position;
+      initializer(&dps, &var_pos, idl_external, is_parenthesized_initializer,
+                  &incomplete_type_error_reported, &decl_pos_block);
+      dps.auto_type_specifier_seen = saved_auto_type_specifier_seen;
+    } else {
+      a_constant_ptr  constant = local_constant();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    var->initializer_range.end = curr_construct_end_position;
+      var->initializer_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    check_constant_valued_variable(&dps);
-    /* We should now be at the end-of-source terminator inserted when we
-       cached the initializer.  If we aren't, it means something other than a
-       semicolon (or a comma) followed the initializer expression. */
-    if (curr_token != tok_end_of_source) {
-      pos_error(ec_exp_semicolon, &pos_curr_token);
+      scan_member_constant_initializer_expression(&dps, constant);
+      var->init_kind = (an_init_kind)initk_static;
+      var->initializer.constant = move_local_constant_to_il(&constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      var->initializer_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      check_constant_valued_variable(&dps);
+      /* We should now be at the end-of-source terminator inserted when we
+         cached the initializer.  If we aren't, it means something other than a
+         semicolon (or a comma) followed the initializer expression. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
     }  /* if */
-    flush_past_token_cache_terminator();
     pop_class_reactivation_scope();
+    flush_past_token_cache_terminator();
     pop_lexical_state_stack();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
