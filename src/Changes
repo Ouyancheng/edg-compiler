@@ -162,7 +162,7 @@ initializer.  For example:
   };
   X<int>::E operator|(X<int>::E, X<int>::E);
   template<typename T>
-    typename X<T>::E X<int>::sm;
+    typename X<T>::E const X<T>::sm;
   X<int>::E xe = X<int>::sm;
     // Previously triggered an error because the user-defined operator|
     // doesn't produce a constant-expression.  Now, the initializer is no
