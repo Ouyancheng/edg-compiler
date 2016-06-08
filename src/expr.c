@@ -40659,12 +40659,12 @@ function or template.
                                          EOPT_NO_OPTIONS,
                                          &result,
                                          (an_operand *)NULL);
-  if (!rcblock->error_detected &&
-      is_indefinite_function_operand(&result) &&
-      guide_type != NULL) {
+  if (!rcblock->error_detected && guide_type != NULL &&
+      (is_indefinite_function_operand(&result) || constexpr_enabled)) {
     /* Resolve the instance of an overloaded function or template based
-       on the destination guide type. */
-    if (nontype_template_arg) {
+       on the destination guide type.  If constexpr is enabled, also consider
+       user-defined conversion functions. */
+    if (nontype_template_arg || !is_indefinite_function_operand(&result)) {
       /* For template arguments, certain conversions are not permitted.
          (For example, certain pointer-to-member function conversions.)
          Use prep_initializer_operand to catch such cases. */
