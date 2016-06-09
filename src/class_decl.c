@@ -3690,7 +3690,7 @@ constant-expression.
       }  /* if */
       /* Temporarily clear the "auto type specifier seen" flag to avoid
          having the call to "initializer" attempt to prescan the expression
-           again. */
+         again. */
       dps.auto_type_specifier_seen = FALSE;
       var_pos = var->source_corresp.decl_position;
       initializer(&dps, &var_pos, idl_external, is_parenthesized_initializer,
