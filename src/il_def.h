@@ -2353,7 +2353,7 @@ typedef struct an_attribute_arg {
 		*pack_expansion_descr;
 			/* If non-NULL, the attribute value is a pack
 			   expansion, and this points to the expansion
-			   and this points to the expansion description. */
+			   description. */
   a_source_position
 		position;
 			/* The source position of the argument. */
@@ -2712,7 +2712,7 @@ typedef struct an_attribute {
 		*pack_expansion_descr;
 			/* If non-NULL, the attribute is a pack expansion,
 			   and this points to the expansion description.
-			   Note that this field is set, but not currently used;
+			   Note that this field is set but not currently used;
 			   the standard doesn't specify any attributes that
 			   can be used in this manner. */
 } an_attribute;
