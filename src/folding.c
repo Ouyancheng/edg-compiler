@@ -10345,7 +10345,7 @@ the variable to which p points has a constant value, return that value.
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
                                           (a_constant_ptr)NULL);
-      if (is_reference_type(result_con->type)) {
+      if (result_con != NULL && is_reference_type(result_con->type)) {
         a_type_ptr target_of_ref = type_pointed_to(result_con->type);
         if (skip_typerefs(target_of_ref)->kind == (a_type_kind)tk_routine) {
           /* The result is a reference to a function.  Convert it to a
