@@ -17712,6 +17712,196 @@ describes the context of the conversion.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean variable_scope_okay_for_throw_move_optimization(
+                                                            a_variable_ptr var)
+/*
+The variable var is being thrown in a throw operation, and it's eligible
+for a copy optimization (it's local and non-static, etc.).  See whether it's
+eligible for a move optimization because it would be destroyed on the
+throw cleanup anyway.  That involves checking its scope relative to any
+enclosing try statements.
+*/
+{
+  a_boolean     okay = FALSE;
+  a_scope_depth depth;
+
+  /* Consider:
+       struct A {
+         A();
+         A(const A&);
+         A(A&&);
+         ~A();
+       };
+       void f() {
+         A a;
+         throw a;  // Optimizable
+       }
+       void f2() {
+         try {
+           A a;
+           throw a;  // Optimizable
+         } catch (...) {
+         }
+       }
+       void f3() {
+         A a;
+         try {
+           throw a;  // Not optimizable
+         } catch (...) {
+         }
+       }
+  */
+  if (!scope_stack[depth_scope_stack].within_try_block) {
+    /* The current position is not inside a try block, so the local variable
+       will be destroyed for sure on the throw. */
+    okay = TRUE;
+  } else {
+    /* The current position is inside a try block, so the local variable will
+       be destroyed on the throw only if it is declared within the innermost
+       try block. */
+    for (depth = depth_scope_stack;; depth--) {
+      check_assertion(depth_innermost_function_scope > 0 &&
+                      depth > depth_innermost_function_scope);
+      if (var->source_corresp.parent_scope == scope_stack[depth].il_scope) {
+        /* We found the local variable before we ran into a try block, so it
+           will be destroyed on the throw. */
+        okay = TRUE;
+        break;
+      }  /* if */
+      /* Stop looking when we get to the innermost try block, after checking
+         whether the variable is in its associated block scope. */
+      if (scope_stack[depth].is_try_block) break;
+    }  /* for */
+  }  /* if */
+  return okay;
+}  /* variable_scope_okay_for_throw_move_optimization */
+
+
+static a_boolean selected_function_is_move_constructor(
+                                                      a_conv_descr *conversion,
+                                                      a_type_ptr   class_type)
+/*
+Return TRUE if the function selected and indicated in *conversion is a
+move constructor for the class given by class_type.
+*/
+{
+  a_boolean     is_move_constructor = FALSE;
+  a_routine_ptr rout = conversion->routine;
+
+  class_type = skip_typerefs(class_type);
+  if (rout != NULL &&
+      rout->special_kind == (a_special_function_kind)sfk_constructor) {
+    a_type_ptr       rout_type = skip_typerefs(rout->type);
+    a_param_type_ptr ptp =
+                        rout_type->variant.routine.extra_info->param_type_list;
+    check_assertion(identical_types(parent_class_of(rout), class_type));
+    if (ptp != NULL &&
+        is_rvalue_reference_type(ptp->type)) {
+      a_type_ptr param_type = type_pointed_to(ptp->type);
+      param_type = skip_typerefs(param_type);
+      if (identical_types_ignoring_qualifiers(param_type, class_type)) {
+        is_move_constructor = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_move_constructor;
+}  /* selected_function_is_move_constructor */
+
+
+static a_boolean check_for_move_optimization(
+                                an_operand         *source_operand,
+                                a_type_ptr         dest_type,
+                                a_boolean          is_copy_initialization,
+                                a_boolean          orig_is_copy_initialization,
+                                a_conv_context_set conv_context,
+                                a_conv_descr       *conversion,
+                                a_conv_descr       *ctor_arg_conversion)
+/*
+source_operand is being converted to the given destination type.  The other
+parameters correspond to their homonyms in conversion_to_class_possible.
+Check whether the source operand is an lvalue subject to the move optimization
+(see 12.8/32 in the C++11 standard), and if so return TRUE, turn the source
+operand into an xvalue (by casting it to an rvalue reference), and record the
+conversion in *conversion and *ctor_arg_conversion.  In some error cases, the
+source operand also cast to the rvalue reference, but FALSE is returned.  In
+all other cases, FALSE is returned and the source operand is left unchanged. 
+*/
+{
+  a_variable_ptr  var;
+  a_boolean       conversion_done = FALSE;
+
+  if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
+      rvalue_references_enabled &&
+      operand_is_lvalue_for_variable(source_operand, &var)) {
+    /* The move constructor optimization might apply here.  Check further. */
+    a_boolean initializing_return_value =
+                           (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
+    if (variable_eligible_for_copy_optimization(var,
+                                                initializing_return_value,
+                                                /*move_case=*/TRUE) &&
+        (initializing_return_value ||
+         variable_scope_okay_for_throw_move_optimization(var))) {
+      /* The move optimization might apply here.  Build a version of the
+         operand that has been converted to an rvalue and try the conversion
+         from that first.  Convert the variable to an rvalue by casting to
+         an rvalue reference type, so for example
+           A x;
+           return x;
+         becomes
+           A x;
+           return static_cast<A &&>(x);
+      */
+      a_boolean  ambiguous;
+      an_operand rvalue_operand;
+      rvalue_operand = *source_operand;
+      cast_operand_for_reference_cast(&rvalue_operand,
+                                      make_rvalue_reference_type(
+                                                          rvalue_operand.type),
+                                      /*check_cast_access=*/FALSE,
+                                      /*is_implicit_cast=*/TRUE,
+                                      /*reinterpret_semantics=*/FALSE); 
+      if (conversion_to_class_possible(&rvalue_operand,
+                                       (an_arg_list_elem *)NULL,
+                                       dest_type,
+                                       /*try_bitwise_copy=*/TRUE,
+                                       is_copy_initialization,
+                                       orig_is_copy_initialization,
+                                       /*ref_binding_type=*/(a_type*)NULL,
+                                       /*is_direct_binding=*/FALSE,
+                                       conv_context,
+                                       conversion, ctor_arg_conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL)) {
+        /* The conversion is possible.  Additionally, the selected function
+           has to be a move constructor. */
+        if (selected_function_is_move_constructor(conversion, dest_type)) {
+          /* The move optimization applies. */
+          *source_operand = rvalue_operand;
+          conversion_done = TRUE;
+        }  /* if */
+      } else if (ambiguous) {
+        /* If there's an ambiguity, keep the rvalue operand and go do the
+           overload resolution again to get the error. */
+        *source_operand = rvalue_operand;
+      }  /* if */
+#if CHECKING
+      if (!conversion_done && !ambiguous) {
+        /* We failed on matching the rvalue case for the move optimization.
+           Keep the original operand (an lvalue) and try again. */
+        /* We're counting on the fact that the cast to a reference type above
+           doesn't change the original expression. */
+        a_variable_ptr var2;
+        check_assertion(operand_is_lvalue_for_variable(source_operand,
+                                                       &var2) &&
+                        var == var2);
+      } /* if */
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+  return conversion_done;
+}  /* check_for_move_optimization */
+
+
 a_boolean user_defined_conversion_possible(
                                 an_operand         *source_operand,
                                 a_type_ptr         dest_type,
@@ -17774,7 +17964,12 @@ that case).
     /* We don't try this if we need an lvalue result, because constructors
        don't yield lvalues.  If a conversion function applies it will
        be picked up below. */
-    if (conversion_to_class_possible(source_operand,
+    if (check_for_move_optimization(source_operand, dest_type,
+                                    is_copy_initialization,
+                                    orig_is_copy_initialization,
+                                    conv_context,
+                                    conversion, ctor_arg_conversion) ||
+        conversion_to_class_possible(source_operand,
                                      (an_arg_list_elem *)NULL,
                                      dest_type,
                                      /*try_bitwise_copy=*/TRUE,
@@ -19602,102 +19797,6 @@ happen only in C++ mode.
 }  /* determine_dynamic_init_for_class_init */
 
 
-static a_boolean selected_function_is_move_constructor(
-                                                      a_conv_descr *conversion,
-                                                      a_type_ptr   class_type)
-/*
-Return TRUE if the function selected and indicated in *conversion is a
-move constructor for the class given by class_type.
-*/
-{
-  a_boolean     is_move_constructor = FALSE;
-  a_routine_ptr rout = conversion->routine;
-
-  class_type = skip_typerefs(class_type);
-  if (rout != NULL &&
-      rout->special_kind == (a_special_function_kind)sfk_constructor) {
-    a_type_ptr       rout_type = skip_typerefs(rout->type);
-    a_param_type_ptr ptp =
-                        rout_type->variant.routine.extra_info->param_type_list;
-    check_assertion(identical_types(parent_class_of(rout), class_type));
-    if (ptp != NULL &&
-        is_rvalue_reference_type(ptp->type)) {
-      a_type_ptr param_type = type_pointed_to(ptp->type);
-      param_type = skip_typerefs(param_type);
-      if (identical_types_ignoring_qualifiers(param_type, class_type)) {
-        is_move_constructor = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_move_constructor;
-}  /* selected_function_is_move_constructor */
-
-
-static a_boolean variable_scope_okay_for_throw_move_optimization(
-                                                            a_variable_ptr var)
-/*
-The variable var is being thrown in a throw operation, and it's eligible
-for a copy optimization (it's local and non-static, etc.).  See whether it's
-eligible for a move optimization because it would be destroyed on the
-throw cleanup anyway.  That involves checking its scope relative to any
-enclosing try statements.
-*/
-{
-  a_boolean     okay = FALSE;
-  a_scope_depth depth;
-
-  /* Consider:
-       struct A {
-         A();
-         A(const A&);
-         A(A&&);
-         ~A();
-       };
-       void f() {
-         A a;
-         throw a;  // Optimizable
-       }
-       void f2() {
-         try {
-           A a;
-           throw a;  // Optimizable
-         } catch (...) {
-         }
-       }
-       void f3() {
-         A a;
-         try {
-           throw a;  // Not optimizable
-         } catch (...) {
-         }
-       }
-  */
-  if (!scope_stack[depth_scope_stack].within_try_block) {
-    /* The current position is not inside a try block, so the local variable
-       will be destroyed for sure on the throw. */
-    okay = TRUE;
-  } else {
-    /* The current position is inside a try block, so the local variable will
-       be destroyed on the throw only if it is declared within the innermost
-       try block. */
-    for (depth = depth_scope_stack;; depth--) {
-      check_assertion(depth_innermost_function_scope > 0 &&
-                      depth > depth_innermost_function_scope);
-      if (var->source_corresp.parent_scope == scope_stack[depth].il_scope) {
-        /* We found the local variable before we ran into a try block, so it
-           will be destroyed on the throw. */
-        okay = TRUE;
-        break;
-      }  /* if */
-      /* Stop looking when we get to the innermost try block, after checking
-         whether the variable is in its associated block scope. */
-      if (scope_stack[depth].is_try_block) break;
-    }  /* for */
-  }  /* if */
-  return okay;
-}  /* variable_scope_okay_for_throw_move_optimization */
-
-
 void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
@@ -19721,12 +19820,11 @@ constructor elision in C++ mode.  If elision_done is non-NULL,
 was done.
 */
 {
-  a_conv_descr   conversion, ctor_arg_conversion;
-  an_operand     orig_operand;
-  a_boolean      is_copy_initialization = TRUE;
-  a_boolean      orig_is_copy_initialization = is_copy_initialization;
-  a_boolean      check_elided_cctor = TRUE;
-  a_variable_ptr var;
+  a_conv_descr  conversion, ctor_arg_conversion;
+  an_operand    orig_operand;
+  a_boolean     is_copy_initialization = TRUE;
+  a_boolean     orig_is_copy_initialization = is_copy_initialization;
+  a_boolean     check_elided_cctor = TRUE;
 
   orig_operand = *source_operand;
   if (elision_done != NULL) *elision_done = FALSE;
@@ -19760,78 +19858,14 @@ was done.
     is_copy_initialization = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
-      rvalue_references_enabled &&
-      operand_is_lvalue_for_variable(source_operand, &var)) {
-    /* The move constructor optimization might apply here.  Check further. */
-    a_boolean initializing_return_value =
-                           (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
-    if (variable_eligible_for_copy_optimization(var,
-                                                initializing_return_value,
-                                                /*move_case=*/TRUE) &&
-        (initializing_return_value ||
-         variable_scope_okay_for_throw_move_optimization(var))) {
-      /* The move optimization might apply here.  Build a version of the
-         operand that has been converted to an rvalue and try the conversion
-         from that first.  Convert the variable to an rvalue by casting to
-         an rvalue reference type, so for example
-           A x;
-           return x;
-         becomes
-           A x;
-           return static_cast<A &&>(x);
-      */
-      a_boolean  ambiguous;
-      an_operand rvalue_operand;
-      rvalue_operand = *source_operand;
-      cast_operand_for_reference_cast(&rvalue_operand,
-                                      make_rvalue_reference_type(
-                                                          rvalue_operand.type),
-                                      /*check_cast_access=*/FALSE,
-                                      /*is_implicit_cast=*/TRUE,
-                                      /*reinterpret_semantics=*/FALSE); 
-      if (conversion_to_class_possible(&rvalue_operand,
-                                       (an_arg_list_elem *)NULL,
-                                       dest_type,
-                                       /*try_bitwise_copy=*/TRUE,
-                                       is_copy_initialization,
-                                       orig_is_copy_initialization,
-                                       /*ref_binding_type=*/(a_type*)NULL,
-                                       /*is_direct_binding=*/FALSE,
-                                       conv_context,
-                                       &conversion, &ctor_arg_conversion,
-                                       &ambiguous,
-                                       (a_candidate_function_ptr *)NULL)) {
-        /* The conversion is possible.  Additionally, the selected function
-           has to be a move constructor. */
-        if (selected_function_is_move_constructor(&conversion, dest_type)) {
-          /* The move optimization applies. */
-          *source_operand = rvalue_operand;
-          goto conversion_determined;
-        }  /* if */
-      } else if (ambiguous) {
-        /* If there's an ambiguity, keep the rvalue operand and go do the
-           overload resolution again to get the error. */
-        *source_operand = rvalue_operand;
-        goto after_check;
-      }  /* if */
-      /* We failed on matching the rvalue case for the move optimization.
-         Keep the original operand (an lvalue) and try again. */
-#if CHECKING
-      /* We're counting on the fact that the cast to a reference type above
-         doesn't change the original expression. */
-      { a_variable_ptr var2;
-        check_assertion(operand_is_lvalue_for_variable(source_operand,
-                                                       &var2) &&
-                        var == var2);
-      }
-#endif /* CHECKING */
-after_check:;
-    }  /* if */
-  }  /* if */
   /* Look for a constructor to convert the expression to the required
      class type. */
-  if (conversion_possible(source_operand, dest_type, 
+  if (check_for_move_optimization(source_operand, dest_type,
+                                  is_copy_initialization,
+                                  orig_is_copy_initialization,
+                                  conv_context,
+                                  &conversion, &ctor_arg_conversion) ||
+      conversion_possible(source_operand, dest_type, 
                           (a_boolean *)NULL, dest_type,
                           /*need_lvalue_result=*/FALSE,
                           is_copy_initialization,
@@ -19842,7 +19876,6 @@ after_check:;
                           err_code,
                           &source_operand->position,
                           &conversion, &ctor_arg_conversion)) {
-conversion_determined:
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     if (conv_context & CCO_STMT_EXPR_RESULT) {

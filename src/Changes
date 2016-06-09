@@ -1,5 +1,34 @@
 Version 4.12
 
+6/9/16   [EDGcpfe/17262]
+Move optimization and bitwise copyable class types
+
+Consider the following example:
+
+  struct M {  // Move-only type
+    M() = default;
+    M(M&&) = default;
+  };
+  M g() {
+    M v;
+    return v;  // Previously an error; now okay.
+  }
+
+M is a move-only type because the declaration of the move constructor causes
+the implicitly-declared copy constructor to be deleted.  Prior to the changes
+for EDGcpfe/16788, M was not considered bitwise copyable and consequently the
+return statement was subject to the named return value optimization: No copy
+or move constructor was involved in returning v, and the code was accepted.
+After EDGcpfe/16788, M is now correctly considered bitwise copyable, and the
+named return value optimization can no longer be applied (at least, using the
+Cfront or IA-64 ABIs).  However, in such cases the front end failed to
+consider the standard-mandated "move optimization" (which requires the
+variable to be returned using the move constructor) and instead just attempted
+to use the copy constructor: An error ensued since that constructor is deleted.
+This is now fixed: The move optimization is applied and the (bitwise) move
+constructor is selected.
+
+
 6/8/16   [EDGcpfe/17256]
 Constant folding of references to functions
 
