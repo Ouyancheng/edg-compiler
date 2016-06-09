@@ -10339,12 +10339,20 @@ the variable to which p points has a constant value, return that value.
       make_template_param_expr_constant(expr, result_con);
     } else if (addr_con_target_type_is_const(addr_con) ||
                !addr_con->variant.address.from_reference_variable) {
-      /* The object at the constant address is a constant object or is not
-         accessible via a variable reference to non-const. */
+      /* The constant address refers to a function or constant object or is
+         not accessible via a variable reference to non-const. */
       result_con = constant_value_at_address(
                                           addr_con,
                                           (a_constexpr_evaluation_block *)NULL,
                                           (a_constant_ptr)NULL);
+      if (is_reference_type(result_con->type)) {
+        a_type_ptr target_of_ref = type_pointed_to(result_con->type);
+        if (skip_typerefs(target_of_ref)->kind == (a_type_kind)tk_routine) {
+          /* The result is a reference to a function.  Convert it to a
+             pointer to a function. */
+          result_con->type = make_pointer_type(target_of_ref);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   release_local_constant(&addr_con);
