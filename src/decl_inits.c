@@ -3806,12 +3806,27 @@ initializer, already copied and substituted.
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
         a_class_symbol_supplement_ptr
-              cssp = symbol_for(dtype)->variant.class_struct_union.extra_info;
+                   cssp = class_symbol_supp(symbol_for(dtype));
         if (cssp->is_class_aggregate) {
-          /* A class aggregate requires aggregate initialization. */
-          is_aggregate = TRUE;
-          dtor_rp = get_init_destructor(dtype, is, diag_pos);
-          aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+          /* A class aggregate usually requires aggregate initialization.
+             An exception occurs when initializing with a singleton list whose
+             only element initializes the whole destination object. */
+          a_boolean  special_singleton = FALSE;
+          if (is_braced_init_component(icp)) {
+            an_init_component_ptr  list = icp->variant.braced.list;
+            if (is_last_elem(list)) {
+              a_type_ptr  etp = operand_of_arg_list_elem(list)->type;
+              special_singleton = are_reference_related(dtype, etp);
+            }  /* if */
+          }  /* if */
+          if (special_singleton) {
+            convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
+                                is);
+          } else {
+            is_aggregate = TRUE;
+            dtor_rp = get_init_destructor(dtype, is, diag_pos);
+            aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
+          }  /* if */
         } else {
           /* Non-aggregate class type. */
           convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
