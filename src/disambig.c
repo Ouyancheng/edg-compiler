@@ -1692,7 +1692,9 @@ types separated by commas (when single_type_required is FALSE).
         /* If the thing after the right parenthesis is not the start of an
            expression, then this is not a cast -- so indicate that this is not
            a declaration.  Beware of the "()" case, which is not an expression;
-           i.e., "(T())()" is not a cast at the top-level.  When implicit
+           i.e., "(T())()" is not a cast at the top-level.  Also beware of ++
+           and --, which could be a prefix operator of a cast expression, or a
+           postfix operation on the parenthesized expression.  When implicit
            typename is enabled and the type is an implicit dependent type,
            don't treat this as a cast if the thing after the right parenthesis
            is something that could be either a unary or binary operator (i.e.,
@@ -1700,7 +1702,12 @@ types separated by commas (when single_type_required is FALSE).
            unary operation).  A compound literal (e.g., "(int){0}") looks like
            a cast followed by a brace (and is treated as such). */
         if ((!is_expr_start_token(curr_token) ||
-             (curr_token == tok_lparen && next_token() == tok_rparen) ||
+             (curr_token == tok_lparen ? next_token() == tok_rparen :
+              curr_token == tok_plus_plus ?
+                                         !is_expr_start_token(next_token()) :
+              curr_token == tok_minus_minus ?
+                                         !is_expr_start_token(next_token()) :
+                                         FALSE) ||
              (is_implicit_template_type &&
               is_unary_and_binary_operator_token(curr_token))) &&
             (!compound_literals_allowed || curr_token != tok_lbrace)) {

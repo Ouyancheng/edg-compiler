@@ -1,5 +1,35 @@
 Version 4.12
 
+6/1/16   [EDGcpfe/17010]
+Cast type vs. expression disambiguation
+
+An expression like
+
+	(T ())()
+
+where T is a type name was previously erroneously treated as an attempt to
+cast "()" to type "T ()" (i.e., a function type taking no arguments and
+returning type T).  Now, it is instead treated as the invocation of a call
+with no arguments on the value-initialization of an object of type T.
+For example:
+
+  struct S {
+    int operator()();
+  };
+  int r = (S())();  // Previously a syntax error.  Now okay.
+
+Note that the following similar arrangement is still invalid (as mandated by
+the standard):
+
+  struct S {
+    int operator()(int);
+  };
+  int r = (S())(42);  // Invalid attempt to cast 42 to type "S()".
+
+Changes were also made to expressions of the form "(T())++" and "(T())--"
+(which are now accepted if the ++/-- is not followed by another expression).
+
+
 6/9/16   [EDGcpfe/17262]
 Move optimization and bitwise copyable class types
 
@@ -452,34 +482,6 @@ warning) on non-void return types.  This avoids errors in cases like this:
 
   volatile int g();  // A warning is issued; "volatile" is otherwise ignored.
   int g();           // No longer an error in GNU C mode.
-
-
-6/1/16   [EDGcpfe/17010]
-Cast type vs. expression disambiguation
-
-An expression like
-
-	(T ())()
-
-where T is a type name was previously erroneously treated as an attempt to
-cast "()" to type "T ()" (i.e., a function type taking no arguments and
-returning type T).  Now, it is instead treated as the invocation of a call
-with no arguments on the value-initialization of an object of type T.
-For example:
-
-  struct S {
-    int operator()();
-  };
-  int r = (S())();  // Previously a syntax error.  Now okay.
-
-Note that the following similar arrangement is still invalid (as mandated by
-the standard):
-
-  struct S {
-    int operator()(int);
-  };
-  int r = (S())(42);  // Invalid attempt to cast 42 to type "S()".
-
 
 
 6/1/16   [EDGcpfe/17007,EDGcpfe/17057]
