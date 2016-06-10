@@ -1,5 +1,13 @@
 Version 4.12
 
+6/10/16  [EDGcpfe/17284]
+Access SFINAE in ms_extensions mode
+
+The front end no longer implicitly disables access SFINAE when ms_extensions is
+TRUE in non-Microsoft modes.  (This improves compatibility with Clang when its
+-fms-extensions option is used.)
+
+
 6/10/16  [EDGcpfe/17291]
 Spurious errors on operator new[]/operator delete[] in ms_extensions mode
 
