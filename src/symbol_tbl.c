@@ -10066,7 +10066,7 @@ compiler-generated flag should be cleared.
                  &locator,
                  make_routine_type(return_type, param1_type, param2_type,
                                    (a_type_ptr)NULL, (a_type_ptr)NULL));
-  if (ms_extensions) {
+  if (microsoft_mode) {
     if (microsoft_version >= 1400 && !sized_version) {
       /* More recent Microsoft compilers treat the implicit declaration of
          array new and array delete as synonyms for the corresponding non-

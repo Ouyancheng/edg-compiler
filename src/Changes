@@ -1,5 +1,24 @@
 Version 4.12
 
+6/10/16  [EDGcpfe/17291]
+Spurious errors on operator new[]/operator delete[] in ms_extensions mode
+
+When ms_extensions is TRUE in non-Microsoft modes (see the entry for
+EDGcpfe/16502) the front end predeclared operator new[]/operator delete[] as an
+alias for the corresponding non-array operators (see also the Changes entry of
+9/11/07).  However, it did not displace those aliases when a user-declared
+version of such an operator appeared, leading to spurious errors.  For example:
+
+  void* operator new(size_t size) { return 0; }
+  void * operator new[](size_t size) { return 0; }
+    // Previously triggered a spurious redefinition error in some modes.
+    // Now okay.
+
+This is now fixed by not predeclaring the array versions of those operators as
+aliases for the non-array versions in the affected modes (that matches the
+behavior of Clang with options -fms-extensions or -fms-compatibility).
+
+
 6/10/16  [EDGcpfe/17295]
 Spurious error on singleton braced initializer for aggregate class object
 
