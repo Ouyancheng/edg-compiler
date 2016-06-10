@@ -17817,14 +17817,14 @@ static a_boolean check_for_move_optimization(
                                 a_conv_descr       *conversion,
                                 a_conv_descr       *ctor_arg_conversion)
 /*
-source_operand is being converted to the given destination type.  The other
-parameters correspond to their homonyms in conversion_to_class_possible.
-Check whether the source operand is an lvalue subject to the move optimization
-(see 12.8/32 in the C++11 standard), and if so return TRUE, turn the source
-operand into an xvalue (by casting it to an rvalue reference), and record the
-conversion in *conversion and *ctor_arg_conversion.  In some error cases, the
-source operand also cast to the rvalue reference, but FALSE is returned.  In
-all other cases, FALSE is returned and the source operand is left unchanged. 
+source_operand is being converted to the given destination type.  The remaining
+parameters are described in conversion_to_class_possible.  Check whether the
+source operand is an lvalue subject to the move optimization (see 12.8/32 in
+the C++11 standard), and if so return TRUE, turn the source operand into an
+xvalue (by casting it to an rvalue reference), and record the conversion in
+*conversion and *ctor_arg_conversion.  In some error cases, the source operand
+is cast to the rvalue reference, but FALSE is returned.  In all other cases,
+FALSE is returned and the source operand is left unchanged. 
 */
 {
   a_variable_ptr  var;
