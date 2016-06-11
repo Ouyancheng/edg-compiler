@@ -3684,7 +3684,11 @@ constant-expression.
                  decl_pos_block;
       clear_decl_pos_block(&decl_pos_block);
       decl_pos_block.var_init_range.start = pos_curr_token;
-      if (curr_token == tok_lparen) {
+      if (curr_token == tok_lparen && !var->initializer_in_class) {
+        /* A parenthesized initializer.  (An in-class initializer is never
+           parenthesized, but its leading '=' token will have been consumed
+           already.  In that case, a leading parenthesis is part of the
+           initializer expression.) */
         is_parenthesized_initializer = TRUE;
         (void)get_token();
       }  /* if */
