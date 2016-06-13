@@ -3814,7 +3814,8 @@ initializer, already copied and substituted.
           a_boolean  special_singleton = FALSE;
           if (is_braced_init_component(icp)) {
             an_init_component_ptr  list = icp->variant.braced.list;
-            if (list != NULL && is_last_elem(list)) {
+            if (list != NULL && is_last_elem(list) &&
+                is_expression_component(icp)) {
               a_type_ptr  etp = operand_of_arg_list_elem(list)->type;
               special_singleton = are_reference_related(dtype, etp);
             }  /* if */
