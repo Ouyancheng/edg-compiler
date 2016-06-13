@@ -6256,6 +6256,11 @@ next_named_override:
            Don't attempt a lookup in this case. */
         dps->override_okay = TRUE;
         goto next_base_class;
+      } else if (rout->is_prototype_instantiation) {
+        /* Allow modifiers like "override" and "final" on prototype
+           instantiations because they may turn out to be virtual after
+           types are substituted. */
+        dps->override_okay = TRUE;
       }  /* if */
       /* Inner loop:  go through all the symbols for this name from the
          base class, looking for one which represents a member function
