@@ -7104,6 +7104,17 @@ dependent, A1<A2, A3> is returned.
         /* Count cannot be negative. */
         expect_error();
         err = TRUE;
+      } else if (templ->template_decl->param_list->next == NULL) {
+        /* The template has a single template parameter (typically two
+           are provided with the second being a template parameter pack). */
+        if (val == 0) {
+          /* Okay; the pack expands to nothing (and there's no parameter to
+             pass it to) so skip it. */
+        } else {
+          pos_sy_error(ec_too_many_template_arguments,
+                       &con->source_corresp.decl_position, symbol_for(templ));
+          err = TRUE;
+        }  /* if */
       } else {
         /* Indicate that the nontype template arguments are part of a pack
            expansion. */
@@ -7134,7 +7145,7 @@ dependent, A1<A2, A3> is returned.
        that type to the caller. */
     a_symbol_ptr new_sym = find_template_class(symbol_for(templ),
                                            &new_template_arg_list,
-                                           /*any_prototype_allowed=*/TRUE,
+                                           /*any_prototype_allowed=*/FALSE,
                                            /*specific_prototype_allowed=*/NULL,
                                            /*instantiate_nonreal=*/FALSE,
                                            /*do_not_create=*/FALSE);

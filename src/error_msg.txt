@@ -2852,6 +2852,7 @@ ec_carries_dependency_ignored;;"the \"carries_dependency\" attribute is ignored"
 ec_event_interface_cannot_have_definition;;"an \"__event __interface\" cannot have a definition here"
 ec_invalid_event_handler_type;;"an event handler must have a void or integral return type"
 ec_event_interface_must_be_previously_defined;;"an \"__event __interface\" must have been previously defined"
+ec_too_many_template_arguments;;"too many template arguments for %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

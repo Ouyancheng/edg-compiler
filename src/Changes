@@ -1,5 +1,22 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17282]
+Microsoft compatibility: __make_integer_seq
+
+Typically the first template argument to __make_integer_seq is a template
+with two template parameters, the second one being a parameter pack.  In the
+case where the specified template has a single template parameter, the front
+end had failed an assertion check(equiv_template_arg_lists: unequal arg list
+lengths) or in some cases, segfault'ed in update_template_param_symbols.
+Now fixed.  For example (with --microsoft_version 1900):
+
+  template <class T> struct S {};
+  template<class T, T sz>
+  using m = __make_integer_seq<S, T, sz>;
+  m<int, 0> x;    // Okay
+  m<int, 1> y;    // An error
+
+
 6/13/16  [EDGcpfe/17302]
 Abort on missing rescan info
 
