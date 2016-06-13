@@ -1,5 +1,38 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17302]
+Spurious corresponding error on member constants in GNU mode
+
+In GNU C++ mode, the in-class initializer of a static data member of a class
+template is not instantiated unless it is needed (see the entry for
+EDGcpfe/16403,EDGcpfe/16644).  Until that instantiation occurs, the member is
+not marked as being a member constant, which means that, when simultaneously
+compiling multiple translation units, the is_member_constant flag may not
+match for corresponding a_variable entries.  Previously, this could trigger
+spurious correspondence errors.  For example:
+
+  // file1.cpp:
+  template<class T> struct S {
+    static int const N = 3;
+  };
+  template<class T> int const S<T>::N;
+  extern S<float> s;
+  int const *p1 = &S<int>::N;
+  int r = S<int>::N;
+
+  // file2.cpp:
+  template<class T> struct S {
+    static int const N = 3;
+  };
+  template<class T> int const S<T>::N;
+  S<float> s;
+  int const *p2 = &S<int>::N;
+
+When simultaneously compiling these two translation units in GNU C++ mode, the
+front end previously diagnosed a compatibility error for the declaration of
+S<int>::N.  That is now fixed.
+
+
 6/13/16  [EDGcpfe/17282]
 Microsoft compatibility: __make_integer_seq
 

@@ -3131,11 +3131,15 @@ is in fact valid.
                                  TCF_REDECLARATION |
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(var->type, corresp_var->type) ||
-         var->is_member_constant != corresp_var->is_member_constant ||
-         /* In-class static member initializations must be equivalent. */
-         (var->is_member_constant &&
-          !eq_constants(var->initializer.constant,
-                        corresp_var->initializer.constant)) ||
+         /* In-class static member initializations must be equivalent.  (In
+            some GNU modes, template variables are instantiated lazily and may
+            therefore be member constants in one translation unit, but not in
+            another one.) */
+         (var->is_member_constant == corresp_var->is_member_constant ?
+           (var->is_member_constant &&
+            !eq_constants(var->initializer.constant,
+                          corresp_var->initializer.constant)) :
+            !var->is_template_variable) ||
 #if DECL_MODIFIERS_IN_USE
          incompatible_variable_decl_modifiers(var, corresp_var) ||
 #endif /* DECL_MODIFIERS_IN_USE */
