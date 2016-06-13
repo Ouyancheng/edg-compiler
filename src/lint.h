@@ -717,6 +717,7 @@ extern int fileno(FILE *);
 /*lint -esym(755,extract_wide_char_from_string)*/
 /*lint -esym(755,wide_string_type)*/
 #if !MICROSOFT_EXTENSIONS_ALLOWED
+/*lint -esym(769,ec_too_many_template_arguments)*/
 /*lint -esym(769,ec_invalid_event_handler_type)*/
 /*lint -esym(769,ec_event_interface_must_be_previously_defined)*/
 /*lint -esym(769,ec_event_interface_cannot_have_definition)*/
