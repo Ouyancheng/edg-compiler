@@ -1,5 +1,14 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17286]
+__cplusplus value in ms_extensions mode
+
+The value of the __cplusplus macro when --clang --ms_extensions is specified
+now mirrors the value given by Clang, not Microsoft Visual Studio.  That is,
+when --clang --ms_extensions --c++14 is specified, __cplusplus has the value
+201402L (and 201103L when --c++11 is specified).
+
+
 6/13/16  [EDGcpfe/17303]
 Assertion failure on pointer/reference cast
 
