@@ -1,5 +1,14 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17292]
+wchar_t macros now defined in ms_extensions mode
+
+The builtin macros _WCHAR_T_DEFINED and _NATIVE_WCHAR_T_DEFINED are now defined
+when ms_extensions is TRUE (previously they were only defined when
+microsoft_mode was TRUE).    (This improves compatibility with Clang when its
+-fms-extensions option is used.)
+
+
 6/10/16  [EDGcpfe/17284]
 Access SFINAE in ms_extensions mode
 

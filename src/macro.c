@@ -9883,7 +9883,7 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
-    if (microsoft_mode && wchar_t_is_keyword) {
+    if (ms_extensions && wchar_t_is_keyword) {
       /* In Microsoft mode, always define _WCHAR_T_DEFINED when wchar_t is
          a keyword. */
       (void)enter_predef_macro("1", "_WCHAR_T_DEFINED",
