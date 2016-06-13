@@ -5,7 +5,7 @@ Assertion failure on pointer/reference cast
 
 The changes for EDGcpfe/17115 (in version 4.11) introduced a regression
 causing an assertion failure in addr_con_target_type_is_const while
-proecessing certain pointer and reference casts.  This is now fixed.  For
+processing certain pointer and reference casts.  This is now fixed.  For
 example, with --c++11:
 
   typedef struct O {} O;
