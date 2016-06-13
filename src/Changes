@@ -1,5 +1,21 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17303]
+Assertion failure on pointer/reference cast
+
+The changes for EDGcpfe/17115 (in version 4.11) introduced a regression
+causing an assertion failure in addr_con_target_type_is_const while
+proecessing certain pointer and reference casts.  This is now fixed.  For
+example, with --c++11:
+
+  typedef struct O {} O;
+  typedef O* OPtr;
+  void foo() {
+    O o2;
+    O o = *(OPtr)&o2;  // Previously aborted, now okay
+  }
+
+
 6/13/16  [EDGcpfe/17292]
 wchar_t macros now defined in ms_extensions mode
 

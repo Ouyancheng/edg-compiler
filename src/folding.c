@@ -10304,8 +10304,9 @@ volatile-qualified), FALSE otherwise.
 */
 {
   a_type_ptr targ_type;
+  a_type_ptr addr_con_type = skip_typerefs(addr_con->type);
 
-  check_assertion(addr_con->type->kind == (a_type_kind)tk_pointer);
+  check_assertion(addr_con_type->kind == (a_type_kind)tk_pointer);
   targ_type = type_pointed_to(addr_con->type);
   return get_type_qualifiers(targ_type) == TQ_CONST;
 }  /* addr_con_target_type_is_const */
