@@ -1,5 +1,14 @@
 Version 4.12
 
+6/13/16  [EDGcpfe/17302]
+Abort on missing rescan info
+
+In some relatively complex cases, the front end aborted in get_expr_rescan_info
+("missing default rescan info") during SFINAE processing for members of
+namespace (or members of classes that are members of namespace).  This is now
+fixed.
+
+
 6/13/16  [EDGcpfe/17286]
 __cplusplus value in ms_extensions mode
 

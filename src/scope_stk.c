@@ -3362,13 +3362,15 @@ the scope being pushed.
        template declaration scopes and function prototype scopes directly
        within a template declaration scope.  It should also be TRUE for a
        scope pushed with the PS_DEDUCTION_CONTEXT flag and function prototype
-       scopes directly within that scope. */
+       scopes directly within that scope, as well as any class and namespace
+       scopes reactivated for the function prototype scopes. */
     if (kind == (a_scope_kind)sck_template_declaration ||
         (options & PS_DEDUCTION_CONTEXT) != 0) {
       ssep->in_template_deduction_context = TRUE;
       /* Record name references in deduction contexts. */
       ssep->record_form_of_name_reference = TRUE;
     } else if (kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_namespace_reactivation ||
                kind == (a_scope_kind)sck_class_reactivation) {
       ssep->in_template_deduction_context =
                                        (ssep-1)->in_template_deduction_context;
