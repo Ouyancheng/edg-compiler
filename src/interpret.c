@@ -6030,7 +6030,8 @@ the value representation of the integer value.
                    that the result is in range. */
                 an_integer_value  *r_int = (an_integer_value *)result_storage;
                 *r_int = *(an_integer_value *)opnd1_value;
-                if (int_kind_is_signed[tp->variant.integer.int_kind]) {
+                if (int_kind_is_signed[tp->variant.integer.int_kind] &&
+                    int_kind_is_signed[opnd1_type->variant.integer.int_kind]) {
                   int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
                   sign_extend_integer_value(r_int, n_bits);
                 }  /* if */
