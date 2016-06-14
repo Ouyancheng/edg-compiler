@@ -26337,6 +26337,7 @@ is found in check_operation_node_consistency.)
 
 #endif /* CHECKING */
 
+#if DO_IL_LOWERING
 /*
 Return TRUE if type should be ignored by IL lowering and code generating
 back ends.  This is TRUE for dependent template entities.
@@ -26361,6 +26362,8 @@ back ends.  This is TRUE for dependent template entities.
           ((type)->kind == (a_type_kind)tk_typeref &&
            ignore_type_in_back_end_no_typerefs(type_without_typerefs)));
 }  /* ignore_type_in_back_end */
+
+#endif /* DO_IL_LOWERING */
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if COROUTINES_ALLOWED

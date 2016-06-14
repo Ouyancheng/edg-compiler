@@ -471,6 +471,11 @@ Return TRUE if cp is a template nontype parameter pack.
   ((cp)->kind == (a_constant_repr_kind)ck_template_param &&		\
    (cp)->variant.template_param.is_pack)
 
+#if DO_IL_LOWERING
+/*
+When doing IL lowering, prototype instantiations are ignored during the
+lowering, mangling, and back end passes (since they aren't used).
+*/
 extern a_boolean ignore_type_in_back_end(a_type_ptr	type);
 
 /*
@@ -493,6 +498,16 @@ back ends.  This is TRUE for dependent template entities.
 */
 #define ignore_constant_in_back_end(constant) \
   ((constant)->kind == (a_constant_repr_kind)ck_template_param)
+#else /* !DO_IL_LOWERING */
+/*
+In cases where we're not doing lowering, process prototype instantiations
+(may be useful in cases where mangled names are desired).
+*/
+#define ignore_type_in_back_end(type) FALSE
+#define ignore_routine_in_back_end(rout) FALSE
+#define ignore_variable_in_back_end(var) FALSE
+#define ignore_constant_in_back_end(constant) FALSE
+#endif /* DO_IL_LOWERING */
 
 extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
 

@@ -1,5 +1,19 @@
 Version 4.12
 
+6/14/16  [EDGcpfe/17312]
+No longer ignoring prototype instantiations in non-lowering configurations
+
+The changes for EDGcpfe/15902 et al. introduced a set of macros/routines
+named ignore_*_in_back_end that are used to curtail unneeded processing on
+prototype instantiations.  A change has been made to have these macros return
+FALSE in configurations where DO_IL_LOWERING is FALSE, thereby restoring
+the ability to produce mangled names for prototype instantiations (when
+MANGLE_ALL_NAMES is TRUE).  Note however that mangling of names for
+prototype instantiations has always been on a "best effort" basis and that
+not all mangled names for prototype instantiations will generate a unique
+name (and some may contain question mark characters).
+
+
 6/14/16  [EDGcpfe/17194,EDGcpfe/17310]
 Assertion failure processing large macro expansions
 
