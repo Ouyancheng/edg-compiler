@@ -1571,6 +1571,7 @@ ensure_macro_buffer_space.
       slmp->inserted_text = dst;
       crp = slmp->concatenations;
       for (;;) {
+        a_boolean is_lexical_escape;
         old_start_for_remapping = src;
         new_start_for_remapping = dst;
         while ((ch = (*dst++ = *src++)) != ATTENTION_MARKER &&
@@ -1578,8 +1579,8 @@ ensure_macro_buffer_space.
         /* Having copied some number of characters from the old buffer to the
            new one, update any pointers into that region to reflect the
            movement. */
-        a_boolean is_lexical_escape = (src > old_start_for_remapping + 1 &&
-                                       src[-LE_ESCAPE_LEN] == LE_ESCAPE);
+        is_lexical_escape = (src > old_start_for_remapping + 1 &&
+                             src[-LE_ESCAPE_LEN] == LE_ESCAPE);
         adjust_curr_source_line_structure_after_realloc(
                                           old_start_for_remapping, src,
                                           new_start_for_remapping,
