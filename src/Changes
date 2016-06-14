@@ -1,5 +1,14 @@
 Version 4.12
 
+6/14/16  [EDGcpfe/17194,EDGcpfe/17310]
+Assertion failure processing large macro expansions
+
+The changes of EDGcpfe/15293 (in version 4.10.1) introduced a regression
+that sometimes caused an assertion failure in expand_macro_buffer when
+processing very large macro expansions in Microsoft mode.  This is now
+fixed.
+
+
 6/13/16  [EDGcpfe/17305]
 Spurious error on final modifiers in class templates
 

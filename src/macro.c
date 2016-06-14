@@ -1578,6 +1578,8 @@ ensure_macro_buffer_space.
         /* Having copied some number of characters from the old buffer to the
            new one, update any pointers into that region to reflect the
            movement. */
+        a_boolean is_lexical_escape = (src > old_start_for_remapping + 1 &&
+                                       src[-LE_ESCAPE_LEN] == LE_ESCAPE);
         adjust_curr_source_line_structure_after_realloc(
                                           old_start_for_remapping, src,
                                           new_start_for_remapping,
@@ -1586,7 +1588,7 @@ ensure_macro_buffer_space.
           crp->line_loc =
              crp->line_loc - old_start_for_remapping + new_start_for_remapping;
         }  /* for */
-        if (ch == ATTENTION_MARKER) {
+        if (ch == ATTENTION_MARKER && !is_lexical_escape) {
           /* This is the location of a macro replacement or deleted text.
              If it is a macro replacement, copy only the ATTENTION_MARKERs
              to the new buffer and adjust the source pointer appropriately.
@@ -1618,8 +1620,7 @@ ensure_macro_buffer_space.
                                        slmp->inserted_text));
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           }  /* if */
-        } else if (src > old_start_for_remapping + 1 &&
-                   src[-LE_ESCAPE_LEN] == LE_ESCAPE) {
+        } else if (ch == LE_END_OF_INSERTION && is_lexical_escape) {
           /* This is an end-of-insertion marker (and not just a stray
              LE_END_OF_INSERTION character, hence the retroactive check for a
              preceding LE_ESCAPE character -- there will typically be lots of
