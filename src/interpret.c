@@ -24,6 +24,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "interpret.h"
 
+#include "class_decl.h"
+
 #include "exprutil.h"
 
 #include "folding.h"
@@ -3214,6 +3216,31 @@ done:
   return result;
 }  /* translate_il_address_offset */
 
+
+static a_constant_ptr instantiate_member_constant(a_variable_ptr  vp)
+/*
+vp represents a variable that is expected to have a constant value, but with
+no recorded initializer.  This can occur in GNU C++ mode with static data
+members of class templates, whose initializers are instantiated on demand.  If
+this is such a case, perform that instantiation and return the constant.
+Otherwise, return an error constant.
+*/
+{
+  a_constant_ptr  result = NULL;
+
+  if (vp->initializer_in_class && vp->is_template_variable) {
+    /* An uninstantiated in-class initializer. */
+    ensure_inclass_static_member_constant_initializer_is_scanned(vp);
+    if (vp->init_kind == (an_init_kind)initk_static) {
+      result = vp->initializer.constant;
+    }  /* if */
+  }  /* if */
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* instantiate_member_constant */
+
 /*
 Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
@@ -3330,7 +3357,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       } else if (init_kind == (an_init_kind)initk_dynamic) {
                         cp = initializer->dynamic->variant.constant;
                       } else {
-                        unexpected_condition();
+                        /* In GNU C++ mode, the initializer may not be
+                           instantiated yet. */
+                        check_assertion(gpp_mode);
+                        cp = instantiate_member_constant(vp);
                       }  /* if */
                     }  /* if */
                     result = extract_value_from_constant(
