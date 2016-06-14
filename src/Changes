@@ -75,7 +75,7 @@ This is now fixed.
 
 
 6/13/16  [EDGcpfe/17302]
-Spurious corresponding error on member constants in GNU mode
+Spurious correspondence error on member constants in GNU mode
 
 In GNU C++ mode, the in-class initializer of a static data member of a class
 template is not instantiated unless it is needed (see the entry for
