@@ -19809,11 +19809,12 @@ an unknown-bound array type as well.  This routine is called for C-style casts,
 C++ functional-notation type conversions, and C++ new-style casts.
 */
 {
-  a_boolean  err = FALSE;
+  a_boolean  err = FALSE, incomplete;
   a_type_ptr type_cast_to = *p_type_cast_to;
 
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(type_cast_to);
+  incomplete = is_incomplete_type(type_cast_to);
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
@@ -19821,12 +19822,16 @@ C++ functional-notation type conversions, and C++ new-style casts.
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
-  } else if (is_incomplete_type(type_cast_to) &&
+  } else if (incomplete &&
              !is_void_type(type_cast_to) &&
              !is_managed_nullptr_type(type_cast_to) &&
-             !is_array_type(type_cast_to)) {
+             !is_array_type(type_cast_to) &&
+             !(gpp_mode && !expr_stack->potentially_evaluated &&
+               scope_is(&scope_stack_top(), sck_template_declaration))) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
-       type), but allow certain exceptions. */
+       type), but allow certain exceptions.  One of those exceptions is that
+       in GNU and Microsoft mode casts to incomplete class types are
+       accepted in default template arguments. */
     expr_pos_error(ec_incomplete_type_not_allowed, type_position);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {
@@ -19838,6 +19843,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
         expr_pos_error(ec_expr_not_constant, type_position);
         err = TRUE;
       } else if (constexpr_enabled &&
+                 expr_stack->potentially_evaluated &&
                  !is_literal_type(type_cast_to) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                           ec_expr_not_constant,
@@ -23516,9 +23522,11 @@ freed by this routine.
   could_be_dependent = could_be_dependent_class_type(type_cast_to);
   if (gpp_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
-      !expr_stack->possible_rescan_context &&
-      (is_local_scope_kind(scope_stack_top().kind) ||
-       scope_is(&scope_stack_top(), sck_func_prototype)) &&
+      ((!expr_stack->possible_rescan_context &&
+        (is_local_scope_kind(scope_stack_top().kind) ||
+         scope_is(&scope_stack_top(), sck_func_prototype))) ||
+       (!expr_stack->potentially_evaluated &&
+        scope_is(&scope_stack_top(), sck_template_declaration))) &&
       !is_reference_type(type_cast_to)) {
     /* The GNU compiler performs limited checking for functional notation
        casts in most template-dependent contexts, even if the type cast to
