@@ -3809,10 +3809,11 @@ initializer, already copied and substituted.
                    cssp = class_symbol_supp(symbol_for(dtype));
         if (cssp->is_class_aggregate) {
           /* A class aggregate usually requires aggregate initialization.
-             An exception occurs when initializing with a singleton list whose
-             only element initializes the whole destination object. */
+             An exception occurs in C++11 mode when initializing with a
+             singleton list whose only element initializes the whole
+             destination object. */
           a_boolean  special_singleton = FALSE;
-          if (is_braced_init_component(icp)) {
+          if (cpp11_mode && is_braced_init_component(icp)) {
             an_init_component_ptr  list = icp->variant.braced.list;
             if (list != NULL && is_last_elem(list) &&
                 is_expression_component(list)) {
