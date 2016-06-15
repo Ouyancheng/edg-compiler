@@ -1,5 +1,22 @@
 Version 4.12
 
+6/15/16  [EDGcpfe/17185]
+C++-generating back end: unneeded qualification of in-class member names
+
+The C++-generating back end previously used an unnecessary qualified name
+when referring to a member of a class within the class scope.  Ordinarily
+this unneeded qualification was harmless, but in some cases the result was
+generated code that could not be compiled.  This unneeded qualification is
+now suppressed.  For example, with --c++11:
+
+  template <typename> struct S {
+    int v;
+    int foo() noexcept(noexcept(v));  // v was previously generated as
+                                      // ::S<__T12345678>::v (because of
+                                      // unnamed template parameter)
+  };
+
+
 6/15/16  [EDGcpfe/17306]
 GNU compatibility: Cast to incomplete class type in template default argument
 
