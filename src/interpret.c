@@ -6030,10 +6030,22 @@ the value representation of the integer value.
                    that the result is in range. */
                 an_integer_value  *r_int = (an_integer_value *)result_storage;
                 *r_int = *(an_integer_value *)opnd1_value;
-                if (int_kind_is_signed[tp->variant.integer.int_kind] &&
-                    int_kind_is_signed[opnd1_type->variant.integer.int_kind]) {
-                  int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
-                  sign_extend_integer_value(r_int, n_bits);
+                int_kind = tp->variant.integer.int_kind;
+                if (int_kind_is_signed[int_kind]) {
+                  if (int_kind_is_signed[
+                                      opnd1_type->variant.integer.int_kind]) {
+                    /* When converting a signed value to another signed value,
+                       be sure to sign-extend the result (otherwise, widening
+                       conversions would produce positive values from negative
+                       operands. */
+                    int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
+                    sign_extend_integer_value(r_int, n_bits);
+                  }  /* if */
+                } else {
+                  /* Truncate the unsigned result, in case this is a narrowing
+                     conversion. */
+                  and_integer_values(r_int,
+                                     &max_integer_value_of_kind[int_kind]);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_float) {
                 a_boolean  depends_of_fp_mode;
