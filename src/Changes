@@ -11,9 +11,10 @@ now suppressed.  For example, with --c++11:
 
   template <typename> struct S {
     int v;
-    int foo() noexcept(noexcept(v));  // v was previously generated as
-                                      // ::S<__T12345678>::v (because of
-                                      // unnamed template parameter)
+    int foo() noexcept(noexcept(v));  // "v" was previously generated as
+                                      // "::S<__T12345678>::v" (using an
+                                      // invented name for the unnamed
+                                      // template parameter)
   };
 
 
