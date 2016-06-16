@@ -19837,12 +19837,13 @@ C++ functional-notation type conversions, and C++ new-style casts.
              !is_void_type(type_cast_to) &&
              !is_managed_nullptr_type(type_cast_to) &&
              !is_array_type(type_cast_to) &&
-             !(gpp_mode && !expr_stack->potentially_evaluated &&
+             !(gpp_mode && !clang_mode &&
+               !expr_stack->potentially_evaluated &&
                scope_is(&scope_stack_top(), sck_template_declaration))) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
        type), but allow certain exceptions.  One of those exceptions is that
-       in GNU and Microsoft mode casts to incomplete class types are
-       accepted in default template arguments. */
+       in GNU mode casts to incomplete class types are accepted in default
+       template arguments. */
     expr_pos_error(ec_incomplete_type_not_allowed, type_position);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {
@@ -23531,7 +23532,7 @@ freed by this routine.
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
   could_be_dependent = could_be_dependent_class_type(type_cast_to);
-  if (gpp_mode && !could_be_dependent &&
+  if (gpp_mode && !clang_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       ((!expr_stack->possible_rescan_context &&
         (is_local_scope_kind(scope_stack_top().kind) ||
