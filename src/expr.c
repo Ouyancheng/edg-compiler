@@ -5088,7 +5088,18 @@ are expected to be NULL in that case.
         /* A C++/CLI delegate class object can be invoked.  Its Invoke
            function is called. */
         a_routine_ptr invoke_rout = delegate_invocation_function(class_type);
-        member_function_symbol = symbol_for(invoke_rout);
+        if (invoke_rout == NULL) {
+          /* No Invoke member may be available in some template-dependent
+             contexts.  In such cases, proceed as if calling an unknown
+             dependent function. */
+          member_function_symbol = NULL;
+          routine_type = NULL;
+          prep_generic_operand(operand);
+          unknown_dependent_function = TRUE;
+          overloaded_function_case = FALSE;
+        } else {
+          member_function_symbol = symbol_for(invoke_rout);
+        }  /* if */
         implicit_delegate_invocation = TRUE;
         /* A delegate doesn't have surrogate functions, so don't bother
            looking for them. */

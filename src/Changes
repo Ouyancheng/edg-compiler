@@ -1,5 +1,19 @@
 Version 4.12
 
+6/16/16  [EDGcpfe/17329]
+C++/CLI and C++/CX: Delegate types and template parameters
+
+The front end previously incorrectly handled delegate type declarations based
+on template parameter types.  This was likely to result in aborts, particularly
+in modes parsing templates in their generic form.  For example:
+
+  template<typename T> ref struct S {
+    delegate T D;  // Likely to trigger an abort (e.g., in
+  };               // decl_member_function).
+
+This is now fixed.
+
+
 6/15/16  [EDGcpfe/17185]
 C++-generating back end: unneeded qualification of in-class member names
 

@@ -1647,15 +1647,23 @@ Given a delegate class type, return its Invoke function.
 */
 {
   a_routine_ptr  rp;
+  a_const_char   *name;
 
   delegate_type = skip_typerefs(delegate_type);
   check_assertion(is_immediate_delegate_type(delegate_type));
   rp = class_type_supp(delegate_type)->assoc_scope->routines;
-#if CHECKING
-  { a_const_char *name = unmangled_name_of(&rp->source_corresp);
-    check_assertion(name != NULL && strcmp(name, "Invoke") == 0);
-  }
-#endif /* CHECKING */
+  name = unmangled_name_of(&rp->source_corresp);
+  if (name != NULL && strcmp(name, "Invoke") == 0) {
+    /* Normal case. */
+  } else if (is_template_dependent_context()) {
+    /* In template-dependent contexts, an Invoke member will not have been
+       declared if no routine type is available.  For example:
+         delegate T D;
+       where T is a template parameter. */
+    rp = NULL;
+  } else {
+    unexpected_condition();
+  }  /* if */
   return rp;
 }  /* delegate_invocation_function */
 

@@ -24645,13 +24645,13 @@ signature that matches that of the delegate definition).
                              ->calling_convention =
                                              (a_calling_convention)cc_clrcall;
       }  /* if */
+      decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                           /*compiler_generated=*/TRUE);
     } else {
       /* Presumably a template parameter type or an error type. */
       mdps->type = dps->type;
       ctsp->invocation_type = dps->type;
     }  /* if */
-    decl_member_function(&member_loc, func_info, &class_state, &member_info,
-                         /*compiler_generated=*/TRUE);
     if (cppcli_enabled && is_function_type(dps->type)) {
       /* Add the BeginInvoke member (declaration only) in the C++/CLI case. */
       clear_locator(&member_loc, &dps->declarator_pos);
