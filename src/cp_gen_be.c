@@ -9482,14 +9482,12 @@ the expression reflects an implicit member access ("this->y"), so the
            (but not if the parent class is unnamed; for example, if it is a
            closure class). */
         a_type_ptr  parent_class;
+        a_field_ptr field;
         check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
-        parent_class = parent_class_of(node_field(field_expr));
+        field = node_field(field_expr);
+        parent_class = parent_class_of(field);
         if (has_name_before_mangling(parent_class) &&
-            (!class_is_in_name_context_stack(
-                                   parent_class,
-                                   /*include_base_classes=*/TRUE,
-                                   /*ignore_field_selection_contexts=*/TRUE) ||
-             parent_class->source_corresp.qualification_needed)) {
+            field->source_corresp.qualification_needed) {
           gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
                               (a_boolean *)NULL);
         }  /* if */
