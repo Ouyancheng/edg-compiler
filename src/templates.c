@@ -25373,7 +25373,7 @@ any non-empty template parameter lists that were scanned.
           function_prototype_instantiation(sym);
         }  /* if */
       }  /* if */
-    } else if (nonclass_prototype_instantiations) {
+    } else if (nonclass_prototype_instantiations || tssp->is_variadic) {
       check_assertion(symbol_is(sym, sk_static_data_member) ||
                       symbol_is(sym, sk_variable_template));
       variable_template_prototype_instantiation(decl_state, sym);

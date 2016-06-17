@@ -1,5 +1,18 @@
 Version 4.12
 
+6/16/16  [EDGcpfe/17334]
+Microsoft compatibility: variadic variable templates not accepted
+
+Variadic variable templates were not processed properly in Microsoft mode,
+resulting in spurious errors.  Now fixed.
+
+  template <typename... Types> struct A {
+    static constexpr int i = sizeof...(Types);
+  };
+  template <typename... Types> constexpr int v = A<Types...>::i;
+  static_assert(v<char, short, int, long> == 4, "unexpected value");
+
+
 6/16/16  [EDGcpfe/17329]
 C++/CLI and C++/CX: Delegate types and template parameters
 
