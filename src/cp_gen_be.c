@@ -9487,7 +9487,11 @@ the expression reflects an implicit member access ("this->y"), so the
         field = node_field(field_expr);
         parent_class = parent_class_of(field);
         if (has_name_before_mangling(parent_class) &&
-            field->source_corresp.qualification_needed) {
+            (!class_is_in_name_context_stack(
+                                   parent_class,
+                                   /*include_base_classes=*/TRUE,
+                                   /*ignore_field_selection_contexts=*/TRUE) ||
+             field->source_corresp.qualification_needed)) {
           gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
                               (a_boolean *)NULL);
         }  /* if */
