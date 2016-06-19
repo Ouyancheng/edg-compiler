@@ -4424,6 +4424,11 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 
 extern void enter_symbol_into_completed_class(a_symbol_ptr  sym);
 
+extern a_symbol_ptr enter_enumerator_into_completed_class(
+                                                 a_symbol_locator  *loc,
+                                                 a_type_ptr        class_type,
+                                                 a_scope_number    scope_num);
+
 extern a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
                                          a_scope_depth    scope_depth,
                                          a_boolean        suppress_error);

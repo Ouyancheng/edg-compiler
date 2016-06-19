@@ -5452,12 +5452,10 @@ is updated to reflect relevant positions of this definition.
       if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
           !is_scoped_enum) {
         /* enter_local_symbol cannot be used to add a symbol to a completed
-           class scope.  Use enter_symbol_into_completed_class instead. */
-        enum_con_sym = make_symbol((a_symbol_kind)sk_constant, &locator);
-        enum_con_sym->is_class_member = TRUE;
-        enum_con_sym->decl_scope = reactivated_class_scope_number;
-        enum_con_sym->parent.class_type = class_of_which_a_member;
-        enter_symbol_into_completed_class(enum_con_sym);
+           class scope.  Use enter_enumerator_into_completed_class instead. */
+        enum_con_sym = enter_enumerator_into_completed_class(
+                                            &locator, class_of_which_a_member,
+                                            reactivated_class_scope_number);
       } else {
         enum_con_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
                                           decl_scope_level,

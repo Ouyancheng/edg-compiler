@@ -6165,6 +6165,36 @@ the corresponding symbol header.)
 }  /* enter_symbol_into_completed_class */
 
 
+a_symbol_ptr enter_enumerator_into_completed_class(
+                                                 a_symbol_locator  *loc,
+                                                 a_type_ptr        class_type,
+                                                 a_scope_number    scope_num)
+/*
+An enumerator constant is being added to the out-of-class definition of an
+enum type that is a member of class_type (scope_num is the number of the class
+definition scope).  The enumerator's name and position is given through loc.  
+Issue an error if the enumerator name conflict with a prior declaration, and
+enter a symbol to represent it.  A pointer to that symbol is returned.
+*/
+{
+  an_id_lookup_options_set  idl_options = IDL_DIRECT_CLASS_MEMBERS_ONLY;
+  a_symbol_ptr              prev_sym, sym;
+
+  clear_specific_symbol(*loc);
+  prev_sym = class_qualified_id_lookup(loc, class_type, idl_options);
+  if (prev_sym != NULL && !is_tag_symbol(prev_sym)) {
+    pos_sy_error(ec_enumerator_already_declared, &loc->source_position,
+                 prev_sym);
+  }  /* if */
+  sym = make_symbol((a_symbol_kind)sk_constant, loc);
+  sym->is_class_member = TRUE;
+  sym->decl_scope = scope_num;
+  sym->parent.class_type = class_type;
+  enter_symbol_into_completed_class(sym);
+  return sym;
+}  /* enter_enumerator_into_completed_class */
+
+
 void reenter_block_scope_symbol(a_symbol_ptr  sym)
 /*
 sym is a symbol from a block scope that is being reactivated.  Add the
