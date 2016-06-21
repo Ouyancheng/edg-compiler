@@ -13,7 +13,7 @@ error in scan_parenthesized_mem_init_args (decl_inits.c).  For example:
   struct X {
     X(): arr() {}  // Previously trigger an assertion failure; now okay.
     S arr[1];
-};
+  };
 
 This is now fixed.
 
