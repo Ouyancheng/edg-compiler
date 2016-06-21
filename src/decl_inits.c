@@ -1099,7 +1099,7 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
   }  /* if */
   /* Determine the underlying floating-point type of dtype. */
   ftype = skip_typerefs(dtype);
-  check_assertion(dtype->kind == (a_type_kind)tk_complex);
+  check_assertion(ftype->kind == (a_type_kind)tk_complex);
   ftype = float_type(ftype->variant.float_kind);
   /* Convert the real and complex parts in turn. */
   icp = icp->variant.braced.list;

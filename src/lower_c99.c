@@ -3461,6 +3461,7 @@ of the original constant are not lowered here.
 */
 {
   a_constant_ptr copy_con;
+  a_type_ptr     con_type = skip_typerefs(constant->type);
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   copy_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -3468,7 +3469,7 @@ of the original constant are not lowered here.
   copy_constant(constant, copy_con);
   constant->variant.aggregate.first_constant = copy_con;
   constant->variant.aggregate.last_constant = copy_con;
-  constant->type = lowered_complex_type(constant->type->variant.float_kind);
+  constant->type = lowered_complex_type(con_type->variant.float_kind);
   copy_con->type = complex_vals_field(constant->type)->type;
 }  /* lower_c99_complex_aggregate_constant */
 
