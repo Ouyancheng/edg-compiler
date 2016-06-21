@@ -6662,6 +6662,11 @@ cases, array_type is NULL).
          the mem-initializer list. */
       if (array_type != NULL) {
         check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor ||
+                        /* A trivial constructor invocation using value-
+                           initialization syntax produces a dik_zero entry. */
+                        dip->kind == (a_dynamic_init_kind)dik_zero ||
+                        /* A constexpr constructor invocation may have been
+                           folded. */
                         (dip->kind == (a_dynamic_init_kind)dik_constant &&
                          dip->variant.constant->is_result_of_constexpr_call));
       }  /* if */

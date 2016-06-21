@@ -1,5 +1,23 @@
 Version 4.12
 
+6/21/16  [EDGcpfe/17330]
+Abort on trivial value-initialization of array member
+
+In C++11 mode, a mem-initializer performing value-initialization of an array
+whose element type has a trivial defaulted constructor triggered an internal
+error in scan_parenthesized_mem_init_args (decl_inits.c).  For example:
+
+  struct S {
+    S() = default;
+  };
+  struct X {
+    X(): arr() {}  // Previously trigger an assertion failure; now okay.
+    S arr[1];
+};
+
+This is now fixed.
+
+
 6/19/16  [EDGcpfe/17321]
 Missing diagnostic on duplicate enumerator name
 
