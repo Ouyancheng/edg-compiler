@@ -33,8 +33,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,cpp0x_mode)*/
 /* Entities not used in certain configurations: */
 /*lint -esym(755,EXTERN_C)*/
-/*lint -esym(750,chdir_with_check)*/
-/*lint -esym(769,ec_cannot_chdir)*/
 /*lint -esym(769,ec_cannot_open_pch_input_file_reason)*/
 /*lint -esym(769,ec_cannot_open_temp_file_reason)*/
 /*lint -esym(759,change_non_id_characters)*/

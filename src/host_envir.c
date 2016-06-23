@@ -2427,14 +2427,32 @@ is returned. If no conversion is required, the original string is returned.
 }  /* file_name_in_external_encoding */
 
 
+static void chdir_with_check(a_const_char *dir_name)
 /*
 Change to the specified directory, make sure the operation succeeded.
-Not used in some configurations.
 */
-#define chdir_with_check(dir_name) \
-{ if (chdir(dir_name) != 0) { \
-    str_catastrophe(ec_cannot_chdir, (dir_name)); \
-  }  /* if */ \
+{
+  a_boolean	failed = FALSE;
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  wchar_t *wide_dir_name = translate_filename_to_wchar(dir_name);
+
+  if (wide_dir_name != NULL) {
+    /* The directory name has embedded non-ASCII characters, so we need to use
+       the _wchdir routine. */
+    failed = _wchdir(wide_dir_name) != 0;
+  } else {
+    /* The file name contained no special characters.  Just do a normal
+       chdir. */
+    failed = chdir(dir_name) != 0;
+  }  /* if */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  /* Translate the file name into the form used by the file system. */
+  dir_name = file_name_in_external_encoding(dir_name);
+  failed = chdir(dir_name) != 0;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+  if (failed) {
+    str_catastrophe(ec_cannot_chdir, dir_name);
+  }  /* if */
 }  /* chdir_with_check */
 
 
@@ -2452,6 +2470,41 @@ Change to the directory specified by "dir_name".
 Determine whether the specified path name is the name of a valid
 directory.
 */
+#if EDG_WIN32
+/*
+WIN32 (e.g., Windows-NT) version.
+*/
+a_boolean is_directory(char *file_name)
+{
+  a_boolean	result = FALSE;
+  DWORD		attr;
+
+#if UNICODE_SOURCE_SUPPORTED
+  wchar_t *wide_file_name = translate_filename_to_wchar(file_name);
+  if (wide_file_name != NULL) {
+    /* The file name has embedded non-ASCII characters, so we need to use
+       the GetFileAttributesW routine. */
+    /* Call the wide routine. */
+    attr = GetFileAttributesW(wide_file_name);
+  } else {
+    /* The file name contained no special characters. */
+    attr = GetFileAttributes(file_name);
+  }  /* if */
+fprintf(f_debug, "attr=%x\n", attr);
+#else /* !UNICODE_SOURCE_SUPPORTED */
+  /* Translate the file name into the form used by the file system. */
+  file_name = file_name_in_external_encoding(file_name);
+  attr = GetFileAttributes(file_name);
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  result = attr != INVALID_FILE_ATTRIBUTES &&
+           (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+  return result;
+}  /* is_directory */
+/* Define a flag that indicates that a definition of is_directory has
+   been supplied. */
+#define IS_DIRECTORY_DEFINED
+
+#else /* !EDG_WIN32 */
 #if defined(S_ISDIR) || defined(S_IFDIR)
 /*
 UNIX Version.
@@ -2483,25 +2536,8 @@ a_boolean is_directory(a_const_char *file_name)
    been supplied. */
 #define IS_DIRECTORY_DEFINED
 
-#else /* defined(S_ISDIR) || defined(S_IFDIR) */
-#if EDG_WIN32
-/*
-WIN32 (e.g., Windows-NT) version.
-*/
-a_boolean is_directory(char *file_name)
-{
-  DWORD    attr;
-
-  attr = GetFileAttributes(file_name);
-  return attr != INVALID_FILE_ATTRIBUTES &&
-         (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
-}  /* is_directory */
-/* Define a flag that indicates that a definition of is_directory has
-   been supplied. */
-#define IS_DIRECTORY_DEFINED
-
-#endif /* EDG_WIN32 */
 #endif /* defined(S_ISDIR) || defined(S_IFDIR) */
+#endif /* EDG_WIN32 */
 
 #ifndef IS_DIRECTORY_DEFINED
 a_boolean is_directory(char *file_name)
@@ -2944,6 +2980,59 @@ Set module_id to the string and return it.
 
 #endif /* MODULE_ID_NEEDED */
 
+#if EDG_WIN32
+
+static HANDLE CreateFile_interface(
+				a_const_char		*file_name,
+				DWORD			dwDesiredAccess,
+				DWORD			dwShareMode,
+				LPSECURITY_ATTRIBUTES	lpSecurityAttributes,
+				DWORD			dwCreationDisposition,
+				DWORD			dwFlagsAndAttributes,
+				HANDLE			hTemplateFile)
+/*
+Interface to the Windows CreateFile routine.  If multibyte characters are
+supported in the file name, handle that specially.  The parameters are
+as specified by CreateFile except that we use our a_const_char* type for
+file_name.
+*/
+{
+  HANDLE	f_file;
+#if UNICODE_SOURCE_SUPPORTED
+  wchar_t *wide_file_name = translate_filename_to_wchar(file_name);
+
+  if (wide_file_name != NULL) {
+    /* The file name has embedded non-ASCII characters, so we need to use
+       the CreateFileW routine. */
+    f_file = CreateFileW(wide_file_name, dwDesiredAccess, dwShareMode,
+                         lpSecurityAttributes,
+                         dwCreationDisposition,
+                         dwFlagsAndAttributes,
+                         hTemplateFile);
+  } else {
+    /* The file name contained no special characters.  Just do a normal
+       open. */
+    f_file = CreateFile(file_name, dwDesiredAccess, dwShareMode,
+                        lpSecurityAttributes,
+                        dwCreationDisposition,
+                        dwFlagsAndAttributes,
+                        hTemplateFile);
+  }  /* if */
+#else /* !UNICODE_SOURCE_SUPPORTED */
+  /* Translate the file name into the form used by the file system. */
+  file_name = file_name_in_external_encoding(file_name);
+  f_file = CreateFile(file_name, dwDesiredAccess, dwShareMode,
+                      lpSecurityAttributes,
+                      dwCreationDisposition,
+                      dwFlagsAndAttributes,
+                      hTemplateFile);
+  file = fopen(file_name, mode);
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  return f_file;
+}  /* CreateFile_interface */
+
+#endif /* EDG_WIN32 */
+
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
 
 void clear_unique_file_id(a_unique_file_id_ptr	ufip)
@@ -2984,7 +3073,8 @@ left unchanged.
   /* Make sure the unique ID has been initialized. */
   clear_unique_file_id(unique_id);
   /* Open the file so that we can get the file information. */
-  f_file = CreateFile(file_name, GENERIC_READ,
+  f_file = CreateFile_interface(
+                      file_name, GENERIC_READ,
                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                       (LPSECURITY_ATTRIBUTES)NULL,
                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
@@ -3126,7 +3216,8 @@ memory for IL memory blocks.
       GetTempFileName(win_temp_dir, "edg", 0, temp_file_name) == 0) {
     catastrophe(ec_cannot_build_temp_file_name);
   }  /* if */
-  f_mmap_file = CreateFile(temp_file_name, GENERIC_READ | GENERIC_WRITE,
+  f_mmap_file = CreateFile_interface(
+                           temp_file_name, GENERIC_READ | GENERIC_WRITE,
                            /*fdwShareMode=*/0, (LPSECURITY_ATTRIBUTES)NULL,
                            CREATE_ALWAYS,
                            FILE_ATTRIBUTE_TEMPORARY |
@@ -3159,7 +3250,8 @@ a precompiled header file.  This file will already have been opened using
 fopen, so this open must be done in shared mode.
 */
 {
-  f_mapped_input = CreateFile(file_name, GENERIC_READ,
+  f_mapped_input = CreateFile_interface(
+                              file_name, GENERIC_READ,
                               FILE_SHARE_READ, (LPSECURITY_ATTRIBUTES)NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_READONLY,
                               (HANDLE)NULL);
