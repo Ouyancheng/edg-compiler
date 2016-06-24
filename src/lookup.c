@@ -2095,6 +2095,9 @@ Macro that initializes a lookup state variable.
     is_class_or_class_proxy_symbol(fund_sym)) && 			\
    (!(lookup_state).must_be_namespace ||				\
     is_namespace_symbol(fund_sym)) &&					\
+   (!(lookup_state).is_linkage_lookup ||				\
+    !(lookup_state).treat_as_template_id ||				\
+    symbol_is(fund_sym, sk_class_template)) &&				\
    (!(lookup_state).check_decl_seq ||					\
     ((lookup_state).decl_seq == NO_DECL_SEQUENCE_NUMBER ||		\
      (lookup_state).decl_seq >= (sym)->decl_seq)))
