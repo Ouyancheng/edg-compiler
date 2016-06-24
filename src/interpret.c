@@ -2532,7 +2532,7 @@ within the given complete object).
       break;
     case tk_union:
       { /* Initialize the first field (if any). */
-        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        a_field_ptr  fp = tp->variant.class_struct_union.field_list;
         fp = next_initializable_field(fp);
         if (fp != NULL) {
           a_byte_count  offset;
@@ -2544,6 +2544,22 @@ within the given complete object).
         } else {
           *(a_field_ptr*)subobj = NULL;
         }  /* if */
+      }
+      break;
+    case tk_ptr_to_member:
+      { /* Initialize the first field (if any). */
+        a_constexpr_ptr_to_mem  *pm_value = (a_constexpr_ptr_to_mem*)subobj;
+        a_type_ptr              mem_type = tp->variant.ptr_to_member.type;
+        mem_type = skip_typerefs(mem_type);
+        if (mem_type->kind == (a_type_kind)tk_routine) {
+          pm_value->is_ptr_to_mem_function = TRUE;
+          pm_value->variant.routine = NULL;
+        } else {
+          pm_value->is_ptr_to_mem_function = FALSE;
+          pm_value->variant.field = NULL;
+        }  /* if */
+        pm_value->subtract_adjustment = FALSE;
+        pm_value->this_class_adjustment = 0;
       }
       break;
     default:
