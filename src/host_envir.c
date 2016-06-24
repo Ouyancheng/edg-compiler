@@ -1645,6 +1645,20 @@ Delete the file with the indicated name.  It shouldn't be open currently.
   int status;
 
   errno = 0;
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  { wchar_t *wide_file_name = translate_filename_to_wchar(file_name);
+    if (wide_file_name != NULL) {
+      /* The filename has embedded non-ASCII characters, so we need to use
+         the _wremove routine. */
+      status = _wremove(wide_file_name);
+    } else {
+      /* The file name contained no special characters. */
+      status = remove(file_name);
+    }  /* if */
+  }
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  /* Translate the file name into the form used by the file system. */
+  file_name = file_name_in_external_encoding(file_name);
 #if __ANSIC__
   status = remove(file_name);
 #else /* __ANSIC__ */
@@ -1654,6 +1668,7 @@ Delete the file with the indicated name.  It shouldn't be open currently.
   status = unlink(file_name);
 #endif /* __VMS__ */
 #endif /* __ANSIC__ */
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   if (status != 0) {
     str_errno_catastrophe(ec_file_delete_error_reason, file_name, errno);
   }  /* if */
@@ -2490,7 +2505,6 @@ a_boolean is_directory(char *file_name)
     /* The file name contained no special characters. */
     attr = GetFileAttributes(file_name);
   }  /* if */
-fprintf(f_debug, "attr=%x\n", attr);
 #else /* !UNICODE_SOURCE_SUPPORTED */
   /* Translate the file name into the form used by the file system. */
   file_name = file_name_in_external_encoding(file_name);
