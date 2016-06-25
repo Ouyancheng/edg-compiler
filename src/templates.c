@@ -8153,16 +8153,13 @@ error type is used.
                       (an_access_specifier)tssp->variant.class_template.access;
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (template_sym == symbol_for_make_integer_seq) {
     /* This is the builtin alias template __make_integer_seq; the template
        is instantiated programatically rather than by scanning the cache
        for the template. */
     type->variant.typeref.type =
                                instantiate_make_integer_seq(template_arg_list);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  {
+  } else {
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
        may be restored when we are done. */
@@ -11818,7 +11815,6 @@ new type may not be a typeref.
                                            source_pos, options,
                                            /*orig_is_nonreal_template=*/FALSE,
                                            copy_error, ctws_state);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!*copy_error &&
       template_sym == symbol_for_make_integer_seq &&
       !template_arg_list_is_dependent(new_list)) {
@@ -11828,7 +11824,6 @@ new type may not be a typeref.
     result_type = instantiate_make_integer_seq(new_list);
     new_list = NULL;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (new_list != NULL) free_template_arg_list(new_list);
   return result_type;
 }  /* copy_template_alias_reference_with_substitution */
