@@ -6957,7 +6957,6 @@ specified by template_sym and tssp.
   return eta_options;
 }  /* eta_options_for_template */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*ARGSUSED*/ /* arg1_pos is not used. */
 static a_boolean check_make_integer_seq(a_template_arg_ptr template_arg_list,
@@ -7156,6 +7155,7 @@ dependent, A1<A2, A3> is returned.
   return type;
 }  /* instantiate_make_integer_seq */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_open_constructed_generic_arg_list(
 				a_template_arg_ptr	generic_arg_list)
@@ -7342,6 +7342,7 @@ diag_pos is non-NULL, issue an error at the given position.
   return is_valid;
 }  /* is_valid_cli_special_ptr_instantiation */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean check_internal_template_instantiation(
                                          a_symbol_ptr       template_sym,
@@ -7359,15 +7360,16 @@ is the first argument position, etc.).
 {
   a_boolean  result = TRUE;
 
-  if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
+  if (template_sym == symbol_for_make_integer_seq) {
+    /* __make_integer_seq builtin alias template. */
+    result = check_make_integer_seq(template_arg_list, arg1_pos, arg2_pos,
+                                    arg3_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
     /* Either cli::array or Platform::Array. */
     result = check_cli_array_instantiation(
                                        template_arg_list, arg1_pos, arg2_pos);
 
-  } else if (template_sym == symbol_for_make_integer_seq) {
-    /* __make_integer_seq builtin alias template. */
-    result = check_make_integer_seq(template_arg_list, arg1_pos, arg2_pos,
-                                    arg3_pos);
   } else if (cppcx_enabled) {
     /* C++/CX mode: Check for the write-only array case and the boxed type
        case. */
@@ -7384,11 +7386,11 @@ is the first argument position, etc.).
       result = is_valid_cli_special_ptr_instantiation(
                                                  template_arg_list, arg1_pos);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
 }  /* check_internal_template_instantiation */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Structure used to pass lookup key information into the hash routines
@@ -11764,7 +11766,6 @@ to an alias template, the substituted type is returned in *new_type
                                   (a_symbol_ptr)NULL,
                                   /*instantiate_nonreal=*/FALSE,
                                   /*do_not_create=*/FALSE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (internal_templates_enabled && new_sym != NULL &&
         !check_internal_template_instantiation(
                         template_sym, template_arg_list_for_symbol(new_sym),
@@ -11773,7 +11774,6 @@ to an alias template, the substituted type is returned in *new_type
       new_sym = NULL;
       *copy_error = TRUE;
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */

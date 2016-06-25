@@ -2837,7 +2837,9 @@ Enter predeclared symbols as required by the implementation.
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (microsoft_mode && microsoft_version >= 1900 && !C_mode()) {
+  if (!C_mode() &&
+      ((microsoft_mode && microsoft_version >= 1900) ||
+       clang_mode)) {
     /* Create an alias template for "__make_integer_seq". */
     make_make_integer_seq_internal_template();
   }  /* if */

@@ -1,5 +1,12 @@
 Version 4.12
 
+6/25/16  [EDGcpfe/17337]
+Clang compatibility: Enable __make_integer_seq
+
+The builtin alias template __make_integer_seq is now enabled in Clang emulation
+mode (see the Changes entry for EDGcpfe/16545).
+
+
 6/24/16  [EDGcpfe/17355]
 Abort on value-initialized pointer-to-member in C++14 constexpr evaluation
 
