@@ -16426,8 +16426,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(cli_symbols),
-      pch_saved_var_array_elem(symbol_for_make_integer_seq),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(symbol_for_make_integer_seq),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
       pch_saved_var_array_elem(symbols_with_no_scope),
@@ -16508,8 +16508,8 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_namespace_std_entered);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_array(cli_symbols),
-  register_trans_unit_variable(symbol_for_make_integer_seq);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(symbol_for_make_integer_seq);
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
@@ -16553,8 +16553,8 @@ given translation unit.
   symbol_for_namespace_std_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   memzero((char *)cli_symbols, sizeof(cli_symbols));
-  symbol_for_make_integer_seq = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  symbol_for_make_integer_seq = NULL;
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
