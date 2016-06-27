@@ -715,6 +715,8 @@ extern int fileno(FILE *);
 /*lint -esym(755,extract_wide_char_from_string)*/
 /*lint -esym(755,wide_string_type)*/
 #if !MICROSOFT_EXTENSIONS_ALLOWED
+/*lint -esym(769,ec_microsoft_version_doesnt_support_cpp14_mode)*/
+/*lint -esym(769,ec_microsoft_version_doesnt_support_cpplatest_mode)*/
 /*lint -esym(769,ec_too_many_template_arguments)*/
 /*lint -esym(769,ec_invalid_event_handler_type)*/
 /*lint -esym(769,ec_event_interface_must_be_previously_defined)*/
