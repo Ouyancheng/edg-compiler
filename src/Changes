@@ -1,5 +1,21 @@
 Version 4.12
 
+6/27/16  [EDGcpfe/16967,EDGcpfe/17000]
+Microsoft compatibility: add --ms_c++14 and --ms_c++latest command-line options
+
+The --ms_c++14 and --ms_c++latest command-line options have been added to the
+front end to emulate the behavior of Visual Studio's /std:c++14 and
+/std:c++latest command-line options respectively.  These new options are
+available only when microsoft_version >= 1903 (i.e., when emulating Visual
+Studio 2015 Update 3 or later).  In addition, the predefined macro, _MSVC_LANG,
+is now defined with an appropriate value for the emulation mode.
+
+This fix also changes the value used for the _cplusplus predefined macro to
+201500L when using --c++17 in GNU emulation mode and 201406L when using --c++17
+in Clang emulation mode.  Both of these are temporary values until the next
+version of the C++ standard is ratified.
+
+
 6/25/16  [EDGcpfe/17337]
 Clang compatibility: Enable __make_integer_seq
 

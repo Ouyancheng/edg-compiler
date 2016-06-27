@@ -2854,6 +2854,8 @@ ec_invalid_event_handler_type;;"an event handler must have a void or integral re
 ec_event_interface_must_be_previously_defined;;"an \"__event __interface\" must have been previously defined"
 ec_too_many_template_arguments;;"too many template arguments for %n"
 ec_enumerator_already_declared;;"enumerator already declared (see %nd)"
+ec_microsoft_version_doesnt_support_cpp14_mode;;"the version of Microsoft being emulated must be at least 1903 to use \"--ms_c++14\""
+ec_microsoft_version_doesnt_support_cpplatest_mode;;"the version of Microsoft being emulated must be at least 1903 to use \"--ms_c++latest\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

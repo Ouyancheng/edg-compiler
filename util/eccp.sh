@@ -710,6 +710,8 @@ check_abbreviation()
 --microsoft_version
 --mmap_address
 --module_init
+--ms_c++14
+--ms_c++latest
 --ms_compatibility
 --ms_extensions
 --mscorlib_file_name
@@ -1304,6 +1306,8 @@ process_option()
 	 --microsoft_bugs | \
 	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
+         --ms_c++14 | \
+         --ms_c++latest | \
          --ms_compatibility | \
          --no_ms_compatibility | \
          --ms_extensions | \

@@ -9850,6 +9850,12 @@ command line -D options.
       }  /* if */
     } else if (any_cfront_mode()) {
       val = "1";
+    } else if (cpp17_mode && gpp_mode && !clang_mode) {
+      /* Temporary value that GCC uses for -std=c++1z: */
+      val = "201500L";
+    } else if (cpp17_mode && !gpp_mode && clang_mode) {
+      /* Temporary value that clang uses for -std=c++1z: */
+      val = "201406L";
     } else if (cpp14_mode) {
       val = cpp14_date;
     } else if (cpp11_mode) {
@@ -10148,6 +10154,11 @@ command line -D options.
       enter_predef_num_macro(int_max_size * CHAR_BIT, /*lint !e647*/
                              "_INTEGRAL_MAX_BITS");
     }
+    if (msvc_lang != NULL) {
+      (void)enter_predef_macro(msvc_lang, "_MSVC_LANG",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

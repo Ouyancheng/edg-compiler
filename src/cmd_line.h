@@ -117,6 +117,8 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_bugs,
   optk_microsoft_compatibility,
   optk_microsoft_extensions,
+  optk_microsoft_cpp14_mode,
+  optk_microsoft_cpplatest_mode,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1404,6 +1406,10 @@ EXTERN a_boolean
 			   constraints.  This extensions is always accepted
 			   while processing code generated from metadata, but
 			   is enabled more widely for internal testing. */
+
+EXTERN a_const_char
+                *msvc_lang;
+                        /* The value for the _MSVC_LANG predefined macro. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean

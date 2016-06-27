@@ -512,6 +512,12 @@ Initialize the option information table.
   add_option_description(optk_microsoft_extensions, "no_ms_extensions",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_cpp14_mode, "ms_c++14",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2145,6 +2151,20 @@ option values if they were not already set by a command line option.
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
+    a_boolean ms_cpp14_mode = microsoft_version >= 1903;
+    a_boolean ms_cpplatest_mode = FALSE;
+    if (option_kind_used[(int)optk_microsoft_cpp14_mode]) {
+      ms_cpp14_mode = TRUE;
+      if (microsoft_version < 1903) {
+        command_line_error(ec_microsoft_version_doesnt_support_cpp14_mode);
+      }  /* if */
+    }  /* if */
+    if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
+      ms_cpplatest_mode = TRUE;
+      if (microsoft_version < 1903) {
+        command_line_error(ec_microsoft_version_doesnt_support_cpplatest_mode);
+      }  /* if */
+    }  /* if */
     if (force_ms_type_info_not_in_namespace_std) {
       type_info_in_namespace_std = FALSE;
     } else {
@@ -2451,8 +2471,19 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1903) {
         /* Emulate Visual Studio 2015 Update 3. */
-        aggregate_classes_can_have_field_initializers = TRUE;
-        nested_namespace_definitions_enabled = TRUE;
+        /* With the advent of Update 3, Visual Studio supports the /std:c++14
+           and /std:c++latest command-line options (which are emulated by
+           the --ms_c++14 and --ms_c++latest front end options, respectively).
+           Note that /std:c++14 is the default when microsoft_version is
+           1903. */
+        if (ms_cpp14_mode) {
+          msvc_lang = "201402L";
+          aggregate_classes_can_have_field_initializers = TRUE;
+        }  /* if */
+        if (ms_cpplatest_mode) {
+          msvc_lang = "201403L";
+          nested_namespace_definitions_enabled = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
@@ -4643,6 +4674,16 @@ specified with --microsoft et al. or --strict et al.  --sun cannot be combined
 with command-line options to select a C mode, but otherwise it implies C++ mode
 (even in the somewhat unusual event that the front end were modified to compile
 C code by default).
+
+Beginning with Visual Studio 2015 Update 3 (aka, microsoft_version 1903
+internally), the command-line options --ms_c++14 and --ms_c++latest have been
+introduced to emulate the corresponding /std:c++14 and /std:c++latest
+command-line options.  Strictly speaking these are not treated as "modes";
+rather those command-line options turn on individual features (via global
+variables) to enable the same set of features that would be available in
+the specified version of Visual Studio.  Note that --c++14 (i.e., the ISO set
+of C++14 features) is not guaranteed to be the same as --ms_c++14 (i.e.,
+Microsoft's implemented set) though these may converge in the future.
 
 Microsoft emulation has been split into three "tiers": --ms_extensions
 emulates clang's -fms-extensions mode, --ms_compatibility emulates clang's
@@ -9156,6 +9197,13 @@ enable_microsoft_mode:
         /* Enable/disable clang's idea of Microsoft "extensions". */
         ms_extensions = opt_value;
         break;
+      case optk_microsoft_cpp14_mode:
+      case optk_microsoft_cpplatest_mode:
+        /* Enable emulation of Visual Studio's /std:c++14 and /std:c++latest
+           command-line options. */
+        set_C_dialect(C_dialect_cplusplus);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -11155,6 +11203,7 @@ variables declared in cmd_line.h.
   disable_access_checking_in_microsoft_enum_bases =
                       DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
   pending_generic_constraint_specifier_enabled = FALSE;
+  msvc_lang = NULL;
   force_ms_type_info_not_in_namespace_std = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;

@@ -1,5 +1,13 @@
 Version 4.12
 
+6/27/16  [EDGcpfe/16967,EDGcpfe/17000]
+Microsoft compatibility: add --ms_c++14 and --ms_c++latest command-line options
+
+The --ms_c++14 and --ms_c++latest command-line options have been added to
+eccp.sh (to emulate the behavior of Visual Studio's /std:c++14 and
+/std:c++latest command-line options respectively).
+
+
 6/2/16   [EDGcpfe/17260]
 Add _M_X64 to make_win_predef_macro_table.c
 
