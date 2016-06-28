@@ -3056,14 +3056,14 @@ in ps_arg_list.
          parameters in nondeduced contexts yield the expected types once
          substituted. */
       test_arg_list = copy_template_arg_list_with_substitution(
-                                           template_sym,
-                                           prototype_tap,
-                                           primary_templ_param_list,
-                                           *ps_arg_list, templ_param_list,
-                                           &template_sym->decl_position,
-                                           CTWS_NO_OPTIONS,
-                                           /*orig_is_nonreal_template=*/FALSE,
-                                           &copy_error, &ctws_state);
+                                          template_sym,
+                                          prototype_tap,
+                                          primary_templ_param_list,
+                                          *ps_arg_list, templ_param_list,
+                                          &template_sym->decl_position,
+                                          CTWS_IS_PARTIAL_SPECIALIZATION_CHECK,
+                                          /*orig_is_nonreal_template=*/FALSE,
+                                          &copy_error, &ctws_state);
       eta_options = eta_options_for_template(template_sym, tssp);
       if (!copy_error &&
           equiv_template_arg_lists(instance_tap, test_arg_list, eta_options)) {
@@ -11270,7 +11270,12 @@ parameters.
   a_template_param_ptr	tpp = templ_param;
   a_template_arg_ptr	tap = templ_arg;
   a_boolean		have_params = (param_list_for_copy != NULL);
+  a_boolean		is_partial_spec_check;
 
+  is_partial_spec_check =
+                         (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0;
+  /* Don't pass this flag into other substitution routines. */
+  options &= (~CTWS_IS_PARTIAL_SPECIALIZATION_CHECK);
   /* Make sure that the template argument kind matches the parameter
      kind. */
   if (have_params) {
@@ -11399,8 +11404,14 @@ parameters.
     tap->variant.templ.ptr = templ;
     tap->is_pack = templ->is_pack;
     if (have_params && templ != orig_templ) {
-      /* Make sure the substituted template matches the template parameter. */
-      if (!template_template_arg_matches_param(
+      /* Make sure the substituted template matches the template parameter.
+         This is suppressed for a top-level check in partial specialization
+         processing because we know that the template template argument
+         matched the primary template (and this check could fail in some
+         cases where the template tempalte parameter has types that depend
+         on other template parameters. */
+      if (!is_partial_spec_check &&
+          !template_template_arg_matches_param(
                                     tap, tpp, arg_list_to_copy,
                                     param_list_for_copy,
                                     source_pos)) {

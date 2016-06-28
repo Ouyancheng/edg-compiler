@@ -1836,6 +1836,10 @@ typedef int a_ctws_options_set;
 #define CTWS_RETURN_TYPE		0x200
 			/* TRUE if the type being processed is the return type
 			   of a function type. */
+#define CTWS_IS_PARTIAL_SPECIALIZATION_CHECK	0x400
+			/* TRUE when creating the substituted template
+			   argument list as part of the partial specialization
+			   matching process. */
 
 /*
 Structure used to represent a set of function parameters that resulted from
