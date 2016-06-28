@@ -15363,6 +15363,17 @@ successful folding.
         if (dest_type != NULL) folded_con->type = dest_type;
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
+        folded_con = dip->variant.constant;
+        if (constant_is(folded_con, ck_aggregate) &&
+            folded_con->variant.aggregate.first_constant != NULL &&
+            !in_file_scope(folded_con) &&
+            in_file_scope(folded_con->variant.aggregate.first_constant)) {
+          /* The constexpr interpreter creates aggregate sub-constants in file
+             scope memory (because it doesn't know in what context the result
+             will be used).  If the current memory region is local, copy the
+             result constant's substructure into that local memory. */
+          (void)copy_constant_full(folded_con, folded_con, CE_NO_OPTIONS);
+        }  /* if */
       } else {
         release_local_constant(&folded_con);
       }  /* if */

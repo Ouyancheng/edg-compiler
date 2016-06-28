@@ -5717,11 +5717,10 @@ copy_constant_full should be called to start a copy.
      been done into it.  Copy the subtree as necessary. */
   if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* For aggregate constants, copy the subtree also. */
+    old_aggr_con = old_constant->variant.aggregate.first_constant;
     new_constant->variant.aggregate.first_constant = NULL;
     new_constant->variant.aggregate.last_constant = NULL;
-    for (old_aggr_con = old_constant->variant.aggregate.first_constant;
-         old_aggr_con != NULL;
-         old_aggr_con = old_aggr_con->next) {
+    for (; old_aggr_con != NULL; old_aggr_con = old_aggr_con->next) {
       new_aggr_con = i_copy_constant_full(old_aggr_con, (a_constant *)NULL,
                                           options_unshared, cblock);
       /* Add the constant to the aggregate list. */
