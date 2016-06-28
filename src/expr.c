@@ -490,7 +490,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
     if (is_braced_init_component(icp) && dps->has_direct_initializer &&
-        ((cpp14_mode && !(gpp_mode || clang_mode)) ||
+        ((cpp14_mode && !(clang_mode ? clang_version < 30800 :
+                          gpp_mode   ? gnu_version < 50000 : FALSE)) ||
          (microsoft_mode && microsoft_version >= 1900))) {
       /* In C++14 mode, direct-list-initialization with a placeholder type only
          permits a single braced element, and in that case the braces are

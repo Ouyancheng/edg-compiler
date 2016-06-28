@@ -1,5 +1,14 @@
 Version 4.12
 
+6/28/16  [EDGcpfe/17356]
+GNU and Clang C++14 compatibility: Direct braced initializers and placeholder
+types
+
+The changes described by the entry for EDGcpfe/15918 now apply in GNU C++14
+mode with gnu_version >= 50000 and in Clang C++14 mode with clang_version >=
+30800.
+
+
 6/28/16  [EDGcpfe/17357]
 C++14 constexpr: Spurious failure on address equality comparison
 
