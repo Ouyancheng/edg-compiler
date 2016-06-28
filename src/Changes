@@ -1,5 +1,17 @@
 Version 4.12
 
+
+6/28/16  [EDGcpfe/16811]
+GNU C++ compatibility: VLA declarations with initializers
+
+In GNU C++ mode with gnu_version >= 40900, the front end now accepts
+initializers for variable length arrays.  For example:
+
+  void g(int n) {
+    double x[n] = { 0.0 };  // Now accepted in some GNU C++ modes.
+  }
+
+
 6/28/16  [EDGcpfe/17267]
 GNU/Microsoft compatibility: Defaulted exception specifications
 

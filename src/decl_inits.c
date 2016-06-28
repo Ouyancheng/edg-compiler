@@ -1988,7 +1988,9 @@ initialization).  *is describes the initialization as a whole.
         !atype->variant.array.bound_is_zero) {
       /* An array whose number of elements is not a priori bound. */
       no_bound = TRUE;
-      incomplete_array = TRUE;
+      if (!atype->variant.array.is_variable_size_array) {
+        incomplete_array = TRUE;
+      }  /* if */
     } else if (has_any_unknown_specified_bound(atype)) {
       /* An array with a specified bound that cannot be evaluated (e.g., a
          template-dependent bound). */
@@ -4428,11 +4430,13 @@ returned set to TRUE.
   dps->init_state.static_lifetime_init = static_lifetime;
   if (!var_err) {
     vp_type = vp->type;
-    if (vla_enabled && is_vla_type(vp->type)) {
-      /* VLAs cannot be initialized.  (This must be the first error case
-         tested because we set vp_type to NULL to recover.  If it were a
-         later case, and the declaration was also (e.g.) block extern,
-         we'd diagnose that instead and not recover completely.) */
+    if (vla_enabled && is_vla_type(vp->type) &&
+        !(gpp_mode && !clang_mode && gnu_version >= 40900)) {
+      /* VLAs cannot be initialized, except in some GNU C++ modes.  (This must
+         be the first error case tested because we set vp_type to NULL to
+         recover.  If it were a later case, and the declaration was also
+         (e.g.) block extern, we'd diagnose that instead and not recover
+         completely.) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
       vp_type = NULL;
