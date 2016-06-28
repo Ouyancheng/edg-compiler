@@ -7303,10 +7303,11 @@ the value representation of the integer value.
                 } else if (!is_runtime_data_address(ptr1)) {
                   if (ptr1->address == ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
-                  } else if ((ptr1->address == ptr1->complete_object &&
-                              cannot_dereference(ptr2)) ||
-                             (ptr2->address == ptr2->complete_object &&
-                              cannot_dereference(ptr1))) {
+                  } else if (((ptr1->address == ptr1->complete_object &&
+                               cannot_dereference(ptr2)) ||
+                              (ptr2->address == ptr2->complete_object &&
+                               cannot_dereference(ptr1))) &&
+                             ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_equality_past_the_end_address,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
@@ -7395,10 +7396,11 @@ the value representation of the integer value.
                 } else if (!is_runtime_data_address(ptr1)) {
                   if (ptr1->address != ptr2->address) {
                     *(an_integer_value *)result_storage = one_int;
-                  } else if ((ptr1->address == ptr1->complete_object &&
-                              cannot_dereference(ptr2)) ||
-                             (ptr2->address == ptr2->complete_object &&
-                              cannot_dereference(ptr1))) {
+                  } else if (((ptr1->address == ptr1->complete_object &&
+                               cannot_dereference(ptr2)) ||
+                              (ptr2->address == ptr2->complete_object &&
+                               cannot_dereference(ptr1))) &&
+                             ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_equality_past_the_end_address,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
