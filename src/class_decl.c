@@ -3808,8 +3808,14 @@ Also, if the member is virtual, force its definition to be generated.
                     declared_exception_spec, rtsp->exception_specification) ||
               exception_spec_is_less_restrictive(
                     rtsp->exception_specification, declared_exception_spec)) {
-            pos_error(ec_invalid_explicit_exception_specification,
-                      &rp->source_corresp.decl_position);
+            if ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+                rp->is_template_function && !rp->is_specialized) {
+              rp->is_deleted = TRUE;
+              rp->defined = TRUE;
+            } else {
+              pos_error(ec_invalid_explicit_exception_specification,
+                        &rp->source_corresp.decl_position);
+            }  /* if */
           } else {
             /* Record the declared form. */
             rtsp->exception_specification = declared_exception_spec;
