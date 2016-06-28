@@ -15389,7 +15389,9 @@ successful folding.
       for (arg = args; arg != NULL; arg = arg->next) {
         if (is_error_node(arg) || is_error_type(arg->type)) {
           prior_error = TRUE;
-          expect_error();
+          if (!expr_stack->suppress_diagnostics) {
+            expect_error();
+          }  /* if */
           break;
         }  /* if */
       }  /* for */

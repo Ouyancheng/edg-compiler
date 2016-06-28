@@ -1,5 +1,14 @@
 Version 4.12
 
+6/28/16  [EDGcpfe/17322]
+Internal error in alloc_expr_ctor_dynamic_init
+
+In some relatively complex cases, the front end failed an "expect_error()"
+assertion check on constructor invocations in constant-expression contexts
+during SFINAE processing (the "expect_error()" check was invalid in such
+cases).  This is now fixed.
+
+
 6/27/16  [EDGcpfe/16967,EDGcpfe/17000]
 Microsoft compatibility: add --ms_c++14 and --ms_c++latest command-line options
 
