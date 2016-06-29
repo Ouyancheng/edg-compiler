@@ -163,7 +163,7 @@ error in scan_parenthesized_mem_init_args (decl_inits.c).  For example:
     S() = default;
   };
   struct X {
-    X(): arr() {}  // Previously trigger an assertion failure; now okay.
+    X(): arr() {}  // Previously triggered an assertion failure; now okay.
     S arr[1];
   };
 
