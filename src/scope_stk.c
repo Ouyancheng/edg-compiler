@@ -5295,7 +5295,6 @@ push_instantiation_scope_for_rescan.
        must not be freed below. */
     pop_scope();
   } else {
-    a_scope_stack_entry_ptr	ssep;
     ssep = &scope_stack[depth_innermost_instantiation_scope];
     tdip = ssep->template_decl_info;
   }  /* if */
