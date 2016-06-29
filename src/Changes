@@ -115,7 +115,7 @@ This is now fixed.
 Spurious error on friend class template that matches member name
 
 A spurious error was issued if the name of a friend class template
-declaration with the same name as a member of the class in which the
+declaration is the same as that of a member of the class in which the
 friend declaration appears.  Now fixed.
 
   template <class T> class A {};
