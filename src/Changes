@@ -1,5 +1,25 @@
 Version 4.12
 
+6/29/16  [EDGcpfe/16800]
+Spurious access error reported in rescan contexts
+
+A spurious access error could be issued during template argument
+substitution.  This would occur even in modes without SFINAE access
+checking (e.g., Microsoft mode).  Now fixed.
+
+  struct A {
+    template <void pf(int)> static void f();
+  };
+  class B {
+  public:
+    static void f() {
+      A::f<g<int> >();  // Spurious "B::g(T)" is inaccessible
+    }
+  private:
+    template <typename T> static void g(T);
+  };
+
+
 6/28/16  [EDGcpfe/17356]
 GNU and Clang C++14 compatibility: Direct braced initializers and placeholder
 types

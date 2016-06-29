@@ -1281,6 +1281,13 @@ typedef struct a_scope_stack_entry {
 			   (a global variable).  Also set in scope stack
 			   entries that are not part of the list because they
 			   do not affect access control. */
+  a_scope_depth	orig_access_depth;
+			/* When instantiation scopes are pushed for rescan
+			   purposes, the innermost scope that affects
+			   access control is saved in the last context
+			   scope that is pushed.  This is used later
+			   to recheck failed access checks in the
+			   referencing context. */
   an_access_error_descr_ptr
 		deferred_access_checks;
 			/* When defer_access_checks is TRUE, this contains

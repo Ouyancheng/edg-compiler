@@ -2914,6 +2914,7 @@ the scope being pushed.
   ssep->curr_construct_pragmas	 = NULL;
   ssep->next_scope_that_affects_access_control =
                           depth_of_innermost_scope_that_affects_access_control;
+  ssep->orig_access_depth        = NO_SCOPE_DEPTH;
   ssep->deferred_access_checks   = NULL;
   ssep->last_deferred_access_check
                                  = NULL;
@@ -3206,6 +3207,9 @@ the scope being pushed.
                                           (ssep-1)->exception_specification;
         ssep->in_variadic_template =
                                           (ssep-1)->in_variadic_template;
+        ssep->is_rescan =
+                                          (ssep-1)->is_rescan;
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
         ssep->instantiation_from_metadata =
                                          (ssep-1)->instantiation_from_metadata;
@@ -5207,7 +5211,9 @@ the template that is being rescanned and can be NULL.
   a_template_decl_info_ptr	tdip;
   a_routine_ptr			rp = NULL;
   a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			orig_access_depth;
 
+  orig_access_depth = depth_of_innermost_scope_that_affects_access_control;
   if (cpp11_sfinae_enabled && template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(template_sym);
@@ -5247,6 +5253,16 @@ the template that is being rescanned and can be NULL.
                      (a_type_ptr)NULL, rp);
     scope_stack[depth_scope_stack].template_sym = template_sym;
   }  /* if */
+  /* Save the innermost scope that affects access control and defer
+     access checks during the rescan.  This is needed even when
+     SFINAE access checking is not being done because some access
+     checks that are outside of the SFINAE process get re-done and
+     must succeed. */
+  if (orig_access_depth != NO_SCOPE_DEPTH) {
+    ssep = &scope_stack_top();
+    ssep->orig_access_depth = orig_access_depth;
+    begin_deferral_of_access_checks();
+  }  /* if */
 }  /* push_instantiation_scope_for_rescan */
 
 
@@ -5257,8 +5273,23 @@ push_instantiation_scope_for_rescan.
 */
 {
   a_template_decl_info_ptr	tdip = NULL;
+  a_scope_depth			orig_access_depth;
+  a_scope_stack_entry_ptr	ssep;
 
-  if (scope_stack_top().kind == (a_scope_kind)sck_function_access) {
+  ssep = &scope_stack_top();
+  orig_access_depth = ssep->orig_access_depth;
+  if (orig_access_depth != NO_SCOPE_DEPTH) {
+    /* If an original access checking depth was saved, repeat any
+       access checks that were deferred.  These are done both in the
+       current context (when doing SFINAE access checking) and in the 
+       original access context. */
+    if (scope_is(ssep, sck_function_access)) {
+      perform_deferred_access_checks_at_depth(depth_scope_stack);
+    }  /* if */
+    depth_of_innermost_scope_that_affects_access_control = orig_access_depth;
+    end_deferral_of_access_checks();
+  }  /* if */
+  if (scope_is(ssep, sck_function_access)) {
     /* The presence of a function access scope means that the template
        decl. info. from a class or function is being used, so it
        must not be freed below. */
