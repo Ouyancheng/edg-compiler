@@ -6173,7 +6173,7 @@ a_symbol_ptr enter_enumerator_into_completed_class(
 An enumerator constant is being added to the out-of-class definition of an
 enum type that is a member of class_type (scope_num is the number of the class
 definition scope).  The enumerator's name and position is given through loc.  
-Issue an error if the enumerator name conflict with a prior declaration, and
+Issue an error if the enumerator name conflicts with a prior declaration, and
 enter a symbol to represent it.  A pointer to that symbol is returned.
 */
 {
