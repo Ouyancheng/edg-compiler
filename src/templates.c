@@ -11408,8 +11408,8 @@ parameters.
          This is suppressed for a top-level check in partial specialization
          processing because we know that the template template argument
          matched the primary template (and this check could fail in some
-         cases where the template tempalte parameter has types that depend
-         on other template parameters. */
+         cases where the template template parameter has types that depend
+         on other template parameters). */
       if (!is_partial_spec_check &&
           !template_template_arg_matches_param(
                                     tap, tpp, arg_list_to_copy,
