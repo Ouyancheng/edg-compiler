@@ -5684,8 +5684,11 @@ the body of the (constructor) function proper.
           } else {
             mark_subobject_initialized(result_storage+offset, complete_object);
           }  /* if */
-        } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero) {
-          /* Just zero the storage. */
+        } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero ||
+                   sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+          /* Just zero the storage (for the dik_zero case) and record the
+             derivation structure (which is needed even for the dik_none
+             case). */
           init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
         } else {

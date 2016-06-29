@@ -1,5 +1,15 @@
 Version 4.12
 
+6/29/16  [EDGcpfe/17325]
+C++14 constexpr: Abort on cast to derived class
+
+The front end sometimes aborted when evaluating a cast to a derived class in
+the C++14 constexpr interpreter.  The abort was due to corrupt interpreter
+data and could be difficult to reproduce, but the root cause of the issue was
+the incorrect initialization of base class subobjects with an associated
+dynamic initializer of kind dik_none.  The issue is now fixed.
+
+
 6/29/16  [EDGcpfe/17343]
 Nested class defined in alias declaration not handled correctly
 
