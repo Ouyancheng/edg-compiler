@@ -133,7 +133,7 @@ the front end did not handle certain file operations properly when the
 file name contained characters that were converted to Unicode in the
 internal representation (e.g., Latin-1 characters).  The is_directory
 routine (which validates directory names from the command line) would
-fail.  As would several routines used in the creation and use of
+fail, as would several routines used in the creation and use of
 precompiled header files.  Now fixed.
 
 
