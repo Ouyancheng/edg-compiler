@@ -1063,9 +1063,8 @@ caution when modifying this routine.
 {
   a_symbol_ptr               tag_sym = NULL, templ_sym = NULL;
   a_token_kind               next_tok;
-  a_boolean	             err = FALSE;
-  a_boolean	             tag_err = FALSE;
-  a_boolean	             is_tag_definition = FALSE;
+  a_boolean	             err = FALSE, tag_err = FALSE;
+  a_boolean	             is_tag_definition = FALSE, body_removed = FALSE;
   an_identifier_options_set  options = GID_CHECK_TAG_NAME_FLAGS;
   a_scope_depth              computed_decl_level = NO_SCOPE_DEPTH;
   a_boolean                  allow_typedef = FALSE;
@@ -1086,6 +1085,7 @@ caution when modifying this routine.
       a_token_kind  token_after_next;
       (void)next_two_tokens(tok_removed_template_body, &token_after_next);
       if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
+      body_removed = TRUE;
     }  /* if */
     if (class_modifiers_allowed() && next_tok == tok_identifier &&
         tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr) {
@@ -1421,8 +1421,7 @@ caution when modifying this routine.
       /* Look for a type_info type with the same name. */
       for (i = 0; i < (int)tik_last; ++i) {
         if (types_of_type_info[i] == NULL) continue;
-        type_info_sym = (a_symbol_ptr)types_of_type_info[i]->
-                                                    source_corresp.assoc_info;
+        type_info_sym = symbol_for(types_of_type_info[i]);
         if (type_info_sym->header == locator_for_curr_id.symbol_header) {
           break;
         }  /* if */
@@ -1559,8 +1558,8 @@ caution when modifying this routine.
     a_boolean  is_vacuous_declaration = FALSE;
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
-    if (next_tok == tok_semicolon || next_tok == tok_removed_template_body) {
-      if ((*check_for_vacuous_decl || next_tok == tok_removed_template_body) &&
+    if (next_tok == tok_semicolon || body_removed) {
+      if ((*check_for_vacuous_decl || body_removed) &&
           C_dialect != C_dialect_pcc && !is_ref_within_new_expr) {
         /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
            The effect of a vacuous declaration (unless we are in pcc mode) is
@@ -1598,12 +1597,11 @@ caution when modifying this routine.
          typedef name. */
       tag_sym = curr_scope_id_lookup(locator, allow_typedef ? IDL_MUST_BE_CLASS
                                                             : IDL_MUST_BE_TAG);
-      if (allow_typedef && tag_sym != NULL &&
-          tag_sym->kind == (a_symbol_kind)sk_type) {
+      if (allow_typedef && tag_sym != NULL && symbol_is(tag_sym, sk_type)) {
         /* A typedef name was scanned.  Work with the underlying class symbol
            in what follows. */
         a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
-        tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
+        tag_sym = symbol_for(typedef_tp);
       }  /* if */
       if (tag_sym != NULL && is_injected_class_symbol(tag_sym)) {
         /* Ignore an injected class symbol, which would be found for this sort
@@ -1651,13 +1649,12 @@ caution when modifying this routine.
         /* Look up the name again in the current scope, but this time don't
            restrict the search to tag names. */
         a_symbol_ptr  sym;
-
         check_assertion(locator->specific_symbol == NULL);
         sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
         if (sym != NULL) {
           /* Found a symbol of the same name that was declared in the current
              scope. */
-          if (sym->kind == (a_symbol_kind)sk_type) {
+          if (symbol_is(sym, sk_type)) {
             /* Name is already declared in the current scope as a typedef. */
             a_type_ptr  tp = skip_typerefs(sym->variant.type.ptr);
             if (is_immediate_class_type(tp) &&
@@ -1699,9 +1696,8 @@ caution when modifying this routine.
         } else if (is_injected_class_symbol(tag_sym)) {
           /* A symbol representing an injected class name.  Use the tag symbol
              associated with the class in its place. */
-          tag_sym = (a_symbol_ptr)tag_sym->variant.type.ptr->
-                                                 source_corresp.assoc_info;
-        } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+          tag_sym = symbol_for(tag_sym->variant.type.ptr);
+        } else if (symbol_is(tag_sym, sk_type)) {
           /* A type symbol.  This can result from the use of a template
              parameter or an elaborated type specifier (in certain modes). */
           if (is_template_param_type_symbol(tag_sym)) {
@@ -1717,7 +1713,7 @@ caution when modifying this routine.
             check_assertion(!C_mode());
             underlying_type = type_symbol_type(tag_sym);
             underlying_type = skip_typerefs(underlying_type);
-            tag_sym = (a_symbol_ptr)underlying_type->source_corresp.assoc_info;
+            tag_sym = symbol_for(underlying_type);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3942,7 +3938,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
   def_or_vacuous_decl = (is_class_definition ||
-                         curr_token == tok_removed_template_body ||
+                         definition_removed ||
                          (vacuous_decl_allowed &&
                           curr_token == tok_semicolon));
   if (tag_sym == NULL) {
