@@ -1456,7 +1456,13 @@ scope lookup.  options specifies the options being used for the lookup.
     a_symbol_ptr	new_rout_sym;
     a_boolean		curr_sym_was_null = curr_sym == NULL;
     rout_sym = new_sym->variant.overloaded_function.symbols;
-    if (curr_sym == NULL) {
+    /* Skip any invisible symbols. */
+    while (rout_sym != NULL && rout_sym->is_invisible) {
+      rout_sym = rout_sym->next;
+    }  /* while */
+    if (rout_sym == NULL) {
+      /* All of the members of the set were invisible. */
+    } else if (curr_sym == NULL) {
       /* If the current symbol is NULL, take the first member of the
          overload set and create a projection symbol to it.  Later
          we will add the remaining members and create a new overload set. */
@@ -1829,6 +1835,7 @@ scope lookup.  options specifies the options being used for the lookup.
 						options);
     }  /* if */
   }  /* if */
+  check_assertion(curr_sym != NULL);
   if (err) {
     *any_errors = TRUE;
     curr_sym->ambiguous = TRUE;
