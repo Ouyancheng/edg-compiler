@@ -3232,13 +3232,43 @@ particular situation.
     a_dynamic_init_ptr  dip;
     dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                   !is->not_potentially_evaluated);
-    if (dtor != NULL) {
-      record_dtor_in_dynamic_init(dtor, dip, !is->not_potentially_evaluated);
-      record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+    if (ctor->is_constexpr) {
+      a_constant_ptr  con = local_constant();
+      if (fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                              /*check_constexpr=*/FALSE, diag_pos, con)) {
+        if (con->is_partially_initialized) {
+          is->partial_initializer = TRUE;
+        }  /* if */
+        *init_con = move_local_constant_to_il(&con);
+        if (dtor != NULL) {
+          /* Despite construction being folded into a constant, a nontrivial
+             (and non-constexpr) destructor will still need to be called.
+             Proceed with a dik_constant entry to which the destructor call
+             can be added below. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+          dip->variant.constant = *init_con;
+          if ((*init_con)->is_partially_initialized) {
+            dip->is_partially_initialized = TRUE;
+          }  /* if */
+        } else {
+          dip = NULL;
+        }  /* if */
+      } else {
+        release_local_constant(&con);
+      }  /* if */
+    } else {
+      is->constant_expr_ruled_out = TRUE;
     }  /* if */
-    *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    (*init_con)->variant.dynamic_init = dip;
-    (*init_con)->type = etype;
+    if (dip != NULL) {
+      if (dtor != NULL) {
+        record_dtor_in_dynamic_init(dtor, dip, !is->not_potentially_evaluated);
+        record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+      }  /* if */
+      *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      (*init_con)->variant.dynamic_init = dip;
+      (*init_con)->type = etype;
+      is->has_dynamic_init_component = TRUE;
+    }  /* if */
     (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (!is_designator_component(icp)) {
@@ -3246,7 +3276,6 @@ particular situation.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  is->has_dynamic_init_component = TRUE;
 }  /* aggr_init_aggregate_class_with_nontrivial_default_ctor */
 
 
