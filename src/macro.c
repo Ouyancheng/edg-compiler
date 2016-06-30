@@ -9838,6 +9838,9 @@ command line -D options.
     } else if (gpp_mode && !clang_mode) {
       if (gnu_version < 40700) {
         val = "1";
+      } else if (cpp17_mode && gnu_version >= 50000) {
+        /* Temporary value that GCC uses for -std=c++1z: */
+        val = "201500L";
       } else if (cpp14_mode && gnu_version >= 40900) {
         /* Version 4.9 of g++ was the first to accept -std=c++14 but set
            the value of __cplusplus to 201300L.  Beginning with version
@@ -9850,10 +9853,7 @@ command line -D options.
       }  /* if */
     } else if (any_cfront_mode()) {
       val = "1";
-    } else if (cpp17_mode && gpp_mode && !clang_mode) {
-      /* Temporary value that GCC uses for -std=c++1z: */
-      val = "201500L";
-    } else if (cpp17_mode && !gpp_mode && clang_mode) {
+    } else if (cpp17_mode && clang_mode) {
       /* Temporary value that clang uses for -std=c++1z: */
       val = "201406L";
     } else if (cpp14_mode) {
