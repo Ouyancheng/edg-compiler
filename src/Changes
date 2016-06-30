@@ -15,7 +15,7 @@ Nested class defined in alias declaration not handled correctly
 
 The front end previously treated nested classes defined in alias declarations
 as if they weren't nested at all if the alias appeared in a class template.
-This in turned was likely to lead to spurious errors.  For example:
+This in turn was likely to lead to spurious errors.  For example:
 
   template<typename T> struct X {
     using A = struct N {};  // Previously N was not considered a member of
