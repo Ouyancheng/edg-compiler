@@ -6161,14 +6161,13 @@ expression routines.
                                       p_error_detected);
       if (error_detected) record_suppressed_error();
     } else {
-      /* Access checking is suppressed, so do only the ambiguity check to
-         change the locator to an error locator if an error would have
-         been issued. */
+      /* Access checking is suppressed, so do only the ambiguity check. */
       if (f_check_for_ambiguity(locator, 
                                 /*is_template_context=*/FALSE,
                                 /*is_qualifier=*/FALSE,
-                                /*diagnostic_should_be_issued=*/FALSE)) {
-        set_to_error_locator(*locator);
+                                !expr_stack->suppress_diagnostics) &&
+          expr_stack->suppress_diagnostics) {
+        record_suppressed_error();
       }  /* if */
     }  /* if */
   }  /* if */

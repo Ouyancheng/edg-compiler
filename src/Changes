@@ -1,5 +1,22 @@
 Version 4.12
 
+7/1/16   [EDGcpfe/17369]
+Undiagnosed ambiguous variable use corrupts IL
+
+An expression in a template referring to an ambiguous variable name was
+previously sometimes not diagnosed, but the resulting IL included an error
+node.  This could later trigger an error in a back end (e.g., in the
+C++-generating back end).  For example
+
+  int v;
+  namespace N { int v; };
+  using namespace N;
+  template<typename T> void g(T) {
+    v = 3;  // "v" is ambiguous.  Previously, this was accepted by the
+  }         // front end, but produced an error node in the IL, likely
+            // causing an abort later on.
+
+
 6/30/16  [EDGcpfe/17345]
 Invisible friend declaration found in some cases with using-directives
 
