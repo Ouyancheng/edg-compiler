@@ -648,9 +648,11 @@ set to TRUE before they are attached.
   if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
     an_il_entry_kind  entity_kind;
     char              *entity;
-    if ((dps->dso_flags & DSO_FRIEND) != 0 && !primary_decl) {
+    if ((dps->dso_flags & DSO_FRIEND) != 0 && !primary_decl &&
+        !(gnu_mode && !clang_mode)) {
       /* Standard attributes are allowed on friend declarations only if that
-         friend declaration is also a definition. */
+         friend declaration is also a definition (GCC doesn't enforce
+         this restriction at present). */
       an_attribute_ptr  ap, err_ap = NULL;
       for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
         if (is_std_attribute(ap)) {
@@ -660,11 +662,7 @@ set to TRUE before they are attached.
       }  /* if */
       for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
         if (is_std_attribute(ap)) {
-          if (gnu_mode && !clang_mode &&
-              ap->kind == (a_byte_attribute_kind)ak_carries_dependency) {
-            /* GCC ignores these with a warning. */
-            pos_warning(ec_carries_dependency_ignored, &ap->position);
-          } else if (err_ap == NULL) {
+          if (err_ap == NULL) {
             err_ap = ap;
           }  /* if */
           make_attr_unrecognized(ap);

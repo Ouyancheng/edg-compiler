@@ -1,5 +1,18 @@
 Version 4.12
 
+7/1/16   [EDGcpfe/17047]
+GNU compatibility: Allow standard attributes on friend declarations
+
+The C++ standard expressly forbids standard attributes on a friend declaration
+that is not a definition, but GCC seems to disregard this.  The following is
+now accepted (with --g++ --c++14):
+
+  struct A {
+    friend void f [[deprecated]] (void);
+  };
+  void f [[deprecated]] (void) { }
+
+
 7/1/16   [EDGcpfe/17369]
 Undiagnosed ambiguous variable use corrupts IL
 
