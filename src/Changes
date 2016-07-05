@@ -19,7 +19,7 @@ Undiagnosed ambiguous variable use corrupts IL
 An expression in a template referring to an ambiguous variable name was
 previously sometimes not diagnosed, but the resulting IL included an error
 node.  This could later trigger an error in a back end (e.g., in the
-C++-generating back end).  For example
+C++-generating back end).  For example:
 
   int v;
   namespace N { int v; };
