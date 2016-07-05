@@ -1078,6 +1078,14 @@ caution when modifying this routine.
     /* Determine whether this is a definition or something else (a
        declaration or an elaborated type specifier). */
     next_tok = next_token();
+    if (class_modifiers_allowed() && next_tok == tok_identifier &&
+        tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr) {
+      /* The next token is an identifier: It could be a declarator-id, or it
+         might be a context-sensitive keyword "final", "sealed", or
+         "abstract". */
+      check_for_class_modifiers(
+                              &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
+    }  /* if */
     if (next_tok == tok_removed_template_body) {
       /* The body of a nested class definition in a class templates was
          replaced by a placeholder token.  If the declaration is autonomous,
@@ -1086,14 +1094,6 @@ caution when modifying this routine.
       (void)next_two_tokens(tok_removed_template_body, &token_after_next);
       if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
       body_removed = TRUE;
-    }  /* if */
-    if (class_modifiers_allowed() && next_tok == tok_identifier &&
-        tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr) {
-      /* The next token is an identifier: It could be a declarator-id, or it
-         might be a context-sensitive keyword "final", "sealed", or
-         "abstract". */
-      check_for_class_modifiers(
-                              &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
     }  /* if */
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
                                             is_ref_within_new_expr,
