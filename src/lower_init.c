@@ -9418,102 +9418,170 @@ do_assignment:;
       }  /* if */
       break;
     case dik_nonconstant_aggregate:
-      /* Initialization with a nonconstant aggregate constant.  This is usually
-         a whole-variable initialization, but can be used in a ctor-initializer
-         or lambda capture to iterate over an array initialization, etc. */
-      if (!C_mode()) {
-        latest_initialization_on_entry = eff_context->latest_initialization;
-      }  /* if */
-      keep_constant = FALSE;
-      if (dip->is_partially_initialized) {
-        /* For cases where the initialization only partially covers the
-           entity being initialized, initialize the remaining portion
-           of the entity if necessary. */
-        stretch_partial_initialization_if_necessary(dip, ipdp,
-                                                    have_complete_object,
-                                                    eff_insert_location);
-      }  /* if */
-      lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
-                                            /*dtor_case=*/FALSE, source_desc,
-                                            others_follow_in_aggr,
-                                            eff_insert_location,
+      { an_expr_node_ptr master_entry_assignment = NULL;
+        /* Initialization with a nonconstant aggregate constant.  This is
+           usually a whole-variable initialization, but can be used in a
+           ctor-initializer or lambda capture to iterate over an array
+           initialization, etc. */
+        if (!C_mode()) {
+          latest_initialization_on_entry = eff_context->latest_initialization;
+        }  /* if */
+        keep_constant = FALSE;
+        if (dip->is_partially_initialized) {
+          /* For cases where the initialization only partially covers the
+             entity being initialized, initialize the remaining portion
+             of the entity if necessary. */
+          stretch_partial_initialization_if_necessary(dip, ipdp,
+                                                      have_complete_object,
+                                                      eff_insert_location);
+        }  /* if */
+        if (variable == NULL && dip->master_entry != NULL) {
+          /* Speculatively add an assignment of master_entry->variable to
+             itself.  This assignment will either be adjusted so that the
+             source of the operation is a temporary or the entire operation
+             will be effectively removed.  This effectively marks a place
+             in the IL before dynamic lowering is performed so that it can be
+             fixed up later if necessary.  See uses of master_entry_assignment
+             below for more information on why this is needed. */
+          master_entry_assignment = make_assignment_expr(
+                                 var_lvalue_expr(dip->master_entry->variable),
+                                 (an_expr_operator_kind)eok_bassign,
+                                 var_lvalue_expr(dip->master_entry->variable));
+          insert_expr(master_entry_assignment, eff_insert_location);
+        }  /* if */
+        lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
+                                              /*dtor_case=*/FALSE, source_desc,
+                                              others_follow_in_aggr,
+                                              eff_insert_location,
 #if GNU_VECTOR_TYPES_ALLOWED
-                                            &contains_vector_dynamic_init,
+                                              &contains_vector_dynamic_init,
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
-                                            (a_boolean *)NULL,
+                                              (a_boolean *)NULL,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                            &keep_constant,
-                                            options);
-      if (keep_constant) {
-        /* There is a constant part of the initialization to be kept. */
-        if (variable == NULL) {
-          /* There is no variable, so we are down inside an aggregate
-             initialization.  Pass this constant back to the caller. */
-          check_assertion(constant_to_keep != NULL);
-          *constant_to_keep = dip->variant.constant;
-        } else {
-          /* Keep a (now-)constant aggregate value as the static initial value
-             of the variable.  The nonconstant parts have been put out as
-             code and replaced with placeholder constants. */
-#if GNU_VECTOR_TYPES_ALLOWED
-          /* The constant may still have non-constant pieces (because vector
-             elements can't be individually assigned to).  This "constant"
-             will still be used as a static initial value. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-          simple_constant_init = TRUE;
-          simple_constant = dip->variant.constant;
-          if (variable->promoted_local_static &&
-              constant_must_remain_in_function_scope(simple_constant)) {
-            /* The constant must remain in the function scope and can't be
-               used to initialize the promoted static variable (now in the
-               file scope).  Rewrite the initialization as executable code. */
-            lower_constant_init_of_promoted_static(variable, simple_constant);
-            simple_constant_init = FALSE;
-          } else if (local_static_that_requires_dynamic_init ||
-                     simple_constant_init_opt_ruled_out) {
-            /* The constant must remain in the function scope and can't be
-               used to initialize the promoted static variable (now in the
-               file scope).  Rewrite the initialization as executable
-               code.  Note that this initialization must occur prior to
-               any code that has already been added to do dynamic
-               initialization. */
-            a_variable_ptr         temp_var;
-            an_expr_node_ptr       init_val_node;
-            a_memory_region_number region_to_switch_back_to;
-            if (local_static_that_requires_dynamic_init) {
-              set_block_start_insert_location(block_stmt, &insert_location2);
+                                              &keep_constant,
+                                              options);
+        if (keep_constant) {
+          /* There is a constant part of the initialization to be kept. */
+          if (variable == NULL) {
+            /* There is no variable, so we are down inside an aggregate
+               initialization.  Pass this constant back to the caller. */
+            if (constant_to_keep != NULL) {
+              *constant_to_keep = dip->variant.constant;
+            } else {
+              /* It has been determined that there's a constant portion of the
+                 initialization that should be kept, but there's no variable
+                 to assign it to.  This can happen when lowering a branch of
+                 an eok_question operation, for example:
+                   a = b ? arr{{x,2}} : arr{{3,x}};
+                 In this case, the master_entry variable would need to have two
+                 separate constant initializations.  To work around this issue,
+                 a temporary variable is created and initialized to the
+                 constant and the value of that temporary is then dynamically
+                 assigned to the master_entry variable.  There's an ordering
+                 problem with this technique in that
+                 lower_dynamic_init_aggregate_constant may already have
+                 generated code to initialize master_entry->variable.  In
+                 anticipation of this case an assignment operation has already
+                 been speculatively included before the dynamic lowering and
+                 that assignment will now be adjusted so that it assigns the
+                 temporary (whose value is the constant) to the master_entry
+                 variable (so that it occurs before any dynamic
+                 initialization). */
+              a_variable_ptr  temp;
+              a_type_ptr      temp_type;
+              check_assertion(dip->master_entry != NULL);
+              temp_type = make_qualified_type(
+                                             dip->master_entry->variable->type,
+                                             TQ_CONST);
+              /* Create a static temporary with the value of the constant. */
+              temp = make_unnamed_local_static_variable(temp_type,
+                                                   /*in_function_scope=*/TRUE);
+              (void)make_local_static_variable_init(temp, eff_context->scope,
+                                                    (an_init_kind)initk_static,
+                                                    dip->variant.constant,
+                                                    (a_dynamic_init_ptr)NULL);
+              overwrite_node(master_entry_assignment->
+                                              variant.operation.operands->next,
+                             var_lvalue_expr(temp));
+              master_entry_assignment = NULL;
             }  /* if */
-            entity_node = make_init_entity_node(ipdp,
-                                                /*result_is_lvalue=*/TRUE,
-                                                /*using_as_dest=*/TRUE);
-            check_assertion(simple_constant->kind ==
-                            (a_constant_repr_kind)ck_aggregate &&
-                            !in_file_scope(simple_constant) &&
+          } else {
+            /* Keep a (now-)constant aggregate value as the static initial
+               value of the variable.  The nonconstant parts have been put out
+               as code and replaced with placeholder constants. */
+#if GNU_VECTOR_TYPES_ALLOWED
+            /* The constant may still have non-constant pieces (because vector
+               elements can't be individually assigned to).  This "constant"
+               will still be used as a static initial value. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+            simple_constant_init = TRUE;
+            simple_constant = dip->variant.constant;
+            if (variable->promoted_local_static &&
+                constant_must_remain_in_function_scope(simple_constant)) {
+              /* The constant must remain in the function scope and can't be
+                 used to initialize the promoted static variable (now in the
+                 file scope).  Rewrite the initialization as executable
+                 code. */
+              lower_constant_init_of_promoted_static(variable,
+                                                     simple_constant);
+              simple_constant_init = FALSE;
+            } else if (local_static_that_requires_dynamic_init ||
+                       simple_constant_init_opt_ruled_out) {
+              /* The constant must remain in the function scope and can't be
+                 used to initialize the promoted static variable (now in the
+                 file scope).  Rewrite the initialization as executable
+                 code.  Note that this initialization must occur prior to
+                 any code that has already been added to do dynamic
+                 initialization. */
+              a_variable_ptr         temp_var;
+              an_expr_node_ptr       init_val_node;
+              a_memory_region_number region_to_switch_back_to;
+              if (local_static_that_requires_dynamic_init) {
+                set_block_start_insert_location(block_stmt, &insert_location2);
+              }  /* if */
+              entity_node = make_init_entity_node(ipdp,
+                                                  /*result_is_lvalue=*/TRUE,
+                                                  /*using_as_dest=*/TRUE);
+              check_assertion(simple_constant->kind ==
+                              (a_constant_repr_kind)ck_aggregate &&
+                              !in_file_scope(simple_constant) &&
                      !constant_must_remain_in_function_scope(simple_constant));
-            /* Create a local static temporary and statically initialize it to
-               the constant (but the constant must be copied to the file
-               scope first). */
-            temp_var = make_unnamed_local_static_variable(
+              /* Create a local static temporary and statically initialize it
+                 to the constant (but the constant must be copied to the file
+                 scope first). */
+              temp_var = make_unnamed_local_static_variable(
                                  make_qualified_type(variable->type, TQ_CONST),
                                  /*in_function_scope=*/TRUE);
-            temp_var->init_kind = (an_init_kind)initk_static;
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            temp_var->initializer.constant =
+              temp_var->init_kind = (an_init_kind)initk_static;
+              switch_to_file_scope_region(&region_to_switch_back_to);
+              temp_var->initializer.constant =
                            copy_constant_full(simple_constant,
                                               (a_constant_ptr)NULL,
                                               CE_REPLACE_STRINGS_BY_VARIABLES);
-            switch_back_to_original_region(region_to_switch_back_to);
-            init_val_node = var_lvalue_expr(temp_var);
-            (void)insert_assignment_statement(entity_node,
+              switch_back_to_original_region(region_to_switch_back_to);
+              init_val_node = var_lvalue_expr(temp_var);
+              (void)insert_assignment_statement(entity_node,
                                             (an_expr_operator_kind)eok_bassign,
-                                              init_val_node,
-                                              &insert_location2);
-            variable->init_kind = (an_init_kind)initk_none;
-            variable->initializer.constant = NULL;
-            simple_constant_init = FALSE;
+                                            init_val_node,
+                                            &insert_location2);
+              variable->init_kind = (an_init_kind)initk_none;
+              variable->initializer.constant = NULL;
+              simple_constant_init = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
+        if (master_entry_assignment != NULL) {
+          /* The assignment statement that was speculatively included in the
+             IL is not needed; overwrite it with a zero constant (as there
+             is no no-op operation in the IL). */
+          a_constant_ptr   zero_con = local_constant();
+          make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
+                                   zero_con);
+          overwrite_node(master_entry_assignment,
+                         alloc_node_for_constant(zero_con));
+          release_local_constant(&zero_con);
+        }  /* if */
+      }
       break;
     case dik_bitwise_copy:
       /* Bitwise copy of a value. */
