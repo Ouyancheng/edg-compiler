@@ -684,6 +684,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         } else {
           next_token_fetched = TRUE;
         }  /* if */
+        break;
       /* Storage class specifiers. */
       case tok_static:
 #if MICROSOFT_EXTENSIONS_ALLOWED
