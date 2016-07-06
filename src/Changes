@@ -1,5 +1,22 @@
 Version 4.12
 
+
+7/6/16   [EDGcpfe/14807,EDGcpfe/16063,EDGcpfe/16627, EDGcpfe/16735,
+          EDGcpfe/17005,EDGcpfe/17359]
+C11 _Atomic types
+
+In C11 mode, the front end now accepts _Atomic types.  Such types are modeled
+as qualified types; e.g., _Atomic(int) is type int with an _Atomic qualifier
+(a tk_typeref entry) on top.  The size and alignment of an _Atomic type must
+therefore match the underlying non-_Atomic type.  That matches the behavior of,
+e.g., the GCC compiler, but not of the Clang compiler.  In Clang mode, the
+front end therefore disables _Atomic class types, because Clang treats them
+differently (their sizes differ from those of the underlying class types, and
+some operations -- like member access -- are not allowed on them).  A global
+variable c11_atomic_classes_disabled controls that behavior.  However, all
+Clang modes accept _Atomic scalar types (not just Clang C11 mode).
+
+
 7/5/16   [EDGcpfe/17317]
 Lowering of aggregate in conditional operator leads to assertion failure
 

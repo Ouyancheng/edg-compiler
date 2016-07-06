@@ -1264,6 +1264,7 @@ typedef enum /*a_token_kind*/ {
   tok_noreturn,
   tok_builtin_complex,
   tok_c11_generic,
+  tok_c11_atomic,
   tok_coroutine_yield,
   tok_coroutine_return,
   tok_coroutine_await,
@@ -1438,6 +1439,7 @@ EXTERN a_const_char
    "_Noreturn",
    "__builtin_complex",
    "_Generic",
+   "_Atomic",
    "co_yield", "co_return", "co_await",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
@@ -5218,6 +5220,7 @@ enum a_type_qualifier_tag {
   tqt_const,		/* Const qualifier. */
   tqt_volatile,		/* Volatile qualifier. */
   tqt_restrict,		/* Restrict qualifier. */
+  tqt_c11_atomic,	/* C11 _Atomic qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5254,6 +5257,8 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 			/* This bit is set to represent volatile. */
 #define TQ_RESTRICT	((a_type_qualifier_set)(1 << (int)tqt_restrict))
 			/* This bit is set to represent restrict. */
+#define TQ_C11_ATOMIC	((a_type_qualifier_set)(1 << (int)tqt_c11_atomic))
+			/* This bit is set to represent _Atomic. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TQ_UNALIGNED	((a_type_qualifier_set)(1 << (int)tqt_unaligned))
 			/* This bit is set to represent __unaligned. */

@@ -7579,6 +7579,37 @@ _Sat was specified.
 }  /* combine_type_specifiers */
 
 
+static a_type_ptr make_c11_atomic_type(a_type_ptr         utp,
+                                       a_source_position  *diag_pos,
+                                       a_boolean          prev_quals_allowed)
+/*
+Make and return a C11 _Atomic type based on the given underlying type.  Return
+an error type if utp is null, an error type, and array type, or a function
+type; issue an error for the latter two cases.  If prev_quals_allowed is
+FALSE and utp is a qualified type also issue an error and return an error type.
+*/
+{
+  a_type_ptr  result;
+
+  if (utp == NULL || is_error_type(utp)) {
+    result = error_type();
+  } else if (is_function_type(utp) || is_array_type(utp)) {
+    pos_ty_error(ec_c11_atomic_array_or_function_type, diag_pos, utp);
+    result = error_type();
+  } else if (c11_atomic_classes_disabled &&
+             is_class_struct_union_type(utp)) {
+    pos_error(ec_c11_atomic_class_types_disabled, diag_pos);
+    result = error_type();
+  } else if (!prev_quals_allowed && is_qualified_type(utp)) {
+    pos_ty_error(ec_c11_atomic_specifier_with_qualified_type, diag_pos, utp);
+    result = error_type();
+  } else {
+    result = make_qualified_type(utp, TQ_C11_ATOMIC);
+  }  /* if */
+  return result;
+}  /* make_c11_atomic_type */
+
+
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
                                      a_decl_parse_state    *state)
 /*
@@ -7749,6 +7780,11 @@ by *type_ptr.  This function is called from decl_specifiers only.
     if (qualifiers != TQ_NONE) {
       if (is_unknown_type(*type_ptr)) {
         *type_ptr = integer_type((an_integer_kind)ik_int);
+      }  /* if */
+      if (qualifiers & TQ_C11_ATOMIC) {
+        *type_ptr = make_c11_atomic_type(*type_ptr, &state->qualifiers_pos,
+                                         /*prev_quals_allowed=*/TRUE);
+        qualifiers &= ~TQ_C11_ATOMIC;
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
@@ -9300,6 +9336,36 @@ the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
 }  /* apply_c11_noreturn */
 
 
+static a_type_ptr scan_c11_atomic_type_specifier(void)
+/*
+Scan a type specifier of the form
+
+	_Atomic ( type-name )
+
+and return a representation of it (an error type in some error cases).
+
+The caller must make sure the current token is _Atomic followed by a left
+parenthesis; on return, the current token is the right parenthesis.
+*/
+{
+  a_type_ptr  result;
+
+  check_assertion(curr_token == tok_c11_atomic);
+  (void)get_token();
+  check_assertion(curr_token == tok_lparen);
+  (void)get_token();
+  add_stop_token(tok_rparen);
+  type_name(&result);
+  if (curr_token != tok_rparen) {
+    syntax_error(ec_exp_rparen);
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  result = make_c11_atomic_type(result, &error_position,
+                                /*prev_quals_allowed=*/FALSE);
+  return result;
+}  /* scan_c11_atomic_type_specifier */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -9694,6 +9760,30 @@ storage_class_specifier:
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_VOLATILE;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_c11_atomic:
+        if (next_token() == tok_lparen) {
+          /* A type specifier of the form "_Atomic ( type-name )". */
+          *type_ptr = scan_c11_atomic_type_specifier();
+          if (basic_type != bt_none) {
+            bad_combination_of_type_specifiers = TRUE;
+            pos_error(ec_bad_combination_of_type_specifiers, &error_position);
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double _Atomic j;". */
+          pos_warning(ec_type_qualifier_ignored, &error_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (qualifiers & TQ_C11_ATOMIC) {
+          pos_warning(ec_dupl_type_qualifier, &error_position);
+        } else {
+          /* A type qualifier. */
+          record_qualifiers_pos();
+          qualifiers |= TQ_C11_ATOMIC;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;

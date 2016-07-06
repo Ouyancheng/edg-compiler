@@ -2760,6 +2760,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
          suppressed. */
       uliterals_enabled = TRUE;
     }  /* if */
+    c11_atomic_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -4251,6 +4252,13 @@ This function is also called in clang mode.
   if (gnu_version >= 40900) {
     std_thread_local_storage_specifier_enabled = TRUE;
   }  /* if */
+  if (clang_mode && clang_version >= 30100) {
+    /* Clang enables _Atomic support in all C modes.  We currently disable
+       _Atomic class types in Clang modes, because Clang treats _Atomic
+       classes differently. */
+    c11_atomic_enabled = TRUE;
+    c11_atomic_classes_disabled = TRUE;
+  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -4525,6 +4533,13 @@ before this routine is called.
   }  /* if */
   if (clang_mode && clang_version >= 30000) {
     inline_namespaces_enabled = TRUE;
+    if (clang_version >= 30100) {
+      /* Clang enables _Atomic support in all C++ modes.  We currently
+         disable _Atomic class types in Clang modes, because Clang treats
+         _Atomic classes differently. */
+      c11_atomic_enabled = TRUE;
+      c11_atomic_classes_disabled = TRUE;
+    }  /* if */
   }  /* if */
   /* GCC 5.x and earlier accept "false" as a null pointer constant. */
   if (!clang_mode && gnu_version < 60000) {
@@ -10947,6 +10962,8 @@ variables declared in cmd_line.h.
   pch_mem_size = 0;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   pch_dir_name = NULL;
+  c11_atomic_enabled = FALSE;
+  c11_atomic_classes_disabled = FALSE;
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   gnu_restrict_keyword_enabled = FALSE;

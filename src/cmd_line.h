@@ -1062,6 +1062,15 @@ EXTERN a_const_char
 			   NULL if no directory has been specified. */
 
 EXTERN a_boolean
+		c11_atomic_enabled;
+			/* TRUE if support for C11 _Atomic types is enabled. */
+
+EXTERN a_boolean
+		c11_atomic_classes_disabled;
+			/* TRUE if support for C11 _Atomic types is enabled,
+			   but _Atomic classes are disallowed. */
+
+EXTERN a_boolean
 		restrict_enabled;
 			/* TRUE if support for the restricted pointers is
 			   provided.  This is TRUE if any form of the

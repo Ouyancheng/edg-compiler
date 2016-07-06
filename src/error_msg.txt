@@ -2856,6 +2856,11 @@ ec_too_many_template_arguments;;"too many template arguments for %n"
 ec_enumerator_already_declared;;"enumerator already declared (see %nd)"
 ec_microsoft_version_doesnt_support_cpp14_mode;;"the version of Microsoft being emulated must be at least 1903 to use \"--ms_c++14\""
 ec_microsoft_version_doesnt_support_cpplatest_mode;;"the version of Microsoft being emulated must be at least 1903 to use \"--ms_c++latest\""
+ec_c11_atomic_array_or_function_type;;"type %t cannot be _Atomic because it is an array or function type"
+ec_c11_atomic_specifier_with_qualified_type;;"the _Atomic(...) specifier cannot be applied to qualified type %t"
+ec_access_to_member_of_c11_atomic_object;;"access to member of _Atomic object"
+ec_c11_atomic_bit_field;;"a bit field cannot have an _Atomic type"
+ec_c11_atomic_class_types_disabled;;"_Atomic class types are disabled"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

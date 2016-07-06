@@ -455,6 +455,8 @@ on the underlying element type of an array.
   ((get_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
+#define is_c11_atomic_qualified_type(tp)                              \
+  ((get_type_qualifiers(tp) & TQ_C11_ATOMIC) != 0)
 
 
 #if NAMED_ADDRESS_SPACES_ALLOWED

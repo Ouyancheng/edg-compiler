@@ -1249,6 +1249,7 @@ Do the output in the way described by octl.
     /* Suppress "const" in the output of the C-generating back end. */
     if (octl->c_generating_back_end) qualifiers &= ~TQ_CONST;
 #endif /* BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C */
+    output_qualifier(TQ_C11_ATOMIC, "_Atomic");
     output_qualifier(TQ_CONST, "const"); /*lint !e774*/
     output_qualifier(TQ_VOLATILE, "volatile");
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE

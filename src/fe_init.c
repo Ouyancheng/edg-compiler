@@ -764,6 +764,9 @@ Install the keywords in the symbol table.
        modes). */
     enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
   }  /* if */
+  if (c11_atomic_enabled) {
+    enter_keyword((a_token_kind)tok_c11_atomic, "_Atomic");
+  }  /* if */
   if (C_mode()) {
     if (std_thread_local_storage_specifier_enabled) {
       enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");

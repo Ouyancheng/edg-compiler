@@ -4108,6 +4108,10 @@ static a_feature_support feature_support_list[] = {
     &attribute_deprecated_with_message,
     NULL,
     NULL },
+  { "c_atomic",
+    &c11_atomic_enabled,
+    NULL,
+    NULL },
   { "cxx_access_control_sfinae",
     &access_control_sfinae,
     NULL,
@@ -9273,10 +9277,12 @@ Enter symbols for the predefined macros in C99 and later revisions.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /*if */
-  /* Atomic types are currently not supported by the front end. */
-  (void)enter_predef_macro("1", "__STDC_NO_ATOMICS__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  if (!c11_atomic_enabled) {
+    /* Atomic types are not supported by the front end. */
+    (void)enter_predef_macro("1", "__STDC_NO_ATOMICS__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   if (uliterals_enabled) {
     /* Indicate that char16_t and char32_t literals are encoded in UTF-16
        and UTF-32, respectively. */

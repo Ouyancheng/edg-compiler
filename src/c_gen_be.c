@@ -1366,7 +1366,18 @@ Return TRUE if "name" is a C reserved word.
       if (strcmp(name, "while") == 0) res = TRUE;
       break;
     case '_':
-      if (sun_is_generated_code_target) {
+      if ((name[1] == 'A' && strcmp(name, "_Atomic") == 0) ||
+          (name[1] == 'A' && strcmp(name, "_Alignof") == 0) ||
+          (name[1] == 'A' && strcmp(name, "_Alignas") == 0) ||
+          (name[1] == 'B' && strcmp(name, "_Bool") == 0) ||
+          (name[1] == 'C' && strcmp(name, "_Complex") == 0) ||
+          (name[1] == 'G' && strcmp(name, "_Generic") == 0) ||
+          (name[1] == 'I' && strcmp(name, "_Imaginary") == 0) ||
+          (name[1] == 'N' && strcmp(name, "_Noreturn") == 0) ||
+          (name[1] == 'S' && strcmp(name, "_Static_assert") == 0) ||
+          (name[1] == 'T' && strcmp(name, "_Thread_local") == 0)) {
+        res = TRUE;
+      } else if (sun_is_generated_code_target) {
         if (strcmp(name, "__global"  ) == 0 ||
             strcmp(name, "__symbolic") == 0 ||
             strcmp(name, "__hidden"  ) == 0) {

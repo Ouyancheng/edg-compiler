@@ -5808,6 +5808,14 @@ accepts the case where the first operand is a C++/CLI handle.
     set_operand_id_details_from_locator(result, field_locator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
+    if (c11_atomic_enabled && class_struct_union_type != NULL &&
+        is_c11_atomic_qualified_type(class_struct_union_type)) {
+      /* C11 makes accessing a member of an atomic object undefined behavior.
+         We just issue a warning in such cases (this matches, e.g., GCC's
+         behavior). */
+      pos_warning(ec_access_to_member_of_c11_atomic_object,
+                  &operand_1->position);
+    }  /* if */
     /* Determine the value category of the result. */
     if (is_arrow_operator) {
       /* "->" always produces an lvalue result. */

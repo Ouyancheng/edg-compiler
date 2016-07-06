@@ -18171,6 +18171,9 @@ declarations.
                          &decl_state->start_pos);
         }  /* if */
       }  /* if */
+      if (c11_atomic_enabled && is_c11_atomic_qualified_type(field_type)) {
+        pos_error(ec_c11_atomic_bit_field, &decl_state->start_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {
