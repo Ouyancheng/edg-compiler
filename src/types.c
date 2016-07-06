@@ -6548,6 +6548,12 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
           compatible = FALSE;
           goto done;
         }  /* if */
+      } else if (c11_atomic_enabled) {
+        if ((list1->qualifiers & TQ_C11_ATOMIC) !=
+                                         (list2->qualifiers &TQ_C11_ATOMIC)) {
+          compatible = FALSE;
+          goto done;
+        }  /* if */
       }  /* if */
       /* Compare the parameter types, with the second parameter type
          type promoted appropriately if it is old-style. */
@@ -6562,9 +6568,15 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
       }  /* if */
       if (C_mode()) {
          /* In C mode, the type qualifiers (if any) on the parameter types
-            are ignored (ANSI C standard, 3.5.4.3).  Also when dealing with
+            are ignored (except C11's _Atomic).  Also when dealing with
             an old-style function, because it's like C mode, and -- especially
             -- because default_argument_promotion drops type qualifiers. */
+        if (c11_atomic_enabled &&
+            is_c11_atomic_qualified_type(param_1_type) !=
+                                 is_c11_atomic_qualified_type(param_2_type)) {
+          compatible = FALSE;
+          goto done;
+        }  /* if */
         param_1_type = skip_typerefs(param_1_type);
         param_2_type = skip_typerefs(param_2_type);
         if (!list2_prototyped && !(flags & TCF_NO_DEFAULT_ARG_PROMOTIONS)) {

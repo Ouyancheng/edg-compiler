@@ -1093,6 +1093,8 @@ Return a string containing the given qualifiers in human-readable form.
                              qualifiers, "volatile");
   db_add_qualifier_to_string((a_type_qualifier_set)TQ_RESTRICT,
                              qualifiers, "restrict");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_C11_ATOMIC,
+                             qualifiers, "_Atomic");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   db_add_qualifier_to_string((a_type_qualifier_set)TQ_UNALIGNED,
                              qualifiers, "unaligned");

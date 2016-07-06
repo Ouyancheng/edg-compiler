@@ -675,6 +675,15 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
           record_auto_param_descr(state->decl_parse_state);
         }  /* if */
         break;
+      case tok_c11_atomic:
+        get_token_and_coalesce_if_identifier(flags);
+        if (curr_token == tok_lparen) {
+          get_token_and_coalesce_if_identifier(flags);
+          cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
+          type_specifier_seen = TRUE;
+        } else {
+          next_token_fetched = TRUE;
+        }  /* if */
       /* Storage class specifiers. */
       case tok_static:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1621,10 +1630,11 @@ types separated by commas (when single_type_required is FALSE).
      to make sure we didn't guess incorrectly about this being a type.
      In normal mode, we assume this to be a cast when the type start is
      not followed by a "(". */
-  if (curr_token == tok_auto) {
+  if (curr_token == tok_auto || curr_token == tok_c11_atomic) {
     /* "auto" is a type specifier, but it cannot be part of a function-style
        cast; "auto(" is only valid as part of a declarative construct
-       involving a trailing return type (e.g., "auto(*)()->int"). */
+       involving a trailing return type (e.g., "auto(*)()->int").  Similarly,
+       "_Atomic(" is the start of a type specifier; not a cast. */
   } else if (curr_token == tok_typename ||
              ((next_tok == tok_lparen ||
                (is_cast(flags) && /* See note above */

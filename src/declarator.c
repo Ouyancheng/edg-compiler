@@ -3109,6 +3109,10 @@ an error if a default argument expression is encountered.
           param_qualifiers = get_top_level_type_qualifiers(
                                                    param_state.declared_type);
           param_state.type = make_unqualified_type(param_state.type);
+          if (param_qualifiers & TQ_C11_ATOMIC) {
+            param_state.type = make_qualified_type(param_state.type,
+                                                   TQ_C11_ATOMIC);
+          }  /* if */
         }  /* if */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
