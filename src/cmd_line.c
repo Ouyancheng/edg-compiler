@@ -4249,8 +4249,9 @@ This function is also called in clang mode.
     alignof_enabled = TRUE;
     alignas_enabled = TRUE;
   }  /* if */
-  if (gnu_version >= 40900) {
+  if (!clang_mode && gnu_version >= 40900) {
     std_thread_local_storage_specifier_enabled = TRUE;
+    c11_atomic_enabled = TRUE;
   }  /* if */
   if (clang_mode && clang_version >= 30100) {
     /* Clang enables _Atomic support in all C modes.  We currently disable
@@ -4258,6 +4259,7 @@ This function is also called in clang mode.
        classes differently. */
     c11_atomic_enabled = TRUE;
     c11_atomic_classes_disabled = TRUE;
+    std_thread_local_storage_specifier_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
 

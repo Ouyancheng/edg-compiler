@@ -15,6 +15,8 @@ differently (their sizes differ from those of the underlying class types, and
 some operations -- like member access -- are not allowed on them).  A global
 variable c11_atomic_classes_disabled controls that behavior.  However, all
 Clang modes accept _Atomic scalar types (not just Clang C11 mode).
+Furthermore, the _Atomic feature is supported in all GNU C modes with
+gnu_version >= 40900 (not just GNU C11 mode).
 
 
 7/5/16   [EDGcpfe/17317]
