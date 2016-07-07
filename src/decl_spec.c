@@ -7584,9 +7584,9 @@ static a_type_ptr make_c11_atomic_type(a_type_ptr         utp,
                                        a_boolean          prev_quals_allowed)
 /*
 Make and return a C11 _Atomic type based on the given underlying type.  Return
-an error type if utp is null, an error type, and array type, or a function
-type; issue an error for the latter two cases.  If prev_quals_allowed is
-FALSE and utp is a qualified type also issue an error and return an error type.
+an error type if utp is null, an error type, an array type, or a function type;
+issue an error for the latter two cases.  If prev_quals_allowed is FALSE and
+utp is a qualified type also issue an error and return an error type.
 */
 {
   a_type_ptr  result;

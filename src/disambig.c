@@ -1635,7 +1635,7 @@ types separated by commas (when single_type_required is FALSE).
     /* "auto" is a type specifier, but it cannot be part of a function-style
        cast; "auto(" is only valid as part of a declarative construct
        involving a trailing return type (e.g., "auto(*)()->int").  Similarly,
-       "_Atomic(" is the start of a type specifier; not a cast. */
+       "_Atomic(" is the start of a type specifier, not a cast. */
   } else if (curr_token == tok_typename ||
              ((next_tok == tok_lparen ||
                (is_cast(flags) && /* See note above */

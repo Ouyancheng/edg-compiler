@@ -43,6 +43,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_CODE_FOR_CONST 'K'
 #define MANGLING_CODE_FOR_VOLATILE 'V'
 #define MANGLING_CODE_FOR_RESTRICT 'r'
+#define MANGLING_STRING_FOR_ATOMIC "U7_Atomic"
 #define MANGLING_CODE_FOR_ELLIPSIS 'z'
 #define MANGLING_CODE_FOR_EXTERN_C 'Y'
 #define MANGLING_STRING_FOR_VOID "v"
@@ -189,6 +190,7 @@ differs (see the IA-64 ABI spec for details).
 #if ABI_COMPATIBILITY_VERSION >= 405
 #define MANGLING_CODE_FOR_RESTRICT "Dr"
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 */
+#define MANGLING_STRING_FOR_ATOMIC "DA"
 #define MANGLING_CODE_FOR_ELLIPSIS 'e'
 #define MANGLING_CODE_FOR_EXTERN_C 'K'
 #define MANGLING_STRING_FOR_VOID "v"
@@ -1907,7 +1909,7 @@ in the set "qualifiers".
 */
 {
 #if IA64_ABI
-  /* Note that the order matters: restrict, volatile, const must be in
+  /* Note that the order matters: restrict, volatile, const, Atomic must be in
      that order. */
   if (qualifiers & TQ_RESTRICT) {
     add_to_mangled_name(MANGLING_CODE_FOR_RESTRICT, mctl);
@@ -1931,6 +1933,9 @@ in the set "qualifiers".
   }  /* if */
 #endif /* ifdef MANGLING_CODE_FOR_RESTRICT */
 #endif /* IA64_ABI */
+  if (qualifiers & TQ_C11_ATOMIC) {
+    add_str_to_mangled_name(MANGLING_STRING_FOR_ATOMIC, mctl);
+  }  /* if */
 }  /* mangled_encoding_for_type_qualifiers */
 
 
