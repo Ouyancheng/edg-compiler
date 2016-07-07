@@ -7147,7 +7147,8 @@ dependent, A1<A2, A3> is returned.
                                            /*any_prototype_allowed=*/FALSE,
                                            /*specific_prototype_allowed=*/NULL,
                                            /*instantiate_nonreal=*/FALSE,
-                                           /*do_not_create=*/FALSE);
+                                           /*do_not_create=*/FALSE,
+                                           /*in_substitution=*/FALSE);
     check_assertion(new_sym != NULL &&
                     new_sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
     type = new_sym->variant.class_struct_union.type;
@@ -8650,7 +8651,8 @@ a_symbol_ptr find_template_class(
 			     a_boolean	         any_prototype_allowed,
 			     a_symbol_ptr        specific_prototype_allowed,
 			     a_boolean		 instantiate_nonreal,
-			     a_boolean		 do_not_create)
+			     a_boolean		 do_not_create,
+			     a_boolean		 in_substitution)
 /*
 Given a symbol for a class template or alias template and a template argument
 list (that is, a list of actual arguments), look for an existing class or
@@ -8704,6 +8706,12 @@ because the Microsoft compiler does actual name lookup in such classes.
 do_not_create is TRUE if the call is only being done to look for a matching
 type, and that a new type should not be created if one does not already
 exist.
+
+in_substitution is TRUE if this is called from template argument substitution.
+This suppresses the substitution of a template template argument for the
+template parameter.  This is done because the substitution is done based
+on the local argument list in the substitution routines and should not
+use the current global value of the template template parameter.
 */
 {
   a_symbol_ptr				sym;
@@ -8724,7 +8732,9 @@ exist.
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
   /* If this is a template template parameter, replace the template symbol
      with the one referred to by the parameter. */
-  template_sym = template_argument_if_template_template_param(template_sym);
+  if (!in_substitution) {
+    template_sym = template_argument_if_template_template_param(template_sym);
+  }  /* if */
   tssp = template_sym->variant.template_info;
   is_alias_template = tssp->variant.class_template.is_alias_template;
 #if DEBUG
@@ -8965,7 +8975,8 @@ tak_start_of_pack_expansion delimiter entries).
                              /*any_prototype_allowed=*/FALSE,
                              /*specific_prototype_allowed=*/NULL,
                              /*instantiate_nonreal=*/FALSE,
-                             /*do_not_create=*/FALSE);
+                             /*do_not_create=*/FALSE,
+                             /*in_substitution=*/FALSE);
 
 }  /* find_class_template_instance */
 
@@ -11773,7 +11784,8 @@ to an alias template, the substituted type is returned in *new_type
     new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                   (a_symbol_ptr)NULL,
                                   /*instantiate_nonreal=*/FALSE,
-                                  /*do_not_create=*/FALSE);
+                                  /*do_not_create=*/FALSE,
+                                  /*in_substitution=*/TRUE);
     if (internal_templates_enabled && new_sym != NULL &&
         !check_internal_template_instantiation(
                         template_sym, template_arg_list_for_symbol(new_sym),
@@ -34545,7 +34557,8 @@ corresponding symbol for a CLI array type and return it.
                                /*any_prototype_allowed=*/TRUE,
                                /*specific_prototype_allowed=*/NULL,
                                /*instantiate_nonreal=*/FALSE,
-                               /*do_not_create=*/FALSE);
+                               /*do_not_create=*/FALSE,
+                               /*in_substitution=*/FALSE);
   return result;
 }  /* make_cli_array_type */
 

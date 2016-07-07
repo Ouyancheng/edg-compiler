@@ -10755,7 +10755,8 @@ and reuse an existing entry if possible.
                               /*any_prototype_allowed=*/TRUE,
                               /*specific_prototype_allowed=*/NULL,
                               /*instantiate_nonreal=*/FALSE,
-                              /*do_not_create=*/FALSE);
+                              /*do_not_create=*/FALSE,
+                              /*in_substitution=*/FALSE);
     ptr = type_symbol_type(sym);
     complete_type_is_needed(ptr);
     /* Remember the existence of this C++/CX box type by putting a pointer to

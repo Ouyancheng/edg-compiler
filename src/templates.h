@@ -463,7 +463,8 @@ extern a_symbol_ptr find_template_class(
 			     a_boolean	         any_prototype_allowed,
 			     a_symbol_ptr        specific_prototype_allowed,
 			     a_boolean		 instantiate_nonreal,
-			     a_boolean		 do_not_create);
+			     a_boolean		 do_not_create,
+			     a_boolean		 in_subtitution);
 
 #if COROUTINES_ALLOWED
 extern a_symbol_ptr find_class_template_instance(

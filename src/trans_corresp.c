@@ -7062,7 +7062,8 @@ corresponding instance, or NULL if no corresponding instance is found.
                                        /*any_prototype_allowed=*/FALSE,
                                        (a_symbol_ptr)NULL,
                                        /*instantiate_nonreal=*/FALSE,
-                                       /*do_not_create=*/FALSE);
+                                       /*do_not_create=*/FALSE,
+                                       /*in_substitution=*/FALSE);
     }  /* if */
   }  /* if */
   return result_sym;

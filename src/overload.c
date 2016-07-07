@@ -25278,7 +25278,8 @@ TRUE and FALSE is returned.
                                     /*specific_prototype_allowed=*/
                                                               (a_symbol *)NULL,
                                     /*instantiate_nonreal=*/FALSE,
-                                    /*do_not_create=*/FALSE);
+                                    /*do_not_create=*/FALSE,
+                                    /*in_substitution=*/FALSE);
           templ_arg->variant.type = type_symbol_type(sym);
           complete_class_type_is_needed(templ_arg->variant.type);
         }  /* if */

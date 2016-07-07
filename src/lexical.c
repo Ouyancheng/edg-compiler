@@ -17021,7 +17021,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym,
                                   instantiate_nonreal,
-                                  (options & GID_IN_IF_EXISTS) != 0);
+                                  (options & GID_IN_IF_EXISTS) != 0,
+                                  /*in_substitution=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (new_sym == NULL) {
       /* A NULL symbol should only be returned in a Microsoft __if_exists
@@ -20562,7 +20563,8 @@ scanned is, in fact, an identifier).
                                      /*prototype_allowed=*/FALSE,
                                      (a_symbol_ptr)NULL,
                                      /*instantiate_nonreal=*/FALSE,
-                                     /*do_not_create=*/FALSE);
+                                     /*do_not_create=*/FALSE,
+                                     /*in_substitution=*/FALSE);
         locator_for_curr_id.is_unknown_template_reference = FALSE;
         locator_for_curr_id.specific_symbol = symbol;
         locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
