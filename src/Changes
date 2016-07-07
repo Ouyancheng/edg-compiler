@@ -1,5 +1,12 @@
 Version 4.12
 
+7/7/16   [EDGcpfe/17101]
+Partial specialization matching issue with template template parameters
+
+In some unusual circumstances, partial specialization matching of
+templates with template template parameters could result in a spurious
+"more than one partial specialization matches..." error.  Now fixed.
+
 
 7/6/16   [EDGcpfe/14807,EDGcpfe/16063,EDGcpfe/16627, EDGcpfe/16735,
           EDGcpfe/17005,EDGcpfe/17359]
