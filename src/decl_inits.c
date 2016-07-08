@@ -6541,21 +6541,41 @@ is describes the initialization state for a mem-initializer of the given
 constructor.  If ctor is a C++11 constexpr constructor and the initializer is
 not a constant, either issue an error if the constructor is not a template
 instance, or silently set the is_constexpr flag of the constructor to FALSE
-(except for the prototype instantiation).  (For C++14 constructors, these
-constraints are not imposed.)
+(except for the prototype instantiation).  If ctor is a C++14 constexpr
+constructor only issue an error if it represents a call to a non-constexpr
+constructor.
 */
 {
-  if (ctor->is_constexpr && !relaxed_constexpr_enabled &&
-      is->constant_expr_ruled_out) {
-    /* A constexpr constructor requires constant initialization.  In the
-       template case, the "constexpr" property is silently dropped.  In other
-       cases, an error is issued. */
-    if (is_unspecialized_template_member_function(ctor)) {
-      if (!ctor->is_prototype_instantiation) {
-        ctor->is_constexpr = FALSE;
+  if (ctor->is_constexpr) {
+    a_boolean  invalid_init;
+    if (relaxed_constexpr_enabled) {
+      /* Check whether the initialization calls a non-constexpr
+         constructor. */
+      if (is->init_dip != NULL &&
+          is->init_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+          is->init_dip->variant.constructor.ptr != NULL &&
+          !is->init_dip->variant.constructor.ptr->is_constexpr) {
+        invalid_init = TRUE;
+      } else {
+        invalid_init = FALSE;
       }  /* if */
     } else {
-      pos_error(ec_nonconstant_mem_init_for_constexpr_ctor, diag_pos);
+      invalid_init = is->constant_expr_ruled_out;
+    }  /* if */
+    if (invalid_init) {
+      /* A constexpr constructor requires constant initialization.  In the
+         template case, the "constexpr" property is silently dropped.  In other
+         cases, an error is issued. */
+      if (is_unspecialized_template_member_function(ctor)) {
+        if (!ctor->is_prototype_instantiation) {
+          ctor->is_constexpr = FALSE;
+        }  /* if */
+      } else {
+        pos_error(relaxed_constexpr_enabled ?
+                     ec_nonconstexpr_mem_init_ctor_for_constexpr_ctor :
+                     ec_nonconstant_mem_init_for_constexpr_ctor,
+                  diag_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_constexpr_ctor_init */
