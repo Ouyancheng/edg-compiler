@@ -5404,7 +5404,7 @@ is TRUE, and search_path is empty.
   *suppress_include = FALSE;
   *unicode_source_kind = usk_none;
   /* Determine whether we need to do the suffix replacement processing.
-     This is done when is_implicit_include is TRUE or when when file name
+     This is done when is_implicit_include is TRUE or when the file name
      supplied has no suffix. */
   suffix = suffix_of(file_name);
   replace_suffix = is_implicit_include || *suffix == '\0';
@@ -13143,7 +13143,7 @@ return_end_of_source_token:
         /* If skip_white_space decided this is not a comment, check
            the normal token possibilities.  (It could also be that we've
            skipped over a comment and we've come upon another "/", but
-           the code here works that that case too.) */
+           the code here works that case too.) */
         if (*curr_char_loc != '/') goto start_of_token_scan;
         record_start_of_curr_token();
         if (fetch_pp_tokens && curr_char_loc[1] == '/') {

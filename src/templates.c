@@ -24071,7 +24071,7 @@ is a class template declaration of the form
 (In GNU and Microsoft dialects, additional tokens may be involved.)
 Return TRUE if the declaration is a class template declaration.
 Otherwise, return FALSE.  This is done by rescanning the tokens from
-the declaration declaration token cache pointed in decl_state.
+the declaration token cache pointed in decl_state.
 This routine also checks for a C++/CLI generic delegate declaration,
 in which case the is_delegate flag of decl_state is updated, and for
 enum template declarations, in which case the is_enum flag of decl_state
@@ -29516,7 +29516,7 @@ static void check_if_present_in_request_file(
 /*
 See if the specified instantiation is one that is included in the
 instantiation request file.  Return TRUE in instantiated if it is present
-Return TRUE in not_defined_elsewhere if the entity is known to to
+Return TRUE in not_defined_elsewhere if the entity is known to
 be defined in some other part of the program (e.g. it is not in an
 object or library with which this file is being linked).
 */

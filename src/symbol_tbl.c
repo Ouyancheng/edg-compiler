@@ -8139,7 +8139,7 @@ really a template in the language.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_cli_cx_psuedo_template */
+}  /* is_cli_cx_pseudo_template */
 
 
 a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind)
@@ -12216,7 +12216,7 @@ there was an error, and do not issue any diagnostics (including warnings).
 
 void perform_deferred_access_checks_at_depth(a_scope_depth	depth)
 /*
-Go through the list of deferred access checks for the scope scope depth
+Go through the list of deferred access checks for the scope depth
 specified by depth and repeat the test.  If the symbol is still not
 accessible, the entry may either stay on the list (if the
 defer_access_checks flag is still set) or an error may be issued.  The

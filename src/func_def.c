@@ -1885,7 +1885,7 @@ member declaration (allowed in some Microsoft modes only).
       pos_error(ec_definition_of_implicitly_declared_function,
                 &locator->source_position);
       /* Unless a definition has already been generated, reset some flags
-         so that that this routine will be treated as user-declared from
+         so that this routine will be treated as user-declared from
          now on. */
       if (!sym->defined) {
         sym->variant.routine.ptr->compiler_generated = FALSE;

@@ -6263,7 +6263,7 @@ cleanup required.  The list is not freed.
 static void change_to_error_operand(an_operand *operand)
 /*
 Take an existing operand and convert it to an error operand.  Retain
-some information, like source position.  This routine can can used
+some information, like source position.  This routine can be used
 to "neuter" an operand, in particular to detach it from its subtree without
 freeing the subtree; there is no implication that there was an error.
 See conv_to_error_operand for the usual case.

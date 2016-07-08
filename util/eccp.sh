@@ -2316,7 +2316,7 @@ do
       # The main reason this is done is that the instantiation directory
       # must come before any of the instantiation file name entries.
       if [ -f $ti_file_name ] ; then
-        ti_tmp=$eccp_tmpdir/temorary_ti.txt
+        ti_tmp=$eccp_tmpdir/temporary_ti.txt
         echo "cmd:$instantiation_command_line $instantiation_command_suffix" >$ti_tmp
         echo "dir:$curr_dir" >>$ti_tmp
         echo "fnm:$cfile" >>$ti_tmp

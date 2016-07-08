@@ -1680,7 +1680,7 @@ set to TRUE if the exponent is too large to represent.
   while (*str == '0') str++;
   /*  Check for a decimal point. */
   if (*str == '.') {
-    /* Discard the decimal point any any leading zeros after it.
+    /* Discard the decimal point and any leading zeros after it.
        Adjust the implied exponent for zeros discarded after the decimal
        point. */
     after_decimal = TRUE;

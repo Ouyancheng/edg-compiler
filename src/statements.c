@@ -923,7 +923,7 @@ that is being generated.
           /* Now that the case label has been seen (it's really just serving
              as a marker to tell us to stop searching for initializations),
              it can be removed from the list.  Therefore the last_case_label
-             pointer in the current block should be set to to NULL, as should
+             pointer in the current block should be set to NULL, as should
              the pointers to this case label in the parent chain. */
           block->variant.block.last_case_label = NULL;
           if (!block->variant.block.is_switch_block) {

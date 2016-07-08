@@ -1429,7 +1429,7 @@ list and free that list.
       a_routine_ptr  drp = oecp->overriding_sym->variant.routine.ptr;
       if (type_has_less_restrictive_exception_spec(drp->type, brp->type)) {
         /* The exception specification for the overriding virtual function is
-           less restrictive that that of the overridden function. */
+           less restrictive than that of the overridden function. */
         report_override_exception_spec_mismatch(oecp->overriding_sym,
                                                 oecp->overridden_sym,
                                                 &oecp->diag_pos);
@@ -28657,7 +28657,7 @@ wrap_up_class_definition.
     }  /* if */
   }  /* if */
   /* Save a pointer to the list of member symbols in the tag symbol.  Note
-     that there may be symbols even if there there were no declarations,
+     that there may be symbols even if there were no declarations,
      since symbols may be inherited. */
   cssp->symbols =
           assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;

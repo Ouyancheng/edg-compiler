@@ -2629,7 +2629,7 @@ Definition of shift operations:
 #endif /* !defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC) */
 
 /*
-Flag that indicates indicates whether in a shift with a too-large shift
+Flag that indicates whether in a shift with a too-large shift
 count the count is reduced modulo the bit size of the object being shifted.
 FALSE means the shift is done as if we really shift as many bits as
 indicated.  Used to initialize targ_too_large_shift_count_is_taken_modulo_size.

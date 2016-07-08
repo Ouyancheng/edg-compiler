@@ -203,7 +203,7 @@ typedef enum a_diagnostic_kind {
 				   be indented relative to its associated
 				   primary message.  Source file information
 				   is not displayed. */
-  dck_context,			/* A diagnostic message that that specifies
+  dck_context,			/* A diagnostic message that specifies
 				   error context information. */
   dck_macro_context		/* Similar to dck_context, but for macro
 				   context stack trace information. */

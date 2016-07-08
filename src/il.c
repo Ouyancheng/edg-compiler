@@ -12332,7 +12332,7 @@ function type is replaced).
 
   /* Go down the chain of type entries looking for typedefs and/or decltype
      entries.  (The typedef-like entry is not modifiable since it is likely
-     used in other contexts, and the chain of pointer and qualifier qualifier
+     used in other contexts, and the chain of pointer and qualifier
      entries that precede it may be shared through the base_types lists.  In
      such cases, the chain must therefore be copied before the underlying
      function type is modified.)  */

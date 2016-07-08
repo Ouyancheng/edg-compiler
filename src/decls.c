@@ -1101,7 +1101,7 @@ of declarations that are permitted.
          are no active symbols with this name in scope.  However, if the
          scope stack has a class reactivation entry on it or a class that
          itself has base classes, a deactivated symbol (one from the inactive
-         list) may be visible.  Note that that this is an issue only if we
+         list) may be visible.  Note that this is an issue only if we
          are in a context that accepts an expression and there are inactive
          symbols associated with this name. */
       if (expr_context &&
@@ -3282,7 +3282,7 @@ when the declaration is a friend declaration within a class.
       }  /* if */
     }  /* if */
     if (decls_at_same_scope || idlbp->is_friend_decl) {
-      /* The symbol was located in the current scope. If there there was an
+      /* The symbol was located in the current scope. If there was an
          exact type match of C++ functions, and in general otherwise, this
          is a redeclaration, and if other_decl has linkage we can return in
          *linked_symbol a pointer to the function or variable it represents. */
@@ -5817,7 +5817,7 @@ function.
     }  /* if */
     if (nsp != NULL) {
       if (idlbp->is_friend_decl) {
-        /* Push a namespace-reactivation scope scope for friend declarations
+        /* Push a namespace-reactivation scope for friend declarations
            (the scope is "read-only" -- no injections allowed), and a
            namespace-extension scope otherwise. */
         push_namespace_reactivation_scope(nsp);
@@ -10632,7 +10632,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
       /* If this is a member of an instantiation of a class
-         template, set the supress_instantiation field of the variable. */
+         template, set the suppress_instantiation field of the variable. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         check_old_specialization_allowed(sym, &locator->source_position);
         var->is_specialized = TRUE;
@@ -11252,7 +11252,7 @@ symbol entry, and return a pointer to it in state->sym.
                                        scope_stack[decl_scope_level].number) {
             /* A discriminator was assigned to the unnamed type, but now it
                turns out not to be unnamed for mangling purposes after all.
-               (The type_to_check == type_ptr check ensures that that this
+               (The type_to_check == type_ptr check ensures that this
                is not the GNU case where a typeof(...) construct renames an
                anonymous type.  The second test excludes unnamed types that
                come in as template arguments.) */
@@ -12809,7 +12809,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
       /* Just one declaration is governed by this linkage specifier.  If no
          storage class is specified it is as though "extern" were specified --
          this is an interpretation of the sentence in ARM 7.4 asserting, "An
-         object defined withing an `extern "C" {...}' construct is still
+         object defined within an `extern "C" {...}' construct is still
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
       a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;

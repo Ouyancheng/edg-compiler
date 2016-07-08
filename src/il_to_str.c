@@ -2436,7 +2436,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                         "form_type_first_part: qualifier on function type");
     if ((rtsp->trailing_return_type || is_lambda) &&
         !octl->c_generating_back_end) {
-      /* For a routine type specified with a trailing return return type, the 
+      /* For a routine type specified with a trailing return type, the 
          type specifiers are simply "auto", except for lambda expressions
          where the specifiers are omitted altogether.  (The C-generating back
          end does not attempt to render routine types with trailing return

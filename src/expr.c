@@ -19986,7 +19986,7 @@ Note that this routine does not do all validity checking.  It only checks
 for certain restrictions that apply in certain kinds of expressions,
 but apply for all kinds of casts.  If the operand is supposed to undergo
 array --> pointer (etc.) transformations, they should have been done before
-this routine is called.  *ruled_out_expr_kinds is set to to the kinds of
+this routine is called.  *ruled_out_expr_kinds is set to the kinds of
 expressions that are ruled out by this cast (e.g., integral constant
 expressions allow only certain limited casts).  For C++11, if the
 cast is not allowed in a constant expression a routine is called to

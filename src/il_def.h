@@ -4881,7 +4881,7 @@ enum an_asm_operand_constraint_kind_tag {
                               register preferences */
   aoc_mod_disparage_slightly,
                         /* ?: disparage alternative slightly */
-  aoc_mod_disparage_severly,
+  aoc_mod_disparage_severely,
                         /* !: disparage alternative severely */
   /* misc */
   aoc_any,              /* X: unconstrained */
@@ -4953,7 +4953,7 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_mod_ignore */          '#',
   /* aoc_mod_ignore_char */     '*',
   /* aoc_mod_disparage_slightly */ '?',
-  /* aoc_mod_disparage_severly */ '!',
+  /* aoc_mod_disparage_severely */ '!',
   /* aoc_any */                 'X',
   /* aoc_general */             'g',
   /* aoc_match_0 */             '0',
@@ -15969,7 +15969,7 @@ typedef struct an_expr_node {
 			/* TRUE for a call on which argument-dependent
 			   lookup was a possibility but was suppressed because
 			   the function name was not followed by a left
-			   parenthesis.  Note that that there are other things
+			   parenthesis.  Note that there are other things
 			   that will suppress argument-dependent lookup (e.g.,
 			   using a qualified name) but those are not reflected
 			   in this flag. */
@@ -16399,7 +16399,7 @@ typedef struct an_expr_node {
 			   __builtin_choose_expr construct. */
       a_bit_field
 		choose_first:1;
-			/* TRUE if the first operand has a “true” value,
+			/* TRUE if the first operand has a "true" value,
 			   indicating that the overall construct should
 			   evaluate the second operand; otherwise, the third
 			   operand should be evaluated. */
@@ -19362,7 +19362,7 @@ typedef struct an_il_header {
 			   instantiations, nonreal types, etc. */
   a_byte_boolean
 		il_has_all_prototype_instantiations;
-			/* TRUE if if both class and nonclass prototype
+			/* TRUE if both class and nonclass prototype
 			   instantiations were recorded in the IL.  In that
 			   case, templates can be regenerated from the IL.
 			   However, if only class templates prototype

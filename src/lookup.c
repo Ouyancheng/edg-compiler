@@ -6176,7 +6176,7 @@ Add the namespace in which "type" is defined to the namespace_list.
   a_namespace_ptr		nsp;
   a_source_correspondence	*scp;
 
-  /* Add any parent types to to the types list. */
+  /* Add any parent types to the types list. */
   scp = &templ->source_corresp;
   while (scp->is_class_member) {
     a_type_ptr	parent_type;
@@ -6288,7 +6288,7 @@ static void find_friend_functions_for_class(
 /*
 Go through the friend functions list of class_type looking for a symbol
 that matches the name specified by "locator".  If a match is found, add
-the entry to to symbol_list.
+the entry to symbol_list.
 */
 {
   a_symbol_ptr			sym;
@@ -6321,7 +6321,7 @@ static void find_functions_for_namespace(
 Look for a function in the namespace specified by "nsp" whose name is specified
 by "locator".  Note that "nsp" will be NULL for the global scope.  "tup"
 is the translation unit of the file scope to be used when "nsp" is NULL.
-If a match is found, add the entry to to symbol_list.
+If a match is found, add the entry to symbol_list.
 */
 {
   a_symbol_ptr			sym;

@@ -4351,7 +4351,7 @@ for information about the parameters.
     parent = scope->parent;
   }  /* if */
   if (scope_is(parent, sck_file) && !scope_is(parent, sck_namespace)) {
-    /* Nothing to to do. */
+    /* Nothing to do. */
   } else if (scope_is(parent, sck_class_struct_union)) {
     /* For a class scope, get the class type to be reactivated. */
     reactivate_parent_context(parent_tdip, parent, parent->variant.assoc_type,
@@ -9864,7 +9864,7 @@ is called only in C++.
     }  /* if */
   }  /* if */
   /* Restore the innermost scope that affects access.  The current value
-     could be incorrect if if the reactivation involved pushing instantiation
+     could be incorrect if the reactivation involved pushing instantiation
      scopes. */
   depth_of_innermost_scope_that_affects_access_control =
                                     saved_innermost_scope_that_affects_access;
@@ -11149,7 +11149,7 @@ void suppress_expansion_with_no_packs_diagnostic(
 			a_pack_expansion_stack_entry_ptr	pesep)
 /*
 Record that the caller has already issued a diagnostic to the effect the pack
-expansion specified by pesep did not reference any packs (so that that
+expansion specified by pesep did not reference any packs (so that
 another diagnostic will not be issued).
 */
 {

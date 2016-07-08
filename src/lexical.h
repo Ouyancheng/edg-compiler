@@ -2035,7 +2035,7 @@ typedef struct a_reusable_cache_entry {
 			   the cache associated with this entry is being
 			   discarded, but a copy of that entry must be made
 			   to be able to discard it later because token_cache
-			   could point to an an entry that no longer exists
+			   could point to an entry that no longer exists
 			   at the point at which the cache is actually
 			   discarded. */
   uint32_t

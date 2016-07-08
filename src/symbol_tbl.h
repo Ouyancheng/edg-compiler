@@ -1577,7 +1577,7 @@ typedef struct a_param_id {
 			   parameter name.  It is NULL when a name is omitted
 			   in a function prototype.  The symbol pointed to,
 			   when present, is transformed into an sk_variable
-			   symbol as part part of function definition
+			   symbol as part of function definition
 			   processing. */
   a_type_ptr	type;
 			/* For a new- or old-style function parameter, this
@@ -5089,7 +5089,7 @@ EXTERN a_symbol_ptr
 EXTERN a_boolean
 		file_scope_symbols_are_on_inactive_list;
 			/* TRUE once the file scope has been popped for the
-			   first time, any any file scope symbols have been
+			   first time, and any file scope symbols have been
 			   moved to the inactive list. */
 
 void declare_builtin_va_list_type(a_boolean	is_cstdarg);

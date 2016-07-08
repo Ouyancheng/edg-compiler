@@ -505,7 +505,7 @@ done_with_modifiers:
         ck = (an_asm_operand_constraint_kind)aoc_mod_disparage_slightly;
         break;
       case '!':
-        ck = (an_asm_operand_constraint_kind)aoc_mod_disparage_severly;
+        ck = (an_asm_operand_constraint_kind)aoc_mod_disparage_severely;
         break;
       /* Machine independent constraints - miscellaneous. */
       case 'X':

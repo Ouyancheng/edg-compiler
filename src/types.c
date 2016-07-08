@@ -11628,7 +11628,7 @@ unique to each type (e.g., by calling disentangle_default_args).
       tp = composite_parameter_type(ptp1->type, ptp2->type);
       /* Compare the two parameter types against their composite type.  Stop
          if it is no longer true that one or the other of the original routine
-         types can can serve as the composite type. */
+         types can serve as the composite type. */
       if (!same_entities(tp, ptp1->type)) {
         return_type1_as_comp_type = FALSE;
         if (!return_type2_as_comp_type) goto make_new_comp_type;
