@@ -194,8 +194,22 @@ region, even though it designates a local variable).
            variable.  Replace the eok_dot_static or eok_points_to_static
            node with the second operand, which can stand alone as a direct
            reference to the static member. */
-        *pp = node->variant.operation.operands->next;
-        (*pp)->next = node->next;
+        an_expr_node_ptr op2 = node->variant.operation.operands->next;
+        *pp = op2;
+        op2->next = node->next;
+        /* Eliminate the name reference, if any, since the implicit
+           qualification from the member access expression is now no longer
+           present, and p.x will need to become T::x instead of just x. */
+        if (is_operation_node(op2) && node_operator_is(op2, eok_lvalue)) {
+          op2 = op2->variant.operation.operands;
+        }  /* if */
+        if (is_constant_node(op2)) {
+          op2->variant.constant.name_reference = NULL;
+        } else if (is_variable_node(op2)) {
+          op2->variant.variable.name_reference = NULL;
+        } else if (is_routine_node(op2)) {
+          op2->variant.routine.name_reference = NULL;
+        }  /* if */
       } else {
         /* Recursively check if any of the operands of this node is an
            eok_dot_static or eok_points_to_static node that requires
