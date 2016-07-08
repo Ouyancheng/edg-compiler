@@ -4836,7 +4836,7 @@ If actual_dip != NULL, *actual_dip is set to point to the actual
 dynamic init that underlies the cast, or NULL if there isn't one.
 */
 {
-  an_expr_node_ptr              op1 = NULL;
+  an_expr_node_ptr              expr = rcblock->expr, op1 = NULL;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
@@ -4848,7 +4848,6 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     eriep = dip->rescan_info;
   } else {
     /* The cast is specified by an expression. */
-    an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
                     (is_cast_operation_node(expr) ||
                      expr->kind == (an_expr_node_kind)enk_temp_init));
@@ -4883,10 +4882,19 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     }  /* if */
     if (rcblock->operator_token == tok_typename) {
       /* Functional-notation cast (or old-style cast, including non-aggregate
-         compound literals).  Return the argument list via
-         rcblock->argument_list.  There may be more than one argument,
-         or zero. */
-      rcblock->argument_list = op1;
+         compound literals). */
+      if (expr != NULL && expr->is_brace_notation_cast) {
+        /* The original cast was of the form T{...} but no braced-init-list
+           was saved.  Reconstruct one. */
+        an_arg_list_elem  *braced_list;
+        braced_list = alloc_init_component((an_init_component_kind)ick_braced);
+        braced_list->variant.braced.list = rescan_expr_list(op1, rcblock);
+        *braced_init_list = braced_list;
+      } else {
+        /* Return the argument list via rcblock->argument_list.  There may be
+           more than one argument, or zero. */
+        rcblock->argument_list = op1;
+      }  /* if */
     } else {
       /* Not a functional-notation cast, e.g., something like static_cast.
          Return the single argument expression via *operand and

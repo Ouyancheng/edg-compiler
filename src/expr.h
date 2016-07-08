@@ -375,6 +375,9 @@ extern void scan_dependent_parenthesized_initializer(
                           an_operand_ptr           single_operand,
                           a_dynamic_init_ptr       *dip);
 
+extern an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       src_list,
+                                             a_rescan_control_block *rcblock);
+
 extern a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type);
 
 extern a_boolean new_or_delete_type_requires_array_handling(

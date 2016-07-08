@@ -84,8 +84,6 @@ static an_arg_list_elem_ptr scan_expr_list(
                                       a_boolean    is_custom_ms_attr_arg_list,
                                       a_boolean    empty_list_okay,
                                       a_boolean    trailing_comma_okay);
-static an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       expr_list,
-                                             a_rescan_control_block *rcblock);
 static void bound_function_in_cast(a_type_ptr        type_cast_to,
                                    a_source_position *start_position,
                                    an_operand        *operand,
@@ -2104,8 +2102,8 @@ done.
 }  /* rescan_pack_expansion */
 
 
-static an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       src_list,
-                                             a_rescan_control_block *rcblock)
+an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       src_list,
+                                      a_rescan_control_block *rcblock)
 /*
 Redo semantic analysis on a previously-scanned expression list, substituting
 for template parameters as described in rcblock, and return a list of
@@ -23389,16 +23387,16 @@ static void scan_functional_notation_type_conversion(
                                     an_operand               *result,
                                     a_local_expr_options_set local_options)
 /*
-Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
-The type keyword or identifier has been scanned over (the current token is
-the parenthesis following that), and the associated type is passed in as
-type_cast_to.  The starting position of the type is given by *start_position.
-The result is returned in *result.  If rcblock is non-NULL, redo
-semantic analysis on a previously-scanned cast expression (either
-functional-notation or old-style -- they have different syntax but the
-same semantics, at least for the cases they have in common -- or a
-compound literal), and return the result in *result (or an error
-indication in *rcblock).  In that rescan case, type_cast_to and
+Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)"
+or a C++11-style cast of the form "T{...}".  The type keyword or identifier
+has been scanned over (the current token is the parenthesis or brace following
+that), and the associated type is passed in as type_cast_to.  The starting
+position of the type is given by *start_position.  The result is returned in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned cast expression (either functional-notation or old-style --
+they have different syntax but the same semantics, at least for the cases they
+have in common -- or a compound literal), and return the result in *result (or
+an error indication in *rcblock).  In that rescan case, type_cast_to and
 start_position are ignored, and set from the information in rcblock.
 If rescan_dip is non-NULL, use that as the cast in place of
 rcblock->expr.  If arg_list_supplied is TRUE, a third interface
