@@ -142,85 +142,6 @@ constant is an address that is not known until link time.)
 }  /* constant_bool_value_known_at_compile_time */
 
 
-static a_boolean uses_local_variable(an_expr_node_ptr node)
-/*
-Return TRUE if node or any of its subexpressions is an enk_variable node
-that refers to a variable declared in a local scope.  (Note that we must
-use the parent scope for this check, not whether the node is in the file
-scope, since all the nodes here will be in the file scope memory region.)
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_operation_node(node)) {
-    /* Recursively scan through all of this node's operands looking for a
-       local variable reference. */
-    an_expr_node_ptr opnd;
-    for (opnd = node->variant.operation.operands; !result && opnd != NULL;
-         opnd = opnd->next) {
-      result = uses_local_variable(opnd);
-    }  /* for */
-  } else if (is_variable_node(node)) {
-    a_variable_ptr var = node_variable(node);
-    if (var->source_corresp.parent_scope != NULL &&
-        is_local_scope_kind(var->source_corresp.parent_scope->kind)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* uses_local_variable */
-
-
-static void repair_local_dot_static_ref(an_expr_node_ptr *nodep)
-/*
-If *nodep or one of its siblings is an eok_dot_static or
-eok_points_to_static node whose first (ignored) operand contains a
-reference to a local variable, replace the node with its second
-operand. This is used to avoid references from file-scope constants to
-local variables (the usual processing for such things does not detect this
-case because the enk_variable node is allocated in the file scope memory
-region, even though it designates a local variable).
-*/
-{
-  an_expr_node_ptr *pp;
-
-  for (pp = nodep; *pp != NULL; pp = &((*pp)->next)) {
-    an_expr_node_ptr node = *pp;
-    if (is_operation_node(node)) {
-      if ((node_operator_is(node, eok_dot_static) ||
-           node_operator_is(node, eok_points_to_static)) &&
-          uses_local_variable(node->variant.operation.operands)) {
-        /* The ignored first operand contains a reference to a local
-           variable.  Replace the eok_dot_static or eok_points_to_static
-           node with the second operand, which can stand alone as a direct
-           reference to the static member. */
-        an_expr_node_ptr op2 = node->variant.operation.operands->next;
-        *pp = op2;
-        op2->next = node->next;
-        /* Eliminate the name reference, if any, since the implicit
-           qualification from the member access expression is now no longer
-           present, and p.x will need to become T::x instead of just x. */
-        if (is_operation_node(op2) && node_operator_is(op2, eok_lvalue)) {
-          op2 = op2->variant.operation.operands;
-        }  /* if */
-        if (is_constant_node(op2)) {
-          op2->variant.constant.name_reference = NULL;
-        } else if (is_variable_node(op2)) {
-          op2->variant.variable.name_reference = NULL;
-        } else if (is_routine_node(op2)) {
-          op2->variant.routine.name_reference = NULL;
-        }  /* if */
-      } else {
-        /* Recursively check if any of the operands of this node is an
-           eok_dot_static or eok_points_to_static node that requires
-           repair. */
-        repair_local_dot_static_ref(&node->variant.operation.operands);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* repair_local_dot_static_ref */
-
-
 void make_template_param_expr_constant(an_expr_node_ptr node,
                                        a_constant       *con)
 /*
@@ -231,7 +152,6 @@ expression.
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
   set_template_param_constant_kind(con,
                               (a_template_param_constant_kind)tpck_expression);
-  repair_local_dot_static_ref(&node);
   con->variant.template_param.variant.expr = node;
   con->type = node->type;
 }  /* make_template_param_expr_constant */
