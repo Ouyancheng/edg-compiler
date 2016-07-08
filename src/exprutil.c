@@ -4889,6 +4889,7 @@ dynamic init that underlies the cast, or NULL if there isn't one.
         an_arg_list_elem  *braced_list;
         braced_list = alloc_init_component((an_init_component_kind)ick_braced);
         braced_list->variant.braced.list = rescan_expr_list(op1, rcblock);
+        check_assertion(braced_init_list != NULL);
         *braced_init_list = braced_list;
       } else {
         /* Return the argument list via rcblock->argument_list.  There may be
