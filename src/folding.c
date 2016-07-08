@@ -152,11 +152,7 @@ scope, since all the nodes here will be in the file scope memory region.)
 {
   a_boolean result = FALSE;
 
-  if (is_variable_node(node) &&
-      is_local_scope_kind(node_variable(node)->source_corresp.parent_scope->
-                                                                       kind)) {
-    result = TRUE;
-  } else if (is_operation_node(node)) {
+  if (is_operation_node(node)) {
     /* Recursively scan through all of this node's operands looking for a
        local variable reference. */
     an_expr_node_ptr opnd;
@@ -164,6 +160,12 @@ scope, since all the nodes here will be in the file scope memory region.)
          opnd = opnd->next) {
       result = uses_local_variable(opnd);
     }  /* for */
+  } else if (is_variable_node(node)) {
+    a_variable_ptr var = node_variable(node);
+    if (var->source_corresp.parent_scope != NULL &&
+        is_local_scope_kind(var->source_corresp.parent_scope->kind)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* uses_local_variable */
