@@ -222,13 +222,26 @@ triggers an error, but in GNU and Microsoft mode it is now accepted and
 X<E>::X() is marked as deleted (as is S::S()).
 
 
-6/28/16  [EDGcpfe/17322]
+6/28/16  [EDGcpfe/17301,EDGcpfe/17322]
 Internal error in alloc_expr_ctor_dynamic_init
 
 In some relatively complex cases, the front end failed an "expect_error()"
-assertion check on constructor invocations in constant-expression contexts
-during SFINAE processing (the "expect_error()" check was invalid in such
-cases).  This is now fixed.
+assertion check on certain constructor invocations during SFINAE processing
+(the "expect_error()" check was invalid in such
+cases).  For example:
+
+  struct M { M(M&); };
+  template<typename T> auto f(T p)->decltype(T(p.u));  // (1)
+  template<typename T> auto f(T)->T;
+  void foo(M a) {
+    f(a);
+  }
+
+When processing the call "f(a)", candidate (1) triggers a SFINAE failure
+(because M has no member u), but the handling of the constructor invocation
+containing that failure ("T(p.u)") mistakenly asserted that any failure should
+have triggered a diagnostic.  That triggered an internal error, which is now
+fixed.
 
 
 6/27/16  [EDGcpfe/16967,EDGcpfe/17000]
