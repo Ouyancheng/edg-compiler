@@ -28657,8 +28657,8 @@ wrap_up_class_definition.
     }  /* if */
   }  /* if */
   /* Save a pointer to the list of member symbols in the tag symbol.  Note
-     that there may be symbols even if there were no declarations,
-     since symbols may be inherited. */
+     that there may be symbols even if there were no declarations, since
+     symbols may be inherited. */
   cssp->symbols =
           assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
   /* A number of the checks done as a part the "wrapup" phase of scanning a

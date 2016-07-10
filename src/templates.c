@@ -24058,8 +24058,8 @@ function declaration.
 
 static a_boolean is_class_template_decl(a_tmpl_decl_state_ptr	decl_state)
 /*
-Determine whether the template declaration described by token_cache
-is a class template declaration of the form
+Determine whether the template declaration described by token_cache is a class
+template declaration of the form
 
 	friend	class-key identifier tok_colon
 	      opt
@@ -24068,14 +24068,13 @@ is a class template declaration of the form
 	friend	class-key identifier tok_end_of_source
 	      opt
 
-(In GNU and Microsoft dialects, additional tokens may be involved.)
-Return TRUE if the declaration is a class template declaration.
-Otherwise, return FALSE.  This is done by rescanning the tokens from
-the declaration token cache pointed in decl_state.
-This routine also checks for a C++/CLI generic delegate declaration,
-in which case the is_delegate flag of decl_state is updated, and for
-enum template declarations, in which case the is_enum flag of decl_state
-is updated.
+(In GNU and Microsoft dialects, additional tokens may be involved.) Return TRUE
+if the declaration is a class template declaration.  Otherwise, return FALSE.
+This is done by rescanning the tokens from the declaration token cache pointed
+in decl_state.  This routine also checks for a C++/CLI generic delegate
+declaration, in which case the is_delegate flag of decl_state is updated, and
+for enum template declarations, in which case the is_enum flag of decl_state is
+updated.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep;

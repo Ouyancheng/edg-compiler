@@ -13143,7 +13143,7 @@ return_end_of_source_token:
         /* If skip_white_space decided this is not a comment, check
            the normal token possibilities.  (It could also be that we've
            skipped over a comment and we've come upon another "/", but
-           the code here works that case too.) */
+           the code here works for that case too.) */
         if (*curr_char_loc != '/') goto start_of_token_scan;
         record_start_of_curr_token();
         if (fetch_pp_tokens && curr_char_loc[1] == '/') {

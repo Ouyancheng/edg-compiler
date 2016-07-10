@@ -11149,8 +11149,8 @@ void suppress_expansion_with_no_packs_diagnostic(
 			a_pack_expansion_stack_entry_ptr	pesep)
 /*
 Record that the caller has already issued a diagnostic to the effect the pack
-expansion specified by pesep did not reference any packs (so that
-another diagnostic will not be issued).
+expansion specified by pesep did not reference any packs (so that another
+diagnostic will not be issued).
 */
 {
   pesep->expansion_with_no_packs_diagnostic_issued = TRUE;
