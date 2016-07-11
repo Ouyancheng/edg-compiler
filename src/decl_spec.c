@@ -9297,6 +9297,7 @@ the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
 */
 {
   an_element_position_ptr  *eppp = &dps->extra_positions, epp;
+  a_boolean                err = FALSE;
 
   while ((*eppp)->kind != (an_element_position_kind)epk_noreturn) {
     eppp = &(*eppp)->next;
@@ -9305,8 +9306,15 @@ the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
   *eppp = epp->next;
   if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine) ||
       is_main_function(dps->sym->variant.routine.ptr)) {
-    pos_error(ec_bad_c11_noreturn, &epp->position);
-  } else {
+    if (gnu_mode) {
+      /* GCC (and clang) allow _Noreturn on main (with a warning). */
+      pos_warning(ec_bad_c11_noreturn, &epp->position);
+    } else {
+      pos_error(ec_bad_c11_noreturn, &epp->position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;
     if (rp->type->kind == (a_type_kind)tk_routine) {
       rp->type->variant.routine.extra_info->does_not_return = TRUE;

@@ -1,5 +1,15 @@
 Version 4.12
 
+7/11/16  [EDGcpfe/17383]
+GCC compatibility: Allow _Noreturn on "main"
+
+Although the C11 standard is explicit that _Noreturn function specifier
+should not be allowed on the "main" function, GCC (and clang) give only a
+warning, and now so does the front end.  For example (with --c11 --gcc):
+
+  _Noreturn int main() {}
+
+
 7/8/16   [EDGcpfe/17381]
 C++14 constexpr constructors calling non-constexpr subobject constructors
 
