@@ -16435,10 +16435,11 @@ any entity on which a standard alignment attribute may have been specified
     if (entity_alignment == NULL) {
       expect_error();
     } else if (type_alignment > dps->alignment && !has_alignment &&
-               !(gnu_mode && !(clang_mode && std_specifier))) {
+               (!gnu_mode || (std_specifier && (C_mode() || clang_mode)))) {
       /* The alignment cannot be weaker than the default alignment of the
-         entity's type.  GNU doesn't give this error for any alignment
-         attributes; clang only gives it for standard attributes). */
+         entity's type.  GNU doesn't give this error for non-standard alignment
+         attributes; clang only gives it for standard attributes in C++
+         mode. */
       pos_error(ec_invalid_alignment_reducing_attr,
                 &dps->strongest_alignment->position);
     } else if (!has_alignment) {

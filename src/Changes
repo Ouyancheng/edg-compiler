@@ -1,5 +1,20 @@
 Version 4.12
 
+7/11/16  [EDGcpfe/17382]
+GCC compatibility: _Alignas attributes in C11 mode
+
+A change has been made to restore the previous behavior of giving an error
+in GNU C11 mode when an _Alignas alignment specifier is used to attempt to
+reduce the alignment below the default alignment of a type.  For example
+(with --c11 --gcc):
+
+  float _Alignas(1)                 f1; // error (alignment is too restrictive)
+
+Non-standard alignments are still allowed:
+
+  float __attribute__((aligned(1))) f2; // accepted in GNU and clang modes
+
+
 7/11/16  [EDGcpfe/17383]
 GCC compatibility: Allow _Noreturn on "main"
 
