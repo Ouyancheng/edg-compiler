@@ -241,8 +241,7 @@ Internal error in alloc_expr_ctor_dynamic_init
 
 In some relatively complex cases, the front end failed an "expect_error()"
 assertion check on certain constructor invocations during SFINAE processing
-(the "expect_error()" check was invalid in such
-cases).  For example:
+(the "expect_error()" check was invalid in such cases).  For example:
 
   struct M { M(M&); };
   template<typename T> auto f(T p)->decltype(T(p.u));  // (1)
