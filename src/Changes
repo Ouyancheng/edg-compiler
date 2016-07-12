@@ -38,7 +38,7 @@ reduce the alignment below the default alignment of a type.  For example
 7/11/16  [EDGcpfe/17383]
 GCC compatibility: Allow _Noreturn on "main"
 
-Although the C11 standard is explicit that _Noreturn function specifier
+Although the C11 standard is explicit that the _Noreturn function specifier
 should not be allowed on the "main" function, GCC (and clang) give only a
 warning, and now so does the front end.  For example (with --c11 --gcc):
 
