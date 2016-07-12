@@ -22935,15 +22935,22 @@ indication in *rcblock).  rescan_icp is not freed.
     err = TRUE;
   } else if (is_complete_object_type(literal_type)) {
     /* Object type, okay. */
-  } else if (is_array_type(literal_type) &&
-             is_complete_object_type(array_element_type(literal_type))) {
+  } else if (is_array_type(literal_type)) {
     /* Incomplete arrays are okay as long as the underlying type is
        complete. */
+    a_type_ptr  etp = array_element_type(literal_type);
+    complete_type_is_needed(etp);
+    if (!is_complete_object_type(etp)) {
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_bad_compound_literal_type, type_position,
+                     literal_type);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
   } else {
     /* Some other type; error. */
     if (expr_error_should_be_issued()) {
-      pos_ty_error(ec_bad_compound_literal_type,
-                   type_position, literal_type);
+      pos_ty_error(ec_bad_compound_literal_type, type_position, literal_type);
     }  /* if */
     err = TRUE;
   }  /* if */
