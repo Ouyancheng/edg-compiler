@@ -17,7 +17,6 @@ This is now fixed.  For example:
   template <int I> struct B { };
   template <typename T> void f(T& t) {
     B<t.i> bt;  // Use of "t" caused violation of memory regions
-                // Now represented in the IL as T::i
   }
   void g() {
     A<int> ai;
