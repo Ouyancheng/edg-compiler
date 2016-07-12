@@ -1,5 +1,30 @@
 Version 4.12
 
+7/11/16  [EDGcpfe/17088]
+Local variable references in non-type template arguments
+
+In cases where a function template uses a member-access expression naming a
+dependent static data member as a nontype template argument and the object
+expression in the member access uses a local variable, the IL produced by
+the front end violated the memory region constraints by pointing to the
+local variable from the file scope memory region.  Depending on the
+configuration, this could result in aborts or other undefined behavior.
+This is now fixed.  For example:
+
+  template <typename> struct A {
+    static const int i = 0;
+  };
+  template <int I> struct B { };
+  template <typename T> void f(T& t) {
+    B<t.i> bt;  // Use of "t" caused violation of memory regions
+                // Now represented in the IL as T::i
+  }
+  void g() {
+    A<int> ai;
+    f(ai);
+  }
+
+
 7/11/16  [EDGcpfe/17382]
 GCC compatibility: _Alignas attributes in C11 mode
 

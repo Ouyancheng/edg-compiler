@@ -39218,6 +39218,26 @@ required adjustment to make that possible.
                          "extract_constant_from_operand_with_fs_fixup:",
                          "copied constant still has func scope ref");
     release_local_constant(&old_constant);
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
+             constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression &&
+             expr_has_reference_to_routine_scope_variable(
+                              constant->variant.template_param.variant.expr)) {
+    /* The dependent expression has a reference to a local scope variable,
+       even though the expression is allocated in file scope memory.  Copy
+       the expression into the routine scope memory region and make a local
+       expression reference node for it instead of pointing to it
+       directly. */
+    a_scope_ptr func_scope = get_innermost_function_scope();
+    an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
+    check_assertion(func_scope != NULL);
+    switch_il_region(mem_region_for_routine(func_scope->variant.routine.ptr));
+    expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+    switch_il_region(file_scope_region_number);
+    make_local_expr_node_ref(expr,
+                             (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
+                             (char *)constant, func_scope);
+    constant->variant.template_param.variant.expr = NULL;
   }  /* if */
 }  /* extract_constant_from_operand_with_fs_fixup */
 
