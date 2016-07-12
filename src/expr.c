@@ -39228,7 +39228,7 @@ required adjustment to make that possible.
        the expression into the routine scope memory region and make a local
        expression reference node for it instead of pointing to it
        directly. */
-    a_scope_ptr func_scope = get_innermost_function_scope();
+    a_scope_ptr      func_scope = get_innermost_function_scope();
     an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
     check_assertion(func_scope != NULL);
     switch_il_region(mem_region_for_routine(func_scope->variant.routine.ptr));
