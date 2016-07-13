@@ -7040,6 +7040,7 @@ case).
   a_ref_entry_ptr       rep;
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_boolean             force_indefinite_function = FALSE;
+  a_boolean             force_unknown_dependent_function = FALSE;
   a_boolean             member_name_followed_by_left_paren = FALSE;
   a_source_position     member_position;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
@@ -7272,7 +7273,7 @@ case).
       }  /* if */
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-      if (is_class_struct_union_type(class_struct_union_type)) {
+      if (is_immediate_class_type(class_struct_union_type)) {
         /* Instantiate the class if it is a template class. */
         complete_class_type_is_needed(class_struct_union_type);
       }  /* if */
@@ -7304,8 +7305,8 @@ case).
       /* The subroutine asks that the class type be updated at this level.
          This is used in pcc mode for an obscure feature. */
       check_assertion(C_dialect == C_dialect_pcc || SVR4_C_mode);
-      class_struct_union_type = updated_class_type;
       orig_class_struct_union_type = updated_class_type;
+      class_struct_union_type = skip_typerefs(updated_class_type);
     }  /* if */
   } else {
     /* Redoing semantic analysis on a previously-scanned selection. */
@@ -7338,7 +7339,7 @@ case).
   }  /* if */
 
   if (need_operand_1_type_check) {
-    a_type_ptr  tp = skip_typerefs(class_struct_union_type);
+    a_type_ptr  tp = class_struct_union_type;
     a_boolean   is_class_type = is_immediate_class_type(tp);
     if (!is_class_type || is_incomplete_type(tp)) {
       /* The first operand is not (a pointer to) a complete class, struct,
@@ -7462,7 +7463,26 @@ case).
     a_symbol_ptr projection_member_sym = locator.specific_symbol;
     a_symbol_ptr member_sym = fundamental_symbol_of(projection_member_sym);
     member_position = locator.source_position;
-    if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    if (scope_is(&scope_stack_top(), sck_func_prototype) &&
+        is_function_or_template_symbol(member_sym) &&
+        class_struct_union_type != NULL &&
+        is_immediate_class_type(class_struct_union_type) &&
+        class_struct_union_type->variant.class_struct_union
+                                        .is_prototype_instantiation &&
+        !is_dtor_like_locator(locator)) {
+      /* When scanning a member function declaration a subtlety can arise with
+         a construct like "auto g()->decltype(this->f());" in prototype
+         instantiations.  The in-class declaration might be able to resolve f
+         to a specific member, while a matching out-of-class declaration may
+         not be able to do so if additional members f have been added to the
+         parent class.  The difference in the representation of the return
+         type for both declarations of g(), would cause the front end to be
+         unable to match the two.  Therefore, we force "this->f" to be
+         resolved as an unknown dependent function in all such cases. */
+      rep = NULL;
+      force_indefinite_function = TRUE;
+      force_unknown_dependent_function = TRUE;
+    } else if (symbol_is(member_sym, sk_overloaded_function)) {
       rep = NULL;
     } else if (member_sym->potentially_overloaded) {
       /* Force a member function that might or might not be overloaded
@@ -7470,7 +7490,7 @@ case).
          to be treated as overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
-    } else if (force_indefinite_function_in_skipped_decltype(member_sym)) {
+    } else  if (force_indefinite_function_in_skipped_decltype(member_sym)) {
       /* Make all calls dependent in certain decltype contexts. */
       rep = NULL;
       force_indefinite_function = TRUE;
@@ -7628,6 +7648,10 @@ nonstatic_member_function:
                 make_indefinite_function_operand(projection_member_sym,
                                                  &locator,
                                                  result);
+                if (force_unknown_dependent_function) {
+                conv_indefinite_function_operand_to_unknown_dependent_function(
+                                            result, /*force_to_rvalue=*/FALSE);
+                }  /* if */
               } else {
                 /* Non-overloaded function. */
                 make_function_designator_operand(projection_member_sym,

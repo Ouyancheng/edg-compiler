@@ -10099,37 +10099,37 @@ When templates_only is TRUE, only function templates members are considered.
       /* If ref-qualification differs, no match is possible. */
       continue;
     }  /* if */
-    if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
-        templ_param_list == NULL) {
-      /* The symbol we are checking is a template, but no template parameter
-         list was supplied by the caller.  This is not a match. */
-      continue;
-    }  /* if */
-    if (templ_param_list != NULL &&
-        fund_sym->kind == (a_symbol_kind)sk_function_template) {
-      /* If a template parameter list is present and the candidate symbol
-         is for a function template, make sure the lists match.  A
-         template parameter list could be present for a normal member function
-         of a class template when the member function is being defined
-         outside of the class. */
-      an_equiv_templ_param_options_set  etp_set = ETP_NO_OPTIONS;
-      a_template_symbol_supplement_ptr  tssp =
+    if (symbol_is(fund_sym, sk_function_template)) {
+      if (templ_param_list == NULL) {
+        /* The symbol we are checking is a template, but no template parameter
+           list was supplied by the caller.  This is not a match. */
+        continue;
+      } else {
+        /* If a template parameter list is present and the candidate symbol is
+           for a function template, make sure the lists match.  A template
+           parameter list could be present for a normal member function of a
+           class template when the member function is being defined outside of
+           the class. */
+        an_equiv_templ_param_options_set  etp_set = ETP_NO_OPTIONS;
+        a_template_symbol_supplement_ptr  tssp =
                                      template_supplement_for_symbol(fund_sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (tssp->is_generic) {
-        /* When comparing generic parameters, nesting depths shouldn't be
-           compared.  (The "sequence number" of the parameters should be
-           compared instead.) */
-        etp_set = ETP_NESTING_DEPTH_MISMATCH_OKAY;
-      }  /* if */
+        if (tssp->is_generic) {
+          /* When comparing generic parameters, nesting depths shouldn't be
+             compared.  (The "sequence number" of the parameters should be
+             compared instead.) */
+          etp_set = ETP_NESTING_DEPTH_MISMATCH_OKAY;
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      other_templ_param_list =
+        other_templ_param_list =
                        tssp->variant.function.decl_cache.decl_info->parameters;
-      if (!equiv_template_param_lists(other_templ_param_list, templ_param_list,
-                                      /*issue_errors=*/FALSE, etp_set,
-                                      (a_source_position*)NULL, es_error)) {
-        /* The template parameter lists do not match. */
-        continue;
+        if (!equiv_template_param_lists(other_templ_param_list,
+                                        templ_param_list,
+                                        /*issue_errors=*/FALSE, etp_set,
+                                        (a_source_position*)NULL, es_error)) {
+          /* The template parameter lists do not match. */
+          continue;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (new_function_is_qualified && !dps->is_explicit_override) {
