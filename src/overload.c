@@ -21041,7 +21041,7 @@ the conversion.
           if (is_indefinite_function_operand(source_operand)) {
             /* Replace an indefinite function by the address of an unknown
                function in the set. */
-            conv_indefinite_function_operand_to_unknown_dependent_function(
+            conv_indefinite_function_to_unknown_dependent_function(
                                                     source_operand,
                                                     /*force_to_rvalue=*/FALSE);
           }  /* if */

@@ -2383,7 +2383,7 @@ extern void make_unknown_dependent_function_operand(
                                           a_boolean          is_qualified_name,
                                           an_operand         *operand);
 
-extern void conv_indefinite_function_operand_to_unknown_dependent_function(
+extern void conv_indefinite_function_to_unknown_dependent_function(
                                                    an_operand *operand,
                                                    a_boolean  force_to_rvalue);
 

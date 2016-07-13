@@ -5125,7 +5125,7 @@ substitutions to be done.
     an_expr_node_ptr expr;
     an_operand       *operand = operand_of_arg_list_elem(icp);
     if (is_indefinite_function_operand(operand)) {
-      conv_indefinite_function_operand_to_unknown_dependent_function(
+      conv_indefinite_function_to_unknown_dependent_function(
                                                     operand,
                                                     /*force_to_rvalue=*/FALSE);
     } else if (is_braced_init_list_operand(operand)) {
@@ -7895,7 +7895,7 @@ is_qualified_name is TRUE if the source form used a qualified name.
 }  /* make_unknown_dependent_function_operand */
 
 
-void conv_indefinite_function_operand_to_unknown_dependent_function(
+void conv_indefinite_function_to_unknown_dependent_function(
                                                     an_operand *operand,
                                                     a_boolean  force_to_rvalue)
 /*
@@ -7924,7 +7924,7 @@ known.
   }  /* if */
   restore_operand_details(operand, &orig_operand);
   restore_operand_form_of_name_reference(operand, &orig_operand);
-}  /* conv_indefinite_function_operand_to_unknown_dependent_function */
+}  /* conv_indefinite_function_to_unknown_dependent_function */
 
 
 void cast_overloaded_function(a_type_ptr type_cast_to,
@@ -7993,7 +7993,7 @@ raw type based on the function selected.
   } else if (unknown_dependent_function) {
     /* The cast occurs in a prototype instantiation and it is not possible
        to determine which function to use. */
-    conv_indefinite_function_operand_to_unknown_dependent_function(
+    conv_indefinite_function_to_unknown_dependent_function(
                                           operand,
                                           /*force_to_rvalue=*/!reference_case);
   } else {
@@ -13251,9 +13251,8 @@ in which case we force the operand to be an rvalue.
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
-    conv_indefinite_function_operand_to_unknown_dependent_function(
-                                                              operand,
-                                                              force_to_rvalue);
+    conv_indefinite_function_to_unknown_dependent_function(operand,
+                                                           force_to_rvalue);
     force_to_rvalue = FALSE;
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
@@ -20925,7 +20924,7 @@ in *single_func_sym, or set that to NULL if there is no single function.
     a_symbol_ptr orig_sym = operand->symbol;
     if (operand_is_dependent(operand)) {
       /* Don't try to resolve cases where the result is still dependent. */
-      conv_indefinite_function_operand_to_unknown_dependent_function(
+      conv_indefinite_function_to_unknown_dependent_function(
                                                     operand,
                                                     /*force_to_rvalue=*/FALSE);
     } else {

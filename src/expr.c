@@ -7649,7 +7649,7 @@ nonstatic_member_function:
                                                  &locator,
                                                  result);
                 if (force_unknown_dependent_function) {
-                conv_indefinite_function_operand_to_unknown_dependent_function(
+                  conv_indefinite_function_to_unknown_dependent_function(
                                             result, /*force_to_rvalue=*/FALSE);
                 }  /* if */
               } else {
