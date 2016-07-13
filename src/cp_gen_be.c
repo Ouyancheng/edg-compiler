@@ -4436,7 +4436,9 @@ unqualified_part:
        visible in the same scope as a namespace name, so use the namespace
        alias that was put out when the namespace was declared. */
     gen_temp_name((char *)scp);
-  } else if (options & GN_NO_TEMPLATE_ARGS) {
+  } else if (options & GN_NO_TEMPLATE_ARGS ||
+             (entry_kind == (an_il_entry_kind)iek_variable &&
+              (options & GN_DECLARATION))) {
     gen_bare_name(scp, entry_kind);
   } else if (is_decltype) {
     gen_type_operator((a_type_ptr)scp);

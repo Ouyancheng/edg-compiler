@@ -1,5 +1,19 @@
 Version 4.12
 
+7/13/16  [EDGcpfe/17308]
+C++-generating back end: template argument list in variable template
+declaration
+
+In configurations in which code is generated for template definitions from
+the prototype instantiation IL, the C++-generating back end added an
+incorrect template argument list to the declaration of a variable template.
+This is how fixed.  For example, with --c++14:
+
+  template<class T> struct S { };
+  template<class T>
+    constexpr bool v = S<T>::value;  // Previously generated as "v<T>"
+
+
 7/13/16  [EDGcpfe/17043]
 Spurious error on call to template member that is later overloaded
 
