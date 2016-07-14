@@ -7651,6 +7651,10 @@ nonstatic_member_function:
                 if (force_unknown_dependent_function) {
                   conv_indefinite_function_to_unknown_dependent_function(
                                             result, /*force_to_rvalue=*/FALSE);
+                  /* Calls to unknown dependent member functions are
+                     represented with the eok_dot_static/eok_points_to_static
+                     operator under an ordinary call node. */
+                  goto treat_as_static_member;
                 }  /* if */
               } else {
                 /* Non-overloaded function. */
@@ -7682,6 +7686,7 @@ nonstatic_member_function:
                                              rep,
                                              result);
             set_operand_name_reference_from_locator(result, &locator);
+treat_as_static_member:
             result->is_name_followed_by_left_paren =
                                             member_name_followed_by_left_paren;
             combine_unneeded_selector_with_operand(operand_1,
