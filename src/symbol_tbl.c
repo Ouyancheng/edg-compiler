@@ -10825,7 +10825,7 @@ It cannot be used for checking access (see have_access_to_symbol).
     check_assertion(scp != NULL);
     access = scp->access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cli_or_cx_enabled && 
+    if (cli_or_cx_enabled && sym_ptr->is_class_member &&
         sym_ptr->parent.class_type != NULL &&
         assembly_index_from_assembly_scope_index(
          class_type_supp(sym_ptr->parent.class_type)->assembly_scope_index) !=

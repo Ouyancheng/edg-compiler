@@ -1,5 +1,15 @@
 Version 4.12
 
+7/14/16  [EDGcpfe/17394]
+Microsoft compatibility: abort on variable template in C++/CLI mode
+
+An abort could occur (in access_for_symbol)
+
+  namespace N {
+    template <class T> T v = 1;
+  }
+
+
 7/13/16  [EDGcpfe/17308]
 C++-generating back end: template argument list in variable template
 declaration
