@@ -15222,7 +15222,9 @@ enum an_expr_operator_kind_tag {
 			   operand is the selector object (class lvalue
 			   or class rvalue); the remaining operands are the
 			   arguments.  The is_virtual_call flag indicates
-			   whether the call is virtual. */
+			   whether the call is virtual.  Also used for calls
+			   to unknown dependent functions that use the "dot
+			   member" syntax. */
   eok_points_to_member_call,
 			/* A call of a non-static member function with the
 			   source form p->f(args).  The first operand
@@ -15232,7 +15234,9 @@ enum an_expr_operator_kind_tag {
 			   handle to class that identifies the selector object;
 			   the remaining operands are the arguments.  The
 			   is_virtual_call flag indicates whether the call
-			   is virtual. */
+			   is virtual.  Also used for calls to unknown
+			   dependent functions that use the "points-to member"
+			   syntax. */
   eok_dot_pm_call,	/* A call of a function identified by a pointer
 			   to member, with the source form (x.*pmf)(args).
 			   The first operand is the pointer to member

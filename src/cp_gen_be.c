@@ -11961,6 +11961,15 @@ call.
                        (a_template_param_constant_kind)tpck_unknown_function ||
            node_constant(func_expr)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref)) {
+        /* A call to an unknown (template-dependent) function.  If it is a
+           member call, render it as such. */
+        if (node_operator_is(expr, eok_dot_member_call) ||
+            node_operator_is(expr, eok_points_to_member_call)) {
+          gen_expr_with_parens(args);
+          args = args->next;
+          write_tok_str(node_operator_is(expr, eok_dot_member_call) ? "."
+                                                                    : "->");
+        }  /* if */
         /* A tpck_unknown_function or tpck_template_ref constant
            represents the address of the unknown function.  Drop the "&"
            (it's implied) to make neater output. */

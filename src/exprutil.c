@@ -16244,6 +16244,17 @@ error cases.
   if (unknown_dependent_function) {
     /* Call to unknown dependent function. */
     op = (an_expr_operator_kind)eok_call;
+    if (is_constant_node(function_node)) {
+      a_constant_ptr  func_con = node_constant(function_node);
+      if (constant_is(func_con, ck_template_param) &&
+          func_con->source_corresp.is_class_member) {
+        if (selector_is_object_pointer) {
+          op = (an_expr_operator_kind)eok_points_to_member_call;
+        } else {
+          op = (an_expr_operator_kind)eok_dot_member_call;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     return_type = type_of_unknown_templ_param_nontype;
   } else {
     return_type = il_return_type_of(function_type);
