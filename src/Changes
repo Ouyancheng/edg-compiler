@@ -3,7 +3,8 @@ Version 4.12
 7/14/16  [EDGcpfe/17394]
 Microsoft compatibility: abort on variable template in C++/CLI mode
 
-An abort could occur (in access_for_symbol)
+An abort could occur (in access_for_symbol) if a variable template was
+declared in a namespace in C++/CLI mode.  Now fixed.
 
   namespace N {
     template <class T> T v = 1;
