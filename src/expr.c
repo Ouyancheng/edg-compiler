@@ -7476,7 +7476,7 @@ case).
          to a specific member, while a matching out-of-class declaration may
          not be able to do so if additional members f have been added to the
          parent class.  The difference in the representation of the return
-         type for both declarations of g(), would cause the front end to be
+         type for both declarations of g() would cause the front end to be
          unable to match the two.  Therefore, we force "this->f" to be
          resolved as an unknown dependent function in all such cases. */
       rep = NULL;
