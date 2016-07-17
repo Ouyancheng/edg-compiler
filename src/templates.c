@@ -18641,6 +18641,7 @@ the necessary processing can be done.
 
 
 static void check_friend_class_template_default_args(
+				a_tmpl_decl_state_ptr	decl_state,
 				a_template_param_ptr	param_list,
 				a_symbol_locator	*locator)
 /*
@@ -18656,13 +18657,17 @@ if any are found.
   for (tpp = param_list; tpp != NULL; tpp = tpp->next) {
     if (tpp->has_default_arg) {
        has_default_arg = TRUE;
-       break;
+       /* Clear the flag so that the default will be ignored. */
+       tpp->has_default_arg = FALSE;
      }  /* if */
   }  /* for */
   if (has_default_arg) {
-    pos_diagnostic(strict_ansi_discretionary_severity,
-                   ec_friend_class_template_default_arg_not_allowed,
-                   &locator->source_position);
+    /* Don't issue an error until this occurs in a real instantiation. */
+    if (!decl_state->in_prototype_instantiation) {
+      pos_diagnostic(strict_ansi_discretionary_severity,
+                     ec_friend_class_template_default_arg_not_allowed,
+                     &locator->source_position);
+    }  /* if */
   }  /* if */
 }  /* check_friend_class_template_default_args */
 
@@ -19570,7 +19575,8 @@ declaration of a partial specialization declared outside of its class.
       }  /* if */
       /* A default argument may not be specified in a friend template class
          declaration. */
-      check_friend_class_template_default_args(templ_params, &locator);
+      check_friend_class_template_default_args(decl_state, templ_params,
+                                               &locator);
     } else if (friend_token_seen) {
       /* A friend declaration in a nonclass scope.  Only issue the error
          if we actually scanned the friend token in this routine.  If
@@ -20392,6 +20398,7 @@ nesting depth to be used.
          declaration. */
       if (curr_token == tok_class || curr_token == tok_struct) {
         (void)get_token();
+        skip_over_attributes();
         if (curr_token == tok_colon_colon) {
           /* If we have "friend class ::X" remember that there was a
              global qualifier so that we can take that into account in the
@@ -20400,20 +20407,18 @@ nesting depth to be used.
           decl_state->friend_depth = 1;
           break;
         }  /* if */
-        /* Microsoft and g++ accept usage such as:
+        /* This usage is allowed:
              template <class T> struct C {
                template <bool b> class Foo;
                template <bool b> friend class Foo;
              };
-         Even though the friend declaration should be:
+         The friend declaration is considered to be equivalent to:
            template <class X> template <bool b> friend class C<X>::Foo;
          Look for the token sequence "friend class X", where X is a
          simple identifier.  Look up the identifier and if it is a template,
          use its nesting depth as the nesting depth for this declaration. */
-        if ((microsoft_mode || gpp_mode) &&
-            is_generalized_identifier_start(
-                                              GID_TEMPLATE_ARGS_OPTIONAL |
-                                              GID_USE_PROTOTYPE_NOT_NONREAL)) {
+        if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                            GID_USE_PROTOTYPE_NOT_NONREAL)) {
           a_symbol_ptr	sym = NULL;
           a_boolean	err = FALSE;
           sym = coalesce_and_lookup_generalized_identifier(

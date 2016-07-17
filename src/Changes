@@ -1,5 +1,23 @@
 Version 4.12
 
+7/17/16  [EDGcpfe/17019]
+Nesting depth of friend member template declarations
+
+Formerly, the number of template parameter clauses in a friend member
+template declaration was required to match the nesting depth of the
+declaration to which the friend refers, except in g++ and Microsoft
+mode.  When the friend refers to a nested class of an enclosing class
+template, it is now permitted to have a single template parameter
+clause in all modes.
+
+  template <typename V> struct A {
+    template <typename T> struct B {
+      template <typename> friend class B;
+    };
+  };
+  A<int>::B<int> ab;
+
+
 7/14/16  [EDGcpfe/17394]
 Microsoft compatibility: abort on variable template in C++/CLI mode
 
