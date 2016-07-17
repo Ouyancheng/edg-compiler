@@ -4408,6 +4408,23 @@ non-NULL) operator_position_2.
 }  /* get_rescan_operator_positions */
 
 
+static void check_incomplete_return_type_allowed_for_rescan(
+                                                       an_expr_node_ptr  expr)
+/*
+The operands of expr have been extracted ("rescanned"), and semantic analysis
+is about to be redone for the operation represented by expr itself.  If this
+operation is the top-level operation of a decltype operation, set
+expr_stack->allow_call_with_incomplete_return_type to TRUE/
+*/
+{
+  if (expr_stack->is_type_operator_arg_expression) {
+    if (expr == decltype_rescan_operand) {
+      expr_stack->allow_call_with_incomplete_return_type = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_incomplete_return_type_allowed_for_rescan */
+
+
 void make_rescan_operands(a_rescan_control_block  *rcblock,
                           an_operand              *operand_1,
                           an_operand              *operand_2,
@@ -4472,6 +4489,7 @@ template deduction being done, e.g., the template argument list being tried.
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number,
                                 operator_position_2);
+  check_incomplete_return_type_allowed_for_rescan(expr);
 }  /* make_rescan_operands */
 
 
@@ -4527,6 +4545,7 @@ the call, to be converted to operand form later.
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number,
                                 closing_paren_position);
+  check_incomplete_return_type_allowed_for_rescan(expr);
 }  /* make_call_rescan_operands */
 
 
@@ -16131,6 +16150,93 @@ a function expression to which the argument list (including the implicit
 }  /* call_invokes_pure_virtual */
 
 
+static a_boolean type_operator_construct_termination_next(
+                                          a_routine_ptr  rout,
+                                          a_type_ptr     function_type,
+                                          a_boolean      uses_operator_syntax)
+/*
+We are scanning the operand of a decltype construct from source (i.e., not
+rescanning the operand) are about to generate call to rout (with the given
+type).  If the call is the result of operator syntax, uses_operator_syntax is
+TRUE (and rout will be an operator function).  The caller has determined that
+what has been scanned so far is compatible with this call being the "top"
+operation of the decltype operand (ignoring comma operations).  Look ahead in
+the token stream to confirm that we are at the end of the decltype construct
+(which ensures that no other operation will apply on top of the call), and if
+so return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean      result = TRUE;  /* Assume for now. */
+  a_token_cache  cache;
+  unsigned long  n_extra_parens;
+
+  /* Determine the number of extra parentheses around the decltype operand.
+     Subtract one for the parentheses of the type operator construct itself. */
+  n_extra_parens = expr_stack->nested_construct_depth-1;
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  if (uses_operator_syntax) {
+    /* Some operators ([] and postfix ++/--) may have a token left in the
+       upcoming token stream. */
+    a_token_kind  expected_token;
+    switch (rout->variant.opname_kind) {
+      case onk_subscript:
+        expected_token = (a_token_kind)tok_rbracket;
+        /* Since the subscript operation is still being processed,
+           expr_stack->nested_construct_depth still includes the brackets in
+           its count. */
+        n_extra_parens -= 1;
+        break;
+      case onk_plus_plus:
+        if (function_type_params(function_type) != NULL) {
+          /* Postfix ++. */
+          expected_token = (a_token_kind)tok_plus_plus;
+        } else {
+          expected_token = (a_token_kind)tok_error;
+        }  /* if */
+        break;
+      case onk_minus_minus:
+        if (function_type_params(function_type) != NULL) {
+          /* Postfix --. */
+          expected_token = (a_token_kind)tok_minus_minus;
+        } else {
+          expected_token = (a_token_kind)tok_error;
+        }  /* if */
+        break;
+      default:
+        expected_token = (a_token_kind)tok_error;
+        break;
+    }  /* switch */
+    if (expected_token != (a_token_kind)tok_error) {
+      /* An operator token remains: Skip it (if it is there as expected). */
+      if (curr_token == expected_token) {
+        cache_curr_token(&cache);
+        (void)get_token();
+      } else {
+        expect_error();
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (result) {
+    /* Skip the extra parentheses. */
+    while (n_extra_parens--) {
+      if (curr_token != tok_rparen) {
+        result = FALSE;
+        break;
+      }  /* if */
+      cache_curr_token(&cache);
+      (void)get_token();
+    }  /* while */
+    /* Check whether we have reached the end of the type operator operand. */
+    if (curr_token != tok_rparen) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* type_operator_construct_termination_next */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -16198,10 +16304,10 @@ error cases.
     *function_call_node = NULL;
   }  /* if */
   function_type = skip_typerefs(function_type);
-  if (!is_function_type(function_type)) {
+  if (function_type->kind != (a_type_kind)tk_routine) {
     check_assertion(is_template_dependent_context() &&
                     (is_template_param_type(function_type) ||
-                     is_class_struct_union_type(function_type)));
+                     is_immediate_class_type(function_type)));
     unknown_dependent_function = TRUE;
   }  /* if */
   if (!unknown_dependent_function) {
@@ -16213,12 +16319,24 @@ error cases.
        defined or called (if it is). */
     a_source_position  *diag_pos = expr_stack->suppress_diagnostics ? NULL
                                                                     : pos;
+    a_boolean          allow_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
+    
+    if (allow_incomplete_return_type &&
+        !expr_stack->template_deduction_context) {
+      /* In decltype(<expr>), where the top-level operation of <expr> produces
+         a call (using call syntax or using an overloaded operator), the return
+         type need not be complete.  In non-rescanning contexts, we still have
+         to ensure that the operation is "at the top level". */
+      if (!type_operator_construct_termination_next(rout, function_type,
+                                                    uses_operator_syntax)) {
+        allow_incomplete_return_type = FALSE;
+      }  /* if */
+    }  /* if */
     if (!check_function_return_type(function_type, diag_pos,
                                     /*is_expr_use=*/TRUE,
                                     curr_expr_is_evaluated(),
-                                    expr_stack
-                                      ->allow_call_with_incomplete_return_type,
-                                    rout)) {
+                                    allow_incomplete_return_type, rout)) {
       /* There was some error in the return type.  A diagnostic was issued in
          non-SFINAE contexts. */
       call_node = error_node();
@@ -21752,6 +21870,7 @@ Do one-time initialization of variables related to expression processing.
      between translation units. */
   register_trans_unit_variable(expr_stack);
   register_trans_unit_variable(curr_expr_ref_entries);
+  register_trans_unit_variable(decltype_rescan_operand);
   register_trans_unit_variable(reduce_backing_expression_use);
 #if TARG_HAS_IEEE_FLOATING_POINT
   register_trans_unit_variable(nan_constant);
@@ -21778,6 +21897,7 @@ re-initialized for each translation unit.
 {
   expr_stack = NULL;
   curr_expr_ref_entries = NULL;
+  decltype_rescan_operand = NULL;
   reduce_backing_expression_use = FALSE;
 #if TARG_HAS_IEEE_FLOATING_POINT
   nan_constant = NULL;

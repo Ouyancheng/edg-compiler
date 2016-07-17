@@ -1010,6 +1010,13 @@ EXTERN a_ref_entry_ptr
 			   expression.  Before that, the kind of reference
 			   each indicates might be adjusted. */
 
+EXTERN an_expr_node_ptr
+		decltype_rescan_operand;
+			/* While rescanning a decltype operand, this points
+			   to the operand of the operand of the innermost
+			   type operator, or NULL if that innermost type
+			   operator is not "decltype". */
+
 #if SEQUENCING_DIAGNOSTICS_ENABLED
 
 /*

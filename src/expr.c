@@ -13121,6 +13121,25 @@ source sequence entry list.  Return a pointer to the created entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static an_expr_node_ptr skip_commas_and_parens(an_expr_node_ptr  expr)
+/*
+Skip eok_comma and eok_parent operations pointed to by expr; follow the right
+operand for eok_comma nodes.  Return the node found at the end of such a chain
+(or expr itself if it's neither kind of node).
+*/
+{
+  while (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_comma)) {
+      expr = expr->variant.operation.operands->next;
+    } else if (node_operator_is(expr, eok_parens)) {
+      expr = skip_parens(expr);
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  return expr;
+}  /* skip_commas_and_parens */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13156,6 +13175,7 @@ name.  We do not advance to the token after the decltype in this case.
   a_source_sequence_entry_ptr
                           ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  an_expr_node_ptr        saved_decltype_rescan_operand;
 
   check_assertion(!C_mode());
   if (rcblock != NULL) {
@@ -13163,7 +13183,11 @@ name.  We do not advance to the token after the decltype in this case.
        Note that rcblock->expr is the expression that is the operand of
        the decltype, not the decltype itself, because there is no
        expression for that.  The operand is picked up later after the
-       expression stack has been pushed. */
+       expression stack has been pushed.  We do keep track of the top-level
+       operand, skipping parentheses and comma operators (to handle calls
+       with incomplete return types). */
+    saved_decltype_rescan_operand = decltype_rescan_operand;
+    decltype_rescan_operand = skip_commas_and_parens(rcblock->expr);
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the decltype token. */
@@ -13190,7 +13214,6 @@ name.  We do not advance to the token after the decltype in this case.
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_type_operator_arg_expression = TRUE;
-  expr_stack->allow_call_with_incomplete_return_type = TRUE;
   /* Indicate that we are in the context of a decltype expression. */
   saved_in_decltype_context = scope_stack_top().in_decltype_context;
   scope_stack_top().in_decltype_context = TRUE;
@@ -13213,6 +13236,11 @@ name.  We do not advance to the token after the decltype in this case.
     /* This call is done late because we need the expression stack to be pushed
        already. */
     add_matching_stop_token(tok_rparen);
+    /* Permit a call producing an incomplete return type "at the top".  Note
+       that in the "rescan case" (rcblock != NULL), the flag is set locally
+       after any operands have been rescanned (see make_rescan_operands and
+       make_call_rescan_operands). */
+    expr_stack->allow_call_with_incomplete_return_type = TRUE;
     /* Scan the argument expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
@@ -13283,6 +13311,8 @@ name.  We do not advance to the token after the decltype in this case.
         !might_be_id_start) {
       (void)get_token();
     }  /* if */
+  } else {
+    decltype_rescan_operand = saved_decltype_rescan_operand;
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -13561,6 +13591,7 @@ the expression-processing routines.
   a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                   parens_optional;
+  an_expr_node_ptr            saved_decltype_rescan_operand;
 
   check_assertion(gnu_mode || sun_mode);
   parens_optional = gpp_mode && gnu_version >= 30400;
@@ -13643,6 +13674,13 @@ the expression-processing routines.
     transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     expr_stack->is_type_operator_arg_expression = TRUE;
+    if (rcblock != NULL) {
+      /* If there is an enclosing decltype construct, we do not want its
+         top operand to be assumed to be the top operand of this typeof
+         operator. */
+      saved_decltype_rescan_operand = decltype_rescan_operand;
+      decltype_rescan_operand = NULL;
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (rcblock == NULL) {
@@ -13774,6 +13812,9 @@ the expression-processing routines.
     restore_expr_stack(saved_expr_stack);
     switch_back_region_and_lifetime(region_to_switch_back_to,
                                     saved_object_lifetime);
+    if (rcblock != NULL) {
+      decltype_rescan_operand = saved_decltype_rescan_operand;
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -28453,9 +28494,33 @@ expression, and return the result in *result (or an error indication in
           conv_rvalue_reference_result_to_xvalue(result);
         }  /* if */
       }  /* if */
+    } else {
+      /* The comma operator was handled by an operator function.  If we're in
+         a context that permits an incomplete return type, the right operand
+         may be a call with an incomplete return (because we didn't know that
+         the comma was not going to be the built-in operator): If so, issue a
+         diagnostic. */
+      if (allow_call_with_incomplete_return_type &&
+          is_expression_operand(&operand_2)) {
+        an_expr_node_ptr  expr2 = expr_node_from_operand(&operand_2);
+        expr2 = skip_commas_and_parens(expr2);
+        if (is_call_node(expr2)) {
+          a_type_ptr  call_result_type = skip_typerefs(expr2->type);
+          if (call_result_type->incomplete &&
+              call_result_type->kind != (a_type_kind)tk_void) {
+            if (expr_error_should_be_issued()) {
+              a_routine_ptr  rp = routine_from_function_expr(
+                                           expr2->variant.operation.operands);
+              a_type_ptr     rtp = type_of_call(expr2);
+              check_assertion(rtp->kind == (a_type_kind)tk_routine);
+              report_incomplete_function_return_type(
+                      rtp->variant.routine.return_type, &expr2->position, rp);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
-
   if (microsoft_mode) {
     /* As an extension, allow a "," operator where the second operand is a
        string literal to be eligible for the deprecated conversion to
@@ -31741,7 +31806,7 @@ see expr.h).
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean         allow_call_with_incomplete_return_type =
+  a_boolean         saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_expr_full");
@@ -32675,12 +32740,7 @@ bad_start_of_primary:
      return to its caller (also scan_expr_full). */
   for (;;) {
     a_boolean op2_was_braced_init_list;
-    a_boolean allow_call_with_incomplete_return_type2 =
-                           expr_stack->allow_call_with_incomplete_return_type;
-    /* For most operations, don't permit a call with an incomplete return
-       type.  If this is a call, a member access, or a comma operator, the
-       flag may have to temporarily be re-enabled below. */
-    expr_stack->allow_call_with_incomplete_return_type = FALSE;
+    a_boolean keep_allow_call_with_incomplete_return_type = FALSE;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
       check_for_pcc_compound_assignment_operators();
@@ -32789,28 +32849,26 @@ bad_start_of_primary:
       case tok_plus_plus:
       case tok_minus_minus:
         /* Postfix increment and decrement. */
+        keep_allow_call_with_incomplete_return_type = TRUE;
         scan_postfix_incr_decr(&operand, (a_rescan_control_block *)NULL,
                                &local_result);
         break;
       case tok_lbracket:
         /* Subscript. */
+        keep_allow_call_with_incomplete_return_type = TRUE;
         scan_subscript_operator(&operand, /*offsetof_case=*/FALSE,
                                 (a_rescan_control_block *)NULL, &local_result);
         break;
       case tok_lparen:
         /* Routine call. */
-        if (allow_call_with_incomplete_return_type2) {
-          expr_stack->allow_call_with_incomplete_return_type = TRUE;
-        }  /* if */
+        keep_allow_call_with_incomplete_return_type = TRUE;
         scan_function_call(&operand, &local_bound_function_selector,
                            (a_rescan_control_block *)NULL, &local_result);
         break;
       case tok_period:
       case tok_arrow:
         /* Field selectors. */
-        if (allow_call_with_incomplete_return_type2) {
-          expr_stack->allow_call_with_incomplete_return_type = TRUE;
-        }  /* if */
+        keep_allow_call_with_incomplete_return_type = TRUE;
         scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
                                       /*call_rescan_case=*/FALSE,
                                       /*offsetof_case=*/FALSE, &local_result,
@@ -32871,8 +32929,24 @@ bad_start_of_primary:
                               &local_result);
         break;
       case tok_quest_mark:
-        scan_conditional_operator(&operand, (a_rescan_control_block *)NULL,
-                                  &local_result);
+        { a_boolean  restore_allow_call_with_incomplete_return_type = FALSE;
+          if (expr_stack->allow_call_with_incomplete_return_type) {
+            restore_allow_call_with_incomplete_return_type = TRUE;
+            /* ?: is unique in that it doesn't "consume" its last operand
+               (like, e.g., + does) but in a decltype construct it doesn't
+               permit that operand to be a call with an incomplete return type
+               either (like the comma operator does).  We therefore have to
+               make sure that such an incomplete return type is diagnosed. */
+            expr_stack->allow_call_with_incomplete_return_type = FALSE;
+          }  /* if */
+          scan_conditional_operator(&operand, (a_rescan_control_block *)NULL,
+                                    &local_result);
+          if (restore_allow_call_with_incomplete_return_type) {
+            /* Re-enable a call with an incomplete return type in case this
+               operator is followed by a comma operator. */
+            expr_stack->allow_call_with_incomplete_return_type = TRUE;
+          }  /* if */
+        }
         break;
       case tok_assign:
         scan_simple_assignment_operator(&operand,
@@ -32906,15 +32980,16 @@ bad_start_of_primary:
         }  /* if */
         break;
       case tok_comma:
-        if (allow_call_with_incomplete_return_type2) {
-          expr_stack->allow_call_with_incomplete_return_type = TRUE;
-        }  /* if */
+        keep_allow_call_with_incomplete_return_type = TRUE;
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
         break;
       default:
         unexpected_condition_str("scan_expr_full: bad operator token in loop");
     }  /* switch */
+    if (!keep_allow_call_with_incomplete_return_type) {
+      expr_stack->allow_call_with_incomplete_return_type = FALSE;
+    }  /* if */
   }  /* for */
 end_expr:
 
@@ -33049,7 +33124,7 @@ end_of_routine:
      the '*', which may be an overloaded operator, the flag may need to
      become TRUE again. */
   expr_stack->allow_call_with_incomplete_return_type =
-                                       allow_call_with_incomplete_return_type;
+                                 saved_allow_call_with_incomplete_return_type;
   db_exit();
 }  /* scan_expr_full */
 
@@ -40658,6 +40733,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
         unexpected_condition();
     }  /* switch */
   }  /* if */
+  /* During rescanning, expr_stack->allow_call_with_incomplete_return_type is
+     set for top-level decltype operations after rescanning the operands of
+     that operation (see make_rescan_operands and make_call_rescan_operands)
+     so that a call generated for the operation can permit an incomplete
+     type.  Clear the flag in case that was done. */
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (result->bound_function &&
       bound_function_selector == &local_bound_function_selector) {
     /* The rescan returned a bound function, but the caller is not prepared

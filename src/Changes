@@ -1,5 +1,20 @@
 Version 4.12
 
+7/17/16  [EDGcpfe/17055]
+Operators producing incomplete types and decltype
+
+The changes for EDGcpfe/11740,EDGcpfe/14277 permit a top-level function call in
+a decltype operand to produce an rvalue with an incomplete class type.  These
+changes did not, however, handle the case of a call resulting from invoking an
+overloaded operator (using operator notation).  For example:
+
+  struct I;
+  I operator+(int, I&);
+  void g(I &p) {
+    decltype(1+p) *q;  // Previously an error.  Now okay.
+  }
+
+
 7/17/16  [EDGcpfe/17019]
 Nesting depth of friend member template declarations
 
