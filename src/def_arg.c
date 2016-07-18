@@ -423,19 +423,24 @@ that was scanned.
 
 a_template_ptr delayed_scan_of_template_default_template_arg(
 				a_template_ptr		param_template,
+				a_boolean		dependent_default,
 				a_source_position	*err_pos)
 /*
 Do the delayed scan of the default argument expression for a template
 template parameter.  The cache has just been reactivated, so curr_token should
 represent the first token in the cache.  Return a pointer to the template
-that was scanned.
+that was scanned.  dependent_default is TRUE if the template parameter
+list of the template parameter involves other template parameters, in
+which case checking the template parameter types of the default argument
+must be deferred until it is used.
 */
 {
   a_template_ptr	templ;
 
   db_enter(3, "delayed_scan_of_template_default_template_arg");
   templ = scan_template_template_argument(param_template, err_pos,
-                                          /*is_default=*/TRUE);
+                                          /*is_default=*/TRUE,
+                                          dependent_default);
   check_for_valid_end_of_template_def_arg();
   db_exit();
   return templ;

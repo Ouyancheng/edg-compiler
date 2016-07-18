@@ -15670,14 +15670,19 @@ Flush tokens in an argument list.
 
 
 a_template_ptr scan_template_template_argument(
-                                    a_template_ptr    param_template,
-                                    a_source_position *err_pos,
-                                    a_boolean         is_default)
+                                    a_template_ptr       param_template,
+                                    a_source_position    *err_pos,
+                                    a_boolean            is_default,
+                                    a_boolean            dependent_default)
 /*
 Scan the actual argument for a template template parameter.  param_template
 is the template pointer of the corresponding template template parameter.
 err_pos is the position to be used to report any errors.  is_default is TRUE
 when scanning the default argument of the template template parameter.
+dependent_default is TRUE if the template parameter list of the template
+parameter involves other template parameters, in which case checking the
+template parameter types of the default argument must be deferred until
+it is used.
 */
 {
   a_symbol_ptr				sym = NULL;
@@ -15751,8 +15756,10 @@ when scanning the default argument of the template template parameter.
     if (tssp1->is_nonreal_member || tssp2->is_nonreal_member) {
       /* Nonreal members have no template parameter lists.  The comparison
          will be done again later when a real member is available. */
-    } else if (gpp_mode && is_default) {
-      /* g++ doesn't check for a matching parameter list in a default
+    } else if (dependent_default || (gpp_mode && is_default)) {
+      /* The compatibility check for a default argument that depends on
+         other template parameters must be delayed until the default is used.
+         g++ doesn't check for a matching parameter list in a default
          template template argument until that argument is actually used. */
       tssp1->variant.class_template.def_templ_templ_arg_check_delayed = TRUE;
     } else {
@@ -15895,9 +15902,11 @@ done using the disambiguation routines.
         /* A template template argument. */
         a_template_ptr	templ_ptr;
         check_assertion(is_template_templ_arg(arg_ptr));
-        templ_ptr = scan_template_template_argument((a_template_ptr)NULL,
-                                                    &error_position,
-                                                    /*is_default=*/FALSE);
+        templ_ptr = scan_template_template_argument(
+                                                 (a_template_ptr)NULL,
+                                                 &error_position,
+                                                 /*is_default=*/FALSE,
+                                                 /*dependent_default=*/FALSE);
         arg_ptr->variant.templ.ptr = templ_ptr;
       }  /* if */
       /* Link this entry on to the argument list. */
@@ -16171,7 +16180,8 @@ all arguments were explicit.
           arg_ptr->variant.templ.substituted_param_template = param_template;
         }  /* if */
         templ = scan_template_template_argument(param_template, &arg_pos,
-                                                /*is_default=*/FALSE);
+                                                /*is_default=*/FALSE,
+                                                /*dependent_default=*/FALSE);
         arg_ptr->variant.templ.ptr = templ;
       }  /* if */
       /* Link this entry on to the argument list. */
@@ -16301,6 +16311,10 @@ all arguments were explicit.
                appropriate.  (This is a GNU compatibility feature.) */
             a_symbol_ptr  arg_sym = symbol_for(arg_ptr->variant.templ.ptr);
             a_symbol_ptr  param_sym = symbol_for(tssp1->il_template_entry);
+            /* Update tssp1 to refer to the rescanned template returned
+               above. */
+            tssp1 = template_supplement_for_template(
+                                                   arg_ptr->variant.templ.ptr);
             tssp2 = arg_sym->variant.template_info;
             if (!equiv_template_param_lists(
                                       tssp1->cache.decl_info->parameters,

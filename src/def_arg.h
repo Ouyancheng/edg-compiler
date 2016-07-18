@@ -84,6 +84,7 @@ extern a_type_ptr delayed_scan_of_template_default_type_arg(void);
 
 extern a_template_ptr delayed_scan_of_template_default_template_arg(
 				a_template_ptr		param_template,
+				a_boolean		dependent_default,
 				a_source_position	*err_pos);
 
 extern void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp);

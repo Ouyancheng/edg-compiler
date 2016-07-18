@@ -21265,7 +21265,8 @@ Scan the default argument of the template template parameter specified by tpp.
 
   templ_ptr = tpp->param_symbol->variant.template_info->il_template_entry;
   def_arg_templ = scan_template_template_argument(templ_ptr, &pos_curr_token,
-                                                  /*is_default=*/TRUE);
+                                                  /*is_default=*/TRUE,
+                                                  tpp->is_dependent);
   def_arg_tssp = template_supplement_for_template(def_arg_templ);
   /* Save the scanned value of the default argument.  This is saved even
      if we also decided to save the cache.  This value will be used if
@@ -21994,7 +21995,8 @@ existing type is simply used.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rescan_reusable_cache(&tcp->tokens);
     templ = delayed_scan_of_template_default_template_arg(
-                 param_ptr->variant.templ->il_template_entry, &pos_curr_token);
+                                 param_ptr->variant.templ->il_template_entry,
+                                 /*dependent_default=*/FALSE, &pos_curr_token);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

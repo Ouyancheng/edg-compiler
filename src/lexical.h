@@ -2682,7 +2682,8 @@ extern void pop_lexical_state_stack(void);
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos,
-				a_boolean		is_default);
+                                a_boolean		is_default,
+                                a_boolean		dependent_default);
 
 extern void insert_string_into_token_stream(
                                         a_const_char      *string,

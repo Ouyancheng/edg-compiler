@@ -1,5 +1,17 @@
 Version 4.12
 
+7/18/16  [EDGcpfe/10202,EDGcpfe/17018]
+Spurious error on default template template argument
+
+A spurious error could be issued if a template template parameter had
+a template parameter type that depended on another template parameter
+of the same template, and that template template parameter had a default
+template argument.  Now fixed.
+
+  template <int> class A;
+  template <class T, template <T> class TT = A> class B { };
+
+
 7/18/16  [EDGcpfe/17062]
 Injected class name as template template argument (core issue 1004)
 
