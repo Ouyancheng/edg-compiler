@@ -1,5 +1,14 @@
 Version 4.12
 
+7/18/16  [EDGcpfe/17033]
+Spurious error on pack expansion in function template default argument
+
+A spurious error could result if a pack expansion appeared at the top
+level in a function template default argument.  Now fixed.
+
+  template <typename... T> void f(int i = sizeof...(T)) {}
+
+
 7/18/16  [EDGcpfe/10202,EDGcpfe/17018]
 Spurious error on default template template argument
 
