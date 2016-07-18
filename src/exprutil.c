@@ -16156,7 +16156,7 @@ static a_boolean type_operator_construct_termination_next(
                                           a_boolean      uses_operator_syntax)
 /*
 We are scanning the operand of a decltype construct from source (i.e., not
-rescanning the operand) are about to generate call to rout (with the given
+rescanning the operand) and are about to generate call to rout (with the given
 type).  If the call is the result of operator syntax, uses_operator_syntax is
 TRUE (and rout will be an operator function).  The caller has determined that
 what has been scanned so far is compatible with this call being the "top"
