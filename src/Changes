@@ -1,5 +1,18 @@
 Version 4.12
 
+7/18/16  [EDGcpfe/17062]
+Injected class name as template template argument (core issue 1004)
+
+In C++11 an injected class name can be used as a template template
+argument.  This is now supported in C++11 (and newer) modes.  Note that
+is was already supported in g++ mode.
+
+  template <template <class> class T> struct B {};
+  template <class T> struct A {
+    B<A> x;
+  };
+
+
 7/17/16  [EDGcpfe/17055]
 Operators producing incomplete types and decltype
 
