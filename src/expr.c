@@ -13175,7 +13175,7 @@ name.  We do not advance to the token after the decltype in this case.
   a_source_sequence_entry_ptr
                           ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_expr_node_ptr        saved_decltype_rescan_operand;
+  an_expr_node_ptr        saved_decltype_rescan_operand = NULL;
 
   check_assertion(!C_mode());
   if (rcblock != NULL) {
@@ -13591,7 +13591,7 @@ the expression-processing routines.
   a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                   parens_optional;
-  an_expr_node_ptr            saved_decltype_rescan_operand;
+  an_expr_node_ptr            saved_decltype_rescan_operand = NULL;
 
   check_assertion(gnu_mode || sun_mode);
   parens_optional = gpp_mode && gnu_version >= 30400;
