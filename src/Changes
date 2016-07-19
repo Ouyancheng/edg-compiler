@@ -16,7 +16,7 @@ on.  For example:
   template<typename T, typename Id<T>::Type V> struct X {};
   template<typename T> void f(X<const T&, v>) {}
   void g() {
-    X<const int&, dummy> x;
+    X<const int&, v> x;
     f(x);  // Previously an error because v was not successfully bound to
   }        // nontype template parameter V in X<const T&, v>.  Now okay.
 
