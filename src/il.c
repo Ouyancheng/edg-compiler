@@ -15359,11 +15359,16 @@ the type of the expression.
 
   if (expr != NULL) {
     type = expr->type;
-  } else if (alloc_con != NULL) {
-    type = alloc_con->type;
   } else {
-    check_assertion(constant != NULL);
-    type = constant->type;
+    if (alloc_con != NULL) {
+      type = alloc_con->type;
+    } else {
+      check_assertion(constant != NULL);
+      type = constant->type;
+    }  /* if */
+    if (is_any_reference_type(type)) {
+      type = type_pointed_to(type);
+    }  /* if */
   }  /* if */
   return type;
 }  /* type_of_copied_template_expr */
@@ -15675,10 +15680,17 @@ to an already-allocated constant; otherwise, constant points to the
 */
 {
   if (expr == NULL) {
+    a_type_ptr  ctp;
     if (alloc_con != NULL) {
       expr = alloc_node_for_allocated_constant(alloc_con);
+      ctp = alloc_con->type;
     } else {
       expr = alloc_node_for_constant(constant);
+      ctp = constant->type;
+    }  /* if */
+    if (is_any_reference_type(ctp)) {
+      expr->is_lvalue = TRUE;
+      check_assertion(!is_rvalue_reference_type(ctp));
     }  /* if */
   }  /* if */
   return expr;
@@ -15832,7 +15844,7 @@ in these template-parameter-substitution routines.
 
   if (is_error_node(expr)) {
     expr_copy = error_node();
-  } else if (expr->is_lvalue) {
+  } else if (expr->is_lvalue || is_template_dependent_type(expr->type)) {
     /* The expression is already an lvalue.  Just copy with substitution and
        return. */
     a_constant_ptr constant = local_constant();
@@ -16209,8 +16221,16 @@ TRUE.
      not important, and may in fact be correct for compatibility with older
      code. */
   *reinterpret_cast_needed = FALSE;
-  if (is_any_reference_type(new_type) || is_void_type(new_type)) {
-    valid = FALSE;
+  if (is_void_type(new_type)) {
+    /* valid = FALSE; */
+  } else if (is_any_reference_type(new_type)) {
+    /* Implicit casts on nontype template arguments can produce casts to
+       reference types that are valid if the underlying constant ends up
+       being the address of a function or namespace-scope variable. */
+    if (!is_explicit_cast && constant_is(src_con, ck_address) &&
+        identical_types(new_type, src_con->type)) {
+      valid = TRUE;
+    }  /* if */
   } else if (is_explicit_cast ?
                        expl_conversion_possible(src_con->type,
                                                 /*source_is_constant=*/TRUE,
@@ -16599,7 +16619,55 @@ options is a set of name lookup options.
       break;
     case enk_variable:
     case enk_routine:
-      expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+      { a_boolean  folded_to_constant = FALSE;
+        if (guide_type != NULL &&
+            constant_glvalue_address(expr, constant,
+                                     /*address_escapes=*/TRUE)) {
+          /* See if the resulting constant can bind to the destination
+             parameter.  (In cases like this, the guide type is always due to
+             a cast placed to match a nontype template argument to a template
+             parameter of unknown type.) */
+          a_type_ptr       src_type = expr->type, dst_type = guide_type;
+          a_std_conv_descr std_conv;
+          a_boolean        cast_to_ref = is_any_reference_type(guide_type);
+          if (!cast_to_ref) {
+            src_type = do_implicit_type_transformations(src_type,
+                                                        (an_operand*)NULL);
+            constant->type = src_type;
+          } else if (expr->is_lvalue) {
+            /* Re-frame the conversion in terms of a pointer cast. */
+            constant->type = make_reference_type(src_type);
+            src_type = make_pointer_type(src_type);
+            dst_type = make_pointer_type(type_pointed_to(dst_type));
+          }  /* if */
+          if (impl_conversion_possible(
+                                    src_type,
+                                    /*source_is_constant=*/TRUE,
+                                    /*source_is_string_literal=*/FALSE,
+                                    is_routine_node(expr),
+                                    constant,
+                                    dst_type,
+                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                    /*suppress_extensions=*/TRUE,
+                                    ec_no_error,
+                                    &std_conv) &&
+              conversion_allowed_for_nontype_template_argument(
+                                    &std_conv,
+                                    src_type,
+                                    /*source_is_constant=*/TRUE,
+                                    constant,
+                                    dst_type,
+                                    (an_error_code *)NULL)) {
+            folded_to_constant = TRUE;
+          }  /* if */
+        }  /* if */
+        if (folded_to_constant) {
+          expr_copy = NULL;
+          *alloc_con = NULL;
+        } else {
+          expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+        }  /* if */
+      }  /* if */
       break;
     case enk_temp_init:
       /* A functional-notation cast with empty parentheses or braces, e.g.,

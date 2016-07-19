@@ -39502,7 +39502,29 @@ memory region).  If param_type is NULL, the parameter type is not known.
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
   if (param_type != NULL && !relaxed_ms_case) {
-    prep_nontype_template_argument_initializer(&result, param_type, constant);
+    /* Convert the nontype template argument to the template parameter type.
+       If the argument may require a rescan but the parameter type is still
+       dependent, do not do the conversion yet since the nature of the
+       conversion may change (otherwise we might, e.g., prematurely convert
+       an lvalue argument to an rvalue even though a future substitution might
+       turn this into a reference binding). */
+    if (expr_stack->possible_rescan_context &&
+        is_template_dependent_type(param_type)) {
+      prep_generic_nontype_template_argument(&result);
+      generic_cast_operand(&result, param_type, csf_none,
+                           /*is_implicit_cast=*/TRUE);
+      extract_constant_from_operand_with_fs_fixup(&result, constant);
+      if (constant_is(constant, ck_template_param)) {
+        /* Implicit casts are usually stripped when rescanning expressions with
+           substitution, but that should not be done with this particular
+           cast (tpck_expression or tpck_cast constant). */
+        constant->variant.template_param
+                         .has_generic_cast_for_nontype_template_param = TRUE;
+      }  /* if */
+    } else {
+      prep_nontype_template_argument_initializer(&result, param_type,
+                                                 constant);
+    }  /* if */
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
        constant from the operand.  This comes up for errors and for nonreal

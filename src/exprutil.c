@@ -4188,7 +4188,9 @@ that has it.
     } else if (is_constant_node(expr)) {
       a_constant_ptr   con = node_constant(expr);
       an_expr_node_ptr next_expr = NULL;
-      if (constant_is(con, ck_template_param)) {
+      if (constant_is(con, ck_template_param) &&
+          !con->variant.template_param
+                       .has_generic_cast_for_nontype_template_param) {
         if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
           next_expr = expr_node_from_tpck_expression(con);

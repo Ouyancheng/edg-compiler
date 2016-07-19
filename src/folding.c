@@ -6218,6 +6218,9 @@ a constexpr expansion, and the block provides context information.
           /* The address of a string is a constant. */
           is_constant_addr = TRUE;
           set_constant_address_constant(econ, con);
+        } else if (econ->kind == (a_constant_repr_kind)ck_address) {
+          is_constant_addr = TRUE;
+          copy_constant(econ, con);
         } else if (econ->kind == (a_constant_repr_kind)ck_template_param) {
           /* A dependent constant lvalue.  Just cast it to give it the
              appropriate pointer type to simulate the lvalue-to-rvalue

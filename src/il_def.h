@@ -4473,16 +4473,23 @@ typedef struct a_constant {
       a_template_param_constant_kind
 		kind;
 			/* The kind of template param constant. */
-      a_byte_boolean
-		is_qualified_name;
+      a_bit_field
+		is_qualified_name:1;
 			/* For tpck_unknown_function, TRUE if a qualified
 			   name was used in the source code. */
-      a_byte_boolean
-		is_pack;
+      a_bit_field
+		is_pack:1;
 			/* TRUE if this is a template parameter pack. */
+      a_bit_field
+		has_generic_cast_for_nontype_template_param:1;
+			/* TRUE if this is a constant that includes an implicit
+			   generic cast to model the binding of a template
+			   argument to a nontype template parameter with a
+			   template-dependent type (it should not be skipped
+			   during expression rescanning). */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      a_byte_boolean
-		local_expr_ref;
+      a_bit_field
+		local_expr_ref:1;
 			/* TRUE if the expression normally associated with
 			   variant.expr or variant.templ_sizeof.expr below
 			   is stored in a function scope memory region

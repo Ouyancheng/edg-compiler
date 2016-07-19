@@ -696,6 +696,8 @@ ck_template_param constant.
   cp->variant.template_param.kind = kind;
   cp->variant.template_param.is_qualified_name = FALSE;
   cp->variant.template_param.is_pack = FALSE;
+  cp->variant.template_param
+             .has_generic_cast_for_nontype_template_param = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   cp->variant.template_param.local_expr_ref = FALSE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
