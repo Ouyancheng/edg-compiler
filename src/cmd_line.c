@@ -4255,13 +4255,18 @@ This function is also called in clang mode.
     std_thread_local_storage_specifier_enabled = TRUE;
     c11_atomic_enabled = TRUE;
   }  /* if */
-  if (clang_mode && clang_version >= 30100) {
-    /* Clang enables _Atomic support in all C modes.  We currently disable
-       _Atomic class types in Clang modes, because Clang treats _Atomic
-       classes differently. */
-    c11_atomic_enabled = TRUE;
-    c11_atomic_classes_disabled = TRUE;
-    std_thread_local_storage_specifier_enabled = TRUE;
+  if (clang_mode) {
+    if (clang_version >= 30100) {
+      /* Clang enables _Atomic support in all C modes.  We currently disable
+         _Atomic class types in Clang modes, because Clang treats _Atomic
+         classes differently. */
+      c11_atomic_enabled = TRUE;
+      c11_atomic_classes_disabled = TRUE;
+      std_thread_local_storage_specifier_enabled = TRUE;
+    }  /* if */
+    if (clang_version >= 30700) {
+      nullability_qualifiers_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
@@ -11075,6 +11080,7 @@ variables declared in cmd_line.h.
   null_chars_allowed_in_source = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE;
   report_embedded_cplusplus_noncompliance = FALSE;
   report_gnu_extensions = FALSE;
+  nullability_qualifiers_enabled = FALSE;
   nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
   nonstandard_default_arg_deduction =
                                      DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION;

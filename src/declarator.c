@@ -463,7 +463,7 @@ given type.  If not, issue an error at the given position.
     pos_warning(ec_invalid_type_for_nullability, diag_pos);
     result = FALSE;
   }  /* if */
-  return TRUE;
+  return result;
 }  /* check_nullability_qualifiers */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

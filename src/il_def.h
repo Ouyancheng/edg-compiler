@@ -5239,7 +5239,6 @@ enum a_type_qualifier_tag {
   tqt_nullable,		/* Clang _Nullable qualifier. */
   tqt_nonnull,		/* Clang _Nonnull qualifier. */
   tqt_null_unspecified,	/* Clang _Null_unspecified qualifier. */
-  tqt_last_nullability_bit,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

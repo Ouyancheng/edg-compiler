@@ -1016,7 +1016,7 @@ Install the keywords in the symbol table.
   if (ms_extensions || clang_mode) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
   }  /* if */
-  if (clang_mode) {
+  if (nullability_qualifiers_enabled) {
     enter_keyword((a_token_kind)tok_nullable, "_Nullable");
     enter_keyword((a_token_kind)tok_nonnull, "_Nonnull");
     enter_keyword((a_token_kind)tok_null_unspecified, "_Null_unspecified");

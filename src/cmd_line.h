@@ -1676,6 +1676,11 @@ EXTERN a_boolean
 			   GNU extensions outside system header files. */
 
 EXTERN a_boolean
+		nullability_qualifiers_enabled;
+			/* TRUE if the Clang nullability qualifiers (_Nullable,
+			   _Nonnull, and _Null_unspecified) are recognized. */
+
+EXTERN a_boolean
 		nonstandard_qualifier_deduction;
 			/* TRUE if the nonstandard deduction using the
 			   qualifier portion of a qualified name should be

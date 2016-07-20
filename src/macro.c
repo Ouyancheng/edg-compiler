@@ -4306,7 +4306,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_variadic_templates",
     "200704" },
   { "nullability",
-    &clang_mode,
+    &nullability_qualifiers_enabled,
     NULL,
     NULL }
 };
