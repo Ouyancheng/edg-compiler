@@ -454,7 +454,8 @@ given type.  If not, issue an error at the given position.
       utp->kind == (a_type_kind)tk_template_param ||
       utp->kind == (a_type_kind)tk_error) {
     a_type_qualifier_set  tqs = get_top_level_type_qualifiers(type);
-    if ((tqs & TQ_NULLABILITY) != (nullability & TQ_NULLABILITY)) {
+    if ((tqs & TQ_NULLABILITY) != TQ_NONE &&
+        (tqs & TQ_NULLABILITY) != (nullability & TQ_NULLABILITY)) {
       pos_error(ec_conflicting_nullability, diag_pos);
       result = FALSE;
     }  /* if */
