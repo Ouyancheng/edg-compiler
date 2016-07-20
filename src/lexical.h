@@ -625,6 +625,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_builtin_complex */
    (an_opname_kind)onk_none,          /* tok_c11_generic */
    (an_opname_kind)onk_none,          /* tok_c11_atomic */
+   (an_opname_kind)onk_none,          /* tok_nullable */
+   (an_opname_kind)onk_none,          /* tok_nonnull */
+   (an_opname_kind)onk_none,          /* tok_null_unspecified */
    (an_opname_kind)onk_none,          /* tok_coroutine_yield */
    (an_opname_kind)onk_none,          /* tok_coroutine_return */
    (an_opname_kind)onk_await,         /* tok_coroutine_await */
@@ -2556,7 +2559,9 @@ because uses of the nonstandard spelling are warned about in some modes.)
 
 #define is_type_qualifier_token(tok)                                          \
   ((tok) == tok_const || (tok) == tok_volatile || is_restrict_token(tok) ||   \
-   (tok) == tok_c11_atomic                                                    \
+   (tok) == tok_c11_atomic ||                                                 \
+   (tok) == tok_nullable || (tok) == tok_nonnull ||                           \
+   (tok) == tok_null_unspecified                                              \
    or_is_unaligned_token(tok)                                                 \
    or_is_upc_qual_token(tok))
 

@@ -326,6 +326,11 @@ void array_declarator(a_decl_parse_state    *dps,
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
                                                a_source_position  *error_pos);
 
+extern
+a_boolean check_nullability_qualifiers(a_type_qualifier_set  nullability,
+                                       a_type_ptr            type,
+                                       a_source_position     *diag_pos);
+
 extern a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
                                                    a_type_ptr   *rout_type,
                                                    a_type_ptr   *class_type,

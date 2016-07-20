@@ -1265,6 +1265,9 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_complex,
   tok_c11_generic,
   tok_c11_atomic,
+  tok_nullable,
+  tok_nonnull,
+  tok_null_unspecified,
   tok_coroutine_yield,
   tok_coroutine_return,
   tok_coroutine_await,
@@ -1440,6 +1443,9 @@ EXTERN a_const_char
    "__builtin_complex",
    "_Generic",
    "_Atomic",
+   "_Nullable",
+   "_Nonnull",
+   "_Null_unspecified",
    "co_yield", "co_return", "co_await",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
@@ -5230,6 +5236,10 @@ enum a_type_qualifier_tag {
   tqt_volatile,		/* Volatile qualifier. */
   tqt_restrict,		/* Restrict qualifier. */
   tqt_c11_atomic,	/* C11 _Atomic qualifier. */
+  tqt_nullable,		/* Clang _Nullable qualifier. */
+  tqt_nonnull,		/* Clang _Nonnull qualifier. */
+  tqt_null_unspecified,	/* Clang _Null_unspecified qualifier. */
+  tqt_last_nullability_bit,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5268,6 +5278,16 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 			/* This bit is set to represent restrict. */
 #define TQ_C11_ATOMIC	((a_type_qualifier_set)(1 << (int)tqt_c11_atomic))
 			/* This bit is set to represent _Atomic. */
+#define TQ_NULLABLE	((a_type_qualifier_set)(1 << (int)tqt_nullable))
+			/* This bit is set to represent _Nullable. */
+#define TQ_NONNULL	((a_type_qualifier_set)(1 << (int)tqt_nonnull))
+			/* This bit is set to represent _Nonnull. */
+#define TQ_NULL_UNSPECIFIED                                                  \
+			((a_type_qualifier_set)                              \
+			                  (1 << (int)tqt_null_unspecified))
+			/* This bit is set to represent _Null_unspecified. */
+#define TQ_NULLABILITY	(TQ_NULLABLE | TQ_NONNULL | TQ_NULL_UNSPECIFIED)
+			/* Convenience constant to mask nullability bits. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TQ_UNALIGNED	((a_type_qualifier_set)(1 << (int)tqt_unaligned))
 			/* This bit is set to represent __unaligned. */

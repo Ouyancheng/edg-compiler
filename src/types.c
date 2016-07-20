@@ -5947,7 +5947,8 @@ check_typerefs:
         type_2->kind == (a_type_kind)tk_typeref) {
       goto done;
     }  /* if */
-    if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) && tqs1 != tqs2) {
+    if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
+        !matching_type_qualifier_sets(tqs1, tqs2)) {
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
@@ -14803,7 +14804,22 @@ to the caller.  If no modification is done return the original type.
     check_assertion(!typeref_is_qualified(type));
     type = type->variant.typeref.type;
   }  /* while */
-  if (type->kind == (a_type_kind)tk_array) {
+  if (type->kind == (a_type_kind)tk_typeref) {
+    /* Strip qualifiers that don't distinguish template argument types. */
+    if (type->variant.typeref.qualifiers & TRANSPARENT_QUALIFIERS) {
+      if (type->variant.typeref.qualifiers & ~TRANSPARENT_QUALIFIERS) {
+        /* There are other (non-transparent) qualifiers too: Create a new
+           entry with just those qualifiers. */
+        a_type_ptr new_type = alloc_type((a_type_kind)tk_typeref);
+        copy_type(type, new_type);
+        new_type->variant.typeref.qualifiers &= TRANSPARENT_QUALIFIERS;
+        type = new_type;
+      } else {
+        /* Just skip this entry. */
+        type = type->variant.typeref.type;
+      }  /* if */
+    }  /* if */
+  } else if (type->kind == (a_type_kind)tk_array) {
     if (type->variant.array.constant_bound_expr_in_local_expr_node_ref) {
       /* For an array type that has an associated local expression that gives
          the backing expression for the constant bound, clear the flag and

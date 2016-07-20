@@ -6901,24 +6901,23 @@ error entity.
 static void strip_types_from_template_arg_list(a_template_arg_ptr tap,
                                                a_boolean          local_only)
 /*
-Remove any local typedefs and, if local_only is FALSE, nonreal typedefs
-from the template argument list specified by tap.
+Remove any local typedefs and, if local_only is FALSE, nonreal typedefs from
+the template argument list specified by tap.  This function also strips
+certain type qualifiers that do not distinguish template argument lists (e.g.,
+TQ_NULLABLE).
 */
 {
-  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
-    for (; tap != NULL; tap = tap->next) {
-      if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
-        tap->variant.type =
-                           strip_local_and_nonreal_typedefs(tap->variant.type,
-                                                            local_only);
-      } else if (is_nontype_templ_arg(tap)) {
-        check_assertion(tap->arg_operand == NULL);
-        tap->variant.constant->type =
+  for (; tap != NULL; tap = tap->next) {
+    if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
+      tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type,
+                                                           local_only);
+    } else if (is_nontype_templ_arg(tap)) {
+      check_assertion(tap->arg_operand == NULL);
+      tap->variant.constant->type =
                  strip_local_and_nonreal_typedefs(tap->variant.constant->type,
                                                   local_only);
-      }  /* if */
-    }  /* for */
-  }  /* if */
+    }  /* if */
+  }  /* for */
 }  /* strip_types_from_template_arg_list */
 
 

@@ -7724,6 +7724,14 @@ by *type_ptr.  This function is called from decl_specifiers only.
       qualifiers &= ~TQ_RESTRICT;
       err = TRUE;
     }  /* if */
+    /* If Clang nullability qualifiers are invalid, issue a diagnostic and
+       ignore them. */
+    if ((qualifiers & TQ_NULLABILITY) &&
+        !check_nullability_qualifiers(qualifiers, *type_ptr,
+                                      &state->qualifiers_pos)) {
+      qualifiers &= ~TQ_NULLABILITY;
+      err = TRUE;
+    }  /* if */
     if (qualifiers != TQ_NONE) {
       /* Type qualifiers occurring on function types through typedef or
          template parameter substitutions are ignored.  The C standard (C90
@@ -9792,6 +9800,63 @@ storage_class_specifier:
           /* A type qualifier. */
           record_qualifiers_pos();
           qualifiers |= TQ_C11_ATOMIC;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_nullable:
+        /* Clang _Nullable qualifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double _Nullable j;". */
+          pos_warning(ec_type_qualifier_ignored, &error_position);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        if (qualifiers & TQ_NULLABLE) {
+          pos_warning(ec_dupl_type_qualifier, &pos_curr_token);
+        } else if (qualifiers & TQ_NULLABILITY) {
+          pos_error(ec_conflicting_nullability, &pos_curr_token);
+        } else {
+          record_qualifiers_pos();
+          qualifiers |= TQ_NULLABLE;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_nonnull:
+        /* Clang _Nullable qualifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double _Nullable j;". */
+          pos_warning(ec_type_qualifier_ignored, &error_position);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        if (qualifiers & TQ_NONNULL) {
+          pos_warning(ec_dupl_type_qualifier, &pos_curr_token);
+        } else if (qualifiers & TQ_NULLABILITY) {
+          pos_error(ec_conflicting_nullability, &pos_curr_token);
+        } else {
+          record_qualifiers_pos();
+          qualifiers |= TQ_NONNULL;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_null_unspecified:
+        /* Clang _Nullable qualifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double _Nullable j;". */
+          pos_warning(ec_type_qualifier_ignored, &error_position);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        if (qualifiers & TQ_NULL_UNSPECIFIED) {
+          pos_warning(ec_dupl_type_qualifier, &pos_curr_token);
+        } else if (qualifiers & TQ_NULLABILITY) {
+          pos_error(ec_conflicting_nullability, &pos_curr_token);
+        } else {
+          record_qualifiers_pos();
+          qualifiers |= TQ_NULL_UNSPECIFIED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;

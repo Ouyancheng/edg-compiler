@@ -1095,6 +1095,12 @@ Return a string containing the given qualifiers in human-readable form.
                              qualifiers, "restrict");
   db_add_qualifier_to_string((a_type_qualifier_set)TQ_C11_ATOMIC,
                              qualifiers, "_Atomic");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_NULLABLE,
+                             qualifiers, "_Nullable");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_NONNULL,
+                             qualifiers, "_Nonnull");
+  db_add_qualifier_to_string((a_type_qualifier_set)TQ_NULL_UNSPECIFIED,
+                             qualifiers, "_Null_unspecified");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   db_add_qualifier_to_string((a_type_qualifier_set)TQ_UNALIGNED,
                              qualifiers, "unaligned");
@@ -11211,6 +11217,13 @@ are not already present.
       }  /* if */
     }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+    if (qualifiers_to_add & TQ_NULLABILITY) {
+      if (base_type_qualifiers & TQ_NULLABILITY) {
+        /* Ignore conflicting nullability qualifiers if they weren't caught
+           before (this is apparently how Clang operates). */
+        qualifiers_to_add &= ~TQ_NULLABILITY;
+      }  /* if */
+    }  /* if */
     /* Some qualifiers need to be added. */
     if (base_type_qualifiers != TQ_NONE) {
       /* The typeref(s) containing qualifiers, if any, are removed to get down

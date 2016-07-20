@@ -437,6 +437,34 @@ derived type to remove the restrict qualifier.
   }  /* if */  
 }  /* check_for_restrict_qualifier_on_derived_type */
 
+
+a_boolean check_nullability_qualifiers(a_type_qualifier_set  nullability,
+                                       a_type_ptr            type,
+                                       a_source_position     *diag_pos)
+/*
+Check that the given nullability qualifiers can validly be applied to the
+given type.  If not, issue an error at the given position.
+*/
+{
+  a_boolean   result = TRUE;
+  a_type_ptr  utp = skip_typerefs(type);
+
+  if (is_pointer_type(utp) ||
+      utp->kind == (a_type_kind)tk_ptr_to_member ||
+      utp->kind == (a_type_kind)tk_template_param ||
+      utp->kind == (a_type_kind)tk_error) {
+    a_type_qualifier_set  tqs = get_top_level_type_qualifiers(type);
+    if ((tqs & TQ_NULLABILITY) != (nullability & TQ_NULLABILITY)) {
+      pos_error(ec_conflicting_nullability, diag_pos);
+      result = FALSE;
+    }  /* if */
+  } else {
+    pos_warning(ec_invalid_type_for_nullability, diag_pos);
+    result = FALSE;
+  }  /* if */
+  return TRUE;
+}  /* check_nullability_qualifiers */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_type_ptr form_declared_type(a_type_ptr             type_ptr,

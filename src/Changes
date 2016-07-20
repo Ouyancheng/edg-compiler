@@ -1,5 +1,16 @@
 Version 4.12
 
+7/21/16  [EDGcpfe/16527,EDGcpfe/16916]
+Clang compatibility: _Nullable, _Nonnull, and _Null_unspecified
+
+In Clang modes, the front end now supports new type qualifiers _Nullable,
+_Nonnull, and _Null_unspecified that indicate whether a pointer or
+pointer-to-member type admits a null value.  These qualifiers are unusual
+in that they do not affect type equivalence; for example, given a template
+X<T>, X<int *_Nullable> and X<int *_Nonnull> are the same type (the
+qualifiers are stripped from the IL for template arguments).
+
+
 7/20/16  [EDGcpfe/17408]
 C++17 compatibility: terse static_assert
 

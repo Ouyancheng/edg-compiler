@@ -1016,6 +1016,11 @@ Install the keywords in the symbol table.
   if (ms_extensions || clang_mode) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
   }  /* if */
+  if (clang_mode) {
+    enter_keyword((a_token_kind)tok_nullable, "_Nullable");
+    enter_keyword((a_token_kind)tok_nonnull, "_Nonnull");
+    enter_keyword((a_token_kind)tok_null_unspecified, "_Null_unspecified");
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_attributes_enabled) {
     enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");

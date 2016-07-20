@@ -4304,7 +4304,11 @@ static a_feature_support feature_support_list[] = {
   { "cxx_variadic_templates",
     &variadic_templates_enabled,
     "__cpp_variadic_templates",
-    "200704" }
+    "200704" },
+  { "nullability",
+    &clang_mode,
+    NULL,
+    NULL }
 };
 
 #define NUM_FEATURES (sizeof(feature_support_list) / sizeof(a_feature_support))

@@ -478,6 +478,25 @@ type if tp is an array.
   (get_top_level_type_qualifiers(tp) != TQ_NONE)
 
 /*
+Macro defining qualifiers that don't affect type equivalence: From the front
+end's perspective a type so-qualified is identical to its underlying type.
+These qualifiers may mean something to a back end, however: They should
+therefore be stripped from template argument types.
+
+An example is the Clang _Nullable qualifier.  Given a template X, X<int*> and
+X<int *_Nullable> denote the same specialization.  Recording the _Nullable
+attribute in the template argument would therefore be misleading.
+*/
+#define TRANSPARENT_QUALIFIERS TQ_NULLABILITY
+
+/*
+Return TRUE if type qualifiers that actually modify the underlying type are
+identical.  (In particular, this ignores the transparent qualifiers.)
+*/
+#define matching_type_qualifier_sets(tqs1, tqs2)                     \
+  (((tqs1) & ~TRANSPARENT_QUALIFIERS) == ((tqs2) & ~TRANSPARENT_QUALIFIERS))
+
+/*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
 the underlying types are ignored.  On an array type it is the element
 type that is checked for qualifiers.  (When UPC extensions are supported,
@@ -485,11 +504,13 @@ UPC block sizes must match too.)
 */
 #if UPC_EXTENSIONS_ALLOWED
 #define type_qualifiers_match(tp1, tp2)                               \
-  (get_type_qualifiers(tp1) == get_type_qualifiers(tp2) &&            \
+  (matching_type_qualifier_sets(get_type_qualifiers(tp1),             \
+                                get_type_qualifiers(tp2)) &&          \
    get_upc_block_size(tp1) == get_upc_block_size(tp2))
 #else /* !UPC_EXTENSIONS_ALLOWED */
 #define type_qualifiers_match(tp1, tp2)                               \
-  (get_type_qualifiers(tp1) == get_type_qualifiers(tp2))
+  matching_type_qualifier_sets(get_type_qualifiers(tp1),              \
+                               get_type_qualifiers(tp2))
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*

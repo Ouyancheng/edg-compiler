@@ -801,6 +801,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_volatile:
       case tok_restrict:
       case tok_gnu_restrict:
+      case tok_nullable:
+      case tok_nonnull:
+      case tok_null_unspecified:
 #if NEAR_AND_FAR_ALLOWED
       case tok_near:
       case tok_far:
