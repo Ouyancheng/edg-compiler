@@ -4270,8 +4270,9 @@ static a_feature_support feature_support_list[] = {
     "200610" },
   { "cxx_static_assert",
     &static_assert_enabled,
-    "__cpp_static_assert",
-    "200410" },
+    NULL,		/* __cpp_static_assert must be handled specially, as
+			   the single macro name takes on different values. */
+    NULL },
   { "cxx_strong_enums",
     &enum_qualifiers_enabled,
     NULL,
@@ -10053,6 +10054,15 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (constexpr_enabled) {
         (void)enter_predef_macro("200704", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      /* __cpp_static_assert must be handled specially, as it will have
+         different values depending on whether C++11 or C++17 mode is used. */
+      if (static_assert_enabled) {
+        (void)enter_predef_macro(terse_static_assert_enabled ? "201411" :
+                                                               "200410",
+                                 "__cpp_static_assert",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
