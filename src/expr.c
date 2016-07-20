@@ -39503,13 +39503,14 @@ memory region).  If param_type is NULL, the parameter type is not known.
      conversions. */
   if (param_type != NULL && !relaxed_ms_case) {
     /* Convert the nontype template argument to the template parameter type.
-       If the argument may require a rescan but the parameter type is still
-       dependent, do not do the conversion yet since the nature of the
-       conversion may change (otherwise we might, e.g., prematurely convert
-       an lvalue argument to an rvalue even though a future substitution might
-       turn this into a reference binding). */
+       If the argument may require a rescan but the parameter type is template
+       parameter type, do not do the conversion yet since the nature of the
+       conversion may change (otherwise we might prematurely convert an lvalue
+       argument to an rvalue even though a future substitution might turn this
+       into a reference binding); instead, just record a generic cast on the
+       operand. */
     if (expr_stack->possible_rescan_context &&
-        is_template_dependent_type(param_type)) {
+        is_template_param_type(param_type)) {
       prep_generic_nontype_template_argument(&result);
       generic_cast_operand(&result, param_type, csf_none,
                            /*is_implicit_cast=*/TRUE);

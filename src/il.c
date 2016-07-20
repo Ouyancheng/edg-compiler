@@ -16620,7 +16620,7 @@ options is a set of name lookup options.
     case enk_variable:
     case enk_routine:
       { a_boolean  folded_to_constant = FALSE;
-        if (guide_type != NULL &&
+        if (guide_type != NULL && is_ptr_or_ref_type(guide_type) &&
             constant_glvalue_address(expr, constant,
                                      /*address_escapes=*/TRUE)) {
           /* See if the resulting constant can bind to the destination
@@ -16661,11 +16661,28 @@ options is a set of name lookup options.
             folded_to_constant = TRUE;
           }  /* if */
         }  /* if */
+        if (!folded_to_constant) {
+          expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+          if (expr_copy->is_lvalue && is_variable_node(expr_copy) &&
+              guide_type != NULL && !is_any_reference_type(guide_type)) {
+            /* expr is an lvalue variable access, but it has a cast to a
+               nonreference type on top of it.  This can happen when the cast
+               represents a nontype template parameter binding where the type
+               of the parameter is itself template dependent (see
+               scan_template_argument_constant_expression).  In that case,
+               fold the variable access if possible. */
+            a_variable_ptr  vp = node_variable(expr_copy);
+            a_constant_ptr  cp = var_constant_value(vp);
+            if (cp != NULL) {
+              copy_constant(cp, constant);
+              constant->expr = NULL;
+              folded_to_constant = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
         if (folded_to_constant) {
           expr_copy = NULL;
           *alloc_con = NULL;
-        } else {
-          expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
         }  /* if */
       }  /* if */
       break;
