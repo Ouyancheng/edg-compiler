@@ -2483,6 +2483,7 @@ option values if they were not already set by a command line option.
         if (ms_cpplatest_mode) {
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
+          terse_static_assert_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3239,6 +3240,7 @@ default mode (e.g., exception handling).
       namespace_attributes_enabled = TRUE;
       nested_namespace_definitions_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
+      terse_static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -4546,6 +4548,10 @@ before this routine is called.
   /* GCC 5.x and earlier accept "false" as a null pointer constant. */
   if (!clang_mode && gnu_version < 60000) {
     false_literal_is_not_null_pointer_constant = FALSE;
+  }  /* if */
+  if (cpp11_mode && gnu_version >= 60000 && !clang_mode) {
+    /* Later versions of GNU appear to enable this by default. */
+    terse_static_assert_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 

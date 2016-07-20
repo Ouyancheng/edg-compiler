@@ -13649,29 +13649,29 @@ Only the part marked is scanned in this routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void make_static_assert_string_for_output(void)
+static void make_static_assert_string_for_output(a_constant_ptr error_string)
 /*
-Create a character string from the string constant entry associated with the
-current token.  The string constant entry may represent a wide-character
+Create a character string from the string constant entry associated with
+error_string.  The string constant entry may represent a wide-character
 literal, but the output will be restricted to the basic source character
 set -- other characters are replaced by a '?'.  The generated string (which
 is meant to be used in a diagnostic) is stored in temp_text_buffer.
 */
 {
-  a_constant_ptr  con = &const_for_curr_token;
   unsigned int    char_size;
   a_const_char    *ptr;
-  a_targ_size_t    con_byte_len, msg_len, k;
+  a_targ_size_t   con_byte_len, msg_len, k;
 
-  check_assertion(con->kind == (a_constant_repr_kind)ck_string);
-  char_size = (unsigned int)character_size[con->character_kind];
+  check_assertion(error_string != NULL &&
+                  error_string->kind == (a_constant_repr_kind)ck_string);
+  char_size = (unsigned int)character_size[error_string->character_kind];
   /* Allocate the number of characters needed (plus one in case the constant
      doesn't include a trailing NULL). */
-  con_byte_len = con->variant.string.length;
+  con_byte_len = error_string->variant.string.length;
   msg_len = con_byte_len/char_size;
   ensure_temp_text_buffer_space(msg_len+1);
   /* Extract the characters from the constant. */
-  ptr = con->variant.string.value;
+  ptr = error_string->variant.string.value;
   for (k = 0; k < msg_len; ++k, ptr += char_size) {
     unsigned long  char_val = extract_character_from_string(ptr, char_size);
     if (char_val == 0) {
@@ -13692,12 +13692,17 @@ void static_assert_declaration(a_boolean  leave_semicolon)
 /*
 Parse a construct of the form
 	static_assert ( <constant-expression> , <string-literal> ) ;
-Issue an error incorporating the string literal if the constant-expression
-is "false".  If leave_semicolon is TRUE, do not consume the final token.
+          or (when terse_static_assert_enabled is TRUE)
+	static_assert ( <constant-expression> ) ;
+Issue an error incorporating the string literal (if present) if the constant-
+expression is "false".  If leave_semicolon is TRUE, do not consume the
+final token.
 */
 {
   a_constant_ptr     assert_con = local_constant();
   a_source_position  pos;
+  a_constant_ptr     error_string = NULL;
+  a_boolean          err = FALSE;
 
   cannot_bind_to_curr_construct();
   /* Record the construct's position and verify the introductory tokens. */
@@ -13711,18 +13716,35 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
   /* Scan the first argument, which must be a constant expression convertible
      to bool. */
   scan_bool_constant_expression(assert_con);
-  /* Scan the second argument, which must be a string literal. */
   remove_stop_token(tok_comma);
-  (void)required_token(tok_comma, ec_exp_comma);
-  if (curr_token != tok_string_literal) {
-    syntax_error(ec_exp_string_literal);
+  if (curr_token == tok_rparen) {
+    /* This appears to be a terse static_assert (i.e., one with only a
+       single argument). */
+    if (!terse_static_assert_enabled) {
+      pos_diagnostic(es_discretionary_error,
+                     ec_terse_static_assert_not_enabled, &pos_curr_token);
+    }  /* if */
   } else {
-    /* We've seen enough of the construct to evaluate it (if it is
-       nondependent), and (in some configurations) record it. */
+    /* Scan the second argument, which must be a string literal. */
+    (void)required_token(tok_comma, ec_exp_comma);
+    if (curr_token != tok_string_literal) {
+      syntax_error(ec_exp_string_literal);
+      err = TRUE;
+    } else {
+      error_string = &const_for_curr_token;
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  /* Verify the closing tokens. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  if (!err) {
+    /* Evaluate the constant expression (if it is nondependent), and (in some
+       configurations) record it. */
     /* In Microsoft mode, we do not check the assertion in "nonreal
        instantiations". */
     if (is_error_constant(assert_con) ||
-        is_error_constant(&const_for_curr_token)) {
+        (error_string != NULL && is_error_constant(error_string))) {
       /* An error should already have been issued. */
       expect_error();
     } else if (assert_con->kind != (a_constant_repr_kind)ck_template_param &&
@@ -13730,24 +13752,26 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
                !(microsoft_mode &&
                  scope_stack_top().in_nonreal_instantiation)) {
       /* The assertion failed: Issue an error. */
-      make_static_assert_string_for_output();
-      pos_st_error(ec_static_assert, &pos, temp_text_buffer);
+      if (error_string != NULL) {
+        make_static_assert_string_for_output(error_string);
+        pos_st_error(ec_static_assert, &pos, temp_text_buffer);
+      } else {
+        pos_error(ec_terse_static_assert, &pos);
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     } else {
       /* Record the assertion in the IL. */
       a_static_assertion_ptr  entry = alloc_static_assertion();
       entry->condition = alloc_shareable_constant(assert_con);
-      entry->string_literal = alloc_shareable_constant(&const_for_curr_token);
+      if (error_string != NULL) {
+        entry->string_literal = alloc_shareable_constant(error_string);
+      }  /* if */
       entry->position = pos;
       add_to_source_sequence_list((char*)entry,
                                   (an_il_entry_kind)iek_static_assertion);  
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    (void)get_token();
   }  /* if */
-  /* Verify the closing tokens. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
   if (!leave_semicolon) {
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */

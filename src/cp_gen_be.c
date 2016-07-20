@@ -14979,8 +14979,10 @@ Generate code for a static_assert declaration.  The general form is:
     write_tok_str("static_assert(");
   }  /* if */
   gen_constant(entry->condition, /*need_parens=*/TRUE);
-  write_tok_str(", ");
-  gen_constant(entry->string_literal, /*need_parens=*/FALSE);
+  if (entry->string_literal != NULL) {
+    write_tok_str(", ");
+    gen_constant(entry->string_literal, /*need_parens=*/FALSE);
+  }  /* if */
   write_tok_str(");");
 }  /* gen_static_assertion */
 

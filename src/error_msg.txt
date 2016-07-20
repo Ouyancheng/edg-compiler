@@ -2862,6 +2862,8 @@ ec_access_to_member_of_c11_atomic_object;;"access to member of _Atomic object"
 ec_c11_atomic_bit_field;;"a bit field cannot have an _Atomic type"
 ec_c11_atomic_class_types_disabled;;"_Atomic class types are disabled"
 ec_nonconstexpr_mem_init_ctor_for_constexpr_ctor;;"constexpr constructor calls non-constexpr constructor for subobject initialization"
+ec_terse_static_assert_not_enabled;;"expected a comma (the one-argument version of static_assert is not enabled in this mode)"
+ec_terse_static_assert;;"static assertion failed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

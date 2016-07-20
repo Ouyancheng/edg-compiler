@@ -2439,6 +2439,11 @@ EXTERN a_boolean
 			   supported. */
 
 EXTERN a_boolean
+		terse_static_assert_enabled;
+			/* When TRUE, the C++17 terse static_assert (i.e., one
+			   with only a single argument) is supported. */
+
+EXTERN a_boolean
 		auto_type_specifier_enabled;
 			/* When TRUE, the "auto" token can appear as a type
 			   specifier (the type is implied by the mandatory

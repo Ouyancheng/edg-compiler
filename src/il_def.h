@@ -1955,7 +1955,9 @@ typedef struct a_static_assertion {
   a_constant_ptr
 		string_literal;
 			/* A constant representing the string literal to be
-			   emitted if the assertion fails. */
+			   emitted if the assertion fails.  NULL in the case
+			   of a terse static_assert (i.e., one with only a
+			   single argument). */
   a_source_position
 		position;
 			/* The source position of the start of the
