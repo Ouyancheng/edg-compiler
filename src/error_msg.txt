@@ -2864,7 +2864,7 @@ ec_c11_atomic_class_types_disabled;;"_Atomic class types are disabled"
 ec_nonconstexpr_mem_init_ctor_for_constexpr_ctor;;"constexpr constructor calls non-constexpr constructor for subobject initialization"
 ec_terse_static_assert_not_enabled;;"expected a comma (the one-argument version of static_assert is not enabled in this mode)"
 ec_terse_static_assert;;"static assertion failed"
-ec_conflicting_nullability;;"at most one of the qualifiers _Nullable, _Nonnull, and _Null_unspecified can modify type"
+ec_conflicting_nullability;;"at most one of the qualifiers _Nullable, _Nonnull, and _Null_unspecified can modify a type"
 ec_invalid_type_for_nullability;;"nullability qualifiers are only permitted on pointer and pointer-to-member types"
 ###############################################################################
 #                                                             \  ___  /       #

@@ -9823,10 +9823,10 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_nonnull:
-        /* Clang _Nullable qualifier. */
+        /* Clang _Nonnull qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-          /* E.g., "int i, double _Nullable j;". */
+          /* E.g., "int i, double _Nonnull j;". */
           pos_warning(ec_type_qualifier_ignored, &error_position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9842,10 +9842,10 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_null_unspecified:
-        /* Clang _Nullable qualifier. */
+        /* Clang _Null_unspecified qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-          /* E.g., "int i, double _Nullable j;". */
+          /* E.g., "int i, double _Null_unspecified j;". */
           pos_warning(ec_type_qualifier_ignored, &error_position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
