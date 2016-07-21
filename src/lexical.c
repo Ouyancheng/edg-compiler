@@ -16296,7 +16296,21 @@ all arguments were explicit.
         if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
-          a_template_symbol_supplement_ptr  tssp1, tssp2;
+          a_template_symbol_supplement_ptr	tssp1, tssp2;
+          a_template_ptr			param_template;
+          param_template = param_ptr->variant.templ->il_template_entry;
+          if (param_ptr->variant.templ->
+                              variant.class_template.involves_template_param &&
+              !template_in_prototype_instantiation) {
+            /* The template template parameter depends on another template
+               parameter, for example:
+                 template <class T, template <T t> class X> ...
+               Rescan the template template parameter declaration to create a
+               new parameter template. */
+            param_template = rescan_template_template_parameter(
+                                           template_sym, param_ptr, arg_list);
+            arg_ptr->variant.templ.substituted_param_template = param_template;
+          }  /* if */
           arg_ptr->variant.templ.ptr =
                     rescan_template_template_default_arg(templ_sym_for_default,
                                                          param_for_default,
@@ -16311,10 +16325,9 @@ all arguments were explicit.
                appropriate.  (This is a GNU compatibility feature.) */
             a_symbol_ptr  arg_sym = symbol_for(arg_ptr->variant.templ.ptr);
             a_symbol_ptr  param_sym = symbol_for(tssp1->il_template_entry);
-            /* Update tssp1 to refer to the rescanned template returned
-               above. */
-            tssp1 = template_supplement_for_template(
-                                                   arg_ptr->variant.templ.ptr);
+            /* Update tssp1 to refer to the (possibly) rescanned template
+               parameter created above. */
+            tssp1 = template_supplement_for_template(param_template);
             tssp2 = arg_sym->variant.template_info;
             if (!equiv_template_param_lists(
                                       tssp1->cache.decl_info->parameters,
