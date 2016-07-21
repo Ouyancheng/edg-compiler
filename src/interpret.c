@@ -2312,9 +2312,7 @@ search_base_subobjects:
     last_bcp = NULL;
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct && !bcp->is_virtual) {
-        if (last_bcp == NULL) {
-          last_bcp = bcp;
-        } else {
+        if (last_bcp != NULL) {
           get_mapped_byte_count(&persistent_map, bcp, sub_offset);
           if (offset < sub_offset) {
             *p_field = NULL;
@@ -2322,13 +2320,12 @@ search_base_subobjects:
             goto done;
           }  /* if */
         }  /* if */
+        last_bcp = bcp;
       }  /* if */
     }  /* for */
     for (bcp = base_classes_of(parent_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
-        if (last_bcp == NULL) {
-          last_bcp = bcp;
-        } else {
+        if (last_bcp != NULL) {
           get_mapped_byte_count(&persistent_map, bcp, sub_offset);
           if (offset < sub_offset) {
             *p_field = NULL;
@@ -2336,6 +2333,7 @@ search_base_subobjects:
             goto done;
           }  /* if */
         }  /* if */
+        last_bcp = bcp;
       }  /* if */
     }  /* for */
     if (offset-sub_offset < value_bytes_for_type(ips, last_bcp->type, &okay)) {
