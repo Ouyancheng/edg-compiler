@@ -2330,10 +2330,12 @@ Return TRUE if we are in a pack expansion context that is not a suppression.
 Return TRUE if we are in a context where Microsoft compilers do not appear to
 instantiate a class template to ensure that candidate functions (friend
 functions or member operators) are seen.  (This is a conservative
-approximation; the actual behavior of Microsoft compilers is unclear.)
+approximation; the actual behavior of Microsoft compilers is unclear.  Newer
+Microsoft compilers fixed this.)
 */
 #define ms_does_not_complete_class_for_candidate_decl()                      \
   (scope_stack_top().in_decltype_context &&                                  \
+   microsoft_version < 1900 &&                                               \
    (scope_stack_top().is_rescan ||                                           \
     scope_stack_top().function_partial_instantiation))
 
