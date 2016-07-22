@@ -1,5 +1,27 @@
 Version 4.12
 
+7/22/16  [EDGcpfe/17226]
+Stricter template checking
+
+A new command-line option --stricter_template_checking (and associated global
+variable stricter_template_checking) now causes the front end to more strictly
+check prototype instantiations in modes that ordinarily weaken such checks.
+For example:
+
+  template<typename> struct S {
+    void f();  // (1)
+    void g() {
+      f(42);   // (2)
+    }
+  };
+
+When performing prototype instantiations of nonclass entities this code is
+accepted by default in Clang, GCC, and Microsoft modes.  When the new option
+--stricter_template_checking is enabled, an error is issued because call (2)
+has more arguments than the function declaration (1) it resolves too.  (That
+error is always issued in strict mode.)
+
+
 7/21/16  [EDGcpfe/17423]
 Abort on constexpr call producing an address in a base class subobject
 

@@ -897,6 +897,7 @@ check_abbreviation()
 --stdc_zero_in_system_headers
 --strict
 --strict_warnings
+--stricter_template_checking
 --strip
 --strip_line_dirs
 --sun
@@ -1443,6 +1444,7 @@ process_option()
          --no_deprecated_string_conv | \
          --parse_templates | \
          --no_parse_templates | \
+         --stricter_template_checking | \
          --export | \
          --no_export | \
          --stdarg_builtin | \
