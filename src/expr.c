@@ -5281,7 +5281,7 @@ are expected to be NULL in that case.
                is_template_dependent_context() &&
                (is_template_param_type(operand->type) ||
                 ((gpp_mode || clang_mode || microsoft_mode) &&
-                 member_of_proto_inst && !stricter_template_checking))) {
+                 member_of_proto_inst))) {
       /* A call of a dependent expression in a prototype instantiation.  Note
          that we test only for a top-level parameter type here, which might be
          a class.  If a call "f()" is implicitly treated as "this->f()" with f
@@ -5291,8 +5291,7 @@ are expected to be NULL in that case.
          for other dependent cases is done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
-      if ((gpp_mode || clang_mode || microsoft_mode) &&
-          member_of_proto_inst && !stricter_template_checking) {
+      if ((gpp_mode || clang_mode || microsoft_mode) && member_of_proto_inst) {
         /* Make the call target opaque. */
         make_template_param_expr_constant_operand(operand);
         operand->type = type_of_unknown_templ_param_nontype;

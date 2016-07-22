@@ -1486,10 +1486,6 @@ Initialize the option information table.
   add_option_description(optk_utf8_char_literals, "no_utf8_char_literals",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_stricter_template_checking,
-                         "stricter_template_checking",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -9972,9 +9968,6 @@ enable_microsoft_mode:
       case optk_utf8_char_literals:
         utf8_char_literals_enabled = opt_value;
         break;
-      case optk_stricter_template_checking:
-        stricter_template_checking = TRUE;
-        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -10900,7 +10893,6 @@ variables declared in cmd_line.h.
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
   defer_function_prototype_instantiations = FALSE;
-  stricter_template_checking = FALSE;
   suppress_deferral_on_partial_spec_members =
                              DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS;
   defer_friend_instantiation = TRUE;

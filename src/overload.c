@@ -8841,7 +8841,7 @@ and return NULL.  This routine is called only in C++ mode.
       /* A function for which we can't do overload resolution at this
          time. */
       defer_overload_resolution = TRUE;
-    } else if ((clang_mode || microsoft_mode) && !stricter_template_checking &&
+    } else if ((clang_mode || microsoft_mode) &&
                expr_stack->uses_this_operand) {
         /* In a template-dependent context Clang appears to defer resolution
            of a call of the form "f(<expr-list>)" where <expr-list> is
@@ -16239,7 +16239,6 @@ operand when initializer lists are enabled.
               break;
             } else if (is_template_dependent_context() &&
                        (clang_mode || microsoft_mode) &&
-                       !stricter_template_checking &&
                        expr_stack->uses_this_operand) {
                 /* In a template-dependent context Clang appears to defer
                    resolution of a call of the form "f(<expr-list>)" where
