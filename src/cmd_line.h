@@ -315,6 +315,7 @@ typedef enum /*an_option_kind*/ {
   optk_target,
   optk_cpp17_mode,
   optk_utf8_char_literals,
+  optk_stricter_template_checking,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -741,6 +742,15 @@ EXTERN a_boolean
 			   in some modes.  See FUNCTION_PROTOTYPE_-
 			   INSTANTIATION_DEFERRAL_ALLOWED for more
 			   information. */
+
+EXTERN a_boolean
+		stricter_template_checking;
+			/* In some dialects, type checking in prototype
+			   instantiations is reduced to accept code that the
+			   corresponding compilers (MSVC, Clang, GCC) accept.
+			   When this variable is TRUE, type checking is
+			   stricter (though not always as strict as it is in
+			   strict mode). */
 
 EXTERN a_boolean
 		suppress_deferral_on_partial_spec_members;

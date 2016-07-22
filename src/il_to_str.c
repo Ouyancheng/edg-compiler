@@ -1258,11 +1258,19 @@ Do the output in the way described by octl.
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
     output_qualifier(TQ_RESTRICT, (char *)(use_gnu_form() ? "__restrict__" :
                                                             "restrict"));
-    if (clang_is_generated_code_target || !octl->gen_compilable_code) {
-      output_qualifier(TQ_NULLABLE, "_Nullable");
-      output_qualifier(TQ_NONNULL, "_Nonnull");
-      output_qualifier(TQ_NULL_UNSPECIFIED, "_Null_unspecified");
-    }  /* if */
+    { a_boolean  output_nullability = !octl->gen_compilable_code;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      /* Nullability qualifiers are only accepted by Clang and can safely be
+         ignored.  So when generating compilable code, do not render them
+         unless we are generating code for Clang. */
+      output_nullability |= clang_is_generated_code_target;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+      if (output_nullability) {
+        output_qualifier(TQ_NULLABLE, "_Nullable");
+        output_qualifier(TQ_NONNULL, "_Nonnull");
+        output_qualifier(TQ_NULL_UNSPECIFIED, "_Null_unspecified");
+      }  /* if */
+    }
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     if (octl->gen_compilable_code &&
