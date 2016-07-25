@@ -10061,8 +10061,16 @@ command line -D options.
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
-      /* __cpp_static_assert must be handled specially, as it will have
-         different values depending on whether C++11 or C++17 mode is used. */
+      /* __cpp_range_based_for and __cpp_static_assert must be handled
+         specially, as they will have different values depending on whether
+         C++11 or C++17 mode is used. */
+      if (range_based_for_enabled) {
+        (void)enter_predef_macro(terse_static_assert_enabled ? "201603" :
+                                                               "200907",
+                                 "__cpp_range_based_for",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
       if (static_assert_enabled) {
         (void)enter_predef_macro(terse_static_assert_enabled ? "201411" :
                                                                "200410",
