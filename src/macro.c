@@ -4236,7 +4236,8 @@ static a_feature_support feature_support_list[] = {
     NULL },
   { "cxx_range_for",
     &range_based_for_enabled,
-    NULL,
+    NULL,		/* __cpp_range_based_for must be handled specially, as
+			   the single macro name takes on different values. */
     NULL },
   { "cxx_raw_string_literals",
     &raw_string_literals_enabled,
