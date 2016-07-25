@@ -35410,12 +35410,11 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   an_operand          operand1, operand2, operand;
   a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
   an_expr_stack_entry expr_stack_entry;
-  a_type_ptr          orig_op1_type;
+  a_type_ptr          orig_op1_type, orig_op2_type;
   a_boolean           via_udc = FALSE;
 
   *ne_call_expr = NULL;
   *incr_call_expr = NULL;
-  check_assertion(types_are_compatible(begin_var->type, end_var->type));
   /* Make the "i != cend" or "__begin != __end" expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -35427,11 +35426,13 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   make_lvalue_variable_operand(end_var,
                                &null_source_position, &null_source_position,
                                &operand2, (a_ref_entry *)NULL);
+  orig_op2_type = operand2.type;
   processed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled) has_predef_meaning = is_handle_type(orig_op1_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_overloadable_first_operand_type(orig_op1_type)) {
+  if (is_overloadable_first_operand_type(orig_op1_type) ||
+      is_overloadable_first_operand_type(orig_op2_type)) {
     check_for_operator_overloading((an_opname_kind)onk_ne,
                                    /*is_unary_op=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
@@ -37627,7 +37628,9 @@ and can have the following forms (see [stmt.ranged] for specifics):
     passed = check_range_based_for_default_case(rbflp, expr_position,
                                                 tok_seq_number);
   }  /* if */
-  if (passed) {
+  if (passed && !relaxed_range_based_for_enabled) {
+    /* Check that "__begin" and "__end" have compatible types.  That
+       requirement was lifted in C++17. */
     if (!types_are_compatible(rbflp->begin->type, rbflp->end->type)) {
       /* The types of "__begin" and "__end" are not compatible. */
       pos_ty2_error(ec_begin_end_type_mismatch_in_range_based_for,

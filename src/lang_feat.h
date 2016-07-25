@@ -2528,6 +2528,17 @@ EXTERN a_boolean
 			   is enabled. */
 
 EXTERN a_boolean
+		relaxed_range_based_for_enabled;
+			/* When TRUE, and when range_based_for_enabled is TRUE,
+			   the "begin" and "end" iterators implied by the
+			   definition of the range-based-for statement are not
+			   required to have compatible types (as long as an
+			   overloaded operator!= or user-defined implicit
+			   conversion operator keep the expanded form of the
+			   range-based-for loop valid).  This relaxation was
+			   introduced for C++17. */
+
+EXTERN a_boolean
 		terse_range_based_for_enabled;
 			/* When TRUE, the "terse" form of range-based-for
 			   statement is enabled (e.g., "for (x: v) ...").  This

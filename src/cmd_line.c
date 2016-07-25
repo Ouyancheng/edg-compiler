@@ -2488,6 +2488,7 @@ option values if they were not already set by a command line option.
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
           terse_static_assert_enabled = TRUE;
+          relaxed_range_based_for_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3247,6 +3248,9 @@ default mode (e.g., exception handling).
       terse_static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
+      }  /* if */
+      if (range_based_for_enabled) {
+        relaxed_range_based_for_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11297,6 +11301,7 @@ variables declared in cmd_line.h.
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
+  relaxed_range_based_for_enabled = FALSE;
   terse_range_based_for_enabled = FALSE;
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
