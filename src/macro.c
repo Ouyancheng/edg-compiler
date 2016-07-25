@@ -10065,8 +10065,8 @@ command line -D options.
          specially, as they will have different values depending on whether
          C++11 or C++17 mode is used. */
       if (range_based_for_enabled) {
-        (void)enter_predef_macro(terse_static_assert_enabled ? "201603" :
-                                                               "200907",
+        (void)enter_predef_macro(relaxed_range_based_for_enabled ? "201603" :
+                                                                   "200907",
                                  "__cpp_range_based_for",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
