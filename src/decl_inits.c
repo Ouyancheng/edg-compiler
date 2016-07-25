@@ -7064,11 +7064,13 @@ TRUE).  If it contains an explicit initialization (i.e., not one implied by a
 field initializer), set *variant_explicit_init to TRUE.
 */
 {
+  a_boolean  first_entry = TRUE;
 
-  for (; cip != NULL;) {
+  for (; cip != NULL; cip = cip->next) {
     a_dynamic_init_ptr  dip = cip->initializer;
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
-    if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
+    if ((dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) ||
+        (!first_entry && cip->source.arg_cache != NULL)) {
       /* An explicit initializer. */
       *variant_explicit_init = TRUE;
       *variant_init = TRUE;
@@ -7086,7 +7088,7 @@ field initializer), set *variant_explicit_init to TRUE.
          here. */
       break;
     }  /* if */
-    cip = cip->next;
+    first_entry = FALSE;
   }  /* for */
 }  /* check_variant_has_initializer */
 
