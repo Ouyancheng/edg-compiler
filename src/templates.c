@@ -6278,6 +6278,12 @@ expression context) rather than a declaration.
     if (var_ptr->storage_class == (a_storage_class)sc_extern) {
       var_ptr->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_definition && (var_ptr->decl_modifiers & DM_DLLIMPORT)) {
+      /* A variable declared __declspec(dllimport) cannot be initialized. */
+      pos_error(ec_dllimport_defined, &dps.declarator_pos);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   set_variable_instantiation_needed_bit_number(var_ptr);
@@ -16371,13 +16377,6 @@ instance to the definitions list for the template.
        instantiation.  It serves as the associated "template". */
     var_for_decl->template_info->assoc_template =
                                       proto_var->template_info->assoc_template;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (var_for_decl->decl_modifiers & DM_DLLIMPORT) {
-      /* A static data member declared with __declspec(dllimport) should not
-         be instantiated. */
-      tip->suppress_instantiation = TRUE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
 }  /* find_variable_member_template */
@@ -29195,8 +29194,20 @@ data member specified by tip.
        translation unit containing the template. */
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
-    /* Static data member definition. */
-    instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
+    /* Static data member or variable template definition. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if ((variable_for_symbol(tip->instance_sym)
+                                      ->decl_modifiers & DM_DLLIMPORT) != 0 &&
+        tip->explicit_instantiation) {
+      /* A static data member declared with __declspec(dllimport) should not
+         be marked as "do not instantiate". */
+      tip->suppress_instantiation = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
+    }  /* if */
   } else {
     /* Function instantiation.  The number of simultaneous function
        instantiations is limited to limit the amount of memory used by

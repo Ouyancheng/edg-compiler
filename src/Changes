@@ -1,5 +1,20 @@
 Version 4.12
 
+7/25/16  [EDGcpfe/17422]
+Microsoft compatibility: dllimport static data members of class templates
+
+When parsing templates in their generic form in Microsoft C++ mode, the front
+issued an error on the prototype instantiation of the definition of a dllimport
+static data member of a class template that includes an initializer.  Now, an
+error is only issued if the static data member is instantiated.  For example:
+
+  template<typename T> struct S {
+    __declspec(dllimport) static int const m;
+  };
+  template<typename T> int const S<T>::m = 1;
+    // Previously an error in some Microsoft modes.  Now okay.
+
+
 7/25/16  [EDGcpfe/17431]
 Spurious error on constexpr constructor with variant member initializer
 

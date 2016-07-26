@@ -4470,7 +4470,8 @@ returned set to TRUE.
       var_err = TRUE;
       vp_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (vp->decl_modifiers & DM_DLLIMPORT) {
+    } else if ((vp->decl_modifiers & DM_DLLIMPORT) != 0 &&
+               !vp->is_template_variable) {
       /* A variable declared __declspec(dllimport) cannot be initialized. */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
