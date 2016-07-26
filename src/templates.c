@@ -29199,8 +29199,9 @@ data member specified by tip.
     if ((variable_for_symbol(tip->instance_sym)
                                       ->decl_modifiers & DM_DLLIMPORT) != 0 &&
         tip->explicit_instantiation) {
-      /* A static data member declared with __declspec(dllimport) should not
-         be marked as "do not instantiate". */
+      /* A static data member declared with __declspec(dllimport) that is
+         subsequently named in an explicit instantiation directive should have
+         its instantiations suppressed. */
       tip->suppress_instantiation = TRUE;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
