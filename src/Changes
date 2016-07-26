@@ -1,6 +1,6 @@
 Version 4.12
 
-7/26/16  [EDGcpfe/17035]
+7/26/16  [EDGcpfe/13966,EDGcpfe/17035]
 Member function template with parameter pack expanded from enclosing class
 template parameter
 
