@@ -10614,8 +10614,7 @@ Return the number of actual arguments in *elements.
         break;
       }  /* if */
     }  /* for */
-    if (result_ptp != NULL &&
-        vpip->param_type->type != vpip->orig_param_type->type) {
+    if (result_ptp != NULL) {
       /* Count the number of pack elements. */
       for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
            ptp = ptp->next) {

@@ -1,5 +1,24 @@
 Version 4.12
 
+7/26/16  [EDGcpfe/17035]
+Member function template with parameter pack expanded from enclosing class
+template parameter
+
+Consider the following example:
+
+  template<class ... Ts> struct S {
+    template<class F> auto m(F f, Ts... p)->decltype(f(p...));
+  };
+  struct C { void operator()(int); };
+  void g(S<int> s, C c) {
+    s.m(c, 3);
+  }
+
+Previously, the parameter pack p of S<int>::m was not recognized as a parameter
+pack when parsing "p..." in the return type (because the enclosing template
+is already expanded at that point).  This is now fixed.
+
+
 7/25/16  [EDGcpfe/17422]
 Microsoft compatibility: dllimport static data members of class templates
 

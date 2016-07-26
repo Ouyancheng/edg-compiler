@@ -4267,7 +4267,7 @@ succeeds, FALSE if it fails.
        deduction, and return TRUE.  If the nondeduced parameter is
        a parameter pack, we take all the remaining arguments. */
     deduction_okay = TRUE;
-    if (ptp->is_parameter_pack) {
+    if (ptp->is_parameter_pack && !ptp->is_pack_element) {
       if (ptp->next == NULL) {
         arg = NULL;
       } else {

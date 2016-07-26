@@ -6231,7 +6231,8 @@ check_typerefs:
                  list1 = list1->next, list2 = list2->next) {
               a_type_ptr param_1_type = list1->type;
               a_type_ptr param_2_type = list2->type;
-              if (list1->is_parameter_pack != list2->is_parameter_pack) {
+              if ((list1->is_parameter_pack && !list1->is_pack_element) != 
+                      (list2->is_parameter_pack && !list2->is_pack_element)) {
                 identical = FALSE;
                 break;
               }  /* if */
@@ -6535,7 +6536,8 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
-      if (list1->is_parameter_pack != list2->is_parameter_pack) {
+      if ((list1->is_parameter_pack && !list1->is_pack_element) != 
+                      (list2->is_parameter_pack && !list2->is_pack_element)) {
         compatible = FALSE;
         goto done;
       }  /* if */

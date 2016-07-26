@@ -1598,23 +1598,25 @@ typedef struct a_param_id {
 			/* For a new- or old-style function parameter, this is
 			   the storage class to be associated with it when it
 			   is declared. */
-  a_byte_boolean
-		implicitly_declared;
+  a_bit_field
+		implicitly_declared:1;
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
-  a_byte_boolean
-		is_parameter_pack;
+  a_bit_field
+		is_parameter_pack:1;
 			/* TRUE for the parameter of a template definition of
 			   a variadic template for the function parameter
-			   pack. */
+			   pack.  (See the similar field in a_param_type for a
+			   situation where this flag can be TRUE at the same
+			   type as is_pack_element.) */
   a_bit_field	is_pack_element:1;
 			/* TRUE for parameters of an actual instantiation of
 			   a variadic template for those parameters that are
 			   associated with a parameter pack of the original
 			   variadic template. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_byte_boolean
-		is_decl_after_first_in_comma_list;
+  a_bit_field
+		is_decl_after_first_in_comma_list:1;
 			/* TRUE for an old-style parameter defined in a
 			   comma-separated list, but not the first in that
 			   list.  For example, for y in:

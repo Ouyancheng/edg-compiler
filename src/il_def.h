@@ -5421,10 +5421,22 @@ typedef struct a_param_type {
 			   parameter involves a template parameter in any
 			   context. */
   a_bit_field	is_parameter_pack:1;
-			/* TRUE if this entry represent a C++11 function
+			/* TRUE if this entry represents a C++11 function
 			   parameter pack of a variadic template.  This is
-			   set for the prototype instantiation of
-			   variadic templates. */
+			   set for the prototype instantiation of variadic
+			   templates.  It is also set in a case like the
+			   following:
+			     template<class ... Ts> struct S {
+			       template<class F> auto m(F f, Ts... p)
+			                                 ->decltype(f(p...));
+			     };
+
+			   When the outer template (S) is instantiated, the
+			   first parameter pack entry for p (if any) is marked
+			   with this flag set to TRUE, but also with the flag
+			   is_pack_element set to TRUE.  That allows "p..." in
+			   the return type to be recognized as a valid pack
+			   expansion. */
   a_bit_field	is_pack_element:1;
 			/* TRUE for parameters of an actual instantiation of
 			   a variadic template for those parameters that are

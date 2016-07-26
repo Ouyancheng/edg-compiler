@@ -3148,7 +3148,8 @@ an error if a default argument expression is encountered.
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
-        if (param_state.has_pack_ellipsis && is_template_dependent_context()) {
+        if (param_state.has_pack_ellipsis && is_template_dependent_context() &&
+            !is_pack_element) {
           /* This looks like the declaration of a function parameter pack.
              If it is a real pack (for a function template), default arguments
              are not permitted.  However, if it is a pack in an ordinary member
@@ -3158,7 +3159,22 @@ an error if a default argument expression is encountered.
           }  /* if */
         } else {
           ptp->is_pack_element = is_pack_element;
-          ptp->duplicate_name = is_non_initial_pack_element;
+          if (is_non_initial_pack_element) {
+            ptp->duplicate_name = TRUE;
+          } else if (param_state.has_pack_ellipsis &&
+                     is_template_dependent_context()) {
+            /* Consider a case like the following:
+                 template<class ... Ts> struct S {
+                   template<class F> auto m(F f, Ts... p)->decltype(f(p...));
+                 };
+               During a real instantiation of S, any number of parameters p
+               may be created, each marked as a "pack element".  However, when
+               "p..." is rescanned in the return type, we'll need to know that
+               p was a parameter pack (to validate the ellipsis and set up
+               another context for expansion).  We therefore mark the first
+               parameter of the expansion as a "parameter pack". */
+            ptp->is_parameter_pack = TRUE;
+          }  /* if */
           if (is_pack_element &&
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
@@ -3232,7 +3248,12 @@ an error if a default argument expression is encountered.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
-          last_param_id->is_pack_element = ptp->is_pack_element;
+          if (ptp->is_pack_element) {
+            last_param_id->is_pack_element = TRUE;
+            if (ptp->is_parameter_pack) {
+              last_param_id->is_parameter_pack = TRUE;
+            }  /* if */
+          }  /* if */
           ptp->param_num = param_number;
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {
