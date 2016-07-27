@@ -5294,12 +5294,13 @@ the point of call.  conv_context describes the context of the conversion.
           unexpected_condition_str(
                            "determine_function_viability: ran off param list");
         }  /* if */
-      } else if (param->is_parameter_pack) {
+      } else if (param->is_parameter_pack && !param->is_pack_element) {
         /* For a parameter pack in the first pass, continue advancing through
            the arguments, keeping the parameter the same, so the match entry
            for each argument gets added.  On the second pass, we should no
            longer see the parameter pack; the deduction should get rid of
-           it. */
+           it.  (If is_pack_element is TRUE, the pack has already been
+           expanded and the parameter should be advanced too.) */
         check_assertion(first_pass);
         goto next_argument;
       } else {
