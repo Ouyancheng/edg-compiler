@@ -1,5 +1,19 @@
 Version 4.12
 
+7/27/16  [EDGcpfe/17143]
+Internal error on constructor of variadic class template
+
+An internal error could occur (in scan_function_body) if a constructor
+of a variadic class template had an empty pack expansion as its first
+parameter, and the pack expansion was followed by one or more other
+parameters.  Now fixed.
+
+  template<class T, class ... Ts> struct S {
+    S(Ts ... ts, T t) {}
+  };
+  S<int> s(2);
+
+
 7/27/16  [EDGcpfe/17439]
 Constructor/destructor calls when IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
 is TRUE

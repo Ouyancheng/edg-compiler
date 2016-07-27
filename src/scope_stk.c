@@ -11394,9 +11394,11 @@ suppression is on the stack.
         if (is_lookahead) pesep->is_lookahead = TRUE;
       } else {
         /* There are no arguments to be expanded.  Advance to the token
-           after the end of the expansion. */
+           after the end of the expansion.  Don't advance when is_lookahead
+           is TRUE because we want to return the same result (i.e., FALSE)
+           when this routine is called again. */
         decrement_variadic_rescans_for_reusable_cache();
-        skip_pack_expansion_tokens(pedp);
+        if (!is_lookahead) skip_pack_expansion_tokens(pedp);
       }  /* if */
     }  /* if */
     any_args = pesep != NULL;
