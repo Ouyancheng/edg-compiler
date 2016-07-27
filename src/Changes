@@ -1,5 +1,17 @@
 Version 4.12
 
+7/27/16  [EDGcpfe/17008]
+Access error on explicit specialization of a class template
+
+An access error was reported on an attempt to explicitly specialize
+an instance of a non-public member class template.  Now fixed.
+
+  class A {
+    template<typename T> struct B;
+  };
+  template <> struct A::B<int>;
+
+
 7/27/16  [EDGcpfe/17143]
 Internal error on constructor of variadic class template
 

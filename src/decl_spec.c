@@ -738,10 +738,12 @@ handle enum types.
 }  /* tag_currently_being_defined */
 
 
-static void check_qualified_tag_access(a_boolean	is_tag_definition)
+static void check_qualified_tag_access(a_boolean	allow_access)
 /*
 Do access and ambiguity checking on a qualified name being processed
-by scan_tag_name.  is_tag_definition is TRUE if the tag is being defined.
+by scan_tag_name.  allow_access is TRUE if access errors should be
+ignored.  This is the case when the tag is being defined and for
+explicit specializations.
 */
 {
   /* The Microsoft compiler does check the access of qualified tag
@@ -751,13 +753,14 @@ by scan_tag_name.  is_tag_definition is TRUE if the tag is being defined.
   } else {
     check_ambiguity_and_verify_access(&locator_for_curr_id);
   }  /* if */
-  if (is_tag_definition && any_deferred_access_checks()) {
+  if (allow_access && any_deferred_access_checks()) {
     /* When defining a class member outside of its class definition
        using a qualified name, any access errors that may have been
        detected when scanning the qualified name should be suppressed.
        This context is not really a declarator, but the concept is the
        same as suppressing access errors when scanning the declarator
-       of a member function or static data member. */
+       of a member function or static data member.  This is also done
+       for explicit specializations that name a class. */
     discard_declarator_access_errors();
   }  /* if */
 }  /* check_qualified_tag_access */
@@ -1017,6 +1020,7 @@ This is a helper routine for scan_tag_name.
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         *is_friend_decl,
+                                  a_boolean         is_specialization,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_boolean         no_definition_allowed,
@@ -1038,20 +1042,23 @@ name of a template).
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
 however, the flag will be reset to FALSE and a normal lookup will be done.
-*check_for_vacuous_decl is TRUE when the context permits a declaration like
-"struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
-inside a new expression.  no_definition_allowed is TRUE if no definition
-is considered in this context (e.g., if the declaration appears in a C++11
-trailing return type).  is_event_interface is TRUE if the __event keyword
-precedes the __interface keyword meaning that an "__event __interface" is
-being declared.  *effective_decl_level will have been initialized to
-decl_scope_level by the caller; it may be changed in C++ for a forward
-reference to a tag within a function prototype or a class definition -- the
-tag is entered into the innermost non-class/non-prototype scope, which is
-returned as its effective declaration level.  *tag_resolution is returned TRUE
-if this is the definition of a previously declared incomplete class or enum.
-*is_predeclared_type_decl is returned TRUE if this is the explicit declaration
-of a predeclared type like type_info in C++ or _GUID in Microsoft mode.
+is_specialization is TRUE if for calls done while scanning a tag name of a
+template explicit specialization.  *check_for_vacuous_decl is TRUE when the
+context permits a declaration like "struct x;".  is_ref_within_new_expr is
+TRUE when the declaration appears inside a new expression.
+no_definition_allowed is TRUE if no definition is considered in this context
+(e.g., if the declaration appears in a C++11 trailing return type).
+is_event_interface is TRUE if the __event keyword precedes the __interface
+keyword meaning that an "__event __interface" is being declared.
+*effective_decl_level will have been initialized to decl_scope_level by the
+caller; it may be changed in C++ for a forward reference to a tag within a
+function prototype or a class definition -- the tag is entered into the
+innermost non-class/non-prototype scope, which is returned as its effective
+declaration level.  *tag_resolution is returned TRUE if this is the
+definition of a previously declared incomplete class or enum.
+*is_predeclared_type_decl is returned TRUE if this is the explicit
+declaration of a predeclared type like type_info in C++ or _GUID in
+Microsoft mode.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
@@ -1214,7 +1221,9 @@ caution when modifying this routine.
         tag_err = TRUE;
       } else {
         /* Do access and ambiguity checking on the name. */
-        check_qualified_tag_access(is_tag_definition);
+        check_qualified_tag_access(is_tag_definition ||
+                                   (is_specialization &&
+                                                   next_tok == tok_semicolon));
         tag_sym = locator_for_curr_id.specific_symbol;
         if (tag_sym != NULL) {
           reduce_projection_symbol_to_fundamental_symbol(tag_sym);
@@ -3358,6 +3367,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
+                            (dsi_flags & DSI_IS_SPECIALIZATION) != 0,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
                             no_definition_allowed,
                             is_event_interface,
@@ -5902,7 +5912,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     local_decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            &is_friend_decl, &vacuous_decl_allowed,
+                            &is_friend_decl, /*is_specialization=*/FALSE,
+                            &vacuous_decl_allowed,
                             (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                             (dsi_flags & DSI_NO_TAG_DEFINITION) != 0,
                             /*is_event_interface=*/FALSE,
