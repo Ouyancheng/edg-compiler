@@ -12093,7 +12093,11 @@ form.
           prp->param_num = pack_symbol->
                             variant.variable.ptr->assoc_param_type->param_num;
         } else if (kind == prk_parameter) {
-          prp->param_num = pack_symbol->variant.param_id->param_num;
+          a_param_id_ptr  pip = pack_symbol->variant.param_id;
+          prp->param_num = pip->param_num;
+          if (pip->uses_enclosing_pack) {
+            prp->uses_enclosing_pack = TRUE;
+          }  /* if */
         } else if (kind == prk_bases) {
           prp->direct_bases = direct_bases;
         } else {
@@ -12104,9 +12108,16 @@ form.
             depth = depth_template_declaration_scope;
           }  /* if */
           check_assertion(depth != NO_SCOPE_DEPTH);
-          prp->uses_enclosing_pack = pack_symbol != NULL &&
-                                     pack_symbol->decl_scope !=
-                                                     scope_stack[depth].number;
+          if (pack_symbol != NULL &&
+              pack_symbol->decl_scope != scope_stack[depth].number) {
+            prp->uses_enclosing_pack = TRUE;
+            if (scope_is(&scope_stack_top(), sck_func_prototype)) {
+              a_decl_parse_state_ptr  dps = scope_stack_top().decl_parse_state;
+              if (dps != NULL && dps->param_with_no_enclosing_pack_ref) {
+                dps->param_with_no_enclosing_pack_ref = FALSE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
           prp->coordinates = coordinates_of_template_param_symbol(pack_symbol);
         }  /* if */
         prp->position = *position;
