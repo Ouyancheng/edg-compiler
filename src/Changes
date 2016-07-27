@@ -1,5 +1,22 @@
 Version 4.12
 
+7/27/16  [EDGcpfe/17439]
+Constructor/destructor calls when IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+is TRUE
+
+A change has been made to lowering when constructor and/or destructor calls
+return "this" (i.e., when IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS is
+TRUE).  For such calls, the call expression nodes in the unlowered IL have
+"void" type, but lowering lowers the return type of the constructor/destructor,
+resulting in a "void" call node that invokes a routine returning a pointer.
+A change has been made in such cases to change the call node to the appropriate
+type (i.e., that returned by the constructor/destructor), but add a cast to
+"void" thereby preserving the original expression type.  This had caused
+invalid IL in some cases where a destructor was invoked in an "if" statement
+that was then inlined as an eok_question operator, resulting in the second
+and third operands of the eok_question operator having different types.
+
+
 7/26/16  [EDGcpfe/13966,EDGcpfe/17035]
 Member function template with parameter pack expanded from enclosing class
 template parameter

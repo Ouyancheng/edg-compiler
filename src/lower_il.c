@@ -12610,8 +12610,26 @@ detached from the IL tree; otherwise it is set to FALSE.
      operand to a pointer to class. */
   lower_class_selector_operand_if_any(expr);
   lower_os_type(expr->type);
-  first_arg = arg_node = expr->variant.operation.operands;
+  first_arg = expr->variant.operation.operands;
   check_assertion(!first_arg->is_lvalue);
+#if CTORS_RETURN_THIS || DTORS_RETURN_THIS
+  if (is_routine_node(first_arg) &&
+      (node_routine(first_arg)->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+       node_routine(first_arg)->special_kind ==
+                                    (a_special_function_kind)sfk_destructor)) {
+    /* Calling a constructor/destructor that returns "this".  The routine
+       type will be lowered; add a cast to void and re-write the call node
+       to use the lowered return type. */
+    check_assertion(expr->type == void_type());
+    expr->type = lowered_return_type_of(node_routine(first_arg)->type);
+    overwrite_node(expr, add_cast(copy_node(expr), void_type()));
+    /* Make sure expr points to the call operation. */
+    expr = call_expr = expr->variant.operation.operands;
+    first_arg = expr->variant.operation.operands;
+  }  /* if */
+#endif /* CTORS_RETURN_THIS || DTORS_RETURN_THIS */
+  arg_node = first_arg;
   /* Extract the routine type. */
   if (op == (an_expr_operator_kind)eok_dot_pm_call ||
       op == (an_expr_operator_kind)eok_points_to_pm_call) {
