@@ -10900,7 +10900,8 @@ points to the template parameter list.
                    list.  This is a nondeduced context.  Consider it
                    a match for now. */
               } else {
-                if (tptp->is_parameter_pack && pesep == NULL) {
+                if (tptp->is_parameter_pack &&
+                    tptp->pack_expansion_descr != NULL && pesep == NULL) {
                   begin_pack_deduction_context(tptp->pack_expansion_descr,
                                                templ_param_list,
                                                templ_arg_list,
