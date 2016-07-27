@@ -4203,13 +4203,17 @@ This function is also called in clang mode.
        fields in any special way wrt. promotion. */
     bit_field_promotion_applies_to_some_operations = FALSE;
   }  /* if */
+  if (clang_mode) {
+    if (clang_version >= 30700) {
+      nullability_qualifiers_enabled = TRUE;
+    }  /* if */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-  if (!clang_mode) {
+  } else {
     /* GNU produces wrappers only for dynamically-initialized thread_local
        variables; clang provides wrappers for all. */
     all_thread_locals_have_wrappers = FALSE;
-  }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -4271,9 +4275,6 @@ This function is also called in clang mode.
       c11_atomic_enabled = TRUE;
       c11_atomic_classes_disabled = TRUE;
       std_thread_local_storage_specifier_enabled = TRUE;
-    }  /* if */
-    if (clang_version >= 30700) {
-      nullability_qualifiers_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
