@@ -1042,7 +1042,7 @@ name of a template).
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
 however, the flag will be reset to FALSE and a normal lookup will be done.
-is_specialization is TRUE if for calls done while scanning a tag name of a
+is_specialization is TRUE for calls done while scanning the tag name of a
 template explicit specialization.  *check_for_vacuous_decl is TRUE when the
 context permits a declaration like "struct x;".  is_ref_within_new_expr is
 TRUE when the declaration appears inside a new expression.
