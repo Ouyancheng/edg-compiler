@@ -12619,7 +12619,7 @@ detached from the IL tree; otherwise it is set to FALSE.
        node_routine(first_arg)->special_kind ==
                                     (a_special_function_kind)sfk_destructor)) {
     /* Calling a constructor/destructor that returns "this".  The routine
-       type will be lowered; add a cast to void and re-write the call node
+       type will be lowered; add a cast to void and rewrite the call node
        to use the lowered return type. */
     check_assertion(expr->type == void_type());
     expr->type = lowered_return_type_of(node_routine(first_arg)->type);
