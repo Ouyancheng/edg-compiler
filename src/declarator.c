@@ -3503,7 +3503,7 @@ an error if a default argument expression is encountered.
                in the return type.  That entry must indicate that it really is
                expanded through the enclosing template's pack (Ts, here);
                otherwise, the empty expansion case will not be handled
-               correctly.  Be recording this property at this time (when p is
+               correctly.  By recording this property at this time (when p is
                declared), we ensure that record_potential_pack_reference_full
                will have the needed information to record the property for the
                later reference. */
