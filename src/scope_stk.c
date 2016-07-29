@@ -11688,8 +11688,12 @@ that list to pedp.
         for (prp1 = pedp->packs_referenced; prp1 != NULL; prp1 = prp1->next) {
           a_pack_reference_ptr	prp2;
           a_pack_reference_ptr	prev_prp2 = prp1;
-          if (!prp1->uses_enclosing_pack) {
-            /* Record that this expansion uses a non-enclosing pack. */
+          if (!prp1->uses_enclosing_pack ||
+              prp1->kind == prk_parameter ||
+              prp1->kind == prk_variable) {
+            /* Record that this expansion uses a non-enclosing pack.  (Note
+               that a parameter/variable reference marked as using an enclosing
+               pack also uses the inner function parameter pack.) */
             pedp->uses_only_enclosing_packs = FALSE;
           }  /* if */
           for (prp2 = prp1->next; prp2 != NULL; prp2 = prp2->next) {
