@@ -19256,12 +19256,13 @@ it might produce an error).
         case eok_ref_cast:
           /* eok_ref_cast is handled the same as eok_adjust_lvalue, but
              only allow the conversion to a constant if the underlying
-             entity is a temporary.  See core issue 1480.  Normally,
-             the underlying entity has an address that we must preserve
-             (e.g., in an xvalue). */
+             entity is a temporary or if the types are reference-related.
+             See core issue 1480.  Normally, the underlying entity has an
+             address that we must preserve (e.g., in an xvalue). */
           if (constexpr_enabled &&
-              op1->kind == (an_expr_node_kind)enk_temp_init &&
-              op1->variant.init.dynamic_init->has_temporary_lifetime) {
+              ((op1->kind == (an_expr_node_kind)enk_temp_init &&
+                op1->variant.init.dynamic_init->has_temporary_lifetime) ||
+               are_reference_related(node->type, op1->type))) {
             goto lvalue_adjust;
           }  /* if */
           break;
