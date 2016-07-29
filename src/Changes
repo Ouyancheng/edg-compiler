@@ -1,5 +1,27 @@
 Version 4.12
 
+7/29/16  [EDGcpfe/17093]
+Spurious template template argument mismatch
+
+In some cases, the substitution of a template argument list of a template
+template parameter with a variadic template parameter (e.g., TT<int> in
+the example below) would result in a substitution failure if the template
+template argument was a non-variadic class template (C in the example
+below).  Now fixed.
+
+  template <typename T1, typename T2> struct A {
+    static constexpr bool value = true;
+  };
+  template <bool b_val, typename T = void> struct B { typedef T type; };
+  template <typename R> struct C { };  // Worked if R was pack
+  template <template <class ...> class TT> using D = A<C<int>, TT<int>>;
+  template <template <typename ...> class TT, typename ... Args>
+  typename B<D<TT>::value>::type f(void);
+  int main() {
+    f<C>();
+  }
+
+
 7/29/16  [EDGcpfe/17056]
 Overloaded literal operator templates
 

@@ -3057,6 +3057,7 @@ in ps_arg_list.
                                           template_sym,
                                           prototype_tap,
                                           primary_templ_param_list,
+                                          (a_template_param_ptr)NULL,
                                           *ps_arg_list, templ_param_list,
                                           &template_sym->decl_position,
                                           CTWS_IS_PARTIAL_SPECIALIZATION_CHECK,
@@ -11288,8 +11289,6 @@ parameters.
 
   is_partial_spec_check =
                          (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0;
-  /* Don't pass this flag into other substitution routines. */
-  options &= (~CTWS_IS_PARTIAL_SPECIALIZATION_CHECK);
   /* Make sure that the template argument kind matches the parameter
      kind. */
   if (have_params) {
@@ -11428,6 +11427,7 @@ a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
+			a_template_param_ptr	ttp_list_for_copy,
 			a_template_arg_ptr	templ_arg_list,
 			a_template_param_ptr	templ_param_list,
 			a_source_position	*source_pos,
@@ -11445,10 +11445,16 @@ template is not available.
 
 param_list_for_copy gives the corresponding template parameter list,
 or is NULL if the parameter list is not known (e.g., for a nonreal
-instantiation).  source_pos indicates the source position of the
-argument list.  options is a set of bit flags used to control how
-names are looked up, if needed.  If there is an error in the copying,
-set *copy_error to TRUE.
+instantiation).  When ttp_list_for_copy is not NULL, then template_sym
+came from a template template argument.  param_list_for_copy is the list
+from the actual argument template and ttp_list_for_copy is the list
+from the template template parameter's parameter list.  This is needed
+because in some cases we need to find out if the original parameter
+from the template template parameter was variadic.
+
+source_pos indicates the source position of the argument list.  options is
+a set of bit flags used to control how names are looked up, if needed.
+If there is an error in the copying, set *copy_error to TRUE.
 */
 {
   a_template_arg_ptr	tap;
@@ -11457,6 +11463,7 @@ set *copy_error to TRUE.
   a_template_arg_ptr	next_tap;
   a_template_arg_ptr	prev_new_tap;
   a_template_param_ptr	tpp;
+  a_template_param_ptr	ttp_tpp;
   a_boolean		have_params = (param_list_for_copy != NULL);
   a_boolean		added_placeholder = FALSE;
   a_boolean		copy_arg_operands = FALSE;
@@ -11490,12 +11497,21 @@ set *copy_error to TRUE.
   /* Note that this routine does not use the template argument list
      traversal routines. */
   /*lint --e{850} tap modified in loop */
-  for (tap = arg_list_to_copy, tpp = param_list_for_copy;
+  for (tap = arg_list_to_copy,
+         tpp = param_list_for_copy,
+         ttp_tpp = ttp_list_for_copy;
        ; tap = next_tap) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
     next_tap = tap == NULL ? NULL : tap->next;
-    if (tap != NULL && tap->is_pack) is_variadic = TRUE;
+    if (tpp != NULL && tpp->is_pack) is_variadic = TRUE;
+    /* For partial specialization checking, consider the context variadic
+       if the template template parameter has a template parameter that is
+       a pack. */
+    if (ttp_tpp != NULL && ttp_tpp->is_pack &&
+        (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
+      is_variadic = TRUE;
+    }  /* if */
     /* If we have run out of parameters and this is not a variadic template,
        consider this a copy error.  Note that above, we consider the presence
        of a pack to make something variadic, so we need to ignore the start
@@ -11558,7 +11574,11 @@ set *copy_error to TRUE.
         prev_new_tap->next = tap;
       }  /* if */
       prev_new_tap = tap;
-      if (have_params && !tpp->is_pack) tpp = tpp->next;
+     if (have_params && !tpp->is_pack &&
+         !is_start_of_pack_expansion_templ_arg(tap)) {
+        tpp = tpp->next;
+        ttp_tpp = ttp_tpp != NULL ? ttp_tpp->next : NULL;
+      }  /* if */
       any_more = FALSE;
     }  /* if */
     while (any_more) {
@@ -11636,7 +11656,11 @@ set *copy_error to TRUE.
         prev_new_tap->next = new_tap;
       }  /* if */
       prev_new_tap = new_tap;
-      if (have_params && !tpp->is_pack) tpp = tpp->next;
+      if (have_params && !tpp->is_pack &&
+          !is_start_of_pack_expansion_templ_arg(tap)) {
+        tpp = tpp->next;
+        ttp_tpp = ttp_tpp != NULL ? ttp_tpp->next : NULL;
+      }  /* if */
 end_of_loop:
       (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
@@ -11698,6 +11722,7 @@ to an alias template, the substituted type is returned in *new_type
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
   a_boolean				templ_param_is_alias = FALSE;
+  a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
   template_sym = primary_template_of(template_sym);
@@ -11706,6 +11731,8 @@ to an alias template, the substituted type is returned in *new_type
      the actual template to use from the template argument list. */
   if (template_sym->is_template_param) {
     a_template_ptr	new_templ;
+    /* Save the parameter list form the template template parameter. */
+    ttp_param_list = tssp->cache.decl_info->parameters;
     new_templ = template_sym->variant.template_info->il_template_entry;
     new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
                                                 templ_param_list, source_pos,
@@ -11727,7 +11754,8 @@ to an alias template, the substituted type is returned in *new_type
   /* Make a copy of the template argument list, doing substitution. */
   new_list = copy_template_arg_list_with_substitution(
                                            template_sym,
-                                           tap, tpp, templ_arg_list,
+                                           tap, tpp, ttp_param_list,
+                                           templ_arg_list,
                                            templ_param_list, 
                                            source_pos, options,
                                            copy_error, ctws_state);
@@ -11812,7 +11840,9 @@ new type may not be a typeref.
   /* Make a copy of the template argument list, doing substitution. */
   new_list = copy_template_arg_list_with_substitution(
                                            template_sym,
-                                           tap, tpp, templ_arg_list,
+                                           tap, tpp,
+                                           (a_template_param_ptr)NULL,
+                                           templ_arg_list,
                                            templ_param_list, 
                                            source_pos, options,
                                            copy_error, ctws_state);

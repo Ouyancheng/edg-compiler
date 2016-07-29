@@ -707,6 +707,7 @@ extern a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
+			a_template_param_ptr	ttp_list_for_copy,
 			a_template_arg_ptr	templ_arg_list,
 			a_template_param_ptr	templ_param_list,
 			a_source_position	*source_pos,
